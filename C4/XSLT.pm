@@ -141,7 +141,7 @@ The helper function _get_best_default_xslt_filename is used in a unit test.
 =cut
 
 sub _get_best_default_xslt_filename {
-    my ($htdocs, $theme, $lang, $base_xslfile) = @_;
+    my ($htdocs, $theme, $lang, $base_xslfile, $is_intranet, $customdocs) = @_;
 
     my @candidates = (
         "$htdocs/$theme/$lang/xslt/${base_xslfile}", # exact match
@@ -150,6 +150,15 @@ sub _get_best_default_xslt_filename {
         "$htdocs/prog/en/xslt/${base_xslfile}",      # otherwise, prog theme in English; should always
                                                      # exist
     );
+    if ( (! $is_intranet) && $customdocs ) {
+        unshift @candidates, (
+            "$customdocs/$theme/$lang/xslt/${base_xslfile}", # exact match
+            "$customdocs/$theme/en/xslt/${base_xslfile}",    # if not, preferred theme in English
+            "$customdocs/prog/$lang/xslt/${base_xslfile}",   # if not, 'prog' theme in preferred language
+            "$customdocs/prog/en/xslt/${base_xslfile}",      # otherwise, prog theme in English; should always
+                                                             # exist
+            );
+    }
     my $xslfilename;
     foreach my $filename (@candidates) {
         $xslfilename = $filename;
@@ -170,7 +179,7 @@ sub get_xslt_sysprefs {
                               UseControlNumber IntranetBiblioDefaultView BiblioDefaultView
                               OPACItemLocation DisplayIconsXSLT
                               AlternateHoldingsField AlternateHoldingsSeparator
-                              TrackClicks opacthemes IdRef OpacSuppression / )
+                              TrackClicks opacthemes IdRef OpacSuppression DivibibEnabled / )
     {
         my $sp = C4::Context->preference( $syspref );
         next unless defined($sp);
@@ -197,28 +206,34 @@ sub XSLTParse4Display {
         my $htdocs;
         my $theme;
         my $xslfile;
+        my $is_intranet = 0;
+        my $customdocs;
         if ($xslsyspref eq "XSLTDetailsDisplay") {
+            $is_intranet = 1;
             $htdocs  = C4::Context->config('intrahtdocs');
             $theme   = C4::Context->preference("template");
             $xslfile = C4::Context->preference('marcflavour') .
                        "slim2intranetDetail.xsl";
         } elsif ($xslsyspref eq "XSLTResultsDisplay") {
+            $is_intranet = 1;
             $htdocs  = C4::Context->config('intrahtdocs');
             $theme   = C4::Context->preference("template");
             $xslfile = C4::Context->preference('marcflavour') .
                         "slim2intranetResults.xsl";
         } elsif ($xslsyspref eq "OPACXSLTDetailsDisplay") {
-            $htdocs  = C4::Context->config('opachtdocs');
-            $theme   = C4::Context->preference("opacthemes");
-            $xslfile = C4::Context->preference('marcflavour') .
+            $htdocs     = C4::Context->config('opachtdocs');
+            $customdocs = C4::Context->config('opaccustomdocs');
+            $theme      = C4::Context->preference("opacthemes");
+            $xslfile    = C4::Context->preference('marcflavour') .
                        "slim2OPACDetail.xsl";
         } elsif ($xslsyspref eq "OPACXSLTResultsDisplay") {
-            $htdocs  = C4::Context->config('opachtdocs');
-            $theme   = C4::Context->preference("opacthemes");
-            $xslfile = C4::Context->preference('marcflavour') .
+            $htdocs     = C4::Context->config('opachtdocs');
+            $customdocs = C4::Context->config('opaccustomdocs');
+            $theme      = C4::Context->preference("opacthemes");
+            $xslfile    = C4::Context->preference('marcflavour') .
                        "slim2OPACResults.xsl";
         }
-        $xslfilename = _get_best_default_xslt_filename($htdocs, $theme, $lang, $xslfile);
+        $xslfilename = _get_best_default_xslt_filename($htdocs, $theme, $lang, $xslfile, $is_intranet, $customdocs);
     }
 
     if ( $xslfilename =~ m/\{langcode\}/ ) {

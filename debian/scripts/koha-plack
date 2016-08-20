@@ -82,6 +82,8 @@ start_plack()
 
     if ! is_plack_running ${instancename}; then
         export KOHA_CONF="/etc/koha/sites/${instancename}/koha-conf.xml"
+        export MEMCACHED_SERVERS=127.0.0.1:11211
+        export MEMCACHED_NAMESPACE=koha_${instancename}
 
         log_daemon_msg "Starting Plack daemon for ${instancename}"
 

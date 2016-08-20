@@ -48,16 +48,26 @@ sub new {
     my $filename  = shift;
     my $tmplbase  = shift;
     my $query     = @_? shift: undef;
-    my $htdocs;
+    my ($htdocs, $opaccustomdocs) = ("","");
     if ( $interface ne "intranet" ) {
         $htdocs = C4::Context->config('opachtdocs');
+        $opaccustomdocs = C4::Context->config('opaccustomdocs');
     }
     else {
         $htdocs = C4::Context->config('intrahtdocs');
     }
     my ($theme, $lang, $activethemes)= themelanguage( $htdocs, $tmplbase, $interface, $query);
+    
     my @includes;
     foreach (@$activethemes) {
+        if ( -e "$opaccustomdocs" ) {
+            if ( -e "$opaccustomdocs/$_/$lang/includes" ) {
+                push @includes, "$opaccustomdocs/$_/$lang/includes";
+            }
+            if ( $lang ne 'en' && -e "$opaccustomdocs/$_/en/includes" ) {
+                push @includes, "$opaccustomdocs/$_/en/includes";
+            }
+        }
         push @includes, "$htdocs/$_/$lang/includes";
         push @includes, "$htdocs/$_/en/includes" unless $lang eq 'en';
     }
@@ -162,7 +172,17 @@ sub _get_template_file {
     my $htdocs = C4::Context->config($is_intranet ? 'intrahtdocs' : 'opachtdocs');
     my ($theme, $lang, $availablethemes) = themelanguage($htdocs, $tmplbase, $interface, $query);
     $lang //= 'en';
+
     my $filename = "$htdocs/$theme/$lang/modules/$tmplbase";
+    if (! $is_intranet ) {
+        my $customdocs = C4::Context->config('opaccustomdocs');
+        if ( -e "$customdocs" ) {
+            my $customfile = "$customdocs/$theme/$lang/modules/$tmplbase";
+            if ( -e $customfile ) { 
+                $filename = $customfile;
+            }
+        }
+    }
 
     return ($htdocs, $theme, $lang, $filename);
 }
@@ -252,16 +272,20 @@ sub themelanguage {
     # The hardcoded fallback theme is the last one
     push @themes, $hardcoded_theme;
 
+    my $opaccustomdocs = C4::Context->config('opaccustomdocs');
+    
     # Try to find first theme for the selected theme/lang, then for fallback/lang
     my $where = $tmpl =~ /xsl$/ ? 'xslt' : 'modules';
     for my $theme (@themes) {
-        if ( -e "$htdocs/$theme/$lang/$where/$tmpl" ) {
+        if ( (defined($opaccustomdocs) && -e "$opaccustomdocs/$theme/$lang/$where/$tmpl") || 
+             (-e "$htdocs/$theme/$lang/$where/$tmpl") ) {
             return ( $theme, $lang, uniq( \@themes ) );
         }
     }
     # Otherwise return theme/'en', last resort fallback/'en'
     for my $theme (@themes) {
-        if ( -e "$htdocs/$theme/en/$where/$tmpl" ) {
+        if ( (defined($opaccustomdocs) && -e "$opaccustomdocs/$theme/en/$where/$tmpl") ||
+             (-e "$htdocs/$theme/en/$where/$tmpl") ) {
             return ( $theme, 'en', uniq( \@themes ) );
         }
     }

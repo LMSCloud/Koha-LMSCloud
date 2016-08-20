@@ -65,7 +65,7 @@ sub set_preference {
         my $value = join( ',', $query->param( 'value' ) );
         C4::Context->set_preference( $preference, $value );
     }
-
+    C4::Context->clear_syspref_cache();
     C4::Service->return_success( $response );
 }
 
@@ -99,7 +99,7 @@ sub set_preferences {
             C4::Context->set_preference( $pref, $value );
         }
     }
-
+    C4::Context->clear_syspref_cache();
     C4::Service->return_success( $response );
 }
 

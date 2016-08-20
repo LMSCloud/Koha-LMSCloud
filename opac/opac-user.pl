@@ -56,6 +56,10 @@ BEGIN {
         require C4::External::BakerTaylor;
         import C4::External::BakerTaylor qw(&image_url &link_url);
     }
+    if (C4::Context->preference('DivibibEnabled')) {
+        require C4::Divibib::NCIPService;
+        import C4::Divibib::NCIPService;
+    }
 }
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -167,53 +171,70 @@ my @overdues;
 my @issuedat;
 my $itemtypes = GetItemTypes();
 my $issues = GetPendingIssues($borrowernumber);
+if (C4::Context->preference('DivibibEnabled')) {
+    my $service = C4::Divibib::NCIPService->new();
+    my $divibib_issues = $service->getPendingIssues($borrowernumber);
+        
+    if ( $divibib_issues ) {
+        push @{$issues}, @{$divibib_issues};
+    }
+}
 if ($issues){
     foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$issues} ) {
-        # check for reserves
-        my $restype = GetReserveStatus( $issue->{'itemnumber'} );
-        if ( $restype ) {
-            $issue->{'reserved'} = 1;
+        if (! $issue->{itemSource} ) {
+            $issue->{itemSource} = 'koha';
         }
-
-        my ( $total , $accts, $numaccts) = GetMemberAccountRecords( $borrowernumber );
-        my $charges = 0;
-        foreach my $ac (@$accts) {
-            if ( $ac->{'itemnumber'} == $issue->{'itemnumber'} ) {
-                $charges += $ac->{'amountoutstanding'}
-                  if $ac->{'accounttype'} eq 'F';
-                $charges += $ac->{'amountoutstanding'}
-                  if $ac->{'accounttype'} eq 'FU';
-                $charges += $ac->{'amountoutstanding'}
-                  if $ac->{'accounttype'} eq 'L';
+        
+        if ( $issue->{itemSource} eq 'koha' ) {
+            # check for reserves
+            my $restype = GetReserveStatus( $issue->{'itemnumber'} );
+            if ( $restype ) {
+                $issue->{'reserved'} = 1;
             }
+
+            my ( $total , $accts, $numaccts) = GetMemberAccountRecords( $borrowernumber );
+            my $charges = 0;
+            foreach my $ac (@$accts) {
+                if ( $ac->{'itemnumber'} == $issue->{'itemnumber'} ) {
+                    $charges += $ac->{'amountoutstanding'}
+                      if $ac->{'accounttype'} eq 'F';
+                    $charges += $ac->{'amountoutstanding'}
+                      if $ac->{'accounttype'} eq 'FU';
+                    $charges += $ac->{'amountoutstanding'}
+                      if $ac->{'accounttype'} eq 'L';
+                }
+            }
+            $issue->{'charges'} = $charges;
         }
-        $issue->{'charges'} = $charges;
         my $marcrecord = GetMarcBiblio( $issue->{'biblionumber'} );
         $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
-        # check if item is renewable
-        my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
-        ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
-        if($status && C4::Context->preference("OpacRenewalAllowed")){
-            $issue->{'status'} = $status;
-        }
+        
+         if ( $issue->{itemSource} eq 'koha' ) { 
+            # check if item is renewable
+            my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
+            ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
+            if($status && C4::Context->preference("OpacRenewalAllowed")){
+                $issue->{'status'} = $status;
+            }
 
-        $issue->{'renewed'} = $renewed{ $issue->{'itemnumber'} };
+            $issue->{'renewed'} = $renewed{ $issue->{'itemnumber'} };
 
-        if ($renewerror) {
-            $issue->{'too_many'}       = 1 if $renewerror eq 'too_many';
-            $issue->{'on_reserve'}     = 1 if $renewerror eq 'on_reserve';
-            $issue->{'norenew_overdue'} = 1 if $renewerror eq 'overdue';
-            $issue->{'auto_renew'}     = 1 if $renewerror eq 'auto_renew';
-            $issue->{'auto_too_soon'}  = 1 if $renewerror eq 'auto_too_soon';
+            if ($renewerror) {
+                $issue->{'too_many'}       = 1 if $renewerror eq 'too_many';
+                $issue->{'on_reserve'}     = 1 if $renewerror eq 'on_reserve';
+                $issue->{'norenew_overdue'} = 1 if $renewerror eq 'overdue';
+                $issue->{'auto_renew'}     = 1 if $renewerror eq 'auto_renew';
+                $issue->{'auto_too_soon'}  = 1 if $renewerror eq 'auto_too_soon';
 
-            if ( $renewerror eq 'too_soon' ) {
-                $issue->{'too_soon'}         = 1;
-                $issue->{'soonestrenewdate'} = output_pref(
-                    C4::Circulation::GetSoonestRenewDate(
-                        $issue->{borrowernumber},
-                        $issue->{itemnumber}
-                    )
-                );
+                if ( $renewerror eq 'too_soon' ) {
+                    $issue->{'too_soon'}         = 1;
+                    $issue->{'soonestrenewdate'} = output_pref(
+                         C4::Circulation::GetSoonestRenewDate(
+                            $issue->{borrowernumber},
+                            $issue->{itemnumber}
+                        )
+                    );
+                }
             }
         }
 
@@ -225,9 +246,10 @@ if ($issues){
         else {
             $issue->{'issued'} = 1;
         }
+        
         # imageurl:
         my $itemtype = $issue->{'itemtype'};
-        if ( $itemtype ) {
+        if ( $itemtype && (! $issue->{'imageurl'} )  ) {
             $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
             $issue->{'description'} = $itemtypes->{$itemtype}->{'description'};
         }

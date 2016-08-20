@@ -54,10 +54,14 @@ use C4::CourseReserves qw(GetItemCourseReservesInfo);
 use Koha::Virtualshelves;
 
 BEGIN {
-	if (C4::Context->preference('BakerTaylorEnabled')) {
-		require C4::External::BakerTaylor;
-		import C4::External::BakerTaylor qw(&image_url &link_url);
-	}
+    if (C4::Context->preference('BakerTaylorEnabled')) {
+        require C4::External::BakerTaylor;
+        import C4::External::BakerTaylor qw(&image_url &link_url);
+    }
+    if (C4::Context->preference('DivibibEnabled')) {
+        require C4::Divibib::NCIPService;
+        import C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
+    }
 }
 
 my $query = new CGI;
@@ -88,6 +92,26 @@ my $record       = GetMarcBiblio($biblionumber);
 if ( ! $record ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl"); # escape early
     exit;
+}
+
+if (C4::Context->preference('DivibibEnabled')) {
+    my $divibibId = $record->field("001")->data();
+    my $idProv    = $record->field("003")->data();
+    
+    if ( $idProv eq DIVIBIBAGENCYID ) {
+        my $service = C4::Divibib::NCIPService->new();
+        my $divibib_issues = $service->getItemInformation($biblionumber, $divibibId);
+        
+        if ( $divibib_issues ) {
+            foreach my $ditem ( @{$divibib_issues} ) {
+                if ( exists($ditem->{'imageurl'}) && $ditem->{'imageurl'} !~ /opac/ ) {
+                    $ditem->{'imageurl'} = '/opac-tmpl/bootstrap/itemtypeimg/' . $ditem->{'imageurl'};
+                }
+            }
+            
+            push @all_items, @{$divibib_issues};
+        }
+    } 
 }
 
 # redirect if opacsuppression is enabled and biblio is suppressed
@@ -706,16 +730,22 @@ if (!C4::Context->preference("OPACXSLTDetailsDisplay") ) {
     my $marcauthorsarray = GetMarcAuthors ($record,$marcflavour);
     my $marcsubjctsarray = GetMarcSubjects($record,$marcflavour);
     my $marcseriesarray  = GetMarcSeries  ($record,$marcflavour);
-    my $marcurlsarray    = GetMarcUrls    ($record,$marcflavour);
     my $marchostsarray   = GetMarcHosts($record,$marcflavour);
 
     $template->param(
         MARCSUBJCTS => $marcsubjctsarray,
         MARCAUTHORS => $marcauthorsarray,
         MARCSERIES  => $marcseriesarray,
-        MARCURLS    => $marcurlsarray,
         MARCISBNS   => $marcisbnsarray,
         MARCHOSTS   => $marchostsarray,
+    );
+}
+
+## get urls from MARC record
+if ( (!C4::Context->preference("OPACXSLTDetailsDisplay")) || C4::Context->preference("OpacDetailAntolinLinks") ) {
+    my $marcurlsarray    = GetMarcUrls    ($record,$marcflavour);
+    $template->param(
+        MARCURLS    => $marcurlsarray
     );
 }
 
@@ -772,6 +802,7 @@ foreach ( keys %{$dat} ) {
 my $upc = GetNormalizedUPC($record,$marcflavour);
 my $oclc = GetNormalizedOCLCNumber($record,$marcflavour);
 my $isbn = GetNormalizedISBN(undef,$record,$marcflavour);
+my $isbn13 = GetNormalizedISBN13(undef,$record,$marcflavour);
 my $content_identifier_exists;
 if ( $isbn or $ean or $oclc or $upc ) {
     $content_identifier_exists = 1;
@@ -994,6 +1025,41 @@ if ( C4::Context->preference("Babeltheque") ) {
     );
 }
 
+# EKZ
+if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled")) {
+    my @titlecoverurls = ();
+    my $coverfound = 0;
+    foreach my $tag( $record->field('856') ) {
+        if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+            push @titlecoverurls,$tag->subfield('u');
+            $coverfound = 1;
+        }
+        elsif ( C4::Context->preference("DivibibEnabled") 
+                && $tag->subfield('n') 
+                && $tag->subfield('u') 
+                && $tag->subfield('n') =~ /content sample/ 
+                && $record->field('337') 
+                && $record->field('337')->subfield('a') ) 
+        {
+            $template->param('contentsample', { 'link' => $tag->subfield('u'), 'type' => $record->field('337')->subfield('a') });
+        }
+    }
+    if ( $coverfound == 0 && C4::Context->preference("EKZCoverGenerate") ) {
+        my $field = $record->field('245');
+        my $title = "";
+        my $author = "";
+        if ( $field ) {
+            $title = $field->subfield('a');
+            $author = $field->subfield('c');
+            $title =~ s/[\x{0098}\x{009c}]//g;
+            $author =~ s/[\x{0098}\x{009c}]//g;
+        }
+        my $coverurl = 'https://cover.lmscloud.net/gencover?ti=' . uri_escape_utf8($title) .'&au=' . uri_escape_utf8($author);
+        push @titlecoverurls, $coverurl;
+    }
+    $template->param(titlecoverurls => \@titlecoverurls ); 
+}
+
 # Social Networks
 if ( C4::Context->preference( "SocialNetworks" ) ) {
     $template->param( current_url => C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-detail.pl?biblionumber=$biblionumber" );
@@ -1092,12 +1158,66 @@ if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
             TITLE         => $dat->{title},
             AUTHOR        => $dat->{author},
             ISBN          => $isbn,
+            ISBN13        => $isbn13,
             ISSN          => $issn,
             CONTROLNUMBER => $marccontrolnumber,
             BIBLIONUMBER  => $biblionumber,
         }
     );
     $template->param('OPACSearchForTitleIn' => $search_for_title);
+}
+
+if ( $isbn ne '' || $isbn13 ne '' ) {
+    if (my $search_for_title = C4::Context->preference('OpacDetailBookShopLinkContentISBN')){
+        $dat->{title} =~ s/\/+$//; # remove trailing slash
+        $dat->{title} =~ s/\s+$//; # remove trailing space
+        $search_for_title = parametrized_url(
+            $search_for_title,
+            {
+                TITLE         => $dat->{title},
+                AUTHOR        => $dat->{author},
+                ISBN          => $isbn,
+                ISBN13        => $isbn13,
+                CONTROLNUMBER => $marccontrolnumber,
+                BIBLIONUMBER  => $biblionumber,
+            }
+        );
+        $template->param('OpacDetailBookShopLinkContent' => $search_for_title);
+    }
+}
+elsif ( $issn ne '' ) {
+   if (my $search_for_title = C4::Context->preference('OpacDetailBookShopLinkContentISSN')){
+        $dat->{title} =~ s/\/+$//; # remove trailing slash
+        $dat->{title} =~ s/\s+$//; # remove trailing space
+        $search_for_title = parametrized_url(
+            $search_for_title,
+            {
+                TITLE         => $dat->{title},
+                AUTHOR        => $dat->{author},
+                ISSN          => $issn,
+                CONTROLNUMBER => $marccontrolnumber,
+                BIBLIONUMBER  => $biblionumber,
+            }
+        );
+        $template->param('OpacDetailBookShopLinkContent' => $search_for_title);
+    }
+}
+elsif ( $ean ne '' ) {
+   if (my $search_for_title = C4::Context->preference('OpacDetailBookShopLinkContentEAN')){
+        $dat->{title} =~ s/\/+$//; # remove trailing slash
+        $dat->{title} =~ s/\s+$//; # remove trailing space
+        $search_for_title = parametrized_url(
+            $search_for_title,
+            {
+                TITLE         => $dat->{title},
+                AUTHOR        => $dat->{author},
+                EAN           => $ean,
+                CONTROLNUMBER => $marccontrolnumber,
+                BIBLIONUMBER  => $biblionumber,
+            }
+        );
+        $template->param('OpacDetailBookShopLinkContent' => $search_for_title);
+    }
 }
 
 #IDREF

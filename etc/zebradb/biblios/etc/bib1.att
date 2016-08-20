@@ -142,7 +142,7 @@ att 1071    Section-heading
 att 1072    Subject-GOO
 att 1073    Subject-name-conference
 att 1074    Subject-name-corporate
-att 1075    Subject-genre/form
+att 1075    Subject-genre-form
 att 1076    Subject-name-gerographical
 att 1077    Subject-chronological
 att 1078    Subject-title
@@ -206,6 +206,11 @@ att 1222    Subject-function
 att 1223    Edition
 att 1224    GPO-Item-Number
 att 1225    Provider
+att 1226    Antolin-age
+att 1227    Antolin-count
+att 1228    EKZFsk
+att 1229    EKZUsk
+att 1230    EKZAge
 
 # Koha Local-Use Biblio Indexes
 att 9001    Control-number
@@ -220,6 +225,7 @@ att 9009    cn-prefix
 att 9010    cn-suffix
 att 9011    Suppress
 att 9012    Identifier-other
+att 9013    Control-number-agency
 
 # Items Index
 att 8001    withdrawn

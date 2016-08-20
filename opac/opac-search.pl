@@ -90,6 +90,10 @@ BEGIN {
         require C4::External::BakerTaylor;
         import C4::External::BakerTaylor qw(&image_url &link_url);
     }
+    if (C4::Context->preference('DivibibEnabled')) {
+        require C4::Divibib::NCIPService;
+        import C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
+    }
 }
 
 my ($template,$borrowernumber,$cookie);
@@ -650,6 +654,10 @@ for (my $i=0;$i<@servers;$i++) {
                                         $results_hashref->{$server}->{"RECORDS"});
         }
         $hits = 0 unless @newresults;
+        
+        # initialize the lists of divibib IDs in order to retrieve the onleihe status
+        # used in Germany for divibib customers
+        my @divibibIDs = ();
 
         foreach my $res (@newresults) {
 
@@ -661,9 +669,19 @@ for (my $i=0;$i<@servers;$i++) {
                 $res->{'incart'} = 1;
             }
 
-            if (C4::Context->preference('COinSinOPACResults')) {
+            if (C4::Context->preference('COinSinOPACResults') || C4::Context->preference('DivibibEnabled')) {
                 my $record = GetMarcBiblio($res->{'biblionumber'});
-                $res->{coins} = GetCOinSBiblio($record);
+                if ( C4::Context->preference('COinSinOPACResults') ) {
+                    $res->{coins} = GetCOinSBiblio($record);
+                }
+                elsif ( C4::Context->preference('DivibibEnabled') ) {
+                    my $Id     = $record->field("001")->data();
+                    my $IdProv = $record->field("003")->data();
+                    if ( $IdProv eq DIVIBIBAGENCYID ) {
+                        $res->{'divibibID'} = $Id;
+                        push @divibibIDs, $Id;
+                    } 
+                }
             }
             if ( C4::Context->preference( "Babeltheque" ) and $res->{normalized_isbn} ) {
                 if( my $isbn = Business::ISBN->new( $res->{normalized_isbn} ) ) {
@@ -701,6 +719,7 @@ for (my $i=0;$i<@servers;$i++) {
                 $res->{'rating_avg'}    = $rating->{'rating_avg'};
                 $res->{'rating_avg_int'} = $rating->{'rating_avg_int'};
             }
+
         }
 
         if ($results_hashref->{$server}->{"hits"}){
@@ -791,6 +810,9 @@ for (my $i=0;$i<@servers;$i++) {
             my $branch = '';
             if (C4::Context->userenv){
                 $branch = C4::Context->userenv->{branch};
+            }
+            if ( C4::Context->preference('DivibibEnabled') ) {
+                $template->param(divibibIDs => \@divibibIDs);
             }
             if ( C4::Context->preference('HighlightOwnItemsOnOPAC') ) {
                 if (

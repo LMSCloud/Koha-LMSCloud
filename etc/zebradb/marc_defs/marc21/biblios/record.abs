@@ -49,6 +49,7 @@ xelm /record/leader llength:w:range(data,0,5),rtype:w:range(data,6,1),Bib-level:
 # example: xelm /record/leader l1:w:range(data,0,5),l2:w:range(data,10,2)
 
 melm 001        Control-number
+melm 003        Control-number-agency
 melm 005        Date/time-last-modified
 melm 007        Microform-generation:n:range(data,11,1),Material-type,ff7-00:w:range(data,0,1),ff7-01:w:range(data,1,1),ff7-02:w:range(data,2,1),ff7-01-02:w:range(data,0,2)
 
@@ -87,8 +88,11 @@ melm 050        LC-call-number:w,LC-call-number:p,LC-call-number:s
 melm 052        Geographic-class
 melm 060        NLM-call-number
 melm 070        NAL-call-number
+melm 072$a      Subject-genre-form:w
 melm 080        UDC-classification
 melm 082        Dewey-classification:w,Dewey-classification:s
+melm 084        Local-classification:w,Local-classification:p,Local-classification:s
+melm 084$a      Local-classification:w,Local-classification:p,Local-classification:s
 melm 086        Number-govt-pub
 #melm 942$k     LC-card-number:s
 
@@ -273,6 +277,11 @@ melm 830$w      Record-control-number
 melm 830$9      Koha-Auth-Number
 melm 830        Title,Title-series:w,Title-series:p
 melm 840        Title,Title-series:w,Title-series:p
+melm 856$n      Antolin-age:w,Antolin-age:p
+melm 856$z      Antolin-age:w,Antolin-age:p
+melm 856$x      Antolin-count:w,Antolin-count:p,Antolin-count:n
+
+melm 945$a      EKZFsk:n,EKZFsk:p,EKZUsk:n,EKZUsk:p,EKZAge:n,EKZAge:p
 
 ###############################
 # Koha Local-Use Biblio Indexes

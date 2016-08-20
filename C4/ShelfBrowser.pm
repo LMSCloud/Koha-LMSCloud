@@ -230,6 +230,7 @@ sub GetShelfInfo {
         $item->{'browser_normalized_isbn'} = GetNormalizedISBN(undef,$this_record,$marcflavour);
         $item->{'browser_normalized_ean'} = GetNormalizedEAN($this_record,$marcflavour);
         $item->{'subtitle'} = GetRecordValue('subtitle', $this_record, GetFrameworkCode( $item->{biblionumber} ));
+        $item->{'browser_urls'} = GetMarcUrls($this_record,$marcflavour);
         push @valid_items, $item;
     }
     return @valid_items;

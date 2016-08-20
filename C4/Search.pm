@@ -1069,8 +1069,11 @@ sub getIndexes{
                     'ab',
                     'Abstract',
                     'acqdate',
+                    'age',
                     'allrecords',
                     'an',
+                    'anta',
+                    'antc',
                     'Any',
                     'at',
                     'au',
@@ -1092,6 +1095,8 @@ sub getIndexes{
                     'callnum',
                     'cfn',
                     'Chronological-subdivision',
+                    'cn',
+                    'cna',
                     'cn-bib-source',
                     'cn-bib-sort',
                     'cn-class',
@@ -1117,17 +1122,17 @@ sub getIndexes{
                     'date-entered-on-file',
                     'Date-of-acquisition',
                     'Date-of-publication',
-                    'Date-time-last-modified',
                     'Dewey-classification',
                     'Dissertation-information',
                     'diss',
-                    'dtlm',
                     'EAN',
                     'extent',
+                    'ff7-00',
                     'fic',
                     'fiction',
                     'Form-subdivision',
                     'format',
+                    'fsk',
                     'Geographic-subdivision',
                     'he',
                     'Heading',
@@ -1156,6 +1161,7 @@ sub getIndexes{
                     'lcn',
                     'lex',
                     'lexile-number',
+                    'lf',
                     'llength',
                     'ln',
                     'ln-audio',
@@ -1197,6 +1203,7 @@ sub getIndexes{
                     'rcn',
                     'Record-type',
                     'rtype',
+                    'sbg',
                     'se',
                     'See',
                     'See-also',
@@ -1204,6 +1211,7 @@ sub getIndexes{
                     'Stock-number',
                     'su',
                     'Subject',
+                    'Subject-genre-form',
                     'Subject-heading-thesaurus',
                     'Subject-name-personal',
                     'Subject-subdivision',
@@ -1227,6 +1235,7 @@ sub getIndexes{
                     'Title-uniform-see',
                     'Title-uniform-seealso',
                     'totalissues',
+                    'usk',
                     'yr',
 
                     # items indexes
@@ -1929,6 +1938,40 @@ sub searchResults {
 		$oldbiblio->{normalized_isbn} = GetNormalizedISBN(undef,$marcrecord,$marcflavour);
 		$oldbiblio->{content_identifier_exists} = 1 if ($oldbiblio->{normalized_isbn} or $oldbiblio->{normalized_oclc} or $oldbiblio->{normalized_ean} or $oldbiblio->{normalized_upc});
 
+        if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) {
+            my @titlecoverurls = ();
+            my $coverfound = 0;
+            foreach my $tag( $marcrecord->field('856') ) {
+                if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+                    push @titlecoverurls,$tag->subfield('u');
+                    $coverfound = 1;
+                }
+                elsif ( C4::Context->preference("DivibibEnabled") 
+                    && $tag->subfield('n') 
+                    && $tag->subfield('u') 
+                    && $tag->subfield('n') =~ /content sample/ 
+                    && $marcrecord->field('337') 
+                    && $marcrecord->field('337')->subfield('a') ) 
+                {
+                    $oldbiblio->{'contentsample'} = { 'link' => $tag->subfield('u'), 'type' => $marcrecord->field('337')->subfield('a') };
+                }
+            }
+            if ( $coverfound == 0 && C4::Context->preference("EKZCoverGenerate") ) {
+                my $field = $marcrecord->field('245');
+                my $title = "";
+                my $author = "";
+                if ( $field ) {
+                    $title = $field->subfield('a');
+                    $author = $field->subfield('c');
+                    $title =~ s/[\x{0098}\x{009c}]//g;
+                    $author =~ s/[\x{0098}\x{009c}]//g;
+                }
+                my $coverurl = 'https://cover.lmscloud.net/gencover?ti=' . uri_escape_utf8($title) .'&au=' . uri_escape_utf8($author);
+                push @titlecoverurls, $coverurl;
+            }
+            $oldbiblio->{'titlecoverurls'} = \@titlecoverurls;
+        }
+        
 		# edition information, if any
         $oldbiblio->{edition} = $oldbiblio->{editionstatement};
         $oldbiblio->{description} = $itemtypes{ $oldbiblio->{itemtype} }->{translated_description};

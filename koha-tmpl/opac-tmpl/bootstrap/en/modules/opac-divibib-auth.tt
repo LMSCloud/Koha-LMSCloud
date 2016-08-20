@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf8" ?>
+<response>
+	<status>[% response.status %]</status>
+	<fsk>[% response.fsk %]</fsk>
+	<cardid>[% response.cardid %]</cardid>
+	<userid>[% response.userid %]</userid>[% IF ( response.trace ) %]
+	<trace>[% response.trace %]</trace>
+[%  END %]
+</response>
+

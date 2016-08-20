@@ -16,6 +16,10 @@
   <index_control_field tag="001">
     <target_index>Control-number:w</target_index>
   </index_control_field>
+  <!--record.abs added line by roger:  melm 003  Control-number-agency-->
+  <index_control_field tag="003">
+    <target_index>Control-number-agency:w</target_index>
+  </index_control_field>
   <!--record.abs line 44: melm 005        Date/time-last-modified-->
   <index_control_field tag="005">
     <target_index>Date/time-last-modified:w</target_index>
@@ -240,6 +244,10 @@
   <index_data_field tag="070">
     <target_index>NAL-call-number:w</target_index>
   </index_data_field>
+  <!--record.abs added line by roger:  melm 072 subj-cat-category-->  
+  <index_subfields tag="072" subfields="a">
+    <target_index>Subject-genre-form:w</target_index>
+  </index_subfields>
   <!--record.abs line 81: melm 080        UDC-classification-->
   <index_data_field tag="080">
     <target_index>UDC-classification:w</target_index>
@@ -249,6 +257,18 @@
     <target_index>Dewey-classification:w</target_index>
     <target_index>Dewey-classification:s</target_index>
   </index_data_field>
+  <!--record.abs addded line by roger: melm 084        Local-classification:w,Local-classification:p,Local-classification:s-->
+  <index_data_field tag="084">
+    <target_index>Local-classification:w</target_index>
+    <target_index>Local-classification:p</target_index>
+    <target_index>Local-classification:s</target_index>
+  </index_data_field>
+  <!--record.abs addded line by roger: melm 084a       Local-classification:w,Local-classification:p,Local-classification:s-->
+  <index_subfields tag="084" subfields="2a">
+    <target_index>Local-classification:w</target_index>
+    <target_index>Local-classification:p</target_index>
+    <target_index>Local-classification:s</target_index>
+  </index_subfields>
   <!--record.abs line 83: melm 086        Number-govt-pub-->
   <index_data_field tag="086">
     <target_index>Number-govt-pub:w</target_index>
@@ -1113,6 +1133,35 @@
     <target_index>Title-series:w</target_index>
     <target_index>Title-series:p</target_index>
   </index_data_field>
+  <!--record.abs added line by roger: Antolin-age:w,Antolin-age:p,Antolin-count:w,Antolin-count:p-->
+  <index_subfields tag="856" subfields="n">
+    <target_index>Antolin-age:w</target_index>
+    <target_index>Antolin-age:p</target_index>
+  </index_subfields>
+  <!--record.abs added line by roger: melm 856$x      Antolin-count:w,Antolin-count:p-->
+  <index_subfields tag="856" subfields="z">
+    <target_index>Antolin-age:w</target_index>
+    <target_index>Antolin-age:p</target_index>
+  </index_subfields>
+  <!--record.abs added line by roger: Antolin-age:w,Antolin-age:p,Antolin-count:w,Antolin-count:p-->
+  <index_subfields tag="856" subfields="x">
+    <target_index>Antolin-count:w</target_index>
+    <target_index>Antolin-count:p</target_index>
+    <target_index>Antolin-count:n</target_index>
+  </index_subfields>
+  <!--record.abs added line by roger: melm 945$a    EKZFsk:n,EKZFsk:p,EKZUsk:n,EKZUsk:p,EKZAge:n,EKZAge:p -->
+  <index_subfields tag="945" subfields="a" condition="@ind1='a' and @ind2='f'">
+    <target_index>EKZFsk:n</target_index>
+    <target_index>EKZFsk:p</target_index>
+  </index_subfields>
+  <index_subfields tag="945" subfields="a" condition="@ind1='a' and @ind2='u'">
+    <target_index>EKZUsk:n</target_index>
+    <target_index>EKZUsk:p</target_index>
+  </index_subfields>
+  <index_subfields tag="945" subfields="a" condition="@ind1='a' and @ind2='a'">
+    <target_index>EKZAge:n</target_index>
+    <target_index>EKZAge:p</target_index>
+  </index_subfields>
   <!--record.abs line 268: melm 999$c      Local-Number:n,Local-Number:w,Local-Number:s-->
   <index_subfields tag="999" subfields="c">
     <target_index>Local-Number:n</target_index>
@@ -1321,6 +1370,9 @@
     <target_index>Note:p</target_index>
   </index_subfields>
 
+  <facet tag="072" subfields="a">
+    <target_index>sbg:0</target_index>
+  </facet>
   <facet tag="100" subfields="a">
     <target_index>au:0</target_index>
   </facet>

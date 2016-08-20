@@ -62,6 +62,7 @@ BEGIN {
 		&GetAuthValCode
 		&GetNormalizedUPC
 		&GetNormalizedISBN
+		&GetNormalizedISBN13
 		&GetNormalizedEAN
 		&GetNormalizedOCLCNumber
         &xml_escape
@@ -821,6 +822,12 @@ sub getFacets {
                 label => 'Location',
                 tags => [ qw / 952c / ],
             },
+            {
+                idx   => 'sbg',
+                label => 'Genres',
+                tags  => [ qw/ 072a / ],
+                sep   => ', ',
+            }
             ];
 
             unless ( Koha::Libraries->search->count == 1 )
@@ -1299,12 +1306,17 @@ sub GetNormalizedUPC {
 # Normalizes and returns the first valid ISBN found in the record
 # ISBN13 are converted into ISBN10. This is required to get some book cover images.
 sub GetNormalizedISBN {
-    my ($isbn,$marcrecord,$marcflavour) = @_;
+    my ($isbn,$marcrecord,$marcflavour,$asIsbn13) = @_;
     if ($isbn) {
         # Koha attempts to store multiple ISBNs in biblioitems.isbn, separated by " | "
         # anything after " | " should be removed, along with the delimiter
         ($isbn) = split(/\|/, $isbn );
-        return _isbn_cleanup($isbn);
+        if ( $asIsbn13 ) {
+            _isbn_cleanup13($isbn);
+        }
+        else {
+            return _isbn_cleanup($isbn);
+        }
     }
 
     return unless $marcrecord;
@@ -1314,7 +1326,12 @@ sub GetNormalizedISBN {
         foreach my $field (@fields) {
             my $isbn = $field->subfield('a');
             if ($isbn) {
-                return _isbn_cleanup($isbn);
+                if ( $asIsbn13 ) {
+                    _isbn_cleanup13($isbn);
+                }
+                else {
+                    return _isbn_cleanup($isbn);
+                }
             }
         }
     }
@@ -1323,10 +1340,20 @@ sub GetNormalizedISBN {
         foreach my $field (@fields) {
             $isbn = $field->subfield('a');
             if ($isbn) {
-                return _isbn_cleanup($isbn);
+                if ( $asIsbn13 ) {
+                    _isbn_cleanup13($isbn);
+                }
+                else {
+                    return _isbn_cleanup($isbn);
+                }
             }
         }
     }
+}
+
+sub GetNormalizedISBN13 {
+    my ($isbn,$marcrecord,$marcflavour) = @_;
+    return &GetNormalizedISBN($isbn,$marcrecord,$marcflavour,1);
 }
 
 sub GetNormalizedEAN {
@@ -1497,6 +1524,17 @@ sub _isbn_cleanup {
         {
             isbn          => $isbn,
             format        => 'ISBN-10',
+            strip_hyphens => 1,
+        }
+    ) if $isbn;
+}
+
+sub _isbn_cleanup13 {
+    my ($isbn) = @_;
+    return NormalizeISBN(
+        {
+            isbn          => $isbn,
+            format        => 'ISBN-13',
             strip_hyphens => 1,
         }
     ) if $isbn;
