@@ -1035,11 +1035,13 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
             $coverfound = 1;
         }
         elsif ( C4::Context->preference("DivibibEnabled") 
-                && $tag->subfield('n') 
                 && $tag->subfield('u') 
-                && $tag->subfield('n') =~ /content sample/ 
+                && (
+                    ( $tag->subfield('n') && $tag->subfield('n') =~ /content sample/i ) ||
+                    ( $tag->subfield('z') && $tag->subfield('z') =~ /content sample/i )
+                   )
                 && $record->field('337') 
-                && $record->field('337')->subfield('a') ) 
+                && $record->field('337')->subfield('a') )  
         {
             $template->param('contentsample', { 'link' => $tag->subfield('u'), 'type' => $record->field('337')->subfield('a') });
         }
