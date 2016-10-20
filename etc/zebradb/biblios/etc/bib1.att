@@ -211,6 +211,7 @@ att 1227    Antolin-count
 att 1228    EKZFsk
 att 1229    EKZUsk
 att 1230    EKZAge
+att 1231    Control-number
 
 # Koha Local-Use Biblio Indexes
 att 9001    Control-number
