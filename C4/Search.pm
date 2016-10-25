@@ -1221,6 +1221,7 @@ sub getIndexes{
                     'su-na',
                     'su-to',
                     'su-ut',
+                    'sys',
                     'ut',
                     'Term-genre-form',
                     'Term-genre-form-heading',
