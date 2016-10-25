@@ -674,7 +674,7 @@ for (my $i=0;$i<@servers;$i++) {
                 if ( C4::Context->preference('COinSinOPACResults') ) {
                     $res->{coins} = GetCOinSBiblio($record);
                 }
-                elsif ( C4::Context->preference('DivibibEnabled') ) {
+                if ( C4::Context->preference('DivibibEnabled') ) {
                     my $Id     = $record->field("001")->data();
                     my $IdProv = $record->field("003")->data();
                     if ( $IdProv eq DIVIBIBAGENCYID ) {
