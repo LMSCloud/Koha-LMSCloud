@@ -317,6 +317,36 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
       </xslo:if>
     </xslo:for-each>
   </xslo:template>
+  <xslo:template mode="index_subfields" match="marc:datafield[@tag='153']">
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('a', @code)">
+        <z:index name="Kateg-No:n Kateg-No:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('e', @code)">
+        <z:index name="Kateg-No:n Kateg-No:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('j', @code)">
+        <z:index name="Kateg-Name:w Kateg-Name:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('h', @code)">
+        <z:index name="Kateg-Name:w Kateg-Name:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+  </xslo:template>
   <xslo:template mode="index_subfields" match="marc:datafield[@tag='240']">
     <xslo:for-each select="marc:subfield">
       <xslo:if test="contains('r', @code)">

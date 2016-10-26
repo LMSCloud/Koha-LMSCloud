@@ -111,6 +111,10 @@ melm 130$n      Thematic-number
 melm 130$r      Music-key
 melm 130$9      Koha-Auth-Number
 melm 130        Title,Title:p,Title-uniform
+melm 153$a      Kateg-No:n,Kateg-No:p
+melm 153$e      Kateg-No:n,Kateg-No:p
+melm 153$j      Kateg-Name:w,Kateg-Name:p
+melm 153$h      Kateg-Name:w,Kateg-Name:p
 
 melm 210        Title,Title:p,Title-abbreviated
 melm 211        Title,Title:p,Title-abbreviated

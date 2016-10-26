@@ -347,6 +347,16 @@
     <target_index>Title:p</target_index>
     <target_index>Title-uniform:w</target_index>
   </index_data_field>
+  <!--record.abs addded line by roger: melm 153ae      Kateg-No:n,Kateg-No:p-->
+  <index_subfields tag="153" subfields="ae">
+    <target_index>Kateg-No:n</target_index>
+    <target_index>Kateg-No:p</target_index>
+  </index_subfields>
+  <!--record.abs addded line by roger: melm 153jh      Kateg-Name:w,Kateg-Name:p-->
+  <index_subfields tag="153" subfields="jh">
+    <target_index>Kateg-Name:w</target_index>
+    <target_index>Kateg-Name:p</target_index>
+  </index_subfields>
   <!--record.abs line 102: melm 210        Title,Title:p,Title-abbreviated-->
   <index_data_field tag="210">
     <target_index>Title:w</target_index>

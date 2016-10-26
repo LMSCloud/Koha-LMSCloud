@@ -1151,6 +1151,8 @@ sub getIndexes{
                     'ISSN',
                     'issn',
                     'itemtype',
+                    'katname',
+                    'katno',
                     'kw',
                     'Koha-Auth-Number',
                     'l-format',

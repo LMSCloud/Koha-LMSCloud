@@ -213,6 +213,8 @@ att 1229    EKZUsk
 att 1230    EKZAge
 att 1231    Control-number
 att 1232    Systematik
+att 1233    Kateg-No
+att 1234    Kateg-Name
 
 # Koha Local-Use Biblio Indexes
 att 9001    Control-number
