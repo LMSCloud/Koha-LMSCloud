@@ -140,23 +140,23 @@ sub requestItem {
 sub setItemTypeIconAndDescription {
     my ($itemType,$item) = @_;
     
-    if ( $itemType eq 'eBook') {
+    if ( $itemType eq 'ebook') {
         $item->{'imageurl'} = 'bridge/e_book.gif';
         $item->{'description'} = 'Elektronisches Buch zum Download'
     }
-    elsif ( $itemType eq 'eAudio') {
+    elsif ( $itemType eq 'eaudio') {
         $item->{'imageurl'} = 'bridge/digital_audio.gif';
         $item->{'description'} = 'Hörbuch zum Donwload';
     }
-    elsif ( $itemType eq 'eMusik') {
+    elsif ( $itemType eq 'emusik') {
         $item->{'imageurl'} = 'bridge/e_music.gif';
         $item->{'description'} = 'Song zum Download';
     }
-    elsif ( $itemType eq 'ePapier') {
+    elsif ( $itemType eq 'epapier') {
         $item->{'imageurl'} = 'bridge/e_journal.gif';
         $item->{'description'} = 'Elektronische Zeitschrift zum Download';
     }
-    elsif ( $itemType eq 'eVideo') {
+    elsif ( $itemType eq 'evideo') {
         $item->{'imageurl'} = 'bridge/e_video.gif';
         $item->{'description'} = 'Video zum Download';
     }
@@ -176,22 +176,22 @@ sub getItemInformation {
              $divibibItem->{'Reservable'} == 1 && 
              $divibibItem->{'DateAvailable'} =~ /^(\d\d\d\d-\d\d-\d\d)/ ) 
         {
-            $item->{date_due} =  dt_from_string("$1", 'sql');
-            $item->{date_due_sql}  = "$1 00:00:00";
-            $item->{datedue}   = "$1 00:00:00";
+            $item->{'date_due'} =  dt_from_string("$1", 'sql');
+            $item->{'date_due_sql'}  = "$1 00:00:00";
+            $item->{'datedue'}   = "$1 00:00:00";
         }
         if ( exists($item->{date_due}) && DateTime->compare($item->{date_due}, $today) == -1 ) {
-            $item->{overdue} = 1;
+            $item->{'overdue'} = 1;
         }
                 
-        $item->{itemnumber} = "(".DIVIBIBAGENCYID.")" . $divibibItem->{'ItemId'};
+        $item->{'itemnumber'} = "(".DIVIBIBAGENCYID.")" . $divibibItem->{'ItemId'};
         
-        $item->{itemSource} = DIVIBIBITEMSOURCE;
-        $item->{itemtype} = $divibibItem->{'ItemType'};
+        $item->{'itemSource'} = DIVIBIBITEMSOURCE;
+        $item->{'itemtype'} = $divibibItem->{'ItemType'};
         
-        setItemTypeIconAndDescription($item->{itemtype}, $item);
+        setItemTypeIconAndDescription($item->{'itemtype'}, $item);
 
-        $item->{barcode} = $item->{itemtype};
+        $item->{'barcode'} = '';
         $item->{'this_branch'} = 1;
         
         $item->{'onleihe'} = 1;

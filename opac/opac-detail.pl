@@ -50,6 +50,7 @@ use C4::Images;
 use Koha::DateUtils;
 use C4::HTML5Media;
 use C4::CourseReserves qw(GetItemCourseReservesInfo);
+use C4::Divibib::NCIPService;
 
 use Koha::Virtualshelves;
 
@@ -57,10 +58,6 @@ BEGIN {
     if (C4::Context->preference('BakerTaylorEnabled')) {
         require C4::External::BakerTaylor;
         import C4::External::BakerTaylor qw(&image_url &link_url);
-    }
-    if (C4::Context->preference('DivibibEnabled')) {
-        require C4::Divibib::NCIPService;
-        import C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
     }
 }
 
@@ -98,18 +95,43 @@ if (C4::Context->preference('DivibibEnabled')) {
     my $divibibId = $record->field("001")->data();
     my $idProv    = $record->field("003")->data();
     
-    if ( $idProv eq DIVIBIBAGENCYID ) {
+    if ( $idProv eq C4::Divibib::NCIPService::DIVIBIBAGENCYID ) {
         my $service = C4::Divibib::NCIPService->new();
-        my $divibib_issues = $service->getItemInformation($biblionumber, $divibibId);
+        my $divibib_items = $service->getItemInformation($biblionumber, $divibibId);
         
-        if ( $divibib_issues ) {
-            foreach my $ditem ( @{$divibib_issues} ) {
+        my $useitem = undef;
+        my $divitem = undef;
+        SELITEM: foreach my $item(@all_items) {
+            if ( $item->{'booksellerid'} eq 'Onleihe' ) {
+                foreach my $ditem ( @{$divibib_items} ) {
+                    $useitem = $item;
+                    $divitem = $ditem;
+                    last SELITEM;
+                }
+            }
+        }
+        
+        if ( defined($useitem) && defined($divitem) ) {
+            $useitem->{'onleihe'} = $divitem->{'onleihe'};
+            $useitem->{'date_due'} =  $divitem->{'date_due'};
+            $useitem->{'date_due_sql'}  = $divitem->{'date_due_sql'};
+            $useitem->{'datedue'} = $divitem->{'datedue'};
+            $useitem->{'overdue'} = $divitem->{'overdue'};
+            
+            $useitem->{'itemnumber'} = $divitem->{'itemnumber'};
+            $useitem->{'itemSource'} = $divitem->{'itemSource'};;
+            $useitem->{'this_branch'} = $divitem->{'this_branch'};
+            $useitem->{'available'} = $divitem->{'available'};
+            $useitem->{'reservable'} = $divitem->{'reservable'};
+        }
+        elsif ( $divibib_items ) {
+            foreach my $ditem ( @{$divibib_items} ) {
                 if ( exists($ditem->{'imageurl'}) && $ditem->{'imageurl'} !~ /opac/ ) {
                     $ditem->{'imageurl'} = '/opac-tmpl/bootstrap/itemtypeimg/' . $ditem->{'imageurl'};
                 }
             }
             
-            push @all_items, @{$divibib_issues};
+            push @all_items, @{$divibib_items};
         }
     } 
 }
@@ -1041,7 +1063,7 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
                     ( $tag->subfield('z') && $tag->subfield('z') =~ /content sample/i )
                    )
                 && $record->field('337') 
-                && $record->field('337')->subfield('a') )  
+                && $record->field('337')->subfield('a') ) 
         {
             $template->param('contentsample', { 'link' => $tag->subfield('u'), 'type' => $record->field('337')->subfield('a') });
         }
