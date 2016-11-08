@@ -73,7 +73,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 my $session = $cookie ? get_session($cookie->value) : undef;
 
 my $filter;
-if ( $input->param("filter_set") ) {
+if ( $input->param("filter_set") or $input->param('clear_filters') ) {
     $filter = {};
     $filter->{$_} = $input->param("filter_$_") foreach qw/date author keyword group subgroup/;
     $session->param('report_filter', $filter) if $session;
@@ -632,9 +632,9 @@ elsif ($phase eq 'Run this report'){
         'report_id' => $report_id,
     );
 
-    my ( $sql, $type, $name, $notes );
+    my ( $sql, $original_sql, $type, $name, $notes );
     if (my $report = get_saved_report($report_id)) {
-        $sql   = $report->{savedsql};
+        $sql   = $original_sql = $report->{savedsql};
         $name  = $report->{report_name};
         $notes = $report->{notes};
 
@@ -789,6 +789,7 @@ elsif ($phase eq 'Run this report'){
             $template->param(
                 'results' => \@rows,
                 'sql'     => $sql,
+                original_sql => $original_sql,
                 'id'      => $report_id,
                 'execute' => 1,
                 'name'    => $name,

@@ -1261,12 +1261,16 @@ if ( C4::Context->preference("IDREF") ) {
 # the user wants, and what's available for display
 my $opac_serial_default = C4::Context->preference('opacSerialDefaultTab');
 my $defaulttab = 
+    $viewallitems
+        ? 'holdings' :
     $opac_serial_default eq 'subscriptions' && $subscriptionsnumber
         ? 'subscriptions' :
     $opac_serial_default eq 'serialcollection' && @serialcollections > 0
         ? 'serialcollection' :
     $opac_serial_default eq 'holdings' && scalar (@itemloop) > 0
         ? 'holdings' :
+    scalar (@itemloop) == 0
+        ? 'media' :
     $subscriptionsnumber
         ? 'subscriptions' :
     @serialcollections > 0 

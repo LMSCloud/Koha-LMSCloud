@@ -149,6 +149,23 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
             verify_images();
          });
     [% END %]
+
+    $(".print-large").on("click",function(){
+        window.print();
+        return false;
+    });
+    $("#ulactioncontainer > ul > li > a.addtoshelf").on("click",function(){
+        Dopop('opac-addbybiblionumber.pl?biblionumber=[% biblionumber %]');
+        return false;
+    });
+    $(".addrecord").on("click",function(){
+        addRecord('[% biblionumber %]');
+        return false;
+    });
+    $(".cartRemove").on("click",function(){
+        delSingleRecord('[% biblionumber %]');
+        return false;
+    });
     //]]>
 </script>
 
@@ -209,7 +226,7 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
     </script>
 [% END %]
 [% IF ( GoogleIndicTransliteration ) %]
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript" src="[% interface %]/[% theme %]/js/googleindictransliteration.js"></script>
 [% END %]
 [% IF persona %]

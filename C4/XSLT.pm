@@ -179,7 +179,8 @@ sub get_xslt_sysprefs {
                               UseControlNumber IntranetBiblioDefaultView BiblioDefaultView
                               OPACItemLocation DisplayIconsXSLT
                               AlternateHoldingsField AlternateHoldingsSeparator
-                              TrackClicks opacthemes IdRef OpacSuppression DivibibEnabled / )
+                              TrackClicks opacthemes IdRef OpacSuppression
+                              OPACResultsLibrary DivibibEnabled / )
     {
         my $sp = C4::Context->preference( $syspref );
         next unless defined($sp);
@@ -325,13 +326,17 @@ sub buildKohaItemsNamespace {
         $location = $item->{location}? xml_escape($shelflocations->{$item->{location}}||$item->{location}):'';
         $ccode = $item->{ccode}? xml_escape($ccodes->{$item->{ccode}}||$item->{ccode}):'';
         my $itemcallnumber = xml_escape($item->{itemcallnumber});
-        $xml.= "<item><homebranch>$homebranch</homebranch>".
-                "<holdingbranch>$holdingbranch</holdingbranch>".
-                "<location>$location</location>".
-                "<ccode>$ccode</ccode>".
-                "<status>$status</status>".
-                "<itemcallnumber>".$itemcallnumber."</itemcallnumber>".
-                "</item>";
+        my $stocknumber = $item->{stocknumber}? xml_escape($item->{stocknumber}):'';
+        $xml .=
+            "<item>"
+          . "<homebranch>$homebranch</homebranch>"
+          . "<holdingbranch>$holdingbranch</holdingbranch>"
+          . "<location>$location</location>"
+          . "<ccode>$ccode</ccode>"
+          . "<status>$status</status>"
+          . "<itemcallnumber>$itemcallnumber</itemcallnumber>"
+          . "<stocknumber>$stocknumber</stocknumber>"
+          . "</item>";
     }
     $xml = "<items xmlns=\"http://www.koha-community.org/items\">".$xml."</items>";
     return $xml;

@@ -549,114 +549,6 @@ sub TooMany {
     return;
 }
 
-=head2 itemissues
-
-  @issues = &itemissues($biblioitemnumber, $biblio);
-
-Looks up information about who has borrowed the bookZ<>(s) with the
-given biblioitemnumber.
-
-C<$biblio> is ignored.
-
-C<&itemissues> returns an array of references-to-hash. The keys
-include the fields from the C<items> table in the Koha database.
-Additional keys include:
-
-=over 4
-
-=item C<date_due>
-
-If the item is currently on loan, this gives the due date.
-
-If the item is not on loan, then this is either "Available" or
-"Cancelled", if the item has been withdrawn.
-
-=item C<card>
-
-If the item is currently on loan, this gives the card number of the
-patron who currently has the item.
-
-=item C<timestamp0>, C<timestamp1>, C<timestamp2>
-
-These give the timestamp for the last three times the item was
-borrowed.
-
-=item C<card0>, C<card1>, C<card2>
-
-The card number of the last three patrons who borrowed this item.
-
-=item C<borrower0>, C<borrower1>, C<borrower2>
-
-The borrower number of the last three patrons who borrowed this item.
-
-=back
-
-=cut
-
-#'
-sub itemissues {
-    my ( $bibitem, $biblio ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth =
-      $dbh->prepare("Select * from items where items.biblioitemnumber = ?")
-      || die $dbh->errstr;
-    my $i = 0;
-    my @results;
-
-    $sth->execute($bibitem) || die $sth->errstr;
-
-    while ( my $data = $sth->fetchrow_hashref ) {
-
-        # Find out who currently has this item.
-        # FIXME - Wouldn't it be better to do this as a left join of
-        # some sort? Currently, this code assumes that if
-        # fetchrow_hashref() fails, then the book is on the shelf.
-        # fetchrow_hashref() can fail for any number of reasons (e.g.,
-        # database server crash), not just because no items match the
-        # search criteria.
-        my $sth2 = $dbh->prepare(
-            "SELECT * FROM issues
-                LEFT JOIN borrowers ON issues.borrowernumber = borrowers.borrowernumber
-                WHERE itemnumber = ?
-            "
-        );
-
-        $sth2->execute( $data->{'itemnumber'} );
-        if ( my $data2 = $sth2->fetchrow_hashref ) {
-            $data->{'date_due'} = $data2->{'date_due'};
-            $data->{'card'}     = $data2->{'cardnumber'};
-            $data->{'borrower'} = $data2->{'borrowernumber'};
-        }
-        else {
-            $data->{'date_due'} = ($data->{'withdrawn'} eq '1') ? 'Cancelled' : 'Available';
-        }
-
-
-        # Find the last 3 people who borrowed this item.
-        $sth2 = $dbh->prepare(
-            "SELECT * FROM old_issues
-                LEFT JOIN borrowers ON  issues.borrowernumber = borrowers.borrowernumber
-                WHERE itemnumber = ?
-                ORDER BY returndate DESC,timestamp DESC"
-        );
-
-        $sth2->execute( $data->{'itemnumber'} );
-        for ( my $i2 = 0 ; $i2 < 2 ; $i2++ )
-        {    # FIXME : error if there is less than 3 pple borrowing this item
-            if ( my $data2 = $sth2->fetchrow_hashref ) {
-                $data->{"timestamp$i2"} = $data2->{'timestamp'};
-                $data->{"card$i2"}      = $data2->{'cardnumber'};
-                $data->{"borrower$i2"}  = $data2->{'borrowernumber'};
-            }    # if
-        }    # for
-
-        $results[$i] = $data;
-        $i++;
-    }
-
-    return (@results);
-}
-
 =head2 CanBookBeIssued
 
   ( $issuingimpossible, $needsconfirmation ) =  CanBookBeIssued( $borrower, 
@@ -2026,53 +1918,7 @@ sub AddReturn {
 
         if ($borrowernumber) {
             if ( ( C4::Context->preference('CalculateFinesOnReturn') && $issue->{'overdue'} ) || $return_date ) {
-                # we only need to calculate and change the fines if we want to do that on return
-                # Should be on for hourly loans
-                my $control = C4::Context->preference('CircControl');
-                my $control_branchcode =
-                    ( $control eq 'ItemHomeLibrary' ) ? $item->{homebranch}
-                  : ( $control eq 'PatronLibrary' )   ? $borrower->{branchcode}
-                  :                                     $issue->{branchcode};
-
-                my $date_returned =
-                  $return_date ? dt_from_string($return_date) : $today;
-
-                my ( $amount, $type, $unitcounttotal ) =
-                  C4::Overdues::CalcFine( $item, $borrower->{categorycode},
-                    $control_branchcode, $datedue, $date_returned );
-
-                $type ||= q{};
-
-                if ( C4::Context->preference('finesMode') eq 'production' ) {
-                    if ( $amount > 0 ) {
-                        C4::Overdues::UpdateFine(
-                            {
-                                issue_id       => $issue->{issue_id},
-                                itemnumber     => $issue->{itemnumber},
-                                borrowernumber => $issue->{borrowernumber},
-                                amount         => $amount,
-                                type           => $type,
-                                due            => output_pref($datedue),
-                            }
-                        );
-                    }
-                    elsif ($return_date) {
-
-                        # Backdated returns may have fines that shouldn't exist,
-                        # so in this case, we need to drop those fines to 0
-
-                        C4::Overdues::UpdateFine(
-                            {
-                                issue_id       => $issue->{issue_id},
-                                itemnumber     => $issue->{itemnumber},
-                                borrowernumber => $issue->{borrowernumber},
-                                amount         => 0,
-                                type           => $type,
-                                due            => output_pref($datedue),
-                            }
-                        );
-                    }
-                }
+                _CalculateAndUpdateFine( { issue => $issue, item => $item, borrower => $borrower, return_date => $return_date } );
             }
 
             eval {
@@ -3028,10 +2874,7 @@ sub AddRenewal {
     my $dbh = C4::Context->dbh;
 
     # Find the issues record for this book
-    my $sth =
-      $dbh->prepare("SELECT * FROM issues WHERE itemnumber = ?");
-    $sth->execute( $itemnumber );
-    my $issuedata = $sth->fetchrow_hashref;
+    my $issuedata  = GetItemIssue($itemnumber);
 
     return unless ( $issuedata );
 
@@ -3042,12 +2885,18 @@ sub AddRenewal {
         return;
     }
 
+    my $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber ) or return;
+
+    if ( C4::Context->preference('CalculateFinesOnReturn') && $issuedata->{overdue} ) {
+        _CalculateAndUpdateFine( { issue => $issuedata, item => $item, borrower => $borrower } );
+    }
+    _FixOverduesOnReturn( $borrowernumber, $itemnumber );
+
     # If the due date wasn't specified, calculate it by adding the
     # book's loan length to today's date or the current due date
     # based on the value of the RenewalPeriodBase syspref.
     unless ($datedue) {
 
-        my $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber ) or return;
         my $itemtype = (C4::Context->preference('item-level_itypes')) ? $biblio->{'itype'} : $biblio->{'itemtype'};
 
         $datedue = (C4::Context->preference('RenewalPeriodBase') eq 'date_due') ?
@@ -3059,7 +2908,7 @@ sub AddRenewal {
     # Update the issues record to have the new due date, and a new count
     # of how many times it has been renewed.
     my $renews = $issuedata->{'renewals'} + 1;
-    $sth = $dbh->prepare("UPDATE issues SET date_due = ?, renewals = ?, lastreneweddate = ?
+    my $sth = $dbh->prepare("UPDATE issues SET date_due = ?, renewals = ?, lastreneweddate = ?
                             WHERE borrowernumber=? 
                             AND itemnumber=?"
     );
@@ -3089,27 +2938,29 @@ sub AddRenewal {
     }
 
     # Send a renewal slip according to checkout alert preferencei
-    if ( C4::Context->preference('RenewalSendNotice') eq '1') {
-	my $borrower = C4::Members::GetMemberDetails( $borrowernumber, 0 );
-	my $circulation_alert = 'C4::ItemCirculationAlertPreference';
-	my %conditions = (
-		branchcode   => $branch,
-		categorycode => $borrower->{categorycode},
-		item_type    => $item->{itype},
-		notification => 'CHECKOUT',
-	);
-	if ($circulation_alert->is_enabled_for(\%conditions)) {
-		SendCirculationAlert({
-			type     => 'RENEWAL',
-			item     => $item,
-		borrower => $borrower,
-		branch   => $branch,
-		});
-	}
+    if ( C4::Context->preference('RenewalSendNotice') eq '1' ) {
+        $borrower = C4::Members::GetMemberDetails( $borrowernumber, 0 );
+        my $circulation_alert = 'C4::ItemCirculationAlertPreference';
+        my %conditions        = (
+            branchcode   => $branch,
+            categorycode => $borrower->{categorycode},
+            item_type    => $item->{itype},
+            notification => 'CHECKOUT',
+        );
+        if ( $circulation_alert->is_enabled_for( \%conditions ) ) {
+            SendCirculationAlert(
+                {
+                    type     => 'RENEWAL',
+                    item     => $item,
+                    borrower => $borrower,
+                    branch   => $branch,
+                }
+            );
+        }
     }
 
     # Remove any OVERDUES related debarment if the borrower has no overdues
-    my $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber );
+    $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber );
     if ( $borrowernumber
       && $borrower->{'debarred'}
       && !C4::Members::HasOverdues( $borrowernumber )
@@ -4171,7 +4022,65 @@ sub GetTopIssues {
     return @$rows;
 }
 
+sub _CalculateAndUpdateFine {
+    my ($params) = @_;
+
+    my $borrower    = $params->{borrower};
+    my $item        = $params->{item};
+    my $issue       = $params->{issue};
+    my $return_date = $params->{return_date};
+
+    unless ($borrower) { carp "No borrower passed in!" && return; }
+    unless ($item)     { carp "No item passed in!"     && return; }
+    unless ($issue)    { carp "No issue passed in!"    && return; }
+
+    my $datedue = $issue->{date_due};
+
+    # we only need to calculate and change the fines if we want to do that on return
+    # Should be on for hourly loans
+    my $control = C4::Context->preference('CircControl');
+    my $control_branchcode =
+        ( $control eq 'ItemHomeLibrary' ) ? $item->{homebranch}
+      : ( $control eq 'PatronLibrary' )   ? $borrower->{branchcode}
+      :                                     $issue->{branchcode};
+
+    my $date_returned = $return_date ? dt_from_string($return_date) : dt_from_string();
+
+    my ( $amount, $type, $unitcounttotal ) =
+      C4::Overdues::CalcFine( $item, $borrower->{categorycode}, $control_branchcode, $datedue, $date_returned );
+
+    $type ||= q{};
+
+    if ( C4::Context->preference('finesMode') eq 'production' ) {
+        if ( $amount > 0 ) {
+            C4::Overdues::UpdateFine({
+                issue_id       => $issue->{issue_id},
+                itemnumber     => $issue->{itemnumber},
+                borrowernumber => $issue->{borrowernumber},
+                amount         => $amount,
+                type           => $type,
+                due            => output_pref($datedue),
+            });
+        }
+        elsif ($return_date) {
+
+            # Backdated returns may have fines that shouldn't exist,
+            # so in this case, we need to drop those fines to 0
+
+            C4::Overdues::UpdateFine({
+                issue_id       => $issue->{issue_id},
+                itemnumber     => $issue->{itemnumber},
+                borrowernumber => $issue->{borrowernumber},
+                amount         => 0,
+                type           => $type,
+                due            => output_pref($datedue),
+            });
+        }
+    }
+}
+
 1;
+
 __END__
 
 =head1 AUTHOR
@@ -4179,4 +4088,3 @@ __END__
 Koha Development Team <http://koha-community.org/>
 
 =cut
-

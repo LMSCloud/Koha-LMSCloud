@@ -95,7 +95,7 @@ open STDOUT, '>', $filename if $filename;
 
 my @record_ids;
 
-$timestamp = ($timestamp) ? output_pref({ dt => dt_from_string($timestamp), dateformat => 'iso', dateonly => 1, }): '';
+$timestamp = ($timestamp) ? output_pref({ dt => dt_from_string($timestamp), dateformat => 'iso', dateonly => 0, }): '';
 
 if ( $record_type eq 'bibs' ) {
     if ( $timestamp ) {
@@ -184,14 +184,12 @@ if ( @record_ids and $id_list_file ) {
 
 if ($deleted_barcodes) {
     for my $record_id ( @record_ids ) {
-        my $q = q|
-        |;
-        my $barcode = $dbh->selectall_arrayref(q| (
+        my $barcode = $dbh->selectall_arrayref(q|
             SELECT DISTINCT barcode
             FROM deleteditems
             WHERE deleteditems.biblionumber = ?
         |, { Slice => {} }, $record_id );
-        say $_->{barcode} for @$barcode
+        say $_->{barcode} for @$barcode;
     }
 }
 else {
@@ -214,7 +212,7 @@ export records - This script exports record (biblios or authorities)
 
 =head1 SYNOPSIS
 
-export_records.pl [-h|--help] [--format=format] [--date=date] [--record-type=TYPE] [--dont_export_items] [--deleted_barcodes] [--clean] [--id_list_file=PATH] --filename=outputfile
+export_records.pl [-h|--help] [--format=format] [--date=datetime] [--record-type=TYPE] [--dont_export_items] [--deleted_barcodes] [--clean] [--id_list_file=PATH] --filename=outputfile
 
 =head1 OPTIONS
 
@@ -230,10 +228,10 @@ Print a brief help message.
 
 =item B<--date>
 
- --date=DATE            DATE should be entered as the 'dateformat' syspref is
-                        set (dd/mm/yyyy for metric, yyyy-mm-dd for iso,
-                        mm/dd/yyyy for us) records exported are the ones that
-                        have been modified since DATE.
+ --date=DATETIME        DATETIME should be entered as the 'dateformat' syspref is
+                        set (dd/mm/yyyy[ hh:mm:ss] for metric, yyyy-mm-dd[ hh:mm:ss] for iso,
+                        mm/dd/yyyy[ hh:mm:ss] for us) records exported are the ones that
+                        have been modified since DATETIME.
 
 =item B<--record-type>
 

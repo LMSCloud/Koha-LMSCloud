@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha Staff\n"
 "POT-Creation-Date: 2013-05-02 01:29-0300\n"
-"PO-Revision-Date: 2016-06-21 10:43+0000\n"
+"PO-Revision-Date: 2016-10-17 15:38+0000\n"
 "Last-Translator: Zeno <z.tajoli@cineca.it>\n"
 "Language-Team: CILEA <z.tajoli@cineca.it>\n"
 "Language: it\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.5.1.1\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-POOTLE-MTIME: 1466505828.000000\n"
+"X-POOTLE-MTIME: 1476718712.000000\n"
 "X-Poedit-Basepath: ../../../versioni/master/koha-tmpl\n"
 "X-Poedit-SearchPath-0: .\n"
 
@@ -465,8 +465,704 @@ msgid "admin.pref#UsageStats# anonymous Koha usage data with the Koha community.
 msgstr "in maniera anonima dei dati d'uso di Koha con la comunità di Koha. Puoi vedere i dati nel <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>. Devi far girare lo script misc/cronjobs/share_usage_with_koha_community.pl con cron."
 
 # Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# "
+msgstr "UsageStatsCountry"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Afghanistan"
+msgstr "Afghanistan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Albania"
+msgstr "Albania"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Algeria"
+msgstr "Algeria"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Andorra"
+msgstr "Andorra"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Angola"
+msgstr "Angola"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Antigua & Deps"
+msgstr "Antigua & Deps"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Argentina"
+msgstr "Argentina"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Armenia"
+msgstr "Armenia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Australia"
+msgstr "Australia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Austria"
+msgstr "Austria"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Azerbaijan"
+msgstr "Azerbaijan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Bahamas"
+msgstr "Bahamas"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Bahrain"
+msgstr "Bahrain"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Bangladesh"
+msgstr "Bangladesh"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Barbados"
+msgstr "Barbados"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Belarus"
+msgstr "Bielorussia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Belgium"
+msgstr "Belgio"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Belize"
+msgstr "Belize"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Benin"
+msgstr "Benin"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Bhutan"
+msgstr "Bhutan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Bolivia"
+msgstr "Bolivia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Bosnia Herz."
+msgstr "Bosnia Herz."
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Botswana"
+msgstr "Botswana"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Brazil"
+msgstr "Brasile"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Brunei"
+msgstr "Brunei"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Bulgaria"
+msgstr "Bulgaria"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Burkina"
+msgstr "Burkina Faso"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Burundi"
+msgstr "Burundi"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Cambodia"
+msgstr "Cambogia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Cameroon"
+msgstr "Camerun"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Canada"
+msgstr "Canada"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Cape Verde"
+msgstr "Cape Verde"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Centr. Afr. Rep"
+msgstr "Centr. Afr. Rep"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Chad"
+msgstr "Chad"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Chile"
+msgstr "Cile"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# China"
+msgstr "Cina"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Colombia"
+msgstr "Colombia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Comoros"
+msgstr "Comoros"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Congo"
+msgstr "Congo"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Costa Rica"
+msgstr "Costa Rica"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Croatia"
+msgstr "Croazia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Cuba"
+msgstr "Cuba"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Cyprus"
+msgstr "Cipro"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Czech Republic"
+msgstr "Rep. Ceca"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Denmark"
+msgstr "Danimarca"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Djibouti"
+msgstr "Gibuti"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Dominica"
+msgstr "Dominica"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Dominican Rep."
+msgstr "Rep.  Dominicana"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# East Timor"
+msgstr "East Timor"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Ecuador"
+msgstr "Ecuador"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Egypt"
+msgstr "Egitto"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# El Salvador"
+msgstr "El Salvador"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Equator. Guinea"
+msgstr "Guinea Equator."
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Eritrea"
+msgstr "Eritrea"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Estonia"
+msgstr "Estonia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Ethiopia"
+msgstr "Etiopia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Fiji"
+msgstr "Fiji"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Finland"
+msgstr "Finlandia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# France"
+msgstr "Francia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Gabon"
+msgstr "Gabon"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Gambia"
+msgstr "Gambia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Georgia"
+msgstr "Georgia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Germany"
+msgstr "Germania"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Ghana"
+msgstr "Gana"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Greece"
+msgstr "Grecia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Grenada"
+msgstr "Grenada"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Guatemala"
+msgstr "Guatemala"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Guinea"
+msgstr "Guinea"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Guinea-Bissau"
+msgstr "Guinea-Bissau"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Guyana"
+msgstr "Guyana"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Haiti"
+msgstr "Haiti"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Honduras"
+msgstr "Honduras"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Hungary"
+msgstr "Ungheria"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Iceland"
+msgstr "Islanda"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# India"
+msgstr "India"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Indonesia"
+msgstr "Indonesia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Iran"
+msgstr "Iran"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Iraq"
+msgstr "Iraq"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Ireland"
+msgstr "Irlanda"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Israel"
+msgstr "Israele"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Italy"
+msgstr "Italia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Ivory Coast"
+msgstr "Costa d'Avorio"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Jamaica"
+msgstr "Giamaica"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Japan"
+msgstr "Giappone"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Jordan"
+msgstr "Giordania"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Kazakhstan"
+msgstr "Kazakhstan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Kenya"
+msgstr "Kenya"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Kiribati"
+msgstr "Kiribati"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Korea North"
+msgstr "Corea del Nord"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Korea South"
+msgstr "Corea del  Sud"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Kosovo"
+msgstr "Kosovo"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Kuwait"
+msgstr "Kuwait"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Kyrgyzstan"
+msgstr "Kyrgyzstan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Laos"
+msgstr "Laos"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Latvia"
+msgstr "Lettonia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Lebanon"
+msgstr "Libano"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Lesotho"
+msgstr "Lesotho"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Liberia"
+msgstr "Liberia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Libya"
+msgstr "Libia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Liechtenstein"
+msgstr "Liechtenstein"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Lithuania"
+msgstr "Lituania"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Luxembourg"
+msgstr "Lussemburgo"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Macedonia"
+msgstr "Macedonia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Madagascar"
+msgstr "Madagascar"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Malawi"
+msgstr "Malawi"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Malaysia"
+msgstr "Malesia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Maldives"
+msgstr "Maldive"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Mali"
+msgstr "Mali"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Malta"
+msgstr "Malta"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Marshall Isl."
+msgstr "Marshall"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Mauritania"
+msgstr "Mauritania"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Mauritius"
+msgstr "Mauritius"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Mexico"
+msgstr "Messico"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Micronesia"
+msgstr "Micronesia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Moldova"
+msgstr "Moldavia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Monaco"
+msgstr "Monaco"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Mongolia"
+msgstr "Mongolia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Montenegro"
+msgstr "Montenegro"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Morocco"
+msgstr "Marocco"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Mozambique"
+msgstr "Mozambico"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Myanmar"
+msgstr "Myanmar"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Namibia"
+msgstr "Namibia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Nauru"
+msgstr "Nauru"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Nepal"
+msgstr "Nepal"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Netherlands"
+msgstr "Paesi Bassi"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# New Zealand"
+msgstr "Nuova Zelanda"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Nicaragua"
+msgstr "Nicaragua"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Niger"
+msgstr "Niger"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Nigeria"
+msgstr "Nigeria"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Norway"
+msgstr "Norvegia"
+
+# Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
 msgstr "Nota che questo valore non ha effetto se la prefenza di sistema UsageStats è configurata a \"Non condividere\""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Oman"
+msgstr "Oman"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Pakistan"
+msgstr "Pakistan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Palau"
+msgstr "Palau"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Panama"
+msgstr "Panama"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Papua N. Guinea"
+msgstr "Papua N. Guinea"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Paraguay"
+msgstr "Paraguay"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Peru"
+msgstr "Peru"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Philippines"
+msgstr "Filippine"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Poland"
+msgstr "Polonia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Portugal"
+msgstr "Portogallo"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Qatar"
+msgstr "Qatar"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Romania"
+msgstr "Romania"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Russian Fed."
+msgstr "Russia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Rwanda"
+msgstr "Rwanda"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Saint Vincent"
+msgstr "Saint Vincent"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Samoa"
+msgstr "Samoa"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# San Marino"
+msgstr "San Marino"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Sao Tome"
+msgstr "Sao Tome"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Saudi Arabia"
+msgstr "Arabia Saudita"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Senegal"
+msgstr "Senegal"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Serbia"
+msgstr "Serbia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Seychelles"
+msgstr "Seychelles"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Sierra Leone"
+msgstr "Sierra Leone"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Singapore"
+msgstr "Singapore"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Slovakia"
+msgstr "Slovacchia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Slovenia"
+msgstr "Slovenia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Solomon Islands"
+msgstr "Isole Salomone"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Somalia"
+msgstr "Somalia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# South Africa"
+msgstr "South Africa"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Spain"
+msgstr "Spagna"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Sri Lanka"
+msgstr "Sri Lanka"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# St Kitts & Nev."
+msgstr "St Kitts & Nev."
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# St Lucia"
+msgstr "St Lucia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Sudan"
+msgstr "Sudan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Suriname"
+msgstr "Suriname"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Swaziland"
+msgstr "Swaziland"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Sweden"
+msgstr "Svezia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Switzerland"
+msgstr "Svizzera"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Syria"
+msgstr "Siria"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Taiwan"
+msgstr "Taiwan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Tajikistan"
+msgstr "Tajikistan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Tanzania"
+msgstr "Tanzania"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Thailand"
+msgstr "Tailandia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# The country where your library is located:"
@@ -475,6 +1171,90 @@ msgstr "Il paese dove la biblioteca si trova:"
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# This will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
 msgstr "Verrà visualizzato sito <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Togo"
+msgstr "Togo"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Tonga"
+msgstr "Tonga"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Trinidad & Tob."
+msgstr "Trinidad & Tob."
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Tunisia"
+msgstr "Tunisia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Turkey"
+msgstr "Turchia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Turkmenistan"
+msgstr "Turkmenistan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Tuvalu"
+msgstr "Tuvalu"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# UAE"
+msgstr "UAE"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# USA"
+msgstr "USA"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Uganda"
+msgstr "Uganda"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Ukraine"
+msgstr "Ucraina"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# United Kingdom"
+msgstr "Regno Unito"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Uruguay"
+msgstr "Uruguay"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Uzbekistan"
+msgstr "Uzbekistan"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Vanuatu"
+msgstr "Vanuatu"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Vatican City"
+msgstr "Città del Vaticano"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Venezuela"
+msgstr "Venezuela"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Vietnam"
+msgstr "Vietnam"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Yemen"
+msgstr "Yemen"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Zambia"
+msgstr "Zambia"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsCountry# Zimbabwe"
+msgstr "Zimbabwe"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryName# If this field is empty data will be sent anonymously."
@@ -491,6 +1271,10 @@ msgstr "Il nome della biblioteca"
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryName# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
 msgstr "verrà visualizzato sul sito <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibraryType# "
+msgstr "UsageStatsLibraryType"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryType# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
@@ -4282,6 +5066,22 @@ msgid "opac.pref#OPACPrivacy# patrons to choose their own privacy settings for t
 msgstr "agli utenti di scegliere i loro criteri di privacy relativamente allo storico della lettura. Richiede opacreadinghistory e AnonymousPatron."
 
 # OPAC > Appearance
+msgid "opac.pref#OPACResultsLibrary# . Please note that this feature is currently available for MARC21 and UNIMARC."
+msgstr ". Questa opzione è disponibile per MARC21 e UNIMARC."
+
+# OPAC > Appearance
+msgid "opac.pref#OPACResultsLibrary# For search results in the OPAC, show the item's"
+msgstr "Nei i risultati in OPAC, mostra per le copie la"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACResultsLibrary# current location"
+msgstr "biblioteca dove si trovano ora"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACResultsLibrary# home library"
+msgstr "la biblioteca che le possiede"
+
+# OPAC > Appearance
 msgid "opac.pref#OPACResultsSidebar# Include the following HTML under the facets in OPAC search results:"
 msgstr "Includi il seguente codice HTML sotto le faccette nei risultati di ricerca dell'Opac"
 
@@ -4878,8 +5678,8 @@ msgid "opac.pref#PatronSelfRegistration# Don't allow"
 msgstr "Non permettere"
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfRegistration# library patrons to register or modify their account via the OPAC."
-msgstr "gli utenti a registrarsi o a modificare i loro dati attraverso l'Opac"
+msgid "opac.pref#PatronSelfRegistration# library patrons to register or modify their account via the OPAC. Note: This needs PatronSelfRegistrationDefaultCategory to be set to a valid patron category code."
+msgstr "agli utenti della biblioteca di registrarsi o  di modifcare i propri dati attraverso l'Opac. Attenzione: questo comporta che la preferenza PatronSelfRegistrationDefaultCategory deve contenere un codice di tipo utente valido."
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationAdditionalInstructions# Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
@@ -5710,12 +6510,12 @@ msgid "searching.pref#IntranetNumbersPreferPhrase# use"
 msgstr "usa"
 
 # Searching > Results Display
-msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>If a record has more than this number of items, they availability statuses may be incorrect in the search results, but will be correct in the record details."
-msgstr "<br/>Se un record ha più copie di questo numero, i numeri della disponibilità potrebbero essere errati nei risultati di ricerca, ma saranno corretti nel dettaglio del record."
+msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Availability statuses may show incorrectly in search results if a record has more items than the limit set. Statuses will display correctly in the record details."
+msgstr "<br/>Gli status di disponibilità posso essere scorretti nei risultati di ricerca se il record ha più copie del limite qui impostato. Gli status saranno corretti nei dettagli del record."
 
 # Searching > Results Display
-msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Leave empty for no limit on the number of items for which to check the status."
-msgstr "<br/>Lascia vuoto per non mettere limiti al numero di copie di cui vuoi controllare lo status."
+msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Leave empty for no limit."
+msgstr "<br/>Lascia vuoto per nessun limite."
 
 # Searching > Results Display
 msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# For records with many items, only check the availability status for the first"
@@ -6397,9 +7197,9 @@ msgstr "di vedere i record in formato MARC normale nell'interfaccia dello staff.
 msgid "tools.pref"
 msgstr "Strumenti"
 
-# Tools > Batch item modification
-msgid "tools.pref Batch item modification"
-msgstr "Modifica batch delle copie"
+# Tools > Batch item
+msgid "tools.pref Batch item"
+msgstr "Copia batch"
 
 # Tools > News
 msgid "tools.pref News"
@@ -6417,13 +7217,21 @@ msgstr "Limita il  numero di immagini (non quelle degli utenti) per il creatore 
 msgid "tools.pref#ImageLimit# images."
 msgstr "immagini."
 
-# Tools > Batch item modification
-msgid "tools.pref#MaxItemsForBatch# Process up to"
-msgstr "Lavora fino a un massimo di"
+# Tools > Batch item
+msgid "tools.pref#MaxItemsToDisplayForBatchDel# Display up to"
+msgstr "Mostra fino a "
 
-# Tools > Batch item modification
-msgid "tools.pref#MaxItemsForBatch# items in a single modification or deletion batch."
-msgstr "copie in una singola iterazione di un batch che modifica o cancella."
+# Tools > Batch item
+msgid "tools.pref#MaxItemsToDisplayForBatchDel# items in a single item deletion batch."
+msgstr "copie in una singola cancellazione batch."
+
+# Tools > Batch item
+msgid "tools.pref#MaxItemsToProcessForBatchMod# Process up to"
+msgstr "Lavora fino a "
+
+# Tools > Batch item
+msgid "tools.pref#MaxItemsToProcessForBatchMod# items in a single item modification batch."
+msgstr "in una singola modifica batch."
 
 # Tools > News
 msgid "tools.pref#NewsAuthorDisplay# Both OPAC and staff client"

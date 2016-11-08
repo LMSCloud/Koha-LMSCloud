@@ -72,9 +72,15 @@ function toggle_onsite_checkout(){
         [% END %]
     } else {
         $("#duedatespec").datetimepicker({
-            onClose: function(dateText, inst) { $("#barcode").focus(); },
+            onClose: function(dateText, inst) {
+                if (validate_date(dateText, inst) ) {
+                    $("#barcode").focus();
+                }
+            },
             hour: 23,
             minute: 59
+        }).on("change", function(e, value) {
+            if ( ! is_valid_date( $(this).val() ) ) {$(this).val("");}
         });
     }
 }
@@ -104,6 +110,14 @@ $(document).ready(function() {
     $("#onsite_checkout").click(function(){
         toggle_onsite_checkout();
     });
+
+    $("#suspend_until").datepicker({
+        onClose: function(dateText, inst) {
+            validate_date(dateText, inst);
+        },
+        minDate: 1, // require that hold suspended until date is after today
+    });
+
 });
 
 //]]>
@@ -369,7 +383,7 @@ $(document).ready(function() {
     [% IF ( DEBT ) %]<input type="hidden" name="debt_confirmed" value="1" />[% END %]
     [% IF ( INVALID_DATE ) %]
     <p>
-    <input type="text" size="13" id="duedatespec" name="duedatespec" readonly="readonly" value="[% duedatespec %]" />
+    <input type="text" size="13" id="duedatespec" name="duedatespec" value="[% duedatespec %]" />
     <label for="duedatespec">Due date</label>
     </p>
     [% ELSE %]
@@ -452,7 +466,7 @@ $(document).ready(function() {
             <li>The barcode was not found: <span class="ex">[% barcode |html %]</span>
 	    [% IF ( fast_cataloging ) %]
 	        [% IF ( CAN_user_editcatalogue_fast_cataloging ) %]
-            <a href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=FA&amp;barcode=[% barcode |uri %]&amp;circborrowernumber=[% borrowernumber %]&amp;branch=[% branch %]&amp;duedatespec=[% duedatespec %]&amp;stickyduedate=[% stickyduedate %]">Fast cataloging</a>
+            <a href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=FA&amp;barcode=[% barcode |uri %]&amp;circborrowernumber=[% borrowernumber %]&amp;branch=[% branch %]&amp;duedatespec=[% duedatespec %]&amp;stickyduedate=[% stickyduedate %]">Add record using fast cataloging</a>
 		[% END %]
 	    [% END %]
 
@@ -572,7 +586,7 @@ $(document).ready(function() {
 [% IF ( message ) %]
 [% INCLUDE 'patron-toolbar.inc' %]
 <h4>
-No patron matched <span class="ex">[% message %]</span>
+No patron matched <span class="ex">[% message | html %]</span>
 </h4>
 [% END %]
 
@@ -611,7 +625,11 @@ No patron matched <span class="ex">[% message %]</span>
 
     <label class="circ_barcode" for="barcode">Checking out to [% INCLUDE 'patron-title.inc' %]</label>
 
-	<div class="hint">Enter item barcode:</div>
+        [% IF Koha.Preference('itemBarcodeFallbackSearch') %]
+            <div class="hint">Enter item barcode or keyword:</div>
+        [% ELSE %]
+            <div class="hint">Enter item barcode:</div>
+        [% END %]
 
     [% IF NEEDSCONFIRMATION %]
         <input type="text" name="barcode" id="barcode" class="barcode focus" size="14" disabled="disabled" />
@@ -631,9 +649,9 @@ No patron matched <span class="ex">[% message %]</span>
                 <div id="specify-due-date" class="checkout-setting">
                     <div class="hint">Specify due date [% INCLUDE 'date-format.inc' %]: </div>
                     [% IF ( duedatespec ) %]
-                        <input type="text" size="13" id="duedatespec" name="duedatespec" value="[% duedatespec %]" readonly="readonly" />
+                        <input type="text" size="13" id="duedatespec" name="duedatespec" value="[% duedatespec %]" />
                     [% ELSE %]
-                        <input type="text" size="13" id="duedatespec" name="duedatespec" value="" readonly="readonly" />
+                        <input type="text" size="13" id="duedatespec" name="duedatespec" value="" />
                     [% END %]
                     <label for="stickyduedate"> Remember for session:</label>
                     [% IF ( stickyduedate ) %]
@@ -681,7 +699,7 @@ No patron matched <span class="ex">[% message %]</span>
                 [% IF noissues %]
                     <div class="onsite-checkout-only">
                         <input type="checkbox" id="onsite_checkout" name="onsite_checkout_forced" checked="checked" disabled="disabled" /> <label for="onsite_checkout">On-site checkouts only. Automatic due date: </label>
-                        <input type="text" name="duedatespec" id="duedatespec" readonly="readonly" />
+                        <input type="text" name="duedatespec" id="duedatespec" />
                         <input type="hidden" name="onsite_checkout" checked="checked" value="1" />
                     </div>
                 [% ELSE %]
@@ -978,7 +996,7 @@ No patron matched <span class="ex">[% message %]</span>
 
             [% IF AutoResumeSuspendedHolds %]
             <label for="suspend_until">until</label>
-            <input type="text" size="10" id="suspend_until" name="suspend_until" class="datepicker" />
+            <input type="text" size="10" id="suspend_until" name="suspend_until datepicker" />
             <span class="hint">Specify date on which to resume [% INCLUDE 'date-format.inc' %]: </span>
              [% END %]
         </form>

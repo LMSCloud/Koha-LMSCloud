@@ -9,7 +9,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: uk-UA-i-staff-t-prog-v-3002000\n"
-"POT-Creation-Date: 2016-07-15 19:04-0300\n"
+"POT-Creation-Date: 2016-10-20 15:11-0300\n"
 "PO-Revision-Date: 2016-04-06 14:46+0000\n"
 "Last-Translator: Synapse <synapse.ova@gmail.com>\n"
 "Language-Team: Ukrainian Linux Team <translation@linux.org.ua>\n"
@@ -41,17 +41,17 @@ msgstr "%s раз(и/ів)"
 #. %4$s:  total 
 #. %5$s:  ELSE 
 #. %6$s:  END 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:161
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:157
 #, c-format
 msgid "%sResults %s to %s of %s %sNo results found %s"
 msgstr "%s Результати від %s по %s з %s %s Нічого не знайдено %s "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:152
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:148
 #, c-format
 msgid "&lt;&lt; Previous"
 msgstr "&lt;&lt; Попередні"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:213
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:209
 #, fuzzy, c-format
 msgid "&lt;&lt; Previous "
 msgstr "&lt;&lt; Попередні"
@@ -1152,22 +1152,22 @@ msgstr "альт (cтрунний смичковий інструмент) {sb} 
 msgid "Amsterdam, Netherlands"
 msgstr "Амстердам, Нідерланди"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:155
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:159
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:153
 #, c-format
 msgid "Annual"
 msgstr "щорічно"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:9
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:23
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:40
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:57
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:68
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:90
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:119
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:144
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:180
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:193
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:12
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:26
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:43
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:60
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:71
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:93
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:122
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:148
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:185
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:198
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:6
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:20
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:37
@@ -1182,13 +1182,13 @@ msgstr "щорічно"
 msgid "Any"
 msgstr "довільно"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:168
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:172
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:166
 #, c-format
 msgid "Any regularity"
 msgstr "будь-яка регулярність"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:131
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:135
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:129
 #, c-format
 msgid "Any type"
@@ -1217,13 +1217,13 @@ msgstr "Афіни, Греція"
 msgid "Attitude of sensor"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:7
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:4
 #, c-format
 msgid "Audience"
 msgstr "Аудиторія"
 
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2intranetDetail.xsl:292
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:10
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:340
 #, c-format
 msgid "Audience: "
@@ -1247,7 +1247,7 @@ msgstr "Тип авторитетного джерела "
 msgid "Autre"
 msgstr "інше"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:108
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:110
 #, c-format
 msgid "Availability: "
 msgstr "Доступність: "
@@ -1335,13 +1335,13 @@ msgstr "Beta (відеокасета двохкатушкова)"
 msgid "Bibliography: "
 msgstr "Примітки про наявність в документі бібліографії/покажчика: "
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:156
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:160
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:154
 #, c-format
 msgid "Biennial"
 msgstr "один раз на два роки"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:151
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:155
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:149
 #, c-format
 msgid "Bimonthly"
@@ -1362,7 +1362,6 @@ msgstr "Код матеріалу оправи / 2: "
 msgid "Binding material 3:"
 msgstr "Код матеріалу оправи / 3: "
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:55
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:52
 #, c-format
 msgid "Biography"
@@ -1378,7 +1377,12 @@ msgstr "Код біографії"
 msgid "Biography:"
 msgstr "Біографія"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:148
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:58
+#, fuzzy, c-format
+msgid "Biography: "
+msgstr "Біографія"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:152
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:146
 #, c-format
 msgid "Biweekly"
@@ -1412,7 +1416,7 @@ msgid "Bound with:"
 msgstr "Починається з "
 
 # 106 - Видання шрифтами Брайля або Муна
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:27
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:30
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:31
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:33
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:24
@@ -1587,7 +1591,7 @@ msgstr "Набір символів (обов’язкове) 1"
 msgid "Character sets (mandatory) 2"
 msgstr "Набір символів (обов’язкове) 2"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:207
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:231
 #, c-format
 msgid "Checked out ("
 msgstr "Видано ("
@@ -1600,7 +1604,7 @@ msgstr "Видано ("
 msgid "Children's chorus"
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:200
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:196
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c_bis.tt:42
 #, c-format
 msgid "Choose"
@@ -1633,7 +1637,7 @@ msgstr "Класифікація: "
 msgid "Clavicorde"
 msgstr "клавікорд"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:202
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:198
 #, c-format
 msgid "Clear field"
 msgstr "Очистити поле"
@@ -1644,7 +1648,7 @@ msgid "Click here to access online"
 msgstr "Клацніть тут для доступу в онлайн"
 
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2intranetDetail.xsl:379
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:127
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:129
 #, c-format
 msgid "Click here to access online "
 msgstr "Клацніть тут для доступу в онлайн "
@@ -1667,20 +1671,11 @@ msgstr ""
 "Код відношення особи, вказаної в полі, до створення документа, що "
 "каталогізується "
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:5
-#, c-format
-msgid "Coded Fields"
-msgstr "Кодовані поля"
-
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:8
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:2
 #, c-format
 msgid "Coded fields"
 msgstr "Кодовані поля"
-
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:1
-#, c-format
-msgid "Coded information filters"
-msgstr "Фільтри кодованих даних"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_225a.tt:9
 #, c-format
@@ -1739,10 +1734,14 @@ msgstr "Код конференції чи зустрічі: "
 msgid "Conference publication indicator"
 msgstr "Індикатор публікації конференції"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:88
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:85
 #, c-format
 msgid "Content"
+msgstr "Зміст"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:91
+#, fuzzy, c-format
+msgid "Content: "
 msgstr "Зміст"
 
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2intranetDetail.xsl:229
@@ -1846,13 +1845,13 @@ msgstr "15 дюймів за секунду (38 см/с)"
 msgid "DVD-Video"
 msgstr "DVD-відео (цифровий відеодиск)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:145
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:149
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:143
 #, c-format
 msgid "Daily"
 msgstr "щоденно"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:228
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:252
 #, c-format
 msgid "Damaged ("
 msgstr "Пошкоджено ("
@@ -1865,7 +1864,7 @@ msgstr "Пошкоджено ("
 msgid "Dance orchestra"
 msgstr "планується для"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:136
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:140
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:134
 #, c-format
 msgid "Database"
@@ -2364,6 +2363,11 @@ msgstr "Гельсінкі, Фінляндія"
 msgid "Hemisphere:"
 msgstr "Півкуля/напівсфера: "
 
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:3
+#, fuzzy, c-format
+msgid "Hide coded information filters"
+msgstr "Фільтри кодованих даних"
+
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:22
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128c.tt:14
@@ -2407,7 +2411,6 @@ msgstr ""
 msgid "Idref"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:66
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:63
 #, c-format
 msgid "Illustration"
@@ -2478,7 +2481,12 @@ msgstr "Коди ілюстрацій / 3: "
 msgid "Illustration codes 4:"
 msgstr "Коди ілюстрацій / 4: "
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:242
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:69
+#, fuzzy, c-format
+msgid "Illustration: "
+msgstr "Ілюстрації"
+
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:266
 #, c-format
 msgid "In transit ("
 msgstr "Переміщується ("
@@ -2522,7 +2530,7 @@ msgstr "Інструменти або голоси для ансамблів: "
 msgid "Istanbul, Turkey"
 msgstr "Стамбул, Туреччина"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:169
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:165
 #, fuzzy, c-format
 msgid "Item count"
 msgstr "Кількість одиниць"
@@ -2532,13 +2540,13 @@ msgstr "Кількість одиниць"
 msgid "Item type:"
 msgstr "Тип одиниці: "
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:145
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:147
 #, c-format
 msgid "Items available for loan: "
 msgstr "Примірники, доступні для позики: "
 
 #  тобто недоступні для обігу, лише перегляду за місцем (напр, виставки)
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:182
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:206
 #, c-format
 msgid "Items available for reference: "
 msgstr "Примірники, доступні для ознайомлення: "
@@ -2705,10 +2713,14 @@ msgstr "Починається з "
 msgid "Lisbon, Portugal"
 msgstr "Лісабон, Португалія"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:38
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:35
 #, c-format
 msgid "Literary genre"
+msgstr "Літературний жанр"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:41
+#, fuzzy, c-format
+msgid "Literary genre: "
 msgstr "Літературний жанр"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:10
@@ -2726,7 +2738,7 @@ msgstr "Код літературного жанру"
 msgid "Literature:"
 msgstr "нітратна"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:170
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:166
 #, c-format
 msgid "Location"
 msgstr "Розташування"
@@ -2739,7 +2751,7 @@ msgstr "Розташування"
 msgid "London, United Kingdom"
 msgstr "Лондон, Великобританія"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:221
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:245
 #, c-format
 msgid "Lost ("
 msgstr "Втрачено ("
@@ -2933,7 +2945,7 @@ msgstr "Код модифікації запису"
 msgid "Mollweide"
 msgstr "Мольвейде"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:133
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:137
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:131
 #, c-format
 msgid "Monographic series"
@@ -2945,7 +2957,7 @@ msgstr "монографічні серіальні видання"
 msgid "Month"
 msgstr "Місяць"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:150
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:154
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:148
 #, c-format
 msgid "Monthly"
@@ -3049,18 +3061,18 @@ msgstr ""
 msgid "Nature of contents code"
 msgstr "Код типу змісту"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:134
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:138
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:132
 #, c-format
 msgid "Newspaper"
 msgstr "газета"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:159
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:155
 #, c-format
 msgid "Next&gt;&gt;"
 msgstr "Далі &gt;&gt;"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:231
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:227
 #, c-format
 msgid "Next&gt;&gt; "
 msgstr "Далі &gt;&gt; "
@@ -3072,7 +3084,7 @@ msgstr "Далі &gt;&gt; "
 msgid "Nimbus"
 msgstr "Nimbus"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:140
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:142
 #, c-format
 msgid "No items available "
 msgstr "Немає наявних примірників "
@@ -3168,12 +3180,12 @@ msgstr "скісна Меркатора"
 msgid "Oboe"
 msgstr ""
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:249
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:273
 #, c-format
 msgid "On hold ("
 msgstr "Зарезервовано ("
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:235
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:259
 #, c-format
 msgid "On order ("
 msgstr "Замовлено ("
@@ -3217,8 +3229,8 @@ msgstr "знак видавця є"
 msgid "Oslo (Christiania), Norway"
 msgstr "Осло (Крістіанія), Норвегія"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:138
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:162
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:142
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:166
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:136
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:160
 #, c-format
@@ -3310,16 +3322,20 @@ msgstr "Визначник частин: "
 msgid "Peking, People's Republic of China"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:132
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:136
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:130
 #, c-format
 msgid "Periodical"
 msgstr "періодичне видання"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:142
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:140
 #, c-format
 msgid "Periodicity"
+msgstr "Періодичність"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:146
+#, fuzzy, c-format
+msgid "Periodicity: "
 msgstr "Періодичність"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:814
@@ -3345,10 +3361,14 @@ msgstr "Місце публікації: "
 msgid "Physical medium"
 msgstr "Фізична характеристика: "
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:21
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:18
 #, c-format
 msgid "Physical presentation"
+msgstr "Фізична форма документа"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:24
+#, fuzzy, c-format
+msgid "Physical presentation: "
 msgstr "Фізична форма документа"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:260
@@ -3367,14 +3387,14 @@ msgstr "фортепіано"
 msgid "Piccolo"
 msgstr "пікколо"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:178
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:182
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:176
 #, c-format
 msgid "Picture"
 msgstr "Двовимірний зображувальний об’єкт"
 
 # http://unimarc.org.ua/464/
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:99
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:101
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:83
 #, c-format
 msgid "Piece-Analytic Level"
@@ -3508,7 +3528,7 @@ msgstr ""
 "Якість зображення (вище); Середня величина роздільної здатності при зйомці "
 "наземних об’єктів (нижче): "
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:152
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:156
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:150
 #, c-format
 msgid "Quarterly"
@@ -3543,11 +3563,16 @@ msgid "Refined categories of colour for moving pictures"
 msgstr "Уточнені категорії кольорів для кінофільмів"
 
 # 110^a - Регулярність виходу друком
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:166
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:155
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:164
 #, c-format
 msgid "Regularity"
+msgstr "Регулярність"
+
+# 110^a - Регулярність виходу друком
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:170
+#, fuzzy, c-format
+msgid "Regularity: "
 msgstr "Регулярність"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:71
@@ -3650,7 +3675,7 @@ msgstr "Шукати за цим автором"
 msgid "Search on "
 msgstr "Пошук за"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:150
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:146
 #, c-format
 msgid "Search results"
 msgstr "Результати пошуку"
@@ -3697,35 +3722,35 @@ msgstr "Секунди: "
 msgid "Select a collection"
 msgstr "Вибір зібрання"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:154
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:158
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:152
 #, c-format
 msgid "Semiannual"
 msgstr "один раз на півріччя (двічі на рік)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:149
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:153
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:147
 #, c-format
 msgid "Semimonthly"
 msgstr "двічі на місяць"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:146
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:150
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:144
 #, c-format
 msgid "Semiweekly"
 msgstr "двічі на тиждень"
-
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:129
-#, c-format
-msgid "Serial Type"
-msgstr "Тип серіального видання"
 
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:127
 #, c-format
 msgid "Serial type"
 msgstr "Тип серіального видання"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:127
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:133
+#, fuzzy, c-format
+msgid "Serial type: "
+msgstr "Тип серіального видання"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:131
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:125
 #, c-format
 msgid "Serials"
@@ -3737,11 +3762,16 @@ msgstr "Серіальні видання"
 msgid "Series"
 msgstr "Серії"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:93
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:95
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:77
 #, c-format
 msgid "Set Level"
 msgstr "Набір"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:2
+#, fuzzy, c-format
+msgid "Show coded information filters"
+msgstr "Фільтри кодованих даних"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:50
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:52
@@ -3848,7 +3878,7 @@ msgid "Spot 3"
 msgstr "Spot 3"
 
 #. INPUT type=submit
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:141
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:137
 msgid "Start search"
 msgstr "Почати пошук"
 
@@ -3943,7 +3973,7 @@ msgstr "Найменування теми як предметна рубрика
 msgid "Subject Category"
 msgstr "Предметна категорія вищого рівня (тимчасове)"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:168
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:164
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:57
 #, c-format
 msgid "Summary"
@@ -4077,19 +4107,19 @@ msgstr "тенор"
 msgid "Thesis: "
 msgstr "Примітки про дисертацію:"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:159
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:163
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:157
 #, c-format
 msgid "Three times a month"
 msgstr "тричі на місяць"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:158
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:162
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:156
 #, c-format
 msgid "Three times a week"
 msgstr "тричі на тиждень"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:153
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:157
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:151
 #, c-format
 msgid "Three times a year"
@@ -4148,7 +4178,7 @@ msgstr "Токіо, Японія"
 msgid "Trademark"
 msgstr "Товарний знак як предметна рубрика"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:87
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:89
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:71
 #, c-format
 msgid "Translation of"
@@ -4202,7 +4232,7 @@ msgstr "діапозитиви 8 х 8 дюймів (20 х 20 см)"
 msgid "Transparencies 9 * 9 in. (22.5 * 22.5 cm)"
 msgstr "діапозитиви 9 х 9 дюймів (22½ х 22½ см)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:157
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:161
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:155
 #, c-format
 msgid "Triennial"
@@ -4569,7 +4599,7 @@ msgstr "Уніфікований умовний заголовок"
 msgid "Uniform Title"
 msgstr "Уніфікована форма назви"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:161
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:165
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:159
 #, c-format
 msgid "Unknown"
@@ -4665,13 +4695,13 @@ msgstr "невизначено"
 msgid "Unspecified woodwinds"
 msgstr "невизначено"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:135
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:139
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:133
 #, c-format
 msgid "Updating loose-leaf"
 msgstr "оновлюване листове видання з відривними аркушами"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:137
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:141
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:135
 #, c-format
 msgid "Updating website"
@@ -4700,14 +4730,14 @@ msgstr "VHS (відеокасета)"
 msgid "Van der Grinten"
 msgstr "Ван дер Грітена"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:117
-#, c-format
-msgid "Video Types"
-msgstr "Типи відео-матеріалів"
-
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:114
 #, c-format
 msgid "Video types"
+msgstr "Типи відео-матеріалів"
+
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:120
+#, fuzzy, c-format
+msgid "Video types: "
 msgstr "Типи відео-матеріалів"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:980
@@ -4819,7 +4849,7 @@ msgstr "Вашингтон, округ Колумбія, США"
 msgid "Watermark:"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:147
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:151
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:145
 #, c-format
 msgid "Weekly"
@@ -4830,12 +4860,12 @@ msgstr "щотижня"
 msgid "Width or dimensions"
 msgstr "Ширина чи розміри"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:214
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:238
 #, c-format
 msgid "Withdrawn ("
 msgstr "Вилучено ("
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:160
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:164
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:158
 #, c-format
 msgid "Without periodicity"
@@ -4863,7 +4893,7 @@ msgstr "ксилофон"
 msgid "Year"
 msgstr "Рік"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:119
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:121
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:418
 #, c-format
 msgid "_blank"
@@ -5022,7 +5052,7 @@ msgstr "abcdq"
 msgid "abcdu"
 msgstr "abcdu"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:94
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:97
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:91
 #, c-format
 msgid "abstract"
@@ -5079,13 +5109,13 @@ msgstr "акрилові фарби"
 msgid "ad- poster"
 msgstr "ad — плакати, постери"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:16
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:19
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:13
 #, c-format
 msgid "adult, General"
 msgstr "для дорослих, загального змісту"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:15
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:18
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:12
 #, c-format
 msgid "adult, serious"
@@ -5326,7 +5356,7 @@ msgstr ""
 msgid "au- santino"
 msgstr "au — сантіно"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:59
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:62
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1536
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1538
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:54
@@ -5515,7 +5545,7 @@ msgid "bc"
 msgstr "bc"
 
 # 110^a - Бібліографічний покажчик
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:91
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:94
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:429
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:431
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:516
@@ -5677,7 +5707,7 @@ msgstr ""
 msgid "bound with one or more others"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:195
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:200
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:103
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:105
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:193
@@ -5910,7 +5940,7 @@ msgstr "олівець"
 msgid "cantata"
 msgstr "кантати"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:194
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:199
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:98
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:100
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:192
@@ -5944,7 +5974,7 @@ msgstr "канцони"
 msgid "cardboard"
 msgstr "картон"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:196
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:201
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:108
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:110
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:194
@@ -5960,7 +5990,7 @@ msgstr "Загалом"
 
 # 110^a - Комікси
 # серіальні видання, надруковані у вигляді коміксів, для дітей або дорослих.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:110
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:113
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:311
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:313
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:107
@@ -5980,7 +6010,7 @@ msgstr "казеїнові фарби"
 
 # 110^a - Каталог
 # Перелік бібліографічних одиниць з колекції чи виставки або доступних з конкретного агентства як то видавець або книготорговельний заклад, приміром, каталог видавців у вигляді серіального видання.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:92
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:95
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:215
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:217
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:89
@@ -6050,7 +6080,7 @@ msgstr "церковний спів, християнський"
 msgid "chant, non christian"
 msgstr "церковний спів, нехристиянський"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:72
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:75
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:69
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:71
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:164
@@ -6082,7 +6112,7 @@ msgstr "навігаційні карти"
 msgid "chiaroscuro woodcut"
 msgstr "світлотіньова гравюра, кьяроскуро, кольорова ксилографія"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:13
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:16
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:10
 #, c-format
 msgid "children (9-14)"
@@ -6204,7 +6234,7 @@ msgstr "вугілля"
 msgid "coarse/standard"
 msgstr "широка/стандартна"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:77
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:80
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:84
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:86
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:179
@@ -6237,7 +6267,7 @@ msgstr "coauthor"
 msgid "coins"
 msgstr "містить"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:181
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:186
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:444
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:446
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:645
@@ -6249,7 +6279,7 @@ msgstr "містить"
 msgid "collage"
 msgstr "колаж"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:61
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:64
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1546
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1548
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:58
@@ -6439,7 +6469,7 @@ msgstr "містить"
 msgid "contains"
 msgstr "містить"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:62
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:65
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:59
 #, c-format
 msgid "contains biographical data"
@@ -6759,7 +6789,7 @@ msgstr "фортепіано"
 
 # 110^a - Словник
 # Серіальне видання, яке складається з абеткового переліку слів з коротким тлумаченням їх значень та випадків вживання або їх іншомовних еквівалентів.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:95
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:98
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:821
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:823
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:977
@@ -6807,7 +6837,7 @@ msgstr "видавець"
 
 # 110^a - Довідник
 # Упорядкований перелік осіб, організацій або місць з інформацією про них.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:97
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:100
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:245
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:247
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:94
@@ -6867,7 +6897,7 @@ msgstr "полемічні роботи"
 msgid "discussion, dissertation, thesis"
 msgstr "диспути, трактати, тези, дисертації"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:103
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:106
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:100
 #, c-format
 msgid "dissertation or thesis"
@@ -6875,7 +6905,7 @@ msgstr "дисертація або автореферат"
 
 # дисертація (перероблена)
 #     Дисертація, перероблена або репродукована для комерційної публікації. Для оригіналу дисертації використовується код 'm'.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:111
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:114
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:108
 #, c-format
 msgid "dissertation or thesis (revised)"
@@ -6899,7 +6929,7 @@ msgstr "Інструменти"
 msgid "dot map"
 msgstr "точкова карта"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:42
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:45
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1377
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1379
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:24
@@ -6909,7 +6939,7 @@ msgstr "точкова карта"
 msgid "drama"
 msgstr "драматургія"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:182
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:187
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:180
 #, c-format
 msgid "drawing"
@@ -7074,7 +7104,7 @@ msgstr "Вибір"
 msgid "electronic"
 msgstr "електронний ресурс"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:32
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:35
 #, fuzzy, c-format
 msgid "electronic resource"
 msgstr "електронний ресурс"
@@ -7102,7 +7132,7 @@ msgstr "енкаустика, восковий живопис"
 
 # 110^a - Енциклопедія
 # Абетковий перелік імен або термінів на дану тему з їх всебічним тлумаченням, який видається як серіальне видання.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:96
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:99
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:239
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:241
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:93
@@ -7171,7 +7201,7 @@ msgstr "Змінна "
 msgid "essay, feuilleton"
 msgstr "есе, фейлетон"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:43
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:46
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:64
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:66
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:40
@@ -7207,7 +7237,7 @@ msgstr "гравірування способом травлення, офорт
 msgid "ethnological information"
 msgstr "Календарна інформація"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:107
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:110
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:104
 #, c-format
 msgid "examination paper"
@@ -7304,7 +7334,7 @@ msgstr "fa — арабська"
 msgid "fable"
 msgstr "байка"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:76
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:79
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:73
 #, c-format
 msgid "facsimiles"
@@ -7358,7 +7388,7 @@ msgstr "фломастер"
 msgid "fghkdlmor"
 msgstr "fghkdlmor"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:41
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:44
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1387
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1389
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:29
@@ -7464,7 +7494,7 @@ msgstr ""
 msgid "form lines"
 msgstr "форматовані бланки"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:79
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:82
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:76
 #, c-format
 msgid "forms"
@@ -7605,7 +7635,7 @@ msgstr "видання для відпочинку"
 msgid "gb_page_center[600,500]"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:78
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:81
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:89
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:91
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:184
@@ -7628,7 +7658,7 @@ msgid "genealogical tables"
 msgstr "генеалогічні дерева"
 
 # 115^a - скло
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:197
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:202
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:275
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:277
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:455
@@ -7838,7 +7868,7 @@ msgstr "розфарбовування ручним способом"
 msgid "hand-made paper"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:29
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:32
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:26
 #, c-format
 msgid "hand-written"
@@ -7856,7 +7886,7 @@ msgstr "ручне розфарбовування"
 msgid "handwritten"
 msgstr "рукописний"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:199
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:204
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:126
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:128
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:197
@@ -7920,7 +7950,7 @@ msgstr "Початкове слово"
 msgid "history"
 msgstr "історія"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:44
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:47
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1440
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1442
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:41
@@ -8034,7 +8064,7 @@ msgstr "ia — тайська"
 msgid "ijknpxyz"
 msgstr "ijknpxyz"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:83
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:86
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:24
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:26
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:119
@@ -8054,7 +8084,7 @@ msgstr "прикраси манускриптів і стародруків"
 msgid "illustrateur"
 msgstr "ілюстратор"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:69
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:72
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:19
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:21
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:114
@@ -8154,7 +8184,7 @@ msgstr "неповний"
 
 # 110^a - Покажчик
 # Наприклад, покажчик до серіального видання, який сам видається як серіальне видання. Для відображення наявності покажчика у самому серіальному видання див. символьну позицію 9.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:93
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:96
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:816
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:818
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:972
@@ -8197,7 +8227,7 @@ msgid "index or name list present but location not specified"
 msgstr ""
 "покажчик або перелік імен присутній, але місце його розташування не визначено"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:60
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:63
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1541
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1543
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:57
@@ -8294,7 +8324,7 @@ msgid "interviews"
 msgstr "Рецензії"
 
 # 110^a - Нерегулярно
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:171
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:175
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:183
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:185
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:169
@@ -8407,7 +8437,7 @@ msgstr "jpxyz"
 msgid "juvenile literature"
 msgstr "Код літературного жанру"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:10
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:13
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:7
 #, c-format
 msgid "juvenile, general"
@@ -8547,7 +8577,7 @@ msgstr "форматовані бланки"
 
 # 106 - Великий друк
 # Код відображає, що документ надруковано спеціальним великогабаритним друком, призначеним для людей з поганим зором
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:25
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:28
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:22
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:22
@@ -8581,7 +8611,7 @@ msgstr "судові звіти та збірки витягів з судови
 
 # Закони та законопроекти
 # Документи, які містять тексти законів.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:104
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:107
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:275
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:277
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:101
@@ -8645,7 +8675,7 @@ msgstr "легенда"
 msgid "less than 1 centimetre"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:45
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:48
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1445
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1447
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:42
@@ -8665,7 +8695,7 @@ msgstr "листи"
 msgid "library catalogue"
 msgstr "Каталог"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:49
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:52
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1382
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1384
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:46
@@ -8713,7 +8743,7 @@ msgstr "ліногравюра"
 
 # 110^a - Літературні огляди/ рецензії
 # Оповідальні огляди, часто критичного характеру, в галузі літератури, часто супроводжувані бібліографією.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:108
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:111
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:305
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:307
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:105
@@ -8939,7 +8969,7 @@ msgstr "географічні мапи"
 msgid "map view"
 msgstr "перспективний вид"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:70
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:73
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:64
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:66
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:159
@@ -9046,7 +9076,7 @@ msgid "mental or cognitive map"
 msgstr "вигадана карта (mental/cognitive)"
 
 # 115^a - метал
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:207
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:212
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:341
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:343
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:521
@@ -9137,7 +9167,7 @@ msgid "microfilm slip"
 msgstr "мікрофільм у відрізках"
 
 # мікродрук (друк на мікроносіях)
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:33
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:36
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:69
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:71
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:30
@@ -9164,7 +9194,7 @@ msgid "microphotography"
 msgstr "мікрофотографування"
 
 # 106 - Мікродрук (друк на мікроносіях)
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:28
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:31
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:37
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:39
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:25
@@ -9185,7 +9215,7 @@ msgid "minerals"
 msgstr "g- Генерал"
 
 # 106 - Мінідрук (мініатюрні видання)
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:31
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:34
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:57
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:59
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:28
@@ -9262,7 +9292,7 @@ msgstr "змішаний"
 msgid "mixed base (nitrate and safety)"
 msgstr "змішана (нітратна та безпечна)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:203
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:208
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:156
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:158
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:201
@@ -9380,7 +9410,7 @@ msgid "mother (positive)"
 msgstr "матриця (позитив)"
 
 # 115^a - кінофільм
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:120
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:123
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:22
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:117
@@ -9416,7 +9446,7 @@ msgstr "багатоканальний, об’ємний або квадраф�
 msgid "multicoloured"
 msgstr "багатоколірний"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:30
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:33
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:27
 #, c-format
 msgid "multimedia"
@@ -9456,7 +9486,7 @@ msgstr "дати m- Множника"
 msgid "multiple or other form"
 msgstr "багатожанровий документ або інші жанри"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:51
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:54
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:48
 #, c-format
 msgid "multiple/other literary forms"
@@ -9474,7 +9504,7 @@ msgstr "багатоспектральна фотографія"
 msgid "multispectral scanning"
 msgstr "мультиспектральне сканування"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:75
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:78
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:79
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:81
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:174
@@ -9566,7 +9596,7 @@ msgid "newspaper"
 msgstr "газета"
 
 # 106 - Газетний формат
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:26
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:29
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:27
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:23
@@ -9643,7 +9673,7 @@ msgstr "плівка без ушкоджень"
 msgid "no frequency (i.e. irregular)"
 msgstr "видання не має періодичності (неперіодичне)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:84
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:87
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:94
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:96
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:189
@@ -9856,7 +9886,7 @@ msgstr "ненітратна плівка — зруйнованість"
 
 # Нормовано нерегулярно
 # Серіальне видання не є цілком регулярним, проте його нерегулярність є заздалегідь встановленою, приміром виходить щомісячно за винятком липня та серпня
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:170
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:174
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:177
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:179
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:168
@@ -9878,7 +9908,7 @@ msgstr "нормовано нерегулярно"
 msgid "north"
 msgstr "не"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:58
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:61
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:55
 #, c-format
 msgid "not a biography"
@@ -9890,7 +9920,7 @@ msgstr "небіографічний документ"
 msgid "not a conference publication"
 msgstr "не публікація конференції"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:50
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:53
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1515
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1517
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:47
@@ -10077,7 +10107,7 @@ msgstr "оповідання"
 msgid "numeric"
 msgstr "числові таблиці"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:105
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:108
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:102
 #, c-format
 msgid "numeric table"
@@ -10242,7 +10272,7 @@ msgstr "оригінал"
 msgid "original, i.e. primary"
 msgstr ""
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:88
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:90
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:72
 #, c-format
 msgid "original_title"
@@ -10283,7 +10313,7 @@ msgstr "форми рельєфу суші (наприклад, у стилі Л
 # 100^a - інша, інші, інше
 # 124^b - інші
 # 125^a - інші
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:113
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:116
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:60
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:62
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:116
@@ -10496,7 +10526,7 @@ msgstr "Інші опції: "
 msgid "other form of material"
 msgstr "інші форми текстових матеріалів"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:34
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:37
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:31
 #, c-format
 msgid "other form of textual material"
@@ -10566,7 +10596,7 @@ msgstr "інші форми текстових матеріалів"
 msgid "other non photographic medium"
 msgstr "інші непроекційні види двовимірних зображувальних об’єктів"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:190
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:195
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:188
 #, c-format
 msgid "other non-projected graphic type"
@@ -10608,7 +10638,7 @@ msgstr "інші відеотипи"
 msgid "other wide screen format"
 msgstr "інший широкоекранний формат"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:209
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:214
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:207
 #, c-format
 msgid "others"
@@ -10646,13 +10676,13 @@ msgstr "p — Попередньо складений неповний допу
 msgid "p - technical report"
 msgstr "p — технічний звіт"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:183
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:188
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:181
 #, c-format
 msgid "painting"
 msgstr "живопис"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:208
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:213
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:50
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:52
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:106
@@ -10768,7 +10798,7 @@ msgstr "пасивна мікрохвильова топографічна зй�
 msgid "pastel"
 msgstr "пастель"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:101
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:104
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:98
 #, c-format
 msgid "patent"
@@ -10841,19 +10871,19 @@ msgstr "фотографування"
 msgid "photolithography"
 msgstr "фотолітографія"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:184
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:189
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:182
 #, c-format
 msgid "photomechanical reproduction"
 msgstr "фотомеханічна репродукція"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:185
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:190
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:183
 #, c-format
 msgid "photonegative"
 msgstr "фотонегатив"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:186
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:191
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:184
 #, c-format
 msgid "photoprint"
@@ -10883,14 +10913,14 @@ msgstr "зображувальна карта, картинне зображен
 msgid "pictorially"
 msgstr "довідник"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:187
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:192
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:185
 #, c-format
 msgid "picture"
 msgstr "зображення"
 
 # http://unimarc.org.ua/464/
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:100
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:102
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:84
 #, c-format
 msgid "piece_analytic_level"
@@ -10908,7 +10938,7 @@ msgstr "план"
 msgid "planimetric"
 msgstr "планіметрія (зображення контурів)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:73
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:76
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:74
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:76
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:169
@@ -10930,7 +10960,7 @@ msgstr "планіметрія (зображення контурів)"
 msgid "plans"
 msgstr "креслення"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:198
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:203
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:269
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:271
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:449
@@ -10968,14 +10998,14 @@ msgstr ""
 msgid "plastic pressing"
 msgstr "Тип одиниці відсутній"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:74
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:77
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:71
 #, c-format
 msgid "plates"
 msgstr ""
 "гравюри, естампи, вклейки, ілюстрації на окремих аркушах, екслібриси тощо"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:47
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:50
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1367
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1369
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:19
@@ -11069,7 +11099,7 @@ msgstr "музика кантрі"
 msgid "porcelain"
 msgstr "порцеляна"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:200
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:205
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:198
 #, c-format
 msgid "porcelaine"
@@ -11103,7 +11133,7 @@ msgstr "порфир"
 msgid "portrait"
 msgstr "портрети"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:71
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:74
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:68
 #, c-format
 msgid "portraits"
@@ -11136,7 +11166,7 @@ msgstr "афіші, постери"
 msgid "postface"
 msgstr "автор післямови, висновків, кінцівки тощо"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:11
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:14
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:8
 #, c-format
 msgid "pre-primary (0-5)"
@@ -11168,13 +11198,13 @@ msgstr "привілеї"
 msgid "prelude and fugue"
 msgstr "прелюдії та фуги"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:12
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:15
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:9
 #, c-format
 msgid "primary (5-8)"
 msgstr "для дітей молодшого шкільного віку (5-9 років)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:188
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:193
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:186
 #, c-format
 msgid "print"
@@ -11230,7 +11260,7 @@ msgstr "профіль"
 msgid "programme music"
 msgstr "комп'ютерна програма (програми)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:100
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:103
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:97
 #, c-format
 msgid "programmed text books"
@@ -11256,7 +11286,7 @@ msgstr "книга програмованих текстів"
 msgid "programmes and pressbooks"
 msgstr "програми, буклети"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:98
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:101
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:95
 #, c-format
 msgid "project description"
@@ -11475,7 +11505,7 @@ msgstr "Параметр"
 
 # Регулярно
 # Серіальне видання виходить через регулярні проміжки часу
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:169
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:173
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:171
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:173
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:167
@@ -11485,7 +11515,7 @@ msgstr "регулярно"
 
 # 106 - Звичайний друк
 # Код «r» відображає, що документ є звичайним текстом, призначеним для «читання очима».
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:24
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:27
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:15
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:17
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:21
@@ -11501,7 +11531,7 @@ msgstr ""
 
 # релігійні тексти
 #   Матеріал, що містить текст релігійного, літургійного характеру, священні писання та / або музичні твори (наприклад, біблійні оповіді, катехізиси, священні тексти, церковні гімни, індульгенції, літанії, релігійні п’єси, проповіді, служебники, Антифонарій, бревіарій і т.д.) .
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:112
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:115
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:109
 #, c-format
 msgid "religious text"
@@ -11711,7 +11741,7 @@ msgstr "База даних"
 msgid "safety film"
 msgstr "безпечна (незаймиста) кіноплівка"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:80
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:83
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:77
 #, c-format
 msgid "samples"
@@ -11902,7 +11932,7 @@ msgstr "Зарезервовано "
 msgid "set or costume designs"
 msgstr "декорації чи костюми"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:94
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:96
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:78
 #, c-format
 msgid "set_level"
@@ -11914,7 +11944,7 @@ msgstr "set_level"
 msgid "shellac pressing"
 msgstr "Тип одиниці відсутній"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:46
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:49
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:43
 #, c-format
 msgid "short stories"
@@ -11988,7 +12018,7 @@ msgstr ""
 msgid "sixteen track"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:205
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:210
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:203
 #, c-format
 msgid "skin"
@@ -12062,7 +12092,7 @@ msgstr "аудіо-диск"
 msgid "sound on medium"
 msgstr "звукова доріжка на тому ж носії"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:81
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:84
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:78
 #, c-format
 msgid "sound recordings"
@@ -12121,7 +12151,7 @@ msgstr "просторова модель двовимірної поверхн�
 msgid "specimens (biological etc.)"
 msgstr "зразки, екземпляри (біологічні тощо)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:48
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:51
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:45
 #, c-format
 msgid "speeches, oratory"
@@ -12162,7 +12192,7 @@ msgstr "лавіс"
 msgid "stamper (negative)"
 msgstr "майстер-диск: негатив (еталонний диск)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:102
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:105
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:99
 #, c-format
 msgid "standard"
@@ -12190,7 +12220,7 @@ msgstr "починається з"
 
 # 110^a - Статистичні дані
 # Числові дані про предмет, систематично підібрані та, як звичайно, подані в табличній формі, приміром, статистичні звіти.
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:99
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:102
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:257
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:259
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:96
@@ -12240,7 +12270,7 @@ msgstr "стереофонічний"
 msgid "stills"
 msgstr "рекламні матеріали"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:201
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:206
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:293
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:295
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:473
@@ -12286,7 +12316,7 @@ msgstr "симфонії"
 msgid "symphony"
 msgstr "симфонії"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:204
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:209
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:40
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:42
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:96
@@ -12380,7 +12410,7 @@ msgstr ""
 msgid "tape duplication master"
 msgstr "Дата публікації"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:189
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:194
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:187
 #, c-format
 msgid "technical drawing"
@@ -12418,7 +12448,7 @@ msgstr "Блок інформації про планування"
 msgid "technical or historical information on instruments"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:106
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:109
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:103
 #, c-format
 msgid "technical report"
@@ -12495,7 +12525,7 @@ msgstr "text/html"
 msgid "textbook"
 msgstr ""
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:206
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:211
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:365
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:367
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:545
@@ -12601,7 +12631,7 @@ msgstr "слабкий та інтенсивний кольори "
 
 # "Translation makes search highlighting not work"
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2intranetResults.xsl:39
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:51
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:53
 #, c-format
 msgid "title"
 msgstr "title"
@@ -12648,7 +12678,7 @@ msgstr "перекладач"
 msgid "transfer line print"
 msgstr "великий друк"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:82
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:85
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:79
 #, c-format
 msgid "transparencies"
@@ -12703,7 +12733,7 @@ msgstr "поперечна Меркатора"
 msgid "travelogue"
 msgstr "Каталог"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:109
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:112
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:106
 #, c-format
 msgid "treaties"
@@ -12813,9 +12843,9 @@ msgstr "uniform_title"
 # 115^a - невідомий ...
 # 110^a - Невідома
 # 125^a - Не визначений; Невідомо
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:17
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:172
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:210
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:20
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:176
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:215
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:55
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:57
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:72
@@ -13057,7 +13087,7 @@ msgid "vesicular"
 msgstr "везикулярна (пориста)"
 
 # 124^g - Відеозапис
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:122
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:125
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:15
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:17
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:119
@@ -13157,7 +13187,7 @@ msgid "viola d'amore"
 msgstr "віоль д’амур"
 
 # 115^a - візуально-проекційний матеріал
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:121
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:124
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:27
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:118
@@ -13291,7 +13321,7 @@ msgstr "біла гравюра (дереворит), ксилографія б�
 msgid "wire recording"
 msgstr "звукозапис на магнітний дріт"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:202
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:207
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:30
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:32
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:86
@@ -13431,7 +13461,7 @@ msgid "y- not a government publication"
 msgstr "y — неурядова публікація"
 
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2intranetDetail.xsl:376
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:124
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:126
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:423
 #, c-format
 msgid "y3z"
@@ -13451,7 +13481,7 @@ msgstr "щорічник"
 msgid "yellow strip"
 msgstr "стрічка жовтого кольору (CMY colour sepatation)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:14
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:17
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:11
 #, c-format
 msgid "young adult"

@@ -20,7 +20,6 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use Digest::MD5 qw( md5_base64 md5_hex );
 use String::Random qw( random_string );
-use HTML::Entities;
 use C4::Auth;
 use C4::Output;
 use C4::Members;
@@ -179,12 +178,16 @@ if ( $action eq 'create' ) {
 }
 elsif ( $action eq 'update' ) {
 
+    my $borrower = GetMember( borrowernumber => $borrowernumber );
     my %borrower = ParseCgiForBorrower($cgi);
 
     my %borrower_changes = DelEmptyFields(%borrower);
     my @empty_mandatory_fields =
       CheckMandatoryFields( \%borrower_changes, $action );
     my $invalidformfields = CheckForInvalidFields(\%borrower);
+
+    # Send back the data to the template
+    %borrower = ( %$borrower, %borrower );
 
     if (@empty_mandatory_fields || @$invalidformfields) {
         $template->param(
@@ -352,7 +355,7 @@ sub ParseCgiForBorrower {
     foreach ( $cgi->param ) {
         if ( $_ =~ '^borrower_' ) {
             my ($key) = substr( $_, 9 );
-            $borrower{$key} = HTML::Entities::encode( $scrubber->scrub( $cgi->param($_) ) );
+            $borrower{$key} = $scrubber->scrub( scalar $cgi->param($_) );
         }
     }
 

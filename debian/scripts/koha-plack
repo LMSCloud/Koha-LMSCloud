@@ -72,6 +72,8 @@ start_plack()
         PSGIFILE="/etc/koha/sites/${instancename}/plack.psgi"
     fi # else stick with the default one
 
+    _check_and_fix_perms $instancename
+
     STARMANOPTS="-M FindBin --max-requests 50 --workers 2 \
                  --user=${instancename}-koha --group ${instancename}-koha \
                  --pid ${PIDFILE} \
@@ -82,8 +84,8 @@ start_plack()
 
     if ! is_plack_running ${instancename}; then
         export KOHA_CONF="/etc/koha/sites/${instancename}/koha-conf.xml"
-        export MEMCACHED_SERVERS=127.0.0.1:11211
-        export MEMCACHED_NAMESPACE=koha_${instancename}
+        export MEMCACHED_SERVERS=$(get_memcached_servers_for $instancename)
+        export MEMCACHED_NAMESPACE=$(get_memcached_namespace_for $instancename)
 
         log_daemon_msg "Starting Plack daemon for ${instancename}"
 
@@ -204,6 +206,22 @@ You can install them with:
 EOM
 
     fi
+}
+
+_check_and_fix_perms()
+{
+    local instance=$1
+
+    local files="/var/log/koha/${instance}/plack.log \
+                 /var/log/koha/${instance}/plack-error.log"
+
+    for file in ${files}
+    do
+        if [ ! -e "${file}" ]; then
+            touch ${file}
+        fi
+        chown "${instance}-koha":"${instance}-koha" ${file}
+    done
 }
 
 set_action()
