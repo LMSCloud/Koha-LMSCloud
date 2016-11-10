@@ -91,7 +91,7 @@ if ( ! $record ) {
     exit;
 }
 
-if (C4::Context->preference('DivibibEnabled')) {
+if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $record->field("003") ) {
     my $divibibId = $record->field("001")->data();
     my $idProv    = $record->field("003")->data();
     
