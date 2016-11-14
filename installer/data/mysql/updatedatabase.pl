@@ -12852,6 +12852,16 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
+$DBversion = "16.05.05.003";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    
+    $dbh->do(q{ ALTER TABLE `browser` MODIFY `classification` VARCHAR(255) });
+    
+    print "Upgrade to $DBversion done (LMSCloud: A longer field classification is necessary to store long values.)\n";
+    SetVersion($DBversion);
+}
+
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

@@ -291,7 +291,7 @@ CREATE TABLE `branchrelations` ( -- this table links libraries/branches to group
 DROP TABLE IF EXISTS `browser`;
 CREATE TABLE `browser` (
   `level` int(11) NOT NULL,
-  `classification` varchar(20) NOT NULL,
+  `classification` varchar(255) NOT NULL,
   `description` varchar(255) NOT NULL,
   `number` bigint(20) NOT NULL,
   `endnode` tinyint(4) NOT NULL

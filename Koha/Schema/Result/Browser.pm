@@ -31,8 +31,8 @@ __PACKAGE__->table("browser");
 =head2 classification
 
   data_type: 'varchar'
-  is_nullable: 0
-  size: 20
+  is_nullable: 1
+  size: 255
 
 =head2 description
 
@@ -56,7 +56,7 @@ __PACKAGE__->add_columns(
   "level",
   { data_type => "integer", is_nullable => 0 },
   "classification",
-  { data_type => "varchar", is_nullable => 0, size => 20 },
+  { data_type => "varchar", is_nullable => 1, size => 255 },
   "description",
   { data_type => "varchar", is_nullable => 0, size => 255 },
   "number",
@@ -66,8 +66,8 @@ __PACKAGE__->add_columns(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2013-10-14 20:56:21
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:eMoAXr+/JrrwEjJ3dRRwoA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-08 14:28:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:MwPWlIbCUBQVTYNIJIMJ8g
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration
