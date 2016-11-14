@@ -28,6 +28,8 @@ use C4::Branch;
 use C4::Letters;
 use C4::Members;
 use C4::Overdues;
+use Koha::ClaimingRule;
+use Koha::ClaimingRules;
 use Koha::Libraries;
 
 our $input = new CGI;
@@ -37,6 +39,8 @@ my @categories = @{$dbh->selectall_arrayref(
     'SELECT description, categorycode FROM categories WHERE overduenoticerequired > 0',
     { Slice => {} }
 )};
+
+
 my @category_codes  = map { $_->{categorycode} } @categories;
 our @rule_params     = qw(delay letter debarred);
 
@@ -44,7 +48,7 @@ our @rule_params     = qw(delay letter debarred);
 sub blank_row {
     my ($category_code) = @_;
     for my $rp (@rule_params) {
-        for my $n (1 .. 3) {
+        for my $n (1 .. 5) {
             my $key   = "${rp}${n}-$category_code";
 
             if (utf8::is_utf8($key)) {
@@ -85,6 +89,8 @@ $branch = q{} if $branch eq 'NO_LIBRARY_SET';
 my $op = $input->param('op');
 $op ||= q{};
 
+my $language = C4::Languages::getlanguage();
+
 my $err=0;
 
 # save the values entered into tables
@@ -94,8 +100,8 @@ if ($op eq 'save') {
     my @names=$input->multi_param();
     my $sth_search = $dbh->prepare("SELECT count(*) AS total FROM overduerules WHERE branchcode=? AND categorycode=?");
 
-    my $sth_insert = $dbh->prepare("INSERT INTO overduerules (branchcode,categorycode, delay1,letter1,debarred1, delay2,letter2,debarred2, delay3,letter3,debarred3) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-    my $sth_update=$dbh->prepare("UPDATE overduerules SET delay1=?, letter1=?, debarred1=?, delay2=?, letter2=?, debarred2=?, delay3=?, letter3=?, debarred3=? WHERE branchcode=? AND categorycode=?");
+    my $sth_insert = $dbh->prepare("INSERT INTO overduerules (branchcode,categorycode, delay1,letter1,debarred1,postage1, delay2,letter2,debarred2,postage2, delay3,letter3,debarred3,postage3, delay4,letter4,debarred4,postage4, delay5,letter5,debarred5,postage5 ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    my $sth_update=$dbh->prepare("UPDATE overduerules SET delay1=?, letter1=?, debarred1=?, postage1=?, delay2=?, letter2=?, debarred2=?, postage2=?, delay3=?, letter3=?, debarred3=?, postage3=?, delay4=?, letter4=?, debarred4=?, postage4=?, delay5=?, letter5=?, debarred5=?, postage5=? WHERE branchcode=? AND categorycode=?");
     my $sth_delete=$dbh->prepare("DELETE FROM overduerules WHERE branchcode=? AND categorycode=?");
     my $sth_insert_mtt = $dbh->prepare("
         INSERT INTO overduerules_transport_types(
@@ -111,14 +117,24 @@ if ($op eq 'save') {
 
     foreach my $key (@names){
             # ISSUES
-            if ($key =~ /(delay|letter|debarred)([1-3])-(.*)/) {
+            if ($key =~ /(delay|letter|debarred|postage)([1-5])-(.*)/) {
                     my $type = $1; # data type
                     my $num = $2; # From 1 to 3
                     my $bor = $3; # borrower category
                     my $value = $input->param($key);
                     if ($type eq 'delay') {
                         $temphash{$bor}->{"$type$num"} = ($value =~ /^\d+$/ && int($value) > 0) ? int($value) : '';
-                    } else {
+                    } 
+                    elsif ($type eq 'postage') {
+                        if ( $value =~ /^(\d+)([,.](\d{0,2})\d*)?$/ ) {
+                            ( $3 )? ($value = "$1.$3" + 0) : ( $value = $1 + 0);
+                        }
+                        else {
+                            $value = undef;
+                        }
+                        $temphash{$bor}->{"$type$num"} = $value;
+                    } 
+                    else {
                         # type is letter
                         $temphash{$bor}->{"$type$num"} = $value if $value ne '';
                     }
@@ -144,6 +160,12 @@ if ($op eq 'save') {
         } elsif ($temphash{$bor}->{delay3}=~/[^0-9]/ and $temphash{$bor}->{delay3} ne ""){
             $template->param("ERROR"=>1,"ERRORDELAY"=>"delay3","BORERR"=>$bor_category_name);
             $err=1;
+        } elsif ($temphash{$bor}->{delay4}=~/[^0-9]/ and $temphash{$bor}->{delay4} ne ""){
+            $template->param("ERROR"=>1,"ERRORDELAY"=>"delay4","BORERR"=>$bor_category_name);
+            $err=1;
+        } elsif ($temphash{$bor}->{delay5}=~/[^0-9]/ and $temphash{$bor}->{delay5} ne ""){
+            $template->param("ERROR"=>1,"ERRORDELAY"=>"delay5","BORERR"=>$bor_category_name);
+            $err=1;
         } elsif ($temphash{$bor}->{delay1} and not ($temphash{$bor}->{"letter1"} or $temphash{$bor}->{"debarred1"})) {
             $template->param("ERROR"=>1,"ERRORUSELESSDELAY"=>"delay1","BORERR"=>$bor_category_name);
             $err=1;
@@ -153,16 +175,33 @@ if ($op eq 'save') {
         } elsif ($temphash{$bor}->{delay3} and not ($temphash{$bor}->{"letter3"} or $temphash{$bor}->{"debarred3"})) {
             $template->param("ERROR"=>1,"ERRORUSELESSDELAY"=>"delay3","BORERR"=>$bor_category_name);
             $err=1;
-        }elsif ($temphash{$bor}->{delay3} and
-                ($temphash{$bor}->{delay3}<=$temphash{$bor}->{delay2} or $temphash{$bor}->{delay3}<=$temphash{$bor}->{delay1})
-                or $temphash{$bor}->{delay2} and ($temphash{$bor}->{delay2}<=$temphash{$bor}->{delay1})){
-                    $template->param("ERROR"=>1,"ERRORORDER"=>1,"BORERR"=>$bor_category_name);
-                        $err=1;
+        } elsif ($temphash{$bor}->{delay4} and not ($temphash{$bor}->{"letter4"} or $temphash{$bor}->{"debarred4"})) {
+            $template->param("ERROR"=>1,"ERRORUSELESSDELAY"=>"delay4","BORERR"=>$bor_category_name);
+            $err=1;
+        } elsif ($temphash{$bor}->{delay5} and not ($temphash{$bor}->{"letter5"} or $temphash{$bor}->{"debarred5"})) {
+            $template->param("ERROR"=>1,"ERRORUSELESSDELAY"=>"delay5","BORERR"=>$bor_category_name);
+            $err=1;
+        } 
+        unless ($err) {
+            CHKDELAY: for (my $i=5;$i>1;$i--) {
+                if ( $temphash{$bor}->{'delay'.$i} ) {
+                    for (my $j=$i-1;$j>=1;$j--) {
+                        if ( (! $temphash{$bor}->{'delay'.$j}) or  $temphash{$bor}->{'delay'.$i}<= $temphash{$bor}->{'delay'.$j} ) {
+                            $template->param("ERROR"=>1,"ERRORORDER"=>1,"BORERR"=>$bor_category_name);
+                            $err=1;
+                            last CHKDELAY;
+                        }
+                    }
+                }
+            }
         }
         unless ($err){
-            if (($temphash{$bor}->{delay1} and ($temphash{$bor}->{"letter1"} or $temphash{$bor}->{"debarred1"}))
-                or ($temphash{$bor}->{delay2} and ($temphash{$bor}->{"letter2"} or $temphash{$bor}->{"debarred2"}))
-                or ($temphash{$bor}->{delay3} and ($temphash{$bor}->{"letter3"} or $temphash{$bor}->{"debarred3"}))) {
+            if (($temphash{$bor}->{delay1} and ($temphash{$bor}->{"letter1"} or $temphash{$bor}->{"debarred1"} or $temphash{$bor}->{"postage1"}))
+                or ($temphash{$bor}->{delay2} and ($temphash{$bor}->{"letter2"} or $temphash{$bor}->{"debarred2"} or $temphash{$bor}->{"postage2"}))
+                or ($temphash{$bor}->{delay3} and ($temphash{$bor}->{"letter3"} or $temphash{$bor}->{"debarred3"} or $temphash{$bor}->{"postage3"}))
+                or ($temphash{$bor}->{delay4} and ($temphash{$bor}->{"letter4"} or $temphash{$bor}->{"debarred4"} or $temphash{$bor}->{"postage4"}))
+                or ($temphash{$bor}->{delay5} and ($temphash{$bor}->{"letter5"} or $temphash{$bor}->{"debarred5"} or $temphash{$bor}->{"postage5"}))
+                ) {
                     $sth_search->execute($branch,$bor);
                     my $res = $sth_search->fetchrow_hashref();
                     if ($res->{'total'}>0) {
@@ -170,12 +209,23 @@ if ($op eq 'save') {
                             ($temphash{$bor}->{"delay1"}?$temphash{$bor}->{"delay1"}:undef),
                             ($temphash{$bor}->{"letter1"}?$temphash{$bor}->{"letter1"}:""),
                             ($temphash{$bor}->{"debarred1"}?$temphash{$bor}->{"debarred1"}:0),
+                            ($temphash{$bor}->{"postage1"}?$temphash{$bor}->{"postage1"}:undef),
                             ($temphash{$bor}->{"delay2"}?$temphash{$bor}->{"delay2"}:undef),
                             ($temphash{$bor}->{"letter2"}?$temphash{$bor}->{"letter2"}:""),
                             ($temphash{$bor}->{"debarred2"}?$temphash{$bor}->{"debarred2"}:0),
+                            ($temphash{$bor}->{"postage2"}?$temphash{$bor}->{"postage2"}:undef),
                             ($temphash{$bor}->{"delay3"}?$temphash{$bor}->{"delay3"}:undef),
                             ($temphash{$bor}->{"letter3"}?$temphash{$bor}->{"letter3"}:""),
                             ($temphash{$bor}->{"debarred3"}?$temphash{$bor}->{"debarred3"}:0),
+                            ($temphash{$bor}->{"postage3"}?$temphash{$bor}->{"postage3"}:undef),
+                            ($temphash{$bor}->{"delay4"}?$temphash{$bor}->{"delay4"}:undef),
+                            ($temphash{$bor}->{"letter4"}?$temphash{$bor}->{"letter4"}:""),
+                            ($temphash{$bor}->{"debarred4"}?$temphash{$bor}->{"debarred4"}:0),
+                            ($temphash{$bor}->{"postage4"}?$temphash{$bor}->{"postage4"}:undef),
+                            ($temphash{$bor}->{"delay5"}?$temphash{$bor}->{"delay5"}:undef),
+                            ($temphash{$bor}->{"letter5"}?$temphash{$bor}->{"letter5"}:""),
+                            ($temphash{$bor}->{"debarred5"}?$temphash{$bor}->{"debarred5"}:0),
+                            ($temphash{$bor}->{"postage5"}?$temphash{$bor}->{"postage5"}:undef),
                             $branch ,$bor
                             );
                     } else {
@@ -183,17 +233,28 @@ if ($op eq 'save') {
                             ($temphash{$bor}->{"delay1"}?$temphash{$bor}->{"delay1"}:0),
                             ($temphash{$bor}->{"letter1"}?$temphash{$bor}->{"letter1"}:""),
                             ($temphash{$bor}->{"debarred1"}?$temphash{$bor}->{"debarred1"}:0),
+                            ($temphash{$bor}->{"postage1"}?$temphash{$bor}->{"postage1"}:undef),
                             ($temphash{$bor}->{"delay2"}?$temphash{$bor}->{"delay2"}:0),
                             ($temphash{$bor}->{"letter2"}?$temphash{$bor}->{"letter2"}:""),
                             ($temphash{$bor}->{"debarred2"}?$temphash{$bor}->{"debarred2"}:0),
+                            ($temphash{$bor}->{"postage2"}?$temphash{$bor}->{"postage2"}:undef),
                             ($temphash{$bor}->{"delay3"}?$temphash{$bor}->{"delay3"}:0),
                             ($temphash{$bor}->{"letter3"}?$temphash{$bor}->{"letter3"}:""),
-                            ($temphash{$bor}->{"debarred3"}?$temphash{$bor}->{"debarred3"}:0)
+                            ($temphash{$bor}->{"debarred3"}?$temphash{$bor}->{"debarred3"}:0),
+                            ($temphash{$bor}->{"postage3"}?$temphash{$bor}->{"postage3"}:undef),
+                            ($temphash{$bor}->{"delay4"}?$temphash{$bor}->{"delay4"}:0),
+                            ($temphash{$bor}->{"letter4"}?$temphash{$bor}->{"letter4"}:""),
+                            ($temphash{$bor}->{"debarred4"}?$temphash{$bor}->{"debarred4"}:0),
+                            ($temphash{$bor}->{"postage4"}?$temphash{$bor}->{"postage4"}:undef),
+                            ($temphash{$bor}->{"delay5"}?$temphash{$bor}->{"delay5"}:0),
+                            ($temphash{$bor}->{"letter5"}?$temphash{$bor}->{"letter5"}:""),
+                            ($temphash{$bor}->{"debarred5"}?$temphash{$bor}->{"debarred5"}:0),
+                            ($temphash{$bor}->{"postage5"}?$temphash{$bor}->{"postage5"}:undef)
                             );
                     }
 
                     $sth_delete_mtt->execute( $branch, $bor );
-                    for my $letternumber ( 1..3 ) {
+                    for my $letternumber ( 1..5 ) {
                         my @mtt = $input->multi_param( "mtt${letternumber}-$bor" );
                         next unless @mtt;
                         for my $mtt ( @mtt ) {
@@ -211,7 +272,77 @@ if ($op eq 'save') {
         $input_saved = 1;
     }
 }
-my $branchloop = GetBranchesLoop($branch);
+elsif ($op eq 'deleteRule') {
+    my $itemtype     = $input->param('itemtype');
+    my $categorycode = $input->param('categorycode');
+
+    my $sth_Idelete = $dbh->prepare("delete from claiming_rules where branchcode=? and categorycode=? and itemtype=?");
+    $sth_Idelete->execute($branch, $categorycode, $itemtype);
+}
+# save the values entered
+elsif ($op eq 'addRule') {
+    my $branchcode = $branch; # branch
+    my $categorycode  = $input->param('categorycode'); # borrower category
+    my $itemtype  = $input->param('itemtype');     # item type
+
+    my $claim_fee_level1                   = $input->param('claim_fee_level1');
+    my $claim_fee_level2                   = $input->param('claim_fee_level2');
+    my $claim_fee_level3                   = $input->param('claim_fee_level3');
+    my $claim_fee_level4                   = $input->param('claim_fee_level4');
+    my $claim_fee_level5                   = $input->param('claim_fee_level5');
+    
+    my $params = {
+        'branchcode'                               => $branchcode,
+        'categorycode'                             => $categorycode,
+        'itemtype'                                 => $itemtype,
+        'claim_fee_level1'                         => $claim_fee_level1,
+        'claim_fee_level2'                         => $claim_fee_level2,
+        'claim_fee_level3'                         => $claim_fee_level3,
+        'claim_fee_level4'                         => $claim_fee_level4,
+        'claim_fee_level5'                         => $claim_fee_level5,
+    };
+    
+    my @pnames = (
+                    'claim_fee_level1',
+                    'claim_fee_level2',
+                    'claim_fee_level3',
+                    'claim_fee_level4',
+                    'claim_fee_level5',
+                  );
+    foreach my $param (@pnames) {
+        if ( defined($params->{$param}) && $params->{$param} == 0 ) {
+            $params->{$param} = undef;
+        }
+    }
+
+    my $claimrule = Koha::ClaimingRules->find({categorycode => $categorycode, itemtype => $itemtype, branchcode => $branchcode});
+    if ($claimrule) {
+        $claimrule->set($params)->store();
+    } else {
+        $claimrule = Koha::ClaimingRule->new();
+        $claimrule->set($params);
+        $claimrule->store();
+    }
+}
+
+my $branches = GetBranches();
+my @branchloop;
+for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
+    push @branchloop, {
+        value      => $thisbranch,
+        selected   => $thisbranch eq $branch,
+        branchname => $branches->{$thisbranch}->{'branchname'},
+    };
+}
+
+my $sthcateg=$dbh->prepare("SELECT description,categorycode FROM categories ORDER BY description");
+$sthcateg->execute;
+my @category_loop;
+while (my $data=$sthcateg->fetchrow_hashref){
+    push @category_loop,$data;
+}
+$sthcateg->finish;
+
 
 my $letters = C4::Letters::GetLettersAvailableForALibrary(
     {
@@ -223,20 +354,21 @@ my $letters = C4::Letters::GetLettersAvailableForALibrary(
 my @line_loop;
 
 my $message_transport_types = C4::Letters::GetMessageTransportTypes();
-my ( @first, @second, @third );
+my ( @first, @second, @third, @fourth, @fifth );
 for my $data (@categories) {
     if (%temphash and not $input_saved){
         # if we managed to save the form submission, don't
         # reuse %temphash, but take the values from the
         # database - this makes it easier to identify
         # bugs where the form submission was not correctly saved
-        for my $i ( 1..3 ){
+        for my $i ( 1..5 ){
             my %row = (
                 overduename => $data->{'categorycode'},
                 line        => $data->{'description'}
             );
             $row{delay}=$temphash{$data->{'categorycode'}}->{"delay$i"};
             $row{debarred}=$temphash{$data->{'categorycode'}}->{"debarred$i"};
+            $row{postage}=$temphash{$data->{'categorycode'}}->{"postage$i"};
             $row{selected_lettercode} = $temphash{ $data->{categorycode} }->{"letter$i"};
             my @selected_mtts = @{ GetOverdueMessageTransportTypes( $branch, $data->{'categorycode'}, $i) };
             my @mtts;
@@ -251,8 +383,12 @@ for my $data (@categories) {
                 push @first, \%row;
             } elsif ( $i == 2 ) {
                 push @second, \%row;
-            } else {
+            } elsif ( $i == 3 ) {
                 push @third, \%row;
+            } elsif ( $i == 4 ) {
+                push @fourth, \%row;
+            } elsif ( $i == 5 ) {
+                push @fifth, \%row;
             }
         }
     } else {
@@ -260,7 +396,7 @@ for my $data (@categories) {
         my $sth2=$dbh->prepare("SELECT * from overduerules WHERE branchcode=? AND categorycode=?");
         $sth2->execute($branch,$data->{'categorycode'});
         my $dat=$sth2->fetchrow_hashref;
-        for my $i ( 1..3 ){
+        for my $i ( 1..5 ){
             my %row = (
                 overduename => $data->{'categorycode'},
                 line        => $data->{'description'}
@@ -270,6 +406,7 @@ for my $data (@categories) {
 
             if ($dat->{"delay$i"}){$row{delay}=$dat->{"delay$i"};}
             if ($dat->{"debarred$i"}){$row{debarred}=$dat->{"debarred$i"};}
+            if ($dat->{"postage$i"}){$row{postage}=sprintf("%0.2f",$dat->{"postage$i"});}
             my @selected_mtts = @{ GetOverdueMessageTransportTypes( $branch, $data->{'categorycode'}, $i) };
             my @mtts;
             for my $mtt ( @$message_transport_types ) {
@@ -283,8 +420,12 @@ for my $data (@categories) {
                 push @first, \%row;
             } elsif ( $i == 2 ) {
                 push @second, \%row;
-            } else {
+            } elsif ( $i == 3 ) {
                 push @third, \%row;
+            } elsif ( $i == 4 ) {
+                push @fourth, \%row;
+            } elsif ( $i == 5 ) {
+                push @fifth, \%row;
             }
 
         }
@@ -307,14 +448,104 @@ my @tabs = (
         number => 3,
         values => \@third,
     },
+    {
+        id => 'fourth',
+        number => 4,
+        values => \@fourth,
+    },
+    {
+        id => 'fifth',
+        number => 5,
+        values => \@fifth,
+    },
 );
 
+my @row_loop;
+my @itemtypes = @{ GetItemTypes( style => 'array' ) };
+@itemtypes = sort { lc $a->{translated_description} cmp lc $b->{translated_description} } @itemtypes;
+
+my $read_rules_sth = $dbh->prepare("
+    SELECT  claiming_rules.*,
+            itemtypes.description AS humanitemtype,
+            categories.description AS humancategorycode,
+            COALESCE( localization.translation, itemtypes.description ) AS translated_description
+    FROM claiming_rules
+    LEFT JOIN itemtypes
+        ON (itemtypes.itemtype = claiming_rules.itemtype)
+    LEFT JOIN categories
+        ON (categories.categorycode = claiming_rules.categorycode)
+    LEFT JOIN localization ON claiming_rules.itemtype = localization.code
+        AND localization.entity = 'itemtypes'
+        AND localization.lang = ?
+    WHERE claiming_rules.branchcode = ?
+");
+$read_rules_sth->execute($language, $branch);
+
+while (my $row = $read_rules_sth->fetchrow_hashref) {
+    $row->{'current_branch'}  ||= $row->{'branchcode'};
+    $row->{'humanitemtype'}   ||= $row->{itemtype};
+    $row->{'default_translated_description'} = 1 if $row->{humanitemtype} eq '*';
+    $row->{'humancategorycode'} ||= $row->{'categorycode'};
+    $row->{'default_humancategorycode'} = 1 if $row->{'humancategorycode'} eq '*';
+    
+    $row->{'claim_fee_level1'} = sprintf('%.2f', $row->{'claim_fee_level1'});
+    $row->{'claim_fee_level2'} = sprintf('%.2f', $row->{'claim_fee_level2'});
+    $row->{'claim_fee_level3'} = sprintf('%.2f', $row->{'claim_fee_level3'});
+    $row->{'claim_fee_level4'} = sprintf('%.2f', $row->{'claim_fee_level4'});
+    $row->{'claim_fee_level5'} = sprintf('%.2f', $row->{'claim_fee_level5'});
+    
+    push @row_loop, $row;
+}
+$read_rules_sth->finish;
+
+my @sorted_row_loop = sort by_category_and_itemtype @row_loop;
+
+
+
 $template->param(
-    table => ( @first or @second or @third ? 1 : 0 ),
-    branchloop => $branchloop,
-    branch => $branch,
-    tabs => \@tabs,
-    message_transport_types => $message_transport_types,
-    letters => $letters,
+                        categoryloop => \@category_loop,
+                        itemtypeloop => \@itemtypes,
+                        rules => \@sorted_row_loop,
+                        humanbranch => ($branch ne '*' ? $branches->{$branch}->{branchname} : ''),
+                        current_branch => $branch,
+                        definedbranch => scalar(@sorted_row_loop)>0,
+                        table => ( @first or @second or @third or @fourth or @fifth ? 1 : 0 ),
+                        branchloop => \@branchloop,
+                        branch => $branch,
+                        tabs => \@tabs,
+                        message_transport_types => $message_transport_types,
+                        letters => $letters
 );
 output_html_with_http_headers $input, $cookie, $template->output;
+
+exit 0;
+
+# sort by patron category, then item type, putting
+# default entries at the bottom
+sub by_category_and_itemtype {
+    unless (by_category($a, $b)) {
+        return by_itemtype($a, $b);
+    }
+}
+
+sub by_category {
+    my ($a, $b) = @_;
+    if ($a->{'default_humancategorycode'}) {
+        return ($b->{'default_humancategorycode'} ? 0 : 1);
+    } elsif ($b->{'default_humancategorycode'}) {
+        return -1;
+    } else {
+        return $a->{'humancategorycode'} cmp $b->{'humancategorycode'};
+    }
+}
+
+sub by_itemtype {
+    my ($a, $b) = @_;
+    if ($a->{default_translated_description}) {
+        return ($b->{'default_translated_description'} ? 0 : 1);
+    } elsif ($b->{'default_translated_description'}) {
+        return -1;
+    } else {
+        return lc $a->{'translated_description'} cmp lc $b->{'translated_description'};
+    }
+}

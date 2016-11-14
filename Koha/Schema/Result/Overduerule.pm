@@ -61,6 +61,12 @@ __PACKAGE__->table("overduerules");
   is_nullable: 1
   size: 1
 
+=head2 postage1
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
 =head2 delay2
 
   data_type: 'integer'
@@ -72,6 +78,12 @@ __PACKAGE__->table("overduerules");
   default_value: 0
   is_nullable: 1
   size: 1
+
+=head2 postage2
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
 
 =head2 letter2
 
@@ -96,6 +108,58 @@ __PACKAGE__->table("overduerules");
   default_value: 0
   is_nullable: 1
 
+=head2 postage3
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 delay4
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 letter4
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 debarred4
+
+  data_type: 'integer'
+  default_value: 0
+  is_nullable: 1
+
+=head2 postage4
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 delay5
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 letter5
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 debarred5
+
+  data_type: 'integer'
+  default_value: 0
+  is_nullable: 1
+
+=head2 postage5
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -111,10 +175,14 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "debarred1",
   { data_type => "varchar", default_value => 0, is_nullable => 1, size => 1 },
+  "postage1",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "delay2",
   { data_type => "integer", is_nullable => 1 },
   "debarred2",
   { data_type => "varchar", default_value => 0, is_nullable => 1, size => 1 },
+  "postage2",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "letter2",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "delay3",
@@ -123,6 +191,24 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "debarred3",
   { data_type => "integer", default_value => 0, is_nullable => 1 },
+  "postage3",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "delay4",
+  { data_type => "integer", is_nullable => 1 },
+  "letter4",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "debarred4",
+  { data_type => "integer", default_value => 0, is_nullable => 1 },
+  "postage4",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "delay5",
+  { data_type => "integer", is_nullable => 1 },
+  "letter5",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "debarred5",
+  { data_type => "integer", default_value => 0, is_nullable => 1 },
+  "postage5",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
 );
 
 =head1 PRIMARY KEY
@@ -171,8 +257,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-01-06 12:00:28
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Opfa1YZ3IeQRRbyrbKAkNQ
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-10 16:12:42
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:3WjA1GCi4oItlcCwf2CDcQ
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

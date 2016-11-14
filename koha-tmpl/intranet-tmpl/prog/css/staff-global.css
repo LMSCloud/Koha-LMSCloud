@@ -2768,3 +2768,10 @@ div[class$="_table_controls"] {
 .order-control {
     padding-right: 5px;
 }
+
+#rulestabs input[type="number"] {
+   max-width:75px;
+}
+#default-claiming-rules input[type="number"] {
+   max-width:65px;
+}
