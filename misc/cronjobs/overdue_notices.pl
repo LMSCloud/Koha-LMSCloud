@@ -37,6 +37,7 @@ use DateTime::Duration;
 use C4::Context;
 use C4::Letters;
 use C4::Overdues qw(GetFine GetOverdueMessageTransportTypes parse_overdues_letter);
+use C4::ClaimingFees;
 use C4::Log;
 use Koha::Patron::Debarments qw(AddUniqueDebarment);
 use Koha::DateUtils;
@@ -442,6 +443,15 @@ elsif ( defined $text_filename ) {
   }
 }
 
+my $claimFees = C4::ClaimingFees->new();
+
+# The following processing loops through all branches.
+# For each branch queries are prepared to select issues of a borrower and matching overduerules.
+# For each matching overduerule it checks then that there is a delay and letter setup.
+# If the matching rule has a complete setup, it can checked whether the there are issues that
+# match the overdue rule.
+# All matching issues are ordered by borrowernumber so that a borrower gets only one letter per
+# matching overduerule.
 foreach my $branchcode (@branches) {
     if ( C4::Context->preference('OverdueNoticeCalendar') ) {
         my $calendar = Koha::Calendar->new( branchcode => $branchcode );
@@ -487,7 +497,7 @@ END_SQL
 
     # my $outfile = 'overdues_' . ( $mybranch || $branchcode || 'default' );
     while ( my $overdue_rules = $rqoverduerules->fetchrow_hashref ) {
-      PERIOD: foreach my $i ( 1 .. 3 ) {
+      PERIOD: foreach my $i ( 1 .. 5 ) {
 
             $verbose and warn "branch '$branchcode', categorycode = $overdue_rules->{categorycode} pass $i\n";
 
@@ -529,7 +539,7 @@ END_SQL
             }
             $borrower_sql .= '  AND categories.overduenoticerequired=1 ORDER BY issues.borrowernumber';
 
-            # $sth gets borrower info iff at least one overdue item has triggered the overdue action.
+            # $sth gets borrower info if at least one overdue item has triggered the overdue action.
 	        my $sth = $dbh->prepare($borrower_sql);
             $sth->execute(@borrower_parameters);
 
@@ -637,10 +647,18 @@ END_SQL
                             dt_from_string( $item_info->{date_due} ) );
                     }
                     $days_between = $days_between->in_units('days');
-                    if ($listall){
+                    
+                    # if the configuration fits to a matches a fee rule
+                    # we need to write a claim fee foreach item
+                    my $apply_claim_fee = 0;
+                       
+                    if ($listall) {
                         unless ($days_between >= 1 and $days_between <= $MAX){
                             next;
                         }
+                        $apply_claim_fee = 1 if (   
+                               ($triggered && $mindays == $days_between) 
+                            || ($days_between >= $mindays && $days_between <= $maxdays) );
                     }
                     else {
                         if ($triggered) {
@@ -655,7 +673,36 @@ END_SQL
                                 next;
                             }
                         }
+                        $apply_claim_fee = 1;
                     }
+                    
+                    # check whether there is a matching claiming fee rule
+                    if ( $claimFees->checkForClaimingRules() == 1 ) {
+                        my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $branchcode);
+                        
+                        if ( $claimFeeRule ) {
+                            my $fee = 0.0;
+                            # now that we found a matching claim fee rule, we still need to check whether there is a fee > 0 to assign
+                            eval '$fee = $claimFeeRule->claim_fee_level'.$i.'()';
+                            
+                            if ( $fee && $fee > 0.0 ) {
+                                # Bad for the patron, staff has assigned a claim fee for the item
+                                # We need to write a claim fee to accountlines
+                                 $claimFees->AddClaimFee( 
+                                    {
+                                        issue_id       => $item_info->{'issue_id'},
+                                        itemnumber     => $item_info->{'itemnumber'},
+                                        borrowernumber => $item_info->{'borrowernumber'},
+                                        amount         => $fee,
+                                        due            => $item_info->{date_due},
+                                        claimlevel     => $i,
+                                        due_since_days => $days_between
+                                    }
+                                 );
+                            }
+                        }
+                    }
+                    
 
                     if ( ( scalar(@emails_to_use) == 0 || $nomail ) && $PrintNoticesMaxLines && $j >= $PrintNoticesMaxLines ) {
                       $exceededPrintNoticesMaxLines = 1;

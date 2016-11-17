@@ -123,6 +123,11 @@
                                             [% CASE 'WO' %]Writeoff
                                             [% CASE 'C' %]Credit
                                             [% CASE 'CR' %]Credit
+                                            [% CASE 'CL1' %]Claim fee 1<sup>st</sup> reminder
+                                            [% CASE 'CL2' %]Claim fee 2<sup>nd</sup> reminder
+                                            [% CASE 'CL3' %]Claim fee 3<sup>rd</sup> reminder
+                                            [% CASE 'CL4' %]Claim fee 4<sup>th</sup> reminder
+                                            [% CASE 'CL5' %]Claim fee 5<sup>th</sup> reminder
                                             [% CASE %][% ACCOUNT_LINE.accounttype %]
                                           [%- END -%]
                                           [%- IF ACCOUNT_LINE.description %], [% ACCOUNT_LINE.description %][% END %]

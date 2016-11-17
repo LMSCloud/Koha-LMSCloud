@@ -1306,23 +1306,18 @@ CREATE TABLE `overduerules` ( -- overdue notice status and triggers
   `delay1` int(4) default NULL, -- number of days after the item is overdue that the first notice is sent
   `letter1` varchar(20) default NULL, -- foreign key from the letter table to define which notice should be sent as the first notice
   `debarred1` varchar(1) default 0, -- is the patron restricted when the first notice is sent (1 for yes, 0 for no)
-  `postage1` decimal(28,6) default NULL, -- charge for sending a letter, etc. for the first notice
   `delay2` int(4) default NULL, -- number of days after the item is overdue that the second notice is sent
   `debarred2` varchar(1) default 0, -- is the patron restricted when the second notice is sent (1 for yes, 0 for no)
   `letter2` varchar(20) default NULL, -- foreign key from the letter table to define which notice should be sent as the second notice
-  `postage2` decimal(28,6) default NULL, -- charge for sending a letter, etc. for the second notice
   `delay3` int(4) default NULL, -- number of days after the item is overdue that the third notice is sent
   `letter3` varchar(20) default NULL, -- foreign key from the letter table to define which notice should be sent as the third notice
   `debarred3` int(1) default 0, -- is the patron restricted when the third notice is sent (1 for yes, 0 for no)
-  `postage3` decimal(28,6) default NULL, -- charge for sending a letter, etc. for the third notice
   `delay4` int(4) default NULL, -- number of days after the item is overdue that the third notice is sent
   `letter4` varchar(20) default NULL, -- foreign key from the letter table to define which notice should be sent as the third notice
   `debarred4` int(1) default 0, -- is the patron restricted when the fourth notice is sent (1 for yes, 0 for no)
-  `postage4` decimal(28,6) default NULL, -- charge for sending a letter, etc. for the fourth notice
   `delay5` int(4) default NULL, -- number of days after the item is overdue that the third notice is sent
   `letter5` varchar(20) default NULL, -- foreign key from the letter table to define which notice should be sent as the third notice
   `debarred5` int(1) default 0, -- is the patron restricted when the fifth notice is sent (1 for yes, 0 for no)
-  `postage5` decimal(28,6) default NULL, -- charge for sending a letter, etc. for the fifth notice
   PRIMARY KEY  (`overduerules_id`),
   UNIQUE KEY `overduerules_branch_cat` (`branchcode`,`categorycode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

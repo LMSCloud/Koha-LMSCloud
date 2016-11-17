@@ -104,7 +104,7 @@ function enableCheckboxActions(){
         [% IF CAN_user_updatecharges_writeoff %]<input type="submit" name="wo_indiv_[% line.accountlines_id %]" value="Write off" />[% END %]
     [% END %]
     <input type="hidden" name="itemnumber[% line.accountlines_id %]" value="[% line.itemnumber %]" />
-    <input type="hidden" name="description[% line.accountlines_id %]" value="[% line.description %]" />
+    <input type="hidden" name="description[% line.accountlines_id %]" value="[% line.description | html %]" />
     <input type="hidden" name="accounttype[% line.accountlines_id %]" value="[% line.accounttype %]" />
     <input type="hidden" name="amount[% line.accountlines_id %]" value="[% line.amount %]" />
     <input type="hidden" name="accountlines_id[% line.accountlines_id %]" value="[% line.accountlines_id %]" />
@@ -113,13 +113,15 @@ function enableCheckboxActions(){
     <input type="hidden" name="notify_id[% line.accountlines_id %]" value="[% line.notify_id %]" />
     <input type="hidden" name="notify_level[% line.accountlines_id %]" value="[% line.notify_level %]" />
     <input type="hidden" name="totals[% line.accountlines_id %]" value="[% line.totals %]" />
+    <input type="hidden" name="title[% line.accountlines_id %]" value="[% line.title | html %]" />
+    <input type="hidden" name="accounttypename[% line.accountlines_id %]" value="[% INCLUDE accountTypeName | html %]" />
     </td>
     <td>
-        [% SWITCH line.accounttype %]
+        [% BLOCK accountTypeName %][% SWITCH line.accounttype %]
           [% CASE 'Pay' %]Payment, thanks
           [% CASE 'Pay00' %]Payment, thanks (cash via SIP2)
           [% CASE 'Pay01' %]Payment, thanks (VISA via SIP2)
-          [% CASE 'Pay02' %]Payment, thanks (credit card via SIP2)
+          [% CASE 'Pay02' %]Payment, thanks (credit card via ntSIP2)
           [% CASE 'N' %]New card
           [% CASE 'F' %]Fine
           [% CASE 'A' %]Account management fee
@@ -135,8 +137,13 @@ function enableCheckboxActions(){
           [% CASE 'WO' %]Writeoff
           [% CASE 'C' %]Credit
           [% CASE 'CR' %]Credit
+          [% CASE 'CL1' %]Claim fee 1<sup>st</sup> reminder
+          [% CASE 'CL2' %]Claim fee 2<sup>nd</sup> reminder
+          [% CASE 'CL3' %]Claim fee 3<sup>rd</sup> reminder
+          [% CASE 'CL4' %]Claim fee 4<sup>th</sup> reminder
+          [% CASE 'CL5' %]Claim fee 5<sup>th</sup> reminder
           [% CASE %][% line.accounttype %]
-        [%- END -%]
+        [%- END -%][% END %][% INCLUDE accountTypeName %] 
         [%- IF line.description %], [% line.description %][% END %]
         [% IF line.title %]([% line.title %])[% END %]
     </td>

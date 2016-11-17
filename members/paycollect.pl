@@ -69,7 +69,8 @@ if ( $individual || $writeoff ) {
         $template->param( writeoff_individual => 1 );
     }
     my $accounttype       = $input->param('accounttype');
-    $accountlines_id       = $input->param('accountlines_id');
+    my $accounttypename   = $input->param('accounttypename');
+    $accountlines_id      = $input->param('accountlines_id');
     my $amount            = $input->param('amount');
     my $amountoutstanding = $input->param('amountoutstanding');
     $accountno = $input->param('accountno');
@@ -81,11 +82,12 @@ if ( $individual || $writeoff ) {
     $total_due = $amountoutstanding;
     $template->param(
         accounttype       => $accounttype,
-        accountlines_id    => $accountlines_id,
+        accounttypename   => $accounttypename,
+        accountlines_id   => $accountlines_id,
         accountno         => $accountno,
         amount            => $amount,
         amountoutstanding => $amountoutstanding,
-        title             => $title,
+        title_desc        => $title,
         itemnumber        => $itemnumber,
         individual_description => $description,
         notify_id         => $notify_id,

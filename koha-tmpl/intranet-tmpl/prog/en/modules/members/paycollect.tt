@@ -111,7 +111,7 @@ function moneyFormat(textObj) {
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
     <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
-    <input type="hidden" name="title" id="title" value="[% title %]" />
+    <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
 
 <fieldset class="rows">
     <legend>Pay an individual fine</legend>
@@ -130,9 +130,9 @@ function moneyFormat(textObj) {
     </tfoot>
     <tbody><tr>
             <td>
-                [% individual_description %]
+                [% individual_description %] [% title_desc %]
             </td>
-            <td>[% accounttype %]</td>
+            <td>[% accounttypename %]</td>
             <td>[% notify_id %]</td>
             <td>[% notify_level %]</td>
             <td class="debit">[% amount | format('%.2f') %]</td>
@@ -168,7 +168,7 @@ function moneyFormat(textObj) {
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
     <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
-    <input type="hidden" name="title" id="title" value="[% title %]" />
+    <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
     <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note %]" />
     <table>
     <thead><tr>
@@ -181,8 +181,8 @@ function moneyFormat(textObj) {
         </tr></thead>
     <tfoot><td colspan="5">Total amount to be written off:</td><td>[% amountoutstanding | format('%.2f') %]</td></tfoot>
     <tbody><tr>
-            <td>[% description %] [% title %]</td>
-            <td>[% accounttype %]</td>
+            <td>[% description %] [% title_desc %]</td>
+            <td>[% accounttypename %]</td>
             <td>[% notify_id %]</td>
             <td>[% notify_level %]</td>
             <td class="debit">[% amount | format('%.2f') %]</td>

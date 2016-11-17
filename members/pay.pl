@@ -149,7 +149,7 @@ sub add_accounts_to_template {
 }
 
 sub get_for_redirect {
-    my ( $name, $name_in, $money ) = @_;
+    my ( $name, $name_in, $money, $escape ) = @_;
     my $s     = q{&} . $name . q{=};
     my $value = $input->param($name_in);
     if ( !defined $value ) {
@@ -158,7 +158,11 @@ sub get_for_redirect {
     if ($money) {
         $s .= sprintf '%.2f', $value;
     } else {
-        $s .= $value;
+        if ( $escape ) {
+            $s .= uri_escape_utf8($value);
+        } else {
+            $s .= $value;
+        }
     }
     return $s;
 }
@@ -170,11 +174,12 @@ sub redirect_to_paycollect {
     $redirect .= q{&};
     $redirect .= "$action=1";
     $redirect .= get_for_redirect( 'accounttype', "accounttype$line_no", 0 );
+    $redirect .= get_for_redirect( 'accounttypename', "accounttypename$line_no", 0, 1 );
     $redirect .= get_for_redirect( 'amount', "amount$line_no", 1 );
     $redirect .=
       get_for_redirect( 'amountoutstanding', "amountoutstanding$line_no", 1 );
-    $redirect .= uri_escape_utf8( get_for_redirect( 'description', "description$line_no", 0 ) );
-    $redirect .= uri_escape_utf8( get_for_redirect( 'title', "title$line_no", 0 ) );
+    $redirect .= get_for_redirect( 'description', "description$line_no", 0, 1 );
+    $redirect .= get_for_redirect( 'title', "title$line_no", 0, 1 );
     $redirect .= get_for_redirect( 'itemnumber',   "itemnumber$line_no",   0 );
     $redirect .= get_for_redirect( 'notify_id',    "notify_id$line_no",    0 );
     $redirect .= get_for_redirect( 'notify_level', "notify_level$line_no", 0 );

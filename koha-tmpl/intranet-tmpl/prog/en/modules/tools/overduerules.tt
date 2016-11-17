@@ -34,6 +34,10 @@ $(document).ready(function() {
     $('#branch').change(function() {
             $('#selectlibrary').submit();
     });
+    $('#claimlibrary').find("input:submit").hide();
+    $('#claimbranch').change(function() {
+            $('#claimlibrary').submit();
+    });
     $("li>a.tab").each( function(){
         var id = $(this).attr("data-number");
         $(this).html(tab_map[id]);
@@ -154,7 +158,6 @@ $(document).ready(function() {
                                     <tr>
                                         <th>&nbsp;</th>
                                         <th scope="col">Delay</th>
-                                        <th scope="col">Postage</th>
                                         <th scope="col">Letter</th>
                                         <th scope="col">Restrict</th>
                                         [% FOREACH mtt IN message_transport_types %]
@@ -183,9 +186,6 @@ $(document).ready(function() {
                                         <th scope="row">[% value.line %]</th>
                                         <td>
                                             <input type="text" name="delay[% tab.number %]-[% value.overduename %]" size="5" value="[% value.delay %]" />
-                                        </td>
-                                        <td>
-                                            <input type="number" min="0.00" max="99999.99" step="0.01" name="postage[% tab.number %]-[% value.overduename %]" size="5" value="[% value.postage %]" />
                                         </td>
                                         <td>
                                             <select name="letter[% tab.number %]-[% value.overduename %]">
@@ -261,9 +261,9 @@ $(document).ready(function() {
 
 	    <div>
 		<p>
-		    <form method="get" action="/cgi-bin/koha/tools/overduerules.pl" id="selectlibrary">
+		    <form method="get" action="/cgi-bin/koha/tools/overduerules.pl" id="claimlibrary">
 		    Select a library :
-			<select name="branch" id="branch" style="width:20em;">
+			<select name="branch" id="claimbranch" style="width:20em;">
 			    <option value="*">All libraries</option>
 			    [% FOREACH branchloo IN branchloop %]
 				[% IF ( branchloo.selected ) %]<option value="[% branchloo.value %]" selected="selected">[% branchloo.branchname %]</option>
@@ -272,8 +272,8 @@ $(document).ready(function() {
 			</select>
 		    </form>
 		    [% IF ( definedbranch ) %]
-		    <form action="/cgi-bin/koha/admin/clone-rules.pl" method="post">
-			<label for="tobranch"><strong>Clone these rules to:</strong></label> <input type="hidden" name="frombranch" value="[% current_branch %]" />
+		    <form action="/cgi-bin/koha/tools/overduerules.pl" method="post">
+			<label for="tobranch"><strong>Clone these rules to:</strong></label><input type="hidden" name="frombranch" value="[% current_branch %]" /><input type="hidden" name="op" value="cloneRules" />
 			<select name="tobranch" id="tobranch">[% FOREACH branchloo IN branchloop %]<option value="[% branchloo.value %]">[% branchloo.branchname %]</option>[% END %]</select> <input type="submit" value="Clone" />
 		    </form>
 		    [% END %]

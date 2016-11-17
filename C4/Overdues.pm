@@ -531,14 +531,15 @@ sub UpdateFine {
     #   "N"   is New Card
     #   "M"   is Sundry
     #   "O"   is Overdue ??
-    #   "F"   is Fine ??
-    #   "FU"  is Fine UPDATE??
+    #   "F"   is Fine (manually assigned)
+    #   "FU"  is Overdue Fines
     #   "Pay" is Payment
     #   "REF" is Cash Refund
+    #   "CL"1..5 are claim fees
     my $sth = $dbh->prepare(
         "SELECT * FROM accountlines
         WHERE borrowernumber=? AND
-        (( accounttype IN ('O','F','M') AND amountoutstanding<>0 ) OR
+        (( accounttype IN ('O','F','M','CL1','CL2','CL3','CL4','CL5') AND amountoutstanding<>0 ) OR
            accounttype = 'FU' )"
     );
     $sth->execute( $borrowernumber );
@@ -671,7 +672,7 @@ sub GetFine {
     my ( $itemnum, $borrowernumber ) = @_;
     my $dbh   = C4::Context->dbh();
     my $query = q|SELECT sum(amountoutstanding) as fineamount FROM accountlines
-    where accounttype like 'F%'
+    where (accounttype like 'F%' or accounttype like 'CL%')
   AND amountoutstanding > 0 AND borrowernumber=?|;
     my @query_param;
     push @query_param, $borrowernumber;

@@ -12836,17 +12836,12 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
                  ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci});
     
     $dbh->do(q{ ALTER TABLE `overduerules` 
-                ADD `postage1` decimal(28,6) default NULL AFTER `debarred1`,
-                ADD `postage2` decimal(28,6) default NULL AFTER `debarred2`,
-                ADD `postage3` decimal(28,6) default NULL AFTER `debarred3`,
-                ADD `delay4` int(4) default NULL AFTER `postage3`,
+                ADD `delay4` int(4) default NULL AFTER `debarred3`,
                 ADD `letter4` varchar(20) default NULL AFTER `delay4`,
                 ADD `debarred4` int(1) default 0 AFTER `letter4`, 
-                ADD `postage4` decimal(28,6) default NULL AFTER `debarred4`, 
-                ADD `delay5` int(4) default NULL AFTER `postage4`, 
+                ADD `delay5` int(4) default NULL AFTER `debarred4`, 
                 ADD `letter5` varchar(20) default NULL AFTER `delay5`,
-                ADD `debarred5` int(1) default 0 AFTER `letter5`, 
-                ADD `postage5` decimal(28,6) default NULL AFTER `debarred5` });
+                ADD `debarred5` int(1) default 0 AFTER `letter5` });
     
     print "Upgrade to $DBversion done (LMSCloud: extend claiming configuration) added)\n";
     SetVersion ($DBversion);
