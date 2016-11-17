@@ -28,7 +28,7 @@ Koha::ClaimingRule - Koha ClaimingRule object set class
 
 =head1 DESCRIPTION
 
-Claiming Fee Rules store configurations for charging claiming fees for overdue items.
+Claiming fee rules store configurations for charging claiming fees for overdue items.
 A rule consists of 5 values:
 - id 
 - branchcode
@@ -40,8 +40,8 @@ A rule consists of 5 values:
 - claiming fee for the 4th reminder
 - claiming fee for the 5th reminder
 Claiming rules can contain a specific defined value for branchcode, item type, or
-borrower category or an asterix '*' which is wildcard for any pissible values.
-Rules witzh a specific value are more relevant than a rule with a wildcard value.
+borrower category or an asterix '*' which is wildcard for any possible value.
+Rules with a specific value are more relevant than a rule with a wildcard value.
 
 The rules are applied from most specific to less specific, using the first found in this order:
 - same library, same patron type, same item type

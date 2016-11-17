@@ -3782,7 +3782,17 @@ CREATE TABLE `hold_fill_targets` (
     REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-DROP TABLE IF EXISTS claiming_rules;
+--
+-- Table structure for table `claiming_rules`
+--
+
+-- Claiming fee rules store configurations for charging claiming fees for overdue items.
+-- Claiming rules can contain a specific defined values for branchcode, item type, or
+-- borrower category or an asterix '*' which is wildcard for any possible values.
+-- Rules with a specific value are more relevant than a rule with a wildcard value.
+-- The rules are applied from most specific to less specific.
+
+DROP TABLE IF EXISTS `claiming_rules`;
 CREATE TABLE `claiming_rules` (
   `id` int(11) NOT NULL AUTO_INCREMENT, -- ID of the configuration line
   `categorycode` varchar(10) NOT NULL default '', -- patron category this rule is for (categories.categorycode)
@@ -3796,6 +3806,7 @@ CREATE TABLE `claiming_rules` (
    PRIMARY KEY (`id`),
    UNIQUE KEY `pseudo_key` (`categorycode`,`itemtype`, `branchcode`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
