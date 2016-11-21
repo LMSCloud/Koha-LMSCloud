@@ -34,6 +34,11 @@
     <dt><a href="/cgi-bin/koha/tools/letter.pl">Notices &amp; slips</a></dt>
     <dd>Define notices (print and email notification messages for overdues, etc.)</dd>
     [% END %]
+    
+    [% IF ( CAN_user_tools_edit_notice_fee_rules  ) %]
+    <dt><a href="/cgi-bin/koha/tools/notice-fee-rules.pl">Notice fee rules</a></dt>
+    <dd>Define notice fee rules (charge patrons for sending notifications)</dd>
+    [% END %]
 
     [% IF ( CAN_user_tools_edit_notice_status_triggers ) %]
     <dt><a href="/cgi-bin/koha/tools/overduerules.pl">Overdue notice/status triggers</a></dt>

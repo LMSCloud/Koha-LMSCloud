@@ -3807,6 +3807,29 @@ CREATE TABLE `claiming_rules` (
    UNIQUE KEY `pseudo_key` (`categorycode`,`itemtype`, `branchcode`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+--
+-- Table structure for table `notice_fee_rules`
+--
+
+-- Notice fee rules store configurations for charging notice fees when sending notifications to patrons.
+-- The rules can contain a specific defined values for branchcode, borrower category, message transport type, 
+-- and letter code or an asterix '*' which is wildcard for any 
+-- the possible values of the listed fields.
+-- Rules with a specific value are more relevant than a rule with a wildcard value.
+-- The rules are applied from most specific to less specific in the following field order:
+-- branchcode, categorycode, message_transport_type, letter_code 
+
+DROP TABLE IF EXISTS `notice_fee_rules`;
+CREATE TABLE `notice_fee_rules` (
+  `id` int(11) NOT NULL AUTO_INCREMENT, -- ID of the configuration line
+  `categorycode` varchar(10) NOT NULL default '', -- patron category this rule is for (categories.categorycode)
+  `branchcode` varchar(10) NOT NULL default '', -- the branch this rule applies to (branches.branchcode)
+  `message_transport_type` varchar(10) NOT NULL default '', -- message channel this rule is for (message_transport_type.message_transport_types)
+  `letter_code` varchar(20) NOT NULL default '', -- optional letter code thise rule is for (letter.code)
+  `notice_fee` decimal(28,6) default NULL, -- fine amount for notififcations
+   PRIMARY KEY (`id`),
+   UNIQUE KEY `pseudo_key` (`branchcode`,`categorycode`,`message_transport_type`,`letter_code`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

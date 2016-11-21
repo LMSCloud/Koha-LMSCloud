@@ -34,6 +34,7 @@ use C4::Accounts;
 use C4::Members::Messaging;
 use C4::Members qw();
 use C4::Letters;
+use C4::NoticeFees;
 
 use Koha::DateUtils;
 use Koha::Calendar;
@@ -1981,6 +1982,8 @@ The following tables are availalbe witin the notice:
 sub _koha_notify_reserve {
     my ($itemnumber, $borrowernumber, $biblionumber) = @_;
 
+
+    my $noticeFees = C4::NoticeFees->new();
     my $dbh = C4::Context->dbh;
     my $borrower = C4::Members::GetMember(borrowernumber => $borrowernumber);
 
@@ -2013,7 +2016,7 @@ sub _koha_notify_reserve {
             'biblio'         => $biblionumber,
             'biblioitems'    => $biblionumber,
             'reserves'       => $reserve,
-            'items', $reserve->{'itemnumber'},
+            'items'          => $itemnumber
         },
         substitute => { today => output_pref( { dt => dt_from_string, dateonly => 1 } ) },
     );
@@ -2036,6 +2039,36 @@ sub _koha_notify_reserve {
             from_address => $admin_email_address,
             message_transport_type => $mtt,
         } );
+        
+        # check whether there are notice fee rules defined
+        if ( $noticeFees->checkForNoticeFeeRules() == 1 ) {
+            #check whether there is a matching notice fee rule
+            my $noticeFeeRule = $noticeFees->getNoticeFeeRule($letter_params{branchcode}, $borrower->{categorycode}, $mtt, 'HOLD');
+            
+            if ( $noticeFeeRule ) {
+                my $fee = $noticeFeeRule->notice_fee();
+                
+                if ( $fee && $fee > 0.0 ) {
+                    # Bad for the patron, staff has assigned a notice fee for sending the notification
+                     $noticeFees->AddNoticeFee( 
+                        {
+                            borrowernumber => $borrowernumber,
+                            amount         => $fee,
+                            letter_code    => 'HOLD',
+                            letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
+                            
+                            # these are parameters that we need for fancy message printing
+                            branchcode     => $letter_params{branchcode},
+                            substitute     => { bib             => $library->{branchname}, 
+                                                'count'         => 1,
+                                              },
+                            tables        =>  $letter_params{tables}
+                            
+                         }
+                     );
+                }
+            }
+        }
     };
 
     while ( my ( $mtt, $letter_code ) = each %{ $messagingprefs->{transports} } ) {

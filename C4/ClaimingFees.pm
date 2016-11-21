@@ -20,6 +20,8 @@ package C4::ClaimingFees;
 use strict;
 use warnings;
 
+use Date::Calc qw/Today Date_to_Days/;
+use Locale::Currency::Format;
 use Carp;
 
 use Koha::ClaimingRule;
@@ -28,6 +30,9 @@ use Koha::Account::Line;
 use Koha::Account::Lines;
 use Koha::DateUtils;
 use C4::Log; # logaction
+use C4::Letters;
+use C4::Overdues;
+use Koha::Acquisition::Currencies;
 
 use vars qw(@ISA @EXPORT);
 
@@ -194,19 +199,21 @@ sub getFittingClaimingRule {
 
 =head2 AddClaimFee
 
-$claimfees->AddClaimFee($params) ;
+  $claimfees->AddClaimFee($params) ;
 
 Charges a claim fee to a borrower. The fee is added to the account of the borrower.
 The function takes a hash reference as parameter. The hash ref is required to provide
 the following data:
 
-$params->{issue_id}         # integer: id of the issue
-$params->{itemnumber}       # integer: itemnumber
-$params->{borrowernumber}   # integer: borrowernumber
-$params->{amount}           # decimal: amount top charge
-$params->{due}              # date: when is the item due
-$params->{claimlevel}       # integer (1..5): what claim ist it: 1st, 2nd, 3rd, 4th or 5th reminder
-$params->{due_since_days}   # integer (1..x): since when is it due
+  $params->{branchcode}       # string: set the code of the branch
+  $params->{issue_id}         # integer: id of the issue
+  $params->{itemnumber}       # integer: itemnumber
+  $params->{borrowernumber}   # integer: borrowernumber
+  $params->{amount}           # decimal: amount top charge
+  $params->{due}              # date: when is the item due
+  $params->{claimlevel}       # integer (1..5): what claim ist it: 1st, 2nd, 3rd, 4th or 5th reminder
+  $params->{due_since_days}   # integer (1..x): since when is it due
+  $params->{substitute}       # hash ref with key value pairs for description message generation using a letter template
 
 =cut
 
@@ -236,10 +243,11 @@ sub AddClaimFee {
     #   "Res" is Reservation Fee
     #   "M"   is Sundry
     #   "CL"1..5 are claim fees
+    #   "NOT" is Notice fee
     my $sth = $dbh->prepare(
         "SELECT SUM(amountoutstanding) as amountoutstanding FROM accountlines " .
         "WHERE borrowernumber=? AND " .
-        "accounttype IN ('F','M','Res','CL1','CL2','CL3','CL4','CL5','FU')"
+        "accounttype IN ('F','M','Res','CL1','CL2','CL3','CL4','CL5','FU','NOTF')"
     );
     $sth->execute( $borrowernumber );
     my $total_amount = 0.00;
@@ -259,16 +267,11 @@ sub AddClaimFee {
     }
 
     if ( $amount ) { # Don't add new fines with an amount of 0
-        my $sth4 = $dbh->prepare(
-                "SELECT title FROM biblio LEFT JOIN items ON biblio.biblionumber=items.biblionumber WHERE items.itemnumber=?"
-	    );
-        $sth4->execute($itemnum);
-        my $title = $sth4->fetchrow;
+        
+        my $desc = $self->GetClaimingFeeDescription($params);
 
         my $nextaccntno = C4::Accounts::getnextacctno($borrowernumber);
-
-        my $desc = "$title, $due";
-
+        
         my $accountline = Koha::Account::Line->new(
             {
                 borrowernumber    => $borrowernumber,
@@ -280,7 +283,7 @@ sub AddClaimFee {
                 amountoutstanding => $amount,
                 lastincrement     => $amount,
                 accountno         => $nextaccntno,
-                issue_id          => $issue_id,
+                issue_id          => $issue_id
             } )->store();
 
         # logging action
@@ -290,6 +293,128 @@ sub AddClaimFee {
             $borrowernumber,
             "due=".$due."  amount=".$amount." itemnumber=".$itemnum
         ) if C4::Context->preference("FinesLog");
+    }
+}
+
+=head2 GetClaimingFeeDescription
+
+  $claimfees->GetClaimingFeeDescription($params);
+
+Create the description for the claiming fee. Describes the reason for the fee in the user accout.
+It's possible to use a letter template to generate the description as a localized string.
+Simply create a letter with mdoule "fines" and code FINESMSG_ODUE_CLAIM. Optionally you can create
+specific messages for each claim level using the code FINESMSG_ODUE_CLAIM1 to FINESMSG_ODUE_CLAIM5.
+The letter text can contain branches, biblio, items, biblioitems and issues fields. Additionally 
+the following keywords can be used:
+
+=over 
+
+=item <<today>>
+
+Date of today.
+
+=item <<overduedays>>
+
+Days the item is overdue.
+
+=item <<claimlevel>>
+
+Claim level from 1 to 5.
+
+=item <<claimfee>>
+
+Charged amount.
+
+If no letter template is defined, a simple description consisting of title and due date will be used.
+
+=back
+
+=cut
+
+sub GetClaimingFeeDescription {
+    my ($self,$params) = @_;
+    
+    my $branchcode = $params->{branchcode};
+    
+    # Let's check whether the library has configured a letter template 
+    # to format a fancy fines description that we add with the claim fee
+    my $letter_code = 'FINESMSG_ODUE_CLAIM'.$params->{'claimlevel'};
+    my $letter_exists = C4::Letters::getletter( 'fines', $letter_code, $branchcode, 'email' ) ? 1 : 0;
+    if ( $letter_exists == 0 ) {
+        $letter_code = 'FINESMSG_ODUE_CLAIM';
+        $letter_exists = C4::Letters::getletter( 'fines', $letter_code, $branchcode, 'email' ) ? 1 : 0;
+    }
+
+    if ( $letter_exists ) {
+        my $substitute = $params->{'substitute'} || {};
+        $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
+        $substitute->{overduedays} = $params->{due_since_days};
+        $substitute->{claimlevel}  = $params->{claimlevel};
+        
+        my $active_currency = Koha::Acquisition::Currencies->get_active;
+
+        my $currency_format;
+        $currency_format = $active_currency->currency if defined($active_currency);
+        
+        $substitute->{'claimfee'} = currency_format($currency_format, $params->{amount}, FMT_SYMBOL);
+        # if active currency isn't correct ISO code fallback to sprintf
+        $substitute->{'claimfee'} = sprintf('%.2f', $params->{amount}) unless $substitute->{'claimfee'};
+
+        my ($biblionumber,$itemnumber) = '';
+        my @item_tables;
+        if ( my $i = $params->{'items'} ) {
+            my $item_format = '';
+            foreach my $item (@$i) {
+                my $fine = GetFine($item->{'itemnumber'}, $params->{'borrowernumber'}) + $params->{amount};
+                
+                $item->{'fine'} = currency_format($currency_format, $fine, FMT_SYMBOL);
+                # if active currency isn't correct ISO code fallback to sprintf
+                $item->{'fine'} = sprintf('%.2f', $fine) unless $item->{'fine'};
+                
+                push @item_tables, {
+                    'biblio' => $item->{'biblionumber'},
+                    'biblioitems' => $item->{'biblionumber'},
+                    'items' => $item,
+                    'issues' => $item->{'itemnumber'}
+                };
+                $biblionumber = $item->{'biblionumber'};
+                $itemnumber = $item->{'itemnumber'};
+                
+            }
+        }
+        
+        my %tables = ( 'borrowers' => $params->{'borrowernumber'} );
+        if ( my $p = $params->{'branchcode'} ) {
+            $tables{'branches'} = $p;
+            $tables{'biblio'} = $biblionumber;
+            $tables{'items'} = $itemnumber;
+            $tables{'biblioitems'} = $biblionumber;
+        }
+
+        my $letter = C4::Letters::GetPreparedLetter (
+            module => 'fines',
+            letter_code => $letter_code,
+            branchcode => $params->{'branchcode'},
+            tables => \%tables,
+            substitute => $substitute,
+            repeat => { item => \@item_tables },
+            message_transport_type => 'email'
+        );
+        return $letter->{'content'};
+    }
+    # no letter is defined, we use the default message
+    else {
+        my $dbh = C4::Context->dbh;
+        my $sth = $dbh->prepare(
+            "SELECT title FROM biblio LEFT JOIN items ON biblio.biblionumber=items.biblionumber WHERE items.itemnumber=?"
+        );
+        $sth->execute($params->{itemnumber});
+        my $title = $sth->fetchrow;
+        $sth->finish();
+
+        my $desc = "$title, " . $params->{due};
+        
+        return $desc;
     }
 }
 

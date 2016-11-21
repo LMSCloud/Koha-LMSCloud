@@ -38,6 +38,7 @@ use C4::Context;
 use C4::Letters;
 use C4::Overdues qw(GetFine GetOverdueMessageTransportTypes parse_overdues_letter);
 use C4::ClaimingFees;
+use C4::NoticeFees;
 use C4::Log;
 use Koha::Patron::Debarments qw(AddUniqueDebarment);
 use Koha::DateUtils;
@@ -97,6 +98,11 @@ Do not send any email. Overdue notices that would have been sent to
 the patrons or to the admin are printed to standard out. CSV data (if
 the -csv flag is set) is written to standard out or to any csv
 filename given.
+
+=item B<-nocharge>
+
+Do not charge notice fees or claiming fess even if claiming fee rules
+or notice fee rules would require to charge fees.
 
 =item B<-max>
 
@@ -201,6 +207,21 @@ section of Koha is available in the Koha manual.
 The templates used to craft the emails are defined in the "Tools:
 Notices" section of the staff interface to Koha.
 
+In addition the claim fee rules and the notice fee rules are considered
+creating overdue reminders. A claiming fee will be charged if a claiming fee
+rules matches for the item. Notice fess are applied to created letters
+if a notice fee rules matches. Please verify that the claim fee rules and
+the notice fee rules do meet your requirements.
+
+Please be very carefully with claim fees if you do not use the -t / --triggered
+option. Calling the script daily with -t prevents that a user is charged multiple
+times for an item at the same claim level. If you want to charge claim fees and you
+do not run the script daily with -t option, you need to run the script in a frequency
+that is equal to the configured delay of the overdue alerts.
+
+The parater --nocharge can be used to prevent that notice fees or claiming
+fees are charged independently of the currently defined rule configuration.
+
 =head2 Outgoing emails
 
 Typically, messages are prepared for each patron with overdue
@@ -289,6 +310,7 @@ my $help    = 0;
 my $man     = 0;
 my $verbose = 0;
 my $nomail  = 0;
+my $nocharge = 0;
 my $MAX     = 90;
 my $test_mode = 0;
 my @branchcodes; # Branch(es) passed as parameter
@@ -309,6 +331,7 @@ GetOptions(
     'man'            => \$man,
     'v'              => \$verbose,
     'n'              => \$nomail,
+    'nocharge+'      => \$nocharge,
     'max=s'          => \$MAX,
     'library=s'      => \@branchcodes,
     'csv:s'          => \$csvfilename,    # this optional argument gets '' if not supplied.
@@ -443,7 +466,17 @@ elsif ( defined $text_filename ) {
   }
 }
 
+# Initialize the object to charge claiming fees if necessary.
+# The new function reads the configuration of claiming fee rules.
+# We use the object later to check whether an overdue item needs to be
+# charged.
 my $claimFees = C4::ClaimingFees->new();
+
+# Initialize the objects to charge notice fees if necessary.
+# The new function reads the configuration of notice fee rules.
+# We use the object later to check whether a notice fee needs to be
+# charged for sending an ovderdue letter.
+my $noticeFees = C4::NoticeFees->new();
 
 # The following processing loops through all branches.
 # For each branch queries are prepared to select issues of a borrower and matching overduerules.
@@ -676,34 +709,6 @@ END_SQL
                         $apply_claim_fee = 1;
                     }
                     
-                    # check whether there is a matching claiming fee rule
-                    if ( $claimFees->checkForClaimingRules() == 1 ) {
-                        my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $branchcode);
-                        
-                        if ( $claimFeeRule ) {
-                            my $fee = 0.0;
-                            # now that we found a matching claim fee rule, we still need to check whether there is a fee > 0 to assign
-                            eval '$fee = $claimFeeRule->claim_fee_level'.$i.'()';
-                            
-                            if ( $fee && $fee > 0.0 ) {
-                                # Bad for the patron, staff has assigned a claim fee for the item
-                                # We need to write a claim fee to accountlines
-                                 $claimFees->AddClaimFee( 
-                                    {
-                                        issue_id       => $item_info->{'issue_id'},
-                                        itemnumber     => $item_info->{'itemnumber'},
-                                        borrowernumber => $item_info->{'borrowernumber'},
-                                        amount         => $fee,
-                                        due            => $item_info->{date_due},
-                                        claimlevel     => $i,
-                                        due_since_days => $days_between
-                                    }
-                                 );
-                            }
-                        }
-                    }
-                    
-
                     if ( ( scalar(@emails_to_use) == 0 || $nomail ) && $PrintNoticesMaxLines && $j >= $PrintNoticesMaxLines ) {
                       $exceededPrintNoticesMaxLines = 1;
                       last;
@@ -716,6 +721,44 @@ END_SQL
                     $titles .= join("\t", @item_info) . "\n";
                     $itemcount++;
                     push @items, $item_info;
+                    
+                    # check whether there are claiming fee rules defined
+                    if ( $nocharge==0 && $claimFees->checkForClaimingRules() == 1 ) {
+                        # check whether there is a matching claiming fee rule
+                        my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $branchcode);
+                        
+                        if ( $claimFeeRule ) {
+                            my $fee = 0.0;
+                            # now that we found a matching claim fee rule, we still need to check whether there is a fee > 0 to assign
+                            eval '$fee = $claimFeeRule->claim_fee_level'.$i.'()';
+                            
+                            if ( $fee && $fee > 0.0 ) {
+                                # Bad for the patron, staff has assigned a claim fee for the item
+                                # We need to write a claim fee to accountlines
+                                
+                                $claimFees->AddClaimFee( 
+                                    {
+                                        issue_id       => $item_info->{'issue_id'},
+                                        itemnumber     => $item_info->{'itemnumber'},
+                                        borrowernumber => $item_info->{'borrowernumber'},
+                                        amount         => $fee,
+                                        due            => $item_info->{date_due},
+                                        claimlevel     => $i,
+                                        due_since_days => $days_between,
+                                        
+                                        # these are parameters that we need for fancy message printing
+                                        branchcode     => $branchcode,
+                                        items          => [$item_info],
+                                        substitute     => { bib             => $library->branchname,
+                                                            'items.content' => $titles,
+                                                            'count'         => 1,
+                                                           },
+                                    }
+                                );
+                            }
+                        }
+                    }
+                    
                 }
                 $sth2->finish;
 
@@ -818,8 +861,41 @@ END_SQL
                             # A print notice should be sent only once per overdue level.
                             # Without this check, a print could be sent twice or more if the library checks sms and email and print and the patron has no email or sms number.
                             $print_sent = 1 if $effective_mtt eq 'print';
+                            
+                            # check whether there are notice fee rules defined
+                            if ( $nocharge== 0 && $noticeFees->checkForNoticeFeeRules() == 1) {
+                                #check whether there is a matching notice fee rule
+                                my $noticeFeeRule = $noticeFees->getNoticeFeeRule($branchcode, $overdue_rules->{categorycode}, $effective_mtt, $overdue_rules->{"letter$i"} );
+                                
+                                if ( $noticeFeeRule ) {
+                                    my $fee = $noticeFeeRule->notice_fee();
+                                    
+                                    if ( $fee && $fee > 0.0 ) {
+                                        # Bad for the patron, staff has assigned a notice fee for sending the notification
+                                         $noticeFees->AddNoticeFee( 
+                                            {
+                                                borrowernumber => $borrowernumber,
+                                                amount         => $fee,
+                                                letter_code    => $overdue_rules->{"letter$i"},
+                                                letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
+                                                claimlevel     => $i,
+                                                
+                                                # these are parameters that we need for fancy message printig
+                                                branchcode     => $branchcode,
+                                                substitute     => {    # this appears to be a hack to overcome incomplete features in this code.
+                                                                        bib             => $library->branchname, # maybe 'bib' is a typo for 'lib<rary>'?
+                                                                        'items.content' => $titles,
+                                                                        'count'         => 1,
+                                                                       },
+                                                items          => \@items
+                                            }
+                                         );
+                                    }
+                                }
+                            }
                         }
                     }
+                    
                 }
             }
             $sth->finish;

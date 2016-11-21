@@ -12808,7 +12808,6 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
-
 $DBversion = '16.05.05.001';
 if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
@@ -12843,11 +12842,30 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
                 ADD `letter5` varchar(20) default NULL AFTER `delay5`,
                 ADD `debarred5` int(1) default 0 AFTER `letter5` });
     
-    print "Upgrade to $DBversion done (LMSCloud: extend claiming configuration) added)\n";
+    print "Upgrade to $DBversion done (LMSCloud: extend claiming configuration)\n";
     SetVersion ($DBversion);
 }
 
 $DBversion = "16.05.05.003";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do(q{ CREATE TABLE `notice_fee_rules` (
+                `id` int(11) NOT NULL AUTO_INCREMENT, 
+                `categorycode` varchar(10) NOT NULL default '', 
+                `branchcode` varchar(10) NOT NULL default '', 
+                `message_transport_type` varchar(10) NOT NULL default '', 
+                `letter_code` varchar(20) NOT NULL default '', 
+                `notice_fee` decimal(28,6) default NULL, 
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `pseudo_key` (`branchcode`,`categorycode`,`message_transport_type`,`letter_code`)
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci });
+    
+    $dbh->do(q{ INSERT IGNORE INTO permissions (module_bit, code, description) VALUES (13,'edit_notice_fee_rules', 'Define notice fee rules') });
+    
+    print "Upgrade to $DBversion done (LMSCloud: add notice fee rules)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = "16.05.05.004";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     
     $dbh->do(q{ ALTER TABLE `browser` MODIFY `classification` VARCHAR(255) });

@@ -324,6 +324,11 @@ $(document).ready(function() {
                                     [% ELSE %]
                                       <option value="claimissues">Claim serial issue</option>
                                     [% END %]
+                                    [% IF ( module == "fines" ) %]
+                                      <option value="fines" selected="selected">Fines description</option>
+                                    [% ELSE %]
+                                      <option value="fines">Fines description</option>
+                                    [% END %]
                                     [% IF ( module == "reserves" ) %]
                                       <option value="reserves" selected="selected">Holds</option>
                                     [% ELSE %]

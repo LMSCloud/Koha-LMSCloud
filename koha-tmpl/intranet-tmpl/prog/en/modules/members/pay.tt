@@ -142,6 +142,7 @@ function enableCheckboxActions(){
           [% CASE 'CL3' %]Claim fee 3<sup>rd</sup> reminder
           [% CASE 'CL4' %]Claim fee 4<sup>th</sup> reminder
           [% CASE 'CL5' %]Claim fee 5<sup>th</sup> reminder
+          [% CASE 'NOTF' %]Notice fee
           [% CASE %][% line.accounttype %]
         [%- END -%][% END %][% INCLUDE accountTypeName %] 
         [%- IF line.description %], [% line.description %][% END %]

@@ -59,6 +59,7 @@
     [%- CASE 'edit_news' -%]<span>Write news for the OPAC and staff interfaces</span>
     [%- CASE 'edit_notice_status_triggers' -%]<span>Set notice/status triggers for overdue items</span>
     [%- CASE 'edit_notices' -%]<span>Define notices</span>
+    [%- CASE 'edit_notice_fee_rules' -%]<span>Define notice fee rules</span>
     [%- CASE 'edit_patrons' -%]<span>Perform batch modification of patrons</span>
     [%- CASE 'edit_quotes' -%]<span>Edit quotes for quote-of-the-day feature</span>
     [%- CASE 'export_catalog' -%]<span>Export bibliographic and holdings data</span>

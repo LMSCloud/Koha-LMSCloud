@@ -536,10 +536,11 @@ sub UpdateFine {
     #   "Pay" is Payment
     #   "REF" is Cash Refund
     #   "CL"1..5 are claim fees
+    #   "NOTF" is Notice fee
     my $sth = $dbh->prepare(
         "SELECT * FROM accountlines
         WHERE borrowernumber=? AND
-        (( accounttype IN ('O','F','M','CL1','CL2','CL3','CL4','CL5') AND amountoutstanding<>0 ) OR
+        (( accounttype IN ('O','F','M','CL1','CL2','CL3','CL4','CL5','NOTF') AND amountoutstanding<>0 ) OR
            accounttype = 'FU' )"
     );
     $sth->execute( $borrowernumber );
