@@ -468,7 +468,7 @@ my @itemtypes = @{ GetItemTypes( style => 'array' ) };
 ########################################
 #  Read claiming fee rules 
 ########################################
-my @claimingFeeRules = readClaimingRules($branch, $language);
+my @claimingFeeRules = readClaimingRules($dbh, $branch, $language);
 
 
 ########################################
@@ -490,13 +490,11 @@ $template->param(
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 
-exit 0;
-
-
 ########################################
 #  Function for read claiming fee rules 
 ########################################
 sub readClaimingRules {
+    my $dbh = shift;
     my $branch = shift;
     my $language = shift;
     my @claiming_rules;
@@ -611,3 +609,7 @@ sub cloneClaimingRules {
         $newrule->store();
     }
 }
+
+
+exit 0;
+
