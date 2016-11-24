@@ -133,6 +133,7 @@ for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{b
         value      => $thisbranch,
         selected   => $thisbranch eq $branch,
         branchname => $branches->{$thisbranch}->{'branchname'},
+        branchcode => $branches->{$thisbranch}->{'branchcode'},
     };
 }
 
@@ -164,7 +165,7 @@ $letters = \@sorted_letters;
 ########################################
 #  Read notice fee rules 
 ########################################
-my @noticeFeeRules = readNoticeFeeRules($branch,);
+my @noticeFeeRules = readNoticeFeeRules($dbh,$branch);
 
 
 ########################################
@@ -190,13 +191,11 @@ $template->param(
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 
-exit 0;
-
-
 ########################################
 #  Function for reading notice fee rules 
 ########################################
 sub readNoticeFeeRules {
+    my $dbh = shift;
     my $branch = shift;
     my @notice_fee_rules;
     my $query =
@@ -297,3 +296,6 @@ sub cloneNoticeFeeRules {
         $newrule->store();
     }
 }
+
+exit 0;
+
