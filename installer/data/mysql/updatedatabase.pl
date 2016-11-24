@@ -12820,7 +12820,7 @@ if ( CheckVersion($DBversion) ) {
 
 $DBversion = "16.05.05.002";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
-    $dbh->do(q{ CREATE TABLE `charging_rules` (
+    $dbh->do(q{ CREATE TABLE `claiming_rules` (
                 `id` int(11) NOT NULL AUTO_INCREMENT,
                 `categorycode` varchar(10) NOT NULL default '',
                 `itemtype` varchar(10) NOT NULL default '',
