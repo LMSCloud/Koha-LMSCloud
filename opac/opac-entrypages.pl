@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2000-2002 Katipo Communications
+# Copyright 2016 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -94,6 +94,15 @@ if ( $enduser eq 'A' ) {
 	{
 		push @ClassificationTopLevelEntries, $line;
 	}
+	$sth->finish;
+	if (! scalar(@ClassificationTopLevelEntries) ) {
+		$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification NOT REGEXP '^([0-9].*|CD.*|DVD.*)' ORDER BY description");
+		$sth->execute(1);
+		while (my $line = $sth->fetchrow_hashref)
+		{
+			push @ClassificationTopLevelEntries, $line;
+		}
+	}
 }
 
 if ( $enduser eq '9' ) {
@@ -106,6 +115,14 @@ if ( $enduser eq '9' ) {
 		$line->{description} =~ s/^Kindersach[^\s\\]+: //;
 		push @ClassificationTopLevelEntries, $line;
 	}
+	$sth->finish;
+	if (! scalar(@ClassificationTopLevelEntries) ) {
+		$sth->execute(2,"4.3%");
+		while (my $line = $sth->fetchrow_hashref)
+		{
+			push @ClassificationTopLevelEntries, $line;
+		}
+	}
 }
 
 if ( $enduser eq 'T' ) {
@@ -117,6 +134,14 @@ if ( $enduser eq 'T' ) {
 	{
 		$line->{description} =~ s/^Kindersach[^\s\\]+: //;
 		push @ClassificationTopLevelEntries, $line;
+	}
+	$sth->finish;
+	if (! scalar(@ClassificationTopLevelEntries) ) {
+		$sth->execute(2,"4.3%");
+		while (my $line = $sth->fetchrow_hashref)
+		{
+			push @ClassificationTopLevelEntries, $line;
+		}
 	}
 }
 
