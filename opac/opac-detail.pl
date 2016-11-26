@@ -112,6 +112,7 @@ if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $recor
         }
         
         if ( defined($useitem) && defined($divitem) ) {
+            $useitem->{'itemId'} = $divibibId;
             $useitem->{'onleihe'} = $divitem->{'onleihe'};
             $useitem->{'date_due'} =  $divitem->{'date_due'};
             $useitem->{'date_due_sql'}  = $divitem->{'date_due_sql'};
@@ -126,6 +127,7 @@ if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $recor
         }
         elsif ( $divibib_items ) {
             foreach my $ditem ( @{$divibib_items} ) {
+                $ditem->{'itemId'} = $divibibId;
                 if ( exists($ditem->{'imageurl'}) && $ditem->{'imageurl'} !~ /opac/ ) {
                     $ditem->{'imageurl'} = '/opac-tmpl/bootstrap/itemtypeimg/' . $ditem->{'imageurl'};
                 }
