@@ -34,6 +34,8 @@ use C4::Divibib::NCIP::LookupUser;
 use C4::Divibib::NCIP::LookupItem;
 use C4::Divibib::NCIP::RequestItem;
 
+use Koha::SearchEngine::Search;
+
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 use constant DIVIBIBAGENCYID => 'DE-Wi27';
@@ -223,33 +225,34 @@ sub getPendingIssues {
         
    	my $loanedDivibibItems = $accountData->{'LoanedItems'};
 
-        unless (@$loanedDivibibItems ) { # return a ref_to_array
-            return \@$divibibIDs; # to not cause surprise to caller
-        }
-        
-        # Query local biblio record IDs of the Divibib entries
-        my $query = '(';
-        for (my $i = 0; $i < @$loanedDivibibItems; $i++) {
-            if ($i > 0) {
-                $query .= " OR "
-            }
-            $query .= 'cn="' . $loanedDivibibItems->[$i]->{'ItemId'} . '"';
-        }
-        $query .= ') AND cna="' . DIVIBIBAGENCYID . '"';
+    unless (@$loanedDivibibItems ) { # return a ref_to_array
+        return \@$divibibIDs; # to not cause surprise to caller
+    }
     
-        my ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
-
-        if (defined $error) {
-            warn "error: ".$error;
+    # Query local biblio record IDs of the Divibib entries
+    my $query = '(';
+    for (my $i = 0; $i < @$loanedDivibibItems; $i++) {
+        if ($i > 0) {
+            $query .= " OR "
         }
-        
-        my @recordnumbers;
-	my %recordToDivibibId;
-	for my $r ( @{$marcresults} ) {
-            my $marcrecord = MARC::File::XML->decode($r);
-            push @recordnumbers, $marcrecord->subfield('999','c');	
-            $recordToDivibibId{$marcrecord->subfield('999','c')} = $marcrecord->field('001')->data();
-	}
+        $query .= 'cn="' . $loanedDivibibItems->[$i]->{'ItemId'} . '"';
+    }
+    $query .= ') AND cna="' . DIVIBIBAGENCYID . '"';
+
+    my $searcher = Koha::SearchEngine::Search->new({index => 'biblios'});
+    my ( $error, $marcresults, $total_hits ) = $searcher->simple_search_compat($query, 0, 1000);
+
+    if (defined $error) {
+        warn "error: ".$error;
+    }
+    
+    my @recordnumbers;
+    my %recordToDivibibId;
+    for my $r ( @{$marcresults} ) {
+        my $marcrecord = C4::Search::new_record_from_zebra( 'biblioserver', $r);
+        push @recordnumbers, $marcrecord->subfield('999','c');      
+        $recordToDivibibId{$marcrecord->subfield('999','c')} = $marcrecord->field('001')->data();
+    }
 	
 	$query =
 		"SELECT biblio.*,
