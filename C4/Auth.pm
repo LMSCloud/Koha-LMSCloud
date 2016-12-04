@@ -357,6 +357,9 @@ sub get_template_and_user {
         } elsif ( $in->{type} eq 'intranet' and C4::Context->preference('EnableSearchHistory') ) {
             $template->param( EnableSearchHistory => 1 );
         }
+        if ( $in->{type} eq 'intranet' and C4::Context->preference('ActivateCashRegisterTransactionsOnly') ) {
+            $template->param( ActivateCashRegisterTransactionsOnly => 1 );
+        }
     }
     else {    # if this is an anonymous session, setup to display public lists...
 

@@ -12874,6 +12874,69 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion($DBversion);
 }
 
+$DBversion = "16.05.05.005";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do(q{  });
+    
+    $dbh->do(q{ INSERT IGNORE INTO permissions (module_bit, code, description) VALUES (13, 'cash_register_manage', 'Cash register management (define cash registers and authorized staff)') });
+    $dbh->do(q{ INSERT IGNORE INTO permissions (module_bit, code, description) VALUES (10, 'cash_management', 'Manage a cash register') });
+    
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type )
+        VALUES ('ActivateCashRegisterTransactionsOnly', '0', NULL, 'By activating cash registers, all cash transactions must be treated through an opened cash register. If activated, all payments of patrons and refunds can be managed by staff members who are authorized to use a cash register only.', 'YesNo')
+    });
+    $dbh->do(q{ CREATE TABLE `cash_register` (
+                `id` int(10) NOT NULL AUTO_INCREMENT,
+                `name` varchar(100) NOT NULL, 
+                `branchcode` varchar(10) NOT NULL default '', 
+                `manager_id` int(11), 
+                `prev_manager_id` int(11), 
+                `modification_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+                 PRIMARY KEY (`id`),
+                 UNIQUE KEY `pseudo_key` (`name`),
+                 CONSTRAINT `cash_register_fk_1` FOREIGN KEY (`manager_id`)
+                   REFERENCES `borrowers` (`borrowernumber`) ON DELETE RESTRICT ON UPDATE CASCADE
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci });
+    $dbh->do(q{ CREATE TABLE `cash_register_manager` (
+                `id` int(10) NOT NULL AUTO_INCREMENT, -- ID of the cash register manager record
+                `cash_register_id` int(11) NOT NULL, -- ID of the cash register (cash_register.id)
+                `manager_id` int(11) NOT NULL, -- the staff member who is allowed to manage the cash register (borrowers.borrowernumber)
+                `modification_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was the entry last time changed 
+                `authorized_by` varchar(11), -- the staff member who authorized the manager to manage the cash register (borrowers.borrowernumber)
+                `opened` BOOLEAN default FALSE, -- this value is used to mark a manager as active for a register if multiple users are authorized to book to a register simultaneously; a staff member can have only one opened cash
+                 PRIMARY KEY (`id`),
+                 UNIQUE KEY `pseudo_key` (`cash_register_id`,`manager_id`),
+                 CONSTRAINT `cash_register_manager_fk_1` FOREIGN KEY (`cash_register_id`)
+                     REFERENCES `cash_register` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+                 CONSTRAINT `cash_register_manager_fk_2` FOREIGN KEY (`manager_id`)
+                     REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci });
+    $dbh->do(q{ CREATE TABLE `cash_register_account` (
+                `id` int(11) NOT NULL AUTO_INCREMENT, -- ID of the cash register account record
+                `cash_register_account_id` int(11) NOT NULL, -- consecutively numbered transaction per cash register; starts for each cash register with 1
+                `cash_register_id` int(10) NOT NULL, -- ID of the cash register (cash_register.id)
+                `manager_id` int(11) NOT NULL, -- the staff member who booked to the cashier (borrowers.borrowernumber)
+                `booking_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was this entry created 
+                `accountlines_id` int(11) default NULL, -- an accountline booking to which this entry relates to (accountlines.accountlines_id)
+                `current_balance` decimal(28,6) NOT NULL, -- current balance of the cashier
+                `action` varchar(20) NOT NULL, -- which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT, ADJUSTMENT, PAYOUT
+                `booking_amount`  decimal(28,6) default NULL, -- booked amount (can be positive or negative)
+                `description` mediumtext, -- explains the transaction
+                 PRIMARY KEY (`id`),
+                 UNIQUE KEY `cash_reg_account_idx_account_id` (`cash_register_account_id`,`cash_register_id`),
+                 KEY `cash_reg_account_idx_id` (`cash_register_id`,`id`),
+                 KEY `cash_reg_account_idx_accountlines` (`accountlines_id`,`cash_register_id`),
+                 KEY `cash_reg_account_idx_manager` (`manager_id`,`cash_register_id`),
+                CONSTRAINT `cash_register_account_fk_1` FOREIGN KEY (`cash_register_id`)
+                  REFERENCES `cash_register` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+                CONSTRAINT `cash_register_account_fk_2` FOREIGN KEY (`accountlines_id`)
+                  REFERENCES `accountlines` (`accountlines_id`)
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci });
+    
+    print "Upgrade to $DBversion done (LMSCloud: add cash registers)\n";
+    SetVersion ($DBversion);
+}
+
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068

@@ -24,6 +24,7 @@ use C4::Context;
 use C4::Stats;
 use C4::Members;
 use C4::Circulation qw(ReturnLostItem);
+use C4::CashRegisterManagement;
 use C4::Log qw(logaction);
 
 use Data::Dumper qw(Dumper);
@@ -95,8 +96,20 @@ sub recordpayment {
     my $branch     = C4::Context->userenv->{'branch'};
     my $amountleft = $data;
     my $manager_id = 0;
+    
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-
+    
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( !$sip_paytype && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
+    }
+    
     $payment_note //= "";
 
     # begin transaction
@@ -154,7 +167,14 @@ sub recordpayment {
 
     my $paytype = "Pay";
     $paytype .= $sip_paytype if defined $sip_paytype;
-    $usth->execute( $borrowernumber, $nextaccntno, 0 - $data, $paytype, 0 - $amountleft, $manager_id, $payment_note );
+    if ( $usth->execute( $borrowernumber, $nextaccntno, 0 - $data, $paytype, 0 - $amountleft, $manager_id, $payment_note ) ) {
+        my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
+        # If it is not SIP it is a cash payment and if cash registers are activated as too,
+        # the cash payment need to registered for the opened cash register as cash receipt
+        if ( !$sip_paytype && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+            $cash_register_mngmt->registerPayment($branch, $manager_id, $data, $lastID);
+        }
+    }
     $usth->finish;
 
     UpdateStats({
@@ -209,6 +229,17 @@ sub makepayment {
     my $manager_id = 0;
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv; 
 
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
+    }
+    
     # begin transaction
     my $nextaccntno = getnextacctno($borrowernumber);
     my $newamtos    = 0;
@@ -226,6 +257,12 @@ sub makepayment {
                 "
             );
         $udp->execute($accountlines_id);
+        
+        # If cash registers are activated, the cash payment need to registered for the 
+        # opened cash register as cash receipt
+        if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $accountlines_id);
+        }
     }else{
         my $udp = 		
             $dbh->prepare(
@@ -246,7 +283,14 @@ sub makepayment {
                     INTO accountlines (borrowernumber, accountno, date, amount, itemnumber, description, accounttype, amountoutstanding, manager_id, note)
                     VALUES ( ?, ?, now(), ?, ?, '', 'Pay', 0, ?, ?)"
             );
-        $ins->execute($borrowernumber, $nextaccntno, $payment, $data->{'itemnumber'}, $manager_id, $payment_note);
+        if ( $ins->execute($borrowernumber, $nextaccntno, $payment, $data->{'itemnumber'}, $manager_id, $payment_note) 
+            && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) 
+        {
+            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
+            # If cash registers are activated, the cash payment need to registered for the 
+            # opened cash register as cash receipt
+            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $lastID);
+        }
     }
 
     if ( C4::Context->preference("FinesLog") ) {
@@ -435,6 +479,18 @@ sub manualinvoice {
     {
         $notifyid = 1;
     }
+    
+    my $branch     = C4::Context->userenv->{'branch'};
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( $type eq 'C' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
+    }
 
     if ( $itemnum ) {
         $desc .= ' ' . $itemnum;
@@ -448,8 +504,14 @@ sub manualinvoice {
             (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding,notify_id, note, manager_id)
             VALUES (?, ?, now(), ?, ?, ?, ?,?,?,?)"
         );
-        $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type,
-            $amountleft, $notifyid, $note, $manager_id );
+        if ( $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type,
+            $amountleft, $notifyid, $note, $manager_id ) && $type eq 'C' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) 
+        {
+            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
+            # If cash registers are activated, the cash payment need to registered for the 
+            # opened cash register as cash receipt
+            $cash_register_mngmt->registerCredit($branch, $manager_id, $amount*(-1), $lastID)
+        }
     }
 
     if ( C4::Context->preference("FinesLog") ) {
@@ -540,6 +602,21 @@ sub ReversePayment {
     my ( $accountlines_id ) = @_;
     my $dbh = C4::Context->dbh;
 
+    my $branch     = C4::Context->userenv->{branch};
+    my $manager_id = 0;
+    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
+
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
+    }
+    
     my $sth = $dbh->prepare('SELECT * FROM accountlines WHERE accountlines_id = ?');
     $sth->execute( $accountlines_id );
     my $row = $sth->fetchrow_hashref();
@@ -547,15 +624,27 @@ sub ReversePayment {
 
     if ( $amount_outstanding <= 0 ) {
         $sth = $dbh->prepare('UPDATE accountlines SET amountoutstanding = amount * -1, description = CONCAT( description, " Reversed -" ) WHERE accountlines_id = ?');
-        $sth->execute( $accountlines_id );
+        if ( $sth->execute( $accountlines_id ) ) {
+            # A payment is reversed. Means for the cash register that the patron gets money back.
+            # If cash registers are activated as too, the cash payment need to registered for the 
+            # opened cash register as cash receipt
+            if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $row->{'accounttype'} eq 'Pay' && $row->{'amount'} != 0.0 ) {
+                $cash_register_mngmt->registerReversePayment($branch, $manager_id, ($row->{'amount'} * -1), $accountlines_id);
+            }
+        }
     } else {
         $sth = $dbh->prepare('UPDATE accountlines SET amountoutstanding = 0, description = CONCAT( description, " Reversed -" ) WHERE accountlines_id = ?');
-        $sth->execute( $accountlines_id );
+        if ( $sth->execute( $accountlines_id ) ) {
+            # A reversed payment is going to be reversed. Means for the cash register that the patron pays money again.
+            # If cash registers are activated as too, the cash payment need to registered for the 
+            # opened cash register as cash receipt
+            if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $row->{'accounttype'} eq 'Pay' && $row->{'amount'} != 0.0 ) {
+                $cash_register_mngmt->registerPayment($branch, $manager_id, ($row->{'amount'} * -1), $accountlines_id);
+            }
+        }
     }
 
     if ( C4::Context->preference("FinesLog") ) {
-        my $manager_id = 0;
-        $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
 
         if ( $amount_outstanding <= 0 ) {
             $row->{'amountoutstanding'} *= -1;
@@ -603,6 +692,18 @@ sub recordpayment_selectaccts {
     my $amountleft = $amount;
     my $manager_id = 0;
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
+
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
+    }
+    
     my $sql = 'SELECT * FROM accountlines WHERE (borrowernumber = ?) ' .
     'AND (amountoutstanding<>0) ';
     if (@{$accts} ) {
@@ -656,7 +757,15 @@ sub recordpayment_selectaccts {
     $sql = 'INSERT INTO accountlines ' .
     '(borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding,manager_id,note) ' .
     q|VALUES (?,?,now(),?,'','Pay',?,?,?)|;
-    $dbh->do($sql,{},$borrowernumber, $nextaccntno, 0 - $amount, 0 - $amountleft, $manager_id, $note );
+    
+    if ( $dbh->do($sql,{},$borrowernumber, $nextaccntno, 0 - $amount, 0 - $amountleft, $manager_id, $note ) ) {
+        # If it is not SIP it is a cash payment and if cash registers are activated as too,
+        # the cash payment need to registered for the opened cash register as cash receipt
+        if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
+            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $lastID);
+        }
+    }
     UpdateStats({
                 branch => $branch,
                 type => 'payment',
@@ -692,6 +801,17 @@ sub makepartialpayment {
     }
     $payment_note //= "";
     my $dbh = C4::Context->dbh;
+    
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
+    }
 
     my $nextaccntno = getnextacctno($borrowernumber);
     my $newamtos    = 0;
@@ -721,8 +841,16 @@ sub makepartialpayment {
     .  'description, accounttype, amountoutstanding, itemnumber, manager_id, note) '
     . ' VALUES (?, ?, now(), ?, ?, ?, 0, ?, ?, ?)';
 
-    $dbh->do(  $insert, undef, $borrowernumber, $nextaccntno, $amount,
-        '', 'Pay', $data->{'itemnumber'}, $manager_id, $payment_note);
+    if ( $dbh->do(  $insert, undef, $borrowernumber, $nextaccntno, $amount,
+        '', 'Pay', $data->{'itemnumber'}, $manager_id, $payment_note) ) 
+    {
+        # If it is not SIP it is a cash payment and if cash registers are activated as too,
+        # the cash payment need to registered for the opened cash register as cash receipt
+        if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
+            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $lastID);
+        }
+    }
 
     UpdateStats({
         branch => $branch,

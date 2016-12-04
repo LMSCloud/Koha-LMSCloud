@@ -43,6 +43,7 @@ use Koha::Holds;
 use C4::Context;
 use CGI::Session;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
+use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Patron;
 use Koha::Patron::Debarments qw(GetDebarments IsDebarred);
 use Koha::DateUtils;
@@ -663,11 +664,16 @@ $template->param( picture => 1 ) if $patron_image;
 
 my $canned_notes = GetAuthorisedValues("BOR_NOTES");
 
+# Check whether the library uses cash registers and if so, that the current staff user
+# has opened the cash for payment actions
+my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
+
 $template->param(
     debt_confirmed            => $debt_confirmed,
     SpecifyDueDate            => $duedatespec_allow,
     CircAutocompl             => C4::Context->preference("CircAutocompl"),
     canned_bor_notes_loop     => $canned_notes,
+    checkCashRegisterFailed   => (! $checkCashRegisterOk),
     debarments                => GetDebarments({ borrowernumber => $borrowernumber }),
     todaysdate                => output_pref( { dt => dt_from_string()->set(hour => 23)->set(minute => 59), dateformat => 'sql' } ),
     modifications             => Koha::Patron::Modifications->GetModifications({ borrowernumber => $borrowernumber }),

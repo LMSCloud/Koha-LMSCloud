@@ -79,6 +79,11 @@
                         <a class="toplinks" href="/cgi-bin/koha/circ/selectbranchprinter.pl">Set library</a>
                     </li>
                     [% END %]
+                    [% IF ( CAN_user_updatecharges_cash_management && ActivateCashRegisterTransactionsOnly ) %]
+                    <li>
+                        <a class="toplinks" href="/cgi-bin/koha/circ/managecashregister.pl">Cash register</a>
+                    </li>
+                    [% END %]
                     [% IF EnableSearchHistory %]
                     <li>
                         <a class="toplinks" href="/cgi-bin/koha/catalogue/search-history.pl">Search history</a>

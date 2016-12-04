@@ -1,0 +1,234 @@
+[% USE Koha %]
+[% USE Branches %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Tools &rsaquo; Cash rgister management</title>
+[% INCLUDE 'doc-head-close.inc' %]
+
+<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% INCLUDE 'datatables.inc' %]
+<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script>
+
+<script type="text/javascript">
+//<![CDATA[
+
+$("#cashregt:has(tbody tr)").dataTable($.extend(true, {}, dataTablesDefaults, {
+        "sDom": 't',
+        "aoColumnDefs": [
+            { "aTargets": [ -1, -2, -3 ], "bSortable": false, "bSearchable": false }
+        ],
+        "bPaginate": false
+}));
+var permittedStaff = new Array;
+[% FOREACH staffmember IN permitted_staff %]
+permittedStaff.push({ borrowernumber: "[% staffmember.borrowernumber %]", name: "[% staffmember.firstname | html %] [% staffmember.surname | html %]"});
+[% END %]
+var enabledStaff = new Array;
+[% FOREACH staffmember IN enabled_staff %]
+enabledStaff.push({ borrowernumber: "[% staffmember.borrowernumber %]", name: "[% staffmember.firstname | html %] [% staffmember.surname | html %]"});
+[% END %]
+
+$(document).ready(function(){
+        $.each( permittedStaff, function( i, l ) {
+                $('#cash_register_staffselect').append( '<option value=' + l.borrowernumber + '>' + l.name + '</option>' );
+        });
+        $.each( enabledStaff, function( i, l ) {
+                $('#cash_register_manager').append( '<option value=' + l.borrowernumber + '>' + l.name + '</option>' );
+        });
+        
+        if ( permittedStaff.length > 0 ) {
+            $("#cash_register_staffselect").val($("#cash_register_staffselect option:first").val());
+        }
+        if ( enabledStaff.length > 0 ) {
+	    $("#cash_register_manager").val($("#cash_register_manager option:first").val());
+	}
+        
+        $('#authorize').click( function(event) {
+                        event.preventDefault();
+                        if ($('#cash_register_staffselect option:selected').length > 0) {
+                            var value= $('#cash_register_staffselect option:selected').val();
+                             $('#cash_register_manager').append( '<option value=' + value
+                                    + '>' + $('#cash_register_staffselect option:selected').text() + '</option>' );
+                            $('#cash_register_staffselect option:selected').remove();
+                            $("#cash_register_staffselect").val($("#cash_register_staffselect option:first").val());
+                            $("#cash_register_manager").val(value);
+                        }
+                });
+        $('#unauthorize').click( function(event) {
+                        event.preventDefault();
+                        if ($('#cash_register_manager option:selected').length > 0) {
+                            var value= $('#cash_register_manager option:selected').val();
+                            $('#cash_register_staffselect').append( '<option value=' + value
+                                    + '>' + $('#cash_register_manager option:selected').text() + '</option>' );
+                            $('#cash_register_manager option:selected').remove();
+                            $("#cash_register_manager").val($("#cash_register_manager option:first").val());
+                            $("#cash_register_staffselect").val(value);
+                        }
+                });
+        $('#savedata').click( function(event) {
+            var arr = $('#cash_register_manager').find("option").map(function() { return this.value; }).get();
+            $("#cash_register_manager_list").val(arr.join());
+        });
+});
+
+//]]>
+</script>
+
+</head>
+<body id="tools_cash_register_management" class="tools">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Cash rgister management</div>
+
+<div id="doc3" class="yui-t2">
+<div id="bd">
+    <div id="yui-main">
+        <div class="yui-b">
+            <div class="yui-gc">
+                <div id="cash-register-configuration">
+                    <h1>
+                        Manage cash registers
+                    </h1>
+                    <div class="help">
+                        <p>Define cash registers and staff members who are authorized to perform cash register transactions.</p>
+                        <p>Staff members need to have the permission 'cash_management' activated to perform cash register transactions. Add the permission allowance if you miss staff members in the selection.</p>
+                    </div><!-- help-->
+                
+                    <div  id="manage-label-layouts">
+                        <p>
+                        <table id="cashregt">
+                           <thead>
+                               <tr>
+                                   <th>Cash register</th>
+                                   <th>Library</th>
+                                   <th>Permitted Staff</th>
+                                   <th>Balance</th>
+                                   <th>Opened By</th>
+                                   <th class="nosort">Actions</th>
+                               </tr>
+                           </thead>
+                           <tbody>
+                               [% FOREACH cashreg IN cash_registers %]
+                               <tr>
+                                   <td>[% cashreg.name %]</td>
+                                   <td>
+                                    [% FOREACH mybranch IN branchloop %]
+                                        [% IF (cashreg.branchcode == mybranch.branchcode) %]
+                                            [% mybranch.branchname %]
+                                        [% END %]
+                                    [% END %]
+                                   </td>
+                                   <td>
+                                        [% FOREACH man IN cashreg.managers %]
+                                            [% IF (loop.index > 0) %]<br />[% END %][% man.firstname %] [% man.surname %]
+                                        [% END %]
+                                   </td>
+                                   <td>[% cashreg.balance %]</td>
+                                   <td>[% cashreg.manager_name %]</td>
+                                   <td class="actions">
+                                       <form method="post" action="/cgi-bin/koha/tools/cash-register-management.pl">
+                                           <input type="hidden" name="cash_register_id" value="[% cashreg.id %]" />
+                                           <input type="hidden" name="op" value="edit" />
+                                           <button class="btn btn-mini"><i class="fa fa-clone"></i> Edit</button>
+                                       </form>
+                                   </td>
+                               </tr>
+                               [% END %]
+                           </tbody>
+                        </table>
+                        </p>
+                        <p>
+                        <div>
+                            <form id="new" name="new" action="/cgi-bin/koha/tools/cash-register-management.pl">
+                                <input type="hidden" name="op" value="new" />
+                                <button class="btn btn-small" submit=""><i class="fa fa-plus"></i> New cash register</button>
+                            </form>
+                        </div>
+                        </p>
+                        [% IF (action == 'edit') %]
+                        <p>
+                        <form name="input" action="/cgi-bin/koha/tools/cash-register-management.pl?op=save" method="post">
+                            <fieldset class="rows">
+                                <legend>[% IF ( cash_register_id ) %]Edit[% ELSE %]New[% END %] cash register settings</legend>
+                                <ol>
+                                    <!-- name -->
+                                    <li>
+                                        <input type="hidden" name="cash_register_id" value="[% cash_register_id %]"></input>
+                                        <label for="cash_register_name">Cash register name: </label>
+                                        <input type="text" name="cash_register_name" id="cash_register_name" size="20" maxlength="100" value="[% cash_register_name %]" required="true" />
+                                    </li>
+                                    
+                                    <!-- branch -->
+                                    <li>
+                                        <label for="cash_register_branchcode">Library: </label>
+                                        <select name="cash_register_branchcode" id="cash_register_branchcode">
+                                            [% FOREACH branchloo IN branchloop %]
+                                                [% IF (cash_register_branchcode == branchloo.branchcode) %]
+                                                <option value="[% branchloo.branchcode %]" selected="selected">[% branchloo.branchname %]</option>
+                                                [% ELSE %]
+                                                <option value="[% branchloo.branchcode %]">[% branchloo.branchname %]</option>
+                                                [% END %]
+                                            [% END %]
+                                        </select>
+                                    </li>
+                                    
+                                    <!-- permitted staff -->
+                                    <li>
+                                        <label for="cash_register_manager">Authorized cash register manager: </label>
+                                        <table style="clear: none">
+                                            <tr>
+                                                <td style="width:15em">Authorized staff members:</td>
+                                                <td></td>
+                                                <td style="width:15em">Staff:</td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <input type="hidden" id="cash_register_manager_list" name="cash_register_manager_list" value="[% cash_register_id %]"></input>
+                                                    <select name="cash_register_manager" id="cash_register_manager" size="10" style="width:15em">
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <button name="authorize" id="authorize"><i class="fa fa-arrow-left" aria-hidden="true"></i></button><br />
+                                                    <button name="unauthorize" id="unauthorize"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+                                                </td>
+                                                <td>
+                                                    <select name="cash_register_staffselect" id="cash_register_staffselect" size="10" style="width:15em">
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                        </table> 
+                                    </li>
+                                    
+                                    [% IF ( cash_register_id ) %]
+                                    <!-- open by -->
+                                    <li>
+                                        <label for="created_by_name">Currently opened by: </label>
+                                        <input type="text" name="created_by_name" minsize="40" value="[% cash_register_creted_by %]" readonly="true" />
+                                    </li>
+                                    <!-- current -->
+                                    <li>
+                                        <label for="balance">Account balance: </label>
+                                        <input type="text" name="balance" size="10" value="[% cash_register_balance %]" readonly="true" />
+                                    </li>
+                                    [% END %]
+                                    <!-- name -->
+                                    <li>
+                                        <label>&nbsp;</label>
+                                        <button class="btn btn-small" name="op" value="save" id="savedata" type="submit"> Save</button>
+                                        <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl">Cancel</a>
+                                    </li>
+                                </ol>
+                            </fieldset>
+                        </form>
+                        <p>
+                        [% END %]
+                    </div>
+                </div>
+            </div>
+        </div><!-- yui-b -->
+    </div><!-- yui-main -->
+    <div class="yui-b noprint">
+        [% INCLUDE 'tools-menu.inc' %]
+    </div>
+</div><!-- bd -->
+[% INCLUDE 'intranet-bottom.inc' %]

@@ -69,6 +69,11 @@
     <dt><a href="/cgi-bin/koha/tools/picture-upload.pl">Upload patron images</a></dt>
 	<dd>Upload patron images in a batch or one at a time</dd>
     [% END %]
+    
+    [% IF ( CAN_user_tools_cash_register_manage ) %]
+    <dt><a href="/cgi-bin/koha/tools/cash-register-management.pl">Cash register management</a></dt>
+	<dd>Manage cash registers (define cash registers and authorized staff)</dd>
+    [% END %]
 	</dl>
 </div>
 <div class="yui-u">

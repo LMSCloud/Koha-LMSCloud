@@ -41,6 +41,7 @@ use C4::Koha;
 use C4::Overdues;
 use C4::Branch;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
+use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Patron::Images;
 
 our $input = CGI->new;
@@ -70,14 +71,16 @@ $user ||= q{};
 
 our $branch = C4::Context->userenv->{'branch'};
 
+my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
+
 my $writeoff_item = $input->param('confirm_writeoff');
 my $paycollect    = $input->param('paycollect');
-if ($paycollect) {
+if ($paycollect && $checkCashRegisterOk ) {
     print $input->redirect(
         "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber");
 }
 my $payselected = $input->param('payselected');
-if ($payselected) {
+if ($payselected && $checkCashRegisterOk) {
     payselected(@names);
 }
 
@@ -105,6 +108,7 @@ for (@names) {
 
 $template->param(
     finesview => 1,
+    checkCashRegisterFailed => (! $checkCashRegisterOk),
     activeBorrowerRelationship => (C4::Context->preference('borrowerRelationship') ne ''),
     RoutingSerials => C4::Context->preference('RoutingSerials'),
 );

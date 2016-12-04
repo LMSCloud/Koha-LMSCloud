@@ -34,12 +34,15 @@ use C4::Branch;
 use C4::Accounts;
 use C4::Items;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
+use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Patron::Images;
 
 my $input=new CGI;
 my $flagsrequired = { borrowers => 1, updatecharges => 1 };
 
 my $borrowernumber=$input->param('borrowernumber');
+
+
 
 #get borrower details
 my $data=GetMember('borrowernumber' => $borrowernumber);
@@ -72,6 +75,9 @@ if ($add){
             debug           => 1,
         }
     );
+    
+    my $branch = C4::Context->userenv->{'branch'};
+    my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 					  
     if ( $data->{'category_type'} eq 'C') {
         my  ( $catcodes, $labels ) =  GetborCatFromCatType( 'A', 'WHERE category_type = ?' );
@@ -102,6 +108,7 @@ if ($add){
         is_child       => ($data->{'category_type'} eq 'C'),
         activeBorrowerRelationship => (C4::Context->preference('borrowerRelationship') ne ''),
         RoutingSerials => C4::Context->preference('RoutingSerials'),
+        checkCashRegisterFailed => (! $checkCashRegisterOk)
         );
     output_html_with_http_headers $input, $cookie, $template->output;
 }

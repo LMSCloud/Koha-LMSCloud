@@ -2775,3 +2775,41 @@ div[class$="_table_controls"] {
 #default-claiming-rules input[type="number"] {
    max-width:65px;
 }
+
+div.cashregisterinfo {
+	margin-top : -.5em;
+}
+
+*html div.cashregisterinfo {
+	margin-right : .5em;
+}
+
+div.cashregisterinfo h5 {
+    border-right:1px solid #b9d8d9;
+	margin-bottom : 0;
+	padding-left : -.5em;
+	padding-top : .3em;
+	padding-bottom : .5em;
+	font-size: large;
+}
+
+div.cashregisterinfo h5:empty {
+    border-right: none;
+}
+
+div.cashregisterinfo ul {
+	border : 0;
+    border-right:1px solid #b9d8d9;
+	border-bottom : 0;
+	border-top : 0;
+	padding : 0;
+	margin : 0;
+}
+
+div.cashregisterinfo ul li {
+	margin : 0;
+}
+
+.cashregisterimportantinfo {
+	font-weight : bold;
+}

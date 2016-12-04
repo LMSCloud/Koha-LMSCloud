@@ -10,7 +10,9 @@ function enableCheckboxActions(){
     // Enable/disable controls if checkboxes are checked
     var checkedBoxes = $("input.cb:checked");
     if ($(checkedBoxes).size()) {
+      [% IF (! checkCashRegisterFailed) %] 
       $("#payselected").prop("disabled",false);
+      [% END %]
     } else {
       $("#payselected").prop("disabled",true);
     }
@@ -100,7 +102,11 @@ function enableCheckboxActions(){
     </td>
     <td>
     [% IF ( line.amountoutstanding > 0 ) %]
-        <input type="submit" name="pay_indiv_[% line.accountlines_id %]" value="Pay" />
+        [% IF (checkCashRegisterFailed) %] 
+            <input type="submit" name="pay_indiv_[% line.accountlines_id %]" value="Pay" disabled="disabled" />
+        [% ELSE %]
+            <input type="submit" name="pay_indiv_[% line.accountlines_id %]" value="Pay" />
+        [% END %]
         [% IF CAN_user_updatecharges_writeoff %]<input type="submit" name="wo_indiv_[% line.accountlines_id %]" value="Write off" />[% END %]
     [% END %]
     <input type="hidden" name="itemnumber[% line.accountlines_id %]" value="[% line.itemnumber %]" />
@@ -167,17 +173,30 @@ function enableCheckboxActions(){
 </tbody>
 </table>
 <fieldset class="action">
-<input type="submit" id="paycollect" name="paycollect"  value="Pay amount" class="submit" />
+[% IF (checkCashRegisterFailed) %] 
+    <input type="submit" id="paycollect" name="paycollect"  value="Pay amount" class="submit" disabled="disabled" />
+[% ELSE %]
+    <input type="submit" id="paycollect" name="paycollect"  value="Pay amount" class="submit" />
+[% END %]
 [% IF CAN_user_updatecharges_writeoff %]<input type="submit" name="woall"  id="woall" value="Write off all" class="submit" />[% END %]
-<input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" />
+[% IF (checkCashRegisterFailed) %] 
+    <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" disabled="disabled" />
+[% ELSE %]
+    <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" />
+[% END %]
 <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a>
 </fieldset>
 </form>
 [% ELSE %]
     <p>[% borrower.firstname %] [% borrower.surname %] has no outstanding fines.</p>
 [% END %]
-</div></div>
-
+[% IF (checkCashRegisterFailed) %] 
+<div class="warn"><i class="fa fa-warning"></i> 
+Please open a cash register to enable cash payments. 
+</div>
+[% END %]
+</div>
+</div>
 </div>
 </div>
 <div class="yui-b">

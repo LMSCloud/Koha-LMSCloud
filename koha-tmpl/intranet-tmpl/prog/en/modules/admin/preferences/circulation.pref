@@ -683,6 +683,12 @@ Circulation:
               choices:
                   always: "any time a hold is placed."
                   not_always: "only if all items are checked out and the record has at least one hold already."
+        -
+            - pref: ActivateCashRegisterTransactionsOnly
+              choices:
+                  yes: "Use cash registers."
+                  no: "Don't use cash registers."
+            - "By activating cash registers, all cash transactions must be treated through an opened cash register. If activated, all payments of patrons and refunds can be managed by staff members who are authorized to use a cash register only."
     Self Checkout:
         -
             - "Include the following JavaScript on all pages in the web-based self checkout:"

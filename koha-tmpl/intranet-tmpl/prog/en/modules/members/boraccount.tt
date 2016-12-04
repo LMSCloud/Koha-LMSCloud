@@ -121,7 +121,11 @@ $(document).ready(function() {
         [% END %]
         [% IF ( reverse_col) %]
           [% IF ( account.payment ) %]
-            <a href="boraccount.pl?action=reverse&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-mini"><i class="fa fa-undo"></i> Reverse</a>
+            [% IF (checkCashRegisterFailed) %]
+              <a href="javascript:void(0)" class="btn btn-mini" disabled="disabled"><i class="fa fa-undo"></i> Reverse</a>
+            [% ELSE %]
+              <a href="boraccount.pl?action=reverse&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-mini"><i class="fa fa-undo"></i> Reverse</a>
+            [% END %]
           [% ELSE %]
             &nbsp;
           [% END %]
@@ -142,6 +146,11 @@ $(document).ready(function() {
   </tr>
   </tfoot>
 </table>
+[% IF (checkCashRegisterFailed) %] 
+<div class="warn"><i class="fa fa-warning"></i> 
+Please open a cash register to reverse payments. 
+</div>
+[% END %]
 </div></div>
 
 </div>

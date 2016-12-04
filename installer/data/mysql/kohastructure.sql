@@ -3831,6 +3831,84 @@ CREATE TABLE `notice_fee_rules` (
    UNIQUE KEY `pseudo_key` (`branchcode`,`categorycode`,`message_transport_type`,`letter_code`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+--
+-- Table cash_register
+--
+
+-- The table cash_register defines cash registers that can be used in the library. If cash registers
+-- are enabled, all cash payments are registered. It's possible to define one ore more cash registers
+-- for a (branch) library and assign user that can use a cash register.
+
+DROP TABLE IF EXISTS `cash_register`;
+CREATE TABLE `cash_register` (
+  `id` int(10) NOT NULL AUTO_INCREMENT, -- ID of the cash register
+  `name` varchar(100) NOT NULL, -- name of the cash register
+  `branchcode` varchar(10) NOT NULL default '', -- the branch, in which teh cash register is used (branches.branchcode)
+  `manager_id` int(11), -- the staff member who currently manages the cash register (borrowers.borrowernumber)
+  `prev_manager_id` int(11), -- who was the previous manager of the cash register (borrowers.borrowernumber)
+  `modification_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was the entry last time changed 
+   PRIMARY KEY (`id`),
+   UNIQUE KEY `pseudo_key` (`name`),
+   CONSTRAINT `cash_register_fk_1` FOREIGN KEY (`manager_id`)
+       REFERENCES `borrowers` (`borrowernumber`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Table cash_register_manager
+--
+
+-- The table cash_register_manager is used to assign staff members to cash registers.
+-- Staff assigned to registers can open, close, pay to and pay out of a cash register.
+
+DROP TABLE IF EXISTS `cash_register_manager`;
+CREATE TABLE `cash_register_manager` (
+  `id` int(10) NOT NULL AUTO_INCREMENT, -- ID of the cash register manager record
+  `cash_register_id` int(11) NOT NULL, -- ID of the cash register (cash_register.id)
+  `manager_id` int(11) NOT NULL, -- the staff member who is allowed to manage the cash register (borrowers.borrowernumber)
+  `modification_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was the entry last time changed 
+  `authorized_by` varchar(11), -- the staff member who authorized the manager to manage the cash register (borrowers.borrowernumber)
+  `opened` BOOLEAN default FALSE, -- this value is used to mark a manager as active for a register if multiple users are authorized to book to a register simultaneously; a staff member can have only one opened cash
+   PRIMARY KEY (`id`),
+   UNIQUE KEY `pseudo_key` (`cash_register_id`,`manager_id`),
+   CONSTRAINT `cash_register_manager_fk_1` FOREIGN KEY (`cash_register_id`)
+       REFERENCES `cash_register` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+   CONSTRAINT `cash_register_manager_fk_2` FOREIGN KEY (`manager_id`)
+       REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Table cash_register_account
+--
+
+-- The table cash_register_account stores all cash register transactions. 
+-- Actions are open and close the cash register, pay in, pay out, and adjust the
+-- the cash register balance.
+-- Payment actions (except pay outs) and refunds link typically to the accountline
+-- bookings.
+
+DROP TABLE IF EXISTS `cash_register_account`;
+CREATE TABLE `cash_register_account` (
+  `id` int(11) NOT NULL AUTO_INCREMENT, -- ID of the cash register account record
+  `cash_register_account_id` int(11) NOT NULL, -- consecutively numbered transaction per cash register; starts for each cash register with 1
+  `cash_register_id` int(10) NOT NULL, -- ID of the cash register (cash_register.id)
+  `manager_id` int(11) NOT NULL, -- the staff member who booked to the cashier (borrowers.borrowernumber)
+  `booking_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was this entry created 
+  `accountlines_id` int(11) default NULL, -- an accountline booking to which this entry relates to (accountlines.accountlines_id)
+  `current_balance` decimal(28,6) NOT NULL, -- current balance of the cashier
+  `action` varchar(20) NOT NULL, -- which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT, ADJUSTMENT, PAYOUT
+  `booking_amount`  decimal(28,6) default NULL, -- booked amount (can be positive or negative)
+  `description` mediumtext, -- explains the transaction
+   PRIMARY KEY (`id`),
+   UNIQUE KEY `cash_reg_account_idx_account_id` (`cash_register_account_id`,`cash_register_id`),
+   KEY `cash_reg_account_idx_id` (`cash_register_id`,`id`),
+   KEY `cash_reg_account_idx_accountlines` (`accountlines_id`,`cash_register_id`),
+   KEY `cash_reg_account_idx_manager` (`manager_id`,`cash_register_id`),
+  CONSTRAINT `cash_register_account_fk_1` FOREIGN KEY (`cash_register_id`)
+    REFERENCES `cash_register` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `cash_register_account_fk_2` FOREIGN KEY (`accountlines_id`)
+    REFERENCES `accountlines` (`accountlines_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

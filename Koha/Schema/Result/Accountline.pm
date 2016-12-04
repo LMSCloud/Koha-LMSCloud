@@ -200,6 +200,21 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
+=head2 cash_register_accounts
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CashRegisterAccount>
+
+=cut
+
+__PACKAGE__->has_many(
+  "cash_register_accounts",
+  "Koha::Schema::Result::CashRegisterAccount",
+  { "foreign.accountlines_id" => "self.accountlines_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 itemnumber
 
 Type: belongs_to
@@ -221,8 +236,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-01-26 17:18:34
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:RCQohhphtg+0+RszpB4wLg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-23 14:35:30
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:19QoI6wQrExC7epawamahQ
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

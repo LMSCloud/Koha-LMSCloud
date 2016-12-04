@@ -82,6 +82,8 @@
     [%- CASE 'stage_marc_import' -%]<span>Stage MARC records into the reservoir</span>
     [%- CASE 'upload_local_cover_images' -%]<span>Upload local cover images</span>
     [%- CASE 'view_system_logs' -%]<span>Browse the system logs</span>
+    [%- CASE 'cash_management' -%]<span>Manage a cash register</span>
+    [%- CASE 'cash_register_manage' -%]<span>Define cash registers and cashiers</span>
     [%- CASE 'check_expiration' -%]<span>Check the expiration of a serial</span>
     [%- CASE 'claim_serials' -%]<span>Claim missing serials</span>
     [%- CASE 'create_subscription' -%]<span>Create a new subscription</span>

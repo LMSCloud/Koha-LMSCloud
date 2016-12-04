@@ -32,6 +32,7 @@ use C4::Members;
 use C4::Branch;
 use C4::Accounts;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
+use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Patron::Images;
 
 my $input=new CGI;
@@ -55,7 +56,10 @@ my $action = $input->param('action') || '';
 #get borrower details
 my $data=GetMember('borrowernumber' => $borrowernumber);
 
-if ( $action eq 'reverse' ) {
+my $branch = C4::Context->userenv->{'branch'};
+my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
+
+if ( $action eq 'reverse' && $checkCashRegisterOk ) {
   ReversePayment( $input->param('accountlines_id') );
 }
 
@@ -116,6 +120,7 @@ $template->param(
     is_child            => ($data->{'category_type'} eq 'C'),
     reverse_col         => $reverse_col,
     accounts            => $accts,
+    checkCashRegisterFailed => (! $checkCashRegisterOk),
     activeBorrowerRelationship => (C4::Context->preference('borrowerRelationship') ne ''),
     RoutingSerials => C4::Context->preference('RoutingSerials'),
 );

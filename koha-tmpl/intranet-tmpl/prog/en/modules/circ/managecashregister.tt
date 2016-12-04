@@ -1,0 +1,396 @@
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Circulation &rsaquo; Cash register management</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% INCLUDE 'calendar.inc' %]
+<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% INCLUDE 'datatables.inc' %]
+<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script>
+
+<script type="text/javascript">
+//<![CDATA[
+$(document).ready( function() {
+    $("#cashregjournal").dataTable($.extend(true, {}, dataTablesDefaults, {
+        'pagingType': 'full_numbers',
+        'bAutoWidth': true,
+        'sPaginationType': 'full_numbers',
+        'aoColumnDefs': [
+            { "bSortable": true, "bSearchable": true, 'aTargets': ["_all"] },
+            { "aTargets": [ 0 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+            { "aTargets": [ 1,6 ], "asSorting": [ "asc","desc" ]  }
+        ],
+        "aoColumns": [ { "sType": 'natural' }, null, null , null, null, null, null, null],
+        "iDisplayLength": 100,
+        "iDisplayStart": 0,
+        "order": [[ 0, "desc" ]],
+        'bSort' : true,
+        "bPaginate": false,
+        'serverSide': false,
+        'oLanguage': {
+            'sZeroRecords': _("No cash register transactions during the selected period.")
+        }
+    }));
+    
+    $('#cash_payment').on("keyup change", function() {
+        var amount = parseFloat($('#cash_payment').val()).toFixed(2);
+        var maxval =  parseFloat($('#cash_balance_val').val()).toFixed(2);
+        if(isNaN(amount) || !isFinite(amount) ){
+            $('#cash_payment').val(parseFloat(0.00).toFixed(2));
+            $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
+        }
+        else if ( (maxval - amount) < 0.00 ) {
+             $('#cash_payment').val(parseFloat(maxval).toFixed(2));
+             $('#new_balance').val(parseFloat(0.00).toFixed(2));
+        }
+        else {
+            $('#new_balance').val(parseFloat(maxval - amount).toFixed(2));
+        }
+    });
+    
+
+    $('#cash_adjustment').on("keyup change", function() {
+        var val = $('#cash_adjustment').val();
+        var amount = parseFloat($('#cash_adjustment').val()).toFixed(2);
+        if ( val == '' || val == '-' ) {
+            return;
+        }
+        var maxval =  parseFloat($('#cash_balance_val').val()).toFixed(2);
+        if(isNaN(amount) || !isFinite(amount) ){
+            $('#cash_adjustment').val(parseFloat(0.00).toFixed(2));
+            $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
+            return;
+        }
+        amount *= -1;
+        if ( maxval >= 0.00 && (maxval - amount) < 0.00) {
+             $('#cash_adjustment').val(parseFloat(maxval*-1).toFixed(2));
+             $('#new_balance').val(parseFloat(0.00).toFixed(2));
+        }
+        else if (maxval < 0.00 && amount > 0.00) {
+            $('#cash_adjustment').val(parseFloat(0.00).toFixed(2));
+            $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
+        }
+        else {
+            $('#new_balance').val(parseFloat(maxval - amount).toFixed(2));
+        }
+    });
+});
+</script>
+
+<style type="text/css">
+    #closecashregister .cash-amount, #payoutcashregister .cash-amount, #adjustcashregister .cash-amount {
+        text-align: right;
+    }
+</style>
+</head>
+<body id="circ_managecashregister" class="circ">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'circ-search.inc' %]
+
+<div id="breadcrumbs">
+         <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+&rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+&rsaquo; <a href="/cgi-bin/koha/circ/managecashregister.pl">Cash register management</a> [% IF status == 'manage' %]
+&rsaquo; Open cash register: [% cashreg.cash_register_name %][% END %]
+</div>
+
+[% BLOCK cashActionName %][% SWITCH cashaction %]
+[% CASE 'OPEN' %]Cash register opened
+[% CASE 'PAYMENT' %]Patron payment
+[% CASE 'PAYOUT' %]Cash payment
+[% CASE 'REVERSE_PAYMENT' %]Reverse payment (patron)
+[% CASE 'ADJUSTMENT' %]Difference posting
+[% CASE 'CREDIT' %]Patron credit
+[% CASE 'CLOSE' %]Cash register closed
+[% END %][% END %]
+
+<div id="doc3" class="yui-t1">
+    <div id="bd">
+        <div id="yui-main">
+            <div class="yui-b">
+                <div class="yui-gc">
+                    <div id="cash-register-configuration">
+                        <h1>
+                            Cash register management
+                        </h1>
+                        
+                        [% IF status == 'no' %]
+                        <div class="help">
+                           <p>There is no cash register you have access to.</p>
+                        </div><!-- help-->
+                        [% END %]
+                        
+                        [% IF status == 'close' %]
+                        [% IF wrongBranch %]
+                        <div class="help">
+                           <p>You opened the cash register of another branch. Cash transaction of the currently selected library cannot be booked using that cash register.</p>
+                           <p>Close the cash rgister if you want to manage a cash transactions of the current branch.</p>
+                        </div><!-- help-->
+                        [% END %]
+                        <div id="toolbar" class="btn-toolbar">
+                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa a-times"></i> Close</a>
+                        </div>
+                        [% END %]
+                        
+                        [% IF status == 'open' %]
+                        <div class="help">
+                           <p>Please select a cash register to open.</p>
+                        </div><!-- help-->
+                        <form name="select" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
+                            <select name="cash_register_id" id="cash_register_id">
+                                [% FOREACH cashreg IN cash_registers %]
+                                [% IF ( cashreg.cash_register_branchcode != sessionbranch ) %]
+                                <option value="[% cashreg.cash_register_id %]" disabled="disabled">[% cashreg.cash_register_name %]</option>
+                                [% ELSE %]
+                                <option value="[% cashreg.cash_register_id %]">[% cashreg.cash_register_name %]</option>
+                                [% END %]
+                                [% END %]
+                            </select>
+                            <input type="hidden" name="op" value="open" />
+                            &nbsp;&nbsp;<button class="btn btn-small" submit=""><i class="fa fa-money"></i> Open</button>
+                        </form>
+                        [% END %]
+                        
+                        [% IF status == 'manage' %]
+                            <div id="toolbar" class="btn-toolbar">
+                                <a id="linkclosecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa a-times"></i> Close</a>
+                                <a id="linkpayoutcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dopayout"><i class="fa a-times"></i> Cash payment</a>
+                                <a id="linkadjustcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa a-times"></i> Difference posting</a>
+                                <a id="linkshowcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa a-times"></i> Cash journal</a>
+                            </div>
+                            [% IF manageaction == 'payout' %]
+                                <h3>Cash payment</h3>
+                                <form name="payoutcashregister" id="payoutcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
+                                <input type="hidden" name="op" value="payout">
+                                <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
+                                <fieldset class="rows">
+                                    <legend>Define cash payment amount</legend>
+                                    <ol>
+                                        <li>
+                                            <label for="opening_booking_time">Cash register opened on:</label>
+                                            <input type="text" name="opening_booking_time" id="opening_booking_time" size="20" value="[% cash_register_info.opening_booking_time %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="opening_balance">Carry-over:</label>
+                                            <input type="text" class="cash-amount" name="opening_balance" id="opening_balance" size="10" value="[% cash_register_info.opening_balance_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="inpayments_amount">Cash receipts: </label>
+                                            <input type="text" class="cash-amount"name="inpayments_amount" id="inpayments_amount" size="10" value="[% cash_register_info.inpayments_amount_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="payouts_amount">Cash payments: </label>
+                                            <input type="text" class="cash-amount" name="payouts_amount" id="payouts_amount" size="10" value="[% cash_register_info.payouts_amount_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="cash_balance_val">Cash balance: </label>
+                                            <input type="text" class="cash-amount" name="cash_balance" id="cash_balance" size="10" value="[% cash_register_info.current_balance_formatted %]" disabled="disabled" />
+                                            <input type="hidden" name="cash_balance_val" id="cash_balance_val" value="[% cash_register_info.current_balance%]" />
+                                        </li>
+                                        <li>
+                                            <hr />
+                                        </li>
+                                        <li>
+                                            <label for="cash_payment">New cash payment: </label>
+                                            <input type="number" class="cash-amount" name="cash_payment" id="cash_payment" size="10" value="" step="0.01" min="0.00" max="[% cash_register_info.current_balance %]" value="[% cash_payment %]" />
+                                        </li>
+                                        <li>
+                                            <label for="new_balance">New balance: </label>
+                                            <input type="number" class="cash-amount" name="new_balance" id="new_balance" size="10" step="0.01" min="0.00" max="[% cash_register_info.current_balance %]" value="[% cash_register_info.current_balance %]" disabled="disabled"  />
+                                        </li>
+                                        <li>
+                                            <label for="description">Comment: </label>
+                                            <input type="text" name="description" id="description" size="50" maxlength="100000" value="[% description %]" />
+                                        </li>
+                                    </ol>
+                                </fieldset>
+                                <fieldset class="action">
+                                    <input type="submit" value="Payout"></input>
+                                    <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
+                                </fieldset>
+                                </form>
+                            [% ELSIF manageaction == 'adjust' %]
+                                <h3>Difference posting</h3>
+                                <form name="adjustcashregister" id="adjustcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
+                                <input type="hidden" name="op" value="adjust">
+                                <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
+                                <fieldset class="rows">
+                                    <legend>Define difference posting amount</legend>
+                                    <ol>
+                                        <li>
+                                            <label for="opening_booking_time">Cash register opened on:</label>
+                                            <input type="text" name="opening_booking_time" id="opening_booking_time" size="20" value="[% cash_register_info.opening_booking_time %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="opening_balance">Carry-over:</label>
+                                            <input type="text" class="cash-amount" name="opening_balance" id="opening_balance" size="10" value="[% cash_register_info.opening_balance_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="inpayments_amount">Cash receipts: </label>
+                                            <input type="text" class="cash-amount"name="inpayments_amount" id="inpayments_amount" size="10" value="[% cash_register_info.inpayments_amount_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="payouts_amount">Cash payments: </label>
+                                            <input type="text" class="cash-amount" name="payouts_amount" id="payouts_amount" size="10" value="[% cash_register_info.payouts_amount_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="cash_balance_val">Cash balance: </label>
+                                            <input type="text" class="cash-amount" name="cash_balance" id="cash_balance" size="10" value="[% cash_register_info.current_balance_formatted %]" disabled="disabled" />
+                                            <input type="hidden" name="cash_balance_val" id="cash_balance_val" value="[% cash_register_info.current_balance%]" />
+                                        </li>
+                                        <li>
+                                            <hr />
+                                        </li>
+                                        <li>
+                                            <label for="cash_payment">Adjustment amount: </label>
+                                            <input type="number" class="cash-amount" name="cash_adjustment" id="cash_adjustment" size="10" value="" step="0.01" min="0.00" max="99999999.99" value="[% cash_adjustment %]" />
+                                        </li>
+                                        <li>
+                                            <label for="new_balance">New balance: </label>
+                                            <input type="number" class="cash-amount" name="new_balance" id="new_balance" size="10" step="0.01" min="0.00" max="[% IF cash_register_info.current_balance > 0 %][% 0 - cash_register_info.current_balance %][% ELSE %]0.00[% END %]" value="[% cash_register_info.current_balance %]" disabled="disabled"  />
+                                        </li>
+                                        <li>
+                                            <label for="description">Comment: </label>
+                                            <input type="text" name="description" id="description" size="50" maxlength="100000" value="[% description %]" />
+                                        </li>
+                                    </ol>
+                                </fieldset>
+                                <fieldset class="action">
+                                    <input type="submit" value="Adjust"></input>
+                                    <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
+                                </fieldset>
+                                </form>
+                            [% ELSIF manageaction == 'close' %]
+                                <h3>Cash payment</h3>
+                                <form name="closecashregister" id="closecashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
+                                <input type="hidden" name="op" value="close">
+                                <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
+                                <fieldset class="rows">
+                                    <legend>Define cash payment amount</legend>
+                                    <ol>
+                                        <li>
+                                            <label for="opening_booking_time">Cash register opened on:</label>
+                                            <input type="text" name="opening_booking_time" id="opening_booking_time" size="20" value="[% cash_register_info.opening_booking_time %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="opening_balance">Carry-over:</label>
+                                            <input type="text" class="cash-amount" name="opening_balance" id="opening_balance" size="10" value="[% cash_register_info.opening_balance_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="inpayments_amount">Cash receipts: </label>
+                                            <input type="text" class="cash-amount"name="inpayments_amount" id="inpayments_amount" size="10" value="[% cash_register_info.inpayments_amount_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <label for="payouts_amount">Cash payments: </label>
+                                            <input type="text" class="cash-amount" name="payouts_amount" id="payouts_amount" size="10" value="[% cash_register_info.payouts_amount_formatted %]" disabled="disabled" />
+                                        </li>
+                                        <li>
+                                            <hr />
+                                        </li>
+                                        <li>
+                                            <label for="cash_balance_val">Cash balance: </label>
+                                            <input type="text" class="cash-amount" name="cash_balance" id="cash_balance" size="10" value="[% cash_register_info.current_balance_formatted %]" disabled="disabled" />
+                                            <input type="hidden" name="cash_balance_val" id="cash_balance_val" value="[% cash_register_info.current_balance%]" />
+                                        </li>
+                                        <li>
+                                            <label>&nbsp;</label>
+                                            <div class="warn"><i class="fa fa-warning"></i> 
+                                                Please make sure the displayed cash balance matches the amount of cash of your cash register exactly.
+                                            </div>
+                                        </li>
+                                    </ol>
+                                </fieldset>
+                                <fieldset class="action">
+                                    <input type="submit" value="Confirm closing"></input>
+                                    <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
+                                </fieldset>
+                                </form>
+                            [% ELSIF manageaction == 'journal' %]
+                                <form name="input" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
+                                    <input type="hidden" name="op" value="" />
+                                    <fieldset class="rows" style="float: unset">
+                                        <ol>
+                                            <li>
+                                                Journal from <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
+                                                to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
+                                                <button type="submit" name="allFromOpening" value="0">Select</button>
+                                            </li>
+                                            <li>
+                                                All transactions since previous cash register opening <button type="submit" name="allFromOpening" value="1">List</button>
+                                            </li>
+                                        </ol>
+                                                                        
+                                    </fieldset>
+                                </form>
+                                <h3>Cash register journal</h3>
+                                <div>
+                                    <table id="cashregjournal">
+                                        <thead>
+                                            <tr>
+                                                <th>Journal number</th>
+                                                <th>Transaction</th>
+                                                <th>Amount</th>
+                                                <th>Cash balance</th>
+                                                <th>Date and Time</th>
+                                                <th>Patron</th>
+                                                <th>Cash register manager</th>
+                                                <th>Comment</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            [% FOREACH trans IN transactions %]
+                                            [% cashaction = trans.action %]
+                                            <tr>
+                                                <td style="text-align:right;">[% trans.cash_register_account_id %]</td>
+                                                <td>[% INCLUDE cashActionName %]</td>
+                                                <td style="text-align:right;">[% trans.booking_amount_formatted %]</td>
+                                                <td style="text-align:right;">[% trans.current_balance_formatted %]</td>
+                                                <td>[% trans.booking_time %]</td>
+                                                <td>[% trans.patron_name %]</td>
+                                                <td>[% trans.manager_name %]</td>
+                                                <td>[% contentbefore = 0 %]
+                                                    [% IF (trans.description) %][% trans.description %][% contentbefore = 1 %][% END%]
+                                                    [% IF (trans.accountlines_note) %][% IF (contentbefore == 1) %]<br />[% END%]Charge description: [% trans.accountlines_note %][% contentbefore = 1 %][% END%]
+                                                    [% IF (trans.accountlines_description) %][% IF (contentbefore == 1) %]<br />[% END%]Charge note: [% trans.accountlines_description %][% contentbefore = 1 %][% END%]
+                                                    [% IF (trans.title) %][% IF contentbefore == 1 %]<b r/>[% END%]Title: [% trans.title %][% contentbefore = 1 %][% END%]
+                                                </td>
+                                            </tr>
+                                            [% END %]
+                                        </tbody>
+                                    </table>
+                                </div>
+                            [% END %]
+                        [% END %]
+                        [% debug %]
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- sidebar -->
+        <div class="yui-b">
+            [% IF ( status == 'manage' || status == 'close' ) %]
+            <div class="cashregisterinfo">
+                <h5>[% cash_register.cash_register_name %]</h5>
+                <ul>
+                    [% FOREACH lbranch IN branchloop %]
+                    [% IF (lbranch.branchcode == cash_register.cash_register_branchcode) %]
+                    <li class="cashregisterinfo">Library: [% lbranch.branchname %]</li>
+                    [% END %]
+                    [% END %]
+                    <li class="cashregisterimportantinfo">Cash balance: [% cash_register.cash_register_balance_formatted %]</li>
+                    <li class="cashregisterinfo">Opened on: [% cash_register_info.opening_booking_time %]</li>
+                    <li class="cashregisterinfo">Cash receipts: [% cash_register_info.inpayments_amount_formatted %]</li>
+                    <li class="cahsregisterinfo">Cash payments: [% cash_register_info.payouts_amount_formatted %]</li>
+                [% IF ( lastTransaction ) %]
+                    <li>&nbsp;</li>
+                    <li><span class="hint">Last transaction</span></li>
+                    [% cashaction = lastTransaction.action %]
+                    <li class="cashregisterinfo">Action: [% INCLUDE cashActionName %]</li>
+                    <li class="cashregisterinfo">Amount: [% lastTransaction.booking_amount_formatted %]</li>
+                    <li class="cashregisterinfo">Time: [% lastTransaction.booking_time %]</li>
+                [% END %]
+                </ul>
+            </div>
+            [% END %]
+        </div>
+    </div>
+</div>
+[% INCLUDE 'intranet-bottom.inc' %]

@@ -51,6 +51,7 @@ use C4::Branch; # GetBranchName
 use C4::Form::MessagingPreferences;
 use List::MoreUtils qw/uniq/;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
+use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Patron::Debarments qw(GetDebarments IsDebarred);
 use Koha::Patron::Images;
 use Module::Load;
@@ -317,6 +318,10 @@ if (C4::Context->preference('EnhancedMessagingPreferences')) {
     $template->param(TalkingTechItivaPhone => C4::Context->preference("TalkingTechItivaPhoneNotification"));
 }
 
+# Check whether the library uses cash registers and if so, that the current staff user
+# has opened the cash for payment actions
+my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
+
 # in template <TMPL_IF name="I"> => instutitional (A for Adult, C for children) 
 $template->param( $data->{'categorycode'} => 1 ); 
 $template->param(
@@ -344,6 +349,7 @@ $template->param(
     PatronsPerPage => C4::Context->preference("PatronsPerPage") || 20,
     relatives_issues_count => $relatives_issues_count,
     relatives_borrowernumbers => \@relatives,
+    checkCashRegisterFailed   => (! $checkCashRegisterOk)
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;
