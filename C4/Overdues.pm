@@ -1012,6 +1012,7 @@ sub parse_overdues_letter {
     $currency_format = $active_currency->currency if defined($active_currency);
 
     my @item_tables;
+    my $fines_sum = 0.0;
     if ( my $i = $params->{'items'} ) {
         my $item_format = '';
         foreach my $item (@$i) {
@@ -1020,6 +1021,7 @@ sub parse_overdues_letter {
                 $params->{'letter'}->{'content'} =~ m/(<item>.*<\/item>)/;
                 $item_format = $1;
             }
+            $fines_sum += $fine;
 
             $item->{'fine'} = currency_format($currency_format, "$fine", FMT_SYMBOL);
             # if active currency isn't correct ISO code fallback to sprintf
@@ -1033,6 +1035,8 @@ sub parse_overdues_letter {
             };
         }
     }
+    $substitute->{fines} = currency_format($currency_format, "$fines_sum", FMT_SYMBOL);
+    $substitute->{fines} = sprintf('%.2f', $fines_sum) unless $substitute->{fines};
 
     return C4::Letters::GetPreparedLetter (
         module => 'circulation',
