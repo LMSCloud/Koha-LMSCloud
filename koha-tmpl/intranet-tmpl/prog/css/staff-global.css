@@ -2808,6 +2808,7 @@ div.cashregisterinfo ul {
 
 div.cashregisterinfo ul li {
 	margin : 0;
+	list-style: none;
 }
 
 .cashregisterimportantinfo {

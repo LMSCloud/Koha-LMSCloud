@@ -92,7 +92,7 @@ elsif ( scalar(@cash_registers)==0 ) {
 # Check, whether there are open cash registers of the user
 #
 ##########################################################
-my $op = $query->param('op');
+my $op = $query->param('op') || '';
 my $cash_register_id = $query->param('cash_register_id');
 my $lastTransaction = undef;
 
@@ -224,4 +224,4 @@ $template->param(
 
 output_html_with_http_headers $query, $cookie, $template->output;
 
-exit 1;
+exit 0;

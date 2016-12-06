@@ -134,6 +134,11 @@ sub loadRegisterManagerData {
     my %borrowers = ();
     
     while (my $row = $sth->fetchrow_hashref) {
+        if ( $row->{firstname} ) {
+            $row->{fullname} = $row->{firstname} . ' ' . $row->{surname};
+        } else {
+            $row->{fullname} = $row->{surname};
+        }
         $borrowers{$row->{'borrowernumber'}} = $row;
     }
     $self->{managers}=\%borrowers;
@@ -351,17 +356,13 @@ sub loadCashRegister {
     if ( $cash_register ) {
         if ( $cash_register->manager_id() ) {
             if ( exists( $self->{managers}->{$cash_register->manager_id()} ) ) {
-                $cash_register_manager = 
-                        $self->{managers}->{$cash_register->manager_id()}->{firstname} . " " . 
-                        $self->{managers}->{$cash_register->manager_id()}->{surname};
+                $cash_register_manager = $self->{managers}->{$cash_register->manager_id()}->{fullname};
             }
         }
 
         if ( $cash_register->prev_manager_id() ) {
             if ( exists( $self->{managers}->{$cash_register->prev_manager_id()} )  ) {
-                $cash_register_prev_manager = 
-                        $self->{managers}->{$cash_register->prev_manager_id()}->{firstname} . " " . 
-                        $self->{managers}->{$cash_register->prev_manager_id()}->{surname};
+                $cash_register_prev_manager = $self->{managers}->{$cash_register->prev_manager_id()}->{fullname};
             }
         }
         
@@ -416,16 +417,14 @@ sub getAllCashRegisters {
         if ( $cashreg->manager_id() ) {
             if ( exists( $self->{managers}->{$cashreg->manager_id()} ) ) {
                 $cash_register_manager = 
-                        $self->{managers}->{$cashreg->manager_id()}->{firstname} . " " . 
-                        $self->{managers}->{$cashreg->manager_id()}->{surname};
+                        $self->{managers}->{$cashreg->manager_id()}->{fullname};
             }
         }
         
         if ( $cashreg->prev_manager_id() ) {
             if ( exists( $self->{managers}->{$cashreg->prev_manager_id()} )  ) {
                 $cash_register_prev_manager = 
-                        $self->{managers}->{$cashreg->prev_manager_id()}->{firstname} . " " . 
-                        $self->{managers}->{$cashreg->prev_manager_id()}->{surname};
+                        $self->{managers}->{$cashreg->prev_manager_id()}->{fullname};
             }
         }
         
@@ -719,7 +718,7 @@ sub getLastBooking {
     my $query = q{
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
                 a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description,
-                CONCAT(b.firstname, ' ', b.surname) as manager_name
+                CONCAT(IFNULL(b.firstname,''), ' ', b.surname) as manager_name
         FROM cash_register_account a, borrowers b
         WHERE id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.cash_register_id = b.cash_register_id) 
               AND a.manager_id = b.borrowernumber
@@ -826,8 +825,8 @@ sub getBookingsSinceLastOpening {
     my $query = q{
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
                 a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description,
-                CONCAT(b.firstname, ' ', b.surname) as manager_name,
-                CONCAT(o.firstname, ' ', o.surname) as patron_name,
+                CONCAT(IFNULL(b.firstname, ''), IF(b.firstname IS NULL, '', ' '), b.surname) as manager_name,
+                CONCAT(IFNULL(o.firstname, ''), IF(o.firstname IS NULL, '', ' '), o.surname) as patron_name,
                 l.accounttype, l.note as accountlines_note, 
                 l.description as accountlines_description,
                 m.title as title
@@ -882,8 +881,8 @@ sub getLastBookingsFromTo {
     my $query = q{
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
                 a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description,
-                CONCAT(b.firstname, ' ', b.surname) as manager_name,
-                CONCAT(o.firstname, ' ', o.surname) as patron_name,
+                CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL, '', ' '), b.surname) as manager_name,
+                CONCAT(IFNULL(o.firstname,''), IF(o.firstname IS NULL, '', ' '), o.surname) as patron_name,
                 l.accounttype, l.note as accountlines_note, 
                 l.description as accountlines_description,
                 m.title as title

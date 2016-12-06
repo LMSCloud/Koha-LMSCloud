@@ -241,11 +241,11 @@ $(document).ready( function() {
                                         </li>
                                         <li>
                                             <label for="cash_payment">Adjustment amount: </label>
-                                            <input type="number" class="cash-amount" name="cash_adjustment" id="cash_adjustment" size="10" value="" step="0.01" min="0.00" max="99999999.99" value="[% cash_adjustment %]" />
+                                            <input type="number" class="cash-amount" name="cash_adjustment" id="cash_adjustment" size="10" value="" step="0.01" min="[% IF cash_register_info.current_balance > 0 %][% 0 - cash_register_info.current_balance %][% ELSE %]0.00[% END %]" max="99999999.99" value="[% cash_adjustment %]" />
                                         </li>
                                         <li>
                                             <label for="new_balance">New balance: </label>
-                                            <input type="number" class="cash-amount" name="new_balance" id="new_balance" size="10" step="0.01" min="0.00" max="[% IF cash_register_info.current_balance > 0 %][% 0 - cash_register_info.current_balance %][% ELSE %]0.00[% END %]" value="[% cash_register_info.current_balance %]" disabled="disabled"  />
+                                            <input type="number" class="cash-amount" name="new_balance" id="new_balance" size="10" step="0.01" value="[% cash_register_info.current_balance %]" disabled="disabled"  />
                                         </li>
                                         <li>
                                             <label for="description">Comment: </label>
