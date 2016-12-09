@@ -823,9 +823,19 @@ sub _parseletter {
 
     }
 
-    if ($letter->{content} && $letter->{content} =~ /<<today>>/) {
-        my $todaysdate = output_pref( DateTime->now() );
-        $letter->{content} =~ s/<<today>>/$todaysdate/go;
+    if ($letter->{content}) {
+        $letter->{content} =~ s/<<today>>/
+            my $todaysdate = output_pref( DateTime->now() );
+        /eg;
+        $letter->{content} =~ s/<<date\.today>>/
+            my $todaysdate = output_pref( { dt => DateTime->now(), dateonly => 1 } );
+        /eg;
+        $letter->{content} =~ s/<<date\.today([+-])([0-9]+)>>/
+            my $dt = DateTime->now();
+            $dt->add(days => $2) if ($1 eq '+');
+            $dt->subtract(days => $2) if ($1 eq '-');
+            my $todaysdate = output_pref( { dt => $dt, dateonly => 1 });
+        /eg;
     }
 
     while ( my ($field, $val) = each %$values ) {
