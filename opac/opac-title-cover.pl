@@ -167,7 +167,7 @@ if ( @bibids > 0 ) {
 		
             my $coverurl = '';
             foreach my $field ( $Koharecord->field('856') ) {
-                if ( $field->subfield('q') ne '' && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ne '' ) {
+                if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
                     $coverurl = $field->subfield('u'); last;
                 }
             }
