@@ -105,5 +105,7 @@
     [%- CASE 'delete_public_lists' -%]<span>Delete public lists</span>
     [%- CASE 'upload_general_files' -%]<span>Upload any file</span>
     [%- CASE 'upload_manage' -%]<span>Manage uploaded files (<i>Useless without upload_general_files</i>)</span>
+    [%- CASE 'download_batchprint_files' -%]<span>Download batch print files</span>
+    [%- CASE 'run_batch_programs' -%]<span>Run batch programs</span>
     [%- END -%]
 [%- END -%]

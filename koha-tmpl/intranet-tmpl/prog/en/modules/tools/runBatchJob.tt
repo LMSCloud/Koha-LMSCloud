@@ -1,0 +1,498 @@
+[% USE Koha %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Tools &rsaquo; Run batch jobs</title>
+[% INCLUDE 'doc-head-close.inc' %]
+<script type="text/javascript">
+//<![CDATA[
+
+function start(func) {
+    document.getElementById('jobcmd').value = func;
+    document.runJob.submit();
+}
+
+$(document).ready(function() {
+        $("#delete_patrons_not_borrowed_since").datepicker( 
+            { 
+                autoclose: true, 
+                maxDate: -1 ,
+                showOn: "both",
+                changeMonth: true,
+                changeYear: true,
+                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+                buttonImageOnly: true,
+                showButtonPanel: true,
+                showOtherMonths: true,
+                selectOtherMonths: true
+            });
+        $("#delete_patrons_expired_before").datepicker( 
+            { 
+                autoclose: true, 
+                maxDate: -1 ,
+                showOn: "both",
+                changeMonth: true,
+                changeYear: true,
+                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+                buttonImageOnly: true,
+                showButtonPanel: true,
+                showOtherMonths: true,
+                selectOtherMonths: true
+            });
+        $("#overdue_notices_senddate").datepicker( 
+            { 
+                autoclose: true, 
+                maxDate: +100 ,
+                minDate: 0,
+                showOn: "both",
+                changeMonth: true,
+                changeYear: true,
+                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+                buttonImageOnly: true,
+                showButtonPanel: true,
+                showOtherMonths: true,
+                selectOtherMonths: true
+            });
+});
+//]]>
+</script>
+
+</head>
+<body id="tools_runbatchjob" class="tools">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Run batch jobs</div>
+
+<div id="doc3" class="yui-t2">
+    <div id="bd">
+        <div id="yui-main">
+            <div class="yui-b">
+            
+                <h1>Start von Batch-Programmen</h1>
+                <div class="help">
+                   <p>Diese Funktion bietet die M&ouml;glichkeit, Batch-Programme ad-hoc zu starten.</p>
+                   <p>Um ein Programm zu starten, wählen Sie bitte benötigte Parameter aus.</p>
+                   <p>Bitte starten Sie nur solche Programme, deren Funktionsweise Sie genau kennen.</p>
+                </div>
+                [% IF ( pid ) %]
+                <div>
+                   <h3 for="process_output">Ausgabe des Programmes</h3>
+                   <form name="jobProgress" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
+                       <p>
+                       [% IF ( status == 'launched' ) %]
+                           Das Programm wurde gestartet.
+                       [% ELSIF ( status == 'running' ) %]
+                           Das Programm läuft.
+                       [% ELSIF ( status == 'completed' ) %]
+                           Das Programm ist beendet.
+                       [% END %] 
+                       </p>
+                       <input type="hidden" name="op" value="progress" />
+                       <input type="hidden" name="cmd" value="" />
+                       <p>
+                           <div style="border:1px solid black;height:200px;width:100%;overflow-y:scroll;overflow-x:scroll;padding: 5px">
+                               <pre>[% outfilecontent | html %]</pre>
+                           </div>
+                       </p>
+                       [% IF ( status != 'completed' ) %]
+                       <p>
+                       <input type="hidden" name="filenamepart" value="[% filenamepart | html %]" />
+                       <button type="submit" name="action">Aktualisieren</button>
+                       </p>
+                       [% END %] 
+                   </form>
+                </div>
+                [% END %]
+                <h3 for="process_output">Verfügbare Batch-Programme</h3>
+                <form name="runJob" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
+                    <input type="hidden" name="op" value="run" />
+                    <input type="hidden" id="jobcmd" name="cmd" value="" />
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Programm</th>
+                                <th>Beschreibung</th>
+                                <th>Parameter</th>
+                                <th>Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tr>
+                                <th>Voraberinnerungen</th>
+                                <td>
+                                    <p>Bereite Voraberinnerungen an Leser zur Rückgabe der ausgeliehenen Titel vor. </p>
+                                    
+                                    <p>Die Voraberinnerungen werden als zu versendende Nachrichten für die Ausgabe vorbereitet und 
+                                       mit dem nächsten Lauf der Programme zum Emailversand bzw. Druckaufbereitung versendet.</p>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td>Anzahl Tage im Voraus</td>
+                                            <td><input type="number" min="0" max="10" step="1" name="advance_notices_maxdays" id="advance_notices_maxdays" value="1"></input></td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('advance_notices')"></button></td>
+                            </tr>
+
+                            <tr>
+                                <th>Voraberinnerungen vor Ablauf des Benutzerkontos</th>
+                                <td>
+                                    Mit dem Programm werden Voraberinnerungen vor Ablauf des Benutzerkontos erzeugt. Damit können Benutzer
+                                    an die Fälligkeit der Jahresgebühr erinnert werden.
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td><label for="membership_expiry_branch">Zweigstelle</label></td>
+                                            <td>
+                                                <select id="membership_expiry_branch" name="membership_expiry_branch">
+                                                    <option value="" selected="selected">Alle</option>
+                                                    [% FOREACH branchloo IN branches %]
+                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="membership_expiry_before">Anzahl Tage vor Ende der Gültigkeitsdauer</label></td>
+                                            <td>
+                                                <input type="number" min="0" max="365" step="1" name="embership_expiry_before" id="embership_expiry_before" />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="membership_expiry_after">Anzahl Tage nach Ende der Gültigkeitsdauer</label></td>
+                                            <td>
+                                                <input type="number" min="0" max="365" step="1" name="embership_expiry_after" id="embership_expiry_after" />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="membership_expiry_branch">Benachrichtigungsformular</label></td>
+                                            <td>
+                                                <select id="membership_expiry_form" name="membership_expiry_form">
+                                                    <option value="" selected="selected">Standard</option>
+                                                    [% FOREACH letterloo IN membershipReminderLetters %]
+                                                        <option value="[% letterloo.name %]">[% letterloo.name %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('membership_expiry')"></button></td>
+                            </tr>
+
+                            <tr>
+                                <th>Mahnungen/Benachrichtigung für überfällige Medien</th>
+                                <td>
+                                    <p>Das Programm erzeugt Mahnungen/Benachrichtigungen für überfällige Medien. Dabei werden ebenfalls
+                                       Gebühren für Mahnungen und Benachrichtigungen berechnet, falls dies konfiguriert wurde.</p>
+                                    <p>Die Benachrichtigungen werden in die Benachrichtigungstabelle eingetragen aber noch nicht versandt.</p>
+                                    <p>Das Programm behandelt überfällige Medien bis zu einer maximalen Anzahl von Tagen der Überfälligkeit. 
+                                    Darüber hinaus überfällige Medien müssen gesondert behandelt werden. Standartwert ist 90 Tage.</p>
+                                    <p>Überlicherweise werden Benachrichtigungen für überfällige Medien per Email oder Post versandt.</p>
+                                    <p>Benachrichtigungen an Benutzer, für die Email konfiguriert ist, aber keine Email-Adresse angegeben wurde,
+                                       werden im Ausgabeformat ausgegeben, das mit dem Parameter Ausgabeformat eingestellt werden kann.</p>
+                                    <p>Standardmäßig erzeugt das Programm Email- bzw. Druckbenachrichtigungen wie bei den Mahntriggern konfiguriert.
+                                       Daneben unterstützt das Programm eine Option, die Benachrichtigungen nicht zu versenden, sondern in eine
+                                       Datei im Format HTML-, CSV- oder TEXT-Format auszugeben.</p>
+                                    <p>Zusätzlich kann der Programmlauf auf überfällige Medien ausgewählter Benutzergruppen eingeschränkt werden.</p>
+                                    <p>Sehr wichtig ist der Parameter exaktes Mahndatum. Ist der Paramter ausgewählt, werden nur Medien gemahnt, die
+                                       bei denen das Datum des Programmlaufs einem in den Mahntriggern konfiguriertes Fälligkeitsdatum entsprecht.
+                                       Wird der Paramater nicht aktiviert werden Medien gemahnt, die eine bei den Mahntriggern angegebene Frist
+                                       überschreiten, ohne dass es exakt auf das Datum treffen muss. Letzeres kann dazu führen dass Mahngebühren
+                                       für eine Mahnstufe bei jedem Programmlauf neu berechnet werden.</p>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td><label for="overdue_notices_branch">Zweigstelle</label></td>
+                                            <td>
+                                                <select id="overdue_notices_branch" name="overdue_notices_branch">
+                                                    <option value="" selected="selected">Alle</option>
+                                                    [% FOREACH branchloo IN branches %]
+                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="overdue_notices_nomail">Kein Versand der Nachrichten per Email</label></td>
+                                            <td>
+                                                <label><input type="checkbox" name="overdue_notices_nomail" value="yes"> versende keine Benachrichtigungen per Email, sondern gib dies im auszuwählenden Ausgabeformat aus</label>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="overdue_notices_output_format">Ausgabeformat für Benachrichtigungen an Benutzer ohne Email bzw. wenn kein Versand aktiviert ist</label></td>
+                                            <td>
+                                                <select id="overdue_notices_output_format" name="overdue_notices_output_format">
+                                                    <option value="html">HTML-Format</option>
+                                                    <option value="csv">CSV-Format</option>
+                                                    <option value="text">Text-Format</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="overdue_notices_max_days">Maximale Überfälligkeit in Tagen</label></td>
+                                            <td>
+                                                <input type="number" min="1" max="9999" step="1" name="overdue_notices_max_days" id="overdue_notices_max_days" value="90" />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="overdue_notices_groups">Auswahl Benutzergruppen</label></td>
+                                            <td>
+                                                <select id="overdue_notices_groups" name="overdue_notices_groups" size="5" multiple="multiple">
+                                                    <option value="---all---" selected="selected">Alle</option>
+                                                    [% FOREACH categoryloo IN categories %]
+                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="overdue_notices_listall">Liste alle ausgeliehenen Medien eines Benutzer in der Benachrichtigung auf</label></td>
+                                            <td>
+                                                <label><input type="checkbox" name="overdue_notices_listall" id="overdue_notices_listall" value="yes"> nicht nur überfällige sondern alle ausgeliehenen Medien auflisten</label>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="overdue_notices_triggered">Exaktes Mahndatum für überfällige Medien entsprechende Mahnstufe</label></td>
+                                            <td>
+                                                <label><input type="checkbox" name="overdue_notices_triggered" id="overdue_notices_triggered" value="yes"> Mahne nur, wenn das Fälligkeitsdatum + die in der Mahnstufe angegebene Mahnfrist mit dem heutigen Datum übereinstimmt </label>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="overdue_notices_senddate">Führe das Progamm für folgendes Kalenderdatum aus</label></td>
+                                            <td><input type="text" size="13" id="overdue_notices_senddate" name="overdue_notices_senddate" value="" readonly="readonly" /></td>
+                                        </tr>
+                                        
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('overdue_notices')"></button></td>
+                            </tr>
+                            
+                            <tr>
+                                <th>Berechnen von Säumnisgebühren entsprechend der Ausleihkonditionen</th>
+                                <td>
+                                    <p>Wenn der Systemparameter 'finesMode' so eingestellt ist, dass Gebühren berechnet werden, so
+                                       erfolgt mit dem Start dieses Programms die tatsächliche Berechnung und Belastung des
+                                       Benutzerkontos.</p>
+                                </td>
+                                <td>
+                                
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('fines')"></button></td>
+                            </tr>
+                            
+                            
+                            <tr>
+                                <th>Starte Email-Nachrichtenversand</th>
+                                <td>
+                                    <p>Mit dem Script werden die vorbereiteten Email- und SMS-Nachrichten versandt.</p>
+                                </td>
+                                <td>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('process_message_queue')"></button></td>
+                            </tr>
+                            
+                            
+                            <tr>
+                                <th>Druck vorbereiteter Drucknachrichten</th>
+                                <td>
+                                    <p>Mit dem Kommando werden die vorbereiteten Nachrichten mit dem Ausgabetyp Druck ausgegeben.
+                                       Die Ausgabe erfolgt entweder im ODS, CSV oder HTML format.</p>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td><label for="gather_print_notices_output_form">Ausgabeformat</label></td>
+                                            <td>
+                                                <select id="gather_print_notices_output_form" name="gather_print_notices_output_form">
+                                                    <option value="html">HTML-Format</option>
+                                                    <option value="ods">ODS-Format</option>
+                                                    <option value="csv">CSV-Format</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="gather_print_notices_output_split">Trennung nach Zweigstelle</label></td>
+                                            <td>
+                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_split_no">Eine Datei </label><input type="radio" name="gather_print_notices_output_split" id="gather_print_notices_output_split_no" value="no" checked="checked" /></div>
+                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_split_yes">Getrennt nach Zweigstelle </label><input type="radio" name="gather_print_notices_output_split" id="gather_print_notices_output_split_yes" value="yes" /></div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="gather_print_notices_output_sent">Versandtkennzeichen</label></td>
+                                            <td>
+                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_sent_yes">Markiere Nachrichten als versandt </label><input type="radio" name="gather_print_notices_output_sent" id="gather_print_notices_output_sent_yes" value="yes" checked="checked" /></div>
+                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_split_no">Belasse Nachrichten mit Status vorbereitet </label><input type="radio" name="gather_print_notices_output_sent" id="gather_print_notices_output_split_no" value="no" /></div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="gather_print_notices_letter_code">Auswahl Briefcode</label></td>
+                                            <td>
+                                                <select name="gather_print_notices_letter_code" id="gather_print_notices_letter_code">
+                                                    <option value="">Alle</option>
+                                                    [% FOREACH lettertypeloo IN printlettercodes %]
+                                                        <option value="[% lettertypeloo.lettercode %]">[% lettertypeloo.lettercode %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="gather_print_notices_email">Sende Drucke an folgende Email-Adresse</label></td>
+                                            <td>
+                                                <input type="email" size="50" name="gather_print_notices_email" id="gather_print_notices_email" />
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('gather_print_notices')"></button></td>
+                            </tr>
+
+
+                            </tr>
+                                <th>Löschen des Ausleihverlaufs</th>
+                                <td>
+                                    <p>Koha speichert die Ausleihhistorie der Benutzer. Die Historie kann mit diesem Program gelöscht werden.</p>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td>Lösche der Ausleihverlauf älter als (in Tagen)</td>
+                                            <td><input type="number" min="0" max="10000" step="1" name="batch_anonymise_days" id="batch_anonymise_days" value="365"></input></td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('batch_anonymise')"></button></td>
+                            </tr>
+                            
+                            
+                            </tr>
+                                <th>Benutzer löschen wegen Inaktivität</th>
+                                <td>
+                                    <p>Das Programm löscht Benutzer wegen Inaktivität auf Basis der selektierten Parameter.</p>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td><label for="delete_patrons_branch">Zweigstelle</label></td>
+                                            <td>
+                                                <select id="delete_patrons_branch" name="delete_patrons_branch">
+                                                    <option value="" selected="selected">Alle</option>
+                                                    [% FOREACH branchloo IN branches %]
+                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="delete_patrons_categorycode">Benutzergruppe</label></td>
+                                            <td>
+                                                <select name="delete_patrons_categorycode" id="delete_patrons_categorycode">
+                                                    <option value="">Alle</option>
+                                                    [% FOREACH categoryloo IN categories %]
+                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="delete_patrons_not_borrowed_since">Keine Ausleihen seit</label></td>
+                                            <td><input type="text" size="13" id="delete_patrons_not_borrowed_since" name="delete_patrons_not_borrowed_since" value="" readonly="readonly" /></td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="delete_patrons_expired_before">Benutzerkonto abgelaufen vor dem</label></td>
+                                            <td><input type="text" size="13" id="delete_patrons_expired_before" name="delete_patrons_expired_before" value="" readonly="readonly" /></td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('delete_patrons')"></button></td>
+                            </tr>
+                            
+                            
+                            <tr>
+                                <th>Benutzergruppenwechsel</th>
+                                <td>
+                                    <p>Das Programm führt einen Benutzergruppenwechsel für Benutzer der ausgewählten Benutzergruppe durch, 
+                                       die das in der Konfiguration der Benutzergruppe angegebene Höchstalter erreicht bzw. überschritten haben.
+                                       Die so ermittelten Benutzer werden in der ausgewählte Zielbenutzergruppe gewechselt.</p>
+                                    p> Mit einer zusätzlichen Option werden die betroffenen Benutzer nur ermittelt und ausgegeben, der Wechsel aber
+                                       nicht durchgeführt.</p>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td><label for="juv2adult_branch">Zweigstelle</label></td>
+                                            <td>
+                                                <select id="juv2adult_branch" name="juv2adult_branch">
+                                                    <option value="" selected="selected">Alle</option>
+                                                    [% FOREACH branchloo IN branches %]
+                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="juv2adult_from">Von Benutzergruppe</label></td>
+                                            <td>
+                                                <select id="juv2adult_from" name="juv2adult_from">
+                                                    [% FOREACH categoryloo IN categories %]
+                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="juv2adult_to">Nach Benutzergruppe</label></td>
+                                            <td>
+                                                <select id="juv2adult_to" name="juv2adult_to">
+                                                    [% FOREACH categoryloo IN categories %]
+                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                    [% END %]
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><label for="juv2adult_simulate">Nur Anzeige</label></td>
+                                            <td>
+                                                <label><input type="checkbox" name="juv2adult_simulate" value="yes"> führe keinen Wechsel durch</label>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('juv2adult')"></button></td>
+                            </tr>
+                            
+                            <tr>
+                                <th>Erinnerung zur Bearbeitung Anschaffungsvorschläge</th>
+                                <td>
+                                    <p>Mit dem Skript werden Besitzer eines Budgets daran erinnert, noch nicht bearbeitete
+                                       Anschaffungsvorschläge zu bearbeiten.</p>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <td><label for="notice_unprocessed_suggestions_days">Anzahl Tage seit der letzten Bearbeitung</label></td>
+                                            <td>
+                                                <input type="number" min="1" max="9999" step="1" name="notice_unprocessed_suggestions_days" id="notice_unprocessed_suggestions_days" />
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td><input type="button" value="Starten" onclick="start('notice_unprocessed_suggestions')"></button></td>
+                            </tr>
+                            
+                            
+                        </tbody>
+                    </table>
+                
+                </form>
+            
+            </div><!-- yui-b -->
+        </div><!-- yui-main -->
+        <div class="yui-b noprint">
+            [% INCLUDE 'tools-menu.inc' %]
+        </div>
+    </div><!-- bd -->
+[% INCLUDE 'intranet-bottom.inc' %]

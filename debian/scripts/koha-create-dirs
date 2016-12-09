@@ -51,6 +51,8 @@ do
     userdir "$name" "/var/lib/koha/$name/biblios/register"
     userdir "$name" "/var/lib/koha/$name/biblios/shadow"
     userdir "$name" "/var/lib/koha/$name/biblios/tmp"
+    userdir "$name" "/var/lib/koha/$name/output-downloads"
+    userdir "$name" "/var/lib/koha/$name/output-downloads/batchprint"
     userdir "$name" "/var/lib/koha/$name/plugins"
     userdir "$name" "/var/lib/koha/$name/uploads"
     userdir "$name" "/var/lock/koha/$name"

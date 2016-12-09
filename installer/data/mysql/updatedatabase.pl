@@ -12937,6 +12937,15 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
+$DBversion = "16.05.05.006";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    
+    $dbh->do(q{ INSERT IGNORE INTO permissions (module_bit, code, description) VALUES (13, 'download_batchprint_files', 'Download batch print files') });
+    $dbh->do(q{ INSERT IGNORE INTO permissions (module_bit, code, description) VALUES (13, 'run_batch_programs', 'Run batch programs') });
+    
+    print "Upgrade to $DBversion done (LMSCloud: add permissions for running batch programs and file download.)\n";
+    SetVersion($DBversion);
+}
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068

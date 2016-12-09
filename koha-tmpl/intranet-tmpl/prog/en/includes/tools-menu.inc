@@ -131,4 +131,10 @@
     [% IF ( CAN_user_tools_upload_general_files ) %]
        <li><a href="/cgi-bin/koha/tools/upload.pl">Upload any file</a></li>
     [% END %]
+    [% IF ( CAN_user_tools_run_batch_programs ) %]
+       <li><a href="/cgi-bin/koha/tools/runBatchJob.pl">Run batch programs</a></li>
+    [% END %]
+    [% IF ( CAN_user_tools_download_batchprint_files ) %]
+       <li><a href="/cgi-bin/koha/tools/download-files.pl">Download batch print files</a></li>
+    [% END %]
 </ul></div></div>

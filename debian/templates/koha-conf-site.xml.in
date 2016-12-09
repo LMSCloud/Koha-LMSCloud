@@ -265,6 +265,7 @@ __END_SRU_PUBLICSERVER__
  <opacdir>/usr/share/koha/opac/cgi-bin/opac</opacdir>
  <opachtdocs>/usr/share/koha/opac/htdocs/opac-tmpl</opachtdocs>
  <opaccustomdocs>/var/lib/koha/__KOHASITE__/opac-tmpl-custom</opaccustomdocs>
+ <outputdownloaddir>/var/lib/koha/__KOHASITE__/output-downloads</outputdownloaddir>
  <intrahtdocs>/usr/share/koha/intranet/htdocs/intranet-tmpl</intrahtdocs>
  <includes>/usr/share/koha/intranet/htdocs/intranet-tmpl/prog/en/includes/</includes>
  <logdir>__LOG_DIR__</logdir>
