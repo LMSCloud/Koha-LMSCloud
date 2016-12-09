@@ -33,6 +33,8 @@ use URI::Escape;
 use C4::Context;
 use C4::Templates;
 
+use utf8;
+
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 BEGIN {
@@ -281,6 +283,7 @@ sub output_with_http_headers {
 # We need to fix the encoding as it comes out of the database, or when we pass the variables to templates
 
     $data =~ s/\&amp\;amp\; /\&amp\; /g;
+    binmode(STDOUT, ":utf8");
     print $query->header($options), $data;
 }
 
