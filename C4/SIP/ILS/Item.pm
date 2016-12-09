@@ -87,6 +87,10 @@ sub new {
     $item->{permanent_location}= $item->{homebranch};
     $item->{'collection_code'} = $item->{ccode};
     $item->{  'call_number'  } = $item->{itemcallnumber};
+    
+    # replace non-sorting characters
+    $item->{title} =~ s/\x{0098}//g;
+    $item->{title} =~ s/\x{009c}//g;
 
     my $it = C4::Context->preference('item-level_itypes') ? $item->{itype} : $item->{itemtype};
     my $itemtype = Koha::Database->new()->schema()->resultset('Itemtype')->find( $it );

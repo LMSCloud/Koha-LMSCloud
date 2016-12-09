@@ -119,6 +119,7 @@ sub do_checkout {
         if ($self->{fee_ack} eq 'N' ) {
             $noerror = 0;
         }
+        $self->screen_msg("Please confirm issuing charges!");
     }
 	unless ($noerror) {
 		$debug and warn "cannot issue: " . Dumper($issuingimpossible) . "\n" . Dumper($needsconfirmation);

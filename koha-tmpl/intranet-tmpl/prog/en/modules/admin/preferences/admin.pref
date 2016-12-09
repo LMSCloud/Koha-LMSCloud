@@ -418,3 +418,11 @@ Administration:
                 Zebra: Zebra
                 Elasticsearch: Elasticsearch
             - is the search engine used.
+    SIP Server:
+        -
+            - pref: SIPVendorDialect
+              default: ""
+              choices:
+                  ""          : "Don't activate"
+                  "EasyCheck" : "Use EasyCheck"
+            -  vendor specific protocol enhancements of the SIP2 server.

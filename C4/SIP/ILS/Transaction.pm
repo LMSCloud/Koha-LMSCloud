@@ -10,6 +10,7 @@ use warnings;
 use C4::Context;
 use C4::Circulation qw( GetItemIssue );
 use Koha::DateUtils;
+use Koha::Acquisition::Currencies;
 
 my %fields = (
 	ok            => 0,
@@ -20,7 +21,7 @@ my %fields = (
 	transaction_id=> undef,
 	sip_fee_type  => '01', # Other/Unknown
 	fee_amount    => undef,
-	sip_currency  => 'USD', # FIXME: why hardcoded?
+	sip_currency  => 'USD', # default is USD, the currency will initialized from the active ACQ currency if defined
 	screen_msg    => '',
 	print_line    => '',
     fee_ack       => 'N',
@@ -30,6 +31,10 @@ our $AUTOLOAD;
 
 sub new {
 	my $class = shift;
+	my $active_currency = Koha::Acquisition::Currencies->get_active;
+        if ( $active_currency && $active_currency->currency =~ /^\w{3}$/ ) {
+            $fields{sip_currency} = $active_currency->currency;
+        }
 	my $self = {
 		_permitted => \%fields,
 		%fields,

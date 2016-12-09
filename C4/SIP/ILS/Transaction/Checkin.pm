@@ -15,6 +15,7 @@ use C4::Circulation;
 use C4::Reserves qw( ModReserveAffect );
 use C4::Items qw( ModItemTransfer );
 use C4::Debug;
+use Sys::Syslog qw(syslog);
 
 use parent qw(C4::SIP::ILS::Transaction);
 
@@ -47,6 +48,7 @@ sub do_checkin {
     my $self = shift;
     my $branch = shift;
     my $return_date = shift;
+    my $checked_in_ok = shift;
     if (!$branch) {
         $branch = 'SIP2';
     }
@@ -67,35 +69,58 @@ sub do_checkin {
     $debug and warn "do_checkin() calling AddReturn($barcode, $branch)";
     my ($return, $messages, $iteminformation, $borrower) = AddReturn($barcode, $branch, undef, undef, $return_date);
     $self->alert(!$return);
-    # ignoring messages: NotIssued, IsPermanent, WasLost, WasTransfered
+    # ignoring messages: IsPermanent, WasLost, WasTransfered
 
     # biblionumber, biblioitemnumber, itemnumber
     # borrowernumber, reservedate, branchcode
     # cancellationdate, found, reservenotes, priority, timestamp
 
+    # We ignore an error if the item was not checked in and if the SIP account 
+    # parameter 'checked_in_ok' is set. That way, the device does not show an error 
+    # if a such a medium is going to be returned.
+    if ( $messages->{NotIssued} ) {
+        if ($checked_in_ok) {
+            $return = 1;
+        }
+        else {
+            $self->screen_msg("Item not checked out") unless $checked_in_ok;
+        }
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - item not checked out");
+    }
     if ($messages->{BadBarcode}) {
         $self->alert_type('99');
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - bad barcode");
     }
     if ($messages->{withdrawn}) {
         $self->alert_type('99');
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - item withdrawn");
     }
     if ($messages->{Wrongbranch}) {
+        # wrong branch is an error since the library disabled it 
+        # using configuration parameter 'AllowReturnToBranch' 
         $self->destination_loc($messages->{Wrongbranch}->{Rightbranch});
-        $self->alert_type('04');            # send to other branch
+        $self->alert_type('04');                       
+        $self->screen_msg("Return at wrong branch");
+        $return = 0;
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - return at wrong branch");  
     }
     if ($messages->{WrongTransfer}) {
         $self->destination_loc($messages->{WrongTransfer});
         $self->alert_type('04');            # send to other branch
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - wrong transfer");
     }
     if ($messages->{NeedsTransfer}) {
         $self->destination_loc($iteminformation->{homebranch});
         $self->alert_type('04');            # send to other branch
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - needs transfer");
     }
     if ($messages->{WasTransfered}) { # set into transit so tell unit
         $self->destination_loc($iteminformation->{homebranch});
         $self->alert_type('04');            # send to other branch
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - was transfered");
     }
     if ($messages->{ResFound}) {
+        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - reservation found");
         $self->hold($messages->{ResFound});
         if ($branch eq $messages->{ResFound}->{branchcode}) {
             $self->alert_type('01');
@@ -115,6 +140,7 @@ sub do_checkin {
         $self->{item}->hold_patron_id( $messages->{ResFound}->{borrowernumber} );
         $self->{item}->destination_loc( $messages->{ResFound}->{branchcode} );
     }
+
     $self->alert(1) if defined $self->alert_type;  # alert_type could be "00", hypothetically
     $self->ok($return);
 }

@@ -18,6 +18,7 @@ use C4::SIP::Sip::Checksum qw(verify_cksum);
 use Data::Dumper;
 use CGI qw ( -utf8 );
 use C4::Auth qw(&check_api_auth);
+use C4::Context;
 
 use UNIVERSAL::can;
 
@@ -442,6 +443,14 @@ sub build_patron_status {
         $resp .= maybe_add( FID_SCREEN_MSG, $patron->{branchcode}, $server )
           if ( $server->{account}->{send_patron_home_library_in_af} );
         $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line );
+        
+        # The next is not standard SIP. With that change we enable delivery of the 
+        # patron hold id for EasyCheck devices.
+        if ( C4::Context->preference('SIPVendorDialect') 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
+        {
+            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
+        }
 
     } else {
         # Invalid patron (cardnumber)
@@ -554,6 +563,17 @@ sub handle_checkout {
             $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties );
 
         }
+        
+        # The next is not standard SIP. With that change we enable delivery of the 
+        # item location for vendor specific devices (EasyCheck) with the chekout.
+        if ( C4::Context->preference('SIPVendorDialect') 
+            && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
+        {
+            $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
+            if ( $patron )  {
+                $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
+            }
+        }
     }
 
     else {
@@ -586,6 +606,16 @@ sub handle_checkout {
 
                 # Password provided, so we can tell if it was valid or not
                 $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $patron->check_password( $fields->{ (FID_PATRON_PWD) } ) ) );
+            }
+        }
+        # The next is not standard SIP. With that change we enable delivery of the 
+        # item location for vendor specific devices (EasyCheck) with the chekout.
+        if ( C4::Context->preference('SIPVendorDialect') 
+            && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
+        {
+            $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
+            if ( $patron )  {
+                $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
             }
         }
     }
@@ -674,15 +704,24 @@ sub handle_checkin {
         }
         if ($item) {
             $resp .= maybe_add( FID_MEDIA_TYPE,           $item->sip_media_type );
+            
+            # The next is not standard SIP. With that change we enable delivery of the 
+            # patron hold id for EasyCheck devices.
+            if ( C4::Context->preference('SIPVendorDialect') 
+                && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
+                && $item->hold_patron_bcode ) 
+            {
+                $item->{sip_item_properties} = $item->hold_patron_bcode;
+                syslog("LOG_DEBUG", "C4::SIP::Sip::MsgType:handle_checkin - set sip_item_properties to patron barcode");
+            }
             $resp .= maybe_add( FID_ITEM_PROPS,           $item->sip_item_properties );
             $resp .= maybe_add( FID_COLLECTION_CODE,      $item->collection_code );
             $resp .= maybe_add( FID_CALL_NUMBER,          $item->call_number );
             $resp .= maybe_add( FID_DESTINATION_LOCATION, $item->destination_loc );
             $resp .= maybe_add( FID_HOLD_PATRON_ID,       $item->hold_patron_bcode );
             $resp .= maybe_add( FID_HOLD_PATRON_NAME,     $item->hold_patron_name );
-            if ( $status->hold and $status->hold->{branchcode} ne $item->destination_loc ) {
-                warn 'SIP hold mismatch: $status->hold->{branchcode}=' . $status->hold->{branchcode} . '; $item->destination_loc=' . $item->destination_loc;
-
+            if ( $status->hold and $item->destination_loc and $status->hold->{branchcode} ne $item->destination_loc ) {
+                syslog( "LOG_WARNING", 'SIP hold mismatch: $status->hold->{branchcode}=' . $status->hold->{branchcode} . '; $item->destination_loc=' . $item->destination_loc);
                 # just me being paranoid.
             }
         }
@@ -1006,6 +1045,14 @@ sub handle_patron_info {
             $resp .= maybe_add( FID_SCREEN_MSG, $patron->{branchcode}, $server);
         }
         $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line );
+        
+        # The next is not standard SIP. With that change we enable delivery of the 
+        # patron hold id for EasyCheck devices.
+        if ( C4::Context->preference('SIPVendorDialect') 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
+        {
+            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
+        }
     } else {
 
         # Invalid patron ID:
