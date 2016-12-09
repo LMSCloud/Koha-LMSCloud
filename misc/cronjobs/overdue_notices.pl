@@ -723,7 +723,7 @@ END_SQL
                     push @items, $item_info;
                     
                     # check whether there are claiming fee rules defined
-                    if ( $nocharge==0 && $claimFees->checkForClaimingRules() == 1 ) {
+                    if ( $nocharge==0 && $apply_claim_fee == 1 && $claimFees->checkForClaimingRules() == 1 ) {
                         # check whether there is a matching claiming fee rule
                         my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $branchcode);
                         
