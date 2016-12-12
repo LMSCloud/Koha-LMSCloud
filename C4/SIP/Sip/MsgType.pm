@@ -711,10 +711,10 @@ sub handle_checkin {
                 && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
                 && $item->hold_patron_bcode ) 
             {
-                $item->{sip_item_properties} = $item->hold_patron_bcode;
-                syslog("LOG_DEBUG", "C4::SIP::Sip::MsgType:handle_checkin - set sip_item_properties to patron barcode");
+                $resp .= maybe_add( FID_ITEM_PROPS,       $item->hold_patron_bcode );
+            } else {
+                $resp .= maybe_add( FID_ITEM_PROPS,       $item->sip_item_properties );
             }
-            $resp .= maybe_add( FID_ITEM_PROPS,           $item->sip_item_properties );
             $resp .= maybe_add( FID_COLLECTION_CODE,      $item->collection_code );
             $resp .= maybe_add( FID_CALL_NUMBER,          $item->call_number );
             $resp .= maybe_add( FID_DESTINATION_LOCATION, $item->destination_loc );
@@ -1179,7 +1179,16 @@ sub handle_item_information {
         $resp .= maybe_add( FID_MEDIA_TYPE,   $item->sip_media_type );
         $resp .= maybe_add( FID_PERM_LOCN,    $item->permanent_location );
         $resp .= maybe_add( FID_CURRENT_LOCN, $item->current_location );
-        $resp .= maybe_add( FID_ITEM_PROPS,   $item->sip_item_properties );
+        
+        # The next is not standard SIP. With that change we enable delivery of the 
+        # patron hold id for EasyCheck devices.
+        if ( C4::Context->preference('SIPVendorDialect') 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
+        {
+            $resp .= maybe_add( FID_ITEM_PROPS,   $item->issue_renewals );
+        } else {
+            $resp .= maybe_add( FID_ITEM_PROPS,   $item->sip_item_properties );
+        }
 
         if ( ( $i = $item->fee ) != 0 ) {
             $resp .= add_field( FID_CURRENCY, $item->fee_currency );

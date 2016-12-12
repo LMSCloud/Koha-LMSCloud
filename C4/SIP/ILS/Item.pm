@@ -100,6 +100,7 @@ sub new {
 	my $issue = GetItemIssue($item->{'itemnumber'});
     if ($issue) {
         $item->{due_date} = $issue->{date_due};
+        $item->{issue_renewals} = $issue->{renewals};
     }
 	my $borrower = GetMember(borrowernumber=>$issue->{'borrowernumber'});
 	$item->{patron} = $borrower->{'cardnumber'};
@@ -312,6 +313,12 @@ sub due_date {
     my $self = shift;
     return $self->{due_date} || 0;
 }
+
+sub issue_renewals {
+    my $self = shift;
+    return $self->{issue_renewals} || 0;
+}
+
 sub recall_date {
     my $self = shift;
     return $self->{recall_date} || 0;
