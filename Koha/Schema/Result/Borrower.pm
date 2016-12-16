@@ -412,7 +412,7 @@ __PACKAGE__->table("borrowers");
   data_type: 'timestamp'
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
-  is_nullable: 0
+  is_nullable: 1
 
 =cut
 
@@ -588,7 +588,7 @@ __PACKAGE__->add_columns(
     data_type => "timestamp",
     datetime_undef_if_invalid => 1,
     default_value => \"current_timestamp",
-    is_nullable => 0,
+    is_nullable => 1,
   },
 );
 
@@ -795,6 +795,36 @@ __PACKAGE__->belongs_to(
   "Koha::Schema::Result::Branch",
   { branchcode => "branchcode" },
   { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
+);
+
+=head2 cash_register_managers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CashRegisterManager>
+
+=cut
+
+__PACKAGE__->has_many(
+  "cash_register_managers",
+  "Koha::Schema::Result::CashRegisterManager",
+  { "foreign.manager_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 cash_registers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CashRegister>
+
+=cut
+
+__PACKAGE__->has_many(
+  "cash_registers",
+  "Koha::Schema::Result::CashRegister",
+  { "foreign.manager_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
 );
 
 =head2 categorycode
@@ -1218,8 +1248,8 @@ Composing rels: L</aqorder_users> -> ordernumber
 __PACKAGE__->many_to_many("ordernumbers", "aqorder_users", "ordernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-06-14 16:35:12
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Luq1YVrOwtdDvSDWgWNGUg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-14 18:08:01
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:QLUbtEKIXN4KTFCHrNwrDw
 
 __PACKAGE__->belongs_to(
     "guarantor",

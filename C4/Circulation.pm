@@ -2371,10 +2371,11 @@ sub _FixAccountForLostAndReturned {
     }
     $amountleft *= -1 if ($amountleft > 0);
     my $desc = "Item Returned " . $item_id;
+    my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
     $usth = $dbh->prepare("INSERT INTO accountlines
-        (borrowernumber,accountno,date,amount,description,accounttype,amountoutstanding)
-        VALUES (?,?,now(),?,?,'CR',?)");
-    $usth->execute($data->{'borrowernumber'},$nextaccntno,0-$amount,$desc,$amountleft);
+        (borrowernumber,accountno,date,amount,description,accounttype,amountoutstanding,branchcode)
+        VALUES (?,?,now(),?,?,'CR',?,?)");
+    $usth->execute( $data->{'borrowernumber'}, $nextaccntno, 0-$amount, $desc, $amountleft, $branchcode );
     if ($borrowernumber) {
         # FIXME: same as query above.  use 1 sth for both
         $usth = $dbh->prepare("INSERT INTO accountoffsets
@@ -2929,12 +2930,12 @@ sub AddRenewal {
         $sth = $dbh->prepare(
                 "INSERT INTO accountlines
                     (date, borrowernumber, accountno, amount, manager_id,
-                    description,accounttype, amountoutstanding, itemnumber)
-                    VALUES (now(),?,?,?,?,?,?,?,?)"
+                    description,accounttype, amountoutstanding, itemnumber, branchcode)
+                    VALUES (now(),?,?,?,?,?,?,?,?,?)"
         );
         $sth->execute( $borrowernumber, $accountno, $charge, $manager_id,
             "Renewal of Rental Item $item->{'title'} $item->{'barcode'}",
-            'Rent', $charge, $itemnumber );
+            'Rent', $charge, $itemnumber, C4::Context->userenv->{'branch'} );
     }
 
     # Send a renewal slip according to checkout alert preferencei
@@ -3183,11 +3184,11 @@ sub AddIssuingCharge {
         INSERT INTO accountlines
             (borrowernumber, itemnumber, accountno,
             date, amount, description, accounttype,
-            amountoutstanding, manager_id)
-        VALUES (?, ?, ?,now(), ?, 'Rental', 'Rent',?,?)
+            amountoutstanding, manager_id, branchcode)
+        VALUES (?, ?, ?,now(), ?, 'Rental', 'Rent',?,?,?)
     ";
     my $sth = $dbh->prepare($query);
-    $sth->execute( $borrowernumber, $itemnumber, $nextaccntno, $charge, $charge, $manager_id );
+    $sth->execute( $borrowernumber, $itemnumber, $nextaccntno, $charge, $charge, $manager_id, C4::Context->userenv->{'branch'} );
 }
 
 =head2 GetTransfers

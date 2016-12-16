@@ -2672,12 +2672,15 @@ CREATE TABLE `accountlines` (
   `notify_level` int(2) NOT NULL default 0,
   `note` text NULL default NULL,
   `manager_id` int(11) NULL,
+  `branchcode` VARCHAR( 10 ) NULL DEFAULT NULL, -- the branchcode of the library where a payment was made, a manual invoice created, etc.
   PRIMARY KEY (`accountlines_id`),
   KEY `acctsborridx` (`borrowernumber`),
   KEY `timeidx` (`timestamp`),
   KEY `itemnumber` (`itemnumber`),
+  KEY `branchidx` (`branchcode`),
   CONSTRAINT `accountlines_ibfk_1` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `accountlines_ibfk_2` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON DELETE SET NULL ON UPDATE SET NULL
+  CONSTRAINT `accountlines_ibfk_2` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON DELETE SET NULL ON UPDATE SET NULL,
+  CONSTRAINT `accountlines_ibfk_3` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --

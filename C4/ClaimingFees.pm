@@ -63,7 +63,8 @@ C4::ClaimingFees - Koha module to charge claiming fees
              amount         => $fee,
              due            => $item->{date_due},
              claimlevel     => 2,
-             due_since_days => 20 # 20 days
+             due_since_days => 20, # 20 days
+             brnachcode     => $branchcode
          });
       }
   }
@@ -227,6 +228,7 @@ sub AddClaimFee {
     my $due            = $params->{due};
     my $level          = $params->{claimlevel};
     my $due_since_days = $params->{due_since_days};
+    my $branchcode     = $params->{branchcode};
 
     # $debug and warn "AddClaimFee({ itemnumber => $itemnum, borrowernumber => $borrowernumber, type => $type, due => $due, issue_id => $issue_id})";
 
@@ -283,7 +285,8 @@ sub AddClaimFee {
                 amountoutstanding => $amount,
                 lastincrement     => $amount,
                 accountno         => $nextaccntno,
-                issue_id          => $issue_id
+                issue_id          => $issue_id,
+                branchcode        => $branchcode
             } )->store();
 
         # logging action

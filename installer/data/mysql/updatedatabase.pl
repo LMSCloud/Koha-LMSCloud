@@ -12959,6 +12959,41 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion($DBversion);
 }
 
+$DBversion = "16.05.05.008";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    
+    # add new field branchcode to table accoutnlines
+    $dbh->do(q{
+        ALTER TABLE `accountlines` ADD `branchcode` varchar(10) default '' AFTER `manager_id`
+    });
+    
+    # first we set the content of field branchcode via the manager_id since it's assumed that a managers branch is more relevant than a user's
+    # branch, since a user might lend book in many branches 
+    $dbh->do(q{
+        UPDATE `accountlines` a JOIN `borrowers` b ON (b.`borrowernumber` = a.`manager_id`) SET a.`branchcode` = b.`branchcode` WHERE a.`manager_id` IS NOT NULL
+    });
+    
+    # new we assign the branch of the remaining records as the borrowers home branch 
+    $dbh->do(q{
+        UPDATE `accountlines` a JOIN `borrowers` b ON (b.`borrowernumber` = a.`borrowernumber`) SET a.`branchcode` = b.`branchcode` WHERE a.`manager_id` IS NULL
+    });
+    
+    # if entries without a branchcode in accountlines remain we simply assign the first branch 
+    $dbh->do(q{
+        UPDATE `accountlines` a SET a.`branchcode` = (SELECT b.branchcode FROM branches b LIMIT 1) WHERE a.`branchcode` = ''
+    });
+    
+    # new we can alter accountlines and add a reference to branches
+    $dbh->do(q{
+        ALTER TABLE `accountlines` ADD KEY `branchidx` (`branchcode`), ADD CONSTRAINT `accountlines_ibfk_3` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE 
+    });
+    
+    print "Upgrade to $DBversion done (LMSCloud: field branchcode added to accountlines in order to assign fines to branches correctly.)\n";
+    SetVersion($DBversion);
+}
+
+
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

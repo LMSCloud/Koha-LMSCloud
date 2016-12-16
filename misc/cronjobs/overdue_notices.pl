@@ -745,9 +745,9 @@ END_SQL
                                         due            => $item_info->{date_due},
                                         claimlevel     => $i,
                                         due_since_days => $days_between,
+                                        branchcode     => $branchcode,
                                         
                                         # these are parameters that we need for fancy message printing
-                                        branchcode     => $branchcode,
                                         items          => [$item_info],
                                         substitute     => { bib             => $library->branchname,
                                                             'items.content' => $titles,
@@ -879,9 +879,9 @@ END_SQL
                                                 letter_code    => $overdue_rules->{"letter$i"},
                                                 letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
                                                 claimlevel     => $i,
+                                                branchcode     => $branchcode,
                                                 
                                                 # these are parameters that we need for fancy message printig
-                                                branchcode     => $branchcode,
                                                 substitute     => {    # this appears to be a hack to overcome incomplete features in this code.
                                                                         bib             => $library->branchname, # maybe 'bib' is a typo for 'lib<rary>'?
                                                                         'items.content' => $titles,

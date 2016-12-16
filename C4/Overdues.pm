@@ -607,6 +607,7 @@ sub UpdateFine {
 
             my $desc = ( $type ? "$type " : '' ) . "$title $due";    # FIXEDME, avoid whitespace prefix on empty $type
 
+            my $branchcode  = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
             my $accountline = Koha::Account::Line->new(
                 {
                     borrowernumber    => $borrowernumber,
@@ -619,6 +620,7 @@ sub UpdateFine {
                     lastincrement     => $amount,
                     accountno         => $nextaccntno,
                     issue_id          => $issue_id,
+                    branchcode        => $branchcode,
                 }
             )->store();
         }

@@ -270,6 +270,7 @@ sub AddNoticeFee {
     my $borrowernumber = $params->{borrowernumber};
     my $amount         = $params->{amount};
     my $letter_date    = $params->{letter_date};
+    my $branchcode     = $params->{branchcode};
 
     unless ( $borrowernumber ) {
         carp("No borrower number passed in!");
@@ -324,7 +325,8 @@ sub AddNoticeFee {
                 amountoutstanding => $amount,
                 lastincrement     => $amount,
                 accountno         => $nextaccntno,
-                issue_id          => undef
+                issue_id          => undef,
+                branchcode        => $branchcode
             } )->store();
 
         # logging action

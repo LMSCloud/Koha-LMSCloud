@@ -187,6 +187,21 @@ __PACKAGE__->set_primary_key("branchcode");
 
 =head1 RELATIONS
 
+=head2 accountlines
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Accountline>
+
+=cut
+
+__PACKAGE__->has_many(
+  "accountlines",
+  "Koha::Schema::Result::Accountline",
+  { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 aqbaskets
 
 Type: has_many
@@ -528,8 +543,8 @@ Composing rels: L</branchrelations> -> categorycode
 __PACKAGE__->many_to_many("categorycodes", "branchrelations", "categorycode");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07033 @ 2014-11-26 11:08:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:FjNI9OEpa5OKfwwCkggu0w
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-14 18:10:36
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:W7xQFM8ToVNdr4MJmWnZHA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

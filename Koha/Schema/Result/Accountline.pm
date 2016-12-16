@@ -122,6 +122,14 @@ __PACKAGE__->table("accountlines");
   data_type: 'integer'
   is_nullable: 1
 
+=head2 branchcode
+
+  data_type: 'varchar'
+  default_value: (empty string)
+  is_foreign_key: 1
+  is_nullable: 1
+  size: 10
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -169,6 +177,14 @@ __PACKAGE__->add_columns(
   { data_type => "text", is_nullable => 1 },
   "manager_id",
   { data_type => "integer", is_nullable => 1 },
+  "branchcode",
+  {
+    data_type => "varchar",
+    default_value => "",
+    is_foreign_key => 1,
+    is_nullable => 1,
+    size => 10,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -198,6 +214,26 @@ __PACKAGE__->belongs_to(
   "Koha::Schema::Result::Borrower",
   { borrowernumber => "borrowernumber" },
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
+=head2 branchcode
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Branch>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "branchcode",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "branchcode" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
 );
 
 =head2 cash_register_accounts
@@ -236,8 +272,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-23 14:35:30
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:19QoI6wQrExC7epawamahQ
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-14 14:17:51
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:oEsg8A9U9d0RtLM33+kIDw
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

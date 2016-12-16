@@ -196,6 +196,9 @@ sub AddReserve {
 
     # Don't add itemtype limit if specific item is selected
     $itemtype = undef if $checkitem;
+    
+    # Get the logged in library if there is one
+    my $branchcode  = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
 
     # updates take place here
     my $hold = Koha::Hold->new(
@@ -211,6 +214,7 @@ sub AddReserve {
             waitingdate    => $waitingdate,
             expirationdate => $expdate,
             itemtype       => $itemtype,
+            branchcode     => $branchcode
         }
     )->store();
     my $reserve_id = $hold->id();
@@ -683,11 +687,11 @@ sub ChargeReserveFee {
     my ( $borrowernumber, $fee, $title ) = @_;
     return if !$fee || $fee==0; # the last test is needed to include 0.00
     my $accquery = qq{
-INSERT INTO accountlines ( borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding ) VALUES (?, ?, NOW(), ?, ?, 'Res', ?)
+INSERT INTO accountlines ( borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding, branchcode) VALUES (?, ?, NOW(), ?, ?, 'Res', ?, ?)
     };
     my $dbh = C4::Context->dbh;
     my $nextacctno = &getnextacctno( $borrowernumber );
-    $dbh->do( $accquery, undef, ( $borrowernumber, $nextacctno, $fee, "Reserve Charge - $title", $fee ) );
+    $dbh->do( $accquery, undef, ( $borrowernumber, $nextacctno, $fee, "Reserve Charge - $title", $fee,  C4::Context->userenv->{'branch'} ) );
 }
 
 =head2 GetReserveFee

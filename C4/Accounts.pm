@@ -93,7 +93,8 @@ sub recordpayment {
     my $dbh        = C4::Context->dbh;
     my $newamtos   = 0;
     my $accdata    = "";
-    my $branch     = C4::Context->userenv->{'branch'};
+    my $branch     = C4::Context->userenv ?
+	                         C4::Context->userenv->{'branch'} : undef;
     my $amountleft = $data;
     my $manager_id = 0;
     
@@ -161,13 +162,13 @@ sub recordpayment {
     # create new line
     my $usth = $dbh->prepare(
         "INSERT INTO accountlines
-  (borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding,manager_id, note)
-  VALUES (?,?,now(),?,'',?,?,?,?)"
+  (borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding,manager_id, note,branchcode)
+  VALUES (?,?,now(),?,'',?,?,?,?,?)"
     );
 
     my $paytype = "Pay";
     $paytype .= $sip_paytype if defined $sip_paytype;
-    if ( $usth->execute( $borrowernumber, $nextaccntno, 0 - $data, $paytype, 0 - $amountleft, $manager_id, $payment_note ) ) {
+    if ( $usth->execute( $borrowernumber, $nextaccntno, 0 - $data, $paytype, 0 - $amountleft, $manager_id, $payment_note, $branch ) ) {
         my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
         # If it is not SIP it is a cash payment and if cash registers are activated as too,
         # the cash payment need to registered for the opened cash register as cash receipt
@@ -280,10 +281,11 @@ sub makepayment {
         my $ins = 
             $dbh->prepare( 
                 "INSERT 
-                    INTO accountlines (borrowernumber, accountno, date, amount, itemnumber, description, accounttype, amountoutstanding, manager_id, note)
-                    VALUES ( ?, ?, now(), ?, ?, '', 'Pay', 0, ?, ?)"
+                    INTO accountlines (borrowernumber, accountno, date, amount, itemnumber, description, accounttype, amountoutstanding, manager_id, note, branchcode)
+                    VALUES ( ?, ?, now(), ?, ?, '', 'Pay', 0, ?, ?, ?)"
             );
-        if ( $ins->execute($borrowernumber, $nextaccntno, $payment, $data->{'itemnumber'}, $manager_id, $payment_note) 
+        my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+        if ( $ins->execute($borrowernumber, $nextaccntno, $payment, $data->{'itemnumber'}, $manager_id, $payment_note, $branchcode) 
             && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) 
         {
             my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
@@ -398,6 +400,8 @@ sub chargelostitem{
     my $dbh = C4::Context->dbh();
     my ($borrowernumber, $itemnumber, $amount, $description) = @_;
 
+    my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+
     # first make sure the borrower hasn't already been charged for this item
     my $sth1=$dbh->prepare("SELECT * from accountlines
     WHERE borrowernumber=? AND itemnumber=? and accounttype='L'");
@@ -413,10 +417,10 @@ sub chargelostitem{
         #  process (or person) to update it, since we don't handle any defaults for replacement prices.
         my $accountno = getnextacctno($borrowernumber);
         my $sth2=$dbh->prepare("INSERT INTO accountlines
-        (borrowernumber,accountno,date,amount,description,accounttype,amountoutstanding,itemnumber,manager_id)
-        VALUES (?,?,now(),?,?,'L',?,?,?)");
-        $sth2->execute($borrowernumber,$accountno,$amount,
-        $description,$amount,$itemnumber,$manager_id);
+        (borrowernumber,accountno,date,amount,description,accounttype,amountoutstanding,itemnumber,manager_id,branchcode)
+        VALUES (?,?,now(),?,?,'L',?,?,?,?)");
+        $sth2->execute( $borrowernumber, $accountno, $amount, $description,
+            $amount, $itemnumber, $manager_id, $branchcode );
 
         if ( C4::Context->preference("FinesLog") ) {
             logaction("FINES", 'CREATE', $borrowernumber, Dumper({
@@ -465,6 +469,7 @@ sub manualinvoice {
     my ( $borrowernumber, $itemnum, $desc, $type, $amount, $note ) = @_;
     my $manager_id = 0;
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
+    my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
     my $dbh      = C4::Context->dbh;
     my $notifyid = 0;
     my $insert;
@@ -496,16 +501,16 @@ sub manualinvoice {
         $desc .= ' ' . $itemnum;
         my $sth = $dbh->prepare(
             'INSERT INTO  accountlines
-                        (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding, itemnumber,notify_id, note, manager_id)
-        VALUES (?, ?, now(), ?,?, ?,?,?,?,?,?)');
-     $sth->execute($borrowernumber, $accountno, $amount, $desc, $type, $amountleft, $itemnum,$notifyid, $note, $manager_id) || return $sth->errstr;
+                        (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding, itemnumber,notify_id, note, manager_id, branchcode)
+        VALUES (?, ?, now(), ?,?, ?,?,?,?,?,?,?)');
+     $sth->execute($borrowernumber, $accountno, $amount, $desc, $type, $amountleft, $itemnum,$notifyid, $note, $manager_id, $branchcode) || return $sth->errstr;
   } else {
     my $sth=$dbh->prepare("INSERT INTO  accountlines
-            (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding,notify_id, note, manager_id)
-            VALUES (?, ?, now(), ?, ?, ?, ?,?,?,?)"
+            (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding,notify_id, note, manager_id, branchcode)
+            VALUES (?, ?, now(), ?, ?, ?, ?,?,?,?,?)"
         );
         if ( $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type,
-            $amountleft, $notifyid, $note, $manager_id ) && $type eq 'C' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) 
+            $amountleft, $notifyid, $note, $manager_id, $branchcode ) && $type eq 'C' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) 
         {
             my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
             # If cash registers are activated, the cash payment need to registered for the 
@@ -755,10 +760,10 @@ sub recordpayment_selectaccts {
 
     # create new line
     $sql = 'INSERT INTO accountlines ' .
-    '(borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding,manager_id,note) ' .
-    q|VALUES (?,?,now(),?,'','Pay',?,?,?)|;
+    '(borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding,manager_id,note,branchcode) ' .
+    q|VALUES (?,?,now(),?,'','Pay',?,?,?,?)|;
     
-    if ( $dbh->do($sql,{},$borrowernumber, $nextaccntno, 0 - $amount, 0 - $amountleft, $manager_id, $note ) ) {
+    if ( $dbh->do($sql,{},$borrowernumber, $nextaccntno, 0 - $amount, 0 - $amountleft, $manager_id, $note, $branch ) ) {
         # If it is not SIP it is a cash payment and if cash registers are activated as too,
         # the cash payment need to registered for the opened cash register as cash receipt
         if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
@@ -820,7 +825,7 @@ sub makepartialpayment {
         'SELECT * FROM accountlines WHERE  accountlines_id=?',undef,$accountlines_id);
     my $new_outstanding = $data->{amountoutstanding} - $amount;
 
-    my $update = 'UPDATE  accountlines SET amountoutstanding = ?  WHERE   accountlines_id = ? ';
+    my $update = 'UPDATE  accountlines SET amountoutstanding = ?  WHERE accountlines_id = ? ';
     $dbh->do( $update, undef, $new_outstanding, $accountlines_id);
 
     if ( C4::Context->preference("FinesLog") ) {
@@ -838,11 +843,11 @@ sub makepartialpayment {
 
     # create new line
     my $insert = 'INSERT INTO accountlines (borrowernumber, accountno, date, amount, '
-    .  'description, accounttype, amountoutstanding, itemnumber, manager_id, note) '
-    . ' VALUES (?, ?, now(), ?, ?, ?, 0, ?, ?, ?)';
+    .  'description, accounttype, amountoutstanding, itemnumber, manager_id, note, branchcode) '
+    . ' VALUES (?, ?, now(), ?, ?, ?, 0, ?, ?, ?, ?)';
 
     if ( $dbh->do(  $insert, undef, $borrowernumber, $nextaccntno, $amount,
-        '', 'Pay', $data->{'itemnumber'}, $manager_id, $payment_note) ) 
+        '', 'Pay', $data->{'itemnumber'}, $manager_id, $payment_note, C4::Context->userenv->{'branch'}) ) 
     {
         # If it is not SIP it is a cash payment and if cash registers are activated as too,
         # the cash payment need to registered for the opened cash register as cash receipt
@@ -922,12 +927,12 @@ sub WriteOffFee {
 
     $query ="
         INSERT INTO accountlines
-        ( borrowernumber, accountno, itemnumber, date, amount, description, accounttype, manager_id, note )
-        VALUES ( ?, ?, ?, NOW(), ?, 'Writeoff', 'W', ?, ? )
+        ( borrowernumber, accountno, itemnumber, date, amount, description, accounttype, manager_id, note, branchcode )
+        VALUES ( ?, ?, ?, NOW(), ?, 'Writeoff', 'W', ?, ?, ? )
     ";
     $sth = $dbh->prepare( $query );
     my $acct = getnextacctno($borrowernumber);
-    $sth->execute( $borrowernumber, $acct, $itemnum, $amount, $manager_id, $payment_note );
+    $sth->execute( $borrowernumber, $acct, $itemnum, $amount, $manager_id, $payment_note, $branch);
 
     if ( C4::Context->preference("FinesLog") ) {
         logaction("FINES", 'CREATE',$borrowernumber,Dumper({
