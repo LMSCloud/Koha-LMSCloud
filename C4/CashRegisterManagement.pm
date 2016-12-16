@@ -73,17 +73,34 @@ sub new {
     }
     $self->loadRegisterManagerData();
     
-    $self->{'currency_format'} = '';
+    $self->{'currency_format'} = 'USD';
     my $active_currency = Koha::Acquisition::Currencies->get_active;
     $self->{currency_format} = $active_currency->currency if defined($active_currency);
     
     return $self;
 }
 
+=head2 getCurrencyFormatterData
+
+   C4::CashRegisterManagement->getCurrencyFormatterData()
+
+Delivers an array ref with currency formatter data such as currency, currency symbol, 
+decimal_precision, thousands_separator, and decimal_separator
+
+=cut
+
+sub getCurrencyFormatterData {
+    my $self = shift();
+    
+    my $currency = $self->{currency_format};
+    return [$currency,currency_symbol($currency),decimal_precision($currency),decimal_separator($currency),thousands_separator($currency)];
+}
+
 =head2 passCashRegisterCheck
 
    C4::CashRegisterManagement->passCashRegisterCheck($branch,$loggedinuser)
 
+If Cash register management is disabled, this function returns true.
 The function checks whether cash register management is enabled and the logged in
 staff member has a cash register opened for payment actions. If not, cash payment
 actions are not allowed.
@@ -95,13 +112,7 @@ sub passCashRegisterCheck {
     my $loggedinuser = shift;
     
     return true if (! C4::Context->preference('ActivateCashRegisterTransactionsOnly'));
-    
-    my $cash_register = Koha::CashRegister::CashRegisters->search({
-        manager_id => $loggedinuser,
-        branchcode => $branch
-    });
-    
-    if ( $cash_register->next() ) {
+    if ( getOpenedCashRegister($branch,$loggedinuser) ) {
         return true;
     }
     return false;
@@ -158,15 +169,113 @@ sub managerHasOpenCashRegister {
     my $branch = shift;
     my $loggedinuser = shift;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search({
-        branchcode => $branch,
-        manager_id => $loggedinuser
-    });
-    
-    if ( my $cashreg = $cash_register->next() ) {
-        return 1;
+    if ( getOpenedCashRegister($branch,$loggedinuser) ) {
+        return true;
     }
-    return 0;
+    return false;
+}
+
+=head2 getOpenedCashRegister
+
+  C4::CashRegisterManagement->getOpenedCashRegister($branch,$borrowernumber)
+
+Return a opened cash register or undef if cash register managment is inactive or
+if the user has no open cash register.
+If a cash register is open, the function returns Koha::CashRegister::CashRegister object.
+
+=cut
+
+sub getOpenedCashRegister {
+    my $branch = shift;
+    my $loggedinuser = shift;
+    
+    if (! C4::Context->preference('ActivateCashRegisterTransactionsOnly')) {
+        return undef;
+    }
+        
+    if (! C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
+        my $cash_register = Koha::CashRegister::CashRegisters->search({
+            branchcode => $branch,
+            manager_id => $loggedinuser
+        });
+        
+        if ( my $cashreg = $cash_register->next() ) {
+            return $cashreg;
+        }
+    }
+    else {
+        # check whether the cash register is marked es opened by the manager
+        my $dbh = C4::Context->dbh;
+        my $query = q{
+                SELECT DISTINCT c.id as id
+                FROM cash_register c, cash_register_manager m
+                WHERE     c.branchcode = ? 
+                      AND c.id = m.cash_register_id
+                      AND m.manager_id = ?
+                      AND m.opened = 1 }; 
+        $query =~ s/^\s+/ /mg;
+        
+        my $sth = $dbh->prepare($query);
+        $sth->execute($branch, $loggedinuser);
+        if (my $row = $sth->fetchrow_hashref) {
+            my $cashreg = Koha::CashRegister::CashRegisters->find({ 
+                id => $row->{id}
+            });
+            $sth->finish();
+            return $cashreg;
+        }
+        $sth->finish();
+    }
+    return undef;
+}
+
+=head2 getOpenedCashRegisterByManagerID
+
+  C4::CashRegisterManagement->getOpenedCashRegisterByManagerID($borrowernumber)
+
+Return a opened cash register or undef if cash register managment is inactive or
+if the user has no open cash register.
+If a cash register is open, the function returns Koha::CashRegister::CashRegister object.
+
+=cut
+
+sub getOpenedCashRegisterByManagerID {
+    my $self = shift;
+    my $loggedinuser = shift;
+    
+    if (! C4::Context->preference('ActivateCashRegisterTransactionsOnly')) {
+        return undef;
+    }
+        
+    if (! C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
+        my $cash_register = Koha::CashRegister::CashRegisters->search({
+            manager_id => $loggedinuser
+        });
+        
+        if ( my $cashreg = $cash_register->next() ) {
+            return $self->loadCashRegister($cashreg->id);
+        }
+    }
+    else {
+        # check whether the cash register is marked es opened by the manager
+        my $dbh = C4::Context->dbh;
+        my $query = q{
+                SELECT DISTINCT c.id as id
+                FROM cash_register c, cash_register_manager m
+                WHERE     c.id = m.cash_register_id
+                      AND m.manager_id = ?
+                      AND m.opened = 1 }; 
+        $query =~ s/^\s+/ /mg;
+        
+        my $sth = $dbh->prepare($query);
+        $sth->execute($loggedinuser);
+        if (my $row = $sth->fetchrow_hashref) {
+            $sth->finish();
+            return $self->loadCashRegister($row->{id});
+        }
+        $sth->finish();
+    }
+    return undef;
 }
 
 =head2 registerPayment
@@ -180,13 +289,9 @@ Registers a payment to the opened cash register of the manager.
 sub registerPayment {
     my ($self, $branch, $manager_id, $amount, $accountlines_no) = @_;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search( {
-        manager_id => $manager_id,
-        branchcode =>$branch
-    });
-    
-    if ( my $cashreg = $cash_register->next() ) {
-        $self->addCashRegisterTransaction($cashreg->id(), 'PAYMENT', $manager_id, '', $amount, $accountlines_no);
+    my $cashreg = getOpenedCashRegister($branch, $manager_id);
+    if ( $cashreg ) {
+        return $self->addCashRegisterTransaction($cashreg->id(), 'PAYMENT', $manager_id, '', $amount, $accountlines_no);
     }
     
     return 0;
@@ -203,13 +308,9 @@ Registers a payment to the opened cash register of the manager.
 sub registerReversePayment {
     my ($self, $branch, $manager_id, $amount, $accountlines_no) = @_;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search( {
-        manager_id => $manager_id,
-        branchcode =>$branch
-    });
-    
-    if ( my $cashreg = $cash_register->next() ) {
-        $self->addCashRegisterTransaction($cashreg->id(), 'REVERSE_PAYMENT', $manager_id, '', ($amount * -1), $accountlines_no);
+    my $cashreg = getOpenedCashRegister($branch, $manager_id);
+    if ( $cashreg ) {
+        return $self->addCashRegisterTransaction($cashreg->id(), 'REVERSE_PAYMENT', $manager_id, '', ($amount * -1), $accountlines_no);
     }
     
     return 0;
@@ -226,12 +327,8 @@ Registers a payment to the opened cash register of the manager.
 sub registerAdjustment {
     my ($self, $branch, $manager_id, $amount, $comment) = @_;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search( {
-        manager_id => $manager_id,
-        branchcode =>$branch
-    });
-    
-    if ( my $cashreg = $cash_register->next() ) {
+    my $cashreg = getOpenedCashRegister($branch, $manager_id);
+    if ($cashreg ) {
         $self->addCashRegisterTransaction($cashreg->id(), 'ADJUSTMENT', $manager_id, $comment, $amount);
     }
     
@@ -250,12 +347,8 @@ the central cash register of the organisation or to a bank.
 sub registerCashPayment {
     my ($self, $branch, $manager_id, $amount, $comment) = @_;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search( {
-        manager_id => $manager_id,
-        branchcode =>$branch
-    });
-    
-    if ( my $cashreg = $cash_register->next() ) {
+    my $cashreg = getOpenedCashRegister($branch, $manager_id);
+    if ($cashreg ) {
         $self->addCashRegisterTransaction($cashreg->id(), 'PAYOUT', $manager_id, $comment, ($amount * -1));
     }
     
@@ -273,12 +366,8 @@ Koha supports to register deposits. The call is used to register that credit amo
 sub registerCredit {
     my ($self, $branch, $manager_id, $amount, $accountlines_no) = @_;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search( {
-        manager_id => $manager_id,
-        branchcode =>$branch
-    });
-    
-    if ( my $cashreg = $cash_register->next() ) {
+    my $cashreg = getOpenedCashRegister($branch, $manager_id);
+    if ( $cashreg ) {
         $self->addCashRegisterTransaction($cashreg->id(), 'CREDIT', $manager_id, '', $amount, $accountlines_no);
     }
     
@@ -298,17 +387,92 @@ sub getOpenCashRegister {
     my $loggedinuser = shift;
     my $branch = shift;
     
-    my $params = { manager_id => $loggedinuser };
-    if ( $branch ) {
-        $params->{branchcode} = $branch;
-    }
+    my $cashreg = getOpenedCashRegister($branch, $loggedinuser);
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search($params);
-    
-    if ( my $cashreg = $cash_register->next() ) {
+    if ( $cashreg ) {
         return $self->loadCashRegister($cashreg->id());
     }
     return undef;
+}
+
+=head2 canOpenCashRegister
+
+  my $isAllowed = $cash_management->canOpenCashRegister($cash_register_id,$manager_id)
+
+Checks whether a cash register can be opend by a manager.
+
+=cut
+
+sub canOpenCashRegister {
+    my $self = shift;
+    my $cash_register_id = shift;
+    my $borrowerid = shift;
+    
+    my $concurrentBookingsEnabled = (C4::Context->preference('PermitConcurrentCashRegisterUsers') || 0);
+
+    # check whether the cash register is marked es opened by the manager
+    my $dbh = C4::Context->dbh;
+    my $query = q{
+            SELECT distinct c.id 
+            FROM cash_register c, cash_register_manager m
+            WHERE     c.id = ? 
+                  AND c.id = m.cash_register_id
+                  AND (
+                    ( 1 = ? AND m.manager_id = ? AND m.opened = 0 )
+                    OR
+                    ( 0 = ? AND (c.manager_id IS NULL or c.manager_id = '') )
+                  ) }; 
+    $query =~ s/^\s+/ /mg;
+        
+    my $sth = $dbh->prepare($query);
+    $sth->execute($cash_register_id, $concurrentBookingsEnabled, $borrowerid, $concurrentBookingsEnabled);
+    my $result = false;
+    if ( my $row = $sth->fetchrow_hashref ) {
+        $result = true;
+    }
+    $sth->finish();
+    return $result;
+}
+
+=head2 canCloseCashRegister
+
+  my $isAllowed = $cash_management->canCloseCashRegister($cash_register_id,$manager_id)
+
+Checks whether a cash register can be closed by a manager.
+
+=cut
+
+sub canCloseCashRegister {
+    my $self = shift;
+    my $cash_register_id = shift;
+    my $borrowerid = shift;
+    
+    my $concurrentBookingsEnabled = 0;
+    if (C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
+        $concurrentBookingsEnabled = 1;
+    }
+    # check whether the cash register is marked es opened by the manager
+    my $dbh = C4::Context->dbh;
+    my $query = q{
+            SELECT distinct c.id 
+            FROM cash_register c, cash_register_manager m
+            WHERE     c.id = ? 
+                  AND c.id = m.cash_register_id
+                  AND (
+                    ( 1 = ? AND m.manager_id = ? AND m.opened = 1 )
+                    OR
+                    ( 0 = ? AND c.manager_id = ? )
+                  )}; 
+    $query =~ s/^\s+/ /mg;
+        
+    my $sth = $dbh->prepare($query);
+    $sth->execute($cash_register_id, $concurrentBookingsEnabled, $borrowerid, $concurrentBookingsEnabled, $borrowerid);
+    my $result = false;
+    if (my $row = $sth->fetchrow_hashref) {
+        $result = true;
+    }
+    $sth->finish();
+    return $result;
 }
 
 =head2 getPermittedCashRegisters
@@ -383,22 +547,30 @@ sub loadCashRegister {
     return undef;
 }
 
+=head2 formatAmountWithCurrency
+
+  my $formattedAmount = $cash_management->formatAmountWithCurrency($amount)
+
+Helper finction to format a booking amounz with currency..
+
+=cut
+
 sub formatAmountWithCurrency {
     my $self = shift;
     my $amount = shift;
         
-    my $amount_formatted = currency_format($self->{'currency_format'}, $amount, FMT_SYMBOL);
+    my $amount_formatted = currency_format($self->{'currency_format'}, $amount || 0.0, FMT_SYMBOL);
     # if active currency isn't correct ISO code fallback to sprintf
-    $amount_formatted = sprintf('%.2f', $amount) unless $amount_formatted;
+    $amount_formatted = sprintf('%.2f', $amount || 0.0) unless $amount_formatted;
     
     return $amount_formatted;
 }
 
 =head2 getAllCashRegisters
 
-  $cash_management->getAllCashRegisters()
+ my @cashRegisterList = $cash_management->getAllCashRegisters()
 
-List all adefined cash registerss.
+List all defined cash registerss.
 
 =cut
 
@@ -659,19 +831,31 @@ sub openCashRegister {
     my $cashreg = Koha::CashRegister::CashRegisters->find({ id => $cash_register_id });
     
     if ( $cashreg ) {
-        if (! $cashreg->manager_id() ) {
-        my @managerIDs = $self->getEnabledStaff($cash_register_id);
+        if (!$cashreg->manager_id() || C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
+            my @managerIDs = $self->getEnabledStaff($cash_register_id);
             foreach my $enabled_manager (@managerIDs) {
                 if ( $enabled_manager->{borrowernumber} == $borrowerid ) {
-                    $cashreg->set( { manager_id => $borrowerid, prev_manager_id =>  $cashreg->prev_manager_id() } );
-                    $cashreg->store();
-                    return $self->addCashRegisterTransaction($cash_register_id, 'OPEN', $borrowerid);
+                    # set the cash register manger if not already opened
+                    if ( !$cashreg->manager_id() ) {
+                        $cashreg->set( { manager_id => $borrowerid, prev_manager_id => $cashreg->prev_manager_id() } );
+                        $cashreg->store();
+                        $self->addCashRegisterTransaction($cash_register_id, 'OPEN', $borrowerid);
+                    }
+                    my $cashmans = Koha::CashRegister::CashRegisterManagers->search({
+                        cash_register_id => $cash_register_id,
+                        manager_id => $borrowerid
+                    });
+                    if ( my $manager = $cashmans->next() ) {
+                        $manager->set( { opened => 1 });
+                        $manager->store();
+                    }
+                    return true;
                 }
             }
         }
     }
     
-    return 0;
+    return false;
 }
 
 =head2 closeCashRegister
@@ -692,14 +876,82 @@ sub closeCashRegister {
     my $cashreg = Koha::CashRegister::CashRegisters->find({ id => $cash_register_id });
     
     if ( $cashreg ) {
-        if ( $cashreg->manager_id() && $borrowerid == $cashreg->manager_id() ) {
-            $cashreg->set( { manager_id => undef, prev_manager_id =>  $cashreg->manager_id() } );
-            $cashreg->store();
-            return $self->addCashRegisterTransaction($cash_register_id, 'CLOSE', $borrowerid);
+        if ( ($cashreg->manager_id() && $borrowerid == $cashreg->manager_id()) || C4::Context->preference('PermitConcurrentCashRegisterUsers') ) {
+        
+            my $cashmans = Koha::CashRegister::CashRegisterManagers->search({
+                cash_register_id => $cash_register_id
+            });
+            
+            # find out, how many staff members opened the cash register
+            my $cashmans_opened_register = 0;
+            while ( my $manager = $cashmans->next() ) {
+                if ( $manager->opened ) {
+                    if ( $manager->manager_id == $borrowerid ) {
+                        $manager->set( { opened => 0 });
+                        $manager->store();
+                    } else {
+                        $cashmans_opened_register++;
+                    }
+                }
+            }
+            if ( $cashmans_opened_register == 0 ) {
+                $cashreg->set( { manager_id => undef, prev_manager_id => $cashreg->manager_id() } );
+                $cashreg->store();
+                return $self->addCashRegisterTransaction($cash_register_id, 'CLOSE', $borrowerid);
+            }
+            return true;
         }
     }
     
-    return 0;
+    return false;
+}
+
+
+=head2 smartCloseCashRegister
+
+  $cash_management->smartCloseCashRegister($cash_register_id, $manager_id)
+
+A smart close action can be used if concurrent booking actions are allowed 
+for cash registers. Since multiple users can have opened a cash register, all but
+the last user one can close the cash register without confirming the cash balance.
+
+=cut
+
+sub smartCloseCashRegister {
+    my $self = shift;
+    my $cash_register_id = shift;
+    my $borrowerid = shift;
+    
+    my $cashreg = Koha::CashRegister::CashRegisters->find({ id => $cash_register_id });
+    
+    if ( $cashreg ) {
+        if ( C4::Context->preference('PermitConcurrentCashRegisterUsers') ) {
+        
+            my $cashmans = Koha::CashRegister::CashRegisterManagers->search({
+                cash_register_id => $cash_register_id
+            });
+            
+            # find out, how many staff members opened the cash register
+            my $cashmans_opened_register = 0;
+            while ( my $manager = $cashmans->next() ) {
+                if ( $manager->opened && $manager->manager_id != $borrowerid ) {
+                    $cashmans_opened_register++;
+                }
+            }
+            if ( $cashmans_opened_register > 0 ) {
+                $cashmans->reset();
+                while ( my $manager = $cashmans->next() ) {
+                    if ( $manager->opened && $manager->manager_id == $borrowerid ) {
+                         $manager->set( { opened => 0 });
+                         $manager->store();
+                         return true;
+                    }
+                }
+            }
+        }
+    }
+    
+    return false;
 }
 
 =head2 getLastBooking
@@ -753,6 +1005,7 @@ sub getValidFromToPeriod {
     my $self = shift;
     my $from = shift;
     my $to = shift;
+    my $asdate = shift;
     
     my $date_from;
     my $date_to;
@@ -919,6 +1172,348 @@ sub getLastBookingsFromTo {
     return (\@result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
 }
 
+
+=head2 getFinesOverviewByBranch
+
+  $cash_management->getFinesOverviewByBranch($branchcode,$from,$to)
+
+This function returns an overview of fines by type.
+
+=cut
+
+sub getFinesOverviewByBranch {
+    my $self = shift;
+    my $dbh = C4::Context->dbh;
+    my $branchcode = shift;
+    my $from = shift;
+    my $to = shift;
+    my $type = shift;
+    
+    if ( ! $type ) {
+        $type = 'accounttype';
+    }
+    my ($date_from,$date_to) = $self->getValidFromToPeriod($from, $to);
+    my $result = {};
+            
+    $result->{type} = $type;
+    
+    if ( $type eq 'finesoverview' ) {
+        # get the accountlines statistics by type
+        my $query = q{
+            SELECT  a.accounttype as accounttype, SUM(a.amount) as sum, COUNT(*) as count
+            FROM    accountlines a
+            WHERE   a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
+                AND a.date >= ? and a.date <= ?
+                AND a.branchcode = ?
+            GROUP BY a.accounttype
+           }; $query =~ s/^\s+/ /mg;
+        my $sth = $dbh->prepare($query);
+        $sth->execute(
+                DateTime::Format::MySQL->format_date($date_from), 
+                DateTime::Format::MySQL->format_date($date_to),
+                $branchcode
+                );
+        $result->{sum} = {
+                amount => 0.0,
+                count => 0
+            };
+            
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount = $row->{sum};
+            $result->{data}->{$row->{accounttype}} = {
+                amount => $amount,
+                count => $row->{count},
+                fines_amount => sprintf('%.2f', $amount),
+                fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+            };
+            $result->{sun}->{$row->{accounttype}} = {
+                amount => $amount,
+                count => $row->{count},
+                fines_amount => sprintf('%.2f', $amount),
+                fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+            };
+            $result->{sum}->{amount} += $amount;
+            $result->{sum}->{count} += $row->{count};
+        }
+        
+        $result->{sum}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{amount});
+        $result->{sum}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{amount});
+    }
+    elsif ( $type eq 'finesbyday' || $type eq 'finesbymanager' || $type eq 'finesbytype' 
+        || $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' 
+    ) {
+        # get the accountlines statistics by type
+        my $query = q{
+            SELECT  a.date date, 
+                    a.accounttype as accounttype, 
+                    a.amount as amount,
+                    b.cardnumber as cardnumber,
+                    b.borrowernumber as borrowernumber,
+                    a.description as description,
+                    a.manager_id as manager_id,
+                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL, '', ' '), b.surname) as patron_name,
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL, '', ' '), m.surname) as manager_name
+            FROM    accountlines a
+            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            WHERE   a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
+                AND a.date >= ? and a.date <= ?
+                AND a.branchcode = ?
+            ORDER BY a.date, b.cardnumber
+           }; $query =~ s/^\s+/ /mg;
+        if ( $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' ) {
+            $query =~ s/ NOT IN / IN /;
+        }
+        my $sth = $dbh->prepare($query);
+
+        $sth->execute(
+                DateTime::Format::MySQL->format_date($date_from), 
+                DateTime::Format::MySQL->format_date($date_to),
+                $branchcode
+                );
+
+        my $rownum = 0;
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount = $row->{amount};
+            $row->{patron_name} =~ s/^\s+|\s+$//g;
+            $row->{manager_name} =~ s/^\s+|\s+$//g;
+            $result->{data}->[$rownum++] = {
+                date => output_pref({dt => dt_from_string($row->{date}), dateonly => 1}),
+                accounttype => $row->{accounttype},
+                amount => $amount,
+                fines_amount => sprintf('%.2f', $amount),
+                fines_amount_formatted => $self->formatAmountWithCurrency($amount),
+                cardnumber => $row->{cardnumber},
+                borrowernumber => $row->{borrowernumber},
+                description => $row->{description},
+                patron_name => $row->{patron_name},
+                manager_id => $row->{manager_id},
+                manager_name => $row->{manager_name}
+            };
+        }
+    }
+    
+    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
+}
+
+=head2 getCashTransactionOverviewByBranch
+
+  $cash_management->getCashTransactionOverviewByBranch($branchcode,$from,$to)
+
+This function returns an overview of all cash transactions during a selected period for a branch library.
+The payments and payout transactions are summarized by account and count for each defined cash register
+but also for SIP payments specifically cash and credit card.
+
+=cut
+
+sub getCashTransactionOverviewByBranch {
+    my $self = shift;
+    my $dbh = C4::Context->dbh;
+    my $branchcode = shift;
+    my $from = shift;
+    my $to = shift;
+    my ($date_from,$date_to) = $self->getValidFromToPeriod($from, $to);
+    my $result = {};
+    
+    my $cash_register = Koha::CashRegister::CashRegisters->search({
+            branchcode => $branchcode
+    });
+    
+    $result->{'sum'} = {
+        starting_balance => { amount => 0.0 },
+        final_balance => { amount => 0.0 },
+    };
+    
+    # initialize data
+    while ( my $cashreg = $cash_register->next() ) {
+        my $id = $cashreg->id;
+        $result->{$id}->{payment} = {
+            booking_amount => sprintf('%.2f', 0.0),
+            booking_amount_formatted => $self->formatAmountWithCurrency(0.0),
+            count_transactions => 0
+        };
+        $result->{$id}->{payout} = {
+            booking_amount => sprintf('%.2f', 0.0),
+            booking_amount_formatted => $self->formatAmountWithCurrency(0.0),
+            count_transactions => 0
+        };
+        $result->{$id}->{starting_balance} = {
+            booking_amount => sprintf('%.2f', 0.0),
+            booking_amount_formatted => $self->formatAmountWithCurrency(0.0)
+        };
+        $result->{$id}->{final_balance} = {
+            booking_amount => sprintf('%.2f', 0.0),
+            booking_amount_formatted => $self->formatAmountWithCurrency(0.0)
+        };
+        
+        # get the starting balance for the first transaction of the selected period
+        my $query = q{
+            SELECT  a.current_balance as balance
+            FROM cash_register_account a
+            WHERE     a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.booking_time < ? and b.cash_register_id = ? ) 
+                  AND a.cash_register_id = ?
+           }; $query =~ s/^\s+/ /mg;
+        my $sth = $dbh->prepare($query);
+        $sth->execute(DateTime::Format::MySQL->format_datetime($date_from), $id, $id);
+        if (my $row = $sth->fetchrow_hashref) {
+            $result->{$id}->{starting_balance} = {
+                booking_amount => sprintf('%.2f', $row->{balance}),
+                booking_amount_formatted => $self->formatAmountWithCurrency($row->{balance})
+            };
+            $result->{'sum'}->{starting_balance}->{amount} += $row->{balance};
+        }
+        
+        # get the final balance at the end selected period
+        $query = q{
+            SELECT  a.current_balance as balance
+            FROM cash_register_account a
+            WHERE     a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.booking_time <= ? and b.cash_register_id = ? ) 
+                  AND a.cash_register_id = ?
+           }; $query =~ s/^\s+/ /mg;
+        $sth = $dbh->prepare($query);
+        $sth->execute(DateTime::Format::MySQL->format_datetime($date_to), $id, $id);
+        if (my $row = $sth->fetchrow_hashref) {
+            $result->{$id}->{final_balance} = {
+                booking_amount => sprintf('%.2f', $row->{balance}),
+                booking_amount_formatted => $self->formatAmountWithCurrency($row->{balance})
+            };
+            $result->{'sum'}->{final_balance}->{amount} += $row->{balance};
+        }
+        else {
+             $result->{$id}->{final_balance} = $result->{$id}->{starting_balance};
+        }
+        
+        $result->{$id}->{info} = $self->loadCashRegister($id);
+    }
+
+    # get payments of cash registers
+    my $query = q{
+            SELECT a.cash_register_id as id, sum(a.booking_amount) as amount, count(*) count_transactions
+            FROM   cash_register_account a, cash_register c
+            WHERE  a.cash_register_id = c.id 
+               AND a.booking_amount > 0.00
+               AND a.booking_time >= ? and a.booking_time <= ?
+               AND c.branchcode = ?
+            GROUP BY a.cash_register_id
+        }; $query =~ s/^\s+/ /mg;
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute( 
+        DateTime::Format::MySQL->format_datetime($date_from),
+        DateTime::Format::MySQL->format_datetime($date_to),
+        $branchcode
+    );
+    while (my $row = $sth->fetchrow_hashref) {
+       my $amount = $row->{amount};
+       $result->{'sum'}->{payment}->{amount} += $amount;
+       $row->{booking_amount} = sprintf('%.2f', $amount);
+       $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
+       $result->{$row->{id}}->{payment} = $row;
+       $result->{$row->{id}}->{bookings_found} = 1;
+    }
+    $sth->finish;
+    
+    # get payouts of cash registers
+    $query = q{
+            SELECT a.cash_register_id as id, sum(a.booking_amount) as amount, count(*) count_transactions
+            FROM   cash_register_account a, cash_register c
+            WHERE  a.cash_register_id = c.id 
+               AND a.booking_amount < 0.00
+               AND a.booking_time >= ? and a.booking_time <= ?
+               AND c.branchcode = ?
+            GROUP BY a.cash_register_id
+        }; $query =~ s/^\s+/ /mg;
+
+    $sth = $dbh->prepare($query);
+    $sth->execute( 
+        DateTime::Format::MySQL->format_datetime($date_from),
+        DateTime::Format::MySQL->format_datetime($date_to),
+        $branchcode
+    );
+    while (my $row = $sth->fetchrow_hashref) {
+       my $amount = $row->{amount};
+       $result->{'sum'}->{payout}->{amount} += $amount;
+       $row->{booking_amount} = sprintf('%.2f', $amount);
+       $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
+       $result->{$row->{id}}->{payout} = $row;
+       $result->{$row->{id}}->{bookings_found} = 1;
+    }
+    $sth->finish;
+    
+    # get all transactions which are not related to cash registers
+    # get payments of cash registers
+    $query = q{
+            SELECT a.accounttype accounttype, sum(a.amount-a.amountoutstanding) as amount, count(*) count_transactions
+            FROM   accountlines a, borrowers b
+            WHERE  a.amount-a.amountoutstanding <> 0.00
+               AND a.date >= ? and a.date <= ?
+               AND a.manager_id = b.borrowernumber
+               AND a.branchcode = ?
+               AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
+               AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
+            GROUP BY b.branchcode, a.accounttype
+        }; $query =~ s/^\s+/ /mg;
+
+    $sth = $dbh->prepare($query);
+    $sth->execute( 
+        DateTime::Format::MySQL->format_date($date_from),
+        DateTime::Format::MySQL->format_date($date_to),
+        $branchcode
+    );
+    
+    my @ptypes = ('cash','card','unassigned');
+
+    foreach my $type(@ptypes) {
+        $result->{$type}->{payment} = {
+            amount => 0.0,
+            count_transactions => 0
+        };
+        $result->{$type}->{payout} = {
+            amount => 0.0,
+            count_transactions => 0
+        };
+        $result->{$type}->{bookings_found} = 0;
+    }
+    
+    while (my $row = $sth->fetchrow_hashref) {
+        my $amount = $row->{'amount'} * -1;
+        my $acctype = $row->{'accounttype'};
+        my $type = 'unassigned';
+        if ( $acctype eq 'Pay00' ) {
+            $type = 'cash';
+        }
+        elsif ( $acctype eq 'Pay01' || $acctype eq 'Pay02' ) {
+            $type = 'card';
+        }
+        my $what = 'payout';
+        if ( $amount >= 0.00 ) {
+            # it's a payment
+            $what = 'payment';
+        }
+        $result->{'sum'}->{$what}->{amount} += $amount;
+        $result->{$type}->{$what}->{amount} += $amount;
+        $result->{$type}->{$what}->{count_transactions} += $row->{count_transactions};
+        $result->{$type}->{bookings_found} = 1;
+    }
+    $sth->finish;
+    
+    push(@ptypes, 'sum');
+    foreach my $type(@ptypes) {
+        $result->{$type}->{payment}->{booking_amount} = sprintf('%.2f', $result->{$type}->{payment}->{amount} || 0.0);
+        $result->{$type}->{payment}->{booking_amount_formatted} = $self->formatAmountWithCurrency($result->{$type}->{payment}->{amount});
+        $result->{$type}->{payout}->{booking_amount} = sprintf('%.2f', $result->{$type}->{payout}->{amount} || 0.0);
+        $result->{$type}->{payout}->{booking_amount_formatted} = $self->formatAmountWithCurrency($result->{$type}->{payout}->{amount});
+    }
+    $result->{sum}->{starting_balance}->{booking_amount} = sprintf('%.2f', $result->{sum}->{starting_balance}->{amount});
+    $result->{sum}->{starting_balance}->{booking_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{starting_balance}->{amount});
+    $result->{sum}->{final_balance}->{booking_amount} = sprintf('%.2f', $result->{sum}->{final_balance}->{amount});
+    $result->{sum}->{final_balance}->{booking_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{final_balance}->{amount});
+    
+    
+    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
+}
+
+
 =head2 getLastBooking
 
   $cash_management->addCashRegisterTransaction($cash_register_id, $action, $manager_id, $comment, $amount, $accountlines_id)
@@ -1039,13 +1634,14 @@ sub getCashRegisterHandoverInformationByLastOpeningAction {
         'opening_balance' => sprintf('%.2f', $lastOpeningAction->current_balance()),
         'opening_balance_formatted' => $self->formatAmountWithCurrency($lastOpeningAction->current_balance()),
         'opening_manager_id' => $lastOpeningAction->manager_id(),
+        'opening_manager' => $self->{managers}->{$lastOpeningAction->manager_id()}->{fullname},
         'opening_booking_time' => output_pref ( { dt => dt_from_string($lastOpeningAction->booking_time()) } ),
         'inpayments_amount' => sprintf('%.2f', 0.00 ),
         'inpayments_amount_formatted' => $self->formatAmountWithCurrency(0.00),
         'inpayments_count' => 0,
         'payouts_amount' => sprintf('%.2f', 0.00 ),
         'payouts_amount_formatted' => $self->formatAmountWithCurrency(0.00),
-        'payouts_count' => 0
+        'payouts_count' => 0,
     };
 
     
@@ -1062,6 +1658,24 @@ sub getCashRegisterHandoverInformationByLastOpeningAction {
             $result->{'inpayments_amount'} =  sprintf('%.2f',$row->{amount});
             $result->{'inpayments_amount_formatted'} =  $self->formatAmountWithCurrency($row->{amount});
             $result->{'inpayments_count'} = $row->{actions};
+        }
+    }
+    $sth->finish;
+    
+    # read the amount of payments that filled the cash register
+    $query = q{
+        SELECT DISTINCT manager_id
+        FROM   cash_register_manager
+        WHERE  cash_register_id = ? AND opened = 1 AND manager_id <> ?
+       }; $query =~ s/^\s+/ /mg;
+    $sth = $dbh->prepare($query);
+    $sth->execute($cash_register_id,$lastOpeningAction->manager_id());
+    my $additionalOpener = 0;
+    $result->{'also_used_by_manager_id'} = [];
+    while (my $row = $sth->fetchrow_hashref) {
+        if ( $row && $row->{manager_id} ) {
+            $result->{'also_used_by_manager'}->[$additionalOpener++] = 
+                { id => $row->{manager_id}, name => $self->{managers}->{$row->{manager_id}}->{fullname} };
         }
     }
     $sth->finish;

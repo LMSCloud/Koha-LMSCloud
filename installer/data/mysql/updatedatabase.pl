@@ -12992,7 +12992,17 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion($DBversion);
 }
 
-
+$DBversion = "16.05.05.009";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type )
+        VALUES ('PermitConcurrentCashRegisterUsers','0',NULL,'Permit concurrent staff users to book to an opened cash register.', 'YesNo' )
+    });
+    
+    print "Upgrade to $DBversion done (LMSCloud: add parameter to enable concurrent use of cash registers.)\n";
+    SetVersion($DBversion);
+}
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068

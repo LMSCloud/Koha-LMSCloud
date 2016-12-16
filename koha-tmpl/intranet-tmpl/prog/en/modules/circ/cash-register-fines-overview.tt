@@ -1,0 +1,20 @@
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Circulation &rsaquo; Cash register management</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% INCLUDE 'calendar.inc' %]
+<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% INCLUDE 'datatables.inc' %]
+<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script>
+</head>
+<body id="circ_managecashregister" class="circ">
+
+
+        <div id="doc3" class="yui-t1">
+            <div id="bd">
+                <div id="yui-main">
+                    [% INCLUDE 'cashregister-fines-overview.inc' %]
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

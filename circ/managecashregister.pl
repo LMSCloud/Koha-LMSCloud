@@ -27,7 +27,9 @@ use C4::Auth qw/:DEFAULT get_session/;
 use C4::Koha;
 use C4::Branch;
 use Koha::DateUtils;
+use DateTime;
 use C4::CashRegisterManagement;
+use Locale::Currency::Format;
 
 ##########################################################
 #
@@ -35,8 +37,14 @@ use C4::CashRegisterManagement;
 #
 ##########################################################
 my $query = CGI->new();
+my $view = "circ/managecashregister.tt";
+my $printview = 0;
+if ( $query->param('printview') && $query->param('printview') eq 'print' ) {
+    $view = "circ/cash-register-fines-overview.tt";
+    $printview = 1;
+}
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
-    template_name   => "circ/managecashregister.tt",
+    template_name   => $view,
     query           => $query,
     type            => "intranet",
     debug           => 1,
@@ -55,6 +63,7 @@ my $branch = $session->param('branch');
 my $status = '';
 my $debug = '';
 
+
 ########################################
 #  Read branches
 ########################################
@@ -72,7 +81,7 @@ for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{b
 my $cash_management = C4::CashRegisterManagement->new($branch,$loggedinuser);
 
 my @cash_registers = $cash_management->getPermittedCashRegisters($loggedinuser);
-my $cash_register = $cash_management->getOpenCashRegister($loggedinuser);
+my $cash_register = $cash_management->getOpenedCashRegisterByManagerID($loggedinuser);
 if ( $cash_register ) {
     if ( $cash_register->{cash_register_branchcode} ne $branch ) {
         $status = 'close';
@@ -96,14 +105,17 @@ my $op = $query->param('op') || '';
 my $cash_register_id = $query->param('cash_register_id');
 my $lastTransaction = undef;
 
+my ($journalfrom,$journalto);
 my $manageaction = 'journal';
 my $cash_register_info;
+my $bookingstats;
+my $finesstats;
 
 # we only try to open a cash register if there is no opened cash register
 # of the user
 if ( $op eq 'open' && $status eq 'open' && $cash_register_id) {
     my $cashreg = $cash_management->loadCashRegister($cash_register_id);
-    if ( $cashreg && !$cashreg->{cash_register_manager_id} ) {
+    if ( $cashreg && $cash_management->canOpenCashRegister($cash_register_id,$loggedinuser) ) {
         if ( $cash_management->openCashRegister($cash_register_id, $loggedinuser) ) {
             $status = 'manage';
             $cash_register = $cash_management->getOpenCashRegister($loggedinuser);
@@ -114,7 +126,7 @@ if ( $op eq 'open' && $status eq 'open' && $cash_register_id) {
 }
 elsif (  $op eq 'close' && ($status eq 'close' || $status eq 'manage') && $cash_register_id ) {
     my $cashreg = $cash_management->loadCashRegister($cash_register_id);
-    if ( $cashreg && $cashreg->{cash_register_manager_id} ) {
+    if ( $cashreg && $cash_management->canCloseCashRegister($cash_register_id,$loggedinuser) ) {
         if ( $cash_management->closeCashRegister($cash_register_id, $loggedinuser) ) {
             $status = 'open';
             # redirect to self to avoid form submission on refresh
@@ -137,6 +149,10 @@ elsif ( $op eq 'doadjust' && $status eq 'manage' ) {
     );
 }
 elsif ( $op eq 'doclose' && $status eq 'manage' ) {
+    # let's check wehther this is a real close action
+    if (  $cash_management->smartCloseCashRegister($cash_register_id, $loggedinuser) ) {
+        print $query->redirect("/cgi-bin/koha/circ/managecashregister.pl");
+    }
     $manageaction = 'close';
 }
 elsif ( $op eq 'payout' && $status eq 'manage' ) {
@@ -178,8 +194,17 @@ elsif ( $op eq 'adjust' && $status eq 'manage' ) {
         );
     }
 }
-
-my ($journalfrom,$journalto);
+elsif ( $op eq 'dayview' ) {
+    my $from = $query->param('journalfrom');
+    my $to = $query->param('journalto');
+    my $finestype = $query->param('finestype');
+    if (! $finestype ) {
+        $finestype = 'finesoverview';
+    }
+    ($bookingstats,$journalfrom,$journalto) = $cash_management->getCashTransactionOverviewByBranch($branch, $from, $to);
+    ($finesstats,$journalfrom,$journalto) = $cash_management->getFinesOverviewByBranch($branch, $from, $to, $finestype);
+    $manageaction = 'dayview';
+}
 
 my $wrongBranch=0;
 my @transactions = ();
@@ -203,8 +228,6 @@ if ( $cash_register ) {
     }
 }
 
-#use Data::Dumper;
-#$debug = Dumper($cash_register_info);
 
 $template->param(
     status => $status,
@@ -219,7 +242,13 @@ $template->param(
     journalto => $journalto,
     manageaction => $manageaction,
     cash_register_info => $cash_register_info,
-    debug => $debug
+    bookingstats => $bookingstats,
+    finesstats => $finesstats,
+    debug => $debug,
+    currency_format => $cash_management->getCurrencyFormatterData(),
+    printview => $printview,
+    branchname => GetBranchName($branch),
+    datetimenow => output_pref({dt => DateTime->now, dateonly => 0})
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

@@ -7,7 +7,6 @@
 <script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script>
 
 <script type="text/javascript">
-//<![CDATA[
 $(document).ready( function() {
     $("#cashregjournal").dataTable($.extend(true, {}, dataTablesDefaults, {
         'pagingType': 'full_numbers',
@@ -26,7 +25,7 @@ $(document).ready( function() {
         "bPaginate": false,
         'serverSide': false,
         'oLanguage': {
-            'sZeroRecords': _("No cash register transactions during the selected period.")
+            'sEmptyTable': _("No cash register transactions during the selected period.")
         }
     }));
     
@@ -126,7 +125,8 @@ $(document).ready( function() {
                         </div><!-- help-->
                         [% END %]
                         <div id="toolbar" class="btn-toolbar">
-                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa a-times"></i> Close</a>
+                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
+                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Day-end closing</a>
                         </div>
                         [% END %]
                         
@@ -147,14 +147,18 @@ $(document).ready( function() {
                             <input type="hidden" name="op" value="open" />
                             &nbsp;&nbsp;<button class="btn btn-small" submit=""><i class="fa fa-money"></i> Open</button>
                         </form>
+                        <div id="toolbar" class="btn-toolbar">
+                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Day-end closing</a>
+                        </div>
                         [% END %]
                         
                         [% IF status == 'manage' %]
                             <div id="toolbar" class="btn-toolbar">
-                                <a id="linkclosecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa a-times"></i> Close</a>
-                                <a id="linkpayoutcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dopayout"><i class="fa a-times"></i> Cash payment</a>
-                                <a id="linkadjustcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa a-times"></i> Difference posting</a>
-                                <a id="linkshowcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa a-times"></i> Cash journal</a>
+                                <a id="linkclosecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
+                                <a id="linkpayoutcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dopayout"><i class="fa fa-money"></i> Cash payment</a>
+                                <a id="linkadjustcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa fa-adjust"></i> Difference posting</a>
+                                <a id="linkshowcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa fa-list"></i> Cash journal</a>
+                                <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Day-end closing</a>
                             </div>
                             [% IF manageaction == 'payout' %]
                                 <h3>Cash payment</h3>
@@ -359,6 +363,9 @@ $(document).ready( function() {
                                 </div>
                             [% END %]
                         [% END %]
+                        [% IF manageaction == 'dayview' %]
+                            [% INCLUDE 'cashregister-fines-overview.inc' %]
+                        [% END %]
                         [% debug %]
                     </div>
                 </div>
@@ -377,6 +384,10 @@ $(document).ready( function() {
                     [% END %]
                     <li class="cashregisterimportantinfo">Cash balance: [% cash_register.cash_register_balance_formatted %]</li>
                     <li class="cashregisterinfo">Opened on: [% cash_register_info.opening_booking_time %]</li>
+                    <li class="cashregisterinfo">Opened by: [% cash_register_info.opening_manager %]</li>
+                    [% FOREACH additionalOpener IN cash_register_info.also_used_by_manager %]
+                    <li class="cashregisterinfo">Also in use by: [% additionalOpener.name %]</li>
+                    [% END %]
                     <li class="cashregisterinfo">Cash receipts: [% cash_register_info.inpayments_amount_formatted %]</li>
                     <li class="cahsregisterinfo">Cash payments: [% cash_register_info.payouts_amount_formatted %]</li>
                 [% IF ( lastTransaction ) %]

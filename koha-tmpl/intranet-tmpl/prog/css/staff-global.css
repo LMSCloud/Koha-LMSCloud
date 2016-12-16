@@ -252,6 +252,7 @@ table+table {
 .highlighted-row,
 .highlighted-row td { background-color: #FFD000 !important }
 
+
 tbody tr:nth-child(odd) td {
 	background-color : #F3F3F3;
     border : 1px solid #BCBCBC;
@@ -2813,4 +2814,14 @@ div.cashregisterinfo ul li {
 
 .cashregisterimportantinfo {
 	font-weight : bold;
+}
+
+.finesgroupsum {
+    font-weight : bold;
+}
+
+#finesbydate tbody tr:nth-child(odd) td {
+	background-color : inherit;
+    border : 1px solid #BCBCBC;
+    border-right : 1px solid #BCBCBC;
 }
