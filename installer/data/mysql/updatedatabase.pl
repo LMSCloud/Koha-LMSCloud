@@ -13040,6 +13040,18 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion($DBversion);
 }
 
+$DBversion = "16.05.05.011";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+
+    # add new field line_height to specify the line height for label printing
+    $dbh->do(q{
+        ALTER TABLE `creator_layouts` ADD `line_height` decimal(4,2) NOT NULL DEFAULT '1.00' AFTER `creator`
+    });
+    print "Upgrade to $DBversion done (LMSCloud: add new field line_height to specify the line height for label printing.)\n";
+    SetVersion($DBversion);
+}
+
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

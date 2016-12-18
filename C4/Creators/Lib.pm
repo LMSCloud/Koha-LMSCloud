@@ -120,6 +120,10 @@ my $font_types = [
     {type => 'HO',      name => 'Helvetica-Oblique',            selected => 0},
     {type => 'HB',      name => 'Helvetica-Bold',               selected => 0},
     {type => 'HBO',     name => 'Helvetica-Bold-Oblique',       selected => 0},
+    {type => 'A',       name => 'Liberation-Sans',              selected => 0},
+    {type => 'AO',      name => 'Liberation-Sans-Italic',       selected => 0},
+    {type => 'AB',      name => 'Liberation-Sans-Bold',         selected => 0},
+    {type => 'ABO',     name => 'Liberation-Sans-Bold-Italic',  selected => 0},
 ];
 
 my $text_justification_types = [

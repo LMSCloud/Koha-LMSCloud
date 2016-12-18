@@ -113,6 +113,7 @@ elsif  ($op eq 'save') {
                     callnum_split   => ($cgi->param('callnum_split') ? 1 : 0),
                     text_justify    => scalar $cgi->param('text_justify') || 'L',
                     format_string   => scalar $cgi->param('format_string') || 'title, author, isbn, issn, itemtype, barcode, itemcallnumber',
+                    line_height     => scalar $cgi->param('line_height') || 1.00,
     );
     if ($layout_id) {   # if a label_id was passed in, this is an update to an existing layout
         $layout = C4::Labels::Layout->retrieve(layout_id => $layout_id);
@@ -151,5 +152,6 @@ $template->param(
         callnum_split   => $layout->get_attr('callnum_split'),
         format_string   => $layout->get_attr('format_string'),
         layout_string   => 1,   # FIXME: This should not be hard-coded; It should perhaps be yet another syspref... CN
+        line_height     => $layout->get_attr('line_height'),
 );
 output_html_with_http_headers $cgi, $cookie, $template->output;

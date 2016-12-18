@@ -145,6 +145,7 @@ foreach my $item (@{$items}) {
                                         callnum_split       => $layout->get_attr('callnum_split'),
                                         justify             => $layout->get_attr('text_justify'),
                                         format_string       => $layout->get_attr('format_string'),
+                                        line_height         => $layout->get_attr('line_height'),
                                         text_wrap_cols      => $layout->get_text_wrap_cols(label_width => $template->get_attr('label_width'), left_text_margin => $template->get_attr('left_text_margin')),
                                           );
         $pdf->Add($label_a->draw_guide_box) if $layout->get_attr('guidebox');
@@ -169,6 +170,7 @@ foreach my $item (@{$items}) {
                                         callnum_split       => $layout->get_attr('callnum_split'),
                                         justify             => $layout->get_attr('text_justify'),
                                         format_string       => $layout->get_attr('format_string'),
+                                        line_height         => $layout->get_attr('line_height'),
                                         text_wrap_cols      => $layout->get_text_wrap_cols(label_width => $template->get_attr('label_width'), left_text_margin => $template->get_attr('left_text_margin')),
                                           );
         $pdf->Add($label_b->draw_guide_box) if $layout->get_attr('guidebox');
@@ -196,6 +198,7 @@ foreach my $item (@{$items}) {
                                         callnum_split       => $layout->get_attr('callnum_split'),
                                         justify             => $layout->get_attr('text_justify'),
                                         format_string       => $layout->get_attr('format_string'),
+                                        line_height         => $layout->get_attr('line_height'),
                                         text_wrap_cols      => $layout->get_text_wrap_cols(label_width => $template->get_attr('label_width'), left_text_margin => $template->get_attr('left_text_margin')),
                                           );
         $pdf->Add($label->draw_guide_box) if $layout->get_attr('guidebox');

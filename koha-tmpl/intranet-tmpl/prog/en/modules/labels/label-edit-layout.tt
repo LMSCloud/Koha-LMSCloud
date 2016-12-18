@@ -195,6 +195,10 @@
                                     <input type="checkbox" name="oblique_title" id="oblique_title" value="1" />
                                     [% END %]
                                 </li>
+                                <li>
+                                    <label for="line_height">Line height: </label>
+                                    <input type="number" name="line_height" id="line_height" min="0.0" max="99.99" step="0.1" value="[% line_height %]" />
+                                </li>
                             </ol>
                         </fieldset>
                         <fieldset class="action">

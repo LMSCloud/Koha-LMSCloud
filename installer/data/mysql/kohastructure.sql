@@ -1047,6 +1047,7 @@ CREATE TABLE `creator_layouts` (
   `format_string` varchar(210) NOT NULL DEFAULT 'barcode',
   `layout_xml` text NOT NULL,
   `creator` char(15) NOT NULL DEFAULT 'Labels',
+  `line_height` decimal(4,2) NOT NULL DEFAULT '1.00',
   PRIMARY KEY (`layout_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 

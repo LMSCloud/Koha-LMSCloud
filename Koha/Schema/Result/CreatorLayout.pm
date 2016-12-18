@@ -120,6 +120,13 @@ __PACKAGE__->table("creator_layouts");
   is_nullable: 0
   size: 15
 
+=head2 line_height
+
+  data_type: 'decimal'
+  default_value: 1.00
+  is_nullable: 0
+  size: [4,2]
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -173,6 +180,13 @@ __PACKAGE__->add_columns(
     is_nullable => 0,
     size => 15,
   },
+  "line_height",
+  {
+    data_type => "decimal",
+    default_value => "1.00",
+    is_nullable => 0,
+    size => [4, 2],
+  },
 );
 
 =head1 PRIMARY KEY
@@ -188,8 +202,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("layout_id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-05-16 17:38:42
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:BDNkfgqz53LCR2Ij7cVCow
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-18 15:50:05
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:0apgEtNkmEEZxm5fLzfg3Q
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

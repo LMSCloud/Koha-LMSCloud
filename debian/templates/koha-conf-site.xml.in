@@ -306,6 +306,10 @@ __END_SRU_PUBLICSERVER__
     <font type="HO" >/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans-Oblique.ttf</font>
     <font type="HB" >/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans-Bold.ttf</font>
     <font type="HBO">/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans-BoldOblique.ttf</font>
+    <font type="A"  >/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf</font>
+    <font type="AB" >/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf</font>
+    <font type="AO" >/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf</font>
+    <font type="ABO">/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf</font>
  </ttf>
 
 </config>

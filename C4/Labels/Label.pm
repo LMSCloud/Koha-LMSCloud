@@ -40,6 +40,7 @@ sub _check_params {
         'format_string',
         'text_wrap_cols',
         'barcode',
+        'line_height'
     );
     if (scalar(@_) >1) {
         $given_params = {@_};
@@ -181,6 +182,18 @@ sub _split_ccn {
     return @parts;
 }
 
+sub _trim_value {
+    my $value = shift;
+    my $where = shift;
+    if ( $where eq 'left' || $where eq 'both' ) {
+        $value =~ s/^\s+//;
+    }
+    if ( $where eq 'right' || $where eq 'both' ) {
+        $value =~ s/\s+$//;
+    }
+    return $value;
+}
+
 sub _get_barcode_data {
     my ( $f, $item, $record ) = @_;
     my $kohatables = _desc_koha_tables();
@@ -194,27 +207,70 @@ sub _get_barcode_data {
             @{ $kohatables->{'branches'} }
         )
     );
+    my ($font,$size,$trim,$maxlength,$nowrap);
+    if ( $f =~ s/(.*)\{([^\}]*)\}(.*)/$1.$3/e ) {
+        my @settings = split(/\s*,\s*/,$2);
+        foreach my $setting (@settings) {
+            if ( $setting =~ /^\s*font\s*:\s*(TR|TB|TI|TBI|C|CB|CO|CBO|H|HO|HB|HBO)\s*/ ) {
+                $font = $1;
+            }
+            elsif ( $setting =~ /^\s*fontsize\s*:\s*([0-9]+)\s*/ ) {
+                $size = $1;
+            }
+            elsif ( $setting =~ /^\s*trim\s*:\s*(left|right|both)\s*/ ) {
+                $trim = $1;
+            }
+            elsif ( $setting =~ /^\s*maxlength\s*:\s*([0-9]+)\s*/ ) {
+                $maxlength = $1;
+            }
+            elsif ( $setting =~ /^\s*wrap\s*:\s*(no)\s*/ ) {
+                if ( $1 eq 'no' ) {
+                    $nowrap = 1;
+                }
+            }
+        }
+    }
+    
     FIELD_LIST:
     while ($f) {
         my $err = '';
         $f =~ s/^\s?//;
+        
         if ( $f =~ /^'(.*)'.*/ ) {
             # single quotes indicate a static text string.
             $datastring .= $1;
             $f = $';
             next FIELD_LIST;
         }
-        elsif ( $f =~ /^($match_kohatable).*/ ) {
-            if ($item->{$f}) {
-                $datastring .= $item->{$f};
-            } else {
-                $debug and warn sprintf("The '%s' field contains no data.", $f);
-            }
+        elsif ( $f =~ /^($match_kohatable)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?.*/ ) {
+            my ($field,$split,$splittext,$splitlimit,$splitindex) = ($1,$3,$4,$6,$7);
             $f = $';
+            if ($item->{$field}) {
+                my $value = $item->{$field};
+                $value = _trim_value($value,$trim) if ( $trim && $value );
+                if ( $split && $value ) {
+                    my @vals;
+                    if ($splitlimit) {
+                        @vals = split(/\Q$splittext\E/,$value,$splitlimit);
+                    } else {
+                        @vals = split(/\Q$splittext\E/,$value);
+                    }
+                    $value = '';
+                    if ( scalar(@vals) > $splitindex ) {
+                        $value = $vals[$splitindex];
+                    }
+                }
+                $datastring .= $value if ($value);
+            } else {
+                $debug and warn sprintf("The '%s' field contains no data.", $field);
+            }
             next FIELD_LIST;
         }
-        elsif ( $f =~ /^([0-9a-z]{3})(\w)(\W?).*?/ ) {
-            my ($field,$subf,$ws) = ($1,$2,$3);
+        elsif ( $f =~ /^([0-9a-z]{3})(\w)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?(\W?).*?/ ) {
+            my ($field,$subf,$split,$splittext,$splitlimit,$splitindex,$ws) = ($1,$2,$4,$5,$7,$8,$9);
+            $f = $';
+
+            my $value = '';
             my $subf_data;
             my ($itemtag, $itemsubfieldcode) = &GetMarcFromKohaField("items.itemnumber",'');
             my @marcfield = $record->field($field);
@@ -224,24 +280,37 @@ sub _get_barcode_data {
                     foreach my $itemfield (@marcfield) {
                         if ( $itemfield->subfield($itemsubfieldcode) eq $item->{'itemnumber'} ) {
                             if ($itemfield->subfield($subf)) {
-                                $datastring .= $itemfield->subfield($subf) . $ws;
+                                $value .= $itemfield->subfield($subf) . $ws;
                             }
                             else {
-                                warn sprintf("The '%s' field contains no data.", $f);
+                                warn sprintf("The '%s%s' field contains no data.", $field, $subf);
                             }
                             last ITEM_FIELDS;
                         }
                     }
                 } else {  # bib-level data, we'll take the first matching tag/subfield.
                     if ($marcfield[0]->subfield($subf)) {
-                        $datastring .= $marcfield[0]->subfield($subf) . $ws;
+                        $value .= $marcfield[0]->subfield($subf) . $ws;
                     }
                     else {
-                        warn sprintf("The '%s' field contains no data.", $f);
+                        warn sprintf("The '%s' field contains no data.", $field);
                     }
                 }
             }
-            $f = $';
+            $value = _trim_value($value,$trim) if ( $trim && $value );
+            if ( $split && $value ) {
+                my @vals;
+                if ($splitlimit) {
+                    @vals = split(/\Q$splittext\E/,$value,$splitlimit);
+                } else {
+                    @vals = split(/\Q$splittext\E/,$value);
+                }
+                $value = '';
+                if ( scalar(@vals) > $splitindex ) {
+                    $value = $vals[$splitindex];
+                }
+            }
+            $datastring .= $value if ( $value );
             next FIELD_LIST;
         }
         else {
@@ -249,7 +318,10 @@ sub _get_barcode_data {
             last FIELD_LIST;    # Failed to match
         }
     }
-    return $datastring;
+    if ( $maxlength && $datastring && length($datastring)>$maxlength ) {
+        $datastring = substr($datastring,0,$maxlength);
+    }
+    return ($datastring,$font,$size,$nowrap);
 }
 
 sub _desc_koha_tables {
@@ -272,7 +344,7 @@ sub _desc_koha_tables {
 
 sub _BIB {
     my $self = shift;
-    my $line_spacer = ($self->{'font_size'} * 1);       # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
+    my $line_spacer = ($self->{'font_size'} * $self->{'line_height'});       # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly = ($self->{'lly'} + ($self->{'height'} - $self->{'top_text_margin'}));
     return $self->{'llx'}, $text_lly, $line_spacer, 0, 0, 0, 0;
 }
@@ -292,7 +364,7 @@ sub _BIBBAR {
     my $barcode_lly = $self->{'lly'} + $self->{'top_text_margin'};      # this places the bottom left of the barcode the top text margin distance above the bottom of the label ($lly)
     my $barcode_width = 0.8 * $self->{'width'};                         # this scales the barcode width to 80% of the label width
     my $barcode_y_scale_factor = 0.01 * $self->{'height'};              # this scales the barcode height to 10% of the label height
-    my $line_spacer = ($self->{'font_size'} * 1);       # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
+    my $line_spacer = ($self->{'font_size'} * $self->{'line_height'});       # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly = ($self->{'lly'} + ($self->{'height'} - $self->{'top_text_margin'}));
     $debug and warn  "Label: llx $self->{'llx'}, lly $self->{'lly'}, Text: lly $text_lly, $line_spacer, Barcode: llx $barcode_llx, lly $barcode_lly, $barcode_width, $barcode_y_scale_factor\n";
     return $self->{'llx'}, $text_lly, $line_spacer, $barcode_llx, $barcode_lly, $barcode_width, $barcode_y_scale_factor;
@@ -304,7 +376,7 @@ sub _BARBIB {
     my $barcode_lly = ($self->{'lly'} + $self->{'height'}) - $self->{'top_text_margin'};        # this places the bottom left of the barcode the top text margin distance below the top of the label ($self->{'lly'})
     my $barcode_width = 0.8 * $self->{'width'};                                                 # this scales the barcode width to 80% of the label width
     my $barcode_y_scale_factor = 0.01 * $self->{'height'};                                      # this scales the barcode height to 10% of the label height
-    my $line_spacer = ($self->{'font_size'} * 1);                               # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
+    my $line_spacer = ($self->{'font_size'} * $self->{'line_height'});                               # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly = (($self->{'lly'} + $self->{'height'}) - $self->{'top_text_margin'} - (($self->{'lly'} + $self->{'height'}) - $barcode_lly));
     return $self->{'llx'}, $text_lly, $line_spacer, $barcode_llx, $barcode_lly, $barcode_width, $barcode_y_scale_factor;
 }
@@ -332,6 +404,7 @@ sub new {
         format_string           => $params{'format_string'},
         text_wrap_cols          => $params{'text_wrap_cols'},
         barcode                 => 0,
+        line_height             => $params{'line_height'}, # multiplier of the line height which controls sapcing between lines, the value is multiplied with the font height
     };
     if ($self->{'guidebox'}) {
         $self->{'guidebox'} = _guide_box($self->{'llx'}, $self->{'lly'}, $self->{'width'}, $self->{'height'});
@@ -393,6 +466,7 @@ sub draw_label_text {
     my $text_llx = 0;
     my $text_lly = $params{'lly'};
     my $font = $self->{'font'};
+    my $size = $self->{'font_size'};
     my $item = _get_label_item($self->{'item_number'});
     my $label_fields = _get_text_fields($self->{'format_string'});
     my $record = GetMarcBiblio($item->{'biblionumber'});
@@ -401,11 +475,15 @@ sub draw_label_text {
     my $cn_source = ($item->{'cn_source'} ? $item->{'cn_source'} : C4::Context->preference('DefaultClassificationSource'));
     LABEL_FIELDS:       # process data for requested fields on current label
     for my $field (@$label_fields) {
+        my $nowrap;
         if ($field->{'code'} eq 'itemtype') {
             $field->{'data'} = C4::Context->preference('item-level_itypes') ? $item->{'itype'} : $item->{'itemtype'};
         }
         else {
-            $field->{'data'} = _get_barcode_data($field->{'code'},$item,$record);
+            my ($setfont,$setsize);
+            ($field->{'data'},$setfont,$setsize,$nowrap) = _get_barcode_data($field->{'code'},$item,$record);
+            $font = $setfont if ( $setfont );
+            $size = $setsize if ( $setsize );
         }
         # Find apropriate font it oblique title selected, except main font is oblique
         if ( ( $field->{'code'} eq 'title' ) and ( $self->{'oblique_title'} == 1 ) ) {
@@ -442,31 +520,36 @@ sub draw_label_text {
             }
         }
         else {
-            if ($field_data) {
-                $field_data =~ s/\/$//g;       # Here we will strip out all trailing '/' in fields other than the call number...
-                # Escaping the parens was causing odd output, see bug 13124
-                # $field_data =~ s/\(/\\\(/g;    # Escape '(' and ')' for the pdf object stream...
-                # $field_data =~ s/\)/\\\)/g;
-            }
-            eval{$Text::Wrap::columns = $self->{'text_wrap_cols'};};
-            my @line = split(/\n/ ,wrap('', '', $field_data));
-            # If this is a title field, limit to two lines; all others limit to one... FIXME: this is rather arbitrary
-            if ($field->{'code'} eq 'title' && scalar(@line) >= 2) {
-                while (scalar(@line) > 2) {
-                    pop @line;
-                }
+            
+            if ( $nowrap ) {
+                push(@label_lines, $field_data);
             } else {
-                while (scalar(@line) > 1) {
-                    pop @line;
+                if ($field_data) {
+                    $field_data =~ s/\/$//g;       # Here we will strip out all trailing '/' in fields other than the call number...
+                    # Escaping the parens was causing odd output, see bug 13124
+                    # $field_data =~ s/\(/\\\(/g;    # Escape '(' and ')' for the pdf object stream...
+                    # $field_data =~ s/\)/\\\)/g;
                 }
+                eval{$Text::Wrap::columns = $self->{'text_wrap_cols'};};
+                my @line = split(/\n/ ,wrap('', '', $field_data));
+                # If this is a title field, limit to two lines; all others limit to one... FIXME: this is rather arbitrary
+                if ($field->{'code'} eq 'title' && scalar(@line) >= 2) {
+                    while (scalar(@line) > 2) {
+                        pop @line;
+                    }
+                } else {
+                    while (scalar(@line) > 1) {
+                        pop @line;
+                    }
+                }
+                push(@label_lines, @line);
             }
-            push(@label_lines, @line);
         }
         LABEL_LINES:    # generate lines of label text for current field
         foreach my $line (@label_lines) {
             next LABEL_LINES if $line eq '';
             $line = log2vis( $line );
-            my $string_width = C4::Creators::PDF->StrWidth($line, $font, $self->{'font_size'});
+            my $string_width = C4::Creators::PDF->StrWidth($line, $font, $size);
             if ($self->{'justify'} eq 'R') {
                 $text_llx = $params{'llx'} + $self->{'width'} - ($self->{'left_text_margin'} + $string_width);
             }
@@ -482,12 +565,13 @@ sub draw_label_text {
                                 text_llx        => $text_llx,
                                 text_lly        => $text_lly,
                                 font            => $font,
-                                font_size       => $self->{'font_size'},
+                                font_size       => $size,
                                 line            => $line,
                                 };
             $text_lly = $text_lly - $params{'line_spacer'};
         }
         $font = $self->{'font'};        # reset font for next field
+        $size = $self->{'font_size'};   # reset font size for next field
     }	#foreach field
     return \@label_text;
 }
@@ -601,7 +685,8 @@ sub csv_data {
     my $label_fields = _get_text_fields($self->{'format_string'});
     my $item = _get_label_item($self->{'item_number'});
     my $bib_record = GetMarcBiblio($item->{biblionumber});
-    my @csv_data = (map { _get_barcode_data($_->{'code'},$item,$bib_record) } @$label_fields);
+    my ($value,$font,$size,$nowrap) = _get_barcode_data($_->{'code'},$item,$bib_record);
+    my @csv_data = (map { $value } @$label_fields);
     return \@csv_data;
 }
 

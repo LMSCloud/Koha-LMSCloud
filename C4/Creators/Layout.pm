@@ -40,6 +40,7 @@ sub _check_params {
         'creator',
         'units',
         'start_label',
+        'line_height'
     );
     if (scalar(@_) >1) {
         my %given_params = @_;
@@ -82,6 +83,7 @@ sub new {
             callnum_split   =>      0,
             text_justify    =>      'L',
             format_string   =>      join(', ', @{ PRESET_FIELDS() }),
+            line_height     =>      1.0,
             @_,
         };
     }
