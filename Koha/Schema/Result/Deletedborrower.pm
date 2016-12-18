@@ -409,7 +409,7 @@ __PACKAGE__->table("deletedborrowers");
   data_type: 'timestamp'
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
-  is_nullable: 0
+  is_nullable: 1
 
 =cut
 
@@ -573,13 +573,13 @@ __PACKAGE__->add_columns(
     data_type => "timestamp",
     datetime_undef_if_invalid => 1,
     default_value => \"current_timestamp",
-    is_nullable => 0,
+    is_nullable => 1,
   },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-06-14 16:35:12
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:wmWyqDcbofgVoIbvRy7j6w
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-16 11:50:05
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:XCHCsGrQHetrH2rde9Ygzg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
