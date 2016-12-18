@@ -71,6 +71,7 @@ for my $number_of_days (@days) {
                         borrowernumber         => $patron->{borrowernumber},
                         message_transport_type => 'email',
                         from_address           => $admin_email_address,
+                        branchcode             => $patron->{branchcode}
                     }
                 );
             }

@@ -347,6 +347,13 @@ Circulation:
               class: integer
             - "item lines in a printed overdue notice. If the number of items is greater than this number, the notice will end with a warning asking the borrower to check their online account for a full list of overdue items.  Set to 0 to include all overdue items in the notice, no matter how many there are."
         -
+            - Allocate messages to the 
+            - pref: PrintPreferenceBranch
+              choices:
+                  yes: "issuing branch"
+                  no: "patrons home branch"
+            - "when processing prepared messages for further processing."
+        -
             - pref: OverduesBlockCirc
               choices:
                   block: Block

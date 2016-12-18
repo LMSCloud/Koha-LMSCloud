@@ -104,6 +104,7 @@ $my_message->{letter} = {
     code         => 'TEST_MESSAGE',
     content_type => 'text/plain',
 };
+$my_message->{branchcode} = $library->{branchcode};
 $message_id = C4::Letters::EnqueueLetter($my_message);
 is( $message_id, undef, 'EnqueueLetter without the message type argument argument returns undef' );
 
@@ -124,7 +125,7 @@ is( $messages->[0]->{subject}, $my_message->{letter}->{title}, 'EnqueueLetter st
 is( $messages->[0]->{content}, $my_message->{letter}->{content}, 'EnqueueLetter stores the content correctly' );
 is( $messages->[0]->{message_transport_type}, $my_message->{message_transport_type}, 'EnqueueLetter stores the message type correctly' );
 is( $messages->[0]->{status}, 'pending', 'EnqueueLetter stores the status pending correctly' );
-
+is( $messages->[0]->{branchcode}, $library->{branchcode}, 'EnqueueLetter stores the branchcode correctly' );
 
 # SendQueuedMessages
 my $messages_processed = C4::Letters::SendQueuedMessages();

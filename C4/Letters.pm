@@ -946,9 +946,9 @@ sub EnqueueLetter {
     my $dbh       = C4::Context->dbh();
     my $statement = << 'ENDSQL';
 INSERT INTO message_queue
-( borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, content_type )
+( borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, content_type, branchcode )
 VALUES
-( ?,              ?,       ?,       ?,        ?,           ?,                      ?,      NOW(),       ?,          ?,            ? )
+( ?,              ?,       ?,       ?,        ?,           ?,                      ?,      NOW(),       ?,          ?,            ?,            ? )
 ENDSQL
 
     my $sth    = $dbh->prepare($statement);
@@ -963,6 +963,7 @@ ENDSQL
         $params->{'to_address'},                  # to_address
         $params->{'from_address'},                # from_address
         $params->{'letter'}->{'content-type'},    # content_type
+        $params->{'branchcode'}                   # branchcode
     );
     return $dbh->last_insert_id(undef,undef,'message_queue', undef);
 }
@@ -1113,7 +1114,7 @@ sub GetMessage {
     return unless $message_id;
     my $dbh = C4::Context->dbh;
     return $dbh->selectrow_hashref(q|
-        SELECT message_id, borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, content_type
+        SELECT message_id, borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, content_type, branchcode
         FROM message_queue
         WHERE message_id = ?
     |, {}, $message_id );
@@ -1202,12 +1203,17 @@ sub _get_unsent_messages {
     my $params = shift;
 
     my $dbh = C4::Context->dbh();
+
     my $statement = << 'ENDSQL';
 SELECT mq.message_id, mq.borrowernumber, mq.subject, mq.content, mq.message_transport_type, mq.status, mq.time_queued, mq.from_address, mq.to_address, mq.content_type, b.branchcode, mq.letter_code
   FROM message_queue mq
   LEFT JOIN borrowers b ON b.borrowernumber = mq.borrowernumber
  WHERE status = ?
 ENDSQL
+
+    if ( C4::Context->preference('PrintPreferenceBranch') ) {
+        $statement =~ s/b\.branchcode/mq\.branchcode/;
+    }
 
     my @query_params = ('pending');
     if ( ref $params ) {

@@ -523,6 +523,7 @@ sub ModSuggestion {
                     suggestionid   => $full_suggestion->{suggestionid},
                     LibraryName    => C4::Context->preference("LibraryName"),
                     message_transport_type => 'email',
+                    branchcode     => $full_suggestion->{branchcode}
                 }
             ) or warn "can't enqueue letter $letter";
         }

@@ -146,6 +146,7 @@ if ( $action eq 'create' ) {
                     to_address             => $borrower{'email'},
                     from_address =>
                       C4::Context->preference('KohaAdminEmailAddress'),
+                    branchcode             => $borrower{'branchcode'}
                 }
             );
         }

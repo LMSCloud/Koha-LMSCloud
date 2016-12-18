@@ -2982,6 +2982,7 @@ sub NotifyOrderUsers {
                     borrowernumber => $borrowernumber,
                     LibraryName    => C4::Context->preference("LibraryName"),
                     message_transport_type => 'email',
+                    branchcode     => $library->{branchcode}
                 }
             ) or warn "can't enqueue letter $letter";
         }

@@ -157,6 +157,7 @@ sub SendPasswordRecoveryEmail {
             to_address             => $userEmail,
             from_address           => $kohaEmail,
             message_transport_type => 'email',
+            branchcode             => $borrower->branchcode
         }
     );
 

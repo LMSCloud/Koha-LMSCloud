@@ -47,7 +47,7 @@ How to add a new message to the queue:
           'biblioitems', $item->{biblionumber},
       },
   );
-  C4::Message->enqueue($letter, $borrower->{borrowernumber}, 'email');
+  C4::Message->enqueue($letter, $borrower->{borrowernumber}, 'email', $branch);
 
 How to update a borrower's last checkout message:
 
@@ -147,16 +147,16 @@ sub find_last_message {
 }
 
 
-=head3 C4::Message->enqueue($letter, $borrower, $transport)
+=head3 C4::Message->enqueue($letter, $borrower, $transport, $branch)
 
 This is a front-end for C<C4::Letters::EnqueueLetter()> that adds metadata to
 the message.
 
 =cut
 
-# C4::Message->enqueue($letter, $borrower, $transport)
+# C4::Message->enqueue($letter, $borrower, $transport, $branch)
 sub enqueue {
-    my ($class, $letter, $borrower, $transport) = @_;
+    my ($class, $letter, $borrower, $transport, $branch) = @_;
     my $metadata   = _metadata($letter);
     my $to_address = _to_address($borrower, $transport);
 
@@ -171,6 +171,7 @@ sub enqueue {
         borrowernumber         => $borrower->{borrowernumber},
         message_transport_type => $transport,
         to_address             => $to_address,
+        branchcode             => $branch
     });
 }
 
@@ -244,7 +245,8 @@ sub update {
                 time_queued            = ?,
                 to_address             = ?,
                 from_address           = ?,
-                content_type           = ?
+                content_type           = ?,
+                branchcode             = ?
             WHERE message_id = ?
         },
         {},
@@ -259,7 +261,8 @@ sub update {
         $self->to_address,
         $self->from_address,
         $self->content_type,
-        $self->message_id
+        $self->message_id,
+        $self->branchcode
     );
 }
 
@@ -377,6 +380,10 @@ sub append {
 =cut
 
 =head3 $message->content_type
+
+=cut
+
+=head3 $message->branchcode
 
 =cut
 

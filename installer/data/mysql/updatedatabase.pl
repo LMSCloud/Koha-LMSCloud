@@ -12962,7 +12962,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 $DBversion = "16.05.05.008";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     
-    # add new field branchcode to table accoutnlines
+    # add new field branchcode to table accountlines
     $dbh->do(q{
         ALTER TABLE `accountlines` ADD `branchcode` varchar(10) default '' AFTER `manager_id`
     });
@@ -12973,7 +12973,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
         UPDATE `accountlines` a JOIN `borrowers` b ON (b.`borrowernumber` = a.`manager_id`) SET a.`branchcode` = b.`branchcode` WHERE a.`manager_id` IS NOT NULL
     });
     
-    # new we assign the branch of the remaining records as the borrowers home branch 
+    # now we assign the branch of the remaining records as the borrowers home branch 
     $dbh->do(q{
         UPDATE `accountlines` a JOIN `borrowers` b ON (b.`borrowernumber` = a.`borrowernumber`) SET a.`branchcode` = b.`branchcode` WHERE a.`manager_id` IS NULL
     });
@@ -12983,7 +12983,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
         UPDATE `accountlines` a SET a.`branchcode` = (SELECT b.branchcode FROM branches b LIMIT 1) WHERE a.`branchcode` = ''
     });
     
-    # new we can alter accountlines and add a reference to branches
+    # now we can alter accountlines and add a reference to branches
     $dbh->do(q{
         ALTER TABLE `accountlines` ADD KEY `branchidx` (`branchcode`), ADD CONSTRAINT `accountlines_ibfk_3` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE 
     });
@@ -13001,6 +13001,42 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     });
     
     print "Upgrade to $DBversion done (LMSCloud: add parameter to enable concurrent use of cash registers.)\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = "16.05.05.010";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    
+    # add new field branchcode to table message_queue
+    $dbh->do(q{
+        ALTER TABLE `message_queue` ADD `branchcode` varchar(10) NOT NULL default '' AFTER `content_type`
+    });
+    
+    # we set the content of field branchcode of table message_queue via the the branch of the borrowernumber
+    # as the branch information is not reproducable for old data because a borrower might
+    # use multiple branches and could receive messages from each of the branches due to
+    # outstanding issues
+    $dbh->do(q{
+        UPDATE `message_queue` a JOIN `borrowers` b ON (b.`borrowernumber` = a.`borrowernumber`) SET a.`branchcode` = b.`branchcode` WHERE a.`borrowernumber` IS NOT NULL
+    });
+    
+    # if entries without a branchcode in message_queue still remain we simply assign the first branch 
+    $dbh->do(q{
+        UPDATE `message_queue` a SET a.`branchcode` = (SELECT b.branchcode FROM branches b LIMIT 1) WHERE a.`branchcode` = ''
+    });
+    
+    # now we can alter message_queue and add a reference to branches
+    $dbh->do(q{
+        ALTER TABLE `message_queue` ADD KEY `branchidx` (`branchcode`), ADD CONSTRAINT `messageq_ibfk_3` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE 
+    });
+    
+    # add new system preference to split messages for printing by issuning branch rather than the patrons home branch
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type )
+        VALUES ('PrintPreferenceBranch','0',NULL,'Allocate messages to the issuing branch rather than the patrons home branch when processing prepared messages for further processing.','YesNo')
+    });
+    
+    print "Upgrade to $DBversion done (LMSCloud: add field branchcode to table message_queue in order to be able to gather print notices by branches correctly if patrons use multiple branches.)\n";
     SetVersion($DBversion);
 }
 

@@ -193,6 +193,7 @@ foreach my $recent ( @$upcoming_mem_expires ) {
             borrowernumber         =>  $recent->{'borrowernumber'},
             from_address           => $from_address,
             message_transport_type => 'email',
+            branchcode  => $recent->{'branchcode'}
         });
     }
 }

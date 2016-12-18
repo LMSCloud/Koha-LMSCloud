@@ -395,6 +395,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('previousIssuesDefaultSortOrder','asc','asc|desc','Specify the sort order of Previous Issues on the circulation page','Choice'),
 ('printcirculationslips','1','','If ON, enable printing circulation receipts','YesNo'),
 ('PrintNoticesMaxLines','0','','If greater than 0, sets the maximum number of lines an overdue notice will print. If the number of items is greater than this number, the notice will end with a warning asking the borrower to check their online account for a full list of overdue items.','Integer'),
+('PrintPreferenceBranch','0',NULL,'Allocate messages to the issuing branch rather than the patrons home branch when processing prepared messages for further processing.','YesNo'),
 ('QueryAutoTruncate','1',NULL,'If ON, query truncation is enabled by default','YesNo'),
 ('QueryFuzzy','1',NULL,'If ON, enables fuzzy option for searches','YesNo'),
 ('QueryStemming','1',NULL,'If ON, enables query stemming','YesNo'),

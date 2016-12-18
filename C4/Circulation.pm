@@ -3379,7 +3379,7 @@ sub SendCirculationAlert {
                     'branches'    => $branch,
                 }
             ) or next;
-            C4::Message->enqueue($letter, $borrower, $_);
+            C4::Message->enqueue($letter, $borrower, $_, $branch);
         } else {
             #warn "append to old message";
             my $letter =  C4::Letters::GetPreparedLetter (

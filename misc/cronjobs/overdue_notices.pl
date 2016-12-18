@@ -856,6 +856,7 @@ END_SQL
                                     message_transport_type => $effective_mtt,
                                     from_address           => $admin_email_address,
                                     to_address             => join(',', @emails_to_use),
+                                    branchcode             => $branchcode
                                 }
                             ) unless $test_mode;
                             # A print notice should be sent only once per overdue level.
@@ -943,6 +944,7 @@ END_SQL
                 message_transport_type => 'email',
                 attachments            => [$attachment],
                 to_address             => $admin_email_address,
+                branchcode             => $branchcode
             }
         ) unless $test_mode;
     }

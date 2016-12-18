@@ -185,6 +185,7 @@ sub notify_owner {
             message_transport_type => 'email',
             from_address => C4::Context->preference('KohaAdminEmailAddress'),
             to_address   => $toaddr,
+            branchcode   => C4::Context->userenv->{"branch"}
         }
     );
 }
@@ -253,6 +254,7 @@ sub send_invitekey {
                 message_transport_type => 'email',
                 from_address           => $fromaddr,
                 to_address             => $a,
+                branchcode             => C4::Context->userenv->{"branch"}
             }
         );
     }

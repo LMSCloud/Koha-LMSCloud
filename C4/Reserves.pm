@@ -250,6 +250,7 @@ sub AddReserve {
                     message_transport_type => 'email',
                     from_address           => $admin_email_address,
                     to_address           => $admin_email_address,
+                    branchcode             => $branch
                 }
             );
         }
@@ -2042,6 +2043,7 @@ sub _koha_notify_reserve {
             borrowernumber => $borrowernumber,
             from_address => $admin_email_address,
             message_transport_type => $mtt,
+            branchcode => $reserve->{branchcode}
         } );
         
         # check whether there are notice fee rules defined

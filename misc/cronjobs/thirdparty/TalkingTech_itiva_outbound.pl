@@ -139,6 +139,7 @@ foreach my $type (@types) {
                 {   letter                 => $letter,
                     borrowernumber         => $issues->{'borrowernumber'},
                     message_transport_type => 'phone',
+                    branchcode             => $issues->{'site'}
                 }
             );
         }
