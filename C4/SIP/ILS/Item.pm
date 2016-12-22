@@ -79,7 +79,7 @@ sub new {
 	my $item = GetBiblioFromItemNumber($itemnumber);    # actually biblio.*, biblioitems.* AND items.*  (overkill)
 	if (! $item) {
 		syslog("LOG_DEBUG", "new ILS::Item('%s'): not found", $item_id);
-		warn "new ILS::Item($item_id) : No item '$item_id'.";
+		# warn "new ILS::Item($item_id) : No item '$item_id'.";
         return;
 	}
     $item->{  'itemnumber'   } = $itemnumber;
