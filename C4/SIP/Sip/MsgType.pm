@@ -447,9 +447,10 @@ sub build_patron_status {
         # The next is not standard SIP. With that change we enable delivery of the 
         # patron hold id for EasyCheck devices.
         if ( C4::Context->preference('SIPVendorDialect') 
-             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck'
+             && $patron->dateexpiry ) 
         {
-            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
+            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
         }
 
     } else {
@@ -569,9 +570,11 @@ sub handle_checkout {
         if ( C4::Context->preference('SIPVendorDialect') 
             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
         {
-            $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
-            if ( $patron )  {
-                $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
+            if ( $item && $item->permanent_location ) {
+                $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
+            }
+            if ( $patron && $patron->dateexpiry )  {
+                $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900");
             }
         }
     }
@@ -614,8 +617,8 @@ sub handle_checkout {
             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
         {
             $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
-            if ( $patron )  {
-                $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
+            if ( $patron && $patron->dateexpiry)  {
+                $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
             }
         }
     }
@@ -1041,9 +1044,10 @@ sub handle_patron_info {
             $msg .= ' -- ' . INVALID_PW;
         }
         if ( C4::Context->preference('SIPVendorDialect') 
-             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' && !$patron->charge_ok ) 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
+             && !$patron->charge_ok ) 
         {
-            $msg = "Patron Blocked";
+            $msg .= ' -- ' . "Patron Blocked";
         }
         $resp .= maybe_add( FID_SCREEN_MSG, $msg, $server );
         if ( $server->{account}->{send_patron_home_library_in_af} ) {
@@ -1054,9 +1058,10 @@ sub handle_patron_info {
         # The next is not standard SIP. With that change we enable delivery of the 
         # patron hold id for EasyCheck devices.
         if ( C4::Context->preference('SIPVendorDialect') 
-             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
+             && $patron->dateexpiry ) 
         {
-            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry );
+            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
         }
     } else {
 
