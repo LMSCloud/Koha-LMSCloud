@@ -13051,6 +13051,17 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion($DBversion);
 }
 
+$DBversion = "16.05.05.012";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+
+    # add a mark to a borrower category whether it is a family card or not
+    $dbh->do(q{
+        ALTER TABLE `categories` ADD `family_card` tinyint(1) NOT NULL default 0 AFTER `default_privacy`
+    });
+    print "Upgrade to $DBversion done (LMSCloud: add new family_card to categories.)\n";
+    SetVersion($DBversion);
+}
+
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068

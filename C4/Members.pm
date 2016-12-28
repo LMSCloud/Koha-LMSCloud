@@ -71,6 +71,7 @@ BEGIN {
 
         &GetAge
         &GetSortDetails
+        &GetFamilyCardId
 
         &GetHideLostItemsPreference
 
@@ -523,7 +524,6 @@ the total fine currently due by the borrower.
 
 =cut
 
-#'
 sub GetMemberIssuesAndFines {
     my ( $borrowernumber ) = @_;
     my $dbh   = C4::Context->dbh;
@@ -549,6 +549,75 @@ sub GetMemberIssuesAndFines {
     return ($overdue_count, $issue_count, $total_fines);
 }
 
+
+=head2 GetFamilyCardMemberIssuesAndFines
+
+  ($overdue_count, $issue_count, $total_fines) = &GetMemberIssuesAndFines($borrowernumber);
+
+Returns aggregate data about items borrowed by all members of a family card with the
+given borrowernumber.
+
+C<&GetFamilyCardMemberIssuesAndFines> returns a three-element array.  C<$overdue_count> is the
+number of overdue items the patron currently has borrowed. C<$issue_count> is the
+number of books the patron currently has borrowed.  C<$total_fines> is
+the total fine currently due by the borrower.
+
+=cut
+
+sub GetFamilyCardMemberIssuesAndFines {
+    my ( $borrowernumber, $branchcode ) = @_;
+    my $dbh   = C4::Context->dbh;
+    my $query = 
+        "SELECT COUNT(*) FROM issues i 
+        WHERE (i.borrowernumber = ? 
+        OR i.borrowernumber IN 
+            (SELECT DISTINCT b.borrowernumber 
+             FROM borrowers b, categories c, borrowers o
+             WHERE b.guarantorid = ?
+             AND o.borrowernumber = b.guarantorid
+             AND c.categorycode = o.categorycode
+             AND c.family_card = 1))
+        AND i.branchcode = ?";
+ 
+    $debug and warn $query."\n";
+    my $sth = $dbh->prepare($query);
+    $sth->execute($borrowernumber, $borrowernumber, $branchcode);
+    my $issue_count = $sth->fetchrow_arrayref->[0];
+
+    $sth = $dbh->prepare(
+        "SELECT COUNT(*) FROM issues 
+         WHERE (borrowernumber = ?
+         OR borrowernumber IN 
+            (SELECT DISTINCT b.borrowernumber 
+             FROM borrowers b, categories c, borrowers o
+             WHERE b.guarantorid = ?
+             AND o.borrowernumber = b.guarantorid
+             AND c.categorycode = o.categorycode
+             AND c.family_card = 1)) 
+         AND date_due < now()
+         AND issues.branchcode = ?"
+    );
+    
+    $sth->execute($borrowernumber, $borrowernumber, $branchcode);
+    my $overdue_count = $sth->fetchrow_arrayref->[0];
+
+    $sth = $dbh->prepare(
+        "SELECT SUM(amountoutstanding) 
+         FROM accountlines 
+         WHERE (borrowernumber = ?
+         OR borrowernumber IN 
+            (SELECT DISTINCT b.borrowernumber 
+             FROM borrowers b, categories c, borrowers o
+             WHERE b.guarantorid = ?
+             AND o.borrowernumber = b.guarantorid
+             AND c.categorycode = o.categorycode
+             AND c.family_card = 1))
+         AND accountlines.branchcode = ?");
+    $sth->execute($borrowernumber, $borrowernumber, $branchcode);
+    my $total_fines = $sth->fetchrow_arrayref->[0];
+
+    return ($overdue_count, $issue_count, $total_fines);
+}
 
 =head2 columns
 
@@ -639,6 +708,10 @@ sub ModMember {
             if ( C4::Context->preference('FeeOnChangePatronCategory') ) {
                 AddEnrolmentFeeIfNeeded( $data{categorycode}, $data{borrowernumber} );
             }
+        }
+        
+        if ( $new_borrower->{dateexpiry} ) {
+            UpdateFamilyCardMembers($data{borrowernumber},$new_borrower->{dateexpiry});
         }
 
         # If NorwegianPatronDBEnable is enabled, we set syncstatus to something that a
@@ -1728,17 +1801,80 @@ sub ExtendMemberSubscriptionTo {
                                         output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } );
       $date = GetExpiryDate( $borrower->{'categorycode'}, $date );
     }
-    my $sth = $dbh->do(<<EOF);
-UPDATE borrowers 
-SET  dateexpiry='$date' 
-WHERE borrowernumber='$borrowerid'
-EOF
+    my $result = $dbh->do("UPDATE borrowers SET dateexpiry = ? WHERE borrowernumber = ?", undef, $date, $borrowerid);
 
     AddEnrolmentFeeIfNeeded( $borrower->{categorycode}, $borrower->{borrowernumber} );
 
-    logaction("MEMBERS", "RENEW", $borrower->{'borrowernumber'}, "Membership renewed")if C4::Context->preference("BorrowersLog");
-    return $date if ($sth);
+    logaction("MEMBERS", "RENEW", $borrower->{'borrowernumber'}, "Membership renewed") if C4::Context->preference("BorrowersLog");
+
+    UpdateFamilyCardMembers($borrowerid,$date);
+    
+    return $date if ($result);
     return 0;
+}
+
+=head2 UpdateFamilyCardMembers
+
+  &UpdateFamilyCardMembers($borrowernumber,$date);
+
+Update family card member subscriptions to a given date if the borrowers category is family card category.
+
+=cut
+
+sub UpdateFamilyCardMembers {
+    my ($borrowerid,$date) = @_;
+    
+    my $dbh = C4::Context->dbh;
+    
+    my $query = q{
+        SELECT l.borrowernumber as borrowernumber
+        FROM borrowers b, borrowers l, categories c
+        WHERE     b.borrowernumber = ? 
+              AND c.family_card = 1 
+              AND l.guarantorid = b.borrowernumber
+              AND c.categorycode = b.categorycode};
+    $query =~ s/^\s+/ /mg; 
+    my $sth = $dbh->prepare($query);
+    
+    $sth->execute($borrowerid);
+    while (my $row = $sth->fetchrow_hashref) {
+        $dbh->do("UPDATE borrowers SET dateexpiry = ? WHERE borrowernumber = ?", undef, $date, $row->{borrowernumber});
+        logaction("MEMBERS", "RENEW", $row->{borrowernumber}, "Membership renewed with family card") if C4::Context->preference("BorrowersLog");
+    }
+    $sth->finish;
+}
+
+=head2 GetFamilyCardId
+
+  &GetFamilyCardId($borrowernumber);
+
+Get information about the linked family card if the borrower belongs to a family card subscriptions.
+
+=cut
+
+sub GetFamilyCardId {
+    my ($borrowerid) = @_;
+    my $familyCardNumber = undef;
+    
+    my $dbh = C4::Context->dbh;
+    
+    my $query = q{
+        SELECT distinct b.borrowernumber as borrowernumber
+        FROM borrowers b, borrowers l, categories c
+        WHERE     l.borrowernumber = ? 
+              AND c.family_card = 1 
+              AND l.guarantorid = b.borrowernumber
+              AND c.categorycode = b.categorycode};
+    $query =~ s/^\s+/ /mg; 
+    my $sth = $dbh->prepare($query);
+    
+    $sth->execute($borrowerid);
+    while (my $row = $sth->fetchrow_hashref) {
+        $familyCardNumber = $row->{borrowernumber};
+    }
+    $sth->finish;
+    
+    return $familyCardNumber;
 }
 
 =head2 GetHideLostItemsPreference

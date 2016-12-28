@@ -507,7 +507,16 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname
     AND biblio.biblionumber   = items.biblionumber
     AND b.branchcode = items.homebranch
     AND biblio.biblionumber   = biblioitems.biblionumber
-    AND issues.borrowernumber = ?
+    AND ( issues.borrowernumber = ? OR issues.borrowernumber IN 
+           (
+            SELECT DISTINCT b.borrowernumber 
+               FROM borrowers b, borrowers o, categories c 
+               WHERE b.guarantorid = ? 
+                 AND o.borrowernumber = b.guarantorid
+                 AND c.categorycode = o.categorycode 
+                 AND c.family_card = 1
+           )
+        )
     AND TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
 END_SQL
 
@@ -555,11 +564,13 @@ END_SQL
             # <date> <itemcount> <firstname> <lastname> <address1> <address2> <address3> <city> <postcode> <country>
 
             my $borrower_sql = <<"END_SQL";
-SELECT issues.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, cardnumber, date_due
-FROM   issues,borrowers,categories
-WHERE  issues.borrowernumber=borrowers.borrowernumber
+SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, cardnumber, date_due
+FROM   issues, borrowers, categories
+WHERE  issues.borrowernumber = borrowers.borrowernumber 
+AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = borrowers.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
 AND    borrowers.categorycode=categories.categorycode
-AND    TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
+AND    issues.date_due <= $date
+AND    categories.overduenoticerequired=1
 END_SQL
             my @borrower_parameters;
             if ($branchcode) {
@@ -570,7 +581,27 @@ END_SQL
                 $borrower_sql .= ' AND borrowers.categorycode=? ';
                 push @borrower_parameters, $overdue_rules->{categorycode};
             }
-            $borrower_sql .= '  AND categories.overduenoticerequired=1 ORDER BY issues.borrowernumber';
+            $borrower_sql .= <<"END_SQL";
+UNION
+SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, bo.cardnumber, date_due
+FROM   issues, borrowers bo, borrowers bb, categories
+WHERE  categories.family_card = 1
+AND    issues.borrowernumber = bb.borrowernumber
+AND    bo.borrowernumber = bb.guarantorid 
+AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = bo.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
+AND    bo.categorycode=categories.categorycode
+AND    issues.date_due <= $date
+AND    categories.overduenoticerequired=1 
+END_SQL
+            if ($branchcode) {
+                $borrower_sql .= ' AND issues.branchcode=? ';
+                push @borrower_parameters, $branchcode;
+            }
+            if ( $overdue_rules->{categorycode} ) {
+                $borrower_sql .= ' AND bo.categorycode=? ';
+                push @borrower_parameters, $overdue_rules->{categorycode};
+            }
+            $borrower_sql .= '  ORDER BY borrowernumber';
 
             # $sth gets borrower info if at least one overdue item has triggered the overdue action.
 	        my $sth = $dbh->prepare($borrower_sql);
@@ -614,7 +645,7 @@ END_SQL
                 }
                 $borrowernumber = $data->{'borrowernumber'};
                 my $borr =
-                    $data->{'firstname'} . ', '
+                    ($data->{'firstname'} ? $data->{'firstname'} : '' ) . ', '
                   . $data->{'surname'} . ' ('
                   . $borrowernumber . ')';
                 $verbose
@@ -656,7 +687,7 @@ END_SQL
                     ) unless $test_mode;
                     $verbose and warn "debarring $borr\n";
                 }
-                my @params = ($borrowernumber);
+                my @params = ($borrowernumber, $borrowernumber);
                 $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber";
 
                 $sth2->execute(@params);
@@ -797,9 +828,10 @@ END_SQL
                         next;
                     }
 
-                    if ( $exceededPrintNoticesMaxLines ) {
-                      $letter->{'content'} .= "List too long for form; please check your account online for a complete list of your overdue items.";
-                    }
+                    # The following message is not internationalized. 
+                    #if ( $exceededPrintNoticesMaxLines ) {
+                    #  $letter->{'content'} .= "List too long for form; please check your account online for a complete list of your overdue items.";
+                    #}
 
                     my @misses = grep { /./ } map { /^([^>]*)[>]+/; ( $1 || '' ); } split /\</, $letter->{'content'};
                     if (@misses) {
@@ -849,22 +881,8 @@ END_SQL
                               );
                         }
                         unless ( $effective_mtt eq 'print' and $print_sent == 1 ) {
-                            # Just sent a print if not already done.
-                            C4::Letters::EnqueueLetter(
-                                {   letter                 => $letter,
-                                    borrowernumber         => $borrowernumber,
-                                    message_transport_type => $effective_mtt,
-                                    from_address           => $admin_email_address,
-                                    to_address             => join(',', @emails_to_use),
-                                    branchcode             => $branchcode
-                                }
-                            ) unless $test_mode;
-                            # A print notice should be sent only once per overdue level.
-                            # Without this check, a print could be sent twice or more if the library checks sms and email and print and the patron has no email or sms number.
-                            $print_sent = 1 if $effective_mtt eq 'print';
-                            
                             # check whether there are notice fee rules defined
-                            if ( $nocharge== 0 && $noticeFees->checkForNoticeFeeRules() == 1) {
+                            if ( $nocharge == 0 && $noticeFees->checkForNoticeFeeRules() == 1) {
                                 #check whether there is a matching notice fee rule
                                 my $noticeFeeRule = $noticeFees->getNoticeFeeRule($branchcode, $overdue_rules->{categorycode}, $effective_mtt, $overdue_rules->{"letter$i"} );
                                 
@@ -894,6 +912,20 @@ END_SQL
                                     }
                                 }
                             }
+                            
+                            # Just sent a print if not already done.
+                            C4::Letters::EnqueueLetter(
+                                {   letter                 => $letter,
+                                    borrowernumber         => $borrowernumber,
+                                    message_transport_type => $effective_mtt,
+                                    from_address           => $admin_email_address,
+                                    to_address             => join(',', @emails_to_use),
+                                    branchcode             => $branchcode
+                                }
+                            ) unless $test_mode;
+                            # A print notice should be sent only once per overdue level.
+                            # Without this check, a print could be sent twice or more if the library checks sms and email and print and the patron has no email or sms number.
+                            $print_sent = 1 if $effective_mtt eq 'print';
                         }
                     }
                     

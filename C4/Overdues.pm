@@ -1004,6 +1004,9 @@ sub parse_overdues_letter {
     $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
 
     my %tables = ( 'borrowers' => $params->{'borrowernumber'} );
+
+    my ($overdue_count, $issue_count, $total_fines) = C4::Members::GetFamilyCardMemberIssuesAndFines($params->{'borrowernumber'}, $params->{'branchcode'});
+    
     if ( my $p = $params->{'branchcode'} ) {
         $tables{'branches'} = $p;
     }
@@ -1039,6 +1042,9 @@ sub parse_overdues_letter {
     }
     $substitute->{fines} = currency_format($currency_format, "$fines_sum", FMT_SYMBOL);
     $substitute->{fines} = sprintf('%.2f', $fines_sum) unless $substitute->{fines};
+    $substitute->{total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
+    $substitute->{total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{fines};
+    $substitute->{overdue_count} = $overdue_count;
 
     return C4::Letters::GetPreparedLetter (
         module => 'circulation',

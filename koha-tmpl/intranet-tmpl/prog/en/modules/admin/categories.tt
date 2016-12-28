@@ -211,6 +211,21 @@
                     </select>
                     <span>Controls how long a patrons checkout history is kept for new patrons of this category. "Never" anonymizes checkouts on return, and "Forever" keeps a patron's checkout history indefinitely. When set to "Default", the amount of history kept is controlled by the cronjob <i>batch_anonymise.pl</i> which should be set up by your system administrator.</span>
                 </li>
+                <li>
+                    <label for="family_card">Family card: </label>
+                    <select name="family_card" id="family_card">
+                        [% IF category.family_card %]
+                            <option value="0">No</option>
+                            <option value="1" selected="selected">Yes</option>
+                        [% ELSE %]
+                            <option value="0" selected="selected">No</option>
+                            <option value="1">Yes</option>
+                        [% END %]
+                    </select>
+                    <span>
+                        Yes mark a category as family card. Only the owner of a family card is charged for an enrollment fee. Linked (via the guarantor relationship) family members are not charged for enrollment fee.
+                    </span>
+                </li>
             </ol>
         </fieldset>
 
@@ -274,6 +289,7 @@
                         [% END %]
                     </td>
                 </tr>
+                <tr><th scope="row">Family card: </th><td>[% IF ( category.family_card ) %]Yes[% ELSE %]No[% END %]</td></tr>
             </table>
             <fieldset class="action">
                 [% IF patrons_in_category > 0 %]
@@ -318,6 +334,7 @@
                     [% END %]
                     <th scope="col">Branches limitations</th>
                     <th scope="col">Default privacy</th>
+                    <th scope="col">Family card</th>
                     <th scope="col">Actions</th>
                 </tr>
             </thead>
@@ -403,6 +420,7 @@
                                 Forever
                             [% END %]
                         </td>
+                        <td>[% IF ( category.family_card ) %]Yes[% ELSE %]No[% END %]</td>
                         <td class="actions">
                             <a class="btn btn-mini" href="/cgi-bin/koha/admin/categories.pl?op=add_form&amp;categorycode=[% category.categorycode |uri %]"><i class="fa fa-pencil"></i> Edit</a>
                             <a class="btn btn-mini" href="/cgi-bin/koha/admin/categories.pl?op=delete_confirm&amp;categorycode=[% category.categorycode |uri %]"><i class="fa fa-trash"></i> Delete</a>

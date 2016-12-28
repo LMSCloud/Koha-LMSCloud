@@ -149,6 +149,18 @@ These are read-only accessors for attributes of a C4::Category object.
 
 =cut
 
+=head3 $category->BlockExpiredPatronOpacActions
+
+=cut
+
+=head3 $category->default_privacy
+
+=cut
+
+=head3 $category->family_card
+
+=cut
+
 sub AUTOLOAD {
     my $self = shift;
     my $attr = $AUTOLOAD;

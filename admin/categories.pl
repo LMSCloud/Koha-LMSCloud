@@ -91,6 +91,7 @@ elsif ( $op eq 'add_validate' ) {
     my $category_type = $input->param('category_type');
     my $BlockExpiredPatronOpacActions = $input->param('BlockExpiredPatronOpacActions');
     my $default_privacy = $input->param('default_privacy');
+    my $family_card = $input->param('family_card');
     my @branches = grep { $_ ne q{} } $input->multi_param('branches');
 
     my $is_a_modif = $input->param("is_a_modif");
@@ -120,6 +121,7 @@ elsif ( $op eq 'add_validate' ) {
         $category->category_type($category_type);
         $category->BlockExpiredPatronOpacActions($BlockExpiredPatronOpacActions);
         $category->default_privacy($default_privacy);
+        $category->family_card($family_card);
         eval {
             $category->store;
             $category->replace_branch_limitations( \@branches );
@@ -145,6 +147,7 @@ elsif ( $op eq 'add_validate' ) {
             category_type => $category_type,
             BlockExpiredPatronOpacActions => $BlockExpiredPatronOpacActions,
             default_privacy => $default_privacy,
+            family_card => $family_card
         });
         eval {
             $category->store;
