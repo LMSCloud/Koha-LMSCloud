@@ -57,7 +57,7 @@ sub getCurrentDateMinusXMonth {
 }
 
 my $foundEEntries = 0;
-my $firstDateOfNew = getCurrentDateMinusXMonth(15);
+my $firstDateOfNew = getCurrentDateMinusXMonth(12);
 
 $templatename = "opac-entryadult.tt" if ( $enduser eq 'A' );
 $templatename = "opac-entrychildto9.tt" if ( $enduser eq '9' );
