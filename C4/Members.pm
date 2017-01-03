@@ -2284,6 +2284,8 @@ Add enrolment fee for a patron if needed.
 
 sub AddEnrolmentFeeIfNeeded {
     my ( $categorycode, $borrowernumber ) = @_;
+    
+    return if ( GetFamilyCardId($borrowernumber) );
     # check for enrollment fee & add it if needed
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(q{
