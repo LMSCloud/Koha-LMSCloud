@@ -196,9 +196,6 @@ sub AddReserve {
 
     # Don't add itemtype limit if specific item is selected
     $itemtype = undef if $checkitem;
-    
-    # Get the logged in library if there is one
-    my $branchcode  = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
 
     # updates take place here
     my $hold = Koha::Hold->new(
@@ -213,8 +210,7 @@ sub AddReserve {
             found          => $found,
             waitingdate    => $waitingdate,
             expirationdate => $expdate,
-            itemtype       => $itemtype,
-            branchcode     => $branchcode
+            itemtype       => $itemtype
         }
     )->store();
     my $reserve_id = $hold->id();
