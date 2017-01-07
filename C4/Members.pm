@@ -72,6 +72,7 @@ BEGIN {
         &GetAge
         &GetSortDetails
         &GetFamilyCardId
+        &IsFamilyCard
 
         &GetHideLostItemsPreference
 
@@ -765,6 +766,10 @@ sub AddMember {
       if ( $data{'userid'} eq '' || !Check_Userid( $data{'userid'} ) );
 
     # add expiration date if it isn't already there
+    if ( $data{'guarantorid'} && IsFamilyCard($data{'guarantorid'}) ) {
+        my $guarantor = GetMember(borrowernumber => $data{'guarantorid'});
+        $data{'dateexpiry'} = $guarantor->{'dateexpiry'};
+    }
     unless ( $data{'dateexpiry'} ) {
         $data{'dateexpiry'} = GetExpiryDate( $data{'categorycode'}, output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } ) );
     }
@@ -1875,6 +1880,38 @@ sub GetFamilyCardId {
     $sth->finish;
     
     return $familyCardNumber;
+}
+
+=head2 IsFamilyCard
+
+  &IsFamilyCard($borrowernumber);
+
+Return true if the card is a family card. The borrower category must have set the rlated flag if true.
+
+=cut
+
+sub IsFamilyCard {
+    my ($borrowerid) = @_;
+    my $familyCard = 0;
+    
+    my $dbh = C4::Context->dbh;
+    
+    my $query = q{
+        SELECT b.borrowernumber
+        FROM borrowers b, categories c
+        WHERE     b.borrowernumber = ?
+              AND c.categorycode = b.categorycode
+              AND c.family_card = 1};
+    $query =~ s/^\s+/ /mg; 
+    my $sth = $dbh->prepare($query);
+    
+    $sth->execute($borrowerid);
+    if (my $row = $sth->fetchrow_hashref) {
+        $familyCard = 1;
+    }
+    $sth->finish;
+    
+    return $familyCard;
 }
 
 =head2 GetHideLostItemsPreference
