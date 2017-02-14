@@ -393,8 +393,8 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$upcoming_digest ) {
             C4::Letters::EnqueueLetter( { letter                 => $letter,
                                           borrowernumber         => $borrowernumber,
                                           from_address           => $from_address,
-                                          message_transport_type => $letter->{message_transport_type} },
-                                          branchcode             => $branch_info{"branches.branchcode"} );
+                                          message_transport_type => $letter->{message_transport_type},
+                                          branchcode             => $branch_info{"branches.branchcode"} } );
         }
       }
     }
@@ -451,8 +451,8 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$due_digest ) {
             C4::Letters::EnqueueLetter( { letter                 => $letter,
                                           borrowernumber         => $borrowernumber,
                                           from_address           => $from_address,
-                                          message_transport_type => $letter->{message_transport_type} },
-                                          branchcode             => $branch_info{"branches.branchcode"} );
+                                          message_transport_type => $letter->{message_transport_type},
+                                          branchcode             => $branch_info{"branches.branchcode"} } );
         }
       }
     }
