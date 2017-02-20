@@ -254,9 +254,11 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             my $letter_type = 'DUE';
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},'0');
             my $titles = "";
+            my @items = ();
             while ( my $item_info = $sth->fetchrow_hashref()) {
               my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
               $titles .= join("\t",@item_info) . "\n";
+              push @items, $item_info;
             }
 
             ## Get branch info for borrowers home library.
@@ -266,6 +268,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
                                       branchcode     => $upcoming->{'branchcode'},
                                       biblionumber   => $biblio->{'biblionumber'},
                                       itemnumber     => $upcoming->{'itemnumber'},
+                                      items          => \@items,
                                       substitute     => { 'items.content' => $titles },
                                       message_transport_type => $transport,
                                     } )
@@ -288,9 +291,11 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             my $letter_type = 'PREDUE';
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},$borrower_preferences->{'days_in_advance'});
             my $titles = "";
+            my @items = ();
             while ( my $item_info = $sth->fetchrow_hashref()) {
               my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
               $titles .= join("\t",@item_info) . "\n";
+              push @items, $item_info;
             }
 
             ## Get branch info for borrowers home library.
@@ -300,6 +305,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
                                       branchcode     => $upcoming->{'branchcode'},
                                       biblionumber   => $biblio->{'biblionumber'},
                                       itemnumber     => $upcoming->{'itemnumber'},
+                                      items          => \@items,
                                       substitute     => { 'items.content' => $titles },
                                       message_transport_type => $transport,
                                     } )
@@ -355,9 +361,11 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$upcoming_digest ) {
 
     $sth->execute($borrowernumber,$borrower_preferences->{'days_in_advance'});
     my $titles = "";
+    my @items = ();
     while ( my $item_info = $sth->fetchrow_hashref()) {
       my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
       $titles .= join("\t",@item_info) . "\n";
+      push @items, $item_info;
     }
 
     ## Get branch info for borrowers home library.
@@ -368,6 +376,7 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$upcoming_digest ) {
             {
                 letter_code    => $letter_type,
                 borrowernumber => $borrowernumber,
+                items          => \@items,
                 substitute     => {
                     count           => $count,
                     'items.content' => $titles,
@@ -413,9 +422,11 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$due_digest ) {
     my $letter_type = 'DUEDGST';
     $sth->execute($borrowernumber,'0');
     my $titles = "";
+    my @items = ();
     while ( my $item_info = $sth->fetchrow_hashref()) {
       my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
       $titles .= join("\t",@item_info) . "\n";
+      push @items, $item_info;
     }
 
     ## Get branch info for borrowers home library.
@@ -426,6 +437,7 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$due_digest ) {
             {
                 letter_code    => $letter_type,
                 borrowernumber => $borrowernumber,
+                items          => \@items,
                 substitute     => {
                     count           => $count,
                     'items.content' => $titles,
@@ -470,6 +482,9 @@ sub parse_letter {
     foreach my $required ( qw( letter_code borrowernumber ) ) {
         return unless exists $params->{$required};
     }
+    
+    my $substitute = $params->{'substitute'} || {};
+    $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
 
     my %table_params = ( 'borrowers' => $params->{'borrowernumber'} );
 
@@ -484,13 +499,32 @@ sub parse_letter {
         $table_params{'biblio'} = $p;
         $table_params{'biblioitems'} = $p;
     }
+    
+    my @item_tables;
+    if ( my $i = $params->{'items'} ) {
+        my $item_format = '';
+        foreach my $item (@$i) {
+            if ( !$item_format and defined $params->{'letter'}->{'content'} ) {
+                $params->{'letter'}->{'content'} =~ m/(<item>.*<\/item>)/;
+                $item_format = $1;
+            }
+
+            push @item_tables, {
+                'biblio' => $item->{'biblionumber'},
+                'biblioitems' => $item->{'biblionumber'},
+                'items' => $item,
+                'issues' => $item->{'itemnumber'},
+            };
+        }
+    }
 
     return C4::Letters::GetPreparedLetter (
         module => 'circulation',
         letter_code => $params->{'letter_code'},
         branchcode => $table_params{'branches'},
-        substitute => $params->{'substitute'},
+        substitute => $substitute,
         tables     => \%table_params,
+        repeat => { item => \@item_tables },
         message_transport_type => $params->{message_transport_type},
     );
 }
