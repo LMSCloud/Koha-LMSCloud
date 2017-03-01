@@ -13062,6 +13062,34 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion($DBversion);
 }
 
+$DBversion = "16.05.05.013";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+
+    # add system paramter to control overdue notice cration
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+        ('OverdueNoticePeriodCalculationMethod','byDate','byDate|byPreviousClaimLevel','Create overdue notices not only by date but also consider the previosly reached claim level.','Free'),
+        ('OverdueNoticeSkipWhenClosed','0',NULL,'Do not create overdue notices on days marked as closed in calendar.','YesNo')
+    });
+    
+    $dbh->do(q{ CREATE TABLE `overdue_issues` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT, 
+                    `issue_id` int(10) NOT NULL, 
+                    `claim_level` int(3) NOT NULL, 
+                    `claim_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+                    PRIMARY KEY (`id`),
+                    KEY `overdue_issues_idx_issue_id` (`issue_id`,`claim_level`,`claim_time`)
+               ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci});
+
+    my $upgrade_script = C4::Context->config("intranetdir") . "/installer/data/mysql/overdue_issues_init.pl";
+    system("perl $upgrade_script");
+
+    print "Upgrade to $DBversion done (LMSCloud: overdue notice creation based on previously reached claim level.)\n";
+    SetVersion($DBversion);
+}
+
+
+
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug 13068

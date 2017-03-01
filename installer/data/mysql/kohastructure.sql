@@ -3917,6 +3917,26 @@ CREATE TABLE `cash_register_account` (
     REFERENCES `accountlines` (`accountlines_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+
+--
+-- Table overdue_issues
+--
+
+-- The table overdue_issues stores the claiming history of issues. 
+-- It's used to persist the reached claim level and the claiming date.
+-- The information is used to detect, which claim level has been reached before
+-- when calculating the date for the next claim.
+
+DROP TABLE IF EXISTS `overdue_issues`;
+CREATE TABLE `overdue_issues` (
+  `id` int(11) NOT NULL AUTO_INCREMENT, -- ID of the overdue issue entry
+  `issue_id` int(10) NOT NULL, -- ID of the issue (refers to issues or old_issues)
+  `claim_level` int(3) NOT NULL, -- ID claim level based on the overduerules (cash_register.id)
+  `claim_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, -- when was the item claimed
+   PRIMARY KEY (`id`),
+   KEY `overdue_issues_idx_issue_id` (`issue_id`,`claim_level`,`claim_time`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

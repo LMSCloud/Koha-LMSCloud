@@ -45,6 +45,7 @@ use Koha::DateUtils;
 use Koha::Calendar;
 use Koha::Libraries;
 use Koha::Acquisition::Currencies;
+use Koha::OverdueIssue;
 
 =head1 NAME
 
@@ -321,9 +322,10 @@ my $htmlfilename;
 my $text_filename;
 my $triggered = 0;
 my $listall = 0;
-my $itemscontent = join( ',', qw( date_due title barcode author itemnumber ) );
+my $itemscontent = join( ',', qw(date_due title barcode author itemnumber) );
 my @myborcat;
 my @myborcatout;
+my $checkPreviousClaimLevel = 0;
 my ( $date_input, $today );
 
 GetOptions(
@@ -355,6 +357,8 @@ if ( defined $csvfilename && $csvfilename =~ /^-/ ) {
     warn qq(using "$csvfilename" as filename, that seems odd);
 }
 
+$checkPreviousClaimLevel = 1 
+    if C4::Context->preference('OverdueNoticePeriodCalculationMethod') eq 'byPreviousClaimLevel';
 my @overduebranches    = C4::Overdues::GetBranchcodesWithOverdueRules();	# Branches with overdue rules
 my @branches;									# Branches passed as parameter with overdue rules
 my $branchcount = scalar(@overduebranches);
@@ -435,6 +439,9 @@ if ( defined $csvfilename ) {
 }
 
 @branches = @overduebranches unless @branches;
+
+$verbose and warn "Using $branchcount $overduebranch_word with first message enabled: " . join( ', ', map { "'$_'" } @overduebranches ), "\n";
+
 our $fh;
 if ( defined $htmlfilename ) {
   if ( $htmlfilename eq '' ) {
@@ -486,7 +493,7 @@ my $noticeFees = C4::NoticeFees->new();
 # All matching issues are ordered by borrowernumber so that a borrower gets only one letter per
 # matching overduerule.
 foreach my $branchcode (@branches) {
-    if ( C4::Context->preference('OverdueNoticeCalendar') ) {
+    if ( C4::Context->preference('OverdueNoticeCalendar') || C4::Context->preference('OverdueNoticeSkipWhenClosed') ) {
         my $calendar = Koha::Calendar->new( branchcode => $branchcode );
         if ( $calendar->is_holiday($date_to_run) ) {
             next;
@@ -501,8 +508,9 @@ foreach my $branchcode (@branches) {
     $verbose and warn sprintf "branchcode : '%s' using %s\n", $branchcode, $admin_email_address;
 
     my $sth2 = $dbh->prepare( <<"END_SQL" );
-SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname
-  FROM issues,items,biblio, biblioitems, branches b
+SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date
+  FROM items,biblio, biblioitems, branches b, issues
+  LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
   WHERE items.itemnumber=issues.itemnumber
     AND biblio.biblionumber   = items.biblionumber
     AND b.branchcode = items.homebranch
@@ -518,6 +526,7 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname
            )
         )
     AND TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
+    AND b.branchcode = ?
 END_SQL
 
     my $query = "SELECT * FROM overduerules WHERE delay1 IS NOT NULL AND branchcode = ? ";
@@ -564,13 +573,14 @@ END_SQL
             # <date> <itemcount> <firstname> <lastname> <address1> <address2> <address3> <city> <postcode> <country>
 
             my $borrower_sql = <<"END_SQL";
-SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, cardnumber, date_due
-FROM   issues, borrowers, categories
+SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date
+FROM   borrowers, categories, issues
+LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  issues.borrowernumber = borrowers.borrowernumber 
 AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = borrowers.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
 AND    borrowers.categorycode=categories.categorycode
-AND    issues.date_due <= $date
 AND    categories.overduenoticerequired=1
+AND    issues.date_due <= $date
 END_SQL
             my @borrower_parameters;
             if ($branchcode) {
@@ -583,15 +593,16 @@ END_SQL
             }
             $borrower_sql .= <<"END_SQL";
 UNION
-SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, bo.cardnumber, date_due
-FROM   issues, borrowers bo, borrowers bb, categories
+SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, bo.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date
+FROM   borrowers bo, borrowers bb, categories, issues
+LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  categories.family_card = 1
 AND    issues.borrowernumber = bb.borrowernumber
 AND    bo.borrowernumber = bb.guarantorid 
 AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = bo.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
 AND    bo.categorycode=categories.categorycode
-AND    issues.date_due <= $date
 AND    categories.overduenoticerequired=1 
+AND    issues.date_due <= $date
 END_SQL
             if ($branchcode) {
                 $borrower_sql .= ' AND issues.branchcode=? ';
@@ -610,7 +621,8 @@ END_SQL
             $verbose and warn $borrower_sql . "\n $branchcode | " . $overdue_rules->{'categorycode'} . "\n ($mindays, $maxdays, ".  $date_to_run->datetime() .")\nreturns " . $sth->rows . " rows";
             my $borrowernumber;
             while ( my $data = $sth->fetchrow_hashref ) {
-
+                $verbose and print "borrower ", $data->{'borrowernumber'}, ", current level $i: previous claim level ", $data->{claim_level}, ", issue claim date " , $data->{claim_date} , " and date to run " , $date_to_run->ymd() , "\n";
+                
                 # check the borrower has at least one item that matches
                 my $days_between;
                 if ( C4::Context->preference('OverdueNoticeCalendar') )
@@ -631,6 +643,14 @@ END_SQL
                         next;
                     }
                 }
+                elsif ( $checkPreviousClaimLevel )
+                {
+                    unless ( $data->{claim_level} == ($i-1) 
+                        && $days_between >= $mindays 
+                        && ($data->{claim_date} cmp $date_to_run->ymd()) == -1 ) {
+                        next;
+                    }
+                }
                 else {
                     unless (   $days_between >= $mindays
                         && $days_between <= $maxdays )
@@ -645,7 +665,7 @@ END_SQL
                 }
                 $borrowernumber = $data->{'borrowernumber'};
                 my $borr =
-                    ($data->{'firstname'} ? $data->{'firstname'} : '' ) . ', '
+                    ($data->{'firstname'} ? $data->{'firstname'}.', ' : '' )
                   . $data->{'surname'} . ' ('
                   . $borrowernumber . ')';
                 $verbose
@@ -687,7 +707,7 @@ END_SQL
                     ) unless $test_mode;
                     $verbose and warn "debarring $borr\n";
                 }
-                my @params = ($borrowernumber, $borrowernumber);
+                my @params = ($borrowernumber, $borrowernumber, $branchcode);
                 $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber";
 
                 $sth2->execute(@params);
@@ -712,21 +732,44 @@ END_SQL
                     }
                     $days_between = $days_between->in_units('days');
                     
-                    # if the configuration fits to a matches a fee rule
+                    # if the configuration fits to a matching a fee rule
                     # we need to write a claim fee foreach item
-                    my $apply_claim_fee = 0;
+                    my $new_overdue_item = 0;
                        
                     if ($listall) {
                         unless ($days_between >= 1 and $days_between <= $MAX){
                             next;
                         }
-                        $apply_claim_fee = 1 if (   
-                               ($triggered && $mindays == $days_between) 
-                            || ($days_between >= $mindays && $days_between <= $maxdays) );
+                        if ( $triggered ) {
+                              $new_overdue_item = 1 if ( $mindays == $days_between );
+                        }
+                        elsif ( $checkPreviousClaimLevel )
+                        {
+                            if ( $item_info->{claim_level} == ($i-1) 
+                                && $days_between >= $mindays 
+                                && ($item_info->{claim_date} cmp $date_to_run->ymd()) == -1 ) 
+                            {
+                                $new_overdue_item = 1;
+                            }
+                        }
+                        else {
+                            $new_overdue_item = 1 
+                                if ($days_between >= $mindays && $days_between <= $maxdays);
+                        }
                     }
+                    
                     else {
                         if ($triggered) {
                             if ( $mindays != $days_between ) {
+                                next;
+                            }
+                        }
+                        elsif ( $checkPreviousClaimLevel )
+                        {
+                            unless ( $item_info->{claim_level} == ($i-1) 
+                                && $days_between >= $mindays 
+                                && ($item_info->{claim_date} cmp $date_to_run->ymd()) == -1 ) 
+                            {
                                 next;
                             }
                         }
@@ -737,24 +780,30 @@ END_SQL
                                 next;
                             }
                         }
-                        $apply_claim_fee = 1;
+                        $new_overdue_item = 1;
                     }
                     
+                    # check whether the item needs to be added if a maximum number of items is configured
+                    my $additeminfo = 1;
                     if ( ( scalar(@emails_to_use) == 0 || $nomail ) && $PrintNoticesMaxLines && $j >= $PrintNoticesMaxLines ) {
                       $exceededPrintNoticesMaxLines = 1;
-                      last;
+                      $additeminfo = 0;
                     }
                     $j++;
-                    my @item_info = map { $_ =~ /^date|date$/ ?
-                                           eval { output_pref( { dt => dt_from_string( $item_info->{$_} ), dateonly => 1 } ); }
-                                           :
-                                           $item_info->{$_} || '' } @item_content_fields;
-                    $titles .= join("\t", @item_info) . "\n";
-                    $itemcount++;
-                    push @items, $item_info;
+                    
+                    # add the item info max lines is not exceeded
+                    if ( $additeminfo ) {
+                        my @item_info = map { $_ =~ /^date|date$/ ?
+                                               eval { output_pref( { dt => dt_from_string( $item_info->{$_} ), dateonly => 1 } ); }
+                                               :
+                                               $item_info->{$_} || '' } @item_content_fields;
+                        $titles .= join("\t", @item_info) . "\n";
+                        $itemcount++;
+                        push @items, $item_info;
+                    }
                     
                     # check whether there are claiming fee rules defined
-                    if ( $nocharge==0 && $apply_claim_fee == 1 && $claimFees->checkForClaimingRules() == 1 ) {
+                    if ( $nocharge==0 && $new_overdue_item == 1 && $claimFees->checkForClaimingRules() == 1 ) {
                         # check whether there is a matching claiming fee rule
                         my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $branchcode);
                         
@@ -788,6 +837,16 @@ END_SQL
                                 );
                             }
                         }
+                    }
+                    
+                    # store information that the item was claimed 
+                    if ( $new_overdue_item ) {
+                        Koha::OverdueIssue->new(
+                            {
+                                issue_id        => $item_info->{'issue_id'},
+                                claim_level     => $i,
+                                claim_time      => output_pref( { dt => $date_to_run, dateonly => 0, dateformat => 'iso' } )
+                            } )->store();
                     }
                     
                 }
@@ -829,14 +888,15 @@ END_SQL
                     }
 
                     # The following message is not internationalized. 
+                    # Thats why we skip the message.
                     #if ( $exceededPrintNoticesMaxLines ) {
                     #  $letter->{'content'} .= "List too long for form; please check your account online for a complete list of your overdue items.";
                     #}
 
-                    my @misses = grep { /./ } map { /^([^>]*)[>]+/; ( $1 || '' ); } split /\</, $letter->{'content'};
-                    if (@misses) {
-                        $verbose and warn "The following terms were not matched and replaced: \n\t" . join "\n\t", @misses;
-                    }
+                    # my @misses = grep { /./ } map { /^([^>]*)[>]+/; ( $1 || '' ); } split /\</, $letter->{'content'};
+                    # if (@misses) {
+                        # $verbose and warn "The following terms were not matched and replaced: \n\t" . join "\n\t", @misses;
+                    # }
 
                     if ($nomail) {
                         push @output_chunks,

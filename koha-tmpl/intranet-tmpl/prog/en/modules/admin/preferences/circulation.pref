@@ -336,11 +336,26 @@ Circulation:
             - Send all notices as a BCC to this email address
             - pref: OverdueNoticeBcc
         -
+            - Consider
+            - pref: OverdueNoticePeriodCalculationMethod
+              choices:
+                  byPreviousClaimLevel: "the previously reached claim level"
+                  byDate: "only the claim date and delay days"
+            - to calculate the claim level of overdue items. 
+            - <br>Using the information about previously sent claims helps to prevent that overdue notices are sent multiple times for the same claim level if the overdue notice cronjob runs infrequently.
+            - <br>Using only the claim date will calculate the claim level according to the configured delay days of overdue rules independently whether overdue notices have been sent previously or not.
+        -
             - pref: OverdueNoticeCalendar
               choices:
                   yes: "Use Calendar"
                   no: "Ignore Calendar"
             - when working out the period for overdue notices
+        -
+            - pref: OverdueNoticeSkipWhenClosed
+              choices:
+                  yes: "Don't create"
+                  no: "Create"
+            - overdue notices on closing days of a library if the use of the calendar is deactivated for period calculation of overdue notices. 
         -
             - Include up to
             - pref: PrintNoticesMaxLines
