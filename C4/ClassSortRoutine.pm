@@ -113,6 +113,8 @@ letter characters.
 
 sub _get_class_sort_key {
     my ($cn_class, $cn_item) = @_;
+    $cn_class = '' if (!$cn_class);
+    $cn_item = '' if (!$cn_item);
     my $key = uc "$cn_class $cn_item";
     $key =~ s/\s+/_/;
     $key =~ s/[^A-Z_0-9]//g;
