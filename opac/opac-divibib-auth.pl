@@ -58,7 +58,6 @@ my ( $template, $loggedinuser, $templatename) = get_template_and_user(
 # the two parameters are sno (userid) and pwd (password)
 my $borrowernumber = $query->param("sno") || '';
 my $password       = $query->param("pwd") || '';
-my $trace          = $query->param("trace") || 0;
 
 
 my ($borrower, $age, $checkpw);
@@ -176,16 +175,6 @@ if ( $borrower ) {
 	# fill the response strucre
 	$response->{'cardid'} = $borrower->{'cardnumber'};
 	$response->{'userid'} = $borrower->{'borrowernumber'};
-}
-
-# use the following for tracing purposes
-if ( $trace )  {
-	if ( $borrower ) {
-		$response->{'trace'} = "Borrower found: $borrowernumber, Password: $password, Age: $age, Checkpw: $checkpw, Hashpw: " . Koha::AuthUtils::hash_password($password, $checkpw);
-	}
-	else {
-		$response->{'trace'} = "Borrower not found";
-	}
 }
 
 # return the response structure
