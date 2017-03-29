@@ -400,10 +400,10 @@ sub getRecords {
                 $sort_by .= "1=8007 >i ";
             }
             elsif ( $sort eq "pubdate_asc" ) {
-                $sort_by .= "1=31 <i ";
+                $sort_by .= "1=30 <i ";
             }
             elsif ( $sort eq "pubdate_dsc" ) {
-                $sort_by .= "1=31 >i ";
+                $sort_by .= "1=30 >i ";
             }
             elsif ( $sort eq "acqdate_asc" ) {
                 $sort_by .= "1=32 <i ";
