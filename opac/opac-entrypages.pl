@@ -44,6 +44,7 @@ my $dbh = C4::Context->dbh;
 my ( $template, $loggedinuser, $cookie, $templatename);
 
 my $enduser = $query->param("interestGroup") || 'A';
+my $classlevel = $query->param("classlevel");
 
 my (@ElectronicMedia,@ClassificationTopLevelEntries);
 
@@ -87,9 +88,11 @@ if ( $enduser eq 'A' ) {
 
 if ( $enduser eq 'A' ) {
 	# select top-level CD-DVD-BD entries of the ASB classification if available
-	
+    my $level=1;
+    $level = $classlevel if ( $classlevel );
+    
 	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN ('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') ORDER BY description");
-	$sth->execute(1);
+	$sth->execute($level);
 	while (my $line = $sth->fetchrow_hashref)
 	{
 		push @ClassificationTopLevelEntries, $line;
@@ -97,7 +100,7 @@ if ( $enduser eq 'A' ) {
 	$sth->finish;
 	if (! scalar(@ClassificationTopLevelEntries) ) {
 		$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification NOT REGEXP '^([0-9].*|CD.*|DVD.*)' ORDER BY description");
-		$sth->execute(1);
+		$sth->execute($level);
 		while (my $line = $sth->fetchrow_hashref)
 		{
 			push @ClassificationTopLevelEntries, $line;
@@ -107,9 +110,11 @@ if ( $enduser eq 'A' ) {
 
 if ( $enduser eq '9' ) {
 	# select top-level CD-DVD-BD entries of the ASB classification if available
-	
-	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like ? ORDER BY description");
-	$sth->execute(3,"4.3/%");
+	my $level=3;
+    $level = $classlevel if ( $classlevel );
+
+	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND (classification like ? or classification like ?) ORDER BY description");
+	$sth->execute($level,"4.3/%","4.3 %");
 	while (my $line = $sth->fetchrow_hashref)
 	{
 		$line->{description} =~ s/^Kindersach[^\s\\]+: //;
@@ -117,7 +122,7 @@ if ( $enduser eq '9' ) {
 	}
 	$sth->finish;
 	if (! scalar(@ClassificationTopLevelEntries) ) {
-		$sth->execute(2,"4.3%");
+		$sth->execute($level-1,"4.3%");
 		while (my $line = $sth->fetchrow_hashref)
 		{
 			push @ClassificationTopLevelEntries, $line;
@@ -127,9 +132,11 @@ if ( $enduser eq '9' ) {
 
 if ( $enduser eq 'T' ) {
 	# select top-level CD-DVD-BD entries of the ASB classification if available
-	
+	my $level=3;
+    $level = $classlevel if ( $classlevel );
+    
 	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like ? ORDER BY description");
-	$sth->execute(3,"6.%");
+	$sth->execute($level,"6.%");
 	while (my $line = $sth->fetchrow_hashref)
 	{
 		$line->{description} =~ s/^Kindersach[^\s\\]+: //;
@@ -137,7 +144,7 @@ if ( $enduser eq 'T' ) {
 	}
 	$sth->finish;
 	if (! scalar(@ClassificationTopLevelEntries) ) {
-		$sth->execute(2,"4.3%");
+		$sth->execute($level,"4.3%");
 		while (my $line = $sth->fetchrow_hashref)
 		{
 			push @ClassificationTopLevelEntries, $line;
