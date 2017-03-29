@@ -24,7 +24,7 @@ use C4::Context;
 
 my $sth = C4::Context->dbh;
 
-$sth->do("alter table overduerules convert to character set utf8 collate utf8_unicode_ci");s
+$sth->do("alter table overduerules convert to character set utf8 collate utf8_unicode_ci");
 
 $sth->do("
     INSERT INTO overdue_issues (issue_id,claim_level,claim_time) 
