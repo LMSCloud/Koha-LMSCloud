@@ -1471,7 +1471,7 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
     </xslo:for-each>
     <xslo:for-each select="marc:subfield">
       <xslo:if test="contains('s', @code)">
-        <z:index name="datelastborrowed:w">
+        <z:index name="datelastborrowed:w datelastborrowed:d datelastborrowed:s">
           <xslo:value-of select="."/>
         </z:index>
       </xslo:if>

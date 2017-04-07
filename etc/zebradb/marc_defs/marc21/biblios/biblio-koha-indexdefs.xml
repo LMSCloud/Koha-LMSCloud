@@ -1361,6 +1361,8 @@
   <!--record.abs line 313: melm 952$s      datelastborrowed-->
   <index_subfields tag="952" subfields="s">
     <target_index>datelastborrowed:w</target_index>
+    <target_index>datelastborrowed:d</target_index>
+    <target_index>datelastborrowed:s</target_index>
   </index_subfields>
   <!--record.abs line 314: melm 952$t      copynumber-->
   <index_subfields tag="952" subfields="t">

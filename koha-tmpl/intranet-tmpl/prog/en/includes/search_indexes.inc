@@ -12,6 +12,7 @@
     <option value="ti">Title</option>
     <option value="ti,phr">&nbsp;&nbsp;&nbsp;&nbsp; Title as phrase</option>
     <option value="se">&nbsp;&nbsp;&nbsp;&nbsp; Series title</option>
+    <option value="sys,phr,ext,rtrn">Classification</option>
     <option value="su">Subject</option>
     <option value="su,phr">&nbsp;&nbsp;&nbsp;&nbsp; Subject as phrase</option>
     [% IF ( expanded_options ) %]
@@ -51,4 +52,6 @@
     %]
     <option value="yr,st-year">Publication date (yyyy-yyyy)</option>
     <option value="acqdate,st-date-normalized">Acquisition date (yyyy-mm-dd)</option>
+    <option value="datelastborrowed,st-date-normalized,le">Last checkout to (yyyy-mm-dd)</option>
+    <option value="datelastborrowed,st-date-normalized,ge">Last checkout since (yyyy-mm-dd)</option>
 </select>

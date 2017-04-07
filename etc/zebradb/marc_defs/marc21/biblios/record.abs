@@ -335,7 +335,7 @@ melm 952$o      Local-classification:w,Local-classification:p,Local-classificati
 melm 952$p      barcode,barcode:n
 melm 952$q      onloan:n,onloan:w
 melm 952$r      datelastseen
-melm 952$s      datelastborrowed
+melm 952$s      datelastborrowed,datelastborrowed:d,datelastborrowed:s
 melm 952$t      copynumber
 melm 952$u      uri:u
 melm 952$v      replacementprice
