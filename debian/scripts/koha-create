@@ -659,6 +659,7 @@ CREATE DATABASE \`$mysqldb\`;
 CREATE USER \`$mysqluser\`@'$mysql_hostname' IDENTIFIED BY '$mysqlpwd';
 CREATE USER \`$mysqluser\`@'%' IDENTIFIED BY '$mysqlpwd';
 GRANT ALL PRIVILEGES ON \`$mysqldb\`.* TO \`$mysqluser\`;
+GRANT ALL PRIVILEGES ON \`$mysqldb\`.* TO \`$mysqluser\`@'$mysql_hostname';
 FLUSH PRIVILEGES;
 eof
     fi #`
@@ -669,6 +670,7 @@ eof
 CREATE USER \`$mysqluser\`@'$mysql_hostname' IDENTIFIED BY '$mysqlpwd';
 CREATE USER \`$mysqluser\`@'%' IDENTIFIED BY '$mysqlpwd';
 GRANT ALL PRIVILEGES ON \`$mysqldb\`.* TO \`$mysqluser\`;
+GRANT ALL PRIVILEGES ON \`$mysqldb\`.* TO \`$mysqluser\`@'$mysql_hostname';
 FLUSH PRIVILEGES;
 eof
     fi #`
@@ -741,7 +743,7 @@ then
     then
         # Populate the database with default content.
         zcat "$DEFAULTSQL" |
-        sed "s/__KOHASITE__/$name/g" |
+        sed "s/__KOHASITE__/koha_$name/g" |
         mysql --host="$mysqlhost" --user="$mysqluser" --password="$mysqlpwd" "$mysqldb"
 
 

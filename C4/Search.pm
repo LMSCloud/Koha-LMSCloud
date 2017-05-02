@@ -2129,7 +2129,7 @@ sub searchResults {
             {
                 $onloan_count++;
                 my $key = $prefix . $item->{onloan} . $item->{barcode};
-                $onloan_items->{$key}->{due_date} = output_pref( { dt => dt_from_string( $item->{onloan} ), dateonly => 1 } );
+                $onloan_items->{$key}->{due_date} = $item->{onloan};
                 $onloan_items->{$key}->{count}++ if $item->{$hbranch};
                 $onloan_items->{$key}->{branchname}     = $item->{branchname};
                 $onloan_items->{$key}->{location}       = $shelflocations->{ $item->{location} };

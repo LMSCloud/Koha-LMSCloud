@@ -275,6 +275,10 @@ if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preferen
 # patronimage related interface on
 my $patron_image = Koha::Patron::Images->find($data->{borrowernumber});
 $template->param( picture => 1 ) if $patron_image;
+# Generate CSRF token for upload and delete image buttons
+$template->param(
+    csrf_token => Koha::Token->new->generate_csrf({ session_id => $input->cookie('CGISESSID'),}),
+);
 
 my $branch=C4::Context->userenv->{'branch'};
 
@@ -314,7 +318,7 @@ if (C4::Context->preference('EnhancedMessagingPreferences')) {
     C4::Form::MessagingPreferences::set_form_values({ borrowernumber => $borrowernumber }, $template);
     $template->param(messaging_form_inactive => 1);
     $template->param(SMSSendDriver => C4::Context->preference("SMSSendDriver"));
-    $template->param(SMSnumber     => defined $data->{'smsalertnumber'} ? $data->{'smsalertnumber'} : $data->{'mobile'});
+    $template->param(SMSnumber     => $data->{'smsalertnumber'});
     $template->param(TalkingTechItivaPhone => C4::Context->preference("TalkingTechItivaPhoneNotification"));
 }
 
@@ -341,7 +345,6 @@ $template->param(
     samebranch      => $samebranch,
     quickslip       => $quickslip,
     privacy_guarantor_checkouts => $data->{'privacy_guarantor_checkouts'},
-    activeBorrowerRelationship => (C4::Context->preference('borrowerRelationship') ne ''),
     AutoResumeSuspendedHolds => C4::Context->preference('AutoResumeSuspendedHolds'),
     SuspendHoldsIntranet => C4::Context->preference('SuspendHoldsIntranet'),
     RoutingSerials => C4::Context->preference('RoutingSerials'),

@@ -130,7 +130,13 @@ melm 243        Title:w,Title:p,Title-collective
 melm 245$a      Title-cover:w,Title-cover:p,Title-cover:s,Title:w,Title:p,Title:s
 melm 245$c      Author,Author-in-order:w,Author-in-order:p,Author-in-order:s
 melm 245$9      Cross-Reference:w,Koha-Auth-Number
-melm 245        Title:w,Title:p
+melm 245$a      Title:w,Title:p
+melm 245$b      Title:w,Title:p
+melm 245$f      Title:w,Title:p
+melm 245$g      Title:w,Title:p
+melm 245$n      Title:w,Title:p
+melm 245$p      Title:w,Title:p
+melm 245$s      Title:w,Title:p
 melm 246        Title,Title:p,Title-abbreviated,Title-expanded,Title-former
 melm 247        Title,Title:p,Title-former,Title-other-variant,Related-periodical
 melm 260$a      pl:w,pl:p

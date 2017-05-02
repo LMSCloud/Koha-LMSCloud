@@ -148,11 +148,6 @@ $findborrower =~ s|,| |g;
 
 my $branch = C4::Context->userenv->{'branch'};
 
-# If AutoLocation is not activated, we show the Circulation Parameters to chage settings of librarian
-if (C4::Context->preference("AutoLocation") != 1) {
-    $template->param(ManualLocation => 1);
-}
-
 if (C4::Context->preference("DisplayClearScreenButton")) {
     $template->param(DisplayClearScreenButton => 1);
 }
@@ -226,7 +221,8 @@ if ( $print eq 'yes' && $borrowernumber ne '' ) {
         NetworkPrint($letter->{content});
     }
     $query->param( 'borrowernumber', '' );
-    $borrowernumber = '';
+    $borrowernumber = ''; # FIXME This is terrible
+    $borrower = {};
 }
 
 #
@@ -649,7 +645,6 @@ $template->param(
     AudioAlerts           => C4::Context->preference("AudioAlerts"),
     fast_cataloging   => $fast_cataloging,
     CircAutoPrintQuickSlip   => C4::Context->preference("CircAutoPrintQuickSlip"),
-    activeBorrowerRelationship => (C4::Context->preference('borrowerRelationship') ne ''),
     SuspendHoldsIntranet => C4::Context->preference('SuspendHoldsIntranet'),
     AutoResumeSuspendedHolds => C4::Context->preference('AutoResumeSuspendedHolds'),
     RoutingSerials => C4::Context->preference('RoutingSerials'),

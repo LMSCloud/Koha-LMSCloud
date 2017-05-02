@@ -61,7 +61,7 @@ my $bookfund         = $input->param("bookfund");
 my $order            = GetOrder($ordernumber);
 my $new_ordernumber  = $ordernumber;
 
-#need old recievedate if we update the order, parcel.pl only shows the right parcel this way FIXME
+#need old receivedate if we update the order, parcel.pl only shows the right parcel this way FIXME
 if ($quantityrec > $origquantityrec ) {
     my @received_items = ();
     if(C4::Context->preference('AcqCreateItem') eq 'ordering') {
@@ -163,6 +163,7 @@ ModItem(
     {
         booksellerid         => $booksellerid,
         dateaccessioned      => $datereceived,
+        datelastseen         => $datereceived,
         price                => $unitprice,
         replacementprice     => $rrp,
         replacementpricedate => $datereceived,

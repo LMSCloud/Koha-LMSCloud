@@ -18,6 +18,7 @@ use C4::Members::Attributes qw(GetBorrowerAttributes);
 
 use C4::Output;
 use Koha::Patron::Images;
+use Koha::Token;
 
 my $input = new CGI;
 
@@ -41,6 +42,14 @@ my %member2;
 $member2{'borrowernumber'}=$member;
 
 if ($input->param('newflags')) {
+
+    die "Wrong CSRF token"
+        unless Koha::Token->new->check_csrf({
+            session_id => scalar $input->cookie('CGISESSID'),
+            token  => scalar $input->param('csrf_token'),
+        });
+
+
     my $dbh=C4::Context->dbh();
 
     my @perms = $input->multi_param('flag');
@@ -157,7 +166,7 @@ if ($input->param('newflags')) {
         $template->param( 'catcode' =>    $catcodes->[0])  if $cnt == 1;
     }
 	
-$template->param( adultborrower => 1 ) if ( $bor->{'category_type'} eq 'A' );
+$template->param( adultborrower => 1 ) if ( $bor->{'category_type'} eq 'A' || $bor->{'category_type'} eq 'I' );
     my $patron_image = Koha::Patron::Images->find($bor->{borrowernumber});
     $template->param( picture => 1 ) if $patron_image;
 
@@ -194,8 +203,8 @@ $template->param(
 		branchname => GetBranchName($bor->{'branchcode'}),
 		loop => \@loop,
 		is_child        => ($bor->{'category_type'} eq 'C'),
-		activeBorrowerRelationship => (C4::Context->preference('borrowerRelationship') ne ''),
         RoutingSerials => C4::Context->preference('RoutingSerials'),
+        csrf_token => Koha::Token->new->generate_csrf( { session_id => scalar $input->cookie('CGISESSID'), } ),
 		);
 
     output_html_with_http_headers $input, $cookie, $template->output;

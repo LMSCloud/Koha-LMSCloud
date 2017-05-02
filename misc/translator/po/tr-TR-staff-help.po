@@ -3,8 +3,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 3.0.2\n"
-"POT-Creation-Date: 2016-10-20 15:11-0300\n"
-"PO-Revision-Date: 2016-10-18 13:32+0000\n"
+"POT-Creation-Date: 2017-04-16 13:30-0300\n"
+"PO-Revision-Date: 2017-04-18 11:51+0000\n"
 "Last-Translator: Onur <onurerdem@sdu.edu.tr>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: tr\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Pootle 2.5.1.1\n"
-"X-POOTLE-MTIME: 1476797545.000000\n"
+"X-POOTLE-MTIME: 1492516295.000000\n"
 
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:82
 #, c-format
@@ -856,7 +856,7 @@ msgstr "(! çökmüş durumda 'çökmedi' ya da 'görünmez' anlamına gelir)"
 #: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
 #: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
 #: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:23
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
 #: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11
@@ -1027,7 +1027,7 @@ msgstr "-8 =&gt; Bayrak"
 msgid "-9 =&gt; Future use"
 msgstr "-9 =&gt; Gelecekte kullanım"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:14
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:16
 #, c-format
 msgid ""
 ". For example, if you use the selector \"#circ_impossible\" your selected "
@@ -2029,7 +2029,7 @@ msgstr "Bütçe eklemek"
 msgid "Adding a group"
 msgstr "Grup ekleniyor"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:7
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:9
 #, c-format
 msgid "Adding a new alert"
 msgstr "Yeni bir uyarı eklemek"
@@ -2305,7 +2305,7 @@ msgid ""
 msgstr ""
 "Yeni bir bibliyografik kaydı kaydettikten sonra, bibliyografik kayda "
 "materyal ekleyebilmeniz için boş bir materyal kaydına yönlendirileceksiniz. "
-"Aynı zamanda katalog arama sonuçlarından  'Ayırma ekle' seçeneğine "
+"Aynı zamanda katalog arama sonuçlarından 'Ayırtma ekle' seçeneğine "
 "tıklayabilirsiniz ya da her hangi bir zaman diliminde yeni bir materyali "
 "bibliyografik kayıt üzerindeki 'Yeni' butonuna tıklayarak ve 'Yeni materyal' "
 "seçeneğini seçerek ekleyebilirsiniz."
@@ -2587,8 +2587,8 @@ msgstr ""
 msgid ""
 "Also at the bottom of the page is the list of items the patron has on hold"
 msgstr ""
-"Aynı zamanda sayfanın alt kısmı, kullanıcının üzerine ayırma koyduğu "
-"materyallerin bir listesidir"
+"Aynı zamanda sayfanın alt kısmı, kullanıcının ayırttığı materyallerin bir "
+"listesidir"
 
 #: intranet-tmpl/prog/en/modules/help/tools/upload-cover-image.tt:26
 #, c-format
@@ -2906,7 +2906,7 @@ msgstr ""
 "Materyali dolaşıma koymak istiyorsanız, en azından aşağıdaki alanları "
 "doldurmanız gerekir:"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:17
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:19
 #, c-format
 msgid ""
 "At this point, you can preview your sound by clicking the \"Play sound\" "
@@ -3354,7 +3354,7 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:491
 #, c-format
 msgid "Browse the system logs"
-msgstr "Sistem kayıtlarını gözden geçiriniz."
+msgstr "Sistem günlüklerine gözatın"
 
 #: intranet-tmpl/prog/en/modules/help/offline_circ/process_koc.tt:11
 #, c-format
@@ -4396,7 +4396,7 @@ msgstr "Kısmen ödeme yapmak istediğiniz cezanın yanındaki \"Öde\"ye tıkla
 msgid "Click \"Pay\" next to the fine you want to pay in full"
 msgstr "Tamamını ödemek istediğiniz cezanın yanındaki \"Öde\"ye tıklayın."
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:18
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:20
 #, c-format
 msgid "Click \"Save alert\" and your done!"
 msgstr "\"Uyarıları kaydet\" üzerine tıklayın ve bitirdiniz!"
@@ -5362,7 +5362,7 @@ msgstr "Genel listeleri sil"
 msgid "Deleting Item Types"
 msgstr "Materyal Türünü Sil"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:27
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:29
 #, c-format
 msgid "Deleting alerts"
 msgstr "Uyarıların silinmesi"
@@ -5867,7 +5867,7 @@ msgstr "Liste adı girin ve listeyi kaydedin."
 msgid "Enter a plain text version of the category in the 'Description' field."
 msgstr "'Tanım' alanındaki kategorinin düz metin sürümünü girin."
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:13
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:15
 #, c-format
 msgid ""
 "Enter a selector in the \"selector\" input, you can see documentation on "
@@ -5876,7 +5876,7 @@ msgstr ""
 "\"seçici\" girişine bir seçici girin, jQuery seçicileri belgelerine "
 "bakabilirsiniz"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:16
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:18
 #, c-format
 msgid ""
 "Enter a sound to be played, you can either select a built-in Koha sound "
@@ -6884,9 +6884,9 @@ msgid ""
 "From Any Library: Patrons from any library may put this item on hold. "
 "(default if none is defined)"
 msgstr ""
-"Herhangi bir kütüphaneden: Kullanıcılar bu materyal üzerine herhangi bir "
-"kütüphaneden ayırma koyabilirler. (her hangi bir tanım yapılmamışsa "
-"varsayılan değeri kullanın)"
+"Herhangi bir kütüphaneden: Kullanıcılar bu materyali herhangi bir "
+"kütüphaneden ayırtanilirler. (her hangi bir tanım yapılmamışsa varsayılan "
+"değeri kullanın)"
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:106
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:138
@@ -6895,8 +6895,8 @@ msgid ""
 "From Home Library: Only patrons from the item's home library may put this "
 "book on hold."
 msgstr ""
-"Ana kütüphaneden: Sadece ana kütüphanenin kullanıcıları bu kitap üzerine "
-"ayırma koyabilir."
+"Ana kütüphaneden: Sadece ana kütüphanenin kullanıcıları bu kitabı "
+"ayırtabilir."
 
 #: intranet-tmpl/prog/en/modules/help/tools/scheduler.tt:13
 #, c-format
@@ -7389,10 +7389,10 @@ msgid ""
 "price) on the item record after saving."
 msgstr ""
 "Bu formdan, fiyat bilgisini değiştirebilirsiniz. Sağlayıcı siparişinizin "
-"tamamını yollamamışsa,  sadece almak istediğiniz materyallerin solundaki "
+"tamamını göndermemişse,  sadece almak istediğiniz materyallerin solundaki "
 "kutuları onaylayarak siparişin sadece bir kısmını alınmış olarak "
-"işaretlemeyi de seçebilirsiniz.  'Yerine koyma fiyatına' girdiğiniz değerler "
-"ve 'Gerçek maliyet', kaydettikten sonra materyal kaydında alt alanı v  "
+"işaretlemeyi de seçebilirsiniz. 'Yerine koyma fiyatına' girdiğiniz değerler "
+"ve 'Gerçek maliyet', kaydettikten sonra materyal kaydında alt alanı v "
 "(fiyat, yerine koyma fiyatı ) ve alt alanı g (Fiyat, normal satın alma "
 "maliyeti) ile doldurularak materyal kaydı otomatik olarak doldurulacaktır."
 
@@ -11810,7 +11810,7 @@ msgstr "Yerel kullanım sistem tercihleri"
 msgid "Local Use:"
 msgstr "Yerel Kullanım:"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:12
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:14
 #, c-format
 msgid "Locate the \"Add new alert\" form."
 msgstr "\"Yeni uyarı Ekle\" formunu bul."
@@ -12143,7 +12143,7 @@ msgstr "Kullanıcı etiketlerini yönet"
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:38
 #, c-format
 msgid "Modification Log"
-msgstr "Değişiklik Logu"
+msgstr "Değişiklik Günlüğü"
 
 #: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:41
 #, c-format
@@ -12628,6 +12628,13 @@ msgstr "Not: edit_items izninin halen gerekli olduğunu lütfen unutmayın"
 #, c-format
 msgid "Note: Please note that items_batchmod permission is still required"
 msgstr "Not: items_batchmod izninin halen gerekli olduğunu lütfen unutmayın"
+
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:7
+#, c-format
+msgid "Note: Use system preference 'AudioAlerts' to enable/disable sounds."
+msgstr ""
+"Not: Sesleri etkinleştirmek/devre dışı bırakmak için 'AudioAlerts' sistem "
+"tercihini kullanın."
 
 #: intranet-tmpl/prog/en/modules/help/acqui/supplier.tt:33
 #, c-format
@@ -13376,7 +13383,7 @@ msgstr ""
 "İşlemi bitirdiğinizde, en üstteki 'Kaydet' butonuna tıklayın ve "
 "oluşturduğunuz bibliyografik kaydı kaydetmek ve görmek isteyip "
 "istemediğinizi seçin ya da kayda ekli olan materyalleri eklemeye/düzenlemeye "
-"devam edin "
+"devam edin"
 
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities.tt:25
 #, c-format
@@ -14075,12 +14082,12 @@ msgstr "Kullanıcıların ayırmalarını yap ve değiştir"
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:194
 #, c-format
 msgid "Place holds for patrons"
-msgstr "Kullanıcılar için ayırma koy"
+msgstr "Kullanıcılar için ayırt"
 
 #: intranet-tmpl/prog/en/modules/help/reserve/request.tt:5
 #, c-format
 msgid "Placing Holds in Staff Client"
-msgstr "Personel İstemcide Ayırma Koyuluyor"
+msgstr "Personel İstemcide ayırtma yapmak"
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:3
 #, c-format
@@ -14813,7 +14820,7 @@ msgstr "Dolaşım İstatistikleri tam dokümantasyonuna bakınız"
 msgid "See the full documentation for Circulation and Fine Rules in the "
 msgstr "Dolaşım ve Ceza Kuralları tam dokümantasyonuna bakınız"
 
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:23
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
 #, c-format
 msgid "See the full documentation for Circulation in the "
 msgstr "Dolaşım tam dokümantasyonuna bakınız"
@@ -15779,12 +15786,12 @@ msgstr "Sıralama alanı 1"
 msgid "Sort field 2 "
 msgstr "Sıralama alanı 2"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:21
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:23
 #, c-format
 msgid "Sound precedence"
 msgstr "Ses önceliği"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:23
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:25
 #, c-format
 msgid ""
 "Sounds will be played in order from top to bottom. That is, the first select "
@@ -18994,7 +19001,7 @@ msgstr ""
 "\"raporalmadanöncesüzünüz\" sisteminin kurulması ile çalıştırmadan önce "
 "raporu filtrelemenizi seçebilir."
 
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:21
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:22
 #, c-format
 msgid "Tip: Mac users use the OPTION button in place of ALT"
 msgstr "Öneri: Mac kullanıcıları ALT yerine OPTION düğmesini kullanın"
@@ -19091,9 +19098,8 @@ msgid ""
 "Tip: You have to put \"%%\" in a text box to 'leave it blank'. Otherwise, it "
 "literally looks for \"\" (empty string) as the value for the field."
 msgstr ""
-"İpucu:  'Boş bırakmak için' metin kutusuna \"%%\" yerleştirmeniz gerekir. "
-"Aksi takdirde, alanın değeri olarak tam  \"\" şeklinde (boş dizgi) olarak "
-"gözükecektir."
+"İpucu: 'Boş bırakmak için bir metin kutusuna \"%%\" koymanız gerekir. Aksi "
+"takdirde, alanın değeri olarak kelimenin tam anlamıyla \"\" (boş dize) arar."
 
 #: intranet-tmpl/prog/en/modules/help/admin/z3950servers.tt:66
 #, c-format
@@ -19161,7 +19167,7 @@ msgstr ""
 "Yeni kullanıcı nitelik türü eklemek için sayfanın üstündeki ‘Yeni kullanıcı "
 "nitelik türü’ne tıklayın."
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:11
 #, c-format
 msgid "To add a new alert:"
 msgstr "Yeni bir uyarı eklemek için:"
@@ -19387,7 +19393,7 @@ msgstr ""
 "Bir sağlayıcıdan sipariş verebilmeniz için, bu sağlayıcıları 'Aktif' duruma "
 "getirmelisiniz"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:25
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:27
 #, c-format
 msgid ""
 "To change the precedence of a given alert, use the four arrows to move it "
@@ -19517,7 +19523,7 @@ msgstr ""
 "belirecektir."
 
 #. %1$s:  INCLUDE 'help-bottom.inc' 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:29
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:31
 #, c-format
 msgid ""
 "To delete one or more alerts, check the checkboxes for those alerts you wish "
@@ -22996,7 +23002,7 @@ msgstr "Bu yeni materyallerle ilgili bir RSS/Atom beslemesi alın."
 msgid "group_manage "
 msgstr "grup_yönet "
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:14
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:16
 #, c-format
 msgid "here"
 msgstr "burada"
@@ -23175,6 +23181,11 @@ msgstr "Alt+R ile iade bölümüne geçin"
 #, c-format
 msgid "jump to the checkout with Alt+U "
 msgstr "Alt+U ile ödünç alma bölümüne geçin "
+
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:19
+#, c-format
+msgid "jump to the renew tab with Alt+W"
+msgstr "Alt + W ile süre uzatma sekmesine atlayın"
 
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:8
 #, c-format
@@ -23361,7 +23372,7 @@ msgstr "yönetim "
 #: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
 #: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
 #: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:23
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
 #: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11

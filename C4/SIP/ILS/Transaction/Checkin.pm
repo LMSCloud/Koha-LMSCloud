@@ -98,24 +98,24 @@ sub do_checkin {
     if ($messages->{Wrongbranch}) {
         # wrong branch is an error since the library disabled it 
         # using configuration parameter 'AllowReturnToBranch' 
-        $self->destination_loc($messages->{Wrongbranch}->{Rightbranch});
+        $self->{item}->destination_loc($messages->{Wrongbranch}->{Rightbranch});
         $self->alert_type('04');                       
         $self->screen_msg("Return at wrong branch");
         $return = 0;
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - return at wrong branch");  
     }
     if ($messages->{WrongTransfer}) {
-        $self->destination_loc($messages->{WrongTransfer});
+        $self->{item}->destination_loc($messages->{WrongTransfer});
         $self->alert_type('04');            # send to other branch
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - wrong transfer");
     }
     if ($messages->{NeedsTransfer}) {
-        $self->destination_loc($iteminformation->{homebranch});
+        $self->{item}->destination_loc($messages->{NeedsTransfer});
         $self->alert_type('04');            # send to other branch
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - needs transfer");
     }
     if ($messages->{WasTransfered}) { # set into transit so tell unit
-        $self->destination_loc($iteminformation->{homebranch});
+        $self->{item}->destination_loc($iteminformation->{homebranch});
         $self->alert_type('04');            # send to other branch
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - was transfered");
     }
@@ -125,12 +125,12 @@ sub do_checkin {
         if ($branch eq $messages->{ResFound}->{branchcode}) {
             $self->alert_type('01');
             ModReserveAffect( $messages->{ResFound}->{itemnumber},
-                $messages->{ResFound}->{borrowernumber}, 0);
+                $messages->{ResFound}->{borrowernumber}, 0, $messages->{ResFound}->{reserve_id});
 
         } else {
             $self->alert_type('02');
             ModReserveAffect( $messages->{ResFound}->{itemnumber},
-                $messages->{ResFound}->{borrowernumber}, 1);
+                $messages->{ResFound}->{borrowernumber}, 1, $messages->{ResFound}->{reserve_id});
             ModItemTransfer( $messages->{ResFound}->{itemnumber},
                 $branch,
                 $messages->{ResFound}->{branchcode}

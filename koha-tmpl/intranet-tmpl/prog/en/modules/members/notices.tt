@@ -15,18 +15,19 @@
         "sPaginationType": "four_button"
     }));
 
-    $(".notice").hide();
-    $(".notice-title").click(function(e){
-        $(this).closest("tr").children().children(".notice").toggle();
-        e.preventDefault();
-    });
-    
+        $("#noticestable").on("click", ".notice-title", function(e){
+            e.preventDefault();
+            var rowid = $(this).data("noticeid");
+            $("#notice"+rowid).toggle();
+            $("#resend_notice"+rowid).toggle();
+        });
+
     });
 //]]>
 </script>
 <style type="text/css">
-    p.notice { display: none; }
-    a.notice-title { font-weight: bold; display: block; }
+    .notice { display: none; }
+    .notice-title { font-weight: bold; display: block; }
 </style>
 </head>
 <body id="pat_notices" class="pat">
@@ -56,8 +57,8 @@
 	    [% FOREACH QUEUED_MESSAGE IN QUEUED_MESSAGES %]
 	    <tr>
 		<td>
-            <a class="notice-title" href="#">[% QUEUED_MESSAGE.subject %]</a>
-            <div class="notice">
+            <a class="notice-title" data-noticeid="[% QUEUED_MESSAGE.message_id %]" href="#">[% QUEUED_MESSAGE.subject %]</a>
+            <div id="notice[% QUEUED_MESSAGE.message_id %]" class="notice">
                 [% QUEUED_MESSAGE.content FILTER html_line_break %]
             </div>
         </td>
@@ -75,7 +76,7 @@
             [% ELSIF ( QUEUED_MESSAGE.status == 'deleted' ) %]deleted
             [% ELSE %][% QUEUED_MESSAGE.status %][% END %]
             [% IF ( QUEUED_MESSAGE.status != 'pending' ) %]
-            <div class="notice">
+            <div id="resend_notice[% QUEUED_MESSAGE.message_id %]"  class="notice">
                 <form action="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber %]" method="POST">
                     <input type="hidden" name="op" value="resend_notice" />
                     <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />

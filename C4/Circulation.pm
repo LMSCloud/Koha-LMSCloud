@@ -545,6 +545,10 @@ sub TooMany {
         }
     }
 
+    if ( not defined( $issuing_rule ) and not defined($branch_borrower_circ_rule->{maxissueqty}) ) {
+        return { reason => 'NO_RULE_DEFINED', max_allowed => 0 };
+    }
+
     # OK, the patron can issue !!!
     return;
 }
@@ -905,7 +909,6 @@ sub CanBookBeIssued {
     if ( $rentalConfirmation ){
         my ($rentalCharge) = GetIssuingCharges( $item->{'itemnumber'}, $borrower->{'borrowernumber'} );
         if ( $rentalCharge > 0 ){
-            $rentalCharge = sprintf("%.02f", $rentalCharge);
             $needsconfirmation{RENTALCHARGE} = $rentalCharge;
         }
     }
@@ -2758,12 +2761,12 @@ sub CanBookBeRenewed {
             # by pushing all the elements onto an array and removing the duplicates.
             my @reservable;
             foreach my $b (@borrowernumbers) {
-                my ($borr) = C4::Members::GetMemberDetails($b);
+                my ($borr) = C4::Members::GetMember( borrowernumber => $b);
                 foreach my $i (@itemnumbers) {
                     my $item = GetItem($i);
-                    if (   IsAvailableForItemLevelRequest( $item, $borr )
-                        && CanItemBeReserved( $b, $i )
-                        && !IsItemOnHoldAndFound($i) )
+                    if (  !IsItemOnHoldAndFound($i)
+                        && IsAvailableForItemLevelRequest( $item, $borr )
+                        && CanItemBeReserved( $b, $i ) )
                     {
                         push( @reservable, $i );
                     }
@@ -2903,7 +2906,7 @@ sub AddRenewal {
         $datedue = (C4::Context->preference('RenewalPeriodBase') eq 'date_due') ?
                                         dt_from_string( $issuedata->{date_due} ) :
                                         DateTime->now( time_zone => C4::Context->tz());
-        $datedue =  CalcDateDue($datedue, $itemtype, $issuedata->{'branchcode'}, $borrower, 'is a renewal');
+        $datedue =  CalcDateDue($datedue, $itemtype, _GetCircControlBranch($item, $borrower), $borrower, 'is a renewal');
     }
 
     # Update the issues record to have the new due date, and a new count
@@ -2971,15 +2974,19 @@ sub AddRenewal {
     }
 
     # Log the renewal
-    UpdateStats({branch => $branch,
-                type => 'renew',
-                amount => $charge,
-                itemnumber => $itemnumber,
-                itemtype => $item->{itype},
-                borrowernumber => $borrowernumber,
-                ccode => $item->{'ccode'}}
-                );
-	return $datedue;
+    UpdateStats(
+        {
+            branch => C4::Context->userenv ? C4::Context->userenv->{branch} : $branch,
+            type           => 'renew',
+            amount         => $charge,
+            itemnumber     => $itemnumber,
+            itemtype       => $item->{itype},
+            borrowernumber => $borrowernumber,
+            ccode          => $item->{'ccode'}
+        }
+    );
+
+    return $datedue;
 }
 
 sub GetRenewCount {
@@ -3125,6 +3132,9 @@ sub GetIssuingCharges {
             # We may have multiple rules so get the most specific
             my $discount = _get_discount_from_rule($discount_rules, $branch, $item_type);
             $charge = ( $charge * ( 100 - $discount ) ) / 100;
+        }
+        if ($charge) {
+            $charge = sprintf '%.2f', $charge; # ensure no fractions of a penny returned
         }
     }
 
@@ -3350,7 +3360,7 @@ sub SendCirculationAlert {
     my %message_name = (
         CHECKIN  => 'Item_Check_in',
         CHECKOUT => 'Item_Checkout',
-	RENEWAL  => 'Item_Checkout',
+        RENEWAL  => 'Item_Checkout',
     );
     my $borrower_preferences = C4::Members::Messaging::GetMessagingPreferences({
         borrowernumber => $borrower->{borrowernumber},
@@ -3358,47 +3368,44 @@ sub SendCirculationAlert {
     });
     my $issues_table = ( $type eq 'CHECKOUT' || $type eq 'RENEWAL' ) ? 'issues' : 'old_issues';
 
+    my $schema = Koha::Database->new->schema;
     my @transports = keys %{ $borrower_preferences->{transports} };
-    # warn "no transports" unless @transports;
-    for (@transports) {
-        # warn "transport: $_";
-        my $message = C4::Message->find_last_message($borrower, $type, $_);
-        if (!$message) {
-            #warn "create new message";
-            my $letter =  C4::Letters::GetPreparedLetter (
-                module => 'circulation',
-                letter_code => $type,
-                branchcode => $branch,
-                message_transport_type => $_,
-                tables => {
-                    $issues_table => $item->{itemnumber},
-                    'items'       => $item->{itemnumber},
-                    'biblio'      => $item->{biblionumber},
-                    'biblioitems' => $item->{biblionumber},
-                    'borrowers'   => $borrower,
-                    'branches'    => $branch,
-                }
-            ) or next;
-            C4::Message->enqueue($letter, $borrower, $_, $branch);
+
+    # From the MySQL doc:
+    # LOCK TABLES is not transaction-safe and implicitly commits any active transaction before attempting to lock the tables.
+    # If the LOCK/UNLOCK statements are executed from tests, the current transaction will be committed.
+    # To avoid that we need to guess if this code is execute from tests or not (yes it is a bit hacky)
+    my $do_not_lock = ( exists $ENV{_} && $ENV{_} =~ m|prove| ) || $ENV{KOHA_NO_TABLE_LOCKS};
+
+    for my $mtt (@transports) {
+        my $letter =  C4::Letters::GetPreparedLetter (
+            module => 'circulation',
+            letter_code => $type,
+            branchcode => $branch,
+            message_transport_type => $mtt,
+            tables => {
+                $issues_table => $item->{itemnumber},
+                'items'       => $item->{itemnumber},
+                'biblio'      => $item->{biblionumber},
+                'biblioitems' => $item->{biblionumber},
+                'borrowers'   => $borrower,
+                'branches'    => $branch,
+            }
+        ) or next;
+
+        $schema->storage->txn_begin;
+        C4::Context->dbh->do(q|LOCK TABLE message_queue READ|) unless $do_not_lock;
+        C4::Context->dbh->do(q|LOCK TABLE message_queue WRITE|) unless $do_not_lock;
+        my $message = C4::Message->find_last_message($borrower, $type, $mtt);
+        unless ( $message ) {
+            C4::Context->dbh->do(q|UNLOCK TABLES|) unless $do_not_lock;
+            C4::Message->enqueue($letter, $borrower, $mtt, $branch);
         } else {
-            #warn "append to old message";
-            my $letter =  C4::Letters::GetPreparedLetter (
-                module => 'circulation',
-                letter_code => $type,
-                branchcode => $branch,
-                message_transport_type => $_,
-                tables => {
-                    $issues_table => $item->{itemnumber},
-                    'items'       => $item->{itemnumber},
-                    'biblio'      => $item->{biblionumber},
-                    'biblioitems' => $item->{biblionumber},
-                    'borrowers'   => $borrower,
-                    'branches'    => $branch,
-                }
-            ) or next;
             $message->append($letter);
             $message->update;
         }
+        C4::Context->dbh->do(q|UNLOCK TABLES|) unless $do_not_lock;
+        $schema->storage->txn_commit;
     }
 
     return;

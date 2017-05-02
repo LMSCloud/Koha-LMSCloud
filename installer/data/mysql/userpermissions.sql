@@ -62,6 +62,8 @@ INSERT INTO permissions (module_bit, code, description) VALUES
    (13, 'cash_register_manage', 'Cash register management (define cash registers and authorized staff)'),
    (13, 'download_batchprint_files', 'Download batch print files'),
    (13, 'run_batch_programs', 'Run batch programs'),
+   (13, 'upload_general_files', 'Upload any file'),
+   (13, 'upload_manage', 'Manage uploaded files'),
    (15, 'check_expiration', 'Check the expiration of a serial'),
    (15, 'claim_serials', 'Claim missing serials'),
    (15, 'create_subscription', 'Create a new subscription'),

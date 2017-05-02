@@ -5,9 +5,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2016-10-20 14:31-0300\n"
-"PO-Revision-Date: 2016-10-15 18:38+0000\n"
-"Last-Translator: Josef <josef.moravec@knihovna-uo.cz>\n"
+"POT-Creation-Date: 2017-04-16 12:40-0300\n"
+"PO-Revision-Date: 2016-12-01 07:23+0000\n"
+"Last-Translator: przehak <przehak@muko.cz>\n"
 "Language-Team: Czech <http://hosted.weblate.org/projects/koha/staff-prog/cs/"
 ">\n"
 "Language: cs\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 "X-Generator: Pootle 2.5.1.1\n"
-"X-POOTLE-MTIME: 1476556709.000000\n"
+"X-POOTLE-MTIME: 1480576983.000000\n"
 
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:82
 #, c-format
@@ -841,7 +841,7 @@ msgstr "(! znamená 'neviditelný' nebo v případě zhrouceno 'nezhrouceno')"
 #: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
 #: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
 #: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:23
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
 #: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11
@@ -952,7 +952,7 @@ msgid "(online)."
 msgstr "(on-line)."
 
 #: intranet-tmpl/prog/en/modules/help/rotating_collections/rotatingCollections.tt:7
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "(system preference) must be set to \"Don't automatically transfer items to "
 "their home library when they are returned\" for Rotating Collections to "
@@ -960,7 +960,7 @@ msgid ""
 msgstr ""
 "(systémové nastavení) musí být nastaveno na \"Nevracej automaticky jednotky "
 "do jejich domovské knihovny při návratu\" aby cirkulace sbírek fungovala "
-"správně.  "
+"správně."
 
 #: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:5
 #, c-format
@@ -1012,7 +1012,7 @@ msgstr "-8 =&gt; Flag"
 msgid "-9 =&gt; Future use"
 msgstr "-9 =&gt; Budoucí použití"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:14
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:16
 #, fuzzy, c-format
 msgid ""
 ". For example, if you use the selector \"#circ_impossible\" your selected "
@@ -2007,7 +2007,7 @@ msgstr "Přidání rozpočtu"
 msgid "Adding a group"
 msgstr "Přidávání skupiny"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:7
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:9
 #, c-format
 msgid "Adding a new alert"
 msgstr "Přidání nového upozornění"
@@ -2841,7 +2841,7 @@ msgstr ""
 "Pokud plánujete vydání jednotky do oběhu, měli byste vyplnit alespoň "
 "následující pole pro nové jednotky:"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:17
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:19
 #, c-format
 msgid ""
 "At this point, you can preview your sound by clicking the \"Play sound\" "
@@ -4306,7 +4306,7 @@ msgid "Click \"Pay\" next to the fine you want to pay in full"
 msgstr ""
 "Klikněte na \"Zaplatit\" vedle pokuty, kterou chcete zaplatit v plné výši"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:18
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:20
 #, c-format
 msgid "Click \"Save alert\" and your done!"
 msgstr "Klikněte na \"Uložit upozornění\" a máte hotovo!"
@@ -5252,7 +5252,7 @@ msgstr "Odstraňovat veřejné seznamy"
 msgid "Deleting Item Types"
 msgstr "Odstraňování typů jednotek"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:27
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:29
 #, c-format
 msgid "Deleting alerts"
 msgstr "Odstranění upozornění"
@@ -5750,14 +5750,14 @@ msgstr "Zadejte název seznamu a seznam uložte."
 msgid "Enter a plain text version of the category in the 'Description' field."
 msgstr "Zadejte textovou verzi kategorie do políčka \"Popis\"."
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:13
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:15
 #, c-format
 msgid ""
 "Enter a selector in the \"selector\" input, you can see documentation on "
 "jQuery selectors "
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:16
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:18
 #, c-format
 msgid ""
 "Enter a sound to be played, you can either select a built-in Koha sound "
@@ -11432,9 +11432,9 @@ msgstr ""
 "v kapitole 13 AACR2."
 
 #: intranet-tmpl/prog/en/modules/help/admin/edi_ean_accounts.tt:3
-#, c-format
+#, fuzzy, c-format
 msgid "Library EANs"
-msgstr ""
+msgstr "Čárový kód EAN knihovny"
 
 #: intranet-tmpl/prog/en/modules/help/admin/branches.tt:74
 #, c-format
@@ -11551,7 +11551,7 @@ msgstr "Místní nastavení systému"
 msgid "Local Use:"
 msgstr "Místní užití:"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:12
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:14
 #, c-format
 msgid "Locate the \"Add new alert\" form."
 msgstr "Najděte formulář \"Přidat nové upozornění\"."
@@ -12342,6 +12342,11 @@ msgstr "Poznámka: nezapomeňte prosím, že stále vyžadováno právo edit_ite
 #, c-format
 msgid "Note: Please note that items_batchmod permission is still required"
 msgstr "Poznámka: Nezapomeňte, že právo items_batchmod je dále vyžadováno"
+
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:7
+#, c-format
+msgid "Note: Use system preference 'AudioAlerts' to enable/disable sounds."
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/acqui/supplier.tt:33
 #, c-format
@@ -14471,7 +14476,7 @@ msgstr "Viz úplnou dokumentaci pro pro statistiky výpůjček v "
 msgid "See the full documentation for Circulation and Fine Rules in the "
 msgstr "Viz úplnou dokumentaci pro Výpůjční a penalizační pravidla v "
 
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:23
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
 #, c-format
 msgid "See the full documentation for Circulation in the "
 msgstr "Viz úplnou dokumentaci pro Výpůjčky v "
@@ -15431,12 +15436,12 @@ msgstr ""
 msgid "Sort field 2 "
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:21
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:23
 #, c-format
 msgid "Sound precedence"
 msgstr "Priority zvukových upozornění"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:23
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:25
 #, fuzzy, c-format
 msgid ""
 "Sounds will be played in order from top to bottom. That is, the first select "
@@ -16654,6 +16659,7 @@ msgstr ""
 msgid ""
 "The cronjob script is misc/cronjobs/automatic_item_modification_by_age.pl."
 msgstr ""
+"Skript úlohy cronu je misc/cronjobs/automatic_item_modification_by_age.pl."
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:77
 #, c-format
@@ -17467,9 +17473,9 @@ msgstr ""
 "popisů, kolik chcete."
 
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:15
-#, c-format
+#, fuzzy, c-format
 msgid "There are 3 values to define:"
-msgstr ""
+msgstr "Je třeba definovat tři hodnoty:"
 
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:266
 #, c-format
@@ -17701,8 +17707,8 @@ msgid ""
 "This can be set by the librarian editing a patron record and adding a "
 "restriction or by the Overdue/Notice Status Triggers"
 msgstr ""
-"Toto lze nastavit knihovníkem přidáním příznaku omezení sluýžeb při úpravě "
-"záznamu čtenáře nebo automaticky pomocí spouštěčů upomínek v nástrojích."
+"Toto lze nastavit knihovníkem přidáním příznaku omezení služeb při úpravě "
+"záznamu čtenáře nebo automaticky pomocí spouštěčů upomínek v nástrojích"
 
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:4
 #, c-format
@@ -17714,7 +17720,7 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/help/tools/import_borrowers.tt:28
 #, c-format
 msgid "This field must be wrapped in quotes if multiple values are defined."
-msgstr ""
+msgstr "Pole musí být uzavřeno uvozovkami, pokud je nastaveno více hodnot."
 
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:113
 #, c-format
@@ -18567,7 +18573,7 @@ msgstr ""
 "pomocí nastavení sytémové preference FilterBeforeOverdueReport na \"Vyžadovat"
 "\"."
 
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:21
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:22
 #, c-format
 msgid "Tip: Mac users use the OPTION button in place of ALT"
 msgstr "Tip: Na počítačích Mac použijte klávesu OPTION místo ALT"
@@ -18731,7 +18737,7 @@ msgstr ""
 "Chcete-li přidat nový typ atributu čtenáře, klikněte na \"Nový typ atributu "
 "čtenáře\" v horní části stránky"
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:11
 #, c-format
 msgid "To add a new alert:"
 msgstr "Pokud chcete přidat nové upozornění:"
@@ -18952,7 +18958,7 @@ msgstr ""
 msgid "To be able to order from a vendor, you must make them 'Active.'"
 msgstr "Aby bylo možné objednat od dodavatele, musíte být tento \"Aktivní\"."
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:25
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:27
 #, c-format
 msgid ""
 "To change the precedence of a given alert, use the four arrows to move it "
@@ -19072,7 +19078,7 @@ msgstr ""
 "na shrnutí autoritního záznamu."
 
 #. %1$s:  INCLUDE 'help-bottom.inc' 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:29
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:31
 #, c-format
 msgid ""
 "To delete one or more alerts, check the checkboxes for those alerts you wish "
@@ -22344,7 +22350,7 @@ msgstr "delete_subscription "
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:9
 #, c-format
 msgid "display an icon in the search results for new items."
-msgstr ""
+msgstr "zobrazit ikonu u nových jednotek ve výsledcích hledání."
 
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:375
 #, c-format
@@ -22446,7 +22452,7 @@ msgstr ""
 msgid "group_manage "
 msgstr "group_manage "
 
-#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:14
+#: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:16
 #, c-format
 msgid "here"
 msgstr "zde"
@@ -22622,6 +22628,11 @@ msgstr "vracení: Alt+R"
 #, c-format
 msgid "jump to the checkout with Alt+U "
 msgstr "půjčování: Alt+U "
+
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:19
+#, fuzzy, c-format
+msgid "jump to the renew tab with Alt+W"
+msgstr "vracení: Alt+R"
 
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:8
 #, c-format
@@ -22808,7 +22819,7 @@ msgstr "management (správa) "
 #: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
 #: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
 #: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:23
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
 #: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
 #: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11
