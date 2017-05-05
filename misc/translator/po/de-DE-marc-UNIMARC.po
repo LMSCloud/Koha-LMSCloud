@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: German Koha Translation\n"
-"POT-Creation-Date: 2017-04-16 12:43-0300\n"
+"POT-Creation-Date: 2017-05-04 15:18+0200\n"
 "PO-Revision-Date: 2016-08-17 14:25+0000\n"
 "Last-Translator: Marc <veron@veron.ch>\n"
 "Language-Team: \n"
@@ -63,197 +63,197 @@ msgstr "(automatisch berechnet)"
 msgid "(auto-filled)"
 msgstr "(automatisch ausgefüllt)"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:51
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:44
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:51
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:59
 #, c-format
 msgid ", adapter"
 msgstr ", Bearbeiter"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:52
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:45
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:52
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:60
 #, c-format
 msgid ", annotator"
 msgstr ", Anmerker"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:53
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:46
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:53
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:61
 #, c-format
 msgid ", author of afterword"
 msgstr ", Verfasser des Nachworts"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:55
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:48
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:55
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:63
 #, c-format
 msgid ", bibliographic antecedent"
 msgstr ", vorangegangene Bibliographie"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:56
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:49
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:56
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:64
 #, c-format
 msgid ", collaborator"
 msgstr ", Mitarbeiter"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:57
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:50
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:57
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:65
 #, c-format
 msgid ", commentator"
 msgstr ", Kommentator"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:58
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:51
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:58
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:66
 #, c-format
 msgid ", compiler"
 msgstr ", Herausgeber"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:59
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:52
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:59
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:67
 #, c-format
 msgid ", composer"
 msgstr ", Komponist"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:60
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:53
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:60
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:68
 #, c-format
 msgid ", conceptor"
 msgstr ", Konzeption"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:61
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:54
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:61
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:69
 #, c-format
 msgid ", degree-grantor"
 msgstr ", Verleiher des akademischen Grades"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:62
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:55
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:62
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:70
 #, c-format
 msgid ", editor"
 msgstr ", Verleger"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:63
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:56
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:63
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:71
 #, c-format
 msgid ", film editor"
 msgstr ", Filmbearbeitung"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:64
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:57
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:64
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:72
 #, c-format
 msgid ", founder"
 msgstr ", Gründer"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:65
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:58
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:65
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:73
 #, c-format
 msgid ", illustrator"
 msgstr ", Illustrator"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:66
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:59
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:66
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:74
 #, c-format
 msgid ", lyricist"
 msgstr ", Texter"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:67
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:60
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:67
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:75
 #, c-format
 msgid ", organiser of meeting"
 msgstr ", Kongressorganisation"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:68
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:61
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:68
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:76
 #, c-format
 msgid ", other"
 msgstr ", andere"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:69
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:62
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:69
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:77
 #, c-format
 msgid ", photographer"
 msgstr ", Fotograf"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:54
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:47
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:54
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:62
 #, c-format
 msgid ", prefacer"
 msgstr ", Verfasser des Vorworts"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:70
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:63
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:70
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:78
 #, c-format
 msgid ", presenter"
 msgstr ", Präsentation"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:71
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:64
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:71
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:79
 #, c-format
 msgid ", publisher"
 msgstr ", Herausgeber"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:72
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:65
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:72
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:80
 #, c-format
 msgid ", publishing director"
 msgstr ", verantwortlicher Herausgeber"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:75
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:68
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:75
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:83
 #, c-format
 msgid ", redactor"
 msgstr ", Redakteur"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:73
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:66
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:73
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:81
 #, c-format
 msgid ", research team head"
 msgstr ", Verantwortlicher des Forschungsteams"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:74
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:67
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:74
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:82
 #, c-format
 msgid ", reviewer"
 msgstr ", Gutachter"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:76
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:69
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:76
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:84
 #, c-format
 msgid ", sponsor"
 msgstr ", Sponsor"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:77
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:70
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:77
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:85
 #, c-format
 msgid ", thesis advisor"
 msgstr ", Korrektor"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:78
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:71
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:78
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:86
 #, c-format
 msgid ", translator"
@@ -1375,9 +1375,9 @@ msgstr "Gut"
 msgid "Bound with:"
 msgstr "Zusammengebunden mit:"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:30
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:31
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:33
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:30
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:24
 #, c-format
 msgid "Braille or Moon script"
@@ -1430,47 +1430,47 @@ msgstr "CX kodiert"
 msgid "Cadiz, Spain"
 msgstr "Cadiz, Spanien"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124c.tt:127
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:365
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:72
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:170
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123a.tt:31
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:67
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:326
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:37
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1123
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:636
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:133
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:31
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1027
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:810
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_700-4.tt:45
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:462
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:70
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128a.tt:366
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1722
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1587
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128c.tt:456
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_127.tt:24
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:592
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124e.tt:32
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1190
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:336
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:291
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:57
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:106
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:245
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1722
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_122.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:810
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1134
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:684
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:84
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1134
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:592
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_122.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:72
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:636
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:37
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:126
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124e.tt:32
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100_authorities.tt:349
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1027
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:106
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:70
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123a.tt:31
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1587
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124a.tt:31
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1190
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:67
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:47
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:57
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:170
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:47
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:47
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:365
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:336
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:462
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:291
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128c.tt:456
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124c.tt:127
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128a.tt:366
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_700-4.tt:45
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:245
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:326
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100_authorities.tt:349
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1123
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_127.tt:24
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:31
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:133
 #, c-format
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -1562,8 +1562,9 @@ msgstr "Ausgeliehen ("
 msgid "Children's chorus"
 msgstr "Kinderchor"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:196
+#. INPUT type=submit
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c_bis.tt:42
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:196
 #, c-format
 msgid "Choose"
 msgstr "Auswählen"
@@ -1850,11 +1851,11 @@ msgstr "Dekameter"
 msgid "Decimetres"
 msgstr "Dezimeter"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:27
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:37
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:37
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:37
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:27
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:37
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:37
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:37
 #, c-format
 msgid "Degree (complete with 0):"
 msgstr "Grade (mit 0 ergänzen):"
@@ -2301,11 +2302,11 @@ msgstr "Hektometer"
 msgid "Helsinki, Finland"
 msgstr "Helsinki (Finnland)"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:10
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:10
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:10
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:10
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:10
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:10
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:10
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:10
 #, c-format
 msgid "Hemisphere:"
 msgstr "Hemisphäre:"
@@ -2441,8 +2442,8 @@ msgstr "Unterwegs ("
 msgid "Index availability code"
 msgstr "Verfügbarkeit des Index Code"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:999
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:25
 #, c-format
 msgid "Index indicator"
 msgstr "Index Indikator"
@@ -2554,8 +2555,8 @@ msgstr "Koha &rsaquo; UNIMARC-Plugin für Feld 210c"
 msgid "LCCN:"
 msgstr "LCCN:"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:172
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:148
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:172
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:163
 #, c-format
 msgid "LOC:"
@@ -2847,11 +2848,11 @@ msgstr "Miller, bipolar"
 msgid "Miller's bipolar oblique conformal conic"
 msgstr "Miller, bipolar, schiefachsig, winkeltreu, konisch"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:30
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:40
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:40
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:30
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:40
 #, c-format
 msgid "Minute (complete with 0):"
 msgstr "Minuten (ergänzen mit Ziffern 0):"
@@ -2886,8 +2887,8 @@ msgstr "Mollweide"
 msgid "Monographic series"
 msgstr "Monographischer Gesamttitel"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:633
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_122.tt:32
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:633
 #, c-format
 msgid "Month"
 msgstr "Monat"
@@ -3049,47 +3050,47 @@ msgid "Normal (16x - 30x)"
 msgstr "Normal (16x - 30x)"
 
 #. INPUT type=button
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124c.tt:127
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:365
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:72
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:170
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123a.tt:31
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:67
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:326
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:37
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1123
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:636
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:133
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:31
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1027
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:810
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_700-4.tt:45
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:462
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128a.tt:366
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1722
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1587
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128c.tt:456
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_127.tt:24
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:592
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124e.tt:32
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1190
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:336
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:291
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:57
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:106
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:245
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1722
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_122.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:810
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1134
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:684
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:84
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1134
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_225a.tt:23
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:592
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_122.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:72
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:636
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:37
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:126
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124e.tt:32
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100_authorities.tt:349
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1027
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_225a.tt:23
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:106
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123a.tt:31
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1587
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124a.tt:31
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1190
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:67
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:47
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:57
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:170
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:47
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:47
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:365
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:336
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:462
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:291
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128c.tt:456
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124c.tt:127
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128a.tt:366
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_700-4.tt:45
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:245
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:326
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100_authorities.tt:349
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1123
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_127.tt:24
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:31
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:133
 msgid "OK"
 msgstr "OK"
 
@@ -3323,8 +3324,8 @@ msgstr "Piccolo"
 msgid "Picture"
 msgstr "Bild"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:101
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:83
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:101
 #, c-format
 msgid "Piece-Analytic Level"
 msgstr "Unselbständiges Werk"
@@ -3589,8 +3590,8 @@ msgid "Script of title"
 msgstr "Titelschrift"
 
 #. INPUT type=submit
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:38
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:70
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:38
 msgid "Search"
 msgstr "Suche"
 
@@ -3615,11 +3616,11 @@ msgstr "Suchergebnisse"
 msgid "Seasat"
 msgstr "Seasat"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:33
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:43
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:43
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:43
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:33
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:43
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:43
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:43
 #, c-format
 msgid "Second (complete with 0):"
 msgstr "Sekunden (ergänzen mit 0):"
@@ -3690,8 +3691,8 @@ msgstr "Zeitschriften"
 msgid "Series"
 msgstr "Reihen"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:95
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:77
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:95
 #, c-format
 msgid "Set Level"
 msgstr "Gesamtaufnahme"
@@ -4097,8 +4098,8 @@ msgstr "Tokyo (Japan)"
 msgid "Trademark"
 msgstr "Markenzeichen"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:89
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:71
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:89
 #, c-format
 msgid "Translation of"
 msgstr "Übersetzung von"
@@ -4457,9 +4458,9 @@ msgstr "UNIMARC-Plugin für Feld 140"
 msgid "UNIMARC field 141 builder"
 msgstr "UNIMARC-Plugin für Feld 141"
 
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c_bis.tt:35
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:3
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:7
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c_bis.tt:35
 #, c-format
 msgid "UNIMARC field 210c builder"
 msgstr "UNIMARC-Plugin für Feld 210c"
@@ -4494,15 +4495,15 @@ msgstr "UNIMARC-Plugin für Feld 700-4"
 msgid "UNIMARC leader builder"
 msgstr "UNIMARC-Plugin für Leader"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:155
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:136
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:155
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:151
 #, c-format
 msgid "URN:ISBN:"
 msgstr "URN:ISBN:"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:161
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:142
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:161
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:157
 #, c-format
 msgid "URN:ISSN:"
@@ -4804,14 +4805,14 @@ msgstr "Frauenchor"
 msgid "Xylophone"
 msgstr "Xylophon"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:633
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_122.tt:28
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:633
 #, c-format
 msgid "Year"
 msgstr "Jahr"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:121
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:418
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:121
 #, c-format
 msgid "_blank"
 msgstr "_blank"
@@ -4945,8 +4946,8 @@ msgstr "abcdfijkmnpvxyz"
 msgid "abcdjpvxyz"
 msgstr "abcdjpvxyz"
 
-#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:123
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2RDFDC.xsl:118
+#: intranet-tmpl/prog/en/xslt/UNIMARCslim2OAIDC.xsl:123
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2SRWDC.xsl:133
 #, c-format
 msgid "abcdq"
@@ -5033,10 +5034,10 @@ msgstr "Werbetexte"
 msgid "ae- postcard"
 msgstr "ae- Postkarte"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:19
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:21
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:19
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:21
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:19
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:21
 #, c-format
 msgid "aerial"
 msgstr "oberflächlich"
@@ -5235,11 +5236,11 @@ msgstr "Atlas enthaltend Atlas in Loseblatt-From"
 msgid "au- santino"
 msgstr "au- santino"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:62
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1536
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1538
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:54
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:56
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:62
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:56
 #, c-format
 msgid "autobiography"
@@ -5413,7 +5414,16 @@ msgstr "Bathymetrie/Tiefenmessung"
 msgid "bc"
 msgstr "bc"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:94
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:208
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:210
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:806
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:808
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:962
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:964
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1120
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1122
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1276
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1278
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:429
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:431
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:516
@@ -5426,16 +5436,7 @@ msgstr "bc"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:778
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:863
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:865
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:806
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:808
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:962
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:964
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1120
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1122
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1276
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1278
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:208
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:210
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:94
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:88
 #, c-format
 msgid "bibliography"
@@ -5453,10 +5454,10 @@ msgstr "zweijährig (alle zwei Jahre)"
 msgid "bimonthly (every two months)"
 msgstr "zweimonatlich (alle zwei Monate)"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1485
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1487
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:299
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:301
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1485
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1487
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:59
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:61
 #, c-format
@@ -5571,9 +5572,9 @@ msgstr "zu einem Journal, einer Monographe etc. gebunden"
 msgid "bound with one or more others"
 msgstr "zusammen gebunden mit einer oder mehrerer anderen"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:200
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:103
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:105
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:200
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:193
 #, c-format
 msgid "bristol board"
@@ -5791,9 +5792,9 @@ msgstr "Kanon"
 msgid "cantata"
 msgstr "Kantate"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:199
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:98
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:100
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:199
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:192
 #, c-format
 msgid "canvas"
@@ -5805,12 +5806,6 @@ msgstr "Leinwand"
 msgid "canzona"
 msgstr "Canzona"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:45
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:47
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:101
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:103
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:157
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:159
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:329
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:331
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:509
@@ -5819,15 +5814,21 @@ msgstr "Canzona"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:689
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1079
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1081
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:45
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:47
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:101
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:103
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:157
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:159
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:154
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:156
 #, c-format
 msgid "cardboard"
 msgstr "Pappe"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:201
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:108
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:110
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:201
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:194
 #, c-format
 msgid "cardboard/illustration board"
@@ -5839,9 +5840,9 @@ msgstr "Karton/Illustrationskarton"
 msgid "carol"
 msgstr "Weihnachtslied"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:113
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:311
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:313
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:113
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:107
 #, c-format
 msgid "cartoons or comic strips"
@@ -5857,9 +5858,9 @@ msgstr "Cartoons oder Comic Strips"
 msgid "casein"
 msgstr "Kasein"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:95
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:215
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:217
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:95
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:89
 #, c-format
 msgid "catalogue"
@@ -5927,7 +5928,6 @@ msgstr "Choral, christlich"
 msgid "chant, non christian"
 msgstr "Choral, nicht-christlich"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:75
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:69
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:71
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:164
@@ -5944,6 +5944,7 @@ msgstr "Choral, nicht-christlich"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:573
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:642
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:644
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:75
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:69
 #, c-format
 msgid "charts"
@@ -6064,7 +6065,6 @@ msgstr "Kohle"
 msgid "coarse/standard"
 msgstr "grob/standard"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:80
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:84
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:86
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:179
@@ -6081,6 +6081,7 @@ msgstr "grob/standard"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:588
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:657
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:659
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:80
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:74
 #, c-format
 msgid "coats of arms"
@@ -6097,21 +6098,21 @@ msgstr "coauthor"
 msgid "coins"
 msgstr "Münzen"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:186
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:444
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:446
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:645
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:647
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:847
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:849
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:186
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:179
 #, c-format
 msgid "collage"
 msgstr "Kollage"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:64
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1546
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1548
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:64
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:58
 #, c-format
 msgid "collective biography"
@@ -6269,10 +6270,10 @@ msgstr "konisch, spezifischer Typ unbekannt"
 msgid "containers"
 msgstr "Container"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:29
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:32
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:44
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:56
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:29
 #, c-format
 msgid "contains"
 msgstr "enthält"
@@ -6580,7 +6581,8 @@ msgstr "Tagebuch"
 msgid "diazo"
 msgstr "Diazo"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:98
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:233
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:235
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:821
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:823
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:977
@@ -6589,8 +6591,7 @@ msgstr "Diazo"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1137
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1291
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1293
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:233
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:235
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:98
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:92
 #, c-format
 msgid "dictionary"
@@ -6626,9 +6627,9 @@ msgstr "Dioramen"
 msgid "dir. de publication"
 msgstr "Publikationsdirektion"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:100
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:245
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:247
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:100
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:94
 #, c-format
 msgid "directory"
@@ -6716,11 +6717,11 @@ msgstr "Puppen"
 msgid "dot map"
 msgstr "Punktekarte"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:45
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1377
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1379
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:24
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:26
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:45
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:39
 #, c-format
 msgid "drama"
@@ -6838,14 +6839,14 @@ msgstr "jedes Heft enthält ein eigenes Inhaltsverzeichnis - lose"
 msgid "earth resources"
 msgstr "Erderkundung"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:20
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:22
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:22
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:20
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:22
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:22
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:20
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:22
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:20
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:22
 #, c-format
 msgid "east"
 msgstr "Osten"
@@ -6899,9 +6900,9 @@ msgstr "elektronische Videoaufnahme (EVR)"
 msgid "encaustic"
 msgstr "Enkaustik"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:99
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:239
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:241
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:99
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:93
 #, c-format
 msgid "encyclopaedia"
@@ -6967,9 +6968,9 @@ msgstr "Erotika"
 msgid "essay, feuilleton"
 msgstr "Essay, Feuilleton"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:46
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:64
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:66
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:46
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:40
 #, c-format
 msgid "essays"
@@ -7141,11 +7142,11 @@ msgstr "Filzstift"
 msgid "fghkdlmor"
 msgstr "fghkdlmor"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:44
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1387
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1389
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:29
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:31
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:44
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:38
 #, c-format
 msgid "fiction"
@@ -7358,7 +7359,6 @@ msgstr "Spiel und Erholung"
 msgid "gb_page_center[600,500]"
 msgstr "gb_page_center[600,500]"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:81
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:89
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:91
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:184
@@ -7375,12 +7375,12 @@ msgstr "gb_page_center[600,500]"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:593
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:662
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:664
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:81
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:75
 #, c-format
 msgid "genealogical tables"
 msgstr "Ahnentafel"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:202
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:275
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:277
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:455
@@ -7391,6 +7391,7 @@ msgstr "Ahnentafel"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:116
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1086
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1088
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:202
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:195
 #, c-format
 msgid "glass"
@@ -7583,9 +7584,9 @@ msgstr "handkoloriert"
 msgid "handwritten"
 msgstr "handgeschrieben"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:204
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:126
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:128
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:204
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:197
 #, c-format
 msgid "hardboard"
@@ -7647,9 +7648,9 @@ msgstr "historisches Werk"
 msgid "history"
 msgstr "Geschichte"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:47
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1440
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1442
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:47
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:41
 #, c-format
 msgid "humour, satire"
@@ -7752,7 +7753,6 @@ msgstr "ia- Thai"
 msgid "ijknpxyz"
 msgstr "ijknpxyz"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:86
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:24
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:26
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:119
@@ -7761,6 +7761,7 @@ msgstr "ijknpxyz"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:217
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:311
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:313
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:86
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:80
 #, c-format
 msgid "illuminations"
@@ -7772,7 +7773,6 @@ msgstr "Illuminierungen"
 msgid "illustrateur"
 msgstr "Illustrator"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:72
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:19
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:21
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:114
@@ -7789,6 +7789,7 @@ msgstr "Illustrator"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:548
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:617
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:619
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:72
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:66
 #, c-format
 msgid "illustrations"
@@ -7859,17 +7860,18 @@ msgstr "im letzten Faszikel des Bandes - gesondert paginiert"
 msgid "in parts"
 msgstr "in Teilen"
 
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:603
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:605
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:307
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:309
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:348
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:350
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:603
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:605
 #, c-format
 msgid "incomplete"
 msgstr "unvollständig"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:96
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:221
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:223
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:816
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:818
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:972
@@ -7878,8 +7880,7 @@ msgstr "unvollständig"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1132
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1286
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1288
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:221
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:223
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:96
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:90
 #, c-format
 msgid "index"
@@ -7913,9 +7914,9 @@ msgstr ""
 msgid "index or name list present but location not specified"
 msgstr "Index oder Namensliste vorhanden, ohne Lokalisierung"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:63
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1541
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1543
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:63
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:57
 #, c-format
 msgid "individual biography"
@@ -8009,18 +8010,18 @@ msgstr "Intermezzo"
 msgid "interviews"
 msgstr "Interviews"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:175
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:183
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:185
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:175
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:169
 #, c-format
 msgid "irregular"
 msgstr "unregelmäßig"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:31
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:34
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:46
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:58
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:31
 #, c-format
 msgid "is exactly"
 msgstr "ist exakt"
@@ -8246,9 +8247,9 @@ msgstr "lackiert (z.B. Diazetat)"
 msgid "landforms"
 msgstr "Oberflächenformen"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:28
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:22
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:28
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:22
 #, c-format
 msgid "large print"
@@ -8276,9 +8277,9 @@ msgstr "Tusch-Lavierung"
 msgid "law reports and digests"
 msgstr "Gesetzesprotokolle und Auszüge"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:107
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:275
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:277
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:107
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:101
 #, c-format
 msgid "laws and legislation"
@@ -8336,9 +8337,9 @@ msgstr "Legende"
 msgid "less than 1 centimetre"
 msgstr "weniger als 1 Zentimeter"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:48
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1445
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1447
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:48
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:42
 #, c-format
 msgid "letters"
@@ -8356,9 +8357,9 @@ msgstr "Briefe"
 msgid "library catalogue"
 msgstr "Bibliothekskatalog"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:52
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1382
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1384
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:52
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:46
 #, c-format
 msgid "libretto"
@@ -8402,9 +8403,9 @@ msgstr "lineare Skala"
 msgid "lino-cut"
 msgstr "Linolschnitt"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:111
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:305
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:307
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:111
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:105
 #, c-format
 msgid "literature surveys/reviews"
@@ -8619,7 +8620,6 @@ msgstr "Karte"
 msgid "map view"
 msgstr "Kartenanzeige"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:73
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:64
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:66
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:159
@@ -8636,6 +8636,7 @@ msgstr "Kartenanzeige"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:568
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:637
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:639
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:73
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:67
 #, c-format
 msgid "maps"
@@ -8725,7 +8726,6 @@ msgstr "Memoiren"
 msgid "mental or cognitive map"
 msgstr "Mentale oder kognitive Karte"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:212
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:341
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:343
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:521
@@ -8737,6 +8737,7 @@ msgstr "Mentale oder kognitive Karte"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1100
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:119
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:121
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:212
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:205
 #, c-format
 msgid "metal"
@@ -8814,9 +8815,9 @@ msgstr "Mikrofilm auf Spule"
 msgid "microfilm slip"
 msgstr "Microfilm-Streifen"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:36
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:69
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:71
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:36
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:30
 #, c-format
 msgid "microform"
@@ -8840,9 +8841,9 @@ msgstr "Microgroove/-fine"
 msgid "microphotography"
 msgstr "Mikrofotografie"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:31
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:37
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:39
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:31
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:25
 #, c-format
 msgid "microprint"
@@ -8860,9 +8861,9 @@ msgstr "Mikroskop-Dias"
 msgid "minerals"
 msgstr "Mineralien"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:34
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:57
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:59
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:34
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:28
 #, c-format
 msgid "mini-print"
@@ -8898,8 +8899,8 @@ msgstr "Miscellanea"
 msgid "missing"
 msgstr "vermisst"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:420
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:422
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:718
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:720
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:204
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:206
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:383
@@ -8910,8 +8911,8 @@ msgstr "vermisst"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:743
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:792
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:794
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:718
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:720
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:420
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:422
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:266
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:268
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:468
@@ -8936,9 +8937,9 @@ msgstr "vermischt"
 msgid "mixed base (nitrate and safety)"
 msgstr "gemischte Basis (Nitrat und Sicherheit)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:208
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:156
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:158
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:208
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:201
 #, c-format
 msgid "mixed collection"
@@ -9050,9 +9051,9 @@ msgstr "Motette"
 msgid "mother (positive)"
 msgstr "Mutter (positiv)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:123
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:22
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:123
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:117
 #, c-format
 msgid "motion picture"
@@ -9140,7 +9141,6 @@ msgstr "Multispektrale Fotografie"
 msgid "multispectral scanning"
 msgstr "Multispektrale Abtastung"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:78
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:79
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:81
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:174
@@ -9157,6 +9157,7 @@ msgstr "Multispektrale Abtastung"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:583
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:652
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:654
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:78
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:72
 #, c-format
 msgid "music"
@@ -9209,10 +9210,10 @@ msgstr "n - Folien"
 msgid "n> "
 msgstr "n> "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:71
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:73
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:299
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:301
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:71
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:73
 #, c-format
 msgid "negative"
 msgstr "negativ"
@@ -9223,9 +9224,9 @@ msgstr "negativ"
 msgid "newspaper"
 msgstr "Zeitung"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:29
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:27
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:29
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:23
 #, c-format
 msgid "newspaper format"
@@ -9297,7 +9298,6 @@ msgstr "Kein Verfall"
 msgid "no frequency (i.e. irregular)"
 msgstr "keine Frequenz (d.h. unregelmäßig)"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:87
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:94
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:96
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:189
@@ -9314,6 +9314,7 @@ msgstr "keine Frequenz (d.h. unregelmäßig)"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:598
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:667
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:669
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:87
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:81
 #, c-format
 msgid "no illustrations"
@@ -9357,44 +9358,8 @@ msgstr "keine Titelseite erschienen"
 msgid "nocturne"
 msgstr "Nocturne"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:15
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:17
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:71
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:73
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:127
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:129
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:93
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:95
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:75
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:77
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:151
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:153
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:228
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:230
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:305
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:307
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:656
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:658
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:892
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:894
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:419
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:421
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:506
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:508
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:593
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:595
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:680
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:682
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:766
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:768
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:852
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:854
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:230
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:232
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:409
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:411
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:588
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:590
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:202
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:204
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:14
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:16
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:109
@@ -9429,26 +9394,12 @@ msgstr "Nocturne"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1576
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1615
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1617
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:296
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:298
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:493
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:495
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:694
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:696
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:898
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:900
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1092
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1094
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1288
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1290
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:31
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:33
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:68
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:70
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:15
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:17
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:504
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:506
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:230
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:232
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:409
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:411
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:588
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:590
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:22
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:118
@@ -9465,12 +9416,62 @@ msgstr "Nocturne"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:686
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:821
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:823
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:202
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:204
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:504
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:506
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:14
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:16
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:419
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:421
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:506
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:508
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:593
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:595
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:680
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:682
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:766
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:768
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:852
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:854
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:296
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:298
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:493
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:495
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:694
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:696
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:898
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:900
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1092
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1094
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1288
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1290
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:15
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:17
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:15
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:17
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:71
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:73
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:127
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:129
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:31
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:33
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:68
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:70
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:93
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:95
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100_authorities.tt:151
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100_authorities.tt:153
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:75
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:77
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:151
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:153
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:228
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:230
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:305
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:307
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:656
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:658
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:892
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:894
 #, c-format
 msgid "non required value"
 msgstr "kein erforderlicher Wert"
@@ -9505,24 +9506,24 @@ msgstr "Nicht-Nitrat - feststellbarer Verfall (z.B. Diazetat-Geruch)"
 msgid "nonnitrate - disaster"
 msgstr "Nicht-Nitrat - Katastrophe"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:174
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:177
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:179
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:174
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:168
 #, c-format
 msgid "normalised irregular"
 msgstr "Unregelmäßig normiert"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:15
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:17
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:25
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:27
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:27
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:25
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:27
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:15
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:17
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:27
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:25
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:27
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:25
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:27
 #, c-format
 msgid "north"
 msgstr "Norden"
@@ -9539,9 +9540,9 @@ msgstr "keine Biographie"
 msgid "not a conference publication"
 msgstr "Keine Kongressveröffentlichung"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:53
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1515
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1517
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:53
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:47
 #, c-format
 msgid "not a literary text"
@@ -9593,24 +9594,12 @@ msgstr "keine Videoaufnahme"
 msgid "not a visual projection"
 msgstr "keine optische Projektion"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:77
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:79
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:163
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:165
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:257
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:259
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:319
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:321
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:135
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:137
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:211
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:213
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:289
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:291
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:366
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:368
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:639
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:641
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:417
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:419
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:547
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:549
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:797
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:799
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:47
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:49
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:119
@@ -9619,8 +9608,6 @@ msgstr "keine optische Projektion"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:313
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:622
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:624
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:121
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:123
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:71
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:73
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:213
@@ -9629,8 +9616,6 @@ msgstr "keine optische Projektion"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:291
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1010
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1012
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:797
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:799
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:272
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:274
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:384
@@ -9645,14 +9630,30 @@ msgstr "keine optische Projektion"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1265
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1456
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1458
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:77
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:79
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:163
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:165
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:198
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:200
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:237
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:239
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:417
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:419
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:547
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:549
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:257
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:259
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:319
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:321
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:135
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:137
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:211
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:213
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:289
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:291
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:366
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:368
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:639
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:641
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:121
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:123
 #, c-format
 msgid "not applicable"
 msgstr "nicht anwendbar"
@@ -9879,8 +9880,8 @@ msgstr "original"
 msgid "original, i.e. primary"
 msgstr "original, d.h. primär"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:90
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:72
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:90
 #, c-format
 msgid "original_title"
 msgstr "original_title"
@@ -9915,81 +9916,14 @@ msgstr "dekorative Buchstaben"
 msgid "orthographic"
 msgstr "orthographisch"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:116
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:60
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:62
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:116
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:118
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:172
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:174
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:219
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:221
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:276
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:278
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:317
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:319
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:358
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:360
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:65
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:67
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:60
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:62
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:82
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:84
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:54
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:56
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:148
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:150
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:262
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:264
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:880
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:882
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1116
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1118
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:53
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:55
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:125
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:127
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:272
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:274
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:317
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:319
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:374
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:376
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:435
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:437
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:498
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:500
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:89
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:91
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:55
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:57
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:76
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:78
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:187
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:189
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:218
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:220
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:294
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:296
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:346
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:348
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:408
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:410
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:959
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:961
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1020
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1022
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:210
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:212
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:389
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:391
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:569
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:571
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:747
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:749
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:802
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:804
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:36
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:38
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:147
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:149
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:429
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:431
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:561
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:563
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:99
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:101
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:194
@@ -10022,6 +9956,52 @@ msgstr "orthographisch"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1606
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1646
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1648
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:210
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:212
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:389
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:391
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:569
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:571
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:747
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:749
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:802
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:804
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:65
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124b.tt:67
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:53
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:55
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:125
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:127
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:272
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:274
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:317
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:319
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:374
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:376
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:435
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:437
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:498
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:500
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:55
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:57
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:76
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:78
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:187
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:189
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:218
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:220
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:294
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:296
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:346
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:348
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:408
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:410
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:959
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:961
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1020
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1022
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:99
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:101
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:192
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:194
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:278
@@ -10048,22 +10028,43 @@ msgstr "orthographisch"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1063
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1138
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1140
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:50
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:52
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:60
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:62
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:82
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:84
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:60
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:62
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:116
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:118
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:172
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:174
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:219
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:221
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:276
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:278
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:317
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:319
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:358
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:360
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:234
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:236
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:328
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:330
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:50
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:52
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:99
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124f.tt:101
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:36
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:38
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:147
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:149
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:429
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:431
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:561
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:563
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:54
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:56
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:148
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:150
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:262
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:264
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:880
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:882
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1116
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1118
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:89
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:91
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:116
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:110
 #, c-format
 msgid "other"
@@ -10282,13 +10283,6 @@ msgstr "p - Forschungsbericht, Projektbericht"
 msgid "painting"
 msgstr "Malerei"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:213
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:50
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:52
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:106
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:108
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:162
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:164
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:323
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:325
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:503
@@ -10297,8 +10291,15 @@ msgstr "Malerei"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:683
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:186
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:188
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:50
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:52
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:106
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:108
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:162
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:164
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:104
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:106
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:213
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:206
 #, c-format
 msgid "paper"
@@ -10336,16 +10337,16 @@ msgstr "Papier, allgemein"
 msgid "parable"
 msgstr "Parabel"
 
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1599
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1601
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1641
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1643
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:22
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:76
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:78
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:132
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:134
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1599
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1601
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1641
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1643
 #, c-format
 msgid "parchment, vellum"
 msgstr "Pergament, Vellum"
@@ -10514,8 +10515,8 @@ msgstr "bildlich"
 msgid "picture"
 msgstr "Bild"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:102
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:84
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:102
 #, c-format
 msgid "piece_analytic_level"
 msgstr "piece_analytic_level"
@@ -10532,7 +10533,6 @@ msgstr "Plan"
 msgid "planimetric"
 msgstr "planimetrisch"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:76
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:74
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:76
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:169
@@ -10549,12 +10549,12 @@ msgstr "planimetrisch"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:578
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:647
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:649
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:76
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:70
 #, c-format
 msgid "plans"
 msgstr "Pläne"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:203
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:269
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:271
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:449
@@ -10565,6 +10565,7 @@ msgstr "Pläne"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:122
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:159
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:161
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:203
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:196
 #, c-format
 msgid "plaster"
@@ -10598,11 +10599,11 @@ msgstr "Plastikpressung"
 msgid "plates"
 msgstr "Tafeln"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:50
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1367
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:1369
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:19
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125b.tt:21
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:50
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:44
 #, c-format
 msgid "poetry"
@@ -10732,10 +10733,10 @@ msgstr "Portrait"
 msgid "portraits"
 msgstr "Portraits"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:66
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:68
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:292
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:294
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:66
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:68
 #, c-format
 msgid "positive"
 msgstr "positiv"
@@ -11077,17 +11078,17 @@ msgstr "Referenzdruck/Prüfexemplar"
 msgid "reference work"
 msgstr "Referenzwerk"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:173
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:171
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:173
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:173
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:167
 #, c-format
 msgid "regular"
 msgstr "regulär"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:27
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:15
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_106.tt:17
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:27
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:21
 #, c-format
 msgid "regular print"
@@ -11479,8 +11480,8 @@ msgstr "Dienstkopie"
 msgid "set or costume designs"
 msgstr "Entwürfe für das Set oder die Kostüme"
 
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:96
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:78
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:96
 #, c-format
 msgid "set_level"
 msgstr "set_level"
@@ -11649,24 +11650,24 @@ msgstr "Geräusche"
 msgid "soundtrack separate"
 msgstr "Tonspur separat"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:20
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:22
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:30
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:32
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:30
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:32
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:30
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:32
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:20
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123i_j.tt:22
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:30
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:32
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:30
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:32
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:30
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:32
 #, c-format
 msgid "south"
 msgstr "Süden"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:24
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:26
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:24
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:26
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:24
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:26
 #, c-format
 msgid "space"
 msgstr "Weltall"
@@ -11747,17 +11748,17 @@ msgstr "Standardblende ohne Tonspur"
 msgid "standard sound aperture (reduced format)"
 msgstr "Standardbreite Tonfilm (reduziertes Format)"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:30
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:33
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:45
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_686a.tt:57
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:30
 #, c-format
 msgid "starts with"
 msgstr "beginnt mit"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:102
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:257
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:259
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:102
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:96
 #, c-format
 msgid "statistics"
@@ -11805,7 +11806,6 @@ msgstr "stereophon"
 msgid "stills"
 msgstr "Standbilder"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:206
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:293
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:295
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:473
@@ -11816,6 +11816,7 @@ msgstr "Standbilder"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:140
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:114
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:116
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:206
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:199
 #, c-format
 msgid "stone"
@@ -11851,19 +11852,19 @@ msgstr "Symphonic Poem"
 msgid "symphony"
 msgstr "Symphonie"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:209
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:40
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:42
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:96
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:98
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:152
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:154
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:359
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:361
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:539
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:541
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:717
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:719
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:42
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:96
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:98
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:152
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:154
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:209
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:202
 #, c-format
 msgid "synthetics"
@@ -11997,10 +11998,10 @@ msgstr "Tempera"
 msgid "terra-cotta"
 msgstr "Terracotta"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:14
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:16
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:14
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121b.tt:16
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:14
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124d.tt:16
 #, c-format
 msgid "terrestrial"
 msgstr "terrestrisch"
@@ -12046,13 +12047,13 @@ msgstr "text/html"
 msgid "textbook"
 msgstr "Textbuch"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:211
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:365
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:367
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:545
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:547
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:723
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:725
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:211
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:204
 #, c-format
 msgid "textile"
@@ -12354,33 +12355,20 @@ msgstr "uniform_conventional_heading"
 msgid "uniform_title"
 msgstr "uniform_title"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:20
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:176
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:215
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:55
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:57
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:72
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:74
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:158
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:160
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:76
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:78
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:143
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:145
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:184
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:186
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:216
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:218
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:247
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:249
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:288
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:290
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:314
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:316
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:874
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:876
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1110
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1112
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:137
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:139
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:713
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:715
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:198
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:200
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:377
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:379
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:557
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:559
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:735
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:737
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:787
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:789
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:41
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:43
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:113
@@ -12397,10 +12385,6 @@ msgstr "uniform_title"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:486
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:616
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:618
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:79
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:81
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:116
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:118
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:66
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:68
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:182
@@ -12417,18 +12401,6 @@ msgstr "uniform_title"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:956
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1015
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126a.tt:1017
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:198
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:200
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:377
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:379
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:557
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:559
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:735
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:737
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:787
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:789
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:713
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_140.tt:715
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:150
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:152
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:260
@@ -12461,14 +12433,43 @@ msgstr "uniform_title"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1041
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1120
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:1122
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:40
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:42
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:55
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:57
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:72
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:74
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:158
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_126b.tt:160
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:164
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:166
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:224
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:226
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:40
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_135a.tt:42
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:137
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:139
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:76
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:78
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:143
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:145
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:184
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:186
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:216
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:218
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:247
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:249
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:288
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:290
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:314
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_130.tt:316
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:874
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:876
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1110
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_120.tt:1112
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:79
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:81
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:116
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_125a.tt:118
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:20
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:176
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:215
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:14
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:170
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:208
@@ -12594,9 +12595,9 @@ msgstr "Sehr hoch (61x - 90x)"
 msgid "vesicular"
 msgstr "blasenförmig"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:125
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:15
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_124g.tt:17
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:125
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:119
 #, c-format
 msgid "video recording"
@@ -12678,9 +12679,9 @@ msgstr "Zierleiste"
 msgid "viola d'amore"
 msgstr "Viola d'Amore"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:124
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115a.tt:27
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:124
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:118
 #, c-format
 msgid "visual projection"
@@ -12760,14 +12761,14 @@ msgstr "Wachs (unmittelbar)"
 msgid "weekly"
 msgstr "wöchentlich"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:15
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:17
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:15
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123f.tt:17
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:15
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:17
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:15
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123g.tt:17
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:15
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123e.tt:17
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:15
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_123d.tt:17
 #, c-format
 msgid "west"
 msgstr "Westen"
@@ -12788,13 +12789,6 @@ msgstr "Weisslinien-Holzschnitt"
 msgid "wire recording"
 msgstr "Drahtaufzeichnung"
 
-#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:207
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:30
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:32
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:86
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:88
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:142
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:144
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:281
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:283
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:461
@@ -12803,8 +12797,15 @@ msgstr "Drahtaufzeichnung"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:641
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:144
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:146
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:30
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:32
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:86
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:88
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:142
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_141.tt:144
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:109
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_121a.tt:111
+#: intranet-tmpl/prog/en/includes/subtypes_unimarc.inc:207
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:200
 #, c-format
 msgid "wood"
@@ -12923,8 +12924,8 @@ msgid "y- not a government publication"
 msgstr "y- Kein Amtsdrucksache"
 
 #: intranet-tmpl/prog/en/xslt/UNIMARCslim2intranetDetail.xsl:376
-#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:126
 #: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACDetail.xsl:423
+#: opac-tmpl/bootstrap/en/xslt/UNIMARCslim2OPACResults.xsl:126
 #, c-format
 msgid "y3z"
 msgstr "y3z"
@@ -13001,6 +13002,56 @@ msgstr "zz- Anderer"
 msgid "zz- other"
 msgstr "zz- Anderer"
 
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:14
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:16
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:49
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:51
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:159
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:161
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:196
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:198
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:336
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:338
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:359
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:361
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:443
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:445
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:573
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:575
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:761
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:763
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:14
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:16
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:112
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:114
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:209
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:211
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:305
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:307
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:402
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:404
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:540
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:542
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:678
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:680
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:815
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:817
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:953
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:955
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:979
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:981
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1003
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1005
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1027
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1029
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1098
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1100
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:112
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:114
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:173
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:175
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:232
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:234
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:14
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:16
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:67
@@ -13019,8 +13070,6 @@ msgstr "zz- Anderer"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:515
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:597
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_115b.tt:599
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:761
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:763
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:14
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:16
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:92
@@ -13076,54 +13125,6 @@ msgstr "zz- Anderer"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:230
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:262
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:264
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:112
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:114
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:173
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:175
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:232
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:234
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:14
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:16
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:112
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:114
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:209
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:211
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:305
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:307
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:402
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:404
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:540
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:542
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:678
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:680
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:815
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:817
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:953
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:955
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:979
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:981
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1003
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1005
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1027
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1029
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1098
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:1100
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:14
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:16
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:49
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:51
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:159
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:161
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:196
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:198
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:336
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:338
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:359
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:361
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:443
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:445
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:573
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_110.tt:575
 #, c-format
 msgid "|- Filling character"
 msgstr "|- Füllzeichen"
@@ -13141,8 +13142,6 @@ msgstr "||- Füllzeichen"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:405
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:583
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_117.tt:585
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:14
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:16
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:293
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:488
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:490
@@ -13155,6 +13154,8 @@ msgstr "||- Füllzeichen"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1284
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1476
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1478
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:14
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128b.tt:16
 #, c-format
 msgid "||- Filling characters"
 msgstr "||- Füllzeichen"

@@ -223,7 +223,7 @@
                         [% END %]
                     </select>
                     <span>
-                        Yes mark a category as family card. Only the owner of a family card is charged for an enrollment fee. Linked (via the guarantor relationship) family members are not charged for enrollment fee.
+                        Yes marks a category as family card. Only the owner of a family card is charged for an enrollment fee. Linked (via the guarantor relationship) family members are not charged for enrollment fees.
                     </span>
                 </li>
             </ol>

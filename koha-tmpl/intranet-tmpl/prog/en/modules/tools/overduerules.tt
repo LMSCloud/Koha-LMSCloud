@@ -239,9 +239,9 @@ $(document).ready(function() {
         <div id="holds-policy-by-patron-category" class="container">
 	    <h3 class="parameters">
 		[% IF ( humanbranch ) %]
-		    Rules for claiming fees: "[% humanbranch %]"
+		    Rules for overdue fines: "[% humanbranch %]"
 		[% ELSE %]
-		    Rules for claiming fees: all libraries
+		    Rules for overdue fines: all libraries
 		[% END %]
 	    </h3>
 	    <div class="help">
@@ -287,15 +287,15 @@ $(document).ready(function() {
 			    <tr>
 				<th rowspan="3">Patron category</th>
 				<th rowspan="3">Item type</th>
-				<th colspan="5">Claiming fees</th>
+				<th colspan="5">Overdue fine</th>
 				<th rowspan="3">Actions</th>
 			    </tr>
 			    <tr>
-				<th colspan="1">1st claim fee</th>
-				<th colspan="1">2nd claim fee</th>
-				<th colspan="1">3rd claim fee</th>
-				<th colspan="1">4th claim fee</th>
-				<th colspan="1">5th claim fee</th>
+				<th colspan="1">1st overdue fine</th>
+				<th colspan="1">2nd overdue fine</th>
+				<th colspan="1">3rd overdue fine</th>
+				<th colspan="1">4th overdue fine</th>
+				<th colspan="1">5th overdue fine</th>
 
 			    </tr>
 			    <tr>
