@@ -712,12 +712,13 @@ END_SQL
 
                 $sth2->execute(@params);
                 my $itemcount = 0;
-                my $titles = "";
+                my @titles = ();
                 my @items = ();
                 
                 my $j = 0;
-                my $exceededPrintNoticesMaxLines = 0;
                 while ( my $item_info = $sth2->fetchrow_hashref() ) {
+                    my $titleinfo = "";
+                    
                     if ( C4::Context->preference('OverdueNoticeCalendar') ) {
                         my $calendar =
                           Koha::Calendar->new( branchcode => $branchcode );
@@ -782,25 +783,17 @@ END_SQL
                         }
                         $new_overdue_item = 1;
                     }
-                    
-                    # check whether the item needs to be added if a maximum number of items is configured
-                    my $additeminfo = 1;
-                    if ( ( scalar(@emails_to_use) == 0 || $nomail ) && $PrintNoticesMaxLines && $j >= $PrintNoticesMaxLines ) {
-                      $exceededPrintNoticesMaxLines = 1;
-                      $additeminfo = 0;
-                    }
+
                     $j++;
                     
-                    # add the item info max lines is not exceeded
-                    if ( $additeminfo ) {
-                        my @item_info = map { $_ =~ /^date|date$/ ?
-                                               eval { output_pref( { dt => dt_from_string( $item_info->{$_} ), dateonly => 1 } ); }
-                                               :
-                                               $item_info->{$_} || '' } @item_content_fields;
-                        $titles .= join("\t", @item_info) . "\n";
-                        $itemcount++;
-                        push @items, $item_info;
-                    }
+                    my @item_info = map { $_ =~ /^date|date$/ ?
+                                           eval { output_pref( { dt => dt_from_string( $item_info->{$_} ), dateonly => 1 } ); }
+                                           :
+                                           $item_info->{$_} || '' } @item_content_fields;
+                    $titleinfo = join("\t", @item_info) . "\n";
+                    push @titles, $titleinfo;
+                    $itemcount++;
+                    push @items, $item_info;
                     
                     # check whether there are claiming fee rules defined
                     if ( $nocharge==0 && $new_overdue_item == 1 && $claimFees->checkForClaimingRules() == 1 ) {
@@ -830,7 +823,7 @@ END_SQL
                                         # these are parameters that we need for fancy message printing
                                         items          => [$item_info],
                                         substitute     => { bib             => $library->branchname,
-                                                            'items.content' => $titles,
+                                                            'items.content' => $titleinfo,
                                                             'count'         => 1,
                                                            },
                                     }
@@ -857,12 +850,25 @@ END_SQL
                     unless @message_transport_types;
 
 
+                my @allitems = @items;
+                
                 my $print_sent = 0; # A print notice is not yet sent for this patron
                 for my $mtt ( @message_transport_types ) {
+                
+                    my $titles = join("",@titles);
+                    @items = @allitems;
+                    
                     my $effective_mtt = $mtt;
                     if ( ($mtt eq 'email' and not scalar @emails_to_use) or ($mtt eq 'sms' and not $data->{smsalertnumber}) ) {
                         # email or sms is requested but not exist, do a print.
                         $effective_mtt = 'print';
+                    }
+                    
+                    if ( $PrintNoticesMaxLines && $effective_mtt eq 'print' && $itemcount > $PrintNoticesMaxLines ) {
+                        $itemcount = $PrintNoticesMaxLines;
+                        my $lastind = $itemcount-1;
+                        @items = @allitems[0..$lastind];
+                        $titles = join("",@titles[0..$lastind]);
                     }
 
                     my $letter_exists = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $branchcode, $effective_mtt ) ? 1 : 0;
