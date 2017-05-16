@@ -19,10 +19,7 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Digest::MD5 qw( md5_base64 md5_hex );
-use JSON;
-use List::MoreUtils qw( any each_array uniq );
 use String::Random qw( random_string );
-use HTML::Entities;
 
 use C4::Auth;
 use C4::Output;

@@ -15,21 +15,23 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Encode qw(encode);
 use Carp;
+use Digest::MD5 qw(md5_base64);
 use Mail::Sendmail;
 use MIME::QuotedPrint;
 use MIME::Base64;
+
 use C4::Biblio;
 use C4::Items;
 use C4::Auth;
 use C4::Output;
-use C4::Biblio;
+use C4::Templates ();
 use Koha::Email;
+use Koha::Token;
 
 my $query = new CGI;
 
@@ -43,7 +45,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
     }
 );
 
-my $bib_list     = $query->param('bib_list');
+my $bib_list     = $query->param('bib_list') || '';
 my $email_add    = $query->param('email_add');
 
 my $dbh          = C4::Context->dbh;
@@ -56,14 +58,11 @@ if ( $email_add ) {
     my $email = Koha::Email->new();
     my %mail = $email->create_message_headers({ to => $email_add });
     my $comment    = $query->param('comment');
-    my ( $template2, $borrowernumber, $cookie ) = get_template_and_user(
-        {
-            template_name   => "basket/sendbasket.tt",
-            query           => $query,
-            type            => "intranet",
-            authnotrequired => 0,
-            flagsrequired   => { catalogue => 1 },
-        }
+
+    # Since we are already logged in, no need to check credentials again
+    # when loading a second template.
+    my $template2 = C4::Templates::gettemplate(
+        'basket/sendbasket.tt', 'intranet', $query,
     );
 
     my @bibs = split( /\//, $bib_list );
@@ -171,8 +170,8 @@ END_OF_BODY
     output_html_with_http_headers $query, $cookie, $template->output;
 }
 else {
-    $template->param( bib_list => $bib_list );
     $template->param(
+        bib_list       => $bib_list,
         url            => "/cgi-bin/koha/basket/sendbasket.pl",
         suggestion     => C4::Context->preference("suggestion"),
         virtualshelves => C4::Context->preference("virtualshelves"),

@@ -17,22 +17,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Encode qw(encode);
 use Carp;
+use Digest::MD5 qw(md5_base64);
 use Mail::Sendmail;
 use MIME::QuotedPrint;
 use MIME::Base64;
+
 use C4::Biblio;
 use C4::Items;
 use C4::Auth;
 use C4::Output;
-use C4::Biblio;
 use C4::Members;
+use C4::Templates ();
 use Koha::Email;
+use Koha::Token;
 
 my $query = new CGI;
 
@@ -45,7 +47,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
     }
 );
 
-my $bib_list     = $query->param('bib_list');
+my $bib_list     = $query->param('bib_list') || '';
 my $email_add    = $query->param('email_add');
 
 my $dbh          = C4::Context->dbh;
@@ -70,13 +72,10 @@ if ( $email_add ) {
     });
     $mail{'X-Abuse-Report'} = C4::Context->preference('KohaAdminEmailAddress');
 
-    my ( $template2, $borrowernumber, $cookie ) = get_template_and_user(
-        {
-            template_name   => "opac-sendbasket.tt",
-            query           => $query,
-            type            => "opac",
-            authnotrequired => 0,
-        }
+    # Since we are already logged in, no need to check credentials again
+    # when loading a second template.
+    my $template2 = C4::Templates::gettemplate(
+        'opac-sendbasket.tt', 'opac', $query,
     );
 
     my @bibs = split( /\//, $bib_list );
@@ -191,8 +190,8 @@ END_OF_BODY
     output_html_with_http_headers $query, $cookie, $template->output;
 }
 else {
-    $template->param( bib_list => $bib_list );
     $template->param(
+        bib_list       => $bib_list,
         url            => "/cgi-bin/koha/opac-sendbasket.pl",
         suggestion     => C4::Context->preference("suggestion"),
         virtualshelves => C4::Context->preference("virtualshelves"),

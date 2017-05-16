@@ -36,6 +36,7 @@
 use strict;
 #use warnings; FIXME - Bug 2505
 use CGI qw ( -utf8 );
+use Digest::MD5 qw(md5_base64);
 use C4::Context;
 use C4::Auth;
 use C4::Output;
@@ -63,6 +64,9 @@ if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preferen
 use DateTime;
 use Koha::DateUtils;
 use Koha::Database;
+
+use Koha::Patron::Categories;
+use Koha::Token;
 
 use vars qw($debug);
 
