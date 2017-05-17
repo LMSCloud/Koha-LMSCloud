@@ -53,6 +53,7 @@ use C4::Branch; # GetBranches
 use C4::SocialData;
 use C4::Ratings;
 use C4::External::OverDrive;
+use C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
 
 use Koha::LibraryCategories;
 
@@ -89,10 +90,6 @@ BEGIN {
     if (C4::Context->preference('BakerTaylorEnabled')) {
         require C4::External::BakerTaylor;
         import C4::External::BakerTaylor qw(&image_url &link_url);
-    }
-    if (C4::Context->preference('DivibibEnabled')) {
-        require C4::Divibib::NCIPService;
-        import C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
     }
 }
 
