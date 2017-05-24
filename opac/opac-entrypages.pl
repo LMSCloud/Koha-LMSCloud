@@ -45,6 +45,9 @@ my ( $template, $loggedinuser, $cookie, $templatename);
 
 my $enduser = $query->param("interestGroup") || 'A';
 my $classlevel = $query->param("classlevel");
+my $filter = $query->param("filter");
+my $mediafilter = $query->param("mediafilter");
+my $medialevel = $query->param("medialevel");
 
 my (@ElectronicMedia,@ClassificationTopLevelEntries);
 
@@ -75,81 +78,134 @@ $templatename = "opac-entrychildfrom9.tt" if ( $enduser eq 'T' );
 );
 
 if ( $enduser eq 'A' ) {
-	# select top-level CD-DVD-BD entries of the ASB classification if available
-	
-	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN (?,?,?) ORDER BY classification");
-	$sth->execute(1,'CD','DVD','BD');
-	while (my $line = $sth->fetchrow_hashref)
-	{
-		push @ElectronicMedia, $line;
-		$foundEEntries++;
-	}
+    # select top-level CD-DVD-BD entries of the ASB classification if available
+    
+    my $sth;
+    my $mlevel = 1;
+    $mlevel = $medialevel if ( $medialevel );
+    
+    if ( $mediafilter ) {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+	$sth->execute($mlevel,$mediafilter);
+    }
+    else {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN (?,?,?) ORDER BY classification");
+	$sth->execute($mlevel,'CD','DVD','BD');
+    }
+    while (my $line = $sth->fetchrow_hashref)
+    {
+	$line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        push @ElectronicMedia, $line;
+        $foundEEntries++;
+    }
 }
 
 if ( $enduser eq 'A' ) {
-	# select top-level CD-DVD-BD entries of the ASB classification if available
+    # select top-level CD-DVD-BD entries of the ASB classification if available
     my $level=1;
     $level = $classlevel if ( $classlevel );
     
-	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN ('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') ORDER BY description");
+    
+    my $sth;
+    if ( $filter ) {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+	$sth->execute(1,$filter);
+    }
+    else {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN ('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') ORDER BY description");
 	$sth->execute($level);
-	while (my $line = $sth->fetchrow_hashref)
-	{
-		push @ClassificationTopLevelEntries, $line;
+    }
+    
+    while (my $line = $sth->fetchrow_hashref)
+    {
+	$line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        push @ClassificationTopLevelEntries, $line;
+    }
+    $sth->finish;
+    
+    if (! scalar(@ClassificationTopLevelEntries) ) {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification NOT REGEXP '^([0-9].*|CD.*|DVD.*)' ORDER BY description");
+        $sth->execute($level);
+        while (my $line = $sth->fetchrow_hashref)
+        {
+	    $line->{'browse_classification'} = $line->{'classification'};
+            $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+            push @ClassificationTopLevelEntries, $line;
 	}
-	$sth->finish;
-	if (! scalar(@ClassificationTopLevelEntries) ) {
-		$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification NOT REGEXP '^([0-9].*|CD.*|DVD.*)' ORDER BY description");
-		$sth->execute($level);
-		while (my $line = $sth->fetchrow_hashref)
-		{
-			push @ClassificationTopLevelEntries, $line;
-		}
-	}
+    }
 }
 
 if ( $enduser eq '9' ) {
-	# select top-level CD-DVD-BD entries of the ASB classification if available
-	my $level=3;
+    # select top-level CD-DVD-BD entries of the ASB classification if available
+    my $level=3;
     $level = $classlevel if ( $classlevel );
 
-	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND (classification like ? or classification like ?) ORDER BY description");
+    my $sth;
+	
+    if ( $filter ) {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+	$sth->execute($level,$filter);
+    }
+    else {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND (classification like ? or classification like ?) ORDER BY description");
 	$sth->execute($level,"4.3/%","4.3 %");
-	while (my $line = $sth->fetchrow_hashref)
-	{
-		$line->{description} =~ s/^Kindersach[^\s\\]+: //;
-		push @ClassificationTopLevelEntries, $line;
-	}
-	$sth->finish;
-	if (! scalar(@ClassificationTopLevelEntries) ) {
-		$sth->execute($level-1,"4.3%");
-		while (my $line = $sth->fetchrow_hashref)
-		{
-			push @ClassificationTopLevelEntries, $line;
-		}
-	}
+    }
+    
+    while (my $line = $sth->fetchrow_hashref)
+    {
+	$line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{description} =~ s/^Kindersach[^\s\\]+: //;
+        push @ClassificationTopLevelEntries, $line;
+    }
+    $sth->finish;
+	
+    if (! scalar(@ClassificationTopLevelEntries) ) {
+        $sth->execute($level-1,"4.3%");
+        while (my $line = $sth->fetchrow_hashref)
+        {
+	    $line->{'browse_classification'} = $line->{'classification'};
+            $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+            push @ClassificationTopLevelEntries, $line;
+        }
+    }
 }
 
 if ( $enduser eq 'T' ) {
-	# select top-level CD-DVD-BD entries of the ASB classification if available
-	my $level=3;
+    # select top-level CD-DVD-BD entries of the ASB classification if available
+    my $level=3;
     $level = $classlevel if ( $classlevel );
     
-	my $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like ? ORDER BY description");
+    my $sth;
+    
+    if ( $filter ) {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+	$sth->execute($level,$filter);
+    }
+    else {
+	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like ? ORDER BY description");
 	$sth->execute($level,"6.%");
-	while (my $line = $sth->fetchrow_hashref)
-	{
-		$line->{description} =~ s/^Kindersach[^\s\\]+: //;
-		push @ClassificationTopLevelEntries, $line;
-	}
-	$sth->finish;
-	if (! scalar(@ClassificationTopLevelEntries) ) {
-		$sth->execute($level,"4.3%");
-		while (my $line = $sth->fetchrow_hashref)
-		{
-			push @ClassificationTopLevelEntries, $line;
-		}
-	}
+    }
+    
+    while (my $line = $sth->fetchrow_hashref)
+    {
+	$line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{description} =~ s/^Kindersach[^\s\\]+: //;
+        push @ClassificationTopLevelEntries, $line;
+    }
+    $sth->finish;
+    if (! scalar(@ClassificationTopLevelEntries) ) {
+        $sth->execute($level,"4.3%");
+        while (my $line = $sth->fetchrow_hashref)
+        {
+	    $line->{'browse_classification'} = $line->{'classification'};
+            $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+            push @ClassificationTopLevelEntries, $line;
+        }
+    }
 }
 
 $template->param(
