@@ -52,6 +52,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 # the level of browser to display
 my $level = $query->param('level') || 0;
 my $filter = $query->param('filter');
+my $prefix = $query->param('prefixed');
 my ($countEntries,$countFolders,$mediacount,$childcount)=(0,0,0);
 
 $filter = '' unless defined $filter;
@@ -61,18 +62,22 @@ $level++; # the level passed is the level of the PREVIOUS list, not the current 
 my $sth;
 
 if ( $level == 2 && $filter =~ /^[BCD]$/ ) {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification NOT rlike '^(CD|DVD|BD)' AND classification like ? ORDER BY description");
-	$sth->execute($level,$filter."%");
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification NOT rlike '^(CD|DVD|BD)' AND classification like ? ORDER BY description");
+    $sth->execute($level,$filter."%");
 }
 else {
-	if ( $level > 1) {
-		$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like BINARY ? ORDER BY description");
-		$sth->execute($level,$filter."%");
-	}
-	else {
-		$sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^[A-Z]' AND classification NOT IN ('CD','DVD','BD') ORDER BY description");
-		$sth->execute();
-	}
+    if ( $level > 1) {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like BINARY ? ORDER BY description");
+        $sth->execute($level,$filter."%");
+    }
+    elsif ( $prefix ) {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^S[:]' ORDER BY description");
+        $sth->execute();
+    }
+    else {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^[A-Z]' AND classification NOT IN ('CD','DVD','BD') ORDER BY description");
+        $sth->execute();
+    }
 }
 
 my @level_loop;
@@ -84,6 +89,10 @@ my $myentry;
 
 my $i=0;
 while (my $line = $sth->fetchrow_hashref) {
+    $line->{'browse_classification'} = $line->{'classification'};
+    if ( defined($line->{'classification'}) ) {
+    	$line->{'classification'} =~ s/^[MYS]:\s*//;
+    }
     push @level_entries_loop, $line if $line->{endnode};
     $countEntries++ if $line->{endnode};
     push @level_folder_loop, $line if !$line->{endnode};
@@ -92,26 +101,45 @@ while (my $line = $sth->fetchrow_hashref) {
 }
 
 if ( $filter ne '' ) {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ? ");
-	$sth->execute($filter);
-	while (my $line = $sth->fetchrow_hashref) {
-	    $myentry = $line;
-	}
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ?");
+    $sth->execute($filter);
+    while (my $line = $sth->fetchrow_hashref) {
+        $line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        $myentry = $line;
+    }
 }
 
 if ($level == 1) {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification IN ('CD','DVD','BD') ORDER BY classification");
-	$sth->execute();
-	while (my $line = $sth->fetchrow_hashref) {
-	    push @media_loop, $line;
-	    $mediacount++;
-	}
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^[0-9]' ORDER BY classification");
-	$sth->execute();
-	while (my $line = $sth->fetchrow_hashref) {
-	    push @child_loop, $line;
-	    $childcount;
-	}	
+    if ( $prefix ) {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^M[:]' ORDER BY classification");
+    }
+    else {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification IN ('CD','DVD','BD') ORDER BY classification");
+    }
+	
+    $sth->execute();
+    while (my $line = $sth->fetchrow_hashref) {
+        $line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        push @media_loop, $line;
+        $mediacount++;
+    }
+	
+    if ( $prefix ) {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^Y[:]' ORDER BY classification");
+    }
+    else {
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^[0-9]' ORDER BY classification");
+    }
+	
+    $sth->execute();
+    while (my $line = $sth->fetchrow_hashref) {
+        $line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        push @child_loop, $line;
+        $childcount;
+    }	
 }
 
 my $have_hierarchy = 0;
@@ -126,26 +154,24 @@ if ($filter eq '' and $level == 1) {
 else {
     $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ?");
     my $val = $filter;
-    	while (length($val)>0) {
-    		if ( $val =~ /[[:alnum:]]$/ ) {
-			$sth->execute($val);
-        		my $line = $sth->fetchrow_hashref;
-        		if ( $line ) {
-        			unshift @hierarchy_loop, $line;
-        		}
-		}
-		# now remove the last character or the complete value if it is a BD, DVD or CD
-		if ( $val =~ /^(CD|BD|DVD)$/ ) {
-			$val = '';
-		} else {
-			$val =~ s/.$//;
-		}
-	}
-    #for (my $i=1;$i <=length($filter);$i++) {
-    #    $sth->execute(substr($filter,0,$i));
-    #    my $line = $sth->fetchrow_hashref;
-    #    push @hierarchy_loop,$line;
-    #}
+    while (length($val)>0) {
+        if ( $val =~ /[[:alnum:]]$/ ) {
+            $sth->execute($val);
+            my $line = $sth->fetchrow_hashref;
+            if ( $line ) {
+                $line->{'browse_classification'} = $line->{'classification'};
+                $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+                unshift @hierarchy_loop, $line;
+                last if ( $line->{'level'} eq '1' );
+            }
+        }
+        # now remove the last character or the complete value if it is a BD, DVD or CD
+        if ( (! $prefix) && $val =~ /^(CD|BD|DVD)$/ ) {
+            $val = '';
+        } else {
+            $val =~ s/.$//;
+        }
+    }
     $have_hierarchy = 1 if @hierarchy_loop;
 }
 
@@ -160,9 +186,11 @@ $template->param(
     FOLDER_COUNT => $countFolders,
     MEDIA_COUNT => $mediacount,
     CHILD_COUNT => $childcount,
+    LOOP_COUNT => scalar(@level_loop),
     LEVEL => $level,
     have_hierarchy => $have_hierarchy,
-    MYENTRY => $myentry
+    MYENTRY => $myentry,
+    PREFIXED => $prefix
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
