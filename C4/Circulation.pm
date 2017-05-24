@@ -53,6 +53,8 @@ use Koha::Patron::Debarments;
 use Koha::Database;
 use Koha::Libraries;
 use Koha::Holds;
+use Koha::OverdueIssue;
+use Koha::OverdueIssues;
 use Carp;
 use List::MoreUtils qw( uniq );
 use Scalar::Util qw( looks_like_number );
@@ -2989,6 +2991,12 @@ sub AddRenewal {
       && @{ GetDebarments({ borrowernumber => $borrowernumber, type => 'OVERDUES' }) }
     ) {
         DelUniqueDebarment({ borrowernumber => $borrowernumber, type => 'OVERDUES' });
+    }
+    
+    # Delete overdue reminder history
+    my $claimhist = Koha::OverdueIssues->search( { 'issue_id' => $issuedata->{issue_id} } );
+    while ( my $histentry = $claimhist->next() ) {
+        $histentry->delete();
     }
 
     # Log the renewal
