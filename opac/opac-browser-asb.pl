@@ -93,7 +93,7 @@ my $i=0;
 while (my $line = $sth->fetchrow_hashref) {
     $line->{'browse_classification'} = $line->{'classification'};
     if ( defined($line->{'classification'}) ) {
-    	$line->{'classification'} =~ s/^[MYS]:\s*//;
+    	$line->{'classification'} =~ s/^[CZMYS]:\s*//;
     }
     push @level_entries_loop, $line if $line->{endnode};
     $countEntries++ if $line->{endnode};

@@ -95,7 +95,7 @@ if ( $enduser eq 'A' ) {
     while (my $line = $sth->fetchrow_hashref)
     {
 	$line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         push @ElectronicMedia, $line;
         $foundEEntries++;
     }
@@ -120,7 +120,7 @@ if ( $enduser eq 'A' ) {
     while (my $line = $sth->fetchrow_hashref)
     {
 	$line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         push @ClassificationTopLevelEntries, $line;
     }
     $sth->finish;
@@ -131,7 +131,7 @@ if ( $enduser eq 'A' ) {
         while (my $line = $sth->fetchrow_hashref)
         {
 	    $line->{'browse_classification'} = $line->{'classification'};
-            $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+            $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
             push @ClassificationTopLevelEntries, $line;
 	}
     }
@@ -156,7 +156,7 @@ if ( $enduser eq '9' ) {
     while (my $line = $sth->fetchrow_hashref)
     {
 	$line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{description} =~ s/^Kindersach[^\s\\]+: //;
         push @ClassificationTopLevelEntries, $line;
     }
@@ -167,7 +167,7 @@ if ( $enduser eq '9' ) {
         while (my $line = $sth->fetchrow_hashref)
         {
 	    $line->{'browse_classification'} = $line->{'classification'};
-            $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+            $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
             push @ClassificationTopLevelEntries, $line;
         }
     }
@@ -192,7 +192,7 @@ if ( $enduser eq 'T' ) {
     while (my $line = $sth->fetchrow_hashref)
     {
 	$line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{description} =~ s/^Kindersach[^\s\\]+: //;
         push @ClassificationTopLevelEntries, $line;
     }
@@ -202,7 +202,7 @@ if ( $enduser eq 'T' ) {
         while (my $line = $sth->fetchrow_hashref)
         {
 	    $line->{'browse_classification'} = $line->{'classification'};
-            $line->{'classification'} =~ s/^[MYS]:\s*// if ( defined($line->{'classification'}) );
+            $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
             push @ClassificationTopLevelEntries, $line;
         }
     }
