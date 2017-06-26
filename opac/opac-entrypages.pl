@@ -48,6 +48,7 @@ my $classlevel = $query->param("classlevel");
 my $filter = $query->param("filter");
 my $mediafilter = $query->param("mediafilter");
 my $medialevel = $query->param("medialevel");
+my $newAcquisitionMonthes = $query->param("monthesback") || C4::Context->preference("OpacSelectNewAcquisitionsMonthes") || 12;
 
 my (@ElectronicMedia,@ClassificationTopLevelEntries);
 
@@ -61,7 +62,7 @@ sub getCurrentDateMinusXMonth {
 }
 
 my $foundEEntries = 0;
-my $firstDateOfNew = getCurrentDateMinusXMonth(12);
+my $firstDateOfNew = getCurrentDateMinusXMonth($newAcquisitionMonthes);
 
 $templatename = "opac-entryadult.tt" if ( $enduser eq 'A' );
 $templatename = "opac-entrychildto9.tt" if ( $enduser eq '9' );
