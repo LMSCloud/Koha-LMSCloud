@@ -744,6 +744,13 @@ sub _substitute_tables {
 
             $values = $sth->fetchrow_hashref;
             $sth->finish();
+            
+            if ( $values && $table && ($table eq 'biblio' || $table eq 'biblioitems') ) {
+                my @replfields = ('title','unititle','seriestitle','collectiontitle');
+                foreach my $replfield(@replfields) {
+                    $values->{$replfield} =~ s/(\x{0098}|\x{009c})//g if ( exists($values->{$replfield}) && $values->{$replfield});
+                }
+            }
         }
 
         _parseletter ( $letter, $table, $values );
