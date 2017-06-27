@@ -261,8 +261,8 @@ sub update {
         $self->to_address,
         $self->from_address,
         $self->content_type,
-        $self->message_id,
-        $self->branchcode
+        $self->branchcode,
+        $self->message_id
     );
 }
 
