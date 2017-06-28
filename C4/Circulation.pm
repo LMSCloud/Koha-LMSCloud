@@ -3927,7 +3927,7 @@ sub GetAgeRestriction {
             $marker =~ s/^\s+//;    #remove leading spaces
             $marker =~ s/\s+$//;    #remove trailing spaces
             if ( $marker eq $value ) {
-                if ( $index <= $#values ) {
+                if ( $index <= $#values && $values[$index] =~ /^(\d+)$/ ) {
                     $restriction_year += $values[$index];
                 }
                 last;
