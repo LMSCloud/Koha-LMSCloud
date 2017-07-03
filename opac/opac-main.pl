@@ -20,6 +20,9 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
+
+use DateTime;
+
 use C4::Auth;    # get_template_and_user
 use C4::Output;
 use C4::NewsChannels;    # GetNewsToDisplay
@@ -38,9 +41,20 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
+sub getCurrentDateMinusXMonth {
+        my ($minusmonth) = @_;
+        
+        my $dt = DateTime->now;
+        $dt->add( months => -$minusmonth );
+        return $dt->ymd;
+}
+my $newAcquisitionMonthes = $input->param("monthesback") || C4::Context->preference("OpacSelectNewAcquisitionsMonthes") || 12;
+my $firstDateOfNew = getCurrentDateMinusXMonth($newAcquisitionMonthes);
+
 my $casAuthentication = C4::Context->preference('casAuthentication');
 $template->param(
     casAuthentication   => $casAuthentication,
+    first_date_of_new   => $firstDateOfNew,
 );
 
 # display news
