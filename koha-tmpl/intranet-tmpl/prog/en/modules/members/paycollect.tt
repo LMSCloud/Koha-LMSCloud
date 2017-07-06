@@ -2,10 +2,74 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Patrons &rsaquo; Collect fine payment for  [% borrower.firstname %] [% borrower.surname %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
+[% USE Price %]
 <script type= "text/javascript">
 //<![CDATA[
+
+
+// The Koha user can enter the amount of money handed out by the borrower in the form field 'paid'.
+// On any input event in form field 'paid', the disabled form field 'returnAmount' will be recalculated
+// for displaying the amount to be returned to the borrower.
+// This approach necessitates a manipulation of the value in form field 'paid' in case 'paid' > 'total' (or amountoutstanding)
+// when confirming the payment. (See comment for function recalculatePaidAmount)
+function updateReturnAmount(handedoutObj) {
+
+    handedoutObj.on("input",
+        function(event) {
+
+            // Not accepting more than 1 decimal separator and 2 ciphers after the integer part of the input in money amount field.
+            var len = $("#handedout").val().length;
+            var decSepPos = $("#handedout").val().indexOf(".");
+
+            if ( decSepPos >= 0 && len > decSepPos + 1 + 2 ) {
+                $("#handedout").val($("#handedout").val().substr(0, decSepPos + 1 + 2));
+            }
+            updReturnAmount();
+        }
+    );
+
+}
+
+// When confirming the payment, the value of form field 'paid' will remain unchanged only if 'paid' <= 'total' (or amountoutstanding);
+// otherwise it has to be limited to the value of 'total' (or amountoutstanding).
+// There are no credit notes created.
+function recalculatePaidAmount(payformObj) {
+
+    payformObj.on("submit",
+        function(event) {
+
+            $("#paid").val($("#handedout").val());
+
+            if ( parseFloat($("#paid").val()) > parseFloat($("#total").val())) {
+                $("#paid").val($("#total").val());
+
+                // displaying the new values for a short instant in the GUI 
+                $("#returnAmount").val("0.00");
+                $("#handedout").val((Math.round($("#paid").val()*100.0)/100.0).toFixed(2));
+            }
+        }
+    );
+
+}
+
+
 $(document).ready(function() {
     $('#payindivfine, #woindivfine, #payfine').preventDoubleFormSubmit();
+
+// Same structure of IF/ELSIF/ELSE/END as below for better readability.
+[% IF ( pay_individual ) %]
+    updateReturnAmount($("#handedout"));
+    recalculatePaidAmount($("#payindivfine"));
+
+[% ELSIF ( writeoff_individual ) %]
+    // The form woindivfine does not contain fields 'handedout' or 'paid', so no special event listener required in this case.
+
+[% ELSE %]
+    updateReturnAmount($("#handedout"));
+    recalculatePaidAmount($("#payfine"));
+
+[% END %]
+
 });
 //]]>
 </script>
@@ -58,7 +122,20 @@ function moneyFormat(textObj) {
     }
 
     textObj.value = dolAmount + "." + decAmount;
+    updReturnAmount();
 }
+
+function updReturnAmount() {
+
+    var returnAmountNew = $("#handedout").val() - $("#total").val();
+
+    if ( returnAmountNew < 0.0 ) {
+        returnAmountNew = 0.0;
+    }
+    var returnAmountNewRounded = (Math.round(returnAmountNew*100.0)/100.0).toFixed(2);
+    $("#returnAmount").val(returnAmountNewRounded);
+}
+
 //]]>
 </script>
 </head>
@@ -94,7 +171,7 @@ function moneyFormat(textObj) {
 <div class="tabs-container">
 [% IF ( error_over ) %]
     <div id="error_message" class="dialog alert">
-    You must pay a value less than or equal to [% total_due | format('%.2f') %].
+    You must pay a value less than or equal to [% total_due |  $Price %].
     </div>
 [% END %]
 
@@ -112,6 +189,8 @@ function moneyFormat(textObj) {
     <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
+    <input type="hidden" name="total" id="total" value="[% amountoutstanding %]" />
+    <input type="hidden" name="paid" id="paid" value="[% amountoutstanding %]" />
 
 <fieldset class="rows">
     <legend>Pay an individual fine</legend>
@@ -126,7 +205,7 @@ function moneyFormat(textObj) {
             <th>Amount outstanding</th>
         </tr></thead>
     <tfoot>
-        <td colspan="5">Total amount payable:</td><td>[% amountoutstanding | format('%.2f') %]</td>
+        <td colspan="5">Total amount payable:</td><td>[% amountoutstanding | $Price %]</td>
     </tfoot>
     <tbody><tr>
             <td>
@@ -135,17 +214,22 @@ function moneyFormat(textObj) {
             <td>[% accounttypename %]</td>
             <td>[% notify_id %]</td>
             <td>[% notify_level %]</td>
-            <td class="debit">[% amount | format('%.2f') %]</td>
-            <td class="debit">[% amountoutstanding | format('%.2f') %]</td>
+            <td class="debit">[% amount | $Price %]</td>
+            <td class="debit">[% amountoutstanding | $Price %]</td>
         </tr></tbody>
 </table>
 
 <ol>
 
     <li>
-        <label for="paid">Collect from patron: </label>
-            <!-- default to paying all -->
-        <input type="number" min="0.00" max="[% amountoutstanding | format('%.2f') %]" step="any" name="paid" id="paid" value="[% amountoutstanding | format('%.2f') %]" onchange="moneyFormat(document.payindivfine.paid)"/>
+        <label for="handedout">Collect from patron: </label>
+        <!-- default to paying all (default amount handed out == amountoutstanding) -->
+        <input type="number" min="0.00" step="any" name="handedout" id="handedout" value="[% amountoutstanding | format('%.2f') %]" onchange="moneyFormat(document.payindivfine.handedout)"/>
+    </li>
+    <li>
+        <label for="returnAmount">Return to patron: </label>
+        <!-- default to paying all (default amount handed out == amountoutstanding, so default returnAmount == 0.00) -->
+        <input disabled type="number" name="returnAmount" id="returnAmount" value="[% 0.00 | format('%.2f') %]" />
     </li>
 </ol>
 </fieldset>
@@ -179,14 +263,14 @@ function moneyFormat(textObj) {
             <th>Amount</th>
             <th>Amount outstanding</th>
         </tr></thead>
-    <tfoot><td colspan="5">Total amount to be written off:</td><td>[% amountoutstanding | format('%.2f') %]</td></tfoot>
+    <tfoot><td colspan="5">Total amount to be written off:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
     <tbody><tr>
             <td>[% description %] [% title_desc %]</td>
             <td>[% accounttypename %]</td>
             <td>[% notify_id %]</td>
             <td>[% notify_level %]</td>
-            <td class="debit">[% amount | format('%.2f') %]</td>
-            <td class="debit">[% amountoutstanding | format('%.2f') %]</td>
+            <td class="debit">[% amount | $Price %]</td>
+            <td class="debit">[% amountoutstanding | $Price %]</td>
         </tr></tbody>
     </table>
     </fieldset>
@@ -199,18 +283,24 @@ function moneyFormat(textObj) {
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
     <input type="hidden" name="selected_accts" id="selected_accts" value="[% selected_accts %]" />
     <input type="hidden" name="total" id="total" value="[% total %]" />
+    <input type="hidden" name="paid" id="paid" value="[% total %]" />
 
     <fieldset class="rows">
     [% IF ( selected_accts ) %]<legend>Pay an amount toward selected fines</legend>[% ELSE %]<legend>Pay an amount toward all fines</legend>[% END %]
     <ol>
         <li>
             <span class="label">Total amount outstanding: </span>
-            <span class="debit">[% total | format('%.2f') %]</span>
+            <span class="debit">[% total | $Price %]</span>
         </li>
     <li>
-        <label for="paid">Collect from patron: </label>
-        <!-- default to paying all -->
-        <input type="number" min="0.00" max="[% total | format('%.2f') %]" step="any" name="paid" id="paid" value="[% total | format('%.2f') %]" onchange="moneyFormat(document.payfine.paid)"/>
+        <label for="handedout">Collect from patron: </label>
+        <!-- default to paying all (default amount handed out == total) -->
+        <input type="number" min="0.00"  step="any" name="handedout" id="handedout" value="[% total | format('%.2f') %]"  onchange="moneyFormat(document.payfine.handedout)" " />
+    </li>
+    <li>
+        <label for="returnAmount">Return to patron: </label>
+        <!-- default to paying all (default amount handed out == total, so default returnAmount == 0.00) -->
+        <input disabled type="number" name="returnAmount" id="returnAmount" value="[% 0.00 | format('%.2f') %]" />
     </li>
     <li>
         <label for="selected_accts_notes">Note: </label>
