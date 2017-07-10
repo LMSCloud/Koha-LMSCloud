@@ -3,6 +3,7 @@
 <title>Koha &rsaquo; Patrons &rsaquo; Collect fine payment for  [% borrower.firstname %] [% borrower.surname %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% USE Price %]
+[% INCLUDE 'format_price.inc' %]
 <script type= "text/javascript">
 //<![CDATA[
 
@@ -10,42 +11,50 @@
 // The Koha user can enter the amount of money handed out by the borrower in the form field 'paid'.
 // On any input event in form field 'paid', the disabled form field 'returnAmount' will be recalculated
 // for displaying the amount to be returned to the borrower.
-// This approach necessitates a manipulation of the value in form field 'paid' in case 'paid' > 'total' (or amountoutstanding)
+// This approach necessitates a manipulation of the value in form field 'paid' in case 'paid' > 'total'
 // when confirming the payment. (See comment for function recalculatePaidAmount)
 function updateReturnAmount(handedoutObj) {
 
     handedoutObj.on("input",
         function(event) {
 
-            // Not accepting more than 1 decimal separator and 2 ciphers after the integer part of the input in money amount field.
+            // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
             var len = $("#handedout").val().length;
             var decSepPos = $("#handedout").val().indexOf(".");
-
+            var decSepPos2 = $("#handedout").val().indexOf(",");
+            if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
+                decSepPos = decSepPos2;
+            }
             if ( decSepPos >= 0 && len > decSepPos + 1 + 2 ) {
                 $("#handedout").val($("#handedout").val().substr(0, decSepPos + 1 + 2));
             }
+
             updReturnAmount();
         }
     );
 
 }
 
-// When confirming the payment, the value of form field 'paid' will remain unchanged only if 'paid' <= 'total' (or amountoutstanding);
-// otherwise it has to be limited to the value of 'total' (or amountoutstanding).
+// When confirming the payment, the value of form field 'paid' will remain unchanged only if 'paid' <= 'total'
+// otherwise it has to be limited to the value of 'total'.
 // There are no credit notes created.
 function recalculatePaidAmount(payformObj) {
 
     payformObj.on("submit",
         function(event) {
 
-            $("#paid").val($("#handedout").val());
+            var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
+            if ( isNaN(handedOutNew) ) {
+                handedOutNew = 0.0;
+            }
+            $("#paid").val(parseFloat(handedOutNew));
 
             if ( parseFloat($("#paid").val()) > parseFloat($("#total").val())) {
                 $("#paid").val($("#total").val());
 
                 // displaying the new values for a short instant in the GUI 
-                $("#returnAmount").val("0.00");
-                $("#handedout").val((Math.round($("#paid").val()*100.0)/100.0).toFixed(2));
+                $("#returnAmount").val(parseFloat("0.00").format_price());
+                $("#handedout").val(parseFloat((Math.round($("#paid").val()*100.0)/100.0).toFixed(2)).format_price());
             }
         }
     );
@@ -76,7 +85,7 @@ $(document).ready(function() {
 <script type= "text/javascript">
 //<![CDATA[
 function moneyFormat(textObj) {
-    var newValue = textObj.value;
+    var newValue = textObj.value.replace(",",".");
     var decAmount = "";
     var dolAmount = "";
     var decFlag   = false;
@@ -94,7 +103,6 @@ function moneyFormat(textObj) {
         }
         if (aChar == ".") {
             if (decFlag) {
-                dolAmount = "";
                 break;
             }
             decFlag = true;
@@ -121,18 +129,24 @@ function moneyFormat(textObj) {
        decAmount = decAmount + "00";
     }
 
-    textObj.value = dolAmount + "." + decAmount;
+    textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
+    
     updReturnAmount();
 }
 
 function updReturnAmount() {
 
-    var returnAmountNew = $("#handedout").val() - $("#total").val();
+    var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
+    if ( isNaN(handedOutNew) ) {
+        handedOutNew = 0.0;
+    }
+    var returnAmountNew = handedOutNew - $("#total").val();
 
     if ( returnAmountNew < 0.0 ) {
         returnAmountNew = 0.0;
     }
     var returnAmountNewRounded = (Math.round(returnAmountNew*100.0)/100.0).toFixed(2);
+    returnAmountNewRounded = parseFloat(returnAmountNewRounded).format_price();
     $("#returnAmount").val(returnAmountNewRounded);
 }
 
@@ -224,12 +238,12 @@ function updReturnAmount() {
     <li>
         <label for="handedout">Collect from patron: </label>
         <!-- default to paying all (default amount handed out == amountoutstanding) -->
-        <input type="number" min="0.00" step="any" name="handedout" id="handedout" value="[% amountoutstanding | format('%.2f') %]" onchange="moneyFormat(document.payindivfine.handedout)"/>
+        <input type="text" name="handedout" id="handedout" value="[% amountoutstanding | $Price %]"  onchange="moneyFormat(document.payindivfine.handedout)" />
     </li>
     <li>
         <label for="returnAmount">Return to patron: </label>
         <!-- default to paying all (default amount handed out == amountoutstanding, so default returnAmount == 0.00) -->
-        <input disabled type="number" name="returnAmount" id="returnAmount" value="[% 0.00 | format('%.2f') %]" />
+        <input disabled type="text" name="returnAmount" id="returnAmount" value="[% 0.00 | $Price %]" />
     </li>
 </ol>
 </fieldset>
@@ -295,12 +309,12 @@ function updReturnAmount() {
     <li>
         <label for="handedout">Collect from patron: </label>
         <!-- default to paying all (default amount handed out == total) -->
-        <input type="number" min="0.00"  step="any" name="handedout" id="handedout" value="[% total | format('%.2f') %]"  onchange="moneyFormat(document.payfine.handedout)" " />
+        <input type="text" name="handedout" id="handedout" value="[% total | $Price %]"  onchange="moneyFormat(document.payfine.handedout)" />
     </li>
     <li>
         <label for="returnAmount">Return to patron: </label>
         <!-- default to paying all (default amount handed out == total, so default returnAmount == 0.00) -->
-        <input disabled type="number" name="returnAmount" id="returnAmount" value="[% 0.00 | format('%.2f') %]" />
+        <input disabled type="text" name="returnAmount" id="returnAmount" value="[% 0.00 | $Price %]" />
     </li>
     <li>
         <label for="selected_accts_notes">Note: </label>
