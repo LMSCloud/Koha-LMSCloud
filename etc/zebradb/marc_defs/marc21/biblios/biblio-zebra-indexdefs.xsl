@@ -1293,13 +1293,28 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
           <xslo:value-of select="."/>
         </z:index>
       </xslo:if>
+      <xslo:if test="contains('k', @code)">
+        <z:index name="SystematikPrefix:w SystematikPrefix:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+      <xslo:if test="contains('h', @code)">
+        <z:index name="SystematikClassPart:w SystematikClassPart:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+      <xslo:if test="contains('j', @code)">
+        <z:index name="SystematikNumPart:n SystematikNumPart:w SystematikNumPart:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
     </xslo:for-each>
   </xslo:template>
   <xslo:template mode="index_subfields" match="marc:datafield[@tag='856']">
     <xslo:variable name="linkname">
       <xslo:value-of select="marc:subfield[@code='n']"/>
     </xslo:variable>
-    <xsl:if test="contains($linkname, 'Antolin')">
+    <xslo:if test="contains($linkname, 'Antolin')">
       <xslo:for-each select="marc:subfield">
         <xslo:if test="contains('x', @code)">
           <z:index name="Antolin-count:w Antolin-count:p Antolin-count:n">
@@ -1317,7 +1332,7 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
           <xslo:value-of select="normalize-space($raw_heading)"/>
         </z:index>
       </xslo:for-each>
-    </xsl:if>
+    </xslo:if>
   </xslo:template>
   <xslo:template mode="index_subfields" match="marc:datafield[@tag='896']">
     <xslo:for-each select="marc:subfield">
