@@ -508,7 +508,7 @@ foreach my $branchcode (@branches) {
     $verbose and warn sprintf "branchcode : '%s' using %s\n", $branchcode, $admin_email_address;
 
     my $sth2 = $dbh->prepare( <<"END_SQL" );
-SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date
+SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
   FROM items,biblio, biblioitems, branches b, issues
   LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
   WHERE items.itemnumber=issues.itemnumber
@@ -526,7 +526,7 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(cla
            )
         )
     AND TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
-    AND b.branchcode = ?
+    AND ( b.branchcode = ? OR b.mobilebranch = ? )
 END_SQL
 
     my $query = "SELECT * FROM overduerules WHERE delay1 IS NOT NULL AND branchcode = ? ";
@@ -573,19 +573,21 @@ END_SQL
             # <date> <itemcount> <firstname> <lastname> <address1> <address2> <address3> <city> <postcode> <country>
 
             my $borrower_sql = <<"END_SQL";
-SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date
-FROM   borrowers, categories, issues
+SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, 
+                cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
+FROM   branches, borrowers, categories, issues
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  issues.borrowernumber = borrowers.borrowernumber 
 AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = borrowers.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
 AND    borrowers.categorycode=categories.categorycode
 AND    categories.overduenoticerequired=1
+AND    branches.branchcode = issues.branchcode
 AND    issues.date_due <= $date
 END_SQL
             my @borrower_parameters;
             if ($branchcode) {
-                $borrower_sql .= ' AND issues.branchcode=? ';
-                push @borrower_parameters, $branchcode;
+                $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
+                push @borrower_parameters, $branchcode, $branchcode;
             }
             if ( $overdue_rules->{categorycode} ) {
                 $borrower_sql .= ' AND borrowers.categorycode=? ';
@@ -593,8 +595,9 @@ END_SQL
             }
             $borrower_sql .= <<"END_SQL";
 UNION
-SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, bo.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date
-FROM   borrowers bo, borrowers bb, categories, issues
+SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, 
+                bo.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
+FROM   branches, borrowers bo, borrowers bb, categories, issues
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  categories.family_card = 1
 AND    issues.borrowernumber = bb.borrowernumber
@@ -602,11 +605,12 @@ AND    bo.borrowernumber = bb.guarantorid
 AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = bo.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
 AND    bo.categorycode=categories.categorycode
 AND    categories.overduenoticerequired=1 
+AND    branches.branchcode = issues.branchcode
 AND    issues.date_due <= $date
 END_SQL
             if ($branchcode) {
-                $borrower_sql .= ' AND issues.branchcode=? ';
-                push @borrower_parameters, $branchcode;
+                $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
+                push @borrower_parameters, $branchcode, $branchcode;
             }
             if ( $overdue_rules->{categorycode} ) {
                 $borrower_sql .= ' AND bo.categorycode=? ';
@@ -628,7 +632,7 @@ END_SQL
                 if ( C4::Context->preference('OverdueNoticeCalendar') )
                 {
                     my $calendar =
-                      Koha::Calendar->new( branchcode => $branchcode );
+                      Koha::Calendar->new( branchcode => $data->{branchcode} );
                     $days_between =
                       $calendar->days_between( dt_from_string($data->{date_due}),
                         $date_to_run );
@@ -707,7 +711,7 @@ END_SQL
                     ) unless $test_mode;
                     $verbose and warn "debarring $borr\n";
                 }
-                my @params = ($borrowernumber, $borrowernumber, $branchcode);
+                my @params = ($borrowernumber, $borrowernumber, $branchcode, $branchcode);
                 $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber";
 
                 $sth2->execute(@params);
@@ -721,7 +725,7 @@ END_SQL
                     
                     if ( C4::Context->preference('OverdueNoticeCalendar') ) {
                         my $calendar =
-                          Koha::Calendar->new( branchcode => $branchcode );
+                          Koha::Calendar->new( branchcode => $item_info->{issuebranch} );
                         $days_between =
                           $calendar->days_between(
                             dt_from_string( $item_info->{date_due} ), $date_to_run );

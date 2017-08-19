@@ -75,6 +75,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('BibtexExportAdditionalFields',  '', NULL ,  'Define additional BibTex tags to export from MARC records in YAML format as an associative array with either a marc tag/subfield combination as the value, or a list of tag/subfield combinations.',  'textarea'),
 ('BlockExpiredPatronOpacActions','1',NULL,'Set whether an expired patron can perform opac actions such as placing holds or renew books, can be overridden on a per patron-type basis','YesNo'),
 ('BlockReturnOfWithdrawnItems','1','0','If enabled, items that are marked as withdrawn cannot be returned.','YesNo'),
+('BookMobileSupportEnabled','0',NULL,'Enable bookmobile features: support for bookmobile stations, due-date updates, branch category selection','YesNo'),
 ('BorrowerMandatoryField','surname|cardnumber',NULL,'Choose the mandatory fields for a patron\'s account','free'),
 ('borrowerRelationship','father|mother','','Define valid relationships between a guarantor & a guarantee (separated by | or ,)','free'),
 ('BorrowerRenewalPeriodBase','now','dateexpiry|now','Set whether the borrower renewal date should be counted from the dateexpiry or from the current date ','Choice'),

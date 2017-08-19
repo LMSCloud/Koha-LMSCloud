@@ -128,6 +128,13 @@ __PACKAGE__->table("branches");
   data_type: 'text'
   is_nullable: 1
 
+=head2 mobilebranch
+
+  data_type: 'varchar'
+  is_foreign_key: 1
+  is_nullable: 1
+  size: 10
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -171,6 +178,8 @@ __PACKAGE__->add_columns(
   { data_type => "mediumtext", is_nullable => 1 },
   "opac_info",
   { data_type => "text", is_nullable => 1 },
+  "mobilebranch",
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
 );
 
 =head1 PRIMARY KEY
@@ -289,6 +298,21 @@ __PACKAGE__->has_many(
   "branch_item_rules",
   "Koha::Schema::Result::BranchItemRule",
   { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 branches
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Branch>
+
+=cut
+
+__PACKAGE__->has_many(
+  "branches",
+  "Koha::Schema::Result::Branch",
+  { "foreign.mobilebranch" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -487,6 +511,26 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 mobilebranch
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Branch>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "mobilebranch",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "mobilebranch" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "NO ACTION",
+    on_update     => "NO ACTION",
+  },
+);
+
 =head2 opac_news
 
 Type: has_many
@@ -558,8 +602,8 @@ Composing rels: L</branchrelations> -> categorycode
 __PACKAGE__->many_to_many("categorycodes", "branchrelations", "categorycode");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-16 11:50:05
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:P3hL5aIwM5KyzIemyoMmsA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-07-03 11:08:46
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:O1m9jOwVIGCWQiuV3zY5LA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

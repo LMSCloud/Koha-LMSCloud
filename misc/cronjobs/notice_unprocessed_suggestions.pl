@@ -48,7 +48,8 @@ for my $number_of_days (@days) {
         my $patron = C4::Members::GetMember( borrowernumber => $budget->{budget_owner_id} );
         my $email_address =
           C4::Members::GetNoticeEmailAddress( $budget->{budget_owner_id} );
-        my $library = Koha::Libraries->find( $patron->{branchcode} );
+        my $usebranch = Koha::Libraries->get_effective_branch( $patron->{branchcode} );
+        my $library = Koha::Libraries->find( $usebranch );
         my $admin_email_address = $library->branchemail
           || C4::Context->preference('KohaAdminEmailAddress');
 
@@ -57,10 +58,10 @@ for my $number_of_days (@days) {
             my $letter = C4::Letters::GetPreparedLetter(
                 module      => 'suggestions',
                 letter_code => 'TO_PROCESS',
-                branchcode  => $patron->{branchcode},
+                branchcode  => $usebranch,
                 tables      => {
                     suggestions => $suggestion->{suggestionid},
-                    branches    => $patron->{branchcode},
+                    branches    => $usebranch,
                     borrowers   => $patron->{borrowernumber},
                 },
             );
@@ -71,7 +72,7 @@ for my $number_of_days (@days) {
                         borrowernumber         => $patron->{borrowernumber},
                         message_transport_type => 'email',
                         from_address           => $admin_email_address,
-                        branchcode             => $patron->{branchcode}
+                        branchcode             => $usebranch
                     }
                 );
             }

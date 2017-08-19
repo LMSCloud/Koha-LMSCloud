@@ -50,7 +50,7 @@ unless ($update) {
     $have_matrix = keys %$cost_matrix if $cost_matrix;
 }
 
-my $branches = GetBranches();
+my $branches = GetBranchesWithoutMobileStations();
 my @branchloop = map { code => $_,
                        name => $branches->{$_}->{'branchname'} },
                  sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} }

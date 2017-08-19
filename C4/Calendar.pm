@@ -673,6 +673,30 @@ sub isHoliday {
 
 }
 
+=head2 delete_all_holidays
+
+    $calendar->delete_all_holidays()
+    
+Delete all defined holidays of a library calendar.
+
+=cut
+
+sub delete_all_holidays {
+    my ($self) = @_;
+
+    (defined($self) && defined($self->{branchcode})) or croak "No branchcode assigned.  Create the object using C4::Calendar->new(branchcode => \$branchcode)";
+    
+    my $dbh = C4::Context->dbh();
+    my $stha = $dbh->prepare("DELETE FROM repeatable_holidays WHERE branchcode = ?");
+    $stha->execute($self->{branchcode});
+    
+    my $sthb = $dbh->prepare("DELETE FROM special_holidays WHERE branchcode = ?");
+    $sthb->execute($self->{branchcode});
+    
+    $self->_init($self->{branchcode});
+}
+
+
 =head2 copy_to_branch
 
     $calendar->copy_to_branch($target_branch)
@@ -682,9 +706,14 @@ sub isHoliday {
 sub copy_to_branch {
     my ($self, $target_branch) = @_;
 
+   (defined($self) && defined($self->{branchcode})) or croak "No branchcode assigned.  Create the object using C4::Calendar->new(branchcode => \$branchcode)";
     croak "No target_branch" unless $target_branch;
+    
+    return if ($self->{branchcode} eq $target_branch);
 
     my $target_calendar = C4::Calendar->new(branchcode => $target_branch);
+    
+    $target_calendar->delete_all_holidays();
 
     my ($y, $m, $d) = Today();
     my $today = sprintf ISO_DATE_FORMAT, $y,$m,$d;
@@ -698,6 +727,31 @@ sub copy_to_branch {
       foreach grep { $_->{date} gt $today } values %{ $self->get_exception_holidays };
     $target_calendar->insert_single_holiday(%$_)
       foreach grep { $_->{date} gt $today } values %{ $self->get_single_holidays };
+
+    return 1;
+}
+
+=head2 copy_to_group
+
+    $calendar->copy_to_group($target_branchgroup)
+
+=cut
+
+sub copy_to_group {
+    my ($self, $target_branchgroup) = @_;
+
+    (defined($self) && defined($self->{branchcode})) or croak "No branchcode assigned.  Create the object using C4::Calendar->new(branchcode => \$branchcode)";
+    croak "No target_branchgroup" unless $target_branchgroup;
+    
+    my $dbh = C4::Context->dbh();
+    my $sth = $dbh->prepare("SELECT branchcode,categorycode FROM branchrelations WHERE categorycode = ?");
+    $sth->execute($target_branchgroup);
+    
+    while ( my $branch = $sth->fetchrow_hashref ) {
+        if ( $branch->{branchcode} ne $self->{branchcode} ) {
+            $self->copy_to_branch($branch->{branchcode});
+        }
+    }
 
     return 1;
 }

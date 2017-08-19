@@ -13223,6 +13223,29 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = '16.05.12.001';
+if ( CheckVersion($DBversion) ) {
+
+    # bookmobile enhancements
+    $dbh->do("ALTER TABLE branches ADD `mobilebranch` varchar(10) default NULL AFTER `opac_info`");
+    $dbh->do("ALTER TABLE branches ADD CONSTRAINT `branches_ibfk_1` FOREIGN KEY (`mobilebranch`) REFERENCES `branches` (`branchcode`) ON DELETE NO ACTION ON UPDATE NO ACTION");
+    ## Add a permission for tool function to update due-dates
+    $dbh->do(q{
+           INSERT IGNORE INTO permissions (module_bit, code, description) values (13, 'duedate_update', 'Update due-dates of checked-out items');
+           });
+    $dbh->do("ALTER TABLE cash_register ADD `no_branch_restriction` tinyint(1) default 0 AFTER `modification_time`");
+    $dbh->do("ALTER TABLE cash_register_account ADD `reason` varchar(250) AFTER `description`");
+    
+    # add system paramter to control overdue notice cration
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+        ('BookMobileSupportEnabled','0',NULL,'Enable bookmobile features: support for bookmobile stations, due-date updates, branch category selection','YesNo')
+    });
+    
+    print "Upgrade to $DBversion done (Koha 16.05.12.001). Field mobilebranch added to table branches.\n";
+    SetVersion($DBversion);
+}
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.

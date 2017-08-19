@@ -64,14 +64,29 @@ my $status = '';
 my $debug = '';
 
 
-########################################
-#  Read branches
+#########################################################
+#
+# Read branches
+#
 ########################################
 my $branches = GetBranches();
 my @branchloop;
 for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
     push @branchloop, $branches->{$thisbranch};
 }
+
+##########################################################
+#
+#  Get Payout reasons from Authorised Values
+#
+##########################################################
+my $authValuesAll = {};
+my $authValuesPayout = GetAuthorisedValues("CASHREG_PAYOUT",0);
+foreach my $val( @$authValuesPayout ) { $authValuesAll->{'PAYOUT'.$val->{authorised_value}} = $val->{lib} }
+my $authValuesDeposit = GetAuthorisedValues("CASHREG_DEPOSIT",0);
+foreach my $val( @$authValuesDeposit ) { $authValuesAll->{'DEPOSIT'.$val->{authorised_value}} = $val->{lib} }
+my $authValuesAdjust = GetAuthorisedValues("CASHREG_ADJUST",0);
+foreach my $val( @$authValuesAdjust ) { $authValuesAll->{'ADJUST'.$val->{authorised_value}} = $val->{lib} }
 
 ##########################################################
 #
@@ -83,7 +98,7 @@ my $cash_management = C4::CashRegisterManagement->new($branch,$loggedinuser);
 my @cash_registers = $cash_management->getPermittedCashRegisters($loggedinuser);
 my $cash_register = $cash_management->getOpenedCashRegisterByManagerID($loggedinuser);
 if ( $cash_register ) {
-    if ( $cash_register->{cash_register_branchcode} ne $branch ) {
+    if ( $cash_register->{cash_register_branchcode} ne $branch && !$cash_register->{cash_register_no_branch_restriction}) {
         $status = 'close';
     } else {
         $status = 'manage';
@@ -148,6 +163,13 @@ elsif ( $op eq 'doadjust' && $status eq 'manage' ) {
         cash_adjustment => '0.00'
     );
 }
+elsif ( $op eq 'dodeposit' && $status eq 'manage' ) {
+    $manageaction = 'deposit';
+    $template->param( 
+        description => '',
+        cash_deposit => '0.00'
+    );
+}
 elsif ( $op eq 'doclose' && $status eq 'manage' ) {
     # let's check wehther this is a real close action
     if (  $cash_management->smartCloseCashRegister($cash_register_id, $loggedinuser) ) {
@@ -158,9 +180,10 @@ elsif ( $op eq 'doclose' && $status eq 'manage' ) {
 elsif ( $op eq 'payout' && $status eq 'manage' ) {
     my $cash_payment = $query->param('cash_payment');
     my $description = $query->param('description');
+    my $reason = $query->param('reason');
     my $current_balance = $cash_management->getCurrentBalance($cash_register_id);
     if ( $cash_payment && $cash_payment > 0.00 && $cash_payment <= $current_balance ) {
-        $cash_management->registerCashPayment($branch, $loggedinuser, $cash_payment, $description);
+        $cash_management->registerCashPayment($branch, $loggedinuser, $cash_payment, $description, $reason);
 
         # redirect to self to avoid form submission on refresh
         print $query->redirect("/cgi-bin/koha/circ/managecashregister.pl");
@@ -168,19 +191,42 @@ elsif ( $op eq 'payout' && $status eq 'manage' ) {
     else {
         $manageaction = 'payout';
         $template->param( 
+            reason => $reason,
             description => $description,
             cash_payment => $cash_payment
+        );
+    }
+}
+elsif ( $op eq 'deposit' && $status eq 'manage' ) {
+    my $cash_deposit = $query->param('cash_deposit');
+    my $description = $query->param('description');
+    my $reason = $query->param('reason');
+    my $current_balance = $cash_management->getCurrentBalance($cash_register_id);
+    if ( $cash_deposit > 0.00 ) {
+        $cash_management->registerCashDeposit($branch, $loggedinuser, $cash_deposit, $description, $reason);
+        $manageaction = 'journal';
+        
+        # redirect to self to avoid form submission on refresh
+        print $query->redirect("/cgi-bin/koha/circ/managecashregister.pl");
+    }
+    else {
+        $manageaction = 'deposit';
+        $template->param( 
+            reason => $reason,
+            description => $description,
+            cash_deposit => $cash_deposit
         );
     }
 }
 elsif ( $op eq 'adjust' && $status eq 'manage' ) {
     my $cash_adjustment = $query->param('cash_adjustment');
     my $description = $query->param('description');
+    my $reason = $query->param('reason');
     my $current_balance = $cash_management->getCurrentBalance($cash_register_id);
     if ( $cash_adjustment && $cash_adjustment != 0.00 
         && !($current_balance < 0.00 && $cash_adjustment < 0.00)
         && !($current_balance >= 0.00 && ($cash_adjustment+$current_balance) < 0.00) ) {
-        $cash_management->registerAdjustment($branch, $loggedinuser, $cash_adjustment, $description);
+        $cash_management->registerAdjustment($branch, $loggedinuser, $cash_adjustment, $description, $reason);
         $manageaction = 'journal';
         
         # redirect to self to avoid form submission on refresh
@@ -189,6 +235,7 @@ elsif ( $op eq 'adjust' && $status eq 'manage' ) {
     else {
         $manageaction = 'adjust';
         $template->param( 
+            reason => $reason,
             description => $description,
             cash_adjustment => $cash_adjustment
         );
@@ -198,11 +245,18 @@ elsif ( $op eq 'dayview' ) {
     my $from = $query->param('journalfrom');
     my $to = $query->param('journalto');
     my $finestype = $query->param('finestype');
-    if (! $finestype ) {
-        $finestype = 'finesoverview';
-    }
+    
+    $finestype = 'inoutpaymentoverview' if (! $finestype );
+    $finestype = 'paidfinesoverview' if ( !defined($cash_register) && $finestype eq 'inoutpaymentoverview' );
+    
     ($bookingstats,$journalfrom,$journalto) = $cash_management->getCashTransactionOverviewByBranch($branch, $from, $to);
-    ($finesstats,$journalfrom,$journalto) = $cash_management->getFinesOverviewByBranch($branch, $from, $to, $finestype);
+    if ( $finestype ne 'inoutpaymentoverview' ) {
+        my $cashreg;
+        $cashreg = $cash_register->{cash_register_id} if ( $cash_register && $cash_register->{cash_register_id} );
+        ($finesstats,$journalfrom,$journalto) = $cash_management->getFinesOverviewByBranch($branch, $from, $to, $finestype, $cashreg);
+    } else {
+        ($finesstats,$journalfrom,$journalto) = $cash_management->getCashRegisterPaymentAndDepositOverview($cash_register->{cash_register_id}, $from, $to);
+    }
     $manageaction = 'dayview';
 }
 
@@ -211,7 +265,7 @@ my @transactions = ();
 if ( $cash_register ) {
     $lastTransaction = $cash_management->getLastBooking($cash_register->{cash_register_id});
     $cash_register_info = $cash_management->getCashRegisterHandoverInformationByLastOpeningAction($cash_register->{cash_register_id});
-    if ( $cash_register->{cash_register_branchcode} ne $branch ) {
+    if ( $cash_register->{cash_register_branchcode} ne $branch && !$cash_register->{cash_register_no_branch_restriction} ) {
         $wrongBranch = 1;
     }
     if ( $status eq 'manage' && $manageaction eq 'journal' ) {
@@ -248,7 +302,11 @@ $template->param(
     currency_format => $cash_management->getCurrencyFormatterData(),
     printview => $printview,
     branchname => GetBranchName($branch),
-    datetimenow => output_pref({dt => DateTime->now, dateonly => 0})
+    datetimenow => output_pref({dt => DateTime->now, dateonly => 0}),
+    authValuesPayout => $authValuesPayout,
+    authValuesAdjust => $authValuesAdjust,
+    authValuesDeposit => $authValuesDeposit,
+    authValuesAll => $authValuesAll
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

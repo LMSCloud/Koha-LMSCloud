@@ -35,6 +35,7 @@ use C4::Log;
 use Koha::DateUtils qw/dt_from_string output_pref/;
 use Koha::AuthorisedValue;
 use Koha::AuthorisedValues;
+use Koha::LibraryCategories;
 
 =head1 NAME
 
@@ -666,6 +667,12 @@ elsif ($phase eq 'Run this report'){
                         foreach my $thisbranch (@$branches) {
                             push @authorised_values, $thisbranch->{value};
                             $authorised_lib{$thisbranch->{value}} = $thisbranch->{branchname};
+                        }
+                    }
+                    elsif ( $authorised_value eq "branchcategories" ) {
+                        for my $category ( Koha::LibraryCategories->search ) {
+                            push @authorised_values, $category->categorycode;
+                            $authorised_lib{$category->categorycode} = $category->categoryname;
                         }
                     }
                     elsif ( $authorised_value eq "itemtypes" ) {

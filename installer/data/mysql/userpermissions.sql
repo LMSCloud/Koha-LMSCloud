@@ -64,6 +64,7 @@ INSERT INTO permissions (module_bit, code, description) VALUES
    (13, 'run_batch_programs', 'Run batch programs'),
    (13, 'upload_general_files', 'Upload any file'),
    (13, 'upload_manage', 'Manage uploaded files'),
+   (13, 'duedate_update', 'Update due-dates of checked-out items'),
    (15, 'check_expiration', 'Check the expiration of a serial'),
    (15, 'claim_serials', 'Claim missing serials'),
    (15, 'create_subscription', 'Create a new subscription'),

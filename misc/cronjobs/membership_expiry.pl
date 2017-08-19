@@ -129,6 +129,7 @@ BEGIN {
 use C4::Context;
 use C4::Letters;
 use C4::Log;
+use Koha::Libraries;
 
 # These are defaults for command line options.
 my $confirm;                              # -c: Confirm that the user has read and configured this script.
@@ -174,14 +175,15 @@ warn 'found ' . scalar( @$upcoming_mem_expires ) . ' soon expiring members'
 # main loop
 $letter_type = 'MEMBERSHIP_EXPIRY' if !$letter_type;
 foreach my $recent ( @$upcoming_mem_expires ) {
+    my $branchcode = Koha::Libraries->get_effective_branch($recent->{'branchcode'});
     my $from_address = $recent->{'branchemail'} || $admin_adress;
     my $letter =  C4::Letters::GetPreparedLetter(
         module      => 'members',
         letter_code => $letter_type,
-        branchcode  => $recent->{'branchcode'},
+        branchcode  => $branchcode,
         tables      => {
             borrowers => $recent->{'borrowernumber'},
-            branches  => $recent->{'branchcode'},
+            branches  => $branchcode,
         },
     );
     last if !$letter; # Letters.pm already warned, just exit
@@ -193,7 +195,7 @@ foreach my $recent ( @$upcoming_mem_expires ) {
             borrowernumber         =>  $recent->{'borrowernumber'},
             from_address           => $from_address,
             message_transport_type => 'email',
-            branchcode  => $recent->{'branchcode'}
+            branchcode  => $branchcode
         });
     }
 }

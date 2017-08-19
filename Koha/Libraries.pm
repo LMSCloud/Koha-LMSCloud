@@ -37,6 +37,27 @@ Koha::Libraries - Koha Library Object set class
 
 =cut
 
+=head3 GetRealBranchIfMobileStation
+
+$branch = GetRealBranchIfMobileStation( $branch );
+
+Returns the branch number of the mobilebook branch if $branch is a mobilebook station.
+If not it returns just the branch.
+
+=cut
+sub get_effective_branch {
+    my ( $self, $branch ) = @_;
+    
+    my $branchdata = $self->find($branch);
+    
+    if ( $branchdata && $branchdata->mobilebranch() ) {
+        if ( $self->find($branchdata->mobilebranch() ) ) {
+            $branch = $branchdata->mobilebranch() ;
+        }
+    }
+    return $branch;
+}
+
 =head3 type
 
 =cut

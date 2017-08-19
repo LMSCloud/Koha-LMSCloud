@@ -57,6 +57,9 @@ sub GetURL {
 sub all {
     my ( $self, $params ) = @_;
     my $selected = $params->{selected};
+    my $restrict;
+    $restrict = $params->{restrict} if $params->{restrict};
+    
     my $dbh = C4::Context->dbh;
     my @params;
     my $query = q|
@@ -69,6 +72,11 @@ sub all {
     {
         $query .= q| WHERE branchcode = ? |;
         push @params, C4::Context->userenv->{branch};
+    }
+    if ( $restrict && $restrict eq 'NoMobileStations' ) {
+        if  ($query =~ /WHERE/) { $query .= ' AND '; }
+        else { $query .= ' WHERE '; }
+        $query .= ' (mobilebranch is NULL or mobilebranch = \'\') ';
     }
     $query .= q| ORDER BY branchname|;
     my $branches = $dbh->selectall_arrayref( $query, { Slice => {} }, @params );

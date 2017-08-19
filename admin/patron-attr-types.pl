@@ -83,7 +83,7 @@ exit 0;
 sub add_attribute_type_form {
     my $template = shift;
 
-    my $branches = GetBranches;
+    my $branches = GetBranchesWithoutMobileStations;
     my @branches_loop;
     foreach my $branch (sort keys %$branches) {
         push @branches_loop, {
@@ -250,7 +250,7 @@ sub edit_attribute_type_form {
     $template->param(classes_val_loop => GetAuthorisedValues( 'PA_CLASS' ));
 
 
-    my $branches = GetBranches;
+    my $branches = GetBranchesWithoutMobileStations;
     my @branches_loop;
     my $selected_branches = $attr_type->branches;
     foreach my $branch (sort keys %$branches) {

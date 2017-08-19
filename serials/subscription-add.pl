@@ -134,7 +134,7 @@ my $onlymine =
     not C4::Auth::haspermission( C4::Context->userenv->{id}, { serials => 'superserials' } )
   )
   && C4::Context->userenv->{branch};
-my $branches = GetBranches($onlymine);
+my $branches = GetBranchesWithoutMobileStations($onlymine);
 my $branchloop;
 for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %{$branches}) {
     my $selected = 0;

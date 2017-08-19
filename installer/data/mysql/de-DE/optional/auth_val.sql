@@ -83,3 +83,17 @@ INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES
 INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('SUGGEST_FORMAT', 'EBOOK', 'E-Book', 'E-Book');
 INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('SUGGEST_FORMAT', 'AUDIOBOOK', 'Hörbuch', 'Hörbuch');
 INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('SUGGEST_FORMAT', 'DVD', 'DVD', 'DVD');
+
+-- Cash register payout reasons
+INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('CASHREG_PAYOUT', 'CITY_TREASURY_PAYOUT', 'Auszahlung an Stadtkasse', 'Auszahlung an Stadtkasse');
+INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('CASHREG_PAYOUT', 'OFFICE_MATERIAL', 'Erwerb von Büromaterial', 'Erwerb von Büromaterial');
+INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('CASHREG_PAYOUT', 'POSTAGE', 'Portogebühren', 'Portogebühren');
+
+-- Cash register adjustment reasons
+INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('CASHREG_ADJUST', 'CASH_DEFICIT', 'Fehlbetrag', 'Fehlbetrag');
+INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('CASHREG_ADJUST', 'CASH_SURPLUS', 'Mehrbetrag', 'Mehrbetrag');
+
+-- Cash register payment reasons
+INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('CASHREG_DEPOSIT', 'DONATION', 'Spende', 'Spende');
+INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('CASHREG_DEPOSIT', 'MISCELLANEOUS', 'Sonstige Einnahme', 'Sonstige Einnahme');
+

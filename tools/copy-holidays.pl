@@ -32,8 +32,14 @@ my $input               = new CGI;
 my $dbh                 = C4::Context->dbh();
 
 my $branchcode          = $input->param('branchcode');
+my $branchgroup         = $input->param('branchgroup');
 my $from_branchcode     = $input->param('from_branchcode');
 
-C4::Calendar->new(branchcode => $from_branchcode)->copy_to_branch($branchcode) if $from_branchcode && $branchcode;
+if ( $branchgroup && $from_branchcode ) {
+    C4::Calendar->new(branchcode => $from_branchcode)->copy_to_group($branchgroup);
+}
+elsif ( $branchcode && $from_branchcode  ) {
+    C4::Calendar->new(branchcode => $from_branchcode)->copy_to_branch($branchcode);
+}
 
 print $input->redirect("/cgi-bin/koha/tools/holidays.pl?branch=".($branchcode || $from_branchcode));

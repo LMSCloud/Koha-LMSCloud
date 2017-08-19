@@ -51,7 +51,7 @@ sub show {
         }
     );
 
-    my $br       = GetBranches;
+    my $br       = GetBranchesWithoutMobileStations;
     my $branch   = $input->param('branch') || '*';
     my @branches = (
         {

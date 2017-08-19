@@ -45,7 +45,7 @@ my $op = $input->param('op') || '';
 my $referer = $input->referer();
 
 my $onlymine = C4::Branch::onlymine;
-my $branches = C4::Branch::GetBranches( $onlymine );
+my $branches = C4::Branch::GetBranchesWithoutMobileStations( $onlymine );
 
 $template->param(
     view => ( $input->request_method() eq "GET" ) ? "show_form" : "show_results",

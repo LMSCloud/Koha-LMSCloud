@@ -572,8 +572,9 @@ sub GetFamilyCardMemberIssuesAndFines {
     my ( $borrowernumber, $branchcode ) = @_;
     my $dbh   = C4::Context->dbh;
     my $query = 
-        "SELECT COUNT(*) FROM issues i 
-        WHERE (i.borrowernumber = ? 
+        "SELECT COUNT(*) FROM issues i, branches r
+        WHERE i.branchcode = r.branchcode 
+        AND (i.borrowernumber = ? 
         OR i.borrowernumber IN 
             (SELECT DISTINCT b.borrowernumber 
              FROM borrowers b, categories c, borrowers o
@@ -581,43 +582,46 @@ sub GetFamilyCardMemberIssuesAndFines {
              AND o.borrowernumber = b.guarantorid
              AND c.categorycode = o.categorycode
              AND c.family_card = 1))
-        AND i.branchcode = ?";
+        AND (r.branchcode = ? OR r.mobilebranch = ?)";
  
     $debug and warn $query."\n";
     my $sth = $dbh->prepare($query);
-    $sth->execute($borrowernumber, $borrowernumber, $branchcode);
+    $sth->execute($borrowernumber, $borrowernumber, $branchcode, $branchcode);
     my $issue_count = $sth->fetchrow_arrayref->[0];
 
     $sth = $dbh->prepare(
-        "SELECT COUNT(*) FROM issues 
-         WHERE (borrowernumber = ?
-         OR borrowernumber IN 
+        "SELECT COUNT(*) FROM issues i, branches r
+         WHERE i.branchcode = r.branchcode 
+         AND (i.borrowernumber = ?
+         OR i.borrowernumber IN 
             (SELECT DISTINCT b.borrowernumber 
              FROM borrowers b, categories c, borrowers o
              WHERE b.guarantorid = ?
              AND o.borrowernumber = b.guarantorid
              AND c.categorycode = o.categorycode
              AND c.family_card = 1)) 
-         AND date_due < now()
-         AND issues.branchcode = ?"
+         AND i.date_due < now()
+         AND (r.branchcode = ? OR r.mobilebranch = ?)"
     );
     
-    $sth->execute($borrowernumber, $borrowernumber, $branchcode);
+    $sth->execute($borrowernumber, $borrowernumber, $branchcode, $branchcode);
     my $overdue_count = $sth->fetchrow_arrayref->[0];
 
     $sth = $dbh->prepare(
         "SELECT SUM(amountoutstanding) 
-         FROM accountlines 
-         WHERE (borrowernumber = ?
-         OR borrowernumber IN 
+         FROM accountlines a, branches r
+         WHERE a.branchcode = r.branchcode
+         AND (a.borrowernumber = ?
+         OR a.borrowernumber IN 
             (SELECT DISTINCT b.borrowernumber 
              FROM borrowers b, categories c, borrowers o
              WHERE b.guarantorid = ?
              AND o.borrowernumber = b.guarantorid
              AND c.categorycode = o.categorycode
              AND c.family_card = 1))
-         AND accountlines.branchcode = ?");
-    $sth->execute($borrowernumber, $borrowernumber, $branchcode);
+         AND (r.branchcode = ? OR r.mobilebranch = ?)");
+
+    $sth->execute($borrowernumber, $borrowernumber, $branchcode, $branchcode);
     my $total_fines = $sth->fetchrow_arrayref->[0];
 
     return ($overdue_count, $issue_count, $total_fines);
@@ -1480,6 +1484,27 @@ sub GetUpcomingMembershipExpires {
     push @pars, $date1, $date2;
     $sth->execute( @pars );
     my $results = $sth->fetchall_arrayref( {} );
+    
+    # add branchemail
+    $sth = $dbh->prepare("SELECT branchcode, branchemail, mobilebranch FROM branches");
+    $sth->execute();
+    my $branchdata = $sth->fetchall_arrayref({});
+    
+    my %branchmail;
+    # if it is not a mobilebook station add the branchemail
+    foreach my $branch( @$branchdata ) {
+        $branchmail{$branch->{branchcode}} = $branch->{branchemail} if (! $branch->{mobilebranch} );
+    }
+    # if it is a mobilebook station add the branchemail of the mobilebook branch
+    foreach my $branch( @$branchdata ) {
+        $branchmail{$branch->{branchcode}} = $branchmail{$branch->{mobilebranch}} if ( $branch->{mobilebranch} && exists($branchmail{$branch->{mobilebranch}}) );
+    }
+    # now add the branchemail to the data
+    foreach my $result ( @$results ) {
+        $result->{branchemail} = '';
+        $result->{branchemail} = $branchmail{$result->{branchcode}} if (defined($branchmail{$result->{branchcode}}));
+    }
+    
     return $results;
 }
 

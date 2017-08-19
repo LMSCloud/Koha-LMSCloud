@@ -602,7 +602,7 @@ if (defined ($data{'branchcode'}) and ( $op eq 'modify' || $op eq 'duplicate' ||
     $userbranch = $data{'branchcode'};
 }
 
-my $branchloop = GetBranchesLoop( $userbranch );
+my $branchloop = GetBranchesLoopWithoutMobileStations( $userbranch );
 
 if( !$branchloop ){
     $no_add = 1;

@@ -192,6 +192,22 @@ tinyMCE.init({
                 <li><label for="opac_info">OPAC info: </label><textarea name="opac_info" id="opac_info">[% library.opac_info |html %]</textarea></li>
                 <li><label for="branchip">IP: </label><input type="text" name="branchip" id="branchip"  size="15" maxlength="15" value="[% library.branchip |html %]" /> <span class="hint">Can be entered as a single IP, or a subnet such as 192.168.1.*</span></li>
                 <li><label for="branchnotes">Notes: </label><input type="text" name="branchnotes" id="branchnotes" size="80" value="[% library.branchnotes |html %]" /></li>
+                [% IF ( bookmobileactive ) %]
+                <li>
+                     <label for="mobilebranch">Bookmobile branch: </label>
+                     <select name="mobilebranch">
+                         <option value=""></option> 
+                         [% FOREACH mobilebranchlib IN mobilebranches %]
+                             [% IF (mobilebranchlib.branchcode == library.mobilebranch) %]
+                                <option value="[% mobilebranchlib.branchcode |html %]" selected>[% mobilebranchlib.branchname |html %]</option>
+                             [% ELSE %]
+                                <option value="[% mobilebranchlib.branchcode |html %]">[% mobilebranchlib.branchname |html %]</option>
+                            [% END %]
+                         [% END %]
+                     </select>
+                     <span class="hint">Used for bookmobile stations to refer to the corresponding bookmobile library. By assigning a bookmobile library, the library will be treated as bookmobile station.</span>
+                </li>
+                [% END %]
             </ol>
         </fieldset>
         <fieldset class="action">
@@ -227,6 +243,7 @@ tinyMCE.init({
                     <th>Address</th>
                     <th>Properties</th>
                     <th>IP</th>
+                    [% IF ( bookmobileactive ) %]<th>Bookmobile station of</th>[% END %]
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -268,6 +285,7 @@ tinyMCE.init({
                             [% END %]
                         </td>
                         <td>[% library.branchip %]</td>
+                        [% IF ( bookmobileactive ) %]<td>[% library.mobilebranch %]</td>[% END %]
                         <td class="actions">
                             <a class="btn btn-mini" href="/cgi-bin/koha/admin/branches.pl?op=add_form&amp;branchcode=[% library.branchcode %]"><i class="fa fa-pencil"></i> Edit</a>
                             <a class="btn btn-mini" href="/cgi-bin/koha/admin/branches.pl?op=delete_confirm&amp;branchcode=[% library.branchcode %]"><i class="fa fa-trash"></i> Delete</a>

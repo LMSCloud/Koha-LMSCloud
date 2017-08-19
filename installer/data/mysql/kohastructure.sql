@@ -266,8 +266,10 @@ CREATE TABLE `branches` ( -- information about your libraries or branches are st
   `branchip` varchar(15) default NULL, -- the IP address for your library or branch
   `branchprinter` varchar(100) default NULL, -- unused in Koha
   `branchnotes` mediumtext, -- notes related to your library or branch
-  opac_info text, -- HTML that displays in OPAC
-  PRIMARY KEY (`branchcode`)
+  `opac_info` text, -- HTML that displays in OPAC
+  `mobilebranch` varchar(10) default NULL, -- marks a branch as bookmobile stop with a reference to the related bookmobile branch
+  PRIMARY KEY (`branchcode`),
+  CONSTRAINT `branches_ibfk_1` FOREIGN KEY (`mobilebranch`) REFERENCES `branches` (`branchcode`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
@@ -3851,10 +3853,11 @@ DROP TABLE IF EXISTS `cash_register`;
 CREATE TABLE `cash_register` (
   `id` int(10) NOT NULL AUTO_INCREMENT, -- ID of the cash register
   `name` varchar(100) NOT NULL, -- name of the cash register
-  `branchcode` varchar(10) NOT NULL default '', -- the branch, in which teh cash register is used (branches.branchcode)
+  `branchcode` varchar(10) NOT NULL default '', -- the branch, in which the cash register is used (branches.branchcode)
   `manager_id` int(11), -- the staff member who currently manages the cash register (borrowers.borrowernumber)
   `prev_manager_id` int(11), -- who was the previous manager of the cash register (borrowers.borrowernumber)
-  `modification_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was the entry last time changed 
+  `modification_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was the entry last time changed
+  `no_branch_restriction` tinyint(1) default 0, -- don't restrict use of the cash register to the owning branch
    PRIMARY KEY (`id`),
    UNIQUE KEY `pseudo_key` (`name`),
    CONSTRAINT `cash_register_fk_1` FOREIGN KEY (`manager_id`)
@@ -3906,6 +3909,7 @@ CREATE TABLE `cash_register_account` (
   `action` varchar(20) NOT NULL, -- which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT, ADJUSTMENT, PAYOUT
   `booking_amount`  decimal(28,6) default NULL, -- booked amount (can be positive or negative)
   `description` mediumtext, -- explains the transaction
+  `reason` varchar(250), -- specify a reason for payouts and payments (controlled with authorised_values category CASHREG_PAYOUT)
    PRIMARY KEY (`id`),
    UNIQUE KEY `cash_reg_account_idx_account_id` (`cash_register_account_id`,`cash_register_id`),
    KEY `cash_reg_account_idx_id` (`cash_register_id`,`id`),

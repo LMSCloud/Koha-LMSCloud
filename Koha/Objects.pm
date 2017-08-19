@@ -130,6 +130,30 @@ sub search {
     }
 }
 
+=head3 single
+
+my $object = Koha::Objects->search({}, { rows => 1 })->single
+
+Returns one and only one object that is part of this set.
+Returns undef if there are no objects found.
+
+This is optimal as it will grab the first returned result without instantiating
+a cursor.
+
+See:
+http://search.cpan.org/dist/DBIx-Class/lib/DBIx/Class/Manual/Cookbook.pod#Retrieve_one_and_only_one_row_from_a_resultset
+
+=cut
+
+sub single {
+    my ($self) = @_;
+
+    my $single = $self->_resultset()->single;
+    return unless $single;
+
+    return $self->object_class()->_new_from_dbic($single);
+}
+
 =head3 Koha::Objects->count();
 
 my @objects = Koha::Objects->count($params);

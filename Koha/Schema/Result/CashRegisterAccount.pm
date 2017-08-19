@@ -81,6 +81,12 @@ __PACKAGE__->table("cash_register_account");
   data_type: 'mediumtext'
   is_nullable: 1
 
+=head2 reason
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 250
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -109,6 +115,8 @@ __PACKAGE__->add_columns(
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "description",
   { data_type => "mediumtext", is_nullable => 1 },
+  "reason",
+  { data_type => "varchar", is_nullable => 1, size => 250 },
 );
 
 =head1 PRIMARY KEY
@@ -180,8 +188,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-01 12:29:06
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:1K3hY9m4FH7U2nflfDg2Ow
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-07-12 13:57:31
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:bABYWAl25Y5Td5S4H1OZMg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

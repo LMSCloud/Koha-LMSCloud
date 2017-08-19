@@ -61,7 +61,7 @@ my ($template, $user, $cookie) = get_template_and_user(
     }
 );
 
-my $branches = GetBranches;
+my $branches = GetBranchesWithoutMobileStations;
 
 my $messages;
 my $found;
@@ -236,7 +236,7 @@ $template->param(
     cancelled               => $cancelled,
     setwaiting              => $setwaiting,
     trsfitemloop            => \@trsfitemloop,
-    branchoptionloop        => GetBranchesLoop($tobranchcd),
+    branchoptionloop        => GetBranchesLoopWithoutMobileStations($tobranchcd),
     errmsgloop              => \@errmsgloop,
     CircAutocompl           => C4::Context->preference("CircAutocompl")
 );

@@ -41,9 +41,11 @@ use Koha::Calendar;
 use Koha::Database;
 use Koha::Hold;
 use Koha::Holds;
+use Koha::IssuingRules;
 use Koha::Libraries;
 use Koha::Items;
 use Koha::ItemTypes;
+use Koha::Libraries;
 
 use List::MoreUtils qw( firstidx any );
 use Carp;
@@ -142,6 +144,8 @@ BEGIN {
         &GetReservesControlBranch
 
         IsItemOnHoldAndFound
+        
+        &GetHoldRule
     );
     @EXPORT_OK = qw( MergeHolds );
 }
@@ -225,11 +229,12 @@ sub AddReserve {
     # Send e-mail to librarian if syspref is active
     if(C4::Context->preference("emailLibrarianWhenHoldIsPlaced")){
         my $borrower = C4::Members::GetMember(borrowernumber => $borrowernumber);
-        my $library = Koha::Libraries->find($borrower->{branchcode})->unblessed;
+        my $usebranch = Koha::Libraries->get_effective_branch($borrower->{branchcode});
+        my $library = Koha::Libraries->find( $usebranch )->unblessed;
         if ( my $letter =  C4::Letters::GetPreparedLetter (
             module => 'reserves',
             letter_code => 'HOLDPLACED',
-            branchcode => $branch,
+            branchcode => $usebranch,
             tables => {
                 'branches'    => $library,
                 'borrowers'   => $borrower,
@@ -248,7 +253,7 @@ sub AddReserve {
                     message_transport_type => 'email',
                     from_address           => $admin_email_address,
                     to_address           => $admin_email_address,
-                    branchcode             => $branch
+                    branchcode             => $usebranch
                 }
             );
         }
@@ -479,18 +484,6 @@ sub CanItemBeReserved{
 
     my $controlbranch = C4::Context->preference('ReservesControlBranch');
 
-    # we retrieve user rights on this itemtype and branchcode
-    my $sth = $dbh->prepare("SELECT categorycode, itemtype, branchcode, reservesallowed
-                             FROM issuingrules
-                             WHERE (categorycode in (?,'*') )
-                             AND (itemtype IN (?,'*'))
-                             AND (branchcode IN (?,'*'))
-                             ORDER BY
-                               categorycode DESC,
-                               itemtype     DESC,
-                               branchcode   DESC;"
-                           );
-
     my $querycount ="SELECT
                             count(*) as count
                             FROM reserves
@@ -512,12 +505,11 @@ sub CanItemBeReserved{
         $branchcode = $borrower->{branchcode};
     }
     
-    # we retrieve rights 
-    $sth->execute($borrower->{'categorycode'}, $item->{'itype'}, $branchcode);
-    if(my $rights = $sth->fetchrow_hashref()){
-        $ruleitemtype    = $rights->{itemtype};
-        $allowedreserves = $rights->{reservesallowed}; 
-    }else{
+    if ( my $rights = GetHoldRule( $borrower->{'categorycode'}, $item->{'itype'}, $branchcode ) ) {
+        $ruleitemtype     = $rights->{itemtype};
+        $allowedreserves  = $rights->{reservesallowed};
+    }
+    else {
         $ruleitemtype = '*';
     }
 
@@ -962,9 +954,15 @@ sub CheckReserves {
                     $borrowerinfo ||= C4::Members::GetMember( borrowernumber => $res->{'borrowernumber'} );
                     my $branch = GetReservesControlBranch( $iteminfo, $borrowerinfo );
                     my $branchitemrule = C4::Circulation::GetBranchItemRule($branch,$iteminfo->{'itype'});
+                    
+                    # get effective branches if the request is for a mobile branch station 
+                    my $effectivereservebranch = Koha::Libraries->get_effective_branch($res->{branchcode});
+                    my $effectiveitembranch = $effectivereservebranch;
+                    $effectiveitembranch = Koha::Libraries->get_effective_branch($iteminfo->{ $branchitemrule->{hold_fulfillment_policy} }) if ($branchitemrule->{hold_fulfillment_policy} ne 'any');
+                    
                     next if ($branchitemrule->{'holdallowed'} == 0);
                     next if (($branchitemrule->{'holdallowed'} == 1) && ($branch ne $borrowerinfo->{'branchcode'}));
-                    next if ( ($branchitemrule->{hold_fulfillment_policy} ne 'any') && ($res->{branchcode} ne $iteminfo->{ $branchitemrule->{hold_fulfillment_policy} }) );
+                    next if ( ($branchitemrule->{hold_fulfillment_policy} ne 'any') && ($effectivereservebranch ne $effectiveitembranch) );
                     $priority = $res->{'priority'};
                     $highest  = $res;
                     last if $local_hold_match;
@@ -1577,8 +1575,8 @@ sub _get_itype {
 sub _OnShelfHoldsAllowed {
     my ($itype,$borrowercategory,$branchcode) = @_;
 
-    my $rule = C4::Circulation::GetIssuingRule($borrowercategory, $itype, $branchcode);
-    return $rule->{onshelfholds};
+    my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule({ categorycode => $borrowercategory, itemtype => $itype, branchcode => $branchcode });
+    return $issuing_rule ? $issuing_rule->onshelfholds : undef;
 }
 
 =head2 AlterPriority
@@ -2169,22 +2167,48 @@ sub OPACItemHoldsAllowed {
            $itype = $data->{itemtype};
        }
     }
-
-    my $query = "SELECT opacitemholds,categorycode,itemtype,branchcode FROM issuingrules WHERE
-          (issuingrules.categorycode = ? OR issuingrules.categorycode = '*')
-        AND
-          (issuingrules.itemtype = ? OR issuingrules.itemtype = '*')
-        AND
-          (issuingrules.branchcode = ? OR issuingrules.branchcode = '*')
-        ORDER BY
-          issuingrules.categorycode desc,
-          issuingrules.itemtype desc,
-          issuingrules.branchcode desc
-       LIMIT 1";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($borrower->{categorycode},$itype,$branchcode);
-    my $data = $sth->fetchrow_hashref;
-    my $opacitemholds = uc substr ($data->{opacitemholds}, 0, 1);
+    
+    my $data;
+    my $mobilebranch = Koha::Libraries->get_effective_branch($branchcode);
+    # if the branch is a bookmobile station, we check rules of the
+    # bookmobile station before we are checking bookmobile branch and general rules
+    if ( $mobilebranch ne $branchcode ) {
+        my $query = "SELECT opacitemholds,categorycode,itemtype,branchcode FROM issuingrules WHERE
+              (issuingrules.categorycode = ? OR issuingrules.categorycode = '*')
+            AND
+              (issuingrules.itemtype = ? OR issuingrules.itemtype = '*')
+            AND
+              issuingrules.branchcode = ?
+            ORDER BY
+              issuingrules.categorycode desc,
+              issuingrules.itemtype desc,
+              issuingrules.branchcode desc
+           LIMIT 1";
+        my $sth = $dbh->prepare($query);
+        $sth->execute($borrower->{categorycode},$itype,$branchcode);
+        $data = $sth->fetchrow_hashref;
+        $branchcode = $mobilebranch;
+    }
+    
+    if (! $data) {
+        my $query = "SELECT opacitemholds,categorycode,itemtype,branchcode FROM issuingrules WHERE
+              (issuingrules.categorycode = ? OR issuingrules.categorycode = '*')
+            AND
+              (issuingrules.itemtype = ? OR issuingrules.itemtype = '*')
+            AND
+              (issuingrules.branchcode = ? OR issuingrules.branchcode = '*')
+            ORDER BY
+              issuingrules.categorycode desc,
+              issuingrules.itemtype desc,
+              issuingrules.branchcode desc
+           LIMIT 1";
+        my $sth = $dbh->prepare($query);
+        $sth->execute($borrower->{categorycode},$itype,$branchcode);
+        $data = $sth->fetchrow_hashref;
+    }
+    
+    my $opacitemholds = '';
+    uc substr ($data->{opacitemholds}, 0, 1) if ( defined($data) && defined($data->{opacitemholds}) );
     return '' if $opacitemholds eq 'N';
     return $opacitemholds;
 }
@@ -2517,6 +2541,60 @@ sub IsItemOnHoldAndFound {
 
     return $found;
 }
+
+=head2 GetHoldRule
+
+my $rule = GetHoldRule( $categorycode, $itemtype, $branchcode );
+
+Returns the matching hold related issuingrule fields for a given
+patron category, itemtype, and library.
+
+=cut
+
+sub GetHoldRule {
+    my ( $categorycode, $itemtype, $branchcode ) = @_;
+
+    my $dbh = C4::Context->dbh;
+    
+    my $mobilebranch = Koha::Libraries->get_effective_branch($branchcode);
+    if ( $mobilebranch ne $branchcode ) {
+        my $sth = $dbh->prepare(
+            q{
+             SELECT categorycode, itemtype, branchcode, reservesallowed
+               FROM issuingrules
+              WHERE (categorycode in (?,'*') )
+                AND (itemtype IN (?,'*'))
+                AND branchcode = ?
+           ORDER BY categorycode DESC,
+                    itemtype     DESC,
+                    branchcode   DESC
+            }
+        );
+        $sth->execute( $categorycode, $itemtype, $branchcode );
+        if ( my $rule = $sth->fetchrow_hashref() ) {
+            return $rule;
+        }
+        $branchcode = $mobilebranch;
+    }
+
+    my $sth = $dbh->prepare(
+        q{
+         SELECT categorycode, itemtype, branchcode, reservesallowed
+           FROM issuingrules
+          WHERE (categorycode in (?,'*') )
+            AND (itemtype IN (?,'*'))
+            AND (branchcode IN (?,'*'))
+       ORDER BY categorycode DESC,
+                itemtype     DESC,
+                branchcode   DESC
+        }
+    );
+
+    $sth->execute( $categorycode, $itemtype, $branchcode );
+
+    return $sth->fetchrow_hashref();
+}
+
 
 =head1 AUTHOR
 

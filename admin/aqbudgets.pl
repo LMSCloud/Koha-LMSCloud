@@ -100,7 +100,7 @@ $template->param(
 
 my $budget;
 
-my $branchloop = C4::Branch::GetBranchesLoop($filter_budgetbranch);
+my $branchloop = C4::Branch::GetBranchesLoopWithoutMobileStations($filter_budgetbranch);
 
 $template->param(auth_cats_loop => GetBudgetAuthCats( $budget_period_id ))
     if $budget_period_id;
@@ -143,7 +143,7 @@ if ($op eq 'add_form') {
     $budget_parent = GetBudget($budget_parent_id);
 
     # build branches select
-    my $branches = GetBranches;
+    my $branches = GetBranchesWithoutMobileStations;
     my @branchloop_select;
     foreach my $thisbranch ( sort keys %$branches ) {
         my %row = (

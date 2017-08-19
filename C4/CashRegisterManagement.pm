@@ -19,8 +19,11 @@ package C4::CashRegisterManagement;
 
 use strict;
 use warnings;
+use Carp;
 
 use C4::Context;
+use C4::Koha;
+
 use Koha::CashRegister::CashRegister;
 use Koha::CashRegister::CashRegisters;
 use Koha::CashRegister::CashRegisterManager;
@@ -32,6 +35,8 @@ use Koha::DateUtils;
 use Koha::Acquisition::Currencies;
 use Locale::Currency::Format;
 use DateTime::Format::MySQL;
+use Storable qw(dclone);
+use Koha::ItemTypes;
 
 use constant false => 0;
 use constant true  => 1;
@@ -195,8 +200,13 @@ sub getOpenedCashRegister {
         
     if (! C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
         my $cash_register = Koha::CashRegister::CashRegisters->search({
-            branchcode => $branch,
-            manager_id => $loggedinuser
+            -and => [
+                -or => [
+                        branchcode => $branch,
+                        no_branch_restriction => 1
+                    ],
+                manager_id => $loggedinuser
+                ]
         });
         
         if ( my $cashreg = $cash_register->next() ) {
@@ -209,7 +219,7 @@ sub getOpenedCashRegister {
         my $query = q{
                 SELECT DISTINCT c.id as id
                 FROM cash_register c, cash_register_manager m
-                WHERE     c.branchcode = ? 
+                WHERE     (c.branchcode = ? or c.no_branch_restriction = 1)
                       AND c.id = m.cash_register_id
                       AND m.manager_id = ?
                       AND m.opened = 1 }; 
@@ -233,7 +243,7 @@ sub getOpenedCashRegister {
 
   C4::CashRegisterManagement->getOpenedCashRegisterByManagerID($borrowernumber)
 
-Return a opened cash register or undef if cash register managment is inactive or
+Return an opened cash register or undef if cash register managment is inactive or
 if the user has no open cash register.
 If a cash register is open, the function returns Koha::CashRegister::CashRegister object.
 
@@ -291,7 +301,7 @@ sub registerPayment {
     
     my $cashreg = getOpenedCashRegister($branch, $manager_id);
     if ( $cashreg ) {
-        return $self->addCashRegisterTransaction($cashreg->id(), 'PAYMENT', $manager_id, '', $amount, $accountlines_no);
+        return $self->addCashRegisterTransaction($cashreg->id(), 'PAYMENT', $manager_id, '', $amount, '', $accountlines_no);
     }
     
     return 0;
@@ -310,7 +320,7 @@ sub registerReversePayment {
     
     my $cashreg = getOpenedCashRegister($branch, $manager_id);
     if ( $cashreg ) {
-        return $self->addCashRegisterTransaction($cashreg->id(), 'REVERSE_PAYMENT', $manager_id, '', ($amount * -1), $accountlines_no);
+        return $self->addCashRegisterTransaction($cashreg->id(), 'REVERSE_PAYMENT', $manager_id, '', ($amount * -1), '', $accountlines_no);
     }
     
     return 0;
@@ -318,18 +328,18 @@ sub registerReversePayment {
 
 =head2 registerAdjustment
 
-  $cash_management->registerAdjustment($branch, $manager_id, $amount, $payment_note)
+  $cash_management->registerAdjustment($branch, $manager_id, $amount, $payment_note, $reason)
 
 Registers a payment to the opened cash register of the manager.
 
 =cut
 
 sub registerAdjustment {
-    my ($self, $branch, $manager_id, $amount, $comment) = @_;
+    my ($self, $branch, $manager_id, $amount, $comment, $reason) = @_;
     
     my $cashreg = getOpenedCashRegister($branch, $manager_id);
     if ($cashreg ) {
-        $self->addCashRegisterTransaction($cashreg->id(), 'ADJUSTMENT', $manager_id, $comment, $amount);
+        $self->addCashRegisterTransaction($cashreg->id(), 'ADJUSTMENT', $manager_id, $comment, $amount, $reason);
     }
     
     return 0;
@@ -337,7 +347,7 @@ sub registerAdjustment {
 
 =head2 registerCashPayment
 
-  $cash_management->registerCashPayment($cash_register_id, $manager_id, $amount, $comment)
+  $cash_management->registerCashPayment($cash_register_id, $manager_id, $amount, $comment, $reason)
 
 The action is used for cash payments. Typically thisis a transfer from the cash register to
 the central cash register of the organisation or to a bank.
@@ -345,11 +355,30 @@ the central cash register of the organisation or to a bank.
 =cut
 
 sub registerCashPayment {
-    my ($self, $branch, $manager_id, $amount, $comment) = @_;
+    my ($self, $branch, $manager_id, $amount, $comment, $reason) = @_;
     
     my $cashreg = getOpenedCashRegister($branch, $manager_id);
     if ($cashreg ) {
-        $self->addCashRegisterTransaction($cashreg->id(), 'PAYOUT', $manager_id, $comment, ($amount * -1));
+        $self->addCashRegisterTransaction($cashreg->id(), 'PAYOUT', $manager_id, $comment, ($amount * -1), $reason);
+    }
+    
+    return 0;
+}
+
+=head2 registerCashDeposit
+
+  $cash_management->registerCashDeposit($cash_register_id, $manager_id, $amount, $comment, $reason)
+
+The action is used for cash deposits.
+
+=cut
+
+sub registerCashDeposit {
+    my ($self, $branch, $manager_id, $amount, $comment, $reason) = @_;
+    
+    my $cashreg = getOpenedCashRegister($branch, $manager_id);
+    if ($cashreg ) {
+        $self->addCashRegisterTransaction($cashreg->id(), 'DEPOSIT', $manager_id, $comment, $amount , $reason);
     }
     
     return 0;
@@ -368,7 +397,7 @@ sub registerCredit {
     
     my $cashreg = getOpenedCashRegister($branch, $manager_id);
     if ( $cashreg ) {
-        $self->addCashRegisterTransaction($cashreg->id(), 'CREDIT', $manager_id, '', $amount, $accountlines_no);
+        $self->addCashRegisterTransaction($cashreg->id(), 'CREDIT', $manager_id, '', $amount, '', $accountlines_no);
     }
     
     return 0;
@@ -541,7 +570,8 @@ sub loadCashRegister {
             'cash_register_prev_manager_id' => $cash_register->prev_manager_id(),
             'cash_register_prev_manager' => $cash_register_prev_manager,
             'cash_register_balance' => sprintf('%.2f', $balance ),
-            'cash_register_balance_formatted' => $self->formatAmountWithCurrency($balance)
+            'cash_register_balance_formatted' => $self->formatAmountWithCurrency($balance),
+            'cash_register_no_branch_restriction' => $cash_register->no_branch_restriction()
         };
     }
     return undef;
@@ -610,6 +640,7 @@ sub getAllCashRegisters {
             'prev_manager_name' =>  $cash_register_prev_manager,
             'balance' => sprintf('%.2f', $balance),
             'balance_formatted' => $self->formatAmountWithCurrency($balance),
+            'no_branch_restriction' => $cashreg->no_branch_restriction(),
             'managers' => []
         };
         foreach my $manager (@cash_register_managers) {
@@ -698,7 +729,7 @@ sub saveCashRegister {
 
 =head2 getCurrentBalance
 
-  $cash_management->readPermittedStaff($cash_register_id)
+  $cash_management->getCurrentBalance($cash_register_id)
 
 Returnes the current balance of the of the cash register.
 
@@ -1077,7 +1108,7 @@ sub getBookingsSinceLastOpening {
         
     my $query = q{
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
-                a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description,
+                a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description, a.reason,
                 CONCAT(IFNULL(b.firstname, ''), IF(b.firstname IS NULL, '', ' '), b.surname) as manager_name,
                 CONCAT(IFNULL(o.firstname, ''), IF(o.firstname IS NULL, '', ' '), o.surname) as patron_name,
                 l.accounttype, l.note as accountlines_note, 
@@ -1133,12 +1164,12 @@ sub getLastBookingsFromTo {
         
     my $query = q{
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
-                a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description,
+                a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description, a.reason, 
                 CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL, '', ' '), b.surname) as manager_name,
                 CONCAT(IFNULL(o.firstname,''), IF(o.firstname IS NULL, '', ' '), o.surname) as patron_name,
                 l.accounttype, l.note as accountlines_note, 
                 l.description as accountlines_description,
-                m.title as title
+                m.title as title, l.borrowernumber
         FROM  cash_register_account a
         LEFT JOIN borrowers b ON a.manager_id = b.borrowernumber
         LEFT JOIN accountlines l ON a.accountlines_id = l.accountlines_id
@@ -1172,6 +1203,84 @@ sub getLastBookingsFromTo {
     return (\@result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
 }
 
+=head2 getCashRegisterPaymentAndDepositOverview
+
+  $cash_management->getLastBooking($cash_register_id, $from, $to)
+
+Return an aggregated overview of payments and deposits of a cash register for a selected period.
+
+=cut
+
+sub getCashRegisterPaymentAndDepositOverview {
+    my $self = shift;
+    my $dbh = C4::Context->dbh;
+    my $cash_register_id = shift;
+    my $from = shift;
+    my $to = shift;
+    my ($date_from,$date_to) = $self->getValidFromToPeriod($from, $to);
+
+    my $authValuesAll = {};
+    my $authValues = GetAuthorisedValues("CASHREG_PAYOUT",0);
+    foreach my $val( @$authValues ) { $authValuesAll->{'PAYOUT'}->{$val->{authorised_value}} = $val->{lib} };
+    $authValues = GetAuthorisedValues("CASHREG_DEPOSIT",0);
+    foreach my $val( @$authValues ) { $authValuesAll->{'DEPOSIT'}->{$val->{authorised_value}} = $val->{lib} };
+    $authValues = GetAuthorisedValues("CASHREG_ADJUST",0);
+    foreach my $val( @$authValues ) { $authValuesAll->{'ADJUSTMENT'}->{$val->{authorised_value}} = $val->{lib} };
+    
+    my $query = q{
+        SELECT c.action, sum(c.booking_amount) as booking_amount, c.reason, l.accounttype
+        FROM   cash_register_account c
+        LEFT JOIN accountlines l ON c.accountlines_id = l.accountlines_id
+        WHERE     booking_time >= ? and booking_time <= ?
+              AND c.booking_amount <> 0
+              AND cash_register_id = ?
+        GROUP BY c.action, c.reason, l.accounttype
+       }; $query =~ s/^\s+/ /mg;
+    my $sth = $dbh->prepare($query);
+    $sth->execute( 
+            DateTime::Format::MySQL->format_datetime($date_from),
+            DateTime::Format::MySQL->format_datetime($date_to),
+            $cash_register_id
+        );
+    
+    my $result = { 'INPAYMENT' => [], 'OUTPAYMENT' => [] }; 
+    my $suminpayment = 0.0;
+    my $sumoutpayment = 0.0;
+    while (my $row = $sth->fetchrow_hashref) {
+
+        my $amount = $row->{booking_amount};
+        my $ptype = 'INPAYMENT';
+        $ptype = 'OUTPAYMENT' if ($amount < 0.0);
+        
+        $suminpayment += $amount if ( $ptype eq 'INPAYMENT' );
+        $sumoutpayment += $amount if ( $ptype eq 'OUTPAYMENT' );
+        
+        $row->{booking_amount} = sprintf('%.2f', $amount);
+        $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
+        
+        # check whether we can deliver the description of a reason from authorised 
+        # values if defined
+        if ( defined($row->{reason}) && exists( $authValuesAll->{$row->{action}}->{$row->{reason}} ) ) {
+             $row->{reason} = $authValuesAll->{$row->{action}}->{$row->{reason}};
+        }
+
+        push @{$result->{$ptype}}, $row;
+    }
+    
+    $result->{SUM_INPAYMENT} = { 
+        'booking_amount'           => sprintf('%.2f', $suminpayment),
+        'booking_amount_formatted' => $self->formatAmountWithCurrency($suminpayment)
+    };
+    $result->{SUM_OUTPAYMENT} = { 
+        'booking_amount'           => sprintf('%.2f', $sumoutpayment),
+        'booking_amount_formatted' => $self->formatAmountWithCurrency($sumoutpayment)
+    };
+    
+    $result->{type} = 'inoutpaymentoverview';
+    
+    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
+}
+
 
 =head2 getFinesOverviewByBranch
 
@@ -1188,6 +1297,8 @@ sub getFinesOverviewByBranch {
     my $from = shift;
     my $to = shift;
     my $type = shift;
+    my $cash_register_id = shift;
+  
     
     if ( ! $type ) {
         $type = 'accounttype';
@@ -1196,22 +1307,99 @@ sub getFinesOverviewByBranch {
     my $result = {};
             
     $result->{type} = $type;
+    my $ACCOUNT_TYPE_LENGTH = 5;
     
-    if ( $type eq 'finesoverview' ) {
+    my %manual_invtypes;
+    foreach my $inv_type(@{$dbh->selectcol_arrayref(qq{SELECT authorised_value FROM authorised_values WHERE category = 'MANUAL_INV'})}) {
+        my $val = substr($inv_type, 0, $ACCOUNT_TYPE_LENGTH);
+        $manual_invtypes{$val} = $inv_type;
+    }
+    
+    my %itemtypes;
+    foreach my $it(Koha::ItemTypes->search) {
+        $itemtypes{$it->itemtype} = $it->description;
+    }
+    
+    if ( $type eq 'paidfinesoverview' or $type eq 'finesoverview' ) {
+    
+        my ($fmtfrom,$fmtto,$dateselect);
         # get the accountlines statistics by type
-        my $query = q{
-            SELECT  a.accounttype as accounttype, SUM(a.amount) as sum, COUNT(*) as count
-            FROM    accountlines a
-            WHERE   a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
-                AND a.date >= ? and a.date <= ?
-                AND a.branchcode = ?
-            GROUP BY a.accounttype
+        
+        if ( $type eq 'paidfinesoverview' ) {
+            my $tmpdate = dclone($date_to);
+            
+            # set dateselect
+            $fmtfrom = DateTime::Format::MySQL->format_datetime($date_from);
+            $fmtto = DateTime::Format::MySQL->format_datetime($tmpdate);
+            $dateselect = "( a.timestamp BETWEEN ? AND ?)";
+        }
+        else {
+            $fmtfrom = DateTime::Format::MySQL->format_date($date_from);
+            $fmtto = DateTime::Format::MySQL->format_date($date_to);
+            $dateselect = "a.date >= ? and a.date <= ?";
+        }
+        my $query = qq{
+            SELECT  
+                    a.accounttype as accounttype, 
+                    SUM(a.amount-a.amountoutstanding) as sum, 
+                    COUNT(*) as count,
+                    i.itype as itemtype
+            FROM    branches br, accountlines a
+            JOIN items AS i USING (itemnumber)
+            WHERE a.branchcode = br.branchcode
+                    AND a.amountoutstanding <> a.amount 
+                    AND $dateselect 
+                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
+                    AND ( br.branchcode = ? OR br.mobilebranch = ? )
+            GROUP BY 
+                    a.accounttype, i.itype
+            UNION ALL
+            SELECT  
+                    a.accounttype as accounttype, 
+                    SUM(a.amount-a.amountoutstanding) as sum, 
+                    COUNT(*) as count,
+                    i.itype as itemtype
+            FROM    branches br, accountlines a
+            JOIN deleteditems AS i USING (itemnumber)
+            WHERE a.branchcode = br.branchcode
+                    AND a.amountoutstanding <> a.amount 
+                    AND $dateselect 
+                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
+                    AND ( br.branchcode = ? OR br.mobilebranch = ? )
+            GROUP BY 
+                    a.accounttype, i.itype
+            UNION ALL
+            SELECT  
+                    a.accounttype as accounttype, 
+                    SUM(a.amount-a.amountoutstanding) as sum, 
+                    COUNT(*) as count,
+                    "" as itemtype
+            FROM    branches br, accountlines a
+            WHERE a.branchcode = br.branchcode
+                    AND a.amountoutstanding <> a.amount 
+                    AND $dateselect 
+                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
+                    AND ( br.branchcode = ? OR br.mobilebranch = ? )
+                    AND itemnumber IS NULL
+            GROUP BY 
+                    a.accounttype, ''
+            ORDER BY 
+                    accounttype, itemtype;
            }; $query =~ s/^\s+/ /mg;
         my $sth = $dbh->prepare($query);
         $sth->execute(
-                DateTime::Format::MySQL->format_date($date_from), 
-                DateTime::Format::MySQL->format_date($date_to),
-                $branchcode
+                    $fmtfrom, 
+                    $fmtto,
+                    $branchcode,
+                    $branchcode,
+                    $fmtfrom, 
+                    $fmtto,
+                    $branchcode,
+                    $branchcode,
+                    $fmtfrom, 
+                    $fmtto,
+                    $branchcode,
+                    $branchcode
                 );
         $result->{sum} = {
                 amount => 0.0,
@@ -1220,18 +1408,23 @@ sub getFinesOverviewByBranch {
             
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{sum};
-            $result->{data}->{$row->{accounttype}} = {
-                amount => $amount,
-                count => $row->{count},
-                fines_amount => sprintf('%.2f', $amount),
-                fines_amount_formatted => $self->formatAmountWithCurrency($amount)
-            };
-            $result->{sun}->{$row->{accounttype}} = {
-                amount => $amount,
-                count => $row->{count},
-                fines_amount => sprintf('%.2f', $amount),
-                fines_amount_formatted => $self->formatAmountWithCurrency($amount)
-            };
+            my $accounttype = $row->{accounttype};
+            $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
+            if (! exists($result->{data}->{$accounttype}->{$row->{itemtype}}) ) {
+                $result->{data}->{$accounttype}->{$row->{itemtype}} = {
+                    amount => $amount,
+                    count => $row->{count},
+                    itemtype => $row->{itemtype},
+                    itemtypedescription => $itemtypes{$row->{itemtype}},
+                    fines_amount => sprintf('%.2f', $amount),
+                    fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                };
+            }
+            else {
+                $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{amount} += $amount;
+                $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{fines_amount} += sprintf('%.2f', $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{amount});
+                $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{amount});
+            }
             $result->{sum}->{amount} += $amount;
             $result->{sum}->{count} += $row->{count};
         }
@@ -1239,47 +1432,124 @@ sub getFinesOverviewByBranch {
         $result->{sum}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{amount});
         $result->{sum}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{amount});
     }
-    elsif ( $type eq 'finesbyday' || $type eq 'finesbymanager' || $type eq 'finesbytype' 
+    elsif ( $type eq 'paidfinesbyday' || $type eq 'paidfinesbymanager' || $type eq 'paidfinesbytype' 
+        || $type eq 'finesbyday' || $type eq 'finesbymanager' || $type eq 'finesbytype' 
         || $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' 
     ) {
+    
+        my ($fmtfrom,$fmtto,$addselect,$amountfield);
         # get the accountlines statistics by type
-        my $query = q{
-            SELECT  a.date date, 
+        
+        if ( $type eq 'paidfinesbyday' || $type eq 'paidfinesbymanager' || $type eq 'paidfinesbytype'  ) {
+            my $tmpdate = dclone($date_to);
+            
+            # set dateselect
+            $fmtfrom = DateTime::Format::MySQL->format_datetime($date_from);
+            $fmtto = DateTime::Format::MySQL->format_datetime($tmpdate);
+            $amountfield = "(a.amount-a.amountoutstanding)";
+            $addselect = "(a.timestamp BETWEEN ? AND ?) AND a.amountoutstanding <> a.amount";
+        }
+        else {
+            $fmtfrom = DateTime::Format::MySQL->format_date($date_from);
+            $fmtto = DateTime::Format::MySQL->format_date($date_to);
+            $amountfield = "a.amount";
+            $addselect = "a.date >= ? and a.date <= ?";
+        }
+        
+        # get the accountlines statistics by type
+        my $query = qq{
+            SELECT  1 as entrytype,
+                    a.date as date, 
                     a.accounttype as accounttype, 
-                    a.amount as amount,
+                    $amountfield as amount,
                     b.cardnumber as cardnumber,
                     b.borrowernumber as borrowernumber,
                     a.description as description,
                     a.manager_id as manager_id,
                     CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL, '', ' '), b.surname) as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL, '', ' '), m.surname) as manager_name
-            FROM    accountlines a
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL, '', ' '), m.surname) as manager_name,
+                    '' as reason
+            FROM    branches br, accountlines a
             LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
             LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
             WHERE   a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
-                AND a.date >= ? and a.date <= ?
-                AND a.branchcode = ?
-            ORDER BY a.date, b.cardnumber
-           }; $query =~ s/^\s+/ /mg;
+                AND $addselect
+                AND a.branchcode = br.branchcode
+                AND (br.branchcode = ? OR br.mobilebranch = ?)
+           }; 
+           
+        my $authValuesAll = {};
+        
+        my @params = ($fmtfrom, $fmtto, $branchcode, $branchcode);
+        
         if ( $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' ) {
             $query =~ s/ NOT IN / IN /;
+            
+            if ( $cash_register_id ) {
+                $query .= qq{
+                    UNION ALL
+                    SELECT 2 as entrytype,
+                           DATE(c.booking_time) as date,
+                           c.action as accounttype,
+                           c.booking_amount as amount,
+                           '' as cardnumber,
+                           NULL as borrowernumber,
+                           c.description as description,
+                           c.manager_id as manager_id,
+                           '' as patron_name,
+                           CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL, '', ' '), m.surname) as manager_name,
+                           c.reason as reason
+                    FROM   cash_register_account c
+                    LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
+                    WHERE  c.action IN ('PAYOUT','ADJUSTMENT','DEPOSIT')
+                       AND (c.booking_time BETWEEN ? AND ?)
+                       AND c.cash_register_id = ?
+                }; 
+            
+                my $authValues = GetAuthorisedValues("CASHREG_PAYOUT",0);
+                foreach my $val( @$authValues ) { $authValuesAll->{'PAYOUT'}->{$val->{authorised_value}} = $val->{lib} };
+                $authValues = GetAuthorisedValues("CASHREG_DEPOSIT",0);
+                foreach my $val( @$authValues ) { $authValuesAll->{'DEPOSIT'}->{$val->{authorised_value}} = $val->{lib} };
+                $authValues = GetAuthorisedValues("CASHREG_ADJUST",0);
+                foreach my $val( @$authValues ) { $authValuesAll->{'ADJUSTMENT'}->{$val->{authorised_value}} = $val->{lib} };
+                
+                my $actfrom = DateTime::Format::MySQL->format_datetime($date_from);
+                my $actto   = DateTime::Format::MySQL->format_datetime($date_to);
+         
+                push @params, ($actfrom, $actto, $cash_register_id);
+            }
         }
+        $query .= ' ORDER BY date,cardnumber';
+        $query =~ s/^\s+/ /mg;
+        
         my $sth = $dbh->prepare($query);
 
-        $sth->execute(
-                DateTime::Format::MySQL->format_date($date_from), 
-                DateTime::Format::MySQL->format_date($date_to),
-                $branchcode
-                );
+        $sth->execute(@params);
 
         my $rownum = 0;
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{amount};
+            if ( ($type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype') && $row->{entrytype} == 1 ) {
+                $amount = $amount * -1;
+            }
             $row->{patron_name} =~ s/^\s+|\s+$//g;
             $row->{manager_name} =~ s/^\s+|\s+$//g;
+            my $accounttype = $row->{accounttype};
+            $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
+            
+            if ( $row->{entrytype} == 2 ) {
+                # check whether we can deliver the description of a reason from authorised 
+                # values if defined
+                if ( defined($row->{reason}) && exists( $authValuesAll->{$row->{accounttype}}->{$row->{reason}} ) ) {
+                    $row->{reason} = $authValuesAll->{$row->{accounttype}}->{$row->{reason}};
+                }
+            }
+            
             $result->{data}->[$rownum++] = {
+                entrytype => $row->{entrytype},
+                reason => $row->{reason},
                 date => output_pref({dt => dt_from_string($row->{date}), dateonly => 1}),
-                accounttype => $row->{accounttype},
+                accounttype => $accounttype,
                 amount => $amount,
                 fines_amount => sprintf('%.2f', $amount),
                 fines_amount_formatted => $self->formatAmountWithCurrency($amount),
@@ -1389,11 +1659,12 @@ sub getCashTransactionOverviewByBranch {
     # get payments of cash registers
     my $query = q{
             SELECT a.cash_register_id as id, sum(a.booking_amount) as amount, count(*) count_transactions
-            FROM   cash_register_account a, cash_register c
+            FROM   cash_register_account a, cash_register c, branches br
             WHERE  a.cash_register_id = c.id 
                AND a.booking_amount > 0.00
                AND a.booking_time >= ? and a.booking_time <= ?
-               AND c.branchcode = ?
+               AND c.branchcode = br.branchcode
+               AND ( br.branchcode = ? OR br.mobilebranch = ? )
             GROUP BY a.cash_register_id
         }; $query =~ s/^\s+/ /mg;
 
@@ -1401,6 +1672,7 @@ sub getCashTransactionOverviewByBranch {
     $sth->execute( 
         DateTime::Format::MySQL->format_datetime($date_from),
         DateTime::Format::MySQL->format_datetime($date_to),
+        $branchcode,
         $branchcode
     );
     while (my $row = $sth->fetchrow_hashref) {
@@ -1416,11 +1688,12 @@ sub getCashTransactionOverviewByBranch {
     # get payouts of cash registers
     $query = q{
             SELECT a.cash_register_id as id, sum(a.booking_amount) as amount, count(*) count_transactions
-            FROM   cash_register_account a, cash_register c
+            FROM   cash_register_account a, cash_register c, branches br
             WHERE  a.cash_register_id = c.id 
                AND a.booking_amount < 0.00
                AND a.booking_time >= ? and a.booking_time <= ?
-               AND c.branchcode = ?
+               AND c.branchcode = br.branchcode
+               AND ( br.branchcode = ? OR br.mobilebranch = ? )
             GROUP BY a.cash_register_id
         }; $query =~ s/^\s+/ /mg;
 
@@ -1428,6 +1701,7 @@ sub getCashTransactionOverviewByBranch {
     $sth->execute( 
         DateTime::Format::MySQL->format_datetime($date_from),
         DateTime::Format::MySQL->format_datetime($date_to),
+        $branchcode,
         $branchcode
     );
     while (my $row = $sth->fetchrow_hashref) {
@@ -1444,11 +1718,12 @@ sub getCashTransactionOverviewByBranch {
     # get payments of cash registers
     $query = q{
             SELECT a.accounttype accounttype, sum(a.amount-a.amountoutstanding) as amount, count(*) count_transactions
-            FROM   accountlines a, borrowers b
+            FROM   accountlines a, borrowers b, branches br
             WHERE  a.amount-a.amountoutstanding <> 0.00
                AND a.date >= ? and a.date <= ?
                AND a.manager_id = b.borrowernumber
-               AND a.branchcode = ?
+               AND a.branchcode = br.branchcode
+               AND ( br.branchcode = ? OR br.mobilebranch = ? )
                AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
                AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
             GROUP BY b.branchcode, a.accounttype
@@ -1458,6 +1733,7 @@ sub getCashTransactionOverviewByBranch {
     $sth->execute( 
         DateTime::Format::MySQL->format_date($date_from),
         DateTime::Format::MySQL->format_date($date_to),
+        $branchcode,
         $branchcode
     );
     
@@ -1529,10 +1805,11 @@ sub addCashRegisterTransaction {
     my $manager_id = shift;
     my $comment = shift;
     my $amount = shift;
+    my $reason = shift;
     my $accountlines_id = shift;
     
     if (! $amount ) {
-    $amount = 0.00;
+        $amount = 0.00;
     }
     # retrieve last transaction data
     my $lastTransaction = $self->getLastBooking($cash_register_id);
@@ -1557,6 +1834,8 @@ sub addCashRegisterTransaction {
     elsif ( $action eq 'REVERSE_PAYMENT' ) {
     }
     elsif ( $action eq 'PAYOUT' ) {
+    }
+    elsif ( $action eq 'DEPOSIT' ) {
     }
     elsif ( $action eq 'ADJUSTMENT' ) {
     }
@@ -1593,7 +1872,8 @@ sub addCashRegisterTransaction {
         booking_amount => $amount,
         accountlines_id => $accountlines_id,
         action => $action,
-        description => $comment
+        description => $comment,
+        reason => $reason
     };
     
     my $entry = Koha::CashRegister::CashRegisterAccount->new();
@@ -1706,6 +1986,14 @@ sub getCashRegisterHandoverInformationByLastOpeningAction {
     }
     
     return $result;
+}
+
+sub getPaidChargesByAccountType {
+    my $params = shift;
+    
+    if ( defined($params) && defined($params->{branchcode}) ) {
+    
+    }
 }
 
 1;

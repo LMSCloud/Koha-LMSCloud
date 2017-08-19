@@ -287,7 +287,7 @@ else {
         );
         push @itemtypesloop, \%row;
     }
-    my $branches = GetBranches($only_my_branch);
+    my $branches = GetBranchesWithoutMobileStations($only_my_branch);
     my @branchloop;
     for my $thisbranch (
         sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} }

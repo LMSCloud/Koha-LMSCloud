@@ -272,9 +272,9 @@ if ( $op eq "add" ) {
     $billingplace  = $billingplace  || $borrower->{'branchcode'};
     $deliveryplace = $deliveryplace || $borrower->{'branchcode'};
 
-    my $branches = C4::Branch::GetBranchesLoop( $billingplace );
+    my $branches = C4::Branch::GetBranchesLoopWithoutMobileStations( $billingplace );
     $template->param( billingplaceloop => $branches );
-    $branches = C4::Branch::GetBranchesLoop( $deliveryplace );
+    $branches = C4::Branch::GetBranchesLoopWithoutMobileStations( $deliveryplace );
     $template->param( deliveryplaceloop => $branches );
     $template->param( booksellerid => $booksellerid );
 

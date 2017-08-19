@@ -48,6 +48,7 @@ use Koha::Patron;
 use Koha::Patron::Debarments qw(GetDebarments IsDebarred);
 use Koha::DateUtils;
 use Koha::Database;
+use Koha::IssuingRule;
 use Koha::Patron::Messages;
 use Koha::Patron::Images;
 use Koha::SearchEngine;
@@ -265,7 +266,6 @@ if ($borrowernumber) {
     # Warningdate is the date that the warning starts appearing
     my (  $today_year,   $today_month,   $today_day) = Today();
     my ($warning_year, $warning_month, $warning_day) = split /-/, $borrower->{'dateexpiry'};
-    my (  $enrol_year,   $enrol_month,   $enrol_day) = split /-/, $borrower->{'dateenrolled'};
     # if the expiry date is before today ie they have expired
     if ( !$borrower->{'dateexpiry'} || $warning_year*$warning_month*$warning_day==0
         || Date_to_Days($today_year,     $today_month, $today_day  ) 

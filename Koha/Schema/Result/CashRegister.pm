@@ -60,6 +60,12 @@ __PACKAGE__->table("cash_register");
   default_value: current_timestamp
   is_nullable: 0
 
+=head2 no_branch_restriction
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -80,6 +86,8 @@ __PACKAGE__->add_columns(
     default_value => \"current_timestamp",
     is_nullable => 0,
   },
+  "no_branch_restriction",
+  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -161,8 +169,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-28 13:36:17
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:S4eS6l0IqsrrJatcWWk2VA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-07-11 15:03:01
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7nsN1hgXaGBR1h2bVtuVtQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

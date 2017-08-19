@@ -68,6 +68,8 @@ $(document).ready(function(){
             var arr = $('#cash_register_manager').find("option").map(function() { return this.value; }).get();
             $("#cash_register_manager_list").val(arr.join());
         });
+        
+        
 });
 
 //]]>
@@ -112,9 +114,13 @@ $(document).ready(function(){
                                <tr>
                                    <td>[% cashreg.name %]</td>
                                    <td>
-                                    [% FOREACH mybranch IN branchloop %]
-                                        [% IF (cashreg.branchcode == mybranch.branchcode) %]
-                                            [% mybranch.branchname %]
+                                    [% IF (cashreg.no_branch_restriction == 1) %]
+                                        All libraries
+                                    [% ELSE %]
+                                        [% FOREACH mybranch IN branchloop %]
+                                            [% IF (cashreg.branchcode == mybranch.branchcode) %]
+                                                [% mybranch.branchname %]
+                                            [% END %]
                                         [% END %]
                                     [% END %]
                                    </td>
@@ -197,6 +203,10 @@ $(document).ready(function(){
                                                 </td>
                                             </tr>
                                         </table> 
+                                    </li>
+                                    <li>
+                                        <label for="no_branch_restriction">Don't restrict use to associated library: </label>[% IF ( cash_register_no_branch_restriction == 1 ) %][% unrestricted = "checked" %][% END %]
+                                        <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" [% unrestricted %] />
                                     </li>
                                     
                                     [% IF ( cash_register_id ) %]

@@ -119,7 +119,7 @@ if (  !C4::Context->preference("IndependentBranches")
     or ( ref $flags->{serials}  and $flags->{serials}->{superserials} )
     or ( !ref $flags->{serials} and $flags->{serials} == 1 ) )
 {
-    $branches_loop = C4::Branch::GetBranchesLoop( $branch );
+    $branches_loop = C4::Branch::GetBranchesLoopWithoutMobileStations( $branch );
 }
 
 $template->param (

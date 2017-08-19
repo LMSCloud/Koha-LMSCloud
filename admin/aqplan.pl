@@ -244,7 +244,7 @@ elsif ( $authcat eq 'ITEMTYPES' ) {
 
 } elsif ( $authcat eq 'BRANCHES' ) {
 
-    my $query = qq| SELECT branchcode, branchname FROM branches |;
+    my $query = qq| SELECT branchcode, branchname FROM branches WHERE mobilebranch is NULL or mobilebranch = ''|;
     my $sth   = $dbh->prepare($query);
     $sth->execute();
 
@@ -394,7 +394,7 @@ if ( $output eq "file" ) {
     exit(1);
 }
 
-my $branchloop = C4::Branch::GetBranchesLoop();
+my $branchloop = C4::Branch::GetBranchesLoopWithoutMobileStations();
 $template->param(
     authvals_row              => \@authvals_row,
     budget_lines              => \@budget_lines,

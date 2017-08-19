@@ -28,6 +28,8 @@ use C4::Print;  # GetPrinters
 use C4::Koha;
 use C4::Branch; # GetBranches GetBranchesLoop
 
+use Koha::LibraryCategories;
+
 # this will be the script that chooses branch and printer settings....
 
 my $query = CGI->new();
@@ -49,11 +51,16 @@ my $branches = GetBranches();
 my $printers = GetPrinters();
 my $branch   = $query->param('branch' );
 my $printer  = $query->param('printer');
-# fallbacks for $branch and $printer after possible session updates
 
+# fallbacks for $branch and $printer after possible session updates
 my $userenv_branch  = C4::Context->userenv->{'branch'}        || '';
 my $userenv_printer = C4::Context->userenv->{'branchprinter'} || '';
 my @updated;
+
+# if bookmobile support is enabled we enable selection of libraries 
+# based on library categories if defined
+my $branchcategory = $query->param('branchcategory' );
+my $userenv_branchcategory  = C4::Context->userenv->{'branchcategory'} || '';
 
 # $session lddines here are doing the updating
 if ($branch and $branches->{$branch}) {
@@ -70,6 +77,30 @@ if ($branch and $branches->{$branch}) {
     } # else branch the same, no update
 } else {
     $branch = $userenv_branch;  # fallback value
+}
+
+# store the branchcategory selection for the session
+if ( C4::Context->preference('BookMobileSupportEnabled') and
+     defined($branchcategory) and $branchcategory ne $userenv_branchcategory) {
+     $session->param('branchcategory', $branchcategory);    # update sesssion in DB
+}
+
+########################################
+#  Read library categories
+########################################
+if ( C4::Context->preference('BookMobileSupportEnabled') ) {
+    my @categories;
+    for my $category ( Koha::LibraryCategories->search ) {
+        push @categories, $category->unblessed();
+    }
+    $branchcategory = $userenv_branchcategory || '*' if ( !defined($branchcategory) || $branchcategory eq '' );
+    if ( scalar(@categories) ) {
+        $template->param( categoryselect => 1,
+                          categories => \@categories,
+                          selcateg => $branchcategory,
+                          selbranch => $branch,
+                           );
+    }
 }
 
 # FIXME: branchprinter is not retained by session.  This feature was not adequately
@@ -113,10 +144,11 @@ foreach ( @printkeys ) {
 
 my @recycle_loop;
 foreach ($query->param()) {
-    $_ or next;                   # disclude blanks
-    $_ eq "branch"     and next;  # disclude branch
-    $_ eq "printer"    and next;  # disclude printer
-    $_ eq "oldreferer" and next;  # disclude oldreferer
+    $_ or next;                       # disclude blanks
+    $_ eq "branch"         and next;  # disclude branch
+    $_ eq "printer"        and next;  # disclude printer
+    $_ eq "oldreferer"     and next;  # disclude oldreferer
+    $_ eq "branchcategory" and next;  # disclude branchcategory
     push @recycle_loop, {
         param => $_,
         value => scalar $query->param($_),

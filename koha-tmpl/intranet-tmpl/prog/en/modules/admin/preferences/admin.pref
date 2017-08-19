@@ -115,6 +115,13 @@ Administration:
                   yes: Prevent
                   no: "Don't prevent"
             - staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries.
+        -
+            - pref: BookMobileSupportEnabled
+              default: 0
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - bookmobile support functions such as configuration of bookmobile stations and branch category selection when selecting the current library.
     CAS authentication:
         -
             - pref: casAuthentication

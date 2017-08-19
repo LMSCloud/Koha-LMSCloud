@@ -118,10 +118,10 @@ Edit news item[% ELSE %]Add news item[% END %][% ELSE %]News[% END %]</div>
                     <option value=""         >All libraries</option>
                 [% END %]
                 [% FOREACH branch_item IN branch_list %]
-                [% IF ( branch_item.value.branchcode == new_detail.branchcode ) %]
-                    <option value="[% branch_item.value.branchcode %]" selected="selected">[% branch_item.value.branchname %]</option>
+                [% IF ( branch_item.value == new_detail.branchcode ) %]
+                    <option value="[% branch_item.value %]" selected="selected">[% branch_item.branchname %]</option>
                 [% ELSE %]
-                    <option value="[% branch_item.value.branchcode %]">[% branch_item.value.branchname %]</option>
+                    <option value="[% branch_item.value %]">[% branch_item.branchname %]</option>
                 [% END %]
                 [% END %]
                 </select>
@@ -192,13 +192,13 @@ Edit news item[% ELSE %]Add news item[% END %][% ELSE %]News[% END %]</div>
                 <option value=""         >All libraries</option>
                 [% END %]
                 [% FOREACH branch_item IN branch_list %]
-                [% IF ( branch_item.value.branchcode == branchcode ) %]
-                    <option value="[% branch_item.value.branchcode %]"
-                            selected="selected">[% branch_item.value.branchname %]
+                [% IF ( branch_item.value == branchcode ) %]
+                    <option value="[% branch_item.value %]"
+                            selected="selected">[% branch_item.branchname %]
                     </option>
                 [% ELSE %]
-                    <option value="[% branch_item.value.branchcode %]"
-                                    >[% branch_item.value.branchname %]
+                    <option value="[% branch_item.value %]"
+                                    >[% branch_item.branchname %]
                     </option>
                 [% END %]
                 [% END %]

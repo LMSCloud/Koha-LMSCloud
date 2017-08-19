@@ -18,7 +18,13 @@ package Koha::IssuingRules;
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 use Modern::Perl;
+
 use Koha::Database;
+
+use Koha::IssuingRule;
+
+use Koha::Libraries;
+
 use base qw(Koha::Objects);
 
 =head1 NAME
@@ -30,6 +36,74 @@ Koha::IssuingRules - Koha IssuingRules object set class
 =head2 Class Methods
 
 =cut
+
+sub get_effective_issuing_rule {
+    my ( $self, $params ) = @_;
+
+    my $default      = '*';
+    my $categorycode = $params->{categorycode};
+    my $itemtype     = $params->{itemtype};
+    my $branchcode   = $params->{branchcode};
+    
+    my $mobilebranch = Koha::Libraries->get_effective_branch($branchcode);
+
+    my $search_categorycode = $default;
+    my $search_itemtype     = $default;
+    my $search_branchcode   = $default;
+    
+    my $rule;
+    
+    # if the branch is a mobilebook station that we check whether there is
+    # an individual rule of the mobile book station 
+    # if not, we'll continue checking rules of the mobilebook branch
+    if ( $mobilebranch && $branchcode && $mobilebranch ne $branchcode ) {
+        $search_branchcode = $branchcode;
+        
+        if ($categorycode) {
+            $search_categorycode = { 'in' => [ $categorycode, $default ] };
+        }
+        if ($itemtype) {
+            $search_itemtype = { 'in' => [ $itemtype, $default ] };
+        }
+
+        my $rule = $self->search({
+            categorycode => $search_categorycode,
+            itemtype     => $search_itemtype,
+            branchcode   => $search_branchcode,
+        }, {
+            order_by => {
+                -desc => ['branchcode', 'categorycode', 'itemtype']
+            },
+            rows => 1,
+        })->single;
+        
+        return $rule if ( defined($rule) );
+        $branchcode = $mobilebranch;
+    }
+
+    if ($categorycode) {
+        $search_categorycode = { 'in' => [ $categorycode, $default ] };
+    }
+    if ($itemtype) {
+        $search_itemtype = { 'in' => [ $itemtype, $default ] };
+    }
+    if ($branchcode) {
+        $search_branchcode = { 'in' => [ $branchcode, $default ] };
+    }
+
+    $rule = $self->search({
+        categorycode => $search_categorycode,
+        itemtype     => $search_itemtype,
+        branchcode   => $search_branchcode,
+    }, {
+        order_by => {
+            -desc => ['branchcode', 'categorycode', 'itemtype']
+        },
+        rows => 1,
+    })->single;
+    
+    return $rule;
+}
 
 =head3 type
 

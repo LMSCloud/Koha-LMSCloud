@@ -214,7 +214,7 @@ if($cgi->cookie("intranet_bib_list")){
 }
 
 # load the branches
-my $branches = GetBranches();
+my $branches = GetBranchesWithoutMobileStations();
 
 # Populate branch_loop with all branches sorted by their name.  If
 # IndependentBranches is activated, set the default branch to the borrower

@@ -55,7 +55,7 @@ if ( $op eq 'add_form' ) {
         $selected_branches = $category->branch_limitations;
     }
 
-    my $branches = GetBranches;
+    my $branches = GetBranchesWithoutMobileStations;
     my @branches_loop;
     foreach my $branchcode ( sort { uc( $branches->{$a}->{branchname} ) cmp uc( $branches->{$b}->{branchname} ) } keys %$branches ) {
         my $selected = ( grep { $_ eq $branchcode } @$selected_branches ) ? 1 : 0;

@@ -73,6 +73,26 @@ function Date_from_syspref(dstring) {
         }
 }
 
+function get_local_dateformat_str(dateformat) {
+    var dateformat_str;
+    if ( dateformat == 'us' ) {
+        dateformat_str = 'mm/dd/yy';
+    } else if ( dateformat == 'metric' ) {
+        dateformat_str = 'dd/mm/yy';
+    } else if (dateformat == 'iso' ) {
+        dateformat_str = 'yy-mm-dd';
+    } else if ( dateformat == 'dmydot' ) {
+        dateformat_str = 'dd.mm.yy';
+    }
+    return dateformat_str;
+}
+
+function formatIsoAsLocalDate(datestr) {
+    var date = $.datepicker.parseDate(get_local_dateformat_str('iso'), datestr);
+    var ret = $.datepicker.formatDate(get_local_dateformat_str('[% Koha.Preference('dateformat') %]'), date);
+    return (ret);
+}
+
 function DateTime_from_syspref(date_time) {
         var parts = date_time.split(" ");
         var date = parts[0];

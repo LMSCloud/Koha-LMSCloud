@@ -405,12 +405,26 @@ td.repeatableyearly a.ui-state-default {  background:  #FFCC66 none; color :  Bl
 
 <div style="margin-top: 2em;">
 <form action="copy-holidays.pl" method="post">
-    <input type="hidden" name="from_branchcode" value="[% branch %]" />
+  <input type="hidden" name="from_branchcode" value="[% branch %]" />
   <label for="branchcode">Copy holidays to:</label>
   <select id="branchcode" name="branchcode">
     <option value=""></option>
     [% FOREACH branchloo IN branchloop %]
     <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
+    [% END %]
+  </select>
+    <input type="submit" value="Copy" />
+</form>
+</div>
+
+<div style="margin-top: 2em;">
+<form action="copy-holidays.pl" method="post">
+  <input type="hidden" name="from_branchcode" value="[% branch %]" />
+  <label for="branchgroup">Copy holidays to all libraries of group:</label>
+  <select id="branchgroup" name="branchgroup">
+    <option value=""></option>
+    [% FOREACH category IN categories %]
+    <option value="[% category.categorycode %]">[% category.categoryname %]</option>
     [% END %]
   </select>
     <input type="submit" value="Copy" />

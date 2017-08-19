@@ -131,7 +131,7 @@ for my $sub ( @subscriptions ) {
     }
 }
 
-my $branches = GetBranches();
+my $branches = GetBranchesWithoutMobileStations();
 my @branches_loop;
 foreach (sort keys %$branches){
     my $selected = 0;

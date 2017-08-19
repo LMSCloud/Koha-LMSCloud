@@ -149,7 +149,8 @@ elsif ($op eq 'add') {
     my $rentaldiscount = $input->param('rentaldiscount');
     my $opacitemholds = $input->param('opacitemholds') || 0;
     my $overduefinescap = $input->param('overduefinescap') || undef;
-    my $cap_fine_to_replacement_price = $input->param('cap_fine_to_replacement_price') eq 'on';
+    my $cap_fine_to_replacement_price = undef;
+    $cap_fine_to_replacement_price = $input->param('cap_fine_to_replacement_price') eq 'on' if ( $input->param('cap_fine_to_replacement_price') );
     $debug and warn "Adding $br, $bor, $itemtype, $fine, $maxissueqty, $maxonsiteissueqty, $cap_fine_to_replacement_price";
 
     my $params = {

@@ -65,7 +65,7 @@ for my $field ( @$additional_fields ) {
     }
 }
 
-my $branchloop = GetBranchesLoop();
+my $branchloop = GetBranchesLoopWithoutMobileStations();
 
 my @serialnums=$input->multi_param('serialid');
 if (@serialnums) { # i.e. they have been flagged to generate claims

@@ -245,7 +245,7 @@ elsif ( $op eq 'ediorder' ) {
         }
     } else {
         # get branches
-        my $branches = C4::Branch::GetBranches;
+        my $branches = C4::Branch::GetBranchesWithoutMobileStations;
         my @branchcodes = sort {
             $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname}
         } keys %$branches;

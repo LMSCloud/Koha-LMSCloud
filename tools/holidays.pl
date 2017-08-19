@@ -27,6 +27,7 @@ use C4::Output;
 use C4::Branch; # GetBranches
 use C4::Calendar;
 use Koha::DateUtils;
+use Koha::LibraryCategories;
 
 my $input = new CGI;
 
@@ -156,6 +157,7 @@ $template->param(
     branch                   => $branch,
     branchname               => $branchname,
     branch                   => $branch,
+    categories               => [ Koha::LibraryCategories->search( {}, { order_by => [ 'categoryname' ] } ) ],
 );
 
 # Shows the template with the real values replaced

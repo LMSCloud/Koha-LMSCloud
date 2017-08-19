@@ -78,10 +78,12 @@ elsif ( $op eq 'save' ) {
     $cash_register_id = $input->param('cash_register_id') ;
     my $cash_register_name = $input->param('cash_register_name') ;
     my $cash_register_branchcode = $input->param('cash_register_branchcode') ;
+    my $cash_register_no_branch_restriction = $input->param('cash_register_no_branch_restriction') ;
     
     my $params = {};
-    $params->{name}         = $cash_register_name if ( $cash_register_name );
-    $params->{branchcode}   = $cash_register_branchcode if ($cash_register_branchcode);
+    $params->{name}                    = $cash_register_name if ( defined($cash_register_name) );
+    $params->{branchcode}              = $cash_register_branchcode if ( defined($cash_register_branchcode));
+    $params->{no_branch_restriction}   = ($cash_register_no_branch_restriction ? 1 : 0);
     
     my $manager_list = $input->param('cash_register_manager_list') || '';
     
@@ -112,7 +114,7 @@ my @cash_registers = $cashmanagement->getAllCashRegisters();
 ########################################
 #  Read branches
 ########################################
-my $branches = GetBranches();
+my $branches = GetBranchesWithoutMobileStations();
 my @branchloop;
 for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
     push @branchloop, {

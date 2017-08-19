@@ -56,7 +56,7 @@ if ($op eq 'add_form') {
         $category = $input->param('category');
     }
 
-    my $branches = GetBranches;
+    my $branches = GetBranchesWithoutMobileStations;
     my @branches_loop;
 
     foreach my $branchcode ( sort { uc($branches->{$a}->{branchname}) cmp uc($branches->{$b}->{branchname}) } keys %$branches ) {

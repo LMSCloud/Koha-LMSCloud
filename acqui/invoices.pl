@@ -34,7 +34,7 @@ use C4::Auth;
 use C4::Output;
 
 use C4::Acquisition qw/GetInvoices/;
-use C4::Branch qw/GetBranches/;
+use C4::Branch qw/GetBranchesWithoutMobileStations/;
 use C4::Budgets;
 use Koha::DateUtils;
 
@@ -108,7 +108,7 @@ foreach (@suppliers) {
 }
 
 # Build branches list
-my $branches      = GetBranches();
+my $branches      = GetBranchesWithoutMobileStations();
 my $branches_loop = [];
 my $branchname;
 foreach ( sort keys %$branches ) {

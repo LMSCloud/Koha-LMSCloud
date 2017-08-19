@@ -4,6 +4,7 @@ use Modern::Perl;
 use C4::Context;
 use DateTime;
 use Koha::DateUtils;
+use Koha::IssuingRules;
 use Koha::Library;
 
 use Test::More tests => 10;
@@ -15,7 +16,6 @@ can_ok(
     'C4::Circulation',
     qw(
       GetHardDueDate
-      GetIssuingRule
       GetLoanLength
       )
 );
@@ -333,10 +333,7 @@ $sth->execute(
 );
 
 is_deeply(
-    GetIssuingRule(
-        $samplecat->{categorycode},
-        'Book', $samplebranch1->{branchcode}
-    ),
+    Koha::IssuingRules->find({ categorycode => $samplecat->{categorycode}, itemtype => 'Book', branchcode => $samplebranch1->{branchcode} })->unblessed,
     $sampleissuingrule1,
     "GetIssuingCharge returns issuingrule1's informations"
 );

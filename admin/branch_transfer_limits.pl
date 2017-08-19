@@ -53,7 +53,7 @@ else
 my $branchname = GetBranchName($branchcode);
 
 # Getting the branches for user selection
-my $branches = GetBranches();
+my $branches = GetBranchesWithoutMobileStations();
 my @branch_loop;
 for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
     my %row =(value => $thisbranch,
@@ -81,7 +81,7 @@ while ( my $row = $sth->fetchrow_hashref ) {
 	push( @codes, $row->{ $limitType } );
 }
 
-$sth = $dbh->prepare("SELECT branchcode FROM branches");
+$sth = $dbh->prepare("SELECT branchcode FROM branches WHERE mobilebranch is NULL or mobilebranch = ''");
 $sth->execute();
 while ( my $row = $sth->fetchrow_hashref ) {
 	push( @branchcodes, $row->{'branchcode'} );

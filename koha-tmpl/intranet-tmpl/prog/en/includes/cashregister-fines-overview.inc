@@ -27,6 +27,17 @@
   [% CASE 'Res' %]Reservation
   [% CASE %]([% finestat %])
 [%- END -%][% END %]
+[% BLOCK translate_cashregisteraction %]
+[%    SWITCH action %]
+[%        CASE 'PAYMENT'         %]Patron payment
+[%        CASE 'REVERSE_PAYMENT' %]Reverse payment
+[%        CASE 'ADJUSTMENT'      %]Difference posting
+[%        CASE 'PAYOUT'          %]Cash payment
+[%        CASE 'DEPOSIT'         %]Deposit
+[%        CASE 'CREDIT'          %]Credit
+[%        CASE %][% action %]
+[%    END %]
+[% END %]
 <script type="text/javascript">
 //<![CDATA[
 
@@ -75,12 +86,14 @@ function money_format(number) {
 }
 
 $(document).ready( function() {
+
+    [% IF (finesstats.type == 'finesoverview' || finesstats.type == 'paidfinesoverview') %]
     $("#finesoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
         'bAutoWidth': true,
         'aoColumnDefs': [
             { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-            { "aTargets": [ 1 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "aTargets": [ 0,2 ], "asSorting": [ "asc","desc" ]  }
+            { "aTargets": [ 2 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+            { "aTargets": [ 0,1,3 ], "asSorting": [ "asc","desc" ]  },
         ],
         "aoColumns": [ { "sType": 'natural' }, null, null],
         "iDisplayLength": 100,
@@ -92,15 +105,44 @@ $(document).ready( function() {
         "bFilter": false,
         "bInfo" : false,
         "oLanguage": {
-            "sEmptyTable": "No fines during the selected period."
+            [% IF (finesstats.type == 'paidfinesoverview') %]
+            "sEmptyTable": _("No paid fines during the selected period.")
+            [% ELSE %]
+            "sEmptyTable": _("No accrued fines during the selected period.")
+            [% END %]
         }
     }));
+    [% END %]
+    
+    [% IF (finesstats.type == 'inoutpaymentoverview' ) %]
+    $("#inpaymentoverview,#outpaymentoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
+        'bAutoWidth': true,
+        'aoColumnDefs': [
+            { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
+            { "aTargets": [ 2 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+            { "aTargets": [ 0,1 ], "asSorting": [ "asc","desc" ]  },
+        ],
+        "aoColumns": [ { "sType": 'natural' }, null, null],
+        "iDisplayLength": 100,
+        "iDisplayStart": 0,
+        "order": [[ 0, "asc" ]],
+        "bSort" : true,
+        "bPaginate": false,
+        "serverSide": false,
+        "bFilter": false,
+        "bInfo" : false,
+        "oLanguage": {
+            "sEmptyTable": _("No inpayments during the selected period.")
+        }
+    }));
+    [% END %]
+    
     $("#finesoverview_wrapper .pager").removeClass("pager");
 
-    [% IF (finesstats && ( finesstats.type == 'finesbyday' || finesstats.type == 'finesbytype' ||  finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbytype' ||  finesstats.type == 'paymentsbymanager')) %]
-    [% IF    ( finesstats.type == 'finesbyday' || finesstats.type == 'paymentsbyday')     %][% groupcol = '0' %][% sortdir = 'desc' %]
-    [% ELSIF ( finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbytype')    %][% groupcol = '2' %][% sortdir = 'asc' %]
-    [% ELSIF ( finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbymanager') %][% groupcol = '5' %][% sortdir = 'asc' %]
+    [% IF (finesstats && ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbytype' ||  finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbytype' ||  finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbytype' ||  finesstats.type == 'paymentsbymanager')) %]
+    [% IF    ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'finesbyday' || finesstats.type == 'paymentsbyday')     %][% groupcol = '0' %][% sortdir = 'desc' %]
+    [% ELSIF ( finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbytype')    %][% groupcol = '2' %][% sortdir = 'asc' %]
+    [% ELSIF ( finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbymanager') %][% groupcol = '5' %][% sortdir = 'asc' %]
     [% END %]
     $("#finesbydate").dataTable($.extend(true, {}, dataTablesDefaults, {
         'bAutoWidth': true,
@@ -134,7 +176,7 @@ $(document).ready( function() {
                     }
                     var val = group;
                     if ( val.trim() == "" ) {
-                        val = "&lt;No value&gt;";
+                        val = _("&lt;No value&gt;");
                     }
                     lastid = "finesgrouprow" + groupnum;
                     $(rows).eq( i ).before(
@@ -152,7 +194,7 @@ $(document).ready( function() {
             });
         },
         "oLanguage": {
-            "sEmptyTable": "No fines during the selected period."
+            "sEmptyTable": _("No fines during the selected period.")
         }
     }));
     // Order by the grouping
@@ -190,7 +232,8 @@ $(document).ready( function() {
             <li>
                 Day-end closing statistics <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
                 to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
-                [% seltypes = [ 'finesoverview', 'finesbytype', 'finesbymanager', 'finesbyday', 'paymentsbytype', 'paymentsbymanager', 'paymentsbyday'] %]
+                [% seltypes = [ 'paidfinesoverview', 'paidfinesbytype', 'paidfinesbymanager', 'paidfinesbyday', 'finesoverview', 'finesbytype', 'finesbymanager', 'finesbyday', 'paymentsbytype', 'paymentsbymanager', 'paymentsbyday'] %]
+                [% IF ( status == 'manage' ) %][% seltypes.unshift('inoutpaymentoverview') %][% END %]
                 <select name="finestype">
                     [% FOREACH seltype IN seltypes %]
                         [% IF (finesstats.type == seltype) %]
@@ -199,10 +242,15 @@ $(document).ready( function() {
                         <option value="[% seltype %]">
                         [% END %]
                         [% SWITCH seltype %]
-                        [% CASE 'finesoverview' %]Fines overview
-                        [% CASE 'finesbytype' %]Detailed fines by type
-                        [% CASE 'finesbymanager' %]Detailed fines by manager
-                        [% CASE 'finesbyday' %]Detailed fines by day
+                        [% CASE 'inoutpaymentoverview' %]Overview of inpayments/outpayments
+                        [% CASE 'paidfinesoverview' %]Paid fines overview
+                        [% CASE 'finesoverview' %]Accrued fines overview
+                        [% CASE 'paidfinesbytype' %]Detailed paid fines by type
+                        [% CASE 'paidfinesbymanager' %]Detailed paid fines by manager
+                        [% CASE 'paidfinesbyday' %]Detailed paid fines by day
+                        [% CASE 'finesbytype' %]Detailed accrued fines by type
+                        [% CASE 'finesbymanager' %]Detailed accrued fines by manager
+                        [% CASE 'finesbyday' %]Detailed accrued fines by day
                         [% CASE 'paymentsbytype' %]Detailed payments by type
                         [% CASE 'paymentsbymanager' %]Detailed payments by manager
                         [% CASE 'paymentsbyday' %]Detailed payments by day
@@ -240,17 +288,17 @@ $(document).ready( function() {
             [% IF ( stat != 'sum' && (stat != 'unassigned' || showstat.bookings_found)) %]
                 <tr>
                     <td>
-                        [% IF (stat > 0 ) %]
+                        [% IF (stat.match('^\d+$') && stat > 0 ) %]
                             [% showstat.info.cash_register_name %]
                         [% ELSIF (stat == 'cash' ) %]
                             Cash payments via SIP2
                         [% ELSIF (stat == 'card' ) %]
                             Credit card payments via SIP2
                         [% ELSIF (stat == 'unassigned' ) %]
-                            Other payments
+                            Other payments (not traced by cash registers)
                         [% END %]
                     </td>
-                    <td style="text-align:right;">[% IF (stat > 0 ) %][% showstat.starting_balance.booking_amount_formatted %][%END%]</td>
+                    <td style="text-align:right;">[% IF (stat.match('^\d+$') && stat > 0 ) %][% showstat.starting_balance.booking_amount_formatted %][%END%]</td>
                     <td style="text-align:right;">[% showstat.payment.booking_amount_formatted %]</td>
                     <td style="text-align:right;">[% showstat.payout.booking_amount_formatted %]</td>
                     <td style="text-align:right;">[% showstat.final_balance.booking_amount_formatted %]</td>
@@ -271,25 +319,60 @@ $(document).ready( function() {
     </tfoot>
 </table>
 
-[% IF (finesstats.type == 'finesoverview') %]
-    <h4 style="margin-top:20px">Fines overview by fine type</h4>
+[% IF (finesstats.type == 'finesoverview' || finesstats.type == 'paidfinesoverview') %]
+    <h4 style="margin-top:20px">Paid fines overview by fine type</h4>
     <table id="finesoverview">
         <thead>
             <tr>
-                <th>Fine type</th>
+                <th>Fine type (paid)</th>
+                <th>Item type</th>
                 <th>Count</th>
                 <th>Sum</th>
             </tr>
         </thead>
         <tbody>
             [% FOREACH finestat IN finesstats.data.keys %]
-                [% showstat = finesstats.data.$finestat %]
+                [% typestat = finesstats.data.$finestat.keys %]
+                [% FOREACH typestat IN finesstats.data.$finestat.keys %]
+                [% showstat = finesstats.data.$finestat.$typestat %]
                 <tr>
                     <td>
                         [% INCLUDE accountTypeName %] 
                     </td>
+                    <td style="text-align:right;">[% showstat.itemtypedescription %]</td>
                     <td style="text-align:right;">[% showstat.count %]</td>
                     <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                </tr>
+                [% END %]
+            [% END %]
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>
+                    Total
+                </td>
+                <td></td>
+                <td style="text-align:right;">[% finesstats.sum.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.fines_amount_formatted %]</td>
+            </tr>
+        </tfoot>
+    </table>
+[% ELSIF (finesstats.type == 'inoutpaymentoverview') %]
+    <h4 style="margin-top:20px;">Inpayment overview ([% cash_register.cash_register_name %])</h4>
+    <table id="inpaymentoverview">
+        <thead>
+            <tr>
+                <th>Inpayment type</th>
+                <th>Amount</th>
+                <th>Reason</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH showstat IN finesstats.INPAYMENT %]
+                <tr>
+                    <td>[% PROCESS translate_cashregisteraction action=showstat.action %]</td>
+                    <td style="text-align:right;">[% showstat.booking_amount_formatted %]</td>
+                    <td style="text-align:right;">[% showstat.reason %][% IF (showstat.accounttype) %][% PROCESS accountTypeName finestat=showstat.accounttype %][% END %]</td>
                 </tr>
             [% END %]
         </tbody>
@@ -298,33 +381,66 @@ $(document).ready( function() {
                 <td>
                     Total
                 </td>
-                <td style="text-align:right;">[% finesstats.sum.count %]</td>
-                <td style="text-align:right;">[% finesstats.sum.fines_amount_formatted %]</td>
+                <td style="text-align:right;">[% finesstats.SUM_INPAYMENT.booking_amount_formatted %]</td>
+                <td></td>
             </tr>
         </tfoot>
     </table>
-[% END %]
-
-[% IF (finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype') %]
-    
+    <h4 style="margin-top:20px;">Outpayment overview ([% cash_register.cash_register_name %])</h4>
+    <table id="outpaymentoverview">
+        <thead>
+            <tr>
+                <th>Outpayment type</th>
+                <th>Amount</th>
+                <th>Reason</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH showstat IN finesstats.OUTPAYMENT %]
+                <tr>
+                    <td>[% PROCESS translate_cashregisteraction action=showstat.action %]</td>
+                    <td style="text-align:right;">[% showstat.booking_amount_formatted %]</td>
+                    <td style="text-align:right;">[% showstat.reason %][% IF (showstat.accounttype) %][% PROCESS accountTypeName finestat=showstat.accounttype %][% END %]</td>
+                </tr>
+            [% END %]
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>
+                    Total
+                </td>
+                <td style="text-align:right;">[% finesstats.SUM_OUTPAYMENT.booking_amount_formatted %]</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+[% ELSIF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype') %]
     <h4 style="margin-top:20px">
         [% SWITCH finesstats.type %]
-        [% CASE 'finesbytype' %]Detailed fines by type
-        [% CASE 'finesbymanager' %]Detailed fines by manager
-        [% CASE 'finesbyday' %]Detailed fines by day
+        [% CASE 'paidfinesbytype' %]Detailed paid fines by type
+        [% CASE 'paidfinesbymanager' %]Detailed paid fines by manager
+        [% CASE 'paidfinesbyday' %]Detailed paid fines by day
+        [% CASE 'finesbytype' %]Detailed accrued fines by type
+        [% CASE 'finesbymanager' %]Detailed accrued fines by manager
+        [% CASE 'finesbyday' %]Detailed accrued fines by day
         [% CASE 'paymentsbytype' %]Detailed payments by type
         [% CASE 'paymentsbymanager' %]Detailed payments by manager
         [% CASE 'paymentsbyday' %]Detailed payments by day
         [% CASE %][% seltype %]
         [%- END -%]
     </h4>
+    [% IF (finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype') %]
+    <p>
+        The following payment overview lists detailed payments of the current branch during the selected period. If a cash register is opened, it includes all cash payments, deposits and adjustments made during the selected period.
+    </p>
+    [% END %]
     <table id="finesbydate">
         <thead>
             <tr>
                 <th>Day</th>
                 <th>Amount</th>
                 <th>
-                    [% IF (finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' ) %]Fine type[% ELSE %]Payment type[% END %]
+                    [% IF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' ) %]Fine type[% ELSE %]Payment type[% END %]
                 </th>
                 <th>Patron/Barcode</th>
                 <th>Description</th>
@@ -339,10 +455,14 @@ $(document).ready( function() {
                     <td style="text-align:right;">[% showstat.date %]</td>
                     <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                     <td>
-                        [% INCLUDE accountTypeName %] 
+                        [% IF (showstat.type == 1) %]
+                            [% INCLUDE accountTypeName %]
+                        [% ELSE %]
+                            [% PROCESS translate_cashregisteraction action=showstat.accounttype %][% IF (showstat.reason) %] ([% showstat.reason %])[% END %]
+                        [% END %]
                     </td>
                     <td>
-                        [% IF (! printview) %]<a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% showstat.borrowernumber %]">[% END %][% showstat.patron_name %][% IF (showstat.cardnumber) %] ([% showstat.cardnumber %][% END %])[% IF (! printview) %]</a>[% END %]
+                        [% IF (! printview) %]<a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% showstat.borrowernumber %]">[% END %][% showstat.patron_name %][% IF (showstat.cardnumber) %] ([% showstat.cardnumber %])[% END %][% IF (! printview) %]</a>[% END %]
                     </td>
                     <td>[% showstat.description %]</td>
                     <td>[% showstat.manager_name %]</td>

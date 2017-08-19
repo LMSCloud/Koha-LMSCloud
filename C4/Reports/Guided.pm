@@ -911,7 +911,8 @@ sub GetReservedAuthorisedValues {
                               'itemtypes',
                               'cn_source',
                               'categorycode',
-                              'biblio_framework' );
+                              'biblio_framework',
+                              'branchcategories' );
 
    return \%reserved_authorised_values;
 }

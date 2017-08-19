@@ -2829,3 +2829,31 @@ div.cashregisterinfo ul li {
     border : 1px solid #BCBCBC;
     border-right : 1px solid #BCBCBC;
 }
+
+.changeDate-duedates ul {
+    list-style-type: none;
+    margin: 0;
+    background-color: #FFF;
+    width: 100px;
+    list-style-type: none;
+    padding-left: 0em;
+    display: inline-table;
+}
+ 
+.changeDate-duedates ul li {
+    text-decoration: none;
+    display: block;
+    width: 100px;
+    padding: 3px;
+    border: 1px solid #BCBCBC;
+    background-color: #FFF;
+}
+
+.changeDate-duedates {
+    visibility: hidden;
+}
+
+#change_date_error_message {
+    display: inline-block;
+    visibility: hidden;
+}

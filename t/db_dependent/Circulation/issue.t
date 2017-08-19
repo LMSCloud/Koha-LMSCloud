@@ -45,7 +45,6 @@ can_ok(
       AddReturn
       GetBiblioIssues
       GetIssuingCharges
-      GetIssuingRule
       GetItemIssue
       GetItemIssues
       GetOpenIssue

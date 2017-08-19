@@ -869,6 +869,8 @@ my $onlymine =
   && !C4::Context->IsSuperLibrarian()
   && C4::Context->userenv->{branch};
 my $branch = $input->param('branch') || C4::Context->userenv->{branch};
+
+my $homebranches = GetBranchesLoopWithoutMobileStations($branch,$onlymine);  # build once ahead of time, instead of multiple times later.
 my $branches = GetBranchesLoop($branch,$onlymine);  # build once ahead of time, instead of multiple times later.
 
 # We generate form, from actuel record
@@ -883,8 +885,12 @@ if($itemrecord){
             my $subfieldlib = $tagslib->{$tag}->{$subfieldtag};
 
             next if ($tagslib->{$tag}->{$subfieldtag}->{'tab'} ne "10");
-
-            my $subfield_data = generate_subfield_form($tag, $subfieldtag, $value, $tagslib, $subfieldlib, $branches, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
+            
+            my $usebranches = $branches;
+            if ( $subfieldlib->{kohafield} && $subfieldlib->{kohafield} =~ /items.homebranch/ ) {
+                $usebranches = $homebranches;
+            }
+            my $subfield_data = generate_subfield_form($tag, $subfieldtag, $value, $tagslib, $subfieldlib, $usebranches, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
             push @fields, "$tag$subfieldtag";
             push (@loop_data, $subfield_data);
             $i++;
@@ -908,7 +914,11 @@ foreach my $tag ( keys %{$tagslib}){
         my @values = (undef);
         @values = $itemrecord->field($tag)->subfield($subtag) if ($itemrecord && defined($itemrecord->field($tag)) && defined($itemrecord->field($tag)->subfield($subtag)));
         for my $value (@values){
-            my $subfield_data = generate_subfield_form($tag, $subtag, $value, $tagslib, $tagslib->{$tag}->{$subtag}, $branches, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
+            my $usebranches = $branches;
+            if ( $tagslib->{$tag}->{$subtag}->{kohafield} && $tagslib->{$tag}->{$subtag}->{kohafield} =~ /items.homebranch/ ) {
+                $usebranches = $homebranches;
+            }
+            my $subfield_data = generate_subfield_form($tag, $subtag, $value, $tagslib, $tagslib->{$tag}->{$subtag}, $usebranches, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
             push (@loop_data, $subfield_data);
             $i++;
         }

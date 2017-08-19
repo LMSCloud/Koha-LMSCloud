@@ -328,7 +328,7 @@ elsif ( $op eq 'cloneRules') {
 ########################################
 #  Read branches
 ########################################
-my $branches = GetBranches();
+my $branches = GetBranchesWithoutMobileStations();
 my @branchloop;
 for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
     push @branchloop, {

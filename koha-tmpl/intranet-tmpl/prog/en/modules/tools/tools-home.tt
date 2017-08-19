@@ -20,7 +20,7 @@
     <dd>Manage lists of patrons.</dd>
     [% END %]
 
-[% IF ( CAN_user_tools_moderate_comments ) %]
+    [% IF ( CAN_user_tools_moderate_comments ) %]
     <dt><a href="/cgi-bin/koha/reviews/reviewswaiting.pl">Comments</a> [% IF ( pendingcomments ) %]<span class="holdcount"><a href="/cgi-bin/koha/reviews/reviewswaiting.pl">[% pendingcomments %]</a></span>[% END %]</dt>
 	<dd>Moderate patron comments. </dd>
     [% END %]
@@ -73,6 +73,11 @@
     [% IF ( CAN_user_tools_cash_register_manage ) %]
     <dt><a href="/cgi-bin/koha/tools/cash-register-management.pl">Cash register management</a></dt>
 	<dd>Manage cash registers (define cash registers and authorized staff)</dd>
+    [% END %]
+    
+    [% IF ( CAN_user_tools_duedate_update ) %]
+    <dt><a href="/cgi-bin/koha/tools/duedate_change.pl">Update due-dates</a></dt>
+	<dd>Update due-dates of checked-out items</dd>
     [% END %]
 	</dl>
 </div>

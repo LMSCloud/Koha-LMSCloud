@@ -967,7 +967,7 @@ set_userenv is called in Auth.pm
 #'
 sub set_userenv {
     shift @_;
-    my ($usernum, $userid, $usercnum, $userfirstname, $usersurname, $userbranch, $branchname, $userflags, $emailaddress, $branchprinter, $persona, $shibboleth)=
+    my ($usernum, $userid, $usercnum, $userfirstname, $usersurname, $userbranch, $branchname, $userflags, $emailaddress, $branchprinter, $persona, $shibboleth, $branchcategory)=
     map { Encode::is_utf8( $_ ) ? $_ : Encode::decode('UTF-8', $_) } # CGI::Session doesn't handle utf-8, so we decode it here
     @_;
     my $var=$context->{"activeuser"} || '';
@@ -985,6 +985,7 @@ sub set_userenv {
         "branchprinter"    => $branchprinter,
         "persona"    => $persona,
         "shibboleth" => $shibboleth,
+        "branchcategory" => $branchcategory,
     };
     $context->{userenv}->{$var} = $cell;
     return $cell;

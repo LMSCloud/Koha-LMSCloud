@@ -47,13 +47,16 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 if ( $op eq 'add_form' ) {
     my $library;
+    my $searchmobile = { 'mobilebranch' => undef };
     if ($branchcode) {
         $library = Koha::Libraries->find($branchcode);
+        $searchmobile->{'branchcode'} = { '!=' => $branchcode };
     }
 
     $template->param(
         library    => $library,
         categories => [ Koha::LibraryCategories->search( {}, { order_by => [ 'categorytype', 'categoryname' ] } ) ],
+        mobilebranches => [ Koha::Libraries->search($searchmobile) ],
         $library ? ( selected_categorycodes => [ map { $_->categorycode } $library->get_categories ] ) : (),
     );
 } elsif ( $op eq 'add_validate' ) {
@@ -76,6 +79,7 @@ if ( $op eq 'add_form' ) {
       branchip
       branchnotes
       opac_info
+      mobilebranch
     );
     my $is_a_modif = $input->param('is_a_modif');
 
@@ -89,6 +93,7 @@ if ( $op eq 'add_form' ) {
         for my $field (@fields) {
             $library->$field( scalar $input->param($field) );
         }
+        $library->mobilebranch(undef) if (! $input->param('mobilebranch'));
         $library->update_categories( \@categories );
 
         eval { $library->store; };
@@ -236,6 +241,7 @@ if ( $op eq 'list' ) {
 $template->param(
     messages => \@messages,
     op       => $op,
+    bookmobileactive => C4::Context->preference('BookMobileSupportEnabled'),
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

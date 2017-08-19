@@ -56,6 +56,9 @@
     [% IF ( CAN_user_tools_cash_register_manage ) %]
 	<li><a href="/cgi-bin/koha/tools/cash-register-management.pl">Cash register management</a></li>
     [% END %]
+    [% IF ( CAN_user_tools_duedate_update ) %]
+	<li><a href="/cgi-bin/koha/tools/duedate_change.pl">Update due-dates</a></li>
+    [% END %]
 </ul>
 <h5>Catalog</h5>
 <ul>

@@ -38,6 +38,7 @@ use Encode;
 use Carp;
 use Koha::Email;
 use Koha::DateUtils qw( format_sqldatetime );
+use Koha::Libraries;
 
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
@@ -78,6 +79,13 @@ sub GetLetters {
     my $code      = $filters->{code};
     my $branchcode = $filters->{branchcode};
     my $dbh       = C4::Context->dbh;
+    
+    # check if the branch is a bookmobile station
+    # if yes use letters of the bookmobile the branch 
+    if ($branchcode) { 
+        $branchcode = Koha::Libraries->get_effective_branch($branchcode);
+    }
+    
     my $letters   = $dbh->selectall_arrayref(
         q|
             SELECT module, code, branchcode, name
@@ -118,6 +126,13 @@ sub GetLetterTemplates {
     my $code      = $params->{code};
     my $branchcode = $params->{branchcode} // '';
     my $dbh       = C4::Context->dbh;
+    
+    # check if the branch is a bookmobile station
+    # if yes use letters of the bookmobile the branch 
+    if ($branchcode) { 
+        $branchcode = Koha::Libraries->get_effective_branch($branchcode);
+    }
+        
     my $letters   = $dbh->selectall_hashref(
         q|
             SELECT module, code, branchcode, name, is_html, title, content, message_transport_type
@@ -171,6 +186,11 @@ sub GetLettersAvailableForALibrary {
 
     my $specific_letters;
     if ($branchcode) {
+    
+        # check if the branch is a bookmobile station
+        # if yes use letters of the bookmobile the branch 
+        $branchcode = Koha::Libraries->get_effective_branch($branchcode);
+        
         $specific_letters = $dbh->selectall_arrayref(
             q|
                 SELECT module, code, branchcode, name
@@ -186,9 +206,11 @@ sub GetLettersAvailableForALibrary {
     }
 
     my %letters;
+    # set default letters
     for my $l (@$default_letters) {
         $letters{ $l->{code} } = $l;
     }
+    
     for my $l (@$specific_letters) {
         # Overwrite the default letter with the specific one.
         $letters{ $l->{code} } = $l;
@@ -211,6 +233,12 @@ sub getletter {
         $branchcode = C4::Context->userenv->{'branch'};
     }
     $branchcode //= '';
+    
+    # check if the branch is a bookmobile station
+    # if yes use letters of the bookmobile the branch 
+    if ($branchcode) { 
+        $branchcode = Koha::Libraries->get_effective_branch($branchcode);
+    }
 
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(q{
@@ -409,13 +437,14 @@ sub SendAlerts {
 
 #                    warn "sending issues...";
             my $userenv = C4::Context->userenv;
-            my $library = Koha::Libraries->find( $_->{branchcode} );
+            my $branchcode = Koha::Libraries->get_effective_branch( $_->{branchcode} );
+            my $library = Koha::Libraries->find( $branchcode );
             my $letter = GetPreparedLetter (
                 module => 'serial',
                 letter_code => $letter_code,
                 branchcode => $userenv->{branch},
                 tables => {
-                    'branches'    => $_->{branchcode},
+                    'branches'    => $branchcode,
                     'biblio'      => $biblionumber,
                     'biblioitems' => $biblionumber,
                     'borrowers'   => $borinfo,
@@ -507,13 +536,14 @@ sub SendAlerts {
             push @cc, $addlcontact->{email} if ( $addlcontact && $addlcontact->{email} );
         }
 
+        my $branchcode = Koha::Libraries->get_effective_branch( $externalid->{branchcode} );
         my $userenv = C4::Context->userenv;
         my $letter = GetPreparedLetter (
             module => $type,
             letter_code => $letter_code,
-            branchcode => $userenv->{branch},
+            branchcode => $branchcode,
             tables => {
-                'branches'    => $userenv->{branch},
+                'branches'    => $branchcode,
                 'aqbooksellers' => $databookseller,
                 'aqcontacts'    => $datacontact,
             },
@@ -565,11 +595,12 @@ sub SendAlerts {
     }
    # send an "account details" notice to a newly created user
     elsif ( $type eq 'members' ) {
-        my $library = Koha::Libraries->find( $externalid->{branchcode} )->unblessed;
+        my $branchcode = Koha::Libraries->get_effective_branch( $externalid->{branchcode} );
+        my $library = Koha::Libraries->find( $branchcode )->unblessed;
         my $letter = GetPreparedLetter (
             module => 'members',
             letter_code => $letter_code,
-            branchcode => $externalid->{'branchcode'},
+            branchcode => $branchcode,
             tables => {
                 'branches'    => $library,
                 'borrowers' => $externalid->{'borrowernumber'},
@@ -635,6 +666,12 @@ sub GetPreparedLetter {
     my $letter_code = $params{letter_code} or croak "No letter_code";
     my $branchcode  = $params{branchcode} || '';
     my $mtt         = $params{message_transport_type} || 'email';
+    
+    # check if the branch is a bookmobile station
+    # if yes use letters and data of the bookmobile the branch 
+    if ($branchcode) { 
+        $branchcode = Koha::Libraries->get_effective_branch($branchcode);
+    }
 
     my $letter = getletter( $module, $letter_code, $branchcode, $mtt )
         or warn( "No $module $letter_code letter transported by " . $mtt ),
@@ -1280,7 +1317,12 @@ sub _send_message_by_email {
     my $branch_replyto = undef;
     my $branch_returnpath = undef;
     if ($member) {
-        my $library = Koha::Libraries->find( $member->{branchcode} );
+    
+        # check if the branch is a bookmobile station
+        # if yes use letters of the bookmobile the branch 
+        my $branchcode = Koha::Libraries->get_effective_branch($member->{branchcode});
+        
+        my $library = Koha::Libraries->find( $branchcode );
         $branch_email      = $library->branchemail;
         $branch_replyto    = $library->branchreplyto;
         $branch_returnpath = $library->branchreturnpath;

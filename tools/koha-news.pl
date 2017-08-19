@@ -32,7 +32,7 @@ use C4::Output;
 use C4::NewsChannels;
 use C4::Languages qw(getTranslatedLanguages);
 use Date::Calc qw/Date_to_Days Today/;
-use C4::Branch qw/GetBranches/;
+use C4::Branch;
 use Koha::DateUtils;
 
 my $cgi = new CGI;
@@ -84,10 +84,8 @@ foreach my $language ( @$tlangs ) {
     }
 }
 
-my $branches = GetBranches;
-
 $template->param( lang_list   => \@lang_list,
-                  branch_list => $branches,
+                  branch_list => GetBranchesLoop($branchcode),
                   branchcode  => $branchcode );
 
 my $op = $cgi->param('op') // '';

@@ -265,7 +265,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             foreach my $transport ( keys %{$borrower_preferences->{'transports'}} ) {
                 my $letter = parse_letter( { letter_code    => $letter_type,
                                       borrowernumber => $upcoming->{'borrowernumber'},
-                                      branchcode     => $upcoming->{'branchcode'},
+                                      branchcode     => Koha::Libraries->get_effective_branch($upcoming->{'branchcode'}),
                                       biblionumber   => $biblio->{'biblionumber'},
                                       itemnumber     => $upcoming->{'itemnumber'},
                                       items          => \@items,
@@ -302,7 +302,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             foreach my $transport ( keys %{$borrower_preferences->{'transports'}} ) {
                 my $letter = parse_letter( { letter_code    => $letter_type,
                                       borrowernumber => $upcoming->{'borrowernumber'},
-                                      branchcode     => $upcoming->{'branchcode'},
+                                      branchcode     => Koha::Libraries->get_effective_branch($upcoming->{'branchcode'}),
                                       biblionumber   => $biblio->{'biblionumber'},
                                       itemnumber     => $upcoming->{'itemnumber'},
                                       items          => \@items,
@@ -329,7 +329,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
                                           borrowernumber         => $upcoming->{'borrowernumber'},
                                           from_address           => $from_address,
                                           message_transport_type => $letter->{message_transport_type},
-                                          branchcode             => $upcoming->{'branchcode'} } );
+                                          branchcode             => Koha::Libraries->get_effective_branch($upcoming->{'branchcode'}) } );
         }
       }
     }
@@ -544,7 +544,7 @@ sub get_branch_info {
 
     ## Get branch info for borrowers home library.
     my $borrower_details = C4::Members::GetMember( borrowernumber => $borrowernumber );
-    my $borrower_branchcode = $borrower_details->{'branchcode'};
+    my $borrower_branchcode = Koha::Libraries->get_effective_branch($borrower_details->{'branchcode'});
     my $branch = Koha::Libraries->find( $borrower_branchcode )->unblessed;
     my %branch_info;
     foreach my $key( keys %$branch ) {

@@ -21,6 +21,7 @@ use strict;
 require Exporter;
 use C4::Context;
 use Koha::LibraryCategories;
+use Koha::Libraries;
 
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
@@ -30,7 +31,10 @@ BEGIN {
 		&GetBranchName
 		&GetBranch
 		&GetBranches
+		&GetBranchesWithoutMobileStations
 		&GetBranchesLoop
+		&GetBranchesLoopWithoutMobileStations
+		&GetRealBranchIfMobileBookStation
 		&mybranch
 	);
     @EXPORT_OK = qw( &onlymine &mybranch );
@@ -88,19 +92,25 @@ Create a branch selector with the following code.
 
 =cut
 
-sub GetBranches {
-    my ($onlymine) = @_;
+sub GetBranchesAsHash {
+    my ($withoutmobile,$onlymine) = @_;
 
     # returns a reference to a hash of references to ALL branches...
     my %branches;
     my $dbh = C4::Context->dbh;
     my $sth;
     my $query = "SELECT * FROM branches";
+    my @select = ();
     my @bind_parameters;
     if ( $onlymine && C4::Context->userenv && C4::Context->userenv->{branch} ) {
-        $query .= ' WHERE branchcode = ? ';
+        push @select, ' branchcode = ? ';
         push @bind_parameters, C4::Context->userenv->{branch};
     }
+    if ( $withoutmobile ) {
+        push @select, ' mobilebranch is NULL ';
+    }
+    $query .= " WHERE " . join(" AND ",@select) if ( scalar(@select) > 0 );
+    
     $query .= " ORDER BY branchname";
     $sth = $dbh->prepare($query);
     $sth->execute(@bind_parameters);
@@ -122,6 +132,16 @@ sub GetBranches {
     return ( \%branches );
 }
 
+sub GetBranches {
+    my ($onlymine) = @_;
+    return GetBranchesAsHash(0,$onlymine);
+}
+
+sub GetBranchesWithoutMobileStations {
+    my ($onlymine) = @_;
+    return GetBranchesAsHash(1,$onlymine);
+}
+
 sub onlymine {
     return
          C4::Context->preference('IndependentBranches')
@@ -137,17 +157,37 @@ sub mybranch {
 }
 
 sub GetBranchesLoop {  # since this is what most pages want anyway
-    my $branch   = @_ ? shift : mybranch();     # optional first argument is branchcode of "my branch", if preselection is wanted.
-    my $onlymine = @_ ? shift : onlymine();
+    my $branch           = @_ ? shift : mybranch();     # optional first argument is branchcode of "my branch", if preselection is wanted.
+    my $onlymine         = @_ ? shift : onlymine();
     my $branches = GetBranches($onlymine);
     my @loop;
     foreach my $branchcode ( sort { uc($branches->{$a}->{branchname}) cmp uc($branches->{$b}->{branchname}) } keys %$branches ) {
         push @loop, {
-            value      => $branchcode,
-            branchcode => $branchcode,
-            selected   => ($branchcode eq $branch) ? 1 : 0,
-            branchname => $branches->{$branchcode}->{branchname},
+            value        => $branchcode,
+            branchcode   => $branchcode,
+            selected     => ($branchcode eq $branch) ? 1 : 0,
+            branchname   => $branches->{$branchcode}->{branchname},
+            mobilebranch => $branches->{$branchcode}->{mobilebranch},
+            category     => $branches->{$branchcode}->{category}
         };
+    }
+    return \@loop;
+}
+
+sub GetBranchesLoopWithoutMobileStations {  # since this is what most pages want anyway
+    my $branch           = @_ ? shift : mybranch();     # optional first argument is branchcode of "my branch", if preselection is wanted.
+    my $onlymine         = @_ ? shift : onlymine();
+    my $branches = GetBranches($onlymine);
+    my @loop;
+    foreach my $branchcode ( sort { uc($branches->{$a}->{branchname}) cmp uc($branches->{$b}->{branchname}) } keys %$branches ) {
+        push @loop, {
+            value        => $branchcode,
+            branchcode   => $branchcode,
+            selected     => ($branchcode eq $branch) ? 1 : 0,
+            branchname   => $branches->{$branchcode}->{branchname},
+            mobilebranch => $branches->{$branchcode}->{mobilebranch},
+            category     => $branches->{$branchcode}->{category}
+        } if (! defined($branches->{$branchcode}->{mobilebranch}));
     }
     return \@loop;
 }

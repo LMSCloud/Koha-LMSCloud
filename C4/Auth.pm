@@ -515,7 +515,7 @@ sub get_template_and_user {
         $template->param(
             OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
             AnonSuggestions                       => "" . C4::Context->preference("AnonSuggestions"),
-            BranchesLoop                          => GetBranchesLoop($opac_name),
+            BranchesLoop                          => GetBranchesLoopWithoutMobileStations($opac_name),
             BranchCategoriesLoop                  => $library_categories,
             opac_name                             => $opac_name,
             LibraryName                           => "" . C4::Context->preference("LibraryName"),
@@ -810,7 +810,8 @@ sub checkauth {
                 $session->param('surname'),      $session->param('branch'),
                 $session->param('branchname'),   $session->param('flags'),
                 $session->param('emailaddress'), $session->param('branchprinter'),
-                $session->param('persona'),      $session->param('shibboleth')
+                $session->param('persona'),      $session->param('shibboleth'),
+                $session->param('branchcategory')
             );
             C4::Context::set_shelves_userenv( 'bar', $session->param('barshelves') );
             C4::Context::set_shelves_userenv( 'pub', $session->param('pubshelves') );
@@ -1150,7 +1151,8 @@ sub checkauth {
                     $session->param('surname'),      $session->param('branch'),
                     $session->param('branchname'),   $session->param('flags'),
                     $session->param('emailaddress'), $session->param('branchprinter'),
-                    $session->param('persona'),      $session->param('shibboleth')
+                    $session->param('persona'),      $session->param('shibboleth'),
+                    $session->param('branchcategory')
                 );
 
             }
@@ -1553,31 +1555,33 @@ sub check_api_auth {
                         $branchname    = $branches->{$br}->{'branchname'};
                     }
                 }
-                $session->param( 'number',       $borrowernumber );
-                $session->param( 'id',           $userid );
-                $session->param( 'cardnumber',   $cardnumber );
-                $session->param( 'firstname',    $firstname );
-                $session->param( 'surname',      $surname );
-                $session->param( 'branch',       $branchcode );
-                $session->param( 'branchname',   $branchname );
-                $session->param( 'flags',        $userflags );
-                $session->param( 'emailaddress', $emailaddress );
-                $session->param( 'ip',           $session->remote_addr() );
-                $session->param( 'lasttime',     time() );
+                $session->param( 'number',         $borrowernumber );
+                $session->param( 'id',             $userid );
+                $session->param( 'cardnumber',     $cardnumber );
+                $session->param( 'firstname',      $firstname );
+                $session->param( 'surname',        $surname );
+                $session->param( 'branch',         $branchcode );
+                $session->param( 'branchname',     $branchname );
+                $session->param( 'branchcategory', '*' );
+                $session->param( 'flags',          $userflags );
+                $session->param( 'emailaddress',   $emailaddress );
+                $session->param( 'ip',             $session->remote_addr() );
+                $session->param( 'lasttime',       time() );
             } elsif ( $return == 2 ) {
 
                 #We suppose the user is the superlibrarian
-                $session->param( 'number',       0 );
-                $session->param( 'id',           C4::Context->config('user') );
-                $session->param( 'cardnumber',   C4::Context->config('user') );
-                $session->param( 'firstname',    C4::Context->config('user') );
-                $session->param( 'surname',      C4::Context->config('user') );
-                $session->param( 'branch',       'NO_LIBRARY_SET' );
-                $session->param( 'branchname',   'NO_LIBRARY_SET' );
-                $session->param( 'flags',        1 );
-                $session->param( 'emailaddress', C4::Context->preference('KohaAdminEmailAddress') );
-                $session->param( 'ip',           $session->remote_addr() );
-                $session->param( 'lasttime',     time() );
+                $session->param( 'number',         0 );
+                $session->param( 'id',             C4::Context->config('user') );
+                $session->param( 'cardnumber',     C4::Context->config('user') );
+                $session->param( 'firstname',      C4::Context->config('user') );
+                $session->param( 'surname',        C4::Context->config('user') );
+                $session->param( 'branch',         'NO_LIBRARY_SET' );
+                $session->param( 'branchname',     'NO_LIBRARY_SET' );
+                $session->param( 'branchcategory', '*' );
+                $session->param( 'flags',          1 );
+                $session->param( 'emailaddress',   C4::Context->preference('KohaAdminEmailAddress') );
+                $session->param( 'ip',             $session->remote_addr() );
+                $session->param( 'lasttime',       time() );
             }
             C4::Context->set_userenv(
                 $session->param('number'),       $session->param('id'),
