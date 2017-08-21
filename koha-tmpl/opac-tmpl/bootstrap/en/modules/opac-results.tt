@@ -90,6 +90,18 @@
                     </p>
                 [% END # / IF searchdesc %]
 
+                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
+                    <div id="encyclopediaresults">
+                        <div id="encyclopedianumresults"><strong>Die Lexikonsuche bei <span class="encyclopediaprovider"></span> im Bereich <span class="encyclopediasource"></span> erzielte <span class="encyclopediasearchhitcount"></span> Treffer - <a href="javascript:showCatalogHitList()">Zurück zur Katalogtrefferliste</a></strong></div>
+                        <div id="encyclopediaheader" class="toolbar clearfix">
+                            <strong><span class="encyclopediasource"></span></strong>
+                         </div>
+                        <table class="table table-striped">
+                            <tbody id="encyclopediahits">
+                            </tbody>
+                        </table>
+                    </div>
+                [% END # / IF MunzingerEncyclopediaSearchEnabled %]
                 <div id="userresults">
                     [% IF ( DidYouMean ) %]
                         <div id="didyoumean">Not what you expected? Check for <a href="/cgi-bin/koha/svc/suggestion?render=standalone&amp;q=[% querystring |uri %]">suggestions</a></div>
@@ -572,6 +584,7 @@
 [% END %]
 [% IF ( OpacStarRatings == 'all' || Koha.Preference('Babeltheque') ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.rating.js"></script>[% END %]
 [% IF ( OverDriveEnabled ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/js/overdrive.js"></script>[% END %]
+[% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/js/munzinger.js"></script>[% END %]
 <script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.checkboxes.min.js"></script>
 [% IF ( OpacHighlightedWords ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.highlight-3.js"></script>
 [% END %]<script type="text/javascript">
@@ -865,6 +878,9 @@ $(document).ready(function(){
         highlightOn();
         $("#highlight_toggle_on" ).hide().click(function() {highlightOn() ;});
         $("#highlight_toggle_off").show().click(function() {highlightOff();});
+    [% END %]
+    [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
+        getMunzingerFacet(query_desc);
     [% END %]
     [% IF ( OverDriveEnabled ) %]
         var $overdrive_results = $( '<div id="overdrive-results">' + _( 'Searching OverDrive...' ) + ' <img class="throbber" src="[% interface %]/lib/jquery/plugins/themes/classic/throbber.gif" /></div>' );

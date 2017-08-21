@@ -109,6 +109,21 @@ Enhanced Content:
                   yes: Add
                   no: "Don't add"
             - cover images from Google Books to search results and item detail pages on the OPAC.
+    Munzinger:
+        -
+            - pref: MunzingerEncyclopediaSearchEnabled
+              choices:
+                  yes: Activate
+                  no: "Don't activate"
+            - Munzinger encyclopedia search in OPAC. Activate only if you want to enrich OPAC search results with results of the Munzinger encyclopedia collections. You need to contract with Munzinger to use this feature.
+            - Munzinger supports communication using an encrypted key. A library, that wants to use Munzinger must create a key file /etc/koha/munzinger.key containing the two lines
+            - <br>key=[KEY]
+            - <br>iv=[IV]
+            - <br>Ask Munzinger to provide the related data.
+        -
+            - In order to use Munzinger encyclopedia collection search, configure the Portal ID (portalid) 
+            - pref: MunzingerPortalID
+            - provided by Munzinger to enable the Munzinger search feature.
     Open Library:
         -
             - pref: OpenLibraryCovers

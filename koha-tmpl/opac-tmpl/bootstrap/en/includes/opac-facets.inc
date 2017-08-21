@@ -1,4 +1,18 @@
 [% IF ( opacfacets && facets_loop && total ) %]
+    [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
+    <div id="encyclopedia-facets">
+        <h4><a href="#abc" class="menu-collapse-toggle">Encyclopedia search</a></h4>
+        <ul class="menu-collapse">
+            <li id="munzinger-facet" style="display: none;"><h5 id="facet-munzinger">Lexikonsuche Munzinger (<span id="munzinger-count"></span> Treffer)</h5>
+               <ul>
+                 <li>
+                    <span class="facet-label"></span> <span class="facet-count"></li>
+                 </li>
+               </ul>
+            </li>
+        </ul>
+    </div>
+    [% END %] <!-- / #encyclopedia search if MunzingerEncyclopediaSearchEnabled -->
     <div id="search-facets">
         <h4><a href="#" class="menu-collapse-toggle">Refine your search</a></h4>
         <ul class="menu-collapse">
