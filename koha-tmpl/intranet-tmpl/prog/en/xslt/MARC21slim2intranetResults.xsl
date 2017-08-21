@@ -958,6 +958,35 @@
             </xsl:for-each>
 	</span>
     </xsl:if>
+    
+    <!-- EKZ Sachgruppen -->
+    <xsl:if test="marc:datafield[@tag=72]">
+        <span class="results_summary">
+            <span class="label">Interest group: </span>
+            <xsl:for-each select="marc:datafield[@tag=72]">
+                <a>
+                    <xsl:attribute name="href"><xsl:text>/cgi-bin/koha/catalogue/search.pl?q=sbg:"</xsl:text><xsl:value-of select="marc:subfield[@code='a']"/><xsl:text>"</xsl:text></xsl:attribute>
+                    <xsl:value-of select="marc:subfield[@code='a']"/>
+                </a>
+                <xsl:choose><xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><span class="separator"><xsl:text> | </xsl:text></span></xsl:otherwise></xsl:choose>
+             </xsl:for-each>
+        </span>
+    </xsl:if>
+    
+    <!-- Location -->
+    <xsl:if test="marc:datafield[@tag=852]">
+        <span class="results_summary">
+            <span class="label">Location: </span>
+            <xsl:for-each select="marc:datafield[@tag=852]">
+                <a>
+                    <xsl:attribute name="href"><xsl:text>/cgi-bin/koha/catalogue/search.pl?q=sys,phr,ext:"</xsl:text><xsl:value-of select="marc:subfield[@code='a']"/><xsl:text>"</xsl:text></xsl:attribute>
+                    <xsl:value-of select="marc:subfield[@code='a']"/>
+                </a>
+                <xsl:choose><xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><span class="separator"><xsl:text> | </xsl:text></span></xsl:otherwise></xsl:choose>
+             </xsl:for-each>
+        </span>
+    </xsl:if>
+ 
     <xsl:if test="marc:datafield[@tag=856]">
          <span class="results_summary">
 			   <span class="label">Online access: </span>
