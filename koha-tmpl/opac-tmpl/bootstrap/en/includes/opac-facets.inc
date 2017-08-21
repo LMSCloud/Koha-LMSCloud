@@ -3,7 +3,7 @@
     <div id="encyclopedia-facets">
         <h4><a href="#abc" class="menu-collapse-toggle">Encyclopedia search</a></h4>
         <ul class="menu-collapse">
-            <li id="munzinger-facet" style="display: none;"><h5 id="facet-munzinger">Lexikonsuche Munzinger (<span id="munzinger-count"></span> Treffer)</h5>
+            <li id="munzinger-facet" style="display: none;"><h5 id="facet-munzinger">Munzinger collections (<span id="munzinger-count"></span> hits)</h5>
                <ul>
                  <li>
                     <span class="facet-label"></span> <span class="facet-count"></li>
@@ -14,7 +14,7 @@
     </div>
     [% END %] <!-- / #encyclopedia search if MunzingerEncyclopediaSearchEnabled -->
     <div id="search-facets">
-        <h4><a href="#" class="menu-collapse-toggle">Refine your search</a></h4>
+        <h4><a href="#" class="menu-collapse-toggle">Refine your cataloge search</a></h4>
         <ul class="menu-collapse">
             <li id="availability_facet">Availability
                 <ul>

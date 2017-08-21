@@ -92,7 +92,7 @@
 
                 [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
                     <div id="encyclopediaresults">
-                        <div id="encyclopedianumresults"><strong>Die Lexikonsuche bei <span class="encyclopediaprovider"></span> im Bereich <span class="encyclopediasource"></span> erzielte <span class="encyclopediasearchhitcount"></span> Treffer - <a href="javascript:showCatalogHitList()">Zurück zur Katalogtrefferliste</a></strong></div>
+                        <div id="encyclopedianumresults"><strong>The encyclopedia search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
                         <div id="encyclopediaheader" class="toolbar clearfix">
                             <strong><span class="encyclopediasource"></span></strong>
                          </div>
