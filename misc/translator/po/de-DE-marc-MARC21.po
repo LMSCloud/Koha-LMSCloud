@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: German Koha Translation\n"
-"POT-Creation-Date: 2017-08-19 13:37+0200\n"
-"PO-Revision-Date: 2017-03-14 20:37+0000\n"
+"POT-Creation-Date: 2017-08-21 18:18+0200\n"
+"PO-Revision-Date: 2017-08-20 15:41+0100\n"
 "Last-Translator: Marc <veron@veron.ch>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Pootle 2.5.1.1\n"
+"X-Generator: Poedit 1.6.10\n"
 "X-Poedit-SourceCharset: utf-8\n"
 "X-POOTLE-MTIME: 1489523857.000000\n"
 
@@ -153,8 +153,8 @@ msgid "(if exact bit depth known, enter; <br />otherwise use pulldown)"
 msgstr ""
 "(Eingabe falls exakte Bittiefe bekannt; <br />andernfalls aus Liste wählen)"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:694
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:736
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:722
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:764
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:734
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:788
 #, c-format
@@ -209,7 +209,7 @@ msgstr "/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber="
 msgid "/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber="
 msgstr "/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber="
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:915
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:943
 #: intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:79
 #: intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:91
 #: intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:188
@@ -222,18 +222,18 @@ msgstr "/cgi-bin/koha/catalogue/detail.pl?biblionumber="
 msgid "/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber="
 msgstr "/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber="
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:691
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:733
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:719
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:761
 #: intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:200
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q="
 msgstr "/cgi-bin/koha/catalogue/search.pl?q="
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:296
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:909
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:978
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1035
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1097
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:937
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1006
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1063
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1125
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
@@ -244,16 +244,16 @@ msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:355
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:688
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:730
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1211
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:716
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:758
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1239
 #: intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:194
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=an:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=an:"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:358
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1214
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1242
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=au:\""
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=au:\""
@@ -264,6 +264,12 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=au:\""
 msgid "/cgi-bin/koha/catalogue/search.pl?q=rcn:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=rcn:"
 
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:968
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:519
+#, c-format
+msgid "/cgi-bin/koha/catalogue/search.pl?q=sbg:\""
+msgstr "/cgi-bin/koha/catalogue/search.pl?q=au:\""
+
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:191
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:206
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:234
@@ -271,18 +277,24 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=rcn:"
 msgid "/cgi-bin/koha/catalogue/search.pl?q=se,phr:\""
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=se,phr:\""
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:701
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:742
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:729
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:770
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=su"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=su"
 
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:982
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:533
+#, c-format
+msgid "/cgi-bin/koha/catalogue/search.pl?q=sys,phr,ext:\""
+msgstr "/cgi-bin/koha/catalogue/search.pl?q=se,phr:\""
+
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:281
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:299
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:920
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:981
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1040
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1102
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:948
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1009
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1068
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1130
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=ti,phr:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=ti,phr:"
@@ -303,7 +315,7 @@ msgstr "/cgi-bin/koha/opac-MARCdetail.pl?biblionumber="
 msgid "/cgi-bin/koha/opac-authoritiesdetail.pl?authid="
 msgstr "/cgi-bin/koha/opac-authoritiesdetail.pl?authid="
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1114
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1142
 #: opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:79
 #: opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:88
 #: opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:185
@@ -868,7 +880,7 @@ msgstr "13 Konvertierungsqualität"
 msgid "13- Numbered or unnumbered series"
 msgstr "13- Gezählte oder ungezählte Reihen"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:573
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:601
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:609
 #, c-format
 msgid "130,240"
@@ -1500,8 +1512,8 @@ msgstr ""
 "Ein Datum spezifiziert durch den Code in 008/006 (Art der Datumsangaben/"
 "Veröffentlichungsstatus)"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:693
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:735
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:721
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:763
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:733
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:787
 #, c-format
@@ -1514,25 +1526,25 @@ msgstr "AND "
 msgid "AR"
 msgstr "AR"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1073
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1101
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1188
 #, c-format
 msgid "Absorbed by:"
 msgstr "Aufgegangen in:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1076
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1104
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1191
 #, c-format
 msgid "Absorbed in part by:"
 msgstr "Teilweise aufgegangen in:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1021
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1049
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1135
 #, c-format
 msgid "Absorbed in part:"
 msgstr "Teilweise darin aufgegangen:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1018
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1046
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1132
 #, c-format
 msgid "Absorbed:"
@@ -1568,7 +1580,7 @@ msgstr "Reduzierte Begleitpartitur für Keyboard"
 msgid "Accompanying matter"
 msgstr "Begleitmaterial"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:857
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:885
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:930
 #, c-format
 msgid "Action note: "
@@ -1736,7 +1748,7 @@ msgstr "Autonome oder teilautonome Einheit"
 msgid "Availability: "
 msgstr "Verfügbarkeit: "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:843
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:871
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:963
 #, c-format
 msgid "Awards: "
@@ -1955,7 +1967,7 @@ msgstr "Braille"
 msgid "Butterfly"
 msgstr "Schmetterling"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1204
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1232
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1247
 #, c-format
 msgid "By: "
@@ -2104,7 +2116,7 @@ msgstr "Chamberlin, trimetrisch"
 msgid "Chance compositions"
 msgstr "Aleatorische Musik"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1085
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1113
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1200
 #, c-format
 msgid "Changed back to:"
@@ -2189,8 +2201,8 @@ msgstr "Chorpartitur"
 msgid "Clear field"
 msgstr "Feld löschen"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:982
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:793
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1011
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:821
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:859
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1098
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1133
@@ -2366,7 +2378,7 @@ msgstr "Konisch, sonstige"
 msgid "Conic, specific type unknown"
 msgstr "Konisch, nicht spezifiziert"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:640
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:668
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:680
 #, c-format
 msgid "Contained works: "
@@ -2399,31 +2411,31 @@ msgstr "Inhaltsempfehlung: "
 msgid "Content type: "
 msgstr "Inhaltstyp: "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:811
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:839
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:903
 #, c-format
 msgid "Contents:"
 msgstr "Inhalte:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1061
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1089
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1176
 #, c-format
 msgid "Continued by:"
 msgstr "Fortsetzung:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1064
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1092
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1179
 #, c-format
 msgid "Continued in part by:"
 msgstr "Teilweise Fortsetzung:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1006
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1034
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1120
 #, c-format
 msgid "Continues in part:"
 msgstr "Vorgänger teilweise:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1003
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1031
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1117
 #, c-format
 msgid "Continues:"
@@ -2488,7 +2500,7 @@ msgstr "Fortlaufend aktualisiert"
 msgid "Contours"
 msgstr "Höhenlinien"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1206
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1234
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1249
 #, c-format
 msgid "Contributor(s): "
@@ -2554,7 +2566,7 @@ msgstr "Zylindrisch, spezifischer Typ unbekannt"
 msgid "Cyrillic"
 msgstr "Kyrillisch"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:759
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:787
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:811
 #, c-format
 msgid "DDC classification: "
@@ -2932,7 +2944,7 @@ msgid "Discography"
 msgstr "Diskographie"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:873
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:938
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:966
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1035
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1022
 #, c-format
@@ -3255,7 +3267,7 @@ msgstr "Art des Originals"
 msgid "Format of music"
 msgstr "Musikformat"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1015
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1043
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1129
 #, c-format
 msgid "Formed by the union: ... and: ..."
@@ -3354,7 +3366,7 @@ msgstr "General vertical near-sided"
 msgid "General; "
 msgstr "Allgemein; "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:725
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:753
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:777
 #, c-format
 msgid "Genre/Form: "
@@ -3481,7 +3493,7 @@ msgstr "Geschichtliche Angaben"
 msgid "History"
 msgstr "Geschichte"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:950
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:978
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1064
 #, c-format
 msgid "Holdings note: "
@@ -3563,7 +3575,7 @@ msgstr "Illustrationscodes 4"
 msgid "In transit ("
 msgstr "Unterwegs ("
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:892
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:920
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:978
 #, c-format
 msgid "In: "
@@ -3580,7 +3592,7 @@ msgstr "In: "
 msgid "Inclusive dates of collection"
 msgstr "Entstehungszeitraum einer Sammlung"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:814
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:842
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:897
 #, c-format
 msgid "Incomplete contents:"
@@ -3661,6 +3673,12 @@ msgstr "Integrierter Eintrag"
 #, c-format
 msgid "Interactive multimedia"
 msgstr "Interaktive Multimedia"
+
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:965
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:516
+#, c-format
+msgid "Interest group: "
+msgstr "Interessenkreis:"
 
 #: intranet-tmpl/prog/en/data/marc21_field_008.xml:289
 #: intranet-tmpl/prog/en/data/marc21_field_008.xml:457
@@ -4009,6 +4027,12 @@ msgstr "Lokal"
 msgid "Location(s): "
 msgstr "Standort(e): "
 
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:979
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:530
+#, c-format
+msgid "Location: "
+msgstr "Standort(e): "
+
 #: intranet-tmpl/prog/en/data/marc21_field_008.xml:668
 #: intranet-tmpl/prog/en/data/marc21_field_006.xml:325
 #, c-format
@@ -4205,7 +4229,7 @@ msgstr "Memoiren"
 msgid "Mercator"
 msgstr "Mercator"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1082
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1110
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1197
 #, c-format
 msgid "Merged with ... to form ..."
@@ -5014,7 +5038,7 @@ msgstr "Numerische Daten"
 msgid "OK"
 msgstr "OK"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1113
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1141
 #, c-format
 msgid "OPAC view: "
 msgstr "OPAC-Sicht: "
@@ -5491,13 +5515,13 @@ msgstr ""
 msgid "Online"
 msgstr "Online"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:963
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:992
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1067
 #, c-format
 msgid "Online access: "
 msgstr "Online-Ressourcen: "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:774
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:802
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:828
 #, c-format
 msgid "Online resources: "
@@ -5509,7 +5533,7 @@ msgstr "Online-Ressourcen: "
 msgid "Online system or service"
 msgstr "Online-System oder -Dienst"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1114
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1142
 #, c-format
 msgid "Open in new window"
 msgstr "In neuem Fenster öffnen"
@@ -5590,7 +5614,7 @@ msgstr "Orthographisch"
 msgid "Other"
 msgstr "Andere"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:962
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:990
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1076
 #, c-format
 msgid "Other editions: "
@@ -5598,8 +5622,8 @@ msgstr "Andere Ausgaben: "
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:945
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:951
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:519
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:524
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:547
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:552
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:549
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:554
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1038
@@ -5628,7 +5652,7 @@ msgstr "PR"
 msgid "Part-songs"
 msgstr "Mehrstimmige Lieder"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:817
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:845
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:900
 #, c-format
 msgid "Partial contents:"
@@ -5881,7 +5905,7 @@ msgstr "Produkt"
 msgid "Production Credits: "
 msgstr "Herstellerabspann: "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:876
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:904
 #, c-format
 msgid "Production credits: "
 msgstr "Herstellerabspann: "
@@ -6043,7 +6067,7 @@ msgstr "Regelmäßigkeit"
 msgid "Rehearsals"
 msgstr "Proben"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:598
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:626
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:638
 #, c-format
 msgid "Related works: "
@@ -6258,7 +6282,7 @@ msgstr "Halbwöchentlich"
 msgid "Separate supplement to another work"
 msgstr "Separate Karte als Beilage eines anderen Werkes"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1024
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1052
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1138
 #, c-format
 msgid "Separated from:"
@@ -6477,7 +6501,7 @@ msgstr "Reden"
 msgid "Speeches "
 msgstr "Reden "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1079
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1107
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1194
 #, c-format
 msgid "Split into .. and ...:"
@@ -6556,7 +6580,7 @@ msgstr "Stereographisch"
 msgid "Studies and exercises"
 msgstr "Etuden und Übungen"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:682
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:710
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:721
 #, c-format
 msgid "Subject(s): "
@@ -6584,25 +6608,25 @@ msgstr "Suiten"
 msgid "Summary: "
 msgstr "Zusammenfassung: "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1067
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1095
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1182
 #, c-format
 msgid "Superseded by:"
 msgstr "Daraus hervorgegangen:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1070
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1098
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1185
 #, c-format
 msgid "Superseded in part by:"
 msgstr "Teilweise daraus hervorgegangen:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1012
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1040
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1126
 #, c-format
 msgid "Supersedes in part:"
 msgstr "Teilweise hervorgegangen aus:"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1009
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1037
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1123
 #, c-format
 msgid "Supersedes:"
@@ -6790,7 +6814,7 @@ msgstr ""
 msgid "Three-dimensional artifact or naturally occurring object"
 msgstr "Dreidimensionales Kunsterzeugnis oder natürlicher Gegenstand"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:556
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:584
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:589
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1056
 #, c-format
@@ -7077,12 +7101,12 @@ msgstr ""
 msgid "Undetermined"
 msgstr "Nicht definiert"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:576
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:604
 #, c-format
 msgid "Uniform title: "
 msgstr "Einheitssachtitel: "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:581
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:609
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:612
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:618
 #, c-format
@@ -7443,55 +7467,55 @@ msgstr "Jahrbücher"
 msgid "Zarzuelas"
 msgstr "Zarzuelas"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:540
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:568
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:571
 #, c-format
 msgid "[Added title page title]"
 msgstr "[Titel von zusätzlicher Titelseite]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:541
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:569
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:572
 #, c-format
 msgid "[Caption title]"
 msgstr "[Beschriftung]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:539
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:567
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:570
 #, c-format
 msgid "[Cover title]"
 msgstr "[Covertitel]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:537
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:565
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:568
 #, c-format
 msgid "[Distinctive title]"
 msgstr "[Schlüsseltitel]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:538
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:566
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:569
 #, c-format
 msgid "[Other title]"
 msgstr "[Weiterer Titel]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:536
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:564
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:567
 #, c-format
 msgid "[Parallel title]"
 msgstr "[Paralleltitel]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:535
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:563
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:566
 #, c-format
 msgid "[Portion of title]"
 msgstr "[Teil des Titels]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:542
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:570
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:573
 #, c-format
 msgid "[Running title]"
 msgstr "[Kolumnentitel]"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:543
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:571
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:574
 #, c-format
 msgid "[Spine title]"
@@ -7517,7 +7541,7 @@ msgstr "_ - Nicht-ISBD"
 msgid "_ - Not specified or not applicable"
 msgstr "_ - Nicht spezifiziert oder nicht anwendbar"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1114
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1142
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:844
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:881
 #, c-format
@@ -7997,11 +8021,11 @@ msgstr "a- Workprint"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:227
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:238
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:904
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:966
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:985
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1030
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1091
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:932
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:994
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1013
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1058
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1119
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:245
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:256
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:990
@@ -8047,8 +8071,8 @@ msgstr "aat"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MADS.xsl:1080
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:363
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:375
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1227
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1296
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1255
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1324
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:635
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:733
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:750
@@ -8158,7 +8182,7 @@ msgstr "abcdefghjklmnopqrstu4"
 msgid "abcdefghklmnoprstu4"
 msgstr "abcdefghklmnoprstu4"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:864
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:892
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:937
 #, c-format
 msgid "abcdefgijklnou"
@@ -8172,16 +8196,16 @@ msgstr "abcdefgijklnou"
 msgid "abcdeqnp"
 msgstr "abcdeqnp"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:602
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:644
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:630
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:672
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:642
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:684
 #, c-format
 msgid "abcdfghiklmnporstux"
 msgstr "abcdfghiklmnporstux"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:692
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:707
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:720
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:735
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:732
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:747
 #, c-format
@@ -8189,15 +8213,15 @@ msgid "abcdfgklmnopqrstvxyz"
 msgstr "abcdfgklmnopqrstvxyz"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:876
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:941
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:969
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1038
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1025
 #, c-format
 msgid "abcdgo"
 msgstr "abcdgo"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1014
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1137
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1043
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1165
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1531
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1350
 #, c-format
@@ -8267,23 +8291,23 @@ msgstr "abceg"
 msgid "abcg"
 msgstr "abcg"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:561
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:589
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:595
 #, c-format
 msgid "abchnp"
 msgstr "abchnp"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:369
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1228
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1256
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1301
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:470
 #, c-format
 msgid "abcjq"
 msgstr "abcjq"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1001
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1124
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1345
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1030
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1152
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1373
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1010
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1195
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1634
@@ -8335,8 +8359,8 @@ msgstr "abh"
 msgid "abhfgknps"
 msgstr "abhfgknps"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:517
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:529
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:545
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:557
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:547
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:560
 #, c-format
@@ -8416,8 +8440,8 @@ msgstr "acdefghklnpqstu4"
 msgid "acdenq"
 msgstr "acdenq"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1025
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1148
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1054
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1176
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1645
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1967
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:2167
@@ -8438,7 +8462,7 @@ msgstr "Akronym"
 msgid "adfghklmnoprst"
 msgstr "adfghklmnoprst"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:574
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:602
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:610
 #, c-format
 msgid "adfklmor"
@@ -8466,8 +8490,8 @@ msgid "ae"
 msgstr "ae"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:367
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1226
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1295
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1254
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1323
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1299
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1367
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:468
@@ -8596,7 +8620,7 @@ msgstr "Atlas"
 msgid "atlas "
 msgstr "Atlas "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:830
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:858
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:916
 #, c-format
 msgid "atru"
@@ -8629,15 +8653,15 @@ msgstr "av"
 msgid "available online "
 msgstr "online verfügbar "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:734
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:746
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:762
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:774
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:786
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:798
 #, c-format
 msgid "avxyz"
 msgstr "avxyz"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:953
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:981
 #, c-format
 msgid "axz"
 msgstr "axz"
@@ -9502,8 +9526,8 @@ msgid "catalog "
 msgstr "Katalog "
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:405
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1264
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1316
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1292
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1344
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1337
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1388
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:506
@@ -9529,8 +9553,8 @@ msgid "cdnp"
 msgstr "cdnp"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:388
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1247
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1332
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1275
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1360
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1320
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1404
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:489
@@ -10675,7 +10699,7 @@ msgstr "Festschrift"
 msgid "festschrift "
 msgstr "Festschrift "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1371
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1399
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1443
 #, c-format
 msgid "fghjklmnoprstux"
@@ -10683,8 +10707,8 @@ msgstr "fghjklmnoprstux"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MADS.xsl:328
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MADS.xsl:335
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1157
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1164
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1185
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1192
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1478
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1485
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:1940
@@ -13362,7 +13386,7 @@ msgstr "results_summary description"
 msgid "results_summary edition"
 msgstr "results_summary edition"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:518
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:546
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:548
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1037
 #, c-format
@@ -13382,7 +13406,7 @@ msgstr "results_summary publisher"
 msgid "results_summary series"
 msgstr "results_summary series"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:575
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:603
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:611
 #, c-format
 msgid "results_summary uniform_title"
@@ -14110,7 +14134,7 @@ msgstr "Vertrag"
 msgid "treaty "
 msgstr "Vertrag "
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:825
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:853
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:911
 #, c-format
 msgid "tru"
@@ -14306,8 +14330,8 @@ msgstr "Sicht "
 msgid "visual material"
 msgstr "Visuelles Material"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:708
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:747
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:736
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:775
 #: intranet-tmpl/prog/en/xslt/MARC21slim2SRWDC.xsl:138
 #: intranet-tmpl/prog/en/xslt/MARC21slim2SRWDC.xsl:153
 #: intranet-tmpl/prog/en/xslt/MARC21slim2SRWDC.xsl:168
@@ -14415,8 +14439,8 @@ msgstr "y- Luftaufnahme"
 msgid "y3"
 msgstr "y3"
 
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:973
-#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:784
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1002
+#: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:812
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1639
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:1796
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:2043
