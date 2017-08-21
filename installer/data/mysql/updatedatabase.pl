@@ -13246,6 +13246,37 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = '16.05.12.002';
+if ( CheckVersion($DBversion) ) {
+    # browser table enhancements
+    $dbh->do( q{ ALTER TABLE browser 
+                 ADD `parent` varchar(255) AFTER `endnode`, 
+                 ADD `prefix` varchar(40) AFTER `parent`, 
+                 ADD `classval` varchar(40) AFTER `prefix`, 
+                 ADD `startrange` varchar(20) AFTER `classval`, 
+                 ADD `endrange` varchar(20) AFTER `startrange`, 
+                 ADD `exclude` varchar(1024) AFTER `endrange` });
+    
+    print "Upgrade to $DBversion done (Koha 16.05.12.002). Browser table enhancements.\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = '16.05.12.003';
+if ( CheckVersion($DBversion) ) {
+    # Add support for Munzinger OPAC search
+    $dbh->do( q{  
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+        ('MunzingerEncyclopediaSearchEnabled','0',NULL,'Enable Munzinger encyclopedia search in OPAC. Activate only if you want to enrich OPAC search results with results of the Munzinger encyclopedia collections. You need to contract with Munzinger to use this feature.','YesNo')
+    });
+    $dbh->do( q{  
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+        ('MunzingerPortalID','',NULL,'In order to use Munzinger encyclopedia collection search, configure the Portal ID (portalid) provided by Munzinger to enable the Munzinger search feature.','Free')
+    });
+    
+    print "Upgrade to $DBversion done (Koha 16.05.12.003). Add support for external Munzinger search in OPAC.\n";
+    SetVersion($DBversion);
+}
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.

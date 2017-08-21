@@ -291,12 +291,18 @@ CREATE TABLE `branchrelations` ( -- this table links libraries/branches to group
 -- Table structure for table `browser`
 --
 DROP TABLE IF EXISTS `browser`;
-CREATE TABLE `browser` (
-  `level` int(11) NOT NULL,
-  `classification` varchar(255) NOT NULL,
-  `description` varchar(255) NOT NULL,
-  `number` bigint(20) NOT NULL,
-  `endnode` tinyint(4) NOT NULL
+CREATE TABLE `browser` ( -- store classification values
+  `level` int(11) NOT NULL, -- the classification level starting with 1
+  `classification` varchar(255) NOT NULL, -- the full classifcation value
+  `description` varchar(255) NOT NULL, -- the description of a classification value
+  `number` bigint(20) NOT NULL, -- the count of titles which are assigned to the classication value or level
+  `endnode` tinyint(4) NOT NULL, -- 1 if the classifcation value represents a leafe node
+  `parent` varchar(255), -- the parent the classification value
+  `prefix` varchar(40),  -- the prefix part of a the classifcation value
+  `classval` varchar(40),  -- the classication group part of the value
+  `startrange` varchar(20),  -- a numeric value part subordinated to a group
+  `endrange` varchar(20),  -- if the classification represents a higher level including a range of numbers it represents the end of the range
+  `exclude` varchar(1024) -- a search string that can be used to extend the query for titles of a classication value (e.g. exclude values that should not be found with a search)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
