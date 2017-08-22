@@ -159,7 +159,7 @@ $(document).ready( function() {
                                 [% END %]
                             </select>
                             <input type="hidden" name="op" value="open" />
-                            &nbsp;&nbsp;<button class="btn btn-small" submit=""><i class="fa fa-money"></i> Open</button>
+                            &nbsp;&nbsp;<button class="btn btn-small" submit=""><i class="fa fa-money"></i> Open cash register</button>
                         </form>
                         <div id="toolbar" class="btn-toolbar">
                             <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Day-end closing</a>
