@@ -55,8 +55,9 @@ sub _init {
 sub exception_holidays {
     my ( $self ) = @_;
 
+    my $cachename = $self->{branchcode} . '_' . 'exception_holidays';
     my $cache  = Koha::Cache->get_instance();
-    my $cached = $cache->get_from_cache('exception_holidays');
+    my $cached = $cache->get_from_cache($cachename);
     return $cached if $cached;
 
     my $dbh = C4::Context->dbh;
@@ -77,7 +78,7 @@ sub exception_holidays {
     }
     $self->{exception_holidays} =
       DateTime::Set->from_datetimes( dates => $dates );
-    $cache->set_in_cache( 'exception_holidays', $self->{exception_holidays} );
+    $cache->set_in_cache( $cachename, $self->{exception_holidays} );
     return $self->{exception_holidays};
 }
 
@@ -85,7 +86,9 @@ sub single_holidays {
     my ( $self, $date ) = @_;
     my $branchcode = $self->{branchcode};
     my $cache           = Koha::Cache->get_instance();
-    my $single_holidays = $cache->get_from_cache('single_holidays');
+
+    my $cachename = $self->{branchcode} . '_' . 'single_holidays';
+    my $single_holidays = $cache->get_from_cache($cachename);
 
     # $single_holidays looks like:
     # {
@@ -124,7 +127,7 @@ sub single_holidays {
             }
             $single_holidays->{$br} = \@ymd_arr;
         }    # br
-        $cache->set_in_cache( 'single_holidays', $single_holidays,
+        $cache->set_in_cache($cachename, $single_holidays,
             76800 )    #24 hrs ;
     }
     my $holidays  = ( $single_holidays->{$branchcode} );
@@ -273,11 +276,15 @@ sub is_holiday {
 sub next_open_day {
     my ( $self, $dt ) = @_;
     my $base_date = $dt->clone();
+    
+    # set a maximum of 10 years
+    my $end_loop = 3650;
 
     $base_date->add(days => 1);
 
     while ($self->is_holiday($base_date)) {
         $base_date->add(days => 1);
+        last if (! ($end_loop--));
     }
 
     return $base_date;
@@ -286,11 +293,15 @@ sub next_open_day {
 sub prev_open_day {
     my ( $self, $dt ) = @_;
     my $base_date = $dt->clone();
+    
+    # set a maximum of 10 years
+    my $end_loop = 3650;
 
     $base_date->add(days => -1);
 
     while ($self->is_holiday($base_date)) {
         $base_date->add(days => -1);
+        last if (! ($end_loop--));
     }
 
     return $base_date;

@@ -625,7 +625,7 @@ END_SQL
             $verbose and warn $borrower_sql . "\n $branchcode | " . $overdue_rules->{'categorycode'} . "\n ($mindays, $maxdays, ".  $date_to_run->datetime() .")\nreturns " . $sth->rows . " rows";
             my $borrowernumber;
             while ( my $data = $sth->fetchrow_hashref ) {
-                $verbose and print "borrower ", $data->{'borrowernumber'}, ", current level $i: previous claim level ", $data->{claim_level}, ", issue claim date " , $data->{claim_date} , " and date to run " , $date_to_run->ymd() , "\n";
+                $verbose and warn "borrower ", $data->{'borrowernumber'}, ", issue of branch: ", $data->{branchcode}, ", current level $i: previous claim level ", $data->{claim_level}, ", issue claim date " , $data->{claim_date} , " and date to run " , $date_to_run->ymd() , "\n";
                 
                 # check the borrower has at least one item that matches
                 my $days_between;
