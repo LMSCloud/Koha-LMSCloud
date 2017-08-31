@@ -48,7 +48,7 @@ my $dbh = C4::Context->dbh;
 # open the xml response template
 my ( $template, $loggedinuser, $templatename) = get_template_and_user(
     {
-        template_name   => "opac-divibib-auth.xml",
+        template_name   => "opac-divibib-auth.tt",
         query           => $query,
         type            => "opac",
         authnotrequired => 1
