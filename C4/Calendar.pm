@@ -715,18 +715,15 @@ sub copy_to_branch {
     
     $target_calendar->delete_all_holidays();
 
-    my ($y, $m, $d) = Today();
-    my $today = sprintf ISO_DATE_FORMAT, $y,$m,$d;
-
     my $wdh = $self->get_week_days_holidays;
     $target_calendar->insert_week_day_holiday( weekday => $_, %{ $wdh->{$_} } )
       foreach keys %$wdh;
     $target_calendar->insert_day_month_holiday(%$_)
       foreach values %{ $self->get_day_month_holidays };
     $target_calendar->insert_exception_holiday(%$_)
-      foreach grep { $_->{date} gt $today } values %{ $self->get_exception_holidays };
+      foreach values %{ $self->get_exception_holidays };
     $target_calendar->insert_single_holiday(%$_)
-      foreach grep { $_->{date} gt $today } values %{ $self->get_single_holidays };
+      foreach values %{ $self->get_single_holidays };
 
     return 1;
 }
