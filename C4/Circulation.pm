@@ -2870,7 +2870,8 @@ sub CanBookBeRenewed {
 
     return ( 1, undef ) if $override_limit;
 
-    my $branchcode = _GetCircControlBranch( $item, $borrower );
+    my $branchcode = $itemissue->{branchcode};
+    $branchcode = _GetCircControlBranch($item, $borrower) if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
     my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule(
         {   categorycode => $borrower->{categorycode},
             itemtype     => $item->{itype},
@@ -3060,7 +3061,9 @@ sub AddRenewal {
         $datedue = (C4::Context->preference('RenewalPeriodBase') eq 'date_due') ?
                                         dt_from_string( $issuedata->{date_due} ) :
                                         DateTime->now( time_zone => C4::Context->tz());
-        $datedue =  CalcDateDue($datedue, $itemtype, _GetCircControlBranch($item, $borrower), $borrower, 'is a renewal');
+        my $usebranch = $issuedata->{branchcode};
+        $usebranch = _GetCircControlBranch($item, $borrower) if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
+        $datedue =  CalcDateDue($datedue, $itemtype, $usebranch, $borrower, 'is a renewal');
     }
 
     # Update the issues record to have the new due date, and a new count
@@ -3078,7 +3081,7 @@ sub AddRenewal {
     ModItem({ renewals => $renews, onloan => $datedue->strftime('%Y-%m-%d %H:%M')}, $biblio->{'biblionumber'}, $itemnumber);
 
     # Charge a new rental fee, if applicable?
-    my ( $charge, $type ) = GetIssuingCharges( $itemnumber, $borrowernumber );
+    my ( $charge, $type ) = GetIssuingCharges( $itemnumber, $borrowernumber, 1, $issuedata->{branchcode});
     if ( $charge > 0 ) {
         my $accountno = getnextacctno( $borrowernumber );
         my $item = GetBiblioFromItemNumber($itemnumber);
@@ -3100,7 +3103,7 @@ sub AddRenewal {
         $borrower = C4::Members::GetMemberDetails( $borrowernumber, 0 );
         my $circulation_alert = 'C4::ItemCirculationAlertPreference';
         my %conditions        = (
-            branchcode   => $branch,
+            branchcode   => $issuedata->{branchcode},
             categorycode => $borrower->{categorycode},
             item_type    => $item->{itype},
             notification => 'CHECKOUT',
@@ -3111,7 +3114,7 @@ sub AddRenewal {
                     type     => 'RENEWAL',
                     item     => $item,
                     borrower => $borrower,
-                    branch   => $branch,
+                    branch   => $issuedata->{branchcode},
                 }
             );
         }
@@ -3136,7 +3139,7 @@ sub AddRenewal {
     # Log the renewal
     UpdateStats(
         {
-            branch => C4::Context->userenv ? C4::Context->userenv->{branch} : $branch,
+            branch         => $branch,
             type           => 'renew',
             amount         => $charge,
             itemnumber     => $itemnumber,
@@ -3267,7 +3270,7 @@ if it's a video).
 sub GetIssuingCharges {
 
     # calculate charges due
-    my ( $itemnumber, $borrowernumber ) = @_;
+    my ( $itemnumber, $borrowernumber, $isrenewal, $issuebranch ) = @_;
     my $charge = 0;
     my $dbh    = C4::Context->dbh;
     my $item_type;
@@ -3287,6 +3290,12 @@ sub GetIssuingCharges {
         $item_type = $item_data->{itemtype};
         $charge    = $item_data->{rentalcharge};
         my $branch = C4::Branch::mybranch();
+        
+        # If the costs are for an renewal and we are supposed to apply conditions of the
+        # issuing branch then we need to apply the rules of the issuing branch
+        if ( $isrenewal && C4::Context->preference('UseIssuingBranchConditionsForRenewals') && $issuebranch ) {
+            $branch = $issuebranch;
+        }
         my $mobilebranch = Koha::Libraries->get_effective_branch($branch);
         
         my $discount_rules;

@@ -529,6 +529,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('useDaysMode','Calendar','Calendar|Days|Datedue','Choose the method for calculating due date: select Calendar to use the holidays module, and Days to ignore the holidays module','Choice'),
 ('useDischarge','','','Allows librarians to discharge borrowers and borrowers to request a discharge','YesNo'),
 ('UseICU','0','1','Tell Koha if ICU indexing is in use for Zebra or not.','YesNo'),
+('UseIssuingBranchConditionsForRenewals','0',NULL,'Apply circulation rules of the issuing library for renewals. If the paramter is deactivated, Koha applies the setting of the "CircControl" parameter for renewals.','YesNo'),
 ('UseKohaPlugins','0','','Enable or disable the ability to use Koha Plugins.','YesNo'),
 ('UseQueryParser','0',NULL,'If enabled, try to use QueryParser for queries.','YesNo'),
 ('UseTransportCostMatrix','0','','Use Transport Cost Matrix when filling holds','YesNo'),

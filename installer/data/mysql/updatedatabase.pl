@@ -13277,6 +13277,18 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = '16.05.12.004';
+if ( CheckVersion($DBversion) ) {
+    # Add a preference enabling to use the conditions of the issuing branch
+    $dbh->do( q{  
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+        ('UseIssuingBranchConditionsForRenewals','0',NULL,'Apply circulation rules of the issuing library for renewals. If the paramter is deactivated, Koha applies the setting of the "CircControl" parameter for renewals.','YesNo')
+    });
+    
+    print "Upgrade to $DBversion done (Koha 16.05.12.003). Add support for external Munzinger search in OPAC.\n";
+    SetVersion($DBversion);
+}
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.

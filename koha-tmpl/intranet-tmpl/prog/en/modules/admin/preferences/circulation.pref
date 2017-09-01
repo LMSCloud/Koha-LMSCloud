@@ -273,6 +273,12 @@ Circulation:
                   no: "Don't send"
             - a renewal notice according to patron checkout alert preferences.
         -
+            - pref: UseIssuingBranchConditionsForRenewals
+              choices:
+                  yes: Strictly apply
+                  no: "Don't strictly apply"
+            - circulation rules of the issuing library for renewals. If not set to strictly apply, Koha applies circulation rules for renewals based on the setting of the "CircControl" parameter.
+        -
             - Prevent patrons from making holds on the OPAC if they owe more than
             - pref: maxoutstanding
               class: currency
