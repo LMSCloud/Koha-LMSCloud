@@ -13285,7 +13285,7 @@ if ( CheckVersion($DBversion) ) {
         ('UseIssuingBranchConditionsForRenewals','0',NULL,'Apply circulation rules of the issuing library for renewals. If the paramter is deactivated, Koha applies the setting of the "CircControl" parameter for renewals.','YesNo')
     });
     
-    print "Upgrade to $DBversion done (Koha 16.05.12.003). Add support for external Munzinger search in OPAC.\n";
+    print "Upgrade to $DBversion done (Koha 16.05.12.004). Add renewal preference to apply rules of issuing library.\n";
     SetVersion($DBversion);
 }
 
