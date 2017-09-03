@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: German Koha Translation\n"
-"POT-Creation-Date: 2017-08-21 18:18+0200\n"
-"PO-Revision-Date: 2017-08-20 15:41+0100\n"
+"POT-Creation-Date: 2017-09-03 13:02+0200\n"
+"PO-Revision-Date: 2017-08-21 20:51+0100\n"
 "Last-Translator: Marc <veron@veron.ch>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -268,7 +268,7 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=rcn:"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:519
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=sbg:\""
-msgstr "/cgi-bin/koha/catalogue/search.pl?q=au:\""
+msgstr "/cgi-bin/koha/catalogue/search.pl?q=sbg:\""
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:191
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:206
@@ -287,7 +287,7 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=su"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:533
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=sys,phr,ext:\""
-msgstr "/cgi-bin/koha/catalogue/search.pl?q=se,phr:\""
+msgstr "/cgi-bin/koha/catalogue/search.pl?q=sys,phr,ext:\""
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:281
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:299
