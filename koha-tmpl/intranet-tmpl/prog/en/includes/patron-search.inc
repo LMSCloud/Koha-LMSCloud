@@ -1,12 +1,55 @@
 [% USE Koha %]
 [% USE Branches %]
 [% USE Categories %]
+[% USE Letters %]
+[% INCLUDE 'calendar.inc' %]
+<script type="text/javascript">
+//<![CDATA[
+$(document).ready(function() {
+    $("#chargessince").datepicker( { 
+        autoclose: true, 
+        maxDate: -1 ,
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#accountexpiresfrom").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#accountexpiresto").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+});
+
+//]]>
+</script>
 <div class="gradient">
 <h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName %]</a></h1><!-- Begin Patrons Resident Search Box -->
 <div id="header_search">
     <div id="patron_search" class="residentsearch">
     <p class="tip">Enter patron card number or partial name:</p>
-    <form action="/cgi-bin/koha/members/member.pl" method="post">
+    <form name="membersearchform" action="/cgi-bin/koha/members/member.pl" method="post">
     <input id="searchmember" data-toggle="tooltip" size="25" class="head-searchbox focus" name="searchmember" type="text" value="[% searchmember %]"/>
     <input type="hidden" name="quicksearch" value="1" />
     <span class="filteraction" id="filteraction_off"> <a href="#">[-]</a></span>
@@ -51,6 +94,11 @@
                 <option selected="selected" value='address'>Street Address</option>
               [% ELSE %]
                 <option value='address'>Street Address</option>
+              [% END %]
+              [% IF searchfieldstype == "city" %]
+                <option selected="selected" value='city'>City</option>
+              [% ELSE %]
+                <option value='city'>City</option>
               [% END %]
               [% IF searchfieldstype == "dateofbirth" %]
                 <option selected="selected" value='dateofbirth'>Date of birth</option>
@@ -99,7 +147,7 @@
                 [% END %]
             </select>
         </p>
-
+        
         <p>
             <label for="categorycode">Category: </label>
             [% SET categories = Categories.all( selected => categorycode_filter ) %]
@@ -113,6 +161,65 @@
                     [% END %]
                 [% END %]
             </select>
+        </p>
+        
+        <p>
+            <label for="chargesfrom">Patron age: </label>
+            from&#160;
+            <input type="number" name="agerangestart" id="agerangestart" value="" step="1" min="0" class="ageinput" />
+            to&#160;
+            <input type="number" name="agerangeend" id="agerangeend" value="" step="1" min="0" class="ageinput" />
+        </p>
+        
+        <p>
+            <label for="chargesfrom">Open charges amount: </label>
+            from&#160;
+            <input type="number" name="chargesfrom" id="chargesfrom" value="" step="any" min="0" class="priceinput" />
+            to&#160;
+            <input type="number" name="chargesto" id="chargesto" value="" step="any" min="0" class="priceinput" />
+        </p>
+        
+        <p>
+            <label for="chargessince">Open charges since: </label>
+            <input type="text" size="13" id="chargessince" name="chargessince" value="" class="dateinput" />
+        </p>
+        
+        <p>
+            <label for="accountexpiresfrom">Account expires/expired: </label>
+            from&#160;<input type="text" size="13" id="accountexpiresfrom" name="accountexpiresfrom" value="" class="dateinput" />
+            to&#160;<input type="text" size="13" id="accountexpiresto" name="accountexpiresto" value="" class="dateinput" />
+        </p>
+        
+        <p>
+            <label for="lastlettercode">Last letter: </label>
+            [% SET letters = Letters.all( selected => lastlettercode) %]
+            <select id="lastlettercode" name="lastlettercode">
+              [% IF letters.size != 1 %]
+                <option value="">Any</option>
+              [% END %]
+              [% FOREACH b IN letters %]
+                [% IF b.selected %]
+                  <option selected="selected" value="[% b.code %]">[% b.name %]</option>
+                [% ELSE %]
+                  <option value="[% b.code %]">[% b.name %]</option>
+                [% END %]
+              [% END %]
+            </select>
+        </p>
+        
+        <p>
+           <label for="overduelevel">Checkouts overdue level: </label>
+           <select id="overduelevel" name="overduelevel">
+              <option value="">Not selected</option>
+              [% levels = ['1','2','3','4','5'] %]
+              [% FOREACH b IN levels %]
+                [% IF b == overduelevel %]
+                  <option selected="selected" value="[% b %]">Level [% b %]</option>
+                [% ELSE %]
+                  <option value="[% b %]">Level [% b %]</option>
+                [% END %]
+              [% END %]
+           </select>
         </p>
     </div>
     </form>

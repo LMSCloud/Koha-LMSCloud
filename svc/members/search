@@ -46,6 +46,15 @@ my $searchtype = $input->param('searchtype');
 my $searchfieldstype = $input->param('searchfieldstype') || 'standard';
 my $has_permission = $input->param('has_permission');
 my $selection_type = $input->param('selection_type');
+my $chargesfrom = $input->param('chargesfrom');
+my $chargesto = $input->param('chargesto');
+my $chargessince = $input->param('chargessince');
+my $accountexpiresto = $input->param('accountexpiresto');
+my $accountexpiresfrom = $input->param('accountexpiresfrom');
+my $lastlettercode = $input->param('lastlettercode');
+my $agerangestart = $input->param('agerangestart');
+my $agerangeend = $input->param('agerangeend');
+my $overduelevel = $input->param('overduelevel');
 
 # variable information for DataTables (id)
 my $sEcho = $input->param('sEcho');
@@ -71,6 +80,31 @@ if ( $searchmember
     } if $member;
 }
 
+if ( $chargessince ) {
+    eval {
+        my $tmpdate = $chargessince;
+        $chargessince = undef;
+        $tmpdate = dt_from_string( $tmpdate ) ;
+        $chargessince = output_pref({dt => $tmpdate, dateonly => 1, dateformat => 'iso'});
+   }
+}
+if ( $accountexpiresto ) {
+    eval {
+        my $tmpdate = $accountexpiresto;
+        $accountexpiresto = undef;
+        $tmpdate = dt_from_string( $tmpdate ) ;
+        $accountexpiresto = output_pref({dt => $tmpdate, dateonly => 1, dateformat => 'iso'});
+   }
+}
+if ( $accountexpiresfrom ) {
+    eval {
+        my $tmpdate = $accountexpiresfrom;
+        $accountexpiresfrom = undef;
+        $tmpdate = dt_from_string( $tmpdate ) ;
+        $accountexpiresfrom = output_pref({dt => $tmpdate, dateonly => 1, dateformat => 'iso'});
+   }
+}
+
 # Perform the patrons search
 $results = C4::Utils::DataTables::Members::search(
     {
@@ -81,6 +115,15 @@ $results = C4::Utils::DataTables::Members::search(
         searchtype => $searchtype,
         searchfieldstype => $searchfieldstype,
         dt_params => \%dt_params,
+        chargesfrom => $chargesfrom,
+        chargesto => $chargesto,
+        chargessince => $chargessince,
+        accountexpiresto => $accountexpiresto,
+        accountexpiresfrom => $accountexpiresfrom,
+        lastlettercode => $lastlettercode,
+        agerangestart => $agerangestart,
+        agerangeend => $agerangeend,
+        overduelevel => $overduelevel,
     }
 ) unless $results;
 

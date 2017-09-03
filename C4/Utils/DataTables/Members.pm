@@ -16,6 +16,15 @@ sub search {
     my $searchtype = $params->{searchtype} || 'contain';
     my $searchfieldstype = $params->{searchfieldstype} || 'standard';
     my $dt_params = $params->{dt_params};
+    my $chargesfrom = $params->{chargesfrom};
+    my $chargesto = $params->{chargesto};
+    my $chargessince =  $params->{chargessince};
+    my $accountexpiresto = $params->{accountexpiresto};
+    my $accountexpiresfrom = $params->{accountexpiresfrom};
+    my $lastlettercode = $params->{lastlettercode};
+    my $agerangestart = $params->{agerangestart};
+    my $agerangeend = $params->{agerangeend};
+    my $overduelevel = $params->{overduelevel};
 
     unless ( $searchmember ) {
         $searchmember = $dt_params->{sSearch} // '';
@@ -75,6 +84,73 @@ sub search {
         push @where_strs, "borrowers.branchcode = ?";
         push @where_args, $branchcode;
     }
+    if ( defined($chargesfrom) && $chargesfrom =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
+        $chargesfrom += 0.0;
+        $chargesfrom = undef if ( $chargesfrom == 0.0 );
+    } else {
+        $chargesfrom = undef;
+    }
+    if ( defined($chargesto) && $chargesto =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
+        $chargesto += 0.0;
+        $chargesto = undef if ( $chargesto == 0.0 );
+    } else {
+        $chargesto = undef;
+    }
+    if (defined($chargesfrom) || defined($chargesto)) {
+        my $add = "EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = borrowers.borrowernumber GROUP BY a.borrowernumber HAVING ";
+        if ( defined($chargesfrom) && defined($chargesto) ) {
+            $add .= "SUM(a.amountoutstanding) BETWEEN ? AND ?)";
+            push @where_args, $chargesfrom, $chargesto;
+        }
+        elsif ( defined($chargesfrom) ) {
+            $add .= "SUM(a.amountoutstanding) >= ?)";
+            push @where_args, $chargesfrom;
+        }
+        else {
+            $add .= "SUM(a.amountoutstanding) <= ?)";
+            push @where_args, $chargesto;
+        }
+        push @where_strs, $add;
+    }
+    if ( defined($chargessince) && $chargessince =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+        push @where_strs, "EXISTS (SELECT 1 FROM accountlines al WHERE al.borrowernumber = borrowers.borrowernumber AND al.amountoutstanding >= 0.01 and al.date <= ?)";
+        push @where_args, $chargessince;
+    }
+    if ( defined($accountexpiresto) && $accountexpiresto =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+        push @where_strs, "borrowers.dateexpiry <= ?";
+        push @where_args, $accountexpiresto;
+    }
+    if ( defined($accountexpiresfrom) && $accountexpiresfrom =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+        push @where_strs, "borrowers.dateexpiry >= ?";
+        push @where_args, $accountexpiresfrom;
+    }
+    if ( defined($lastlettercode) and $lastlettercode !~ /^\s*$/ ) {
+        push @where_strs, "EXISTS (SELECT 1 FROM message_queue m WHERE m.borrowernumber = borrowers.borrowernumber AND m.letter_code = ? and m.time_queued = (SELECT MAX(time_queued) FROM message_queue mq WHERE mq.borrowernumber = borrowers.borrowernumber and status = ?))";
+        push @where_args, $lastlettercode;
+        push @where_args, 'sent';
+    }
+    if (defined($agerangestart) || defined($agerangeend)) {
+        my $add = "TIMESTAMPDIFF(YEAR,borrowers.dateofbirth,CURDATE())";
+        if ( defined($agerangestart) && $agerangestart =~ /^\d+$/ && defined($agerangeend) && $agerangeend =~ /^\d+$/ ) {
+            $add .= " BETWEEN ? AND ?";
+            push @where_strs, $add;
+            push @where_args, $agerangestart, $agerangeend;
+        }
+        elsif ( defined($agerangestart) && $agerangestart =~ /^\d+$/ ) {
+            $add .= " >= ?";
+            push @where_strs, $add;
+            push @where_args, $agerangestart;
+        }
+        elsif ( defined($agerangeend) && $agerangeend =~ /^\d+$/ ) {
+            $add .= " <= ?";
+            push @where_strs, $add;
+            push @where_args, $agerangeend;
+        }
+    }
+    if (defined($overduelevel) && $overduelevel =~ /^\d+$/ ) {
+        push @where_strs, "EXISTS (SELECT 1 FROM issues i WHERE i.borrowernumber = borrowers.borrowernumber AND ? IN (SELECT max(claim_level) FROM overdue_issues o WHERE i.issue_id = o.issue_id GROUP BY o.issue_id))";
+        push @where_args, $overduelevel;
+    }
 
     my $searchfields = {
         standard => 'surname,firstname,othernames,cardnumber,userid',
@@ -87,6 +163,7 @@ sub search {
         dateofbirth => 'dateofbirth',
         sort1 => 'sort1',
         sort2 => 'sort2',
+        city => 'city',
     };
 
     # * is replaced with % for sql
@@ -152,6 +229,7 @@ sub search {
         ($orderby ? $orderby : ""),
         ($limit ? $limit : "")
     );
+    # print STDERR "Searching borrowers: $query";
     $sth = $dbh->prepare($query);
     $sth->execute(@where_args);
     my $patrons = $sth->fetchall_arrayref({});

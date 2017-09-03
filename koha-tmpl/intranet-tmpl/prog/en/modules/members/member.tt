@@ -1,6 +1,7 @@
 [% USE Koha %]
 [% USE ColumnsSettings %]
 [% USE Branches %]
+[% USE Letters %]
 [% USE Categories %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Patrons [% IF ( searching ) %]&rsaquo; Search results[% END %]</title>
@@ -109,6 +110,40 @@ $(document).ready(function() {
         e.preventDefault();
         clearFilters(true);
     });
+    $("#chargessince_filter").datepicker( { 
+        autoclose: true, 
+        maxDate: -1 ,
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#accountexpiresto_filter").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#accountexpiresfrom_filter").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
 });
 
 var dtMemberResults;
@@ -128,6 +163,9 @@ $(document).ready(function() {
     [% END %]
     [% IF branchcode %]
         $("#branchcode_filter").val("[% branchcode_filter %]");
+    [% END %]
+    [% IF lastlettercode %]
+        $("#lastlettercode_filter").val("[% lastlettercode %]");
     [% END %]
 
     [% IF view != "show_results" %]
@@ -186,6 +224,33 @@ $(document).ready(function() {
             },{
                 'name': 'branchcode',
                 'value': $("#branchcode_filter").val()
+            },{
+                'name': 'chargesfrom',
+                'value': $("#chargesfrom_filter").val()
+            },{
+                'name': 'chargesto',
+                'value': $("#chargesto_filter").val()
+            },{
+                'name': 'agerangestart',
+                'value': $("#agerangestart_filter").val()
+            },{
+                'name': 'agerangeend',
+                'value': $("#agerangeend_filter").val()
+            },{
+                'name': 'chargessince',
+                'value': $("#chargessince_filter").val()
+            },{
+                'name': 'accountexpiresto',
+                'value': $("#accountexpiresto_filter").val()
+            },{
+                'name': 'accountexpiresfrom',
+                'value': $("#accountexpiresfrom_filter").val()
+            },{
+                'name': 'lastlettercode',
+                'value': $("#lastlettercode_filter").val()
+            },{
+                'name': 'overduelevel',
+                'value': $("#overduelevel_filter").val()
             },{
                 'name': 'name_sorton',
                 'value': 'borrowers.surname borrowers.firstname'
@@ -456,6 +521,11 @@ function filterByFirstLetterSurname(letter) {
                 [% ELSE %]
                   <option value='address'>Street address</option>
                 [% END %]
+                [% IF searchfieldstype == "city" %]
+                  <option selected="selected" value='city'>City</option>
+                [% ELSE %]
+                  <option value='city'>City</option>
+                [% END %]
                 [% IF searchfieldstype == "dateofbirth" %]
                   <option selected="selected" value='dateofbirth'>Date of birth</option>
                 [% ELSE %]
@@ -511,6 +581,62 @@ function filterByFirstLetterSurname(letter) {
                     <option selected="selected" value="[% b.branchcode %]">[% b.branchname %]</option>
                   [% ELSE %]
                     <option value="[% b.branchcode %]">[% b.branchname %]</option>
+                  [% END %]
+                [% END %]
+              </select>
+            </li>
+            <li>
+                <span>&#160;
+            <li>
+            <li>
+              <label for="agerangestart_filter">Patron age: </label>
+                from&#160;
+                <input type="number" name="agerangestart_filter" id="agerangestart_filter" value="[% agerangestart %]" step="any" min="0" class="agerange-input" />
+                to&#160;
+                <input type="number" name="agerangeend_filter" id="agerangeend_filter" value="[% agerangeend %]" step="any" min="0" class="agerange-input" />
+            </li>
+            <li>
+              <label for="chargesfrom_filter">Open charges amount:</label>
+                from&#160;
+                <input type="number" name="chargesfrom_filter" id="chargesfrom_filter" value="[% chargesfrom %]" step="any" min="0" class="charges-input" />
+                to&#160; 
+                <input type="number" name="chargesto_filter" id="chargesto_filter" value="[% chargesto %]" step="any" min="0" class="charges-input" />
+            </li>
+            <li>
+              <label for="chargessince_filter">Open charges since:</label>
+              <input type="text" size="10" id="chargessince_filter" name="chargessince_filter" value="[% chargessince %]" />
+            </li>
+            <li>
+              <label for="accountexpiresfrom_filter">Account expires/expired: </label>
+              from&#160;<input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" value="[% accountexpiresfrom %]" /><br />
+              to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" />
+            </li>
+            <li>
+              <label for="lastlettercode_filter">Last letter: </label>
+              [% SET letters = Letters.all( selected => lastlettercode) %]
+              <select id="lastlettercode_filter">
+                [% IF letters.size != 1 %]
+                  <option value="">Any</option>
+                [% END %]
+                [% FOREACH b IN letters %]
+                  [% IF b.selected %]
+                    <option selected="selected" value="[% b.code %]">[% b.name %]</option>
+                  [% ELSE %]
+                    <option value="[% b.code %]">[% b.name %]</option>
+                  [% END %]
+                [% END %]
+              </select>
+            </li>
+            <li>
+              <label for="overduelevel_filter">Checkouts overdue level: </label>
+              <select id="overduelevel_filter">
+                <option value="">Not selected</option>
+                [% levels = ['1','2','3','4','5'] %]
+                [% FOREACH b IN levels %]
+                  [% IF b == overduelevel %]
+                    <option selected="selected" value="[% b %]">Level [% b %]</option>
+                  [% ELSE %]
+                    <option value="[% b %]">Level [% b %]</option>
                   [% END %]
                 [% END %]
               </select>

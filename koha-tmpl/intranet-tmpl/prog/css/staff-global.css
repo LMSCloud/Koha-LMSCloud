@@ -372,6 +372,25 @@ div#header_search input {
 	font-size : 1.3em;
 }
 
+div#header_search .ageinput {
+    font-size: 0.9em;
+    width: 5em;
+}
+
+div#header_search .priceinput {
+    font-size: 0.9em;
+    width: 7em;
+}
+
+div#header_search .dateinput {
+    font-size: 0.9em;
+    width: 8em;
+}
+
+#searchform .agerange-input,  #searchform .charges-input {
+    width: 3em;
+}
+
 div#header_search div.residentsearch {
 	border : 0;
     border-bottom : 1px solid #85ca11;
