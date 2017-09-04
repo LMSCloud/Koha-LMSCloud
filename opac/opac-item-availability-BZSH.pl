@@ -219,9 +219,6 @@ sub genISBD {
 			}
 		}
 	}
-    if ( $titleblock ) {
-		$titleblock =~ s/[\x{0098}\x{009c}]//g;
-    }
     
     # get physical description info (ISBD Area 5)
     my @physicaldescription = ();
@@ -310,6 +307,7 @@ sub genISBD {
     }
 
     $isbd .= "\n";
+    $isbd =~ s/[\x{0098}\x{009c}]//g;                       # removing non-sort characters
     
     return $isbd;
 }
