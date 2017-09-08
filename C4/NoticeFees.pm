@@ -395,9 +395,9 @@ sub GetNoticeFeeDescription {
             $letter_code = $letter_code . '_CLAIM' if ($letter_exists);
         }
     }
-    elsif ( $params->{'letter_code'} && $params->{'letter_code'} eq 'HOLD' ) {
-        $letter_exists = C4::Letters::getletter( 'fines', $letter_code . '_HOLD', $branchcode, 'email' ) ? 1 : 0;
-        $letter_code = $letter_code . '_HOLD' if ($letter_exists);
+    elsif ( $params->{'letter_code'} ) {
+        $letter_exists = C4::Letters::getletter( 'fines', $letter_code . '_' . $params->{'letter_code'}, $branchcode, 'email' ) ? 1 : 0;
+        $letter_code = $letter_code . '_' . $params->{'letter_code'} if ($letter_exists);
     }
     if (! $letter_exists ) {
         $letter_exists = C4::Letters::getletter( 'fines', $letter_code, $branchcode, 'email' ) ? 1 : 0;

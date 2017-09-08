@@ -55,6 +55,7 @@ my $lastlettercode = $input->param('lastlettercode');
 my $agerangestart = $input->param('agerangestart');
 my $agerangeend = $input->param('agerangeend');
 my $overduelevel = $input->param('overduelevel');
+my $inactivesince = $input->param('inactivesince');
 
 # variable information for DataTables (id)
 my $sEcho = $input->param('sEcho');
@@ -104,6 +105,14 @@ if ( $accountexpiresfrom ) {
         $accountexpiresfrom = output_pref({dt => $tmpdate, dateonly => 1, dateformat => 'iso'});
    }
 }
+if ( $inactivesince ) {
+    eval {
+        my $tmpdate = $inactivesince;
+        $inactivesince = undef;
+        $tmpdate = dt_from_string( $tmpdate ) ;
+        $inactivesince = output_pref({dt => $tmpdate, dateonly => 0, dateformat => 'iso'});
+   }
+}
 
 # Perform the patrons search
 $results = C4::Utils::DataTables::Members::search(
@@ -124,6 +133,7 @@ $results = C4::Utils::DataTables::Members::search(
         agerangestart => $agerangestart,
         agerangeend => $agerangeend,
         overduelevel => $overduelevel,
+        inactivesince => $inactivesince,
     }
 ) unless $results;
 

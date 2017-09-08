@@ -2506,7 +2506,7 @@ CREATE TABLE `message_queue` (
 DROP TABLE IF EXISTS `letter`;
 CREATE TABLE `letter` ( -- table for all notice templates in Koha
   `module` varchar(20) NOT NULL default '', -- Koha module that triggers this notice or slip
-  `code` varchar(20) NOT NULL default '', -- unique identifier for this notice or slip
+  `code` varchar(50) NOT NULL default '', -- unique identifier for this notice or slip
   `branchcode` varchar(10) NOT NULL default '', -- the branch this notice or slip is used at (branches.branchcode)
   `name` varchar(100) NOT NULL default '', -- plain text name for this notice or slip
   `is_html` tinyint(1) default 0, -- does this notice or slip use HTML (1 for yes, 0 for no)

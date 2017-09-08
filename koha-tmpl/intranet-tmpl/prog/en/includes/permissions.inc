@@ -108,5 +108,6 @@
     [%- CASE 'download_batchprint_files' -%]<span>Download batch print files</span>
     [%- CASE 'run_batch_programs' -%]<span>Run batch programs</span>
     [%- CASE 'duedate_update' -%]<span>Update due-dates of checked-out items</span>
+    [%- CASE 'send_adhoc_notices' -%]<span>Send adhoc notices to patrons</span>
     [%- END -%]
 [%- END -%]

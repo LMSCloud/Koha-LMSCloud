@@ -5,6 +5,7 @@ INSERT INTO permissions (module_bit, code, description) VALUES
    ( 1, 'force_checkout', 'Force checkout if a limitation exists'),
    ( 1, 'manage_restrictions', 'Manage restrictions for accounts'),
    ( 1, 'self_checkout', 'Perform self checkout at the OPAC. It should be used for the patron matching the AutoSelfCheckID'),
+   ( 1, 'send_adhoc_notices', 'Send adhoc notices to patrons'),
    ( 3, 'parameters_remaining_permissions', 'Remaining system parameters permissions'),
    ( 3, 'manage_circ_rules', 'Manage circulation rules'),
    ( 6, 'place_holds', 'Place holds for patrons'),

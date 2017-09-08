@@ -2208,7 +2208,7 @@ sub OPACItemHoldsAllowed {
     }
     
     my $opacitemholds = '';
-    uc substr ($data->{opacitemholds}, 0, 1) if ( defined($data) && defined($data->{opacitemholds}) );
+    $opacitemholds = uc substr ($data->{opacitemholds}, 0, 1) if ( defined($data) && defined($data->{opacitemholds}) );
     return '' if $opacitemholds eq 'N';
     return $opacitemholds;
 }

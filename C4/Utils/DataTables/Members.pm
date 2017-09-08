@@ -25,6 +25,7 @@ sub search {
     my $agerangestart = $params->{agerangestart};
     my $agerangeend = $params->{agerangeend};
     my $overduelevel = $params->{overduelevel};
+    my $inactivesince = $params->{inactivesince};
 
     unless ( $searchmember ) {
         $searchmember = $dt_params->{sSearch} // '';
@@ -151,15 +152,21 @@ sub search {
         push @where_strs, "EXISTS (SELECT 1 FROM issues i WHERE i.borrowernumber = borrowers.borrowernumber AND ? IN (SELECT max(claim_level) FROM overdue_issues o WHERE i.issue_id = o.issue_id GROUP BY o.issue_id))";
         push @where_args, $overduelevel;
     }
+    if ( defined($inactivesince) && $inactivesince =~ /^([0-9]{4}-[0-9]{2}-[0-9]{2})/ ) {
+        $inactivesince = "$1 23:59:59";
+        push @where_strs, "NOT EXISTS (SELECT 1 FROM issues iss WHERE iss.borrowernumber = borrowers.borrowernumber AND iss.timestamp > ?)";
+        push @where_strs, "NOT EXISTS (SELECT 1 FROM old_issues oiss WHERE oiss.borrowernumber = borrowers.borrowernumber AND oiss.timestamp > ?)";
+        push @where_args, $inactivesince, $inactivesince;
+    }
 
     my $searchfields = {
-        standard => 'surname,firstname,othernames,cardnumber,userid',
-        surname => 'surname',
+        standard => 'surname,firstname,othernames,cardnumber,userid,altcontactfirstname,altcontactsurname',
+        surname => 'surname,altcontactsurname',
         email => 'email,emailpro,B_email',
         borrowernumber => 'borrowernumber',
         userid => 'userid',
         phone => 'phone,phonepro,B_phone,altcontactphone,mobile',
-        address => 'streettype,address,address2,city,state,zipcode,country',
+        address => 'streettype,address,address2,altcontactaddress1,altcontactaddress2,altcontactaddress3,altcontactzipcode,altcontactzipcode,city,state,zipcode,country',
         dateofbirth => 'dateofbirth',
         sort1 => 'sort1',
         sort2 => 'sort2',

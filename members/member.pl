@@ -86,6 +86,7 @@ $template->param(
     agerangeend         => scalar $input->param('agerangeend'),
     lastlettercode      => scalar $input->param('lastlettercode'),
     overduelevel        => scalar $input->param('overduelevel'),
+    inactivesince       => scalar $input->param('inactivesince'),
     PatronsPerPage      => C4::Context->preference("PatronsPerPage") || 20,
     view                => $view,
 );

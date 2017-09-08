@@ -35,7 +35,7 @@ __PACKAGE__->table("letter");
   data_type: 'varchar'
   default_value: (empty string)
   is_nullable: 0
-  size: 20
+  size: 50
 
 =head2 branchcode
 
@@ -83,7 +83,7 @@ __PACKAGE__->add_columns(
   "module",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
   "code",
-  { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
+  { data_type => "varchar", default_value => "", is_nullable => 0, size => 50 },
   "branchcode",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 10 },
   "name",
@@ -159,8 +159,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2014-05-02 18:04:32
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:HFUQ+/BKlweHglzOlm0lUQ
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-09-08 15:52:38
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:5yOu9yBiw/B74lJv4yulEg
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

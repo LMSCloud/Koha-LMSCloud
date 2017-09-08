@@ -2876,3 +2876,10 @@ div.cashregisterinfo ul li {
     display: inline-block;
     visibility: hidden;
 }
+
+#pat_member #patron_list_dialog {
+    display: none
+}
+#pat_member #notice_sent_dialog {
+    display: none;
+}

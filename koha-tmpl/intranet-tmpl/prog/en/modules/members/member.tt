@@ -39,6 +39,7 @@ $(document).ready(function() {
     });
 
     $("#patron_list_dialog").hide();
+    $("#notice_sent_dialog").hide();
     $("#add_to_patron_list_submit").on('click', function(e){
         if ( $('#add_to_patron_list').val() == 'new' ) {
             if ( $('#new_patron_list').val() ) {
@@ -94,6 +95,92 @@ $(document).ready(function() {
         });
         return true;
     });
+    [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+    $.ajax({
+        data: {},
+        type: 'POST',
+        url: '/cgi-bin/koha/svc/members/adhocletters',
+        success: function(data) {           
+            var letterSelect =  $("#adhocNoticeLetterSelection_letter");
+            letterSelect.find('option').remove();
+            for (var i=0; i < data.letters.length; i++ ) {
+               letterSelect.append($('<option></option>').val(data.letters[i].code).html(data.letters[i].name));
+            }
+
+        },
+        error: function() {
+            alert( _("An error occured while retrieving available letters for adhoc-notices.") );
+        }
+    });
+    $("#send_notice_letter_select").on('click', function(e){
+        var patronCount = $("#memberresultst input:checkbox:checked").length;
+        if ( patronCount == 0 ) {
+            alert( _("You have not selected any patrons to send a notice!") );
+            return false;
+        }
+
+        $('#selectAdhocNoticeLetterPatronCount').text(patronCount);
+        $("#selectAdhocNoticeLetter").modal("show");
+
+        return true;
+    });
+    $("#send_notice_submit").on('click', function(e){
+        e.preventDefault();
+        var patronCount = $("#memberresultst input:checkbox:checked").length;
+        if ( patronCount == 0 ) {
+            alert( _("You have not selected any patrons to send a notice!") );
+            return false;
+        }
+
+        var borrowernumbers = [];
+        $("#memberresultst").find("input:checkbox:checked").each(function(){
+            borrowernumbers.push($(this).val());
+        });
+        
+        var data = {
+            use_letter: $("#adhocNoticeLetterSelection_letter").val(),
+            use_email: ($('#preferEmail').is(":checked") ? $("#preferEmail").val() : ''),
+            no_notice_fees: ($('#dontCharge').is(":checked") ? $("#dontCharge").val() : ''),
+            borrowernumbers: borrowernumbers
+        };
+
+        $.ajax({
+            data: data,
+            type: 'POST',
+            url: '/cgi-bin/koha/svc/members/sendnotice',
+            success: function(data) {
+                var patronExportModal = $("#selectAdhocNoticeLetter");
+                $("#notice_sent_dialog").show();
+                $("#notice_sent_dialog").find(".patrons-length").text(patronCount);
+                $("#notice_sent_dialog").find(".letter-name").text($("#adhocNoticeLetterSelection_letter").find("option:selected").text());
+                if ( data.letter_mailed > 0 ) {
+                    $("#notice_sent_dialog").find(".letter-email-count").text(data.letter_mailed);
+                    $("#notice_sent_dialog").find(".letter-email").show();
+                }
+                else {
+                    $("#notice_sent_dialog").find(".letter-email").hide();
+                }
+                if ( data.letter_printed > 0 ) {
+                    $("#notice_sent_dialog").find(".letter-print-count").text(data.letter_printed);
+                    $("#notice_sent_dialog").find("a").attr("href","/cgi-bin/koha/tools/download-files.pl?filename=" + data.printedfile + "&op=download");
+                    $("#notice_sent_dialog").find(".letter-print").show();
+                }
+                else {
+                    $("#notice_sent_dialog").find(".letter-print").hide();
+                }
+                
+                //console.log(data);
+                patronExportModal.modal("hide");
+                $("#memberresultst").DataTable().ajax.reload();
+            },
+            error: function() {
+                alert( _("A server error occured processing the adhoc notice request.") );
+            }
+        });
+
+        return true;
+    });
+    [% END %]
     $(".filterByLetter").on("click",function(e){
         e.preventDefault();
         filterByFirstLetterSurname($(this).text());
@@ -134,6 +221,17 @@ $(document).ready(function() {
         selectOtherMonths: true
     });
     $("#accountexpiresfrom_filter").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#inactivesince_filter").datepicker( { 
         autoclose: true, 
         showOn: "both",
         changeMonth: true,
@@ -252,6 +350,9 @@ $(document).ready(function() {
                 'name': 'overduelevel',
                 'value': $("#overduelevel_filter").val()
             },{
+                'name': 'inactivesince',
+                'value': $("#inactivesince_filter").val()
+            },{
                 'name': 'name_sorton',
                 'value': 'borrowers.surname borrowers.firstname'
             },{
@@ -362,6 +463,16 @@ function clearFilters(redraw) {
         $("#searchresults").show();
         dtMemberResults.fnDraw();
     }
+    $("#chargesfrom_filter").val('');
+    $("#chargesto_filter").val('');
+    $("#agerangestart_filter").val('');
+    $("#agerangeend_filter").val('');
+    $("#chargessince_filter").val('');
+    $("#accountexpiresto_filter").val('');
+    $("#accountexpiresfrom_filter").val('');
+    $("#lastlettercode_filter").val('');
+    $("#overduelevel_filter").val('');
+    $("#inactivesince_filter").val('');
 }
 
 // User has clicked on a letter
@@ -392,6 +503,13 @@ function filterByFirstLetterSurname(letter) {
               Added <span class="patrons-length"></span> patrons to <a></a>.
             </div>
           [% END %]
+          [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+            <div id="notice_sent_dialog" class="dialog alert">
+              Letter "<span class="letter-name"></span>" successfully created as notice to <span class="patrons-length"></span> patron(s).
+              <span class="letter-email"><br /><span class="letter-email-count"></span> patrons(s) notified my email.</span>
+              <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patrons(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Klick here to download the notices for printing.</a></span>
+            </div>
+          [% END %]
 
           [% IF Koha.Preference( 'NorwegianPatronDBEnable' ) == 1 %]
             [% SET nl_search_form_title='Search the Norwegian national patron database' %]
@@ -419,12 +537,13 @@ function filterByFirstLetterSurname(letter) {
             <div id="searchheader">
               <h3>Patrons found for: <span id="searchpattern">[% IF searchmember %] for '[% searchmember %]'[% END %]</span></h3>
             </div>
-            [% IF CAN_user_tools_manage_patron_lists %]
+            [% IF (CAN_user_tools_manage_patron_lists || (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ))%]
               <div id="searchheader">
                   <div>
                       <a href="#" id="select_all"><i class="fa fa-check"></i> Select all</a>
                       |
                       <a href="#" id="clear_all"><i class="fa fa-remove"></i> Clear all</a>
+                      [% IF (CAN_user_tools_manage_patron_lists) %]
                       |
                       <span>
                           <label for="add_to_patron_list">Add selected patrons to:</label>
@@ -445,6 +564,11 @@ function filterByFirstLetterSurname(letter) {
 
                           <input id="add_to_patron_list_submit" type="submit" class="submit" value="Save">
                       </span>
+                      [% END %]
+                      [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+                         &#160;&#160;|&#160;&#160;
+                         <input id="send_notice_letter_select" type="submit" class="submit" value="Send notice">
+                      [% END %]
                   </div>
               </div>
             [% END %]
@@ -612,6 +736,10 @@ function filterByFirstLetterSurname(letter) {
               to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" />
             </li>
             <li>
+              <label for="inactivesince_filter">Inactive since:</label>
+              <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" value="[% inactivesince %]" />
+            </li>
+            <li>
               <label for="lastlettercode_filter">Last letter: </label>
               [% SET letters = Letters.all( selected => lastlettercode) %]
               <select id="lastlettercode_filter">
@@ -654,4 +782,42 @@ function filterByFirstLetterSurname(letter) {
     [% INCLUDE 'members-menu.inc' %]
   </div>
 </div>
+
+<!-- Modal to send adhoc notices -->
+<div class="modal hide" id="selectAdhocNoticeLetter" tabindex="-1" role="dialog" aria-labelledby="selectAdhocNoticeLetter_label" aria-hidden="true">
+    <form id="noticeform">
+    <div class="modal-header">
+        <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
+    </div>
+    <div class="modal-body">
+    
+        <p>
+            Please select the letter that will be used to create notices to the selected patrons. Please be aware that patrons might be charged for notices depending on the defined notice fee rules.
+        </p>
+        <p>
+            Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount"></span>
+        </p>
+        <p id="adhocNoticeLetterSelection">
+            <label for="adhocNoticeLetterSelection_letter">Select letter: </label>
+            <select name="adhocNoticeLetterSelection_letter" id="adhocNoticeLetterSelection_letter">
+            </select>
+        </p>
+        <p>
+            <label>
+                Prefer Email notification if an email address is available: <input type="checkbox" id="preferEmail" name="preferEmail" value="yes" checked>
+            </label>
+        </p>
+        <p>
+            <label>
+                Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
+            </label>
+        </p>
+    </div>
+    <div class="modal-footer">
+        <input id="send_notice_submit" type="submit" class="submit" value="Create notices">
+    </div>
+    </form>
+</div>
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -8,7 +8,7 @@
 $(document).ready(function() {
     $("#chargessince").datepicker( { 
         autoclose: true, 
-        maxDate: -1 ,
+        maxDate: -1,
         showOn: "both",
         changeMonth: true,
         changeYear: true,
@@ -31,6 +31,18 @@ $(document).ready(function() {
     });
     $("#accountexpiresto").datepicker( { 
         autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#inactivesince").datepicker( { 
+        autoclose: true, 
+        maxDate: -1,
         showOn: "both",
         changeMonth: true,
         changeYear: true,
@@ -191,6 +203,11 @@ $(document).ready(function() {
         </p>
         
         <p>
+            <label for="inactivesince">Inactiv since: </label>
+            <input type="text" size="13" id="inactivesince" name="inactivesince" value="" class="dateinput" />
+        </p>
+        
+        <p>
             <label for="lastlettercode">Last letter: </label>
             [% SET letters = Letters.all( selected => lastlettercode) %]
             <select id="lastlettercode" name="lastlettercode">
@@ -268,7 +285,7 @@ $(document).ready(function() {
         $('#filters').toggle();
         $('.filteraction').toggle();
     });
-    [% IF ( advsearch ) %]$("#filteraction_on").toggle();
+    [% IF ( advsearch ) %]$("#filteraction_on :visible").toggle();
     [% ELSE %]$("#filters").toggle();
     $("#filteraction_off").toggle();[% END %]
     [% SET dateformat = Koha.Preference('dateformat') %]
