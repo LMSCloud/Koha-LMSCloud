@@ -93,8 +93,9 @@ sub printorders {
                     ( $line->{copyrightdate} ? ' '. $line->{copyrightdate} : '');
             }
             push( @$arrbasket,
-                $basket->{basketno},
-                $titleinfo. ($line->{order_vendornote} ? "\n----------------\nLieferantennotiz : ". $line->{order_vendornote} : '' ),                $line->{quantity},
+                $basket->{basketno}.'-'.$line->{ordernumber},
+                $titleinfo. ($line->{order_vendornote} ? "\n----------------\nLieferantennotiz : ". $line->{order_vendornote} : '' ),
+                # $line->{quantity},
                 $line->{quantity},
                 Koha::Number::Price->new( $line->{rrpgsti} )->format,
                 Koha::Number::Price->new( $line->{discount} )->format . '%',
