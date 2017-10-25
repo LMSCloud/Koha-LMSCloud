@@ -26,6 +26,7 @@ __PACKAGE__->table("social_data");
 =head2 isbn
 
   data_type: 'varchar'
+  default_value: (empty string)
   is_nullable: 0
   size: 30
 
@@ -64,7 +65,7 @@ __PACKAGE__->table("social_data");
 
 __PACKAGE__->add_columns(
   "isbn",
-  { data_type => "varchar", is_nullable => 0, size => 30 },
+  { data_type => "varchar", default_value => "", is_nullable => 0, size => 30 },
   "num_critics",
   { data_type => "integer", is_nullable => 1 },
   "num_critics_pro",
@@ -92,8 +93,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("isbn");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-16 11:50:06
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:usVpyGBj+yaXUwwwZoG2oQ
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-09-07 12:38:41
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:KGiWtjcsWury2tvo0QwdMg
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration
