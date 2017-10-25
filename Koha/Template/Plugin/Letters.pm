@@ -26,12 +26,10 @@ sub all {
     my ( $self, $params ) = @_;
     my $selected = $params->{selected};
 
-    my $letters = GetLetters();
-    if ( $selected ) {
-        for my $letter ( @$letters ) {
-            if ( $letter->{code} eq $selected ) {
-                $letter->{selected} = 1;
-            }
+    my $letters = GetPatronLetters();
+    for my $letter ( @$letters ) {
+        if ( $selected && $letter->{code} eq $selected ) {
+            $letter->{selected} = 1;
         }
     }
     return $letters;

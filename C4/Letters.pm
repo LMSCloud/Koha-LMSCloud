@@ -46,7 +46,7 @@ BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
     @EXPORT = qw(
-        &GetLetters &GetLettersAvailableForALibrary &GetLetterTemplates &DelLetter &GetPreparedLetter &GetWrappedLetter &addalert &getalert &delalert &findrelatedto &SendAlerts &GetPrintMessages &GetMessageTransportTypes
+        &GetLetters &GetPatronLetters &GetAdhocNoticeLetters &GetLettersAvailableForALibrary &GetLetterTemplates &DelLetter &GetPreparedLetter &GetWrappedLetter &addalert &getalert &delalert &findrelatedto &SendAlerts &GetPrintMessages &GetMessagesById &GetMessageTransportTypes
     );
 }
 
@@ -220,6 +220,57 @@ sub GetLettersAvailableForALibrary {
           sort { $letters{$a}->{name} cmp $letters{$b}->{name} }
           keys %letters ];
 
+}
+
+=head2 GetPatronLetters
+
+    my $letters = GetPatronLetters();
+
+    Return an arrayref of letters that are sent to patrons, sorted by name.
+    Only letters of the following modules are provided: circulation, members, reserves, suggestions
+
+=cut
+
+sub GetPatronLetters {
+    my $letters = GetLetters();
+    my $selletters = [];
+    for my $letter ( @$letters ) {
+        if ( $letter->{module} =~ /^(circulation|members|reserves|suggestions)$/ ) {
+            push @$selletters, $letter;
+        }
+    }
+    return $selletters;
+}
+
+=head2 GetAdhocNoticeLetters
+
+    my $letters = GetAdhocNoticeLetters();
+
+    Return an arrayref of letters that are admitted to be sent to patrons adhoc.
+    Only letters of the following modules are provided: circulation, members, reserves, suggestions
+    One of the values of the systempreference 'AdhocNoticesLetterCodes' must match the letter ocde
+    to be returned by this function.
+
+=cut
+
+sub GetAdhocNoticeLetters {
+    my $letters = GetPatronLetters();
+    my $selletters = [];
+    my $pattern = C4::Context->preference('AdhocNoticesLetterCodes');
+    my @codepatterns = [];
+    foreach my $codepattern (split(/\s*\|\s*/,$pattern)) {
+        $codepattern =~ s/\*/\.\*/g;
+        $codepattern = '^' . $codepattern . '$';
+        push @codepatterns, $codepattern; 
+    }
+    for my $letter ( @$letters ) {
+        foreach my $codepattern(@codepatterns) {
+            if ( $letter->{code} =~ /$codepattern/ ) {
+                push @$selletters, $letter;
+            }
+        }
+    }
+    return $selletters;
 }
 
 sub getletter {
@@ -1090,6 +1141,21 @@ sub GetPrintMessages {
                                  } );
 }
 
+=head2 GetMessagesById
+
+  my $message_list = GetMessagesById( { message_id => \@messageIdList } )
+
+Returns a arrayref of all queued print messages by message id.
+
+=cut
+
+sub GetMessagesById {
+    my $params = shift || {};
+    
+    return _get_unsent_messages( { message_id         => $params->{'message_id'},
+                                 } );
+}
+
 =head2 GetQueuedMessages ([$hashref])
 
   my $messages = GetQueuedMessage( { borrowernumber => '123', limit => 20 } );
@@ -1270,6 +1336,11 @@ ENDSQL
         if ( $params->{'borrowernumber'} ) {
             $statement .= ' AND borrowernumber = ? ';
             push @query_params, $params->{'borrowernumber'};
+        }
+        if ( $params->{'message_id'} && ref $params->{'message_id'} eq 'ARRAY') {
+            my @message_ids = @{$params->{'message_id'}};
+            $statement .= ' AND message_id IN (' . join(', ', ('?') x @message_ids) . ')';
+            push @query_params, @message_ids;
         }
         if ( $params->{'limit'} ) {
             $statement .= ' limit ? ';

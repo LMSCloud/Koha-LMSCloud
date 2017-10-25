@@ -13291,6 +13291,23 @@ if ( CheckVersion($DBversion) ) {
 
 $DBversion = '16.05.12.005';
 if ( CheckVersion($DBversion) ) {
+    # Add permission and systempreference to send adhoc notices to patrons
+    $dbh->do( q{  
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+        ('AdhocNoticesLetterCodes','FINES_DUE*',NULL,'Provide a comma-separated list of letter codes which can be used to send adhoc notices (available in the patron result list). An asterix can be used as wildcard character to match multiple letter codes.','Free')
+    });
+    $dbh->do( q{ 
+        INSERT INTO permissions (module_bit, code, description) VALUES
+        (1, 'send_adhoc_notices', 'Send adhoc notices to patrons')
+    });
+    $dbh->do(q{ ALTER TABLE `letter` MODIFY `code` VARCHAR(50) });
+    
+    print "Upgrade to $DBversion done (Koha 16.05.12.005). Send adhoc notices to patrons.\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = '16.05.12.006';
+if ( CheckVersion($DBversion) ) {
     # Add tables acquisition_import and acquisition_import_objects for backtracking the vendor's information on order, delivery, invoice, etc.
     $dbh->do( q{
         "CREATE TABLE `acquisition_import` ( -- for backtracking the vendor's information on order, delivery, invoice, etc.

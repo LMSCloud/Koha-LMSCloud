@@ -372,7 +372,7 @@ div#header_search input {
 	font-size : 1.3em;
 }
 
-div#header_search .ageinput {
+div#header_search .ageinput, div#header_search .issuecountinput {
     font-size: 0.9em;
     width: 5em;
 }
@@ -387,7 +387,7 @@ div#header_search .dateinput {
     width: 8em;
 }
 
-#searchform .agerange-input,  #searchform .charges-input {
+#searchform .agerange-input,  #searchform .charges-input, #searchform .issuecount-input {
     width: 3em;
 }
 
@@ -2875,4 +2875,11 @@ div.cashregisterinfo ul li {
 #change_date_error_message {
     display: inline-block;
     visibility: hidden;
+}
+
+#pat_member #patron_list_dialog {
+    display: none
+}
+#pat_member #notice_sent_dialog {
+    display: none;
 }

@@ -570,9 +570,13 @@ the total fine currently due by the borrower.
 
 sub GetFamilyCardMemberIssuesAndFines {
     my ( $borrowernumber, $branchcode ) = @_;
-    my $dbh   = C4::Context->dbh;
-    my $query = 
-        "SELECT COUNT(*) FROM issues i, branches r
+    
+    my @parameter = ($borrowernumber, $borrowernumber);
+    push(@parameter,$branchcode,$branchcode) if ($branchcode);
+    
+    my $dbh = C4::Context->dbh;
+    
+    my $query = "SELECT COUNT(*) FROM issues i, branches r
         WHERE i.branchcode = r.branchcode 
         AND (i.borrowernumber = ? 
         OR i.borrowernumber IN 
@@ -581,16 +585,14 @@ sub GetFamilyCardMemberIssuesAndFines {
              WHERE b.guarantorid = ?
              AND o.borrowernumber = b.guarantorid
              AND c.categorycode = o.categorycode
-             AND c.family_card = 1))
-        AND (r.branchcode = ? OR r.mobilebranch = ?)";
- 
+             AND c.family_card = 1))";
+    $query .= " AND (r.branchcode = ? OR r.mobilebranch = ?)" if ($branchcode);
     $debug and warn $query."\n";
     my $sth = $dbh->prepare($query);
-    $sth->execute($borrowernumber, $borrowernumber, $branchcode, $branchcode);
+    $sth->execute(@parameter);
     my $issue_count = $sth->fetchrow_arrayref->[0];
 
-    $sth = $dbh->prepare(
-        "SELECT COUNT(*) FROM issues i, branches r
+    $query = "SELECT COUNT(*) FROM issues i, branches r
          WHERE i.branchcode = r.branchcode 
          AND (i.borrowernumber = ?
          OR i.borrowernumber IN 
@@ -600,15 +602,13 @@ sub GetFamilyCardMemberIssuesAndFines {
              AND o.borrowernumber = b.guarantorid
              AND c.categorycode = o.categorycode
              AND c.family_card = 1)) 
-         AND i.date_due < now()
-         AND (r.branchcode = ? OR r.mobilebranch = ?)"
-    );
-    
-    $sth->execute($borrowernumber, $borrowernumber, $branchcode, $branchcode);
+         AND i.date_due < now()";
+    $query .= " AND (r.branchcode = ? OR r.mobilebranch = ?)" if ($branchcode);
+    $sth = $dbh->prepare($query);
+    $sth->execute(@parameter);
     my $overdue_count = $sth->fetchrow_arrayref->[0];
 
-    $sth = $dbh->prepare(
-        "SELECT SUM(amountoutstanding) 
+    $query = "SELECT SUM(amountoutstanding) 
          FROM accountlines a, branches r
          WHERE a.branchcode = r.branchcode
          AND (a.borrowernumber = ?
@@ -618,10 +618,10 @@ sub GetFamilyCardMemberIssuesAndFines {
              WHERE b.guarantorid = ?
              AND o.borrowernumber = b.guarantorid
              AND c.categorycode = o.categorycode
-             AND c.family_card = 1))
-         AND (r.branchcode = ? OR r.mobilebranch = ?)");
-
-    $sth->execute($borrowernumber, $borrowernumber, $branchcode, $branchcode);
+             AND c.family_card = 1))";
+    $query .= " AND (r.branchcode = ? OR r.mobilebranch = ?)" if ($branchcode);
+    $sth = $dbh->prepare($query);
+    $sth->execute(@parameter);
     my $total_fines = $sth->fetchrow_arrayref->[0];
 
     return ($overdue_count, $issue_count, $total_fines);

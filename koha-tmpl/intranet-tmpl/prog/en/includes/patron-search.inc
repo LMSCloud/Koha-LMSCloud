@@ -8,7 +8,7 @@
 $(document).ready(function() {
     $("#chargessince").datepicker( { 
         autoclose: true, 
-        maxDate: -1 ,
+        maxDate: -1,
         showOn: "both",
         changeMonth: true,
         changeYear: true,
@@ -31,6 +31,18 @@ $(document).ready(function() {
     });
     $("#accountexpiresto").datepicker( { 
         autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#inactivesince").datepicker( { 
+        autoclose: true, 
+        maxDate: -1,
         showOn: "both",
         changeMonth: true,
         changeYear: true,
@@ -172,6 +184,14 @@ $(document).ready(function() {
         </p>
         
         <p>
+            <label for="chargesfrom">Number of loans: </label>
+            from&#160;
+            <input type="number" name="issuecountstart" id="issuecountstart" value="" step="1" min="0" class="issuecountinput" />
+            to&#160;
+            <input type="number" name="issuecountend" id="issuecountend" value="" step="1" min="0" class="issuecountinput" />
+        </p>
+        
+        <p>
             <label for="chargesfrom">Open charges amount: </label>
             from&#160;
             <input type="number" name="chargesfrom" id="chargesfrom" value="" step="any" min="0" class="priceinput" />
@@ -188,6 +208,11 @@ $(document).ready(function() {
             <label for="accountexpiresfrom">Account expires/expired: </label>
             from&#160;<input type="text" size="13" id="accountexpiresfrom" name="accountexpiresfrom" value="" class="dateinput" />
             to&#160;<input type="text" size="13" id="accountexpiresto" name="accountexpiresto" value="" class="dateinput" />
+        </p>
+        
+        <p>
+            <label for="inactivesince">Inactiv since: </label>
+            <input type="text" size="13" id="inactivesince" name="inactivesince" value="" class="dateinput" />
         </p>
         
         <p>
@@ -268,7 +293,7 @@ $(document).ready(function() {
         $('#filters').toggle();
         $('.filteraction').toggle();
     });
-    [% IF ( advsearch ) %]$("#filteraction_on").toggle();
+    [% IF ( advsearch ) %]$("#filteraction_on :visible").toggle();
     [% ELSE %]$("#filters").toggle();
     $("#filteraction_off").toggle();[% END %]
     [% SET dateformat = Koha.Preference('dateformat') %]

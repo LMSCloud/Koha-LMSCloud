@@ -1,0 +1,85 @@
+#!/usr/bin/perl
+
+# Copyright 2017 LMSCloud GmbH
+#
+# This file is part of Koha
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
+use CGI;
+
+use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
+use C4::Output qw( output_with_http_headers );
+use Koha::DateUtils qw( output_pref dt_from_string );
+use C4::Letters;
+
+my $input = new CGI;
+
+my ($template, $user, $cookie) = get_template_and_user({
+    template_name   => "members/tables/adhocletters.tt",
+    query           => $input,
+    type            => "intranet",
+    authnotrequired => 0,
+    flagsrequired   => { borrowers => 'send_adhoc_notices' }
+});
+
+my $letters = [];
+$letters = GetAdhocNoticeLetters();
+
+$template->param(
+    letters => $letters,
+);
+
+output_with_http_headers $input, $cookie, $template->output, 'json';
+
+__END__
+
+=head1 NAME
+
+adhocletters - get available letters for adhoc notices
+
+=head1 SYNOPSIS
+
+This script provides a service to get the letters available for adhoc notices
+
+=head2 Performing a search
+
+Return a list of letters that are admitted to be sent to patrons adhoc.
+Only letters of the following modules are provided: circulation, members, reserves, suggestions
+One of the values of the systempreference 'AdhocNoticesLetterCodes' must match the letter ocde
+to be returned by this function.
+
+=cut
+
+=back
+
+=head1 LICENSE
+
+Copyright 2017 LMSCloud GmbH
+
+This file is part of Koha.
+
+Koha is free software; you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with Koha; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.

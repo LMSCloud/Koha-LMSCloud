@@ -143,6 +143,8 @@ for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{b
 # these are the moduls and letter codes that we allow
 my @moduleletters = (
     { module => 'circulation', matchcodes => 'ODUE.*'}, # we might add later messages for advance notices like: DUE|DUEDGST|PREDUE|PREDUEDGST
+    { module => 'circulation', matchcodes => 'FINES_DUE.*'},
+    { module => 'members',     matchcodes => 'FINES_DUE.*'},
     { module => 'reserves',    matchcodes => 'HOLD'}
 );
 my $letters = [];

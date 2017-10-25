@@ -165,6 +165,11 @@ Patrons:
                yes: Show
                no: "Don't show"
          - "patron messaging setting on the OPAC (note: EnhancedMessagingPreferences must be enabled)."
+     -
+         - "Provide a list of letter codes (separate multiple code with |) which can be used to send adhoc notices (available in the patron result list).<br />"
+         - pref: AdhocNoticesLetterCodes
+           class: multi
+         - "<br />An asterix can be used as wildcard character to match multiple letter codes."
 
     "Norwegian patron database":
      -
