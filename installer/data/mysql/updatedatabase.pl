@@ -13289,6 +13289,55 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = '16.05.12.005';
+if ( CheckVersion($DBversion) ) {
+    # Add tables acquisition_import and acquisition_import_objects for backtracking the vendor's information on order, delivery, invoice, etc.
+    $dbh->do( q{
+        "CREATE TABLE `acquisition_import` ( -- for backtracking the vendor's information on order, delivery, invoice, etc.
+            `id` int(11) NOT NULL auto_increment, -- unique key, used to identify the record
+            `vendor_id` varchar(200) NOT NULL default '', -- code for identifying the vendor, e.g. "ekz"
+            `object_type` varchar(80) NOT NULL default '', -- code of object type, eg. "order", "delivery", "invoice"
+            `object_number` varchar(255) NOT NULL default '', -- number of this object, set by vendor
+            `object_date` date NOT NULL, -- date linked to the object, eg. order date, invoice date
+            `rec_type` varchar(80) NOT NULL default '', -- code for type of this record, e.g. "message", "title", "item"
+            `object_item_number` varchar(255) default NULL, -- number of this object item, set by vendor
+            `processingstate` varchar(80) NOT NULL default '', -- code for state of this object item when record was created, e.g. "ordered", "delivered", "invoiced"
+            `processingtime` timestamp NOT NULL default CURRENT_TIMESTAMP, -- time when record was created
+            `payload` longtext NOT NULL default '', -- payload of message received from vendor (only if rec_type=="message")
+            `object_reference` int(11) default NULL, -- reference to base object (acquisition_import.id), e.g. the order item a invoice item refers to
+            PRIMARY KEY  (`id`),
+            KEY `object_item` (`vendor_id`, `object_type`, `object_number`, `rec_type`, `object_item_number`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    });
+    $dbh->do( q{
+        "CREATE TABLE `acquisition_import_objects` ( -- supplement to table acquisition_import, showing the connection to Koha records automatically created based on vendor's information on orders, deliveries, invoices, etc.
+            `id` int(11) NOT NULL auto_increment, -- unique key, used to identify the record
+            `acquisition_import_id` int(11) NOT NULL default 0, -- foreign key from the acquisition_import table to identify the connection (value of acquisition_import.id) 
+            `koha_object` varchar(80) NOT NULL default '', -- code of type of created koha object, eg. "title", "item"
+            `koha_object_id` int(11) NOT NULL default 0, -- foreign key of the connected Koha record, e.g. value of items.itemnumber
+            PRIMARY KEY  (`id`),
+            KEY `acquisition_import_id` (`acquisition_import_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    });
+
+    # Add support for ekz web services
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES 
+            ('ekzDeliveryNoteWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling delivery note information.','Free'),
+            ('ekzLocalServicesEnabled',0,NULL,'Enable/disable the local ekz web services that will create title data and items as required for media ordered online in the media shop of ekz.bibliotheksservice GmbH.','YesNo'),
+            ('ekzProcessingNoticesEmailAddress','',NULL,'The handlers of ekz web services will send their processing notices to this e-mail address.','Free'),
+            ('ekzStandingOrderWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling standing order information.','Free'),
+            ('ekzTitleDataServicesSequence','',NULL,'The ekz web services will use this sequence of targets for searching title data when creating the title record for an ordered or received medium. Default: _LMSC|_EKZWSMD|DNB|_WS Separator: |','Free'),
+            ('ekzWebServicesCustomerNumber','',NULL,'The library\'s customer number issued by ekz.bibliotheksservice GmbH, required for using the ekz web services.','Free'),
+            ('ekzWebServicesPassword','',NULL,'The library\'s password issued by ekz.bibliotheksservice GmbH, required for using the ekz web services.','Free'),
+            ('ekzWebServicesDefaultBranch','',NULL,'The ekz web services will use this branch code as home branch when creating items.','Free'),
+            ('ekzWebServicesUserName','',NULL,'Name of library staff who is registered and authorized in the library\'s account at ekz.bibliotheksservice GmbH. This name is part of the credentials used in the requests of the ekz web services.','Free')
+    });
+
+    print "Upgrade to $DBversion done (adding tables acquisition_import and acquisition_import_objects)\n";
+    SetVersion ($DBversion);
+}
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.

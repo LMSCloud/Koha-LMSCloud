@@ -16,6 +16,41 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `acquisition_import`
+--
+
+DROP TABLE IF EXISTS `acquisition_import`;
+CREATE TABLE `acquisition_import` ( -- for backtracking the vendor's information on order, delivery, invoice, etc.
+  `id` int(11) NOT NULL auto_increment, -- unique key, used to identify the record
+  `vendor_id` varchar(200) NOT NULL default '', -- code for identifying the vendor, e.g. "ekz"
+  `object_type` varchar(80) NOT NULL default '', -- code of object type, eg. "order", "delivery", "invoice"
+  `object_number` varchar(255) NOT NULL default '', -- number of this object, set by vendor
+  `object_date` date NOT NULL, -- date linked to the object, eg. order date, invoice date
+  `rec_type` varchar(80) NOT NULL default '', -- code for type of this record, e.g. "message", "title", "item"
+  `object_item_number` varchar(255) default NULL, -- number of this object item, set by vendor
+  `processingstate` varchar(80) NOT NULL default '', -- code for state of this object item when record was created, e.g. "ordered", "delivered", "invoiced"
+  `processingtime` timestamp NOT NULL default CURRENT_TIMESTAMP, -- time when record was created
+  `payload` longtext NOT NULL default '', -- payload of message received from vendor (only if rec_type=="message")
+  `object_reference` int(11) default NULL, -- reference to base object (acquisition_import.id), e.g. the order item a invoice item refers to
+  PRIMARY KEY  (`id`),
+  KEY `object_item` (`vendor_id`, `object_type`, `object_number`, `rec_type`, `object_item_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Table structure for table `acquisition_import_objects`
+--
+
+DROP TABLE IF EXISTS `acquisition_import_objects`;
+CREATE TABLE `acquisition_import_objects` ( -- supplement to table acquisition_import, showing the connection to Koha records automatically created based on vendor's information on orders, deliveries, invoices, etc.
+  `id` int(11) NOT NULL auto_increment, -- unique key, used to identify the record
+  `acquisition_import_id` int(11) NOT NULL default 0, -- foreign key from the acquisition_import table to identify the connection (value of acquisition_import.id) 
+  `koha_object` varchar(80) NOT NULL default '', -- code of type of created koha object, eg. "title", "item"
+  `koha_object_id` int(11) NOT NULL default 0, -- foreign key of the connected Koha record, e.g. value of items.itemnumber
+  PRIMARY KEY  (`id`),
+  KEY `acquisition_import_id` (`acquisition_import_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
 -- Table structure for table `auth_header`
 --
 

@@ -382,3 +382,40 @@ Enhanced Content:
                 aws: Amazon Web Services
                 gb: Google Books
                 ol: Open Library
+    ekz Data Services:
+        -
+            - pref: ekzLocalServicesEnabled
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - the local ekz web services that will create title data and items as required for media ordered online in the <a href='https://mbk.ekz.de/Login.do'>media shop</a> of <a href='https://www.ekz.de'>ekz.bibliotheksservice GmbH</a>.
+        -
+            - The handlers of ekz web services will send their processing notices to the e-mail address
+            - pref: ekzProcessingNoticesEmailAddress
+            - .
+        -
+            - The ekz web service for reading standing order information has lastly been executed at
+            - pref: ekzStandingOrderWSLastRunDate
+            - ",<br>the ekz web service for reading delivery note information at"
+            - pref: ekzDeliveryNoteWSLastRunDate
+            - .
+        -
+            - Use the sequence 
+            - pref: ekzTitleDataServicesSequence
+            - of targets for searching title data when creating the title record for an ordered or received medium. 
+            - <br>The default value is <strong>_LMSC|_EKZWSMD|DNB|_WS</strong>, the fixed separator is <strong>|</strong>.
+            - <br>Defined abbreviations are <strong>_LMSC</strong> for LMSCloud data pool, <strong>_EKZWSMD</strong> for ekz title data web service and <strong>_WS</strong> for sparse title data sent in ekz web service.
+            - <br>Other values are interpreted as names of Z39.50 targets you have defined in the Koha administration as Z39.50/SRU servers.
+        -
+            - In order to use the ekz web services of ekz.bibliotheksservice GmbH for handling standing order and delivery note information, the ekz web service credentials have to be supplied here. <br>
+            - The library's customer number issued by ekz.bibliotheksservice GmbH is
+            - pref: ekzWebServicesCustomerNumber
+            - .<br>The library's password issued by ekz.bibliotheksservice GmbH for ekz web services is
+            - pref: ekzWebServicesPassword
+            - .<br>The name of library staff who is registered and authorized with ekz.bibliotheksservice GmbH is
+            - pref: ekzWebServicesUserName
+            - .<br>The handlers of the ekz web services will create and update title data and items as required.
+        -
+            - The ekz web services shall use
+            - pref: ekzWebServicesDefaultBranch
+            - as home branch code when creating items.
