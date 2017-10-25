@@ -87,6 +87,8 @@ $template->param(
     lastlettercode      => scalar $input->param('lastlettercode'),
     overduelevel        => scalar $input->param('overduelevel'),
     inactivesince       => scalar $input->param('inactivesince'),
+    issuecountstart     => scalar $input->param('issuecountstart'),
+    issuecountend       => scalar $input->param('issuecountend'),
     PatronsPerPage      => C4::Context->preference("PatronsPerPage") || 20,
     view                => $view,
 );

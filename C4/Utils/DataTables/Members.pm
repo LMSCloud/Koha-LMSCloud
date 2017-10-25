@@ -26,6 +26,8 @@ sub search {
     my $agerangeend = $params->{agerangeend};
     my $overduelevel = $params->{overduelevel};
     my $inactivesince = $params->{inactivesince};
+    my $issuecountstart = $params->{issuecountstart};
+    my $issuecountend = $params->{issuecountend};
 
     unless ( $searchmember ) {
         $searchmember = $dt_params->{sSearch} // '';
@@ -146,6 +148,24 @@ sub search {
             $add .= " <= ?";
             push @where_strs, $add;
             push @where_args, $agerangeend;
+        }
+    }
+    if (defined($issuecountstart) || defined($issuecountend)) {
+        my $add = "(SELECT COUNT(*) FROM issues iss WHERE iss.borrowernumber = borrowers.borrowernumber)";
+        if ( defined($issuecountstart) && $issuecountstart =~ /^\d+$/ && defined($issuecountend) && $issuecountend =~ /^\d+$/ ) {
+            $add .= " BETWEEN ? AND ?";
+            push @where_strs, $add;
+            push @where_args, $issuecountstart, $issuecountend;
+        }
+        elsif ( defined($issuecountstart) && $issuecountstart =~ /^\d+$/ ) {
+            $add .= " >= ?";
+            push @where_strs, $add;
+            push @where_args, $issuecountstart;
+        }
+        elsif ( defined($issuecountend) && $issuecountend =~ /^\d+$/ ) {
+            $add .= " <= ?";
+            push @where_strs, $add;
+            push @where_args, $issuecountend;
         }
     }
     if (defined($overduelevel) && $overduelevel =~ /^\d+$/ ) {

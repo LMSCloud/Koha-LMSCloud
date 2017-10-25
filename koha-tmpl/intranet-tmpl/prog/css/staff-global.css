@@ -372,7 +372,7 @@ div#header_search input {
 	font-size : 1.3em;
 }
 
-div#header_search .ageinput {
+div#header_search .ageinput, div#header_search .issuecountinput {
     font-size: 0.9em;
     width: 5em;
 }
@@ -387,7 +387,7 @@ div#header_search .dateinput {
     width: 8em;
 }
 
-#searchform .agerange-input,  #searchform .charges-input {
+#searchform .agerange-input,  #searchform .charges-input, #searchform .issuecount-input {
     width: 3em;
 }
 

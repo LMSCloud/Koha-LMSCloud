@@ -353,6 +353,12 @@ $(document).ready(function() {
                 'name': 'inactivesince',
                 'value': $("#inactivesince_filter").val()
             },{
+                'name': 'issuecountstart',
+                'value': $("#issuecountstart_filter").val()
+            },{
+                'name': 'issuecountend',
+                'value': $("#issuecountend_filter").val()
+            },{
                 'name': 'name_sorton',
                 'value': 'borrowers.surname borrowers.firstname'
             },{
@@ -473,6 +479,8 @@ function clearFilters(redraw) {
     $("#lastlettercode_filter").val('');
     $("#overduelevel_filter").val('');
     $("#inactivesince_filter").val('');
+    $("#issuecountstart_filter").val('');
+    $("#issuecountend_filter").val('');
 }
 
 // User has clicked on a letter
@@ -718,6 +726,13 @@ function filterByFirstLetterSurname(letter) {
                 <input type="number" name="agerangestart_filter" id="agerangestart_filter" value="[% agerangestart %]" step="any" min="0" class="agerange-input" />
                 to&#160;
                 <input type="number" name="agerangeend_filter" id="agerangeend_filter" value="[% agerangeend %]" step="any" min="0" class="agerange-input" />
+            </li>
+            <li>
+              <label for="issuecountstart_filter">Number of loans: </label>
+                from&#160;
+                <input type="number" name="issuecountstart_filter" id="issuecountstart_filter" value="[% issuecountstart %]" step="any" min="0" class="issuecount-input" />
+                to&#160;
+                <input type="number" name="issuecountend_filter" id="issuecountend_filter" value="[% issuecountend %]" step="any" min="0" class="issuecount-input" />
             </li>
             <li>
               <label for="chargesfrom_filter">Open charges amount:</label>

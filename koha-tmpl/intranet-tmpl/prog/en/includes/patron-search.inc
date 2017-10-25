@@ -184,6 +184,14 @@ $(document).ready(function() {
         </p>
         
         <p>
+            <label for="chargesfrom">Number of loans: </label>
+            from&#160;
+            <input type="number" name="issuecountstart" id="issuecountstart" value="" step="1" min="0" class="issuecountinput" />
+            to&#160;
+            <input type="number" name="issuecountend" id="issuecountend" value="" step="1" min="0" class="issuecountinput" />
+        </p>
+        
+        <p>
             <label for="chargesfrom">Open charges amount: </label>
             from&#160;
             <input type="number" name="chargesfrom" id="chargesfrom" value="" step="any" min="0" class="priceinput" />
