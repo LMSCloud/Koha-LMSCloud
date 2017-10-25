@@ -50,6 +50,42 @@ __PACKAGE__->table("browser");
   data_type: 'tinyint'
   is_nullable: 0
 
+=head2 parent
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 255
+
+=head2 prefix
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 40
+
+=head2 classval
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 40
+
+=head2 startrange
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 endrange
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 exclude
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 1024
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -63,11 +99,23 @@ __PACKAGE__->add_columns(
   { data_type => "bigint", is_nullable => 0 },
   "endnode",
   { data_type => "tinyint", is_nullable => 0 },
+  "parent",
+  { data_type => "varchar", is_nullable => 1, size => 255 },
+  "prefix",
+  { data_type => "varchar", is_nullable => 1, size => 40 },
+  "classval",
+  { data_type => "varchar", is_nullable => 1, size => 40 },
+  "startrange",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "endrange",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "exclude",
+  { data_type => "varchar", is_nullable => 1, size => 1024 },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-08 14:28:28
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:MwPWlIbCUBQVTYNIJIMJ8g
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-09-07 12:38:41
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:IIFNHuWvKecyErNTlV72uw
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration
