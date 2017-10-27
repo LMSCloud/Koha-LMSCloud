@@ -1,5 +1,5 @@
 [% USE Koha %]
-[% USE Borrowers %]
+[% USE Borrowers %][% SET IsFamilyCard = (Borrowers.IsFamilyCard( borrowernumber ) || Borrowers.IsFamilyCard( guarantorid )) %]
 [% SET NorwegianPatronDBEnable = Koha.Preference( 'NorwegianPatronDBEnable' ) %]
 <script type="text/javascript">
 //<![CDATA[
@@ -102,12 +102,25 @@ function update_child() {
 }
 [% END %]
 
+[% IF ( guarantorid && IsFamilyCard ) %]
 function confirm_reregistration() {
-    var is_confirmed = window.confirm(_("Are you sure you want to renew this patron's registration?"));
+    var is_confirmed = window.confirm(_("Are you sure you want to renew this patron's family card registration?"));
     if (is_confirmed) {
-    window.location = '/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% borrowernumber %]&amp;destination=[% destination %]&amp;reregistration=y';
+        window.location = '/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% guarantorid %]&amp;destination=[% destination %]&amp;reregistration=y;followupborrower=[% borrowernumber %]';
     }
 }
+[% ELSE %]
+function confirm_reregistration() {
+    [% IF ( IsFamilyCard ) %]
+    var is_confirmed = window.confirm(_("Are you sure you want to renew this patron's family card registration?"));
+    [% ELSE %]
+    var is_confirmed = window.confirm(_("Are you sure you want to renew this patron's registration?"));
+    [% END %]
+    if (is_confirmed) {
+        window.location = '/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% borrowernumber %]&amp;destination=[% destination %]&amp;reregistration=y';
+    }
+}
+[% END %]
 function export_barcodes() {
     window.open('/cgi-bin/koha/members/readingrec.pl?borrowernumber=[% borrowernumber %]&amp;op=export_barcodes');
 }
@@ -166,7 +179,7 @@ function searchToHold(){
         <button class="btn btn-small dropdown-toggle" data-toggle="dropdown">More <span class="caret"></span></button>
             <ul class="dropdown-menu">
                 [% IF ( CAN_user_borrowers ) %]
-                    <li><a id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% borrowernumber %]&amp;destination=[% destination %]&amp;reregistration=y">Renew patron</a></li>
+                    <li><a id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% borrowernumber %]&amp;destination=[% destination %]&amp;reregistration=y">[% IF ( IsFamilyCard ) %]Renew family card[% ELSE %]Renew patron[% END %]</a></li>
                 [% ELSE %]
                     <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="You are not authorized to renew patrons" id="renewpatron" href="#">Renew patron</a></li>
                 [% END %]

@@ -57,5 +57,20 @@ sub HasOverdues {
     return C4::Members::HasOverdues($borrowernumber);
 }
 
+sub IsFamilyCard {
+    my ( $self, $borrowernumber ) = @_;
+
+    return unless $borrowernumber;
+
+    return C4::Members::IsFamilyCard($borrowernumber);
+}
+
+sub GetGuarantor {
+    my ( $self, $borrowernumber ) = @_;
+
+    return unless $borrowernumber;
+
+    return C4::Members::GetMember( borrowernumber => $borrowernumber);
+}
 
 1;
