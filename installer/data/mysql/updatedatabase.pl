@@ -13341,14 +13341,17 @@ if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES 
             ('ekzDeliveryNoteWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling delivery note information.','Free'),
-            ('ekzLocalServicesEnabled',0,NULL,'Enable/disable the local ekz web services that will create title data and items as required for media ordered online in the media shop of ekz.bibliotheksservice GmbH.','YesNo'),
+            ('ekzLocalServicesEnabled','0',NULL,'Enable/disable the local ekz web services that will create title data and items as required for media ordered online in the media shop of ekz.bibliotheksservice GmbH.','YesNo'),
             ('ekzProcessingNoticesEmailAddress','',NULL,'The handlers of ekz web services will send their processing notices to this e-mail address.','Free'),
             ('ekzStandingOrderWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling standing order information.','Free'),
-            ('ekzTitleDataServicesSequence','',NULL,'The ekz web services will use this sequence of targets for searching title data when creating the title record for an ordered or received medium. Default: _LMSC|_EKZWSMD|DNB|_WS Separator: |','Free'),
+            ('ekzTitleDataServicesSequence','_LMSC|_EKZWSMD|DNB|_WS',NULL,'The ekz web services will use this sequence of targets for searching title data when creating the title record for an ordered or received medium. Default: _LMSC|_EKZWSMD|DNB|_WS Separator: |','Free'),
             ('ekzWebServicesCustomerNumber','',NULL,'The library\'s customer number issued by ekz.bibliotheksservice GmbH, required for using the ekz web services.','Free'),
             ('ekzWebServicesPassword','',NULL,'The library\'s password issued by ekz.bibliotheksservice GmbH, required for using the ekz web services.','Free'),
-            ('ekzWebServicesDefaultBranch','',NULL,'The ekz web services will use this branch code as home branch when creating items.','Free'),
-            ('ekzWebServicesUserName','',NULL,'Name of library staff who is registered and authorized in the library\'s account at ekz.bibliotheksservice GmbH. This name is part of the credentials used in the requests of the ekz web services.','Free')
+            ('ekzWebServicesDefaultBranch','',NULL,'The ekz web services will use this branch code as default home branch code when creating items. Ekz web services containing explicitly selected branch codes will overwrite this default initialization.','Free'),
+            ('ekzWebServicesUserName','',NULL,'Name of library staff who is registered and authorized in the library\'s account at ekz.bibliotheksservice GmbH. This name is part of the credentials used in the requests of the ekz web services.','Free'),
+            ('ekzWebServicesHideOrderedTitlesInOpac','1',NULL,'Hide the title data created by the ekz web services for ordered media in the OPAC. If title data are hidden initially, you have to explicitly activate the visibility of the title data after receiving an item.','YesNo'),
+            ('ekzWebServicesSetItemSubfieldsWhenOrdered','',NULL,'When an ekz web service signals an order and an item is created, set the item\'s subfields as specified. (e.g. 7=-1|x="Item created by ekz web service.")','Free'),
+            ('ekzWebServicesSetItemSubfieldsWhenReceived','',NULL,'When an ekz web service signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x="notforloan set to 5 by ekz web service")','Free')
     });
 
     print "Upgrade to $DBversion done (adding tables acquisition_import and acquisition_import_objects)\n";
