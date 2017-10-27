@@ -486,7 +486,7 @@ sub MARCfindbreeding {
                             . ucfirst($lastname) );
                     }
                 }
-                $record->insert_fields_ordered($field);
+                $record->insert_fields_ordered($field) if ($field);
             }
             return $record, $encoding;
         }
