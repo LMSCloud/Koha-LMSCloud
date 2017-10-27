@@ -1886,7 +1886,7 @@ sub UpdateFamilyCardMembers {
 
   &GetFamilyCardId($borrowernumber);
 
-Get information about the linked family card if the borrower belongs to a family card subscriptions.
+Get information about the linked family card if the borrower belongs to a family card subscription.
 
 =cut
 
