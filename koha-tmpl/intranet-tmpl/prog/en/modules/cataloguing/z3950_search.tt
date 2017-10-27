@@ -117,7 +117,7 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
         [% IF ( subject ) %]<em>Subject heading: </em><span class=term>[% subject | html %]</span> [% END %]
         [% IF ( controlnumber ) %]<em>Control no: </em><span class=term>[% controlnumber | html %]</span> [% END %]
         [% IF ( dewey ) %]<em>Dewey: </em><span class=term>[% dewey | html %]</span> [%END %]
-        [% IF ( srchany ) %]<em>Raw (any): </em><span class=term>[% srchany | html %]</span> [% END %]
+        [% IF ( srchany ) %]<em>Keyword (any): </em><span class=term>[% srchany | html %]</span> [% END %]
         [% IF ( stdid ) %]<em>Standard ID: </em><span class=term>[% stdid | html %]</span> [% END %]
     </p>
     [% IF ( errconn ) %]

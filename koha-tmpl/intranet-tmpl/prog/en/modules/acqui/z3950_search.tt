@@ -70,7 +70,9 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
              <li><label for="author">Author: </label> <input type="text" id="author" name="author" value="[% author | html %]" /></li>
              <li><label for="issn">ISSN: </label> <input type="text" id="issn" name="issn" value="[% issn | html %]" /></li>
              <li><label for="subject">Subject heading: </label> <input type="text" id="subject" name="subject" value="" /></li>
+             <li><label for="srchany">Keyword (any): </label> <input type="text" id="srchany" name="srchany" value="" /></li>
              <li><label for="dewey">Dewey: </label> <input type="text" id="dewey" name="dewey" value="" /></li>
+             <li><label for="stdid">Standard ID: </label> <input type="text" id="stdid" name="stdid" value="" /></li>
              <li><label for="frameworkcode" >Select MARC framework:</label>
              <select id="frameworkcode" name="frameworkcode" >
              <option value="">Default</option>
@@ -125,6 +127,8 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
         [% IF ( subject ) %]<em>Subject heading: </em><span class=term>[% subject | html %]</span> [% END %]
         [% IF ( controlnumber ) %]<em>Control no: </em><span class=term>[% controlnumber | html %]</span> [% END %]
         [% IF ( dewey ) %]<em>Dewey: </em><span class=term>[% dewey | html %]</span> [%END %]
+        [% IF ( srchany ) %]<em>Keyword (any): </em><span class=term>[% srchany | html %]</span> [% END %]
+        [% IF ( stdid ) %]<em>Standard ID: </em><span class=term>[% stdid | html %]</span> [% END %]
     </p>
 
     [% IF ( breeding_loop ) %]
@@ -178,6 +182,8 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
         <input type="hidden" id="author" name="author" value="[% author | html %]" />
         <input type="hidden" id="subject" name="subject" value="[% subject | html %]" />
         <input type="hidden" id="dewey" name="dewey" value="[% dewey | html %]" />
+        <input type="hidden" id="srchany" name="srchany" value="[% srchany | html %]" />
+        <input type="hidden" id="stdid" name="stdid" value="[% stdid | html %]" />
         <input type="hidden" name="frameworkcode" value="[% frameworkcode | html %]" />
         <input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
         <input type="hidden" name="controlnumber" value="[% controlnumber | html %]" />
