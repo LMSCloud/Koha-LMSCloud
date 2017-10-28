@@ -2,6 +2,7 @@ package C4::Breeding;
 
 # Copyright 2000-2002 Katipo Communications
 # Parts Copyright 2013 Prosentient Systems
+# Parts Copyright 2017 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -36,7 +37,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 BEGIN {
 	require Exporter;
 	@ISA = qw(Exporter);
-    @EXPORT = qw(&BreedingSearch &Z3950Search &Z3950SearchAuth);
+    @EXPORT = qw(&BreedingSearch &Z3950Search &Z3950SearchAuth Z3950SearchGeneral);
 }
 
 =head1 NAME
@@ -123,7 +124,7 @@ sub BreedingSearch {
 
 Z3950Search($pars, $template);
 
-Parameters for Z3950 search are all passed via the $pars hash. It may contain isbn, title, author, dewey, subject, lccall, controlnumber, stdid, srchany.
+Parameters for Z3950 search are all passed via the $pars hash. It may contain isbn, title, author, dewey, subject, lccall, controlnumber, stdid, srchany, ean (zed targets only).
 Also it should contain an arrayref id that points to a list of id's of the z3950 targets to be queried (see z3950servers table).
 This code is used in acqui/z3950_search and cataloging/z3950_search.
 The second parameter $template is a Template object. The routine uses this parameter to store the found values into the template.
@@ -233,6 +234,7 @@ sub _build_query {
     my $qry_build = {
         isbn    => '@attr 1=7 @attr 5=1 "#term" ',
         issn    => '@attr 1=8 @attr 5=1 "#term" ',
+        ean     => '@attr 1=1214 "#term" ',        # effective for zed targets only, ignored for sru targets
         title   => '@attr 1=4 "#term" ',
         author  => '@attr 1=1003 "#term" ',
         dewey   => '@attr 1=16 "#term" ',
@@ -265,17 +267,7 @@ sub _build_query {
 sub _handle_one_result {
     my ( $zoomrec, $servhref, $seq, $bib, $xslh )= @_;
 
-    my $raw= $zoomrec->raw();
-    my $marcrecord;
-    if( $servhref->{servertype} eq 'sru' ) {
-        $marcrecord= MARC::Record->new_from_xml( $raw, 'UTF-8',
-            $servhref->{syntax} );
-    } else {
-        ($marcrecord) = MarcToUTF8Record($raw, C4::Context->preference('marcflavour'), $servhref->{encoding} // "iso-5426" ); #ignores charset return values
-    }
-    SetUTF8Flag($marcrecord);
-    my $error;
-    ( $marcrecord, $error ) = _do_xslt_proc($marcrecord, $servhref, $xslh);
+    my ( $marcrecord, $error ) = _handle_one_result_marcrecord($zoomrec, $servhref, $xslh);
 
     my $batch_id = GetZ3950BatchId($servhref->{servername});
     my $breedingid = AddBiblioToBatch($batch_id, $seq, $marcrecord, 'UTF-8', 0, 0);
@@ -294,6 +286,24 @@ sub _handle_one_result {
             breedingid   => $breedingid,
         }, $marcrecord) if $breedingid;
     return ( $row, $error );
+}
+
+sub _handle_one_result_marcrecord {
+    my ( $zoomrec, $servhref, $xslh )= @_;
+
+    my $raw= $zoomrec->raw();
+    my $marcrecord;
+    if( $servhref->{servertype} eq 'sru' ) {
+        $marcrecord= MARC::Record->new_from_xml( $raw, 'UTF-8',
+            $servhref->{syntax} );
+    } else {
+        ($marcrecord) = MarcToUTF8Record($raw, C4::Context->preference('marcflavour'), $servhref->{encoding} // "iso-5426" ); #ignores charset return values
+    }
+    SetUTF8Flag($marcrecord);
+    my $error;
+    ( $marcrecord, $error ) = _do_xslt_proc($marcrecord, $servhref, $xslh);
+
+    return ( $marcrecord, $error );
 }
 
 sub _do_xslt_proc {
@@ -707,6 +717,100 @@ sub Z3950SearchAuth {
         servers => \@servers,
         errconn       => \@errconn
     );
+}
+
+
+=head2 Z3950SearchGeneral
+
+Z3950SearchGeneral($pars, $result, $errors);
+
+Parameters for Z3950 search are all passed via the $pars hash. It may contain isbn, title, author, dewey, subject, lccall, controlnumber, stdid, srchany, ean (zed targets only).
+Also it should contain an arrayref id that points to a list of id's of the z3950 targets to be queried (see z3950servers table).
+The method is similar to Z3950Search with the difference that it fills the found marc records into a neutral hash instead of a template.
+This hash has to be initialized by the caller, so it may be expanded by further calls of Z3950SearchGeneral.
+The second parameter $result is a hashref with keys count and records. The routine stores the found marcrecords into $$result->{'records'}.
+The third parameter $errors is a arrayref for returning error messages.
+
+=cut
+
+sub Z3950SearchGeneral {
+    my ($pars, $result, $errors) = @_;
+
+    my @id= @{$pars->{id}};
+    my @oConnection;
+    my @oResult;
+    my @errconn;
+    my $s = 0;
+
+    my ( $zquery, $squery ) = _build_query( $pars );
+
+    my $schema = Koha::Database->new()->schema();
+    my $rs = $schema->resultset('Z3950server')->search(
+        { id => [ @id ] },
+        { result_class => 'DBIx::Class::ResultClass::HashRefInflator' },
+    );
+    my @servers = $rs->all;
+    foreach my $server ( @servers ) {
+        $oConnection[$s] = _create_connection( $server );
+        $oResult[$s] =
+            $server->{servertype} eq 'zed'?
+                $oConnection[$s]->search_pqf( $zquery ):
+                $oConnection[$s]->search(new ZOOM::Query::CQL(
+                    _translate_query( $server, $squery )));
+        $s++;
+    }
+    my $xslh = Koha::XSLT_Handler->new;
+
+    #$$result->{'count'} = 0;     # We do not do this here; the caller has to decide on initializing or expanding the result hash.
+    #$$result->{'records'} = [];  # We do not do this here; the caller has to decide on initializing or expanding the result hash.
+    my $nremaining = $s;
+    while ( $nremaining-- ) {
+        my $k;
+        my $event;
+        while ( ( $k = ZOOM::event( \@oConnection ) ) != 0 ) {
+            $event = $oConnection[ $k - 1 ]->last_event();
+            last if $event == ZOOM::Event::ZEND;
+        }
+
+        if ( $k != 0 ) {
+            $k--;
+            my ($error)= $oConnection[$k]->error_x(); #ignores errmsg, addinfo, diagset
+            if ($error) {
+                if ($error =~ m/^(10000|10007)$/ ) {
+                    push(@errconn, { server => $servers[$k]->{host}, error => $error } );
+                }
+            }
+            else {
+                my $numresults = $oResult[$k]->size();
+                my $i;
+                my $marcrecord;
+                for ($i = 0; $i < $numresults; $i++) {
+                    if ( $oResult[$k]->record($i) ) {
+                        undef $error;
+                        ( $marcrecord, $error ) = _handle_one_result_marcrecord( $oResult[$k]->record($i), $servers[$k], $xslh );
+					    if ( $marcrecord ) {
+                            $$result->{'count'} += 1;
+					        push @{$$result->{'records'}}, $marcrecord;
+                        }
+                        if ( $error ) {
+                            push @errconn, { server => $servers[$k]->{servername}, error => $error, seq => $i+1 };
+                        }
+                    }
+                    else {
+                        push @errconn, { 'server' => $servers[$k]->{servername}, error => ( ( $oConnection[$k]->error_x() )[0] ), seq => $i+1 };
+                    }
+                }    # for $i < $numresults
+            }
+        }    # if $k !=0
+    } # while nremaining
+
+    #close result sets and connections
+    foreach(0..$s-1) {
+        $oResult[$_]->destroy();
+        $oConnection[$_]->destroy();
+    }
+
+    $$errors = \@errconn;
 }
 
 1;
