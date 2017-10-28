@@ -44,6 +44,7 @@ Koha::AcquisitionImport::AcquisitionImport - Koha acquisition import information
 sub _type {
     return 'AcquisitionImport';
 }
+
 =head3 object_class
 
 =cut
@@ -51,15 +52,7 @@ sub _type {
 sub object_class {
     return 'Koha::AcquisitionImport::AcquisitionImport';
 }
-=head3 search
 
-=cut
-
-sub search {
-    my ( $self, $params ) = @_;
-
-    return $self->SUPER::search( $params );
-}
 =head3 upd_or_ins
 
 =cut
