@@ -13355,6 +13355,24 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 }
 
+$DBversion = '16.05.12.007';
+if ( CheckVersion($DBversion) ) {
+    
+    # Add preferences of Divibib and ekz Cover services
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES 
+            ('DivibibAgencyId','',NULL,'Divibib Library ID','Free'),
+            ('DivibibEnabled',0,NULL,'Enable Divibib Onleihe integration ','YesNo'),
+            ('DivibibNCIPServiceMode','',NULL,'Mode of the Divibib NCIP Service. If set to \"test\" it uses the Test URL.','Free'),
+            ('EKZCover','0',NULL,'Enable/Disable to display covers from the German library service company EKZ','YesNo'),
+            ('EKZCoverURL','http://cover.ekz.de/',NULL,'Base URL to read covers from EKZ service.','Free')
+    });
+    
+    print "Upgrade to $DBversion done (adding preferences of Divibib and ekz Cover services)\n";
+    SetVersion ($DBversion);
+}
+
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.
