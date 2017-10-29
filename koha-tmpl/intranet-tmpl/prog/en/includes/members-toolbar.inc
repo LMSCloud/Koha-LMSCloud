@@ -151,7 +151,11 @@ function searchToHold(){
 
     [% IF ( CAN_user_borrowers ) %]
         [% IF adultborrower AND Koha.Preference("borrowerRelationship") %]
+            [% IF Borrowers.IsFamilyCard(borrowernumber) %]
+            <a id="addchild" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantorid=[% borrowernumber %]"><i class="fa fa-plus"></i> Add family card member</a>
+            [% ELSE %]
             <a id="addchild" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantorid=[% borrowernumber %]"><i class="fa fa-plus"></i> Add child</a>
+            [% END %]
         [% END %]
         [% IF ( CAN_user_borrowers ) %]
             <a id="changepassword" class="btn btn-small" href="/cgi-bin/koha/members/member-password.pl?member=[% borrowernumber %]"><i class="fa fa-lock"></i> Change password</a>

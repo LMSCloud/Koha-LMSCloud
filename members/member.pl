@@ -89,6 +89,7 @@ $template->param(
     inactivesince       => scalar $input->param('inactivesince'),
     issuecountstart     => scalar $input->param('issuecountstart'),
     issuecountend       => scalar $input->param('issuecountend'),
+    validemailavailable => scalar $input->param('validemailavailable'),
     PatronsPerPage      => C4::Context->preference("PatronsPerPage") || 20,
     view                => $view,
 );

@@ -211,7 +211,7 @@ $(document).ready(function() {
         </p>
         
         <p>
-            <label for="inactivesince">Inactiv since: </label>
+            <label for="inactivesince">Inactive since: </label>
             <input type="text" size="13" id="inactivesince" name="inactivesince" value="" class="dateinput" />
         </p>
         
@@ -244,6 +244,23 @@ $(document).ready(function() {
                   <option value="[% b %]">Level [% b %]</option>
                 [% END %]
               [% END %]
+           </select>
+        </p>
+        
+        <p>
+           <label for="validemailavailable">Email Address: </label>
+           <select id="validemailavailable" name="validemailavailable">
+                <option value="">Not selected</option>
+                [% IF ( validemailavailable == 'yes' ) %]
+                    <option value="yes" selected="selected">Email available</option>
+                [% ELSE %]
+                    <option value="yes">Email available</option>
+                [% END %]
+                [% IF ( validemailavailable == 'no' ) %]
+                    <option value="no" selected="selected">Email not available</option>
+                [% ELSE %]
+                    <option value="no">Email not available</option>
+                [% END %]
            </select>
         </p>
     </div>

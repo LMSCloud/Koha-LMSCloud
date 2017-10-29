@@ -56,7 +56,7 @@ $(document).ready(function() {
         }
 
         if ( $("#memberresultst input:checkbox:checked").length == 0 ) {
-            alert( _("You have not selected any patrons to add to a list!") );
+            alert( _("You do not have selected any patrons to add to a list!") );
             return false;
         }
 
@@ -115,7 +115,7 @@ $(document).ready(function() {
     $("#send_notice_letter_select").on('click', function(e){
         var patronCount = $("#memberresultst input:checkbox:checked").length;
         if ( patronCount == 0 ) {
-            alert( _("You have not selected any patrons to send a notice!") );
+            alert( _("You do not have selected any patrons to send a notice!") );
             return false;
         }
 
@@ -359,6 +359,9 @@ $(document).ready(function() {
                 'name': 'issuecountend',
                 'value': $("#issuecountend_filter").val()
             },{
+                'name': 'validemailavailable',
+                'value': $("#validemailavailable_filter").val()
+            },{
                 'name': 'name_sorton',
                 'value': 'borrowers.surname borrowers.firstname'
             },{
@@ -515,7 +518,7 @@ function filterByFirstLetterSurname(letter) {
             <div id="notice_sent_dialog" class="dialog alert">
               Letter "<span class="letter-name"></span>" successfully created as notice to <span class="patrons-length"></span> patron(s).
               <span class="letter-email"><br /><span class="letter-email-count"></span> patrons(s) notified my email.</span>
-              <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patrons(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Klick here to download the notices for printing.</a></span>
+              <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Klick here to download the notices for printing.</a></span>
             </div>
           [% END %]
 
@@ -783,6 +786,22 @@ function filterByFirstLetterSurname(letter) {
                   [% END %]
                 [% END %]
               </select>
+            </li>
+            <li>
+                <label for="validemailavailable_filter">Email Address: </label>
+                <select id="validemailavailable_filter">
+                    <option value="">Not selected</option>
+                    [% IF ( validemailavailable == 'yes' ) %]
+                        <option value="yes" selected="selected">Email available</option>
+                    [% ELSE %]
+                        <option value="yes">Email available</option>
+                    [% END %]
+                    [% IF ( validemailavailable == 'no' ) %]
+                        <option value="no" selected="selected">Email not available</option>
+                    [% ELSE %]
+                        <option value="no">Email not available</option>
+                    [% END %]
+               </select>
             </li>
           </ol>
           <fieldset class="action">
