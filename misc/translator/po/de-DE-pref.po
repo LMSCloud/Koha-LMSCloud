@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: German Koha Translation\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2017-09-02 13:26+0100\n"
+"PO-Revision-Date: 2017-10-28 17:53+0100\n"
 "Last-Translator: Katrin <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -3800,6 +3800,10 @@ msgstr "Baker and Taylor"
 msgid "enhanced_content.pref Coce Cover images cache"
 msgstr "Coce Coverbilder-Cache-Server"
 
+# Enhanced Content > Divibib
+msgid "enhanced_content.pref Divibib"
+msgstr "Divibib"
+
 # Enhanced Content > Google
 msgid "enhanced_content.pref Google"
 msgstr "Google"
@@ -3851,6 +3855,14 @@ msgstr "Syndetics"
 # Enhanced Content > Tagging
 msgid "enhanced_content.pref Tagging"
 msgstr "Tagging"
+
+# Enhanced Content > ekz Cover
+msgid "enhanced_content.pref ekz Cover"
+msgstr "ekz Cover"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref ekz Data Services"
+msgstr "ekz Data Services"
 
 # Enhanced Content > All
 msgid "enhanced_content.pref## <strong>NOTE:</strong> you can only choose one source of cover images from below, otherwise Koha will show the images from all sources selected."
@@ -3991,6 +4003,42 @@ msgstr "Coce-Server-URL"
 # Enhanced Content > Coce Cover images cache
 msgid "enhanced_content.pref#CoceProviders# Use the following providers to fetch the covers"
 msgstr "Verwende die folgenden Anbieter für Coverbilder"
+
+# Enhanced Content > Divibib
+msgid "enhanced_content.pref#DivibibAgencyId# Onleihe Library ID as prvided from the Divibib"
+msgstr "Onleihe Bibliotheks-ID (bereitgestellt durch die Divibib)"
+
+# Enhanced Content > Divibib
+msgid "enhanced_content.pref#DivibibEnabled# Don't enable"
+msgstr "Aktiviere nicht"
+
+# Enhanced Content > Divibib
+msgid "enhanced_content.pref#DivibibEnabled# Enable"
+msgstr "Aktiviere"
+
+# Enhanced Content > Divibib
+msgid "enhanced_content.pref#DivibibEnabled# The integration activates the use of the Onleihe NCIP services to get availabilty status and to authenticate patrons."
+msgstr "Mit der Aktivierung wird die Verwendung des Divibib NCIP-Services aktiviert, um Verfügbarkeitsinformationen anzuzeigen und Benutzer in der Onleihe zu authentifizieren."
+
+# Enhanced Content > Divibib
+msgid "enhanced_content.pref#DivibibEnabled# the Divibib Onleihe integration in Koha. Onleihe title und item data needs to be synchronized regularly to use the Onleihe integration."
+msgstr "die Divibib Onleihe-Integration mit Koha. Titel und Exemplare der Onleihe müssen regelmäßig mit der Onleihe und dem lokalen Katalog synchronosoiert werden, um die Onleihe_integration sinnvoll nutzen zu können."
+
+# Enhanced Content > Divibib
+msgid "enhanced_content.pref#DivibibNCIPServiceMode# Mode of the Divibib NCIP Service. If set to \"test\" it uses the test URL"
+msgstr "Modus für den Zugriff auf den Divibib NCIP-Service. Geben Sie hier \"test\" ein, um die den NCIP-Test-Service zu verwenden."
+
+# Enhanced Content > ekz Cover
+msgid "enhanced_content.pref#EKZCover# Don't enable"
+msgstr "Aktiviere nicht"
+
+# Enhanced Content > ekz Cover
+msgid "enhanced_content.pref#EKZCover# Enable"
+msgstr "Aktiviere"
+
+# Enhanced Content > ekz Cover
+msgid "enhanced_content.pref#EKZCover# cover display from the German library service company EKZ."
+msgstr "die ekz-Titelcover-Anzeige. Die Cover-Links müssen in den Titeldaten enthalten sein."
 
 # Enhanced Content > All
 msgid "enhanced_content.pref#FRBRizeEditions# Don't show"
@@ -4567,6 +4615,106 @@ msgstr "Verwende den xISBN Service nur"
 # Enhanced Content > OCLC
 msgid "enhanced_content.pref#XISBNDailyLimit# times a day. Unless you are paying for the xISBN service, you should leave this at the default of 999 (as detailed above)."
 msgstr "am Tag. Wenn die Bibliothek nicht für den xISBN Service bezahlt, sollte dieser Wert auf der Voreinstellung von 999 bleiben."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzLocalServicesEnabled# Don't enable"
+msgstr "Aktiviere nicht"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzLocalServicesEnabled# Enable"
+msgstr "Aktiviere"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzLocalServicesEnabled# the local ekz web services that will create title data and items as required for media ordered online in the <a href='https://mbk.ekz.de/Login.do'>media shop</a> of <a href='https://www.ekz.de'>ekz.bibliotheksservice GmbH</a>."
+msgstr "die lokale ekz-Medienservice-Schnittstelle. Über die lokale ekz-Medienschnittstelle werden Titel- und Exemplardaten für Bestellungen aus dem<a href='https://mbk.ekz.de/Login.do'>Medienshop der ekz.bibliotheksservice GmbH</a> automatisch übernommen. Dies erfordert ebenfalls eine Aktivierung beim ekz Medienshop."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzProcessingNoticesEmailAddress# ."
+msgstr " ."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzProcessingNoticesEmailAddress# The handlers of ekz web services will send their processing notices to the e-mail address"
+msgstr " Sende Emails mit den Ergebnissen der Verarbeitung der ekz-Importschnittstelle an die angegebene Email-Adresse"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzStandingOrderWSLastRunDate# ,<br>the ekz web service for reading delivery note information at"
+msgstr ",<br>der ekz-Importschnittstelle für die Verarbeitung von Lieferscheinen"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzStandingOrderWSLastRunDate# ."
+msgstr ". "
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzStandingOrderWSLastRunDate# The ekz web service for reading standing order information has lastly been executed at"
+msgstr "Letztes Verarbeitungsdatum der ekz-Importschnittstelle  für Standing-Order-Daten "
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzTitleDataServicesSequence# <br>Defined abbreviations are <strong>_LMSC</strong> for LMSCloud data pool, <strong>_EKZWSMD</strong> for ekz title data web service and <strong>_WS</strong> for sparse title data sent in ekz web service."
+msgstr " <br>LMSCloud-Kunden können mit <strong>_LMSC</strong> den LMSCloud-Datenpool und mit <strong>_EKZWSMD</strong> die Titeldaten direkt von der ekz beziehen. Durch die Angabe <strong>_WS</strong> wird der von der ekz gelieferte Rumpfdatensatz in den Katalog eingefügt."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzTitleDataServicesSequence# <br>Other values are interpreted as names of Z39.50 targets you have defined in the Koha administration as Z39.50/SRU servers."
+msgstr "<br>Weitere angegebene Werte werden als Namen von lokal konfigurierten Z39.50 oder SRU-Datenquellen interpretiert, wie diese in der Koha-Administration angelegt werden können."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzTitleDataServicesSequence# <br>The default value is <strong>_LMSC|_EKZWSMD|DNB|_WS</strong>, the fixed separator is <strong>|</strong>."
+msgstr "<br>Standard-Wert ist <strong>_LMSC|_EKZWSMD|DNB|_WS</strong>. Als Trenner zwischen den mehreren Titeldatenquellen muss ein <strong>|</strong>-Zeichen angegeben werden."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzTitleDataServicesSequence# Use the sequence"
+msgstr "Reihenfolge von zu verwendenden Z39.50/SRU-Targets "
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzTitleDataServicesSequence# of targets for searching title data when creating the title record for an ordered or received medium."
+msgstr "zu Bezug von Titeldaten die bei der ekz bestellt worden und per Standing Order bezogen werden. Die angegebenen Targets müssen als Z39.50 oder SRU Targets konfiguriert und verfügbar sein."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesCustomerNumber# .<br>The handlers of the ekz web services will create and update title data and items as required."
+msgstr " .<br>Mit dem ekz-Importservice werden Titel- und Exemplardaten in Koha erzeugt."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesCustomerNumber# .<br>The library's password issued by ekz.bibliotheksservice GmbH for ekz web services is"
+msgstr ".<br>Das von der ekz.bibliotheksservice GmbH angegebene Passwort für den Zugriff auf die ekz Web-Services ist"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesCustomerNumber# .<br>The name of library staff who is registered and authorized with ekz.bibliotheksservice GmbH is"
+msgstr " .<br>Der Benutzername, der für die Bibliothek beim ekz.bibliotheksservice registriert wurde, ist"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesCustomerNumber# In order to use the ekz web services of ekz.bibliotheksservice GmbH for handling standing order and delivery note information, the ekz web service credentials have to be supplied here. <br>"
+msgstr "Um die ekz Web-Services der ekz.bibliotheksservice GmbH zur Synchronisation von Titel- und Exemplardaten der Standing-Order-Bestellungen bzw. zur Verarbeitung von Lieferscheinen zu nutzen, müssen die Login-Daten des Web-Services der ekz angegeben werden. Diese werden von der ekz eingerichtet und bereitgestellt. <br>"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesCustomerNumber# The library's customer number issued by ekz.bibliotheksservice GmbH is"
+msgstr "Die Kundennummer der Bibliothek bei der ekz.bibliotheksservice GmbH "
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesDefaultBranch# The ekz web services shall use"
+msgstr "Angabe des Codes der Standard-Zweigstelle in Koha, mit The ekz web services shall use"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesDefaultBranch# as default home branch code when creating items. Ekz web services containing explicitly selected branch codes will overwrite this default."
+msgstr ", der bei der Erzeugung von Exemplaren für der Angabe der Heimatbibliothek des Exemplars genutzt wird. Wird vom ekz Web-Service die Zweigstelle mit den Daten geliefert, so wird diese anstelle der angegebenen Standard-Zweigstelle genutzt."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesHideOrderedTitlesInOpac# Hide"
+msgstr "Verberge"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesHideOrderedTitlesInOpac# Show"
+msgstr "Zeige"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesHideOrderedTitlesInOpac# the title data created by the ekz web services for ordered media in the OPAC. If title data are hidden initially, you have to explicitly activate the visibility of the title data after receiving an item."
+msgstr "Titeldaten von Titeln im OPAC, die über die ekz-Importschnittstelle in den Koha-Katalog importiert wurde. Wird die OPAC-Anzeige unterdrückt, so muss bei der Eingangsverarbeitung die OPAC-Anzeige manuell aktiviert werden, wenn der Titel im OPAC sein werden. soll."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesSetItemSubfieldsWhenOrdered# When an ekz web service signals an order and an item is created, set the item's subfields as specified. (e.g. 7=-1|x=\"Item created by ekz web service.\")"
+msgstr "Wenn der ekz-Importservice Bestellexemplare neu anlegt, sollen Exemplarfelder auf die angegebene Weise vorbelegt werden (z.B.: 7=-1|x=\"Exemplar von der ekz bezogen.\")"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesSetItemSubfieldsWhenReceived# When an ekz web service signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x=\"notforloan set to 5 by ekz web service\")"
+msgstr "Wenn der ekz-Importservice bestellte Exemplare als eingegangen verbucht,  sollen Exemplarfelder auf die angegebene Weise vorbelegt bzw. aktualisiert werden (z.B.: 7=5|x=\"Nicht ausleihbar gesetzt von ekz-Importservice.\")"
 
 # I18N/L10N
 msgid "i18n_l10n.pref"
@@ -6215,6 +6363,14 @@ msgstr "Allgemeines"
 # Patrons > Norwegian patron database
 msgid "patrons.pref Norwegian patron database"
 msgstr "Norwegische Benutzerdatenbank"
+
+# Patrons > General
+msgid "patrons.pref#AdhocNoticesLetterCodes# <br />An asterix can be used as wildcard character to match multiple letter codes."
+msgstr "<br />Die Angabe eines Asterix (*) dienst als Platzhalter für einen oder mehrere Zeichen des Briefformular-Codes (z.B: ODUE*)."
+
+# Patrons > General
+msgid "patrons.pref#AdhocNoticesLetterCodes# Provide a list of letter codes (separate multiple codes with |) which can be used to send adhoc notices (available in the patron result list).<br />"
+msgstr "Liste von Briefformular-Codes (getrennt durch ein |-Zeichen) die zum Versand von Adhoc-Benachrichtigungen zur Auswahl stehen (verfügbar für Trefferlisten der Benutzerdatenrecherche).<br />"
 
 # Patrons > General
 msgid "patrons.pref#AllowStaffToSetCheckoutsVisibilityForGuarantor# Allow"
