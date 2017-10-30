@@ -426,10 +426,10 @@ Enhanced Content:
                   no: Show
             - the title data created by the ekz web services for ordered media in the OPAC. If title data are hidden initially, you have to explicitly activate the visibility of the title data after receiving an item.
         -
-            - When an ekz web service signals an order and an item is created, set the item's subfields as specified. (e.g. 7=-1|x="Item created by ekz web service.")
+            - When an ekz web service signals an order and an item is created, set the item's subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)
             - pref: ekzWebServicesSetItemSubfieldsWhenOrdered
         -
-            - When an ekz web service signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x="notforloan set to 5 by ekz web service")
+            - When an ekz web service signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)
             - pref: ekzWebServicesSetItemSubfieldsWhenReceived
     ekz Cover:
         -

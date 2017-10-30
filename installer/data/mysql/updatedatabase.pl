@@ -13350,8 +13350,8 @@ if ( CheckVersion($DBversion) ) {
             ('ekzWebServicesDefaultBranch','',NULL,'The ekz web services will use this branch code as default home branch code when creating items. Ekz web services containing explicitly selected branch codes will overwrite this default initialization.','Free'),
             ('ekzWebServicesUserName','',NULL,'Name of library staff who is registered and authorized in the library\'s account at ekz.bibliotheksservice GmbH. This name is part of the credentials used in the requests of the ekz web services.','Free'),
             ('ekzWebServicesHideOrderedTitlesInOpac','1',NULL,'Hide the title data created by the ekz web services for ordered media in the OPAC. If title data are hidden initially, you have to explicitly activate the visibility of the title data after receiving an item.','YesNo'),
-            ('ekzWebServicesSetItemSubfieldsWhenOrdered','',NULL,'When an ekz web service signals an order and an item is created, set the item\'s subfields as specified. (e.g. 7=-1|x="Item created by ekz web service.")','Free'),
-            ('ekzWebServicesSetItemSubfieldsWhenReceived','',NULL,'When an ekz web service signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x="notforloan set to 5 by ekz web service")','Free')
+            ('ekzWebServicesSetItemSubfieldsWhenOrdered','',NULL,'When an ekz web service signals an order and an item is created, set the item\'s subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)','Free'),
+            ('ekzWebServicesSetItemSubfieldsWhenReceived','',NULL,'When an ekz web service signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)','Free')
     });
 
     print "Upgrade to $DBversion done (adding tables acquisition_import and acquisition_import_objects)\n";
