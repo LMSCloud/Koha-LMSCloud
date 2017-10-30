@@ -43,6 +43,8 @@ my $lccall          = $input->param('lccall');
 my $subject         = $input->param('subject');
 my $dewey           = $input->param('dewey');
 my $controlnumber   = $input->param('controlnumber');
+my $stdid           = $input->param('stdid');
+my $srchany         = $input->param('srchany');
 my $op              = $input->param('op')||'';
 my $booksellerid    = $input->param('booksellerid');
 my $basketno        = $input->param('basketno');
@@ -86,6 +88,8 @@ $template->param(
         title        => $title,
         author       => $author,
         controlnumber=> $controlnumber,
+        stdid        => $stdid,
+        srchany      => $srchany,
         biblionumber => $biblionumber,
         dewey        => $dewey,
         subject      => $subject,
@@ -129,8 +133,8 @@ my $pars= {
         subject => $subject,
         lccall => $lccall,
         controlnumber => $controlnumber,
-        stdid => 0,
-        srchany => 0,
+        stdid => $stdid,
+        srchany => $srchany,
 };
 Z3950Search($pars, $template);
 output_html_with_http_headers $input, $cookie, $template->output;

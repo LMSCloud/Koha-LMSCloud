@@ -1,5 +1,6 @@
 [% USE Koha %]
 [% USE KohaDates %]
+[% USE Borrowers %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Patrons &rsaquo; [% IF ( opadd ) %]Add[% ELSIF ( opduplicate ) %]Duplicate[% ELSE %] Modify[% END %] patron [% IF (firstname) %][% firstname %] [% END %][% IF (surname) %][% surname %] [% END %]([%IF ( categoryname ) %][% categoryname %][% ELSE %][% IF ( I ) %]Organization[% END %][% IF ( A ) %]Adult[% END %][% IF ( C ) %]Child[% END %][% IF ( P ) %]Professional[% END %][% IF ( S ) %]Staff[% END %][% END %])</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -61,7 +62,7 @@ $(document).ready(function() {
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; 
 [% IF (firstname || surname ) %] <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber %]">[% IF (firstname) %][% firstname %] [% END %][% IF (surname) %][% surname %] [% END %]</a>  &rsaquo;[% END %]
-<strong>[% IF ( opadd ) %]Add[% ELSIF ( opduplicate ) %]Duplicate[% ELSE %] Modify[% END %] patron ([%IF ( categoryname ) %][% categoryname %][% ELSE %][% IF ( I ) %]Organization[% END %][% IF ( A ) %]Adult[% END %][% IF ( C ) %]Child[% END %][% IF ( P ) %]Professional[% END %][% IF ( S ) %]Staff[% END %][% END %])</strong>
+<strong>[% IF ( opadd ) %]Add[% ELSIF ( opduplicate ) %]Duplicate[% ELSE %] Modify[% END %] patron ([%IF ( guarantorid && Borrowers.IsFamilyCard(guarantorid) ) %]Family card member[% ELSE %][%IF ( categoryname ) %][% categoryname %][% ELSE %][% IF ( I ) %]Organization[% END %][% IF ( A ) %]Adult[% END %][% IF ( C ) %]Child[% END %][% IF ( P ) %]Professional[% END %][% IF ( S ) %]Staff[% END %][% END %][% END %])</strong>
 </div>
 [% IF ( opadd ) %]<div id="doc" class="yui-t7">[% ELSE %]<div id="doc3" class="yui-t2">[% END %]
    
@@ -82,7 +83,7 @@ $(document).ready(function() {
     [% INCLUDE 'noadd-warnings.inc' %]
 
 	[% UNLESS ( no_add ) %]
-    <h1>[% IF ( opadd ) %]Add[% ELSIF ( opduplicate ) %]Duplicate[% ELSE %] Modify[% END %] patron [% IF (firstname) %][% firstname | html %] [% END %][% IF (surname) %][% surname | html %] [% END %]([%IF ( categoryname ) %][% categoryname %][% ELSE %][% IF ( I ) %]Organization[% END %][% IF ( A ) %]Adult[% END %][% IF ( C ) %]Child[% END %][% IF ( P ) %]Professional[% END %][% IF ( S ) %]Staff[% END %][% END %])</h1>
+    <h1>[% IF ( opadd ) %]Add[% ELSIF ( opduplicate ) %]Duplicate[% ELSE %] Modify[% END %] patron [% IF (firstname) %][% firstname | html %] [% END %][% IF (surname) %][% surname | html %] [% END %]([%IF ( guarantorid && Borrowers.IsFamilyCard(guarantorid) ) %]Family card member[% ELSE %][%IF ( categoryname ) %][% categoryname %][% ELSE %][% IF ( I ) %]Organization[% END %][% IF ( A ) %]Adult[% END %][% IF ( C ) %]Child[% END %][% IF ( P ) %]Professional[% END %][% IF ( S ) %]Staff[% END %][% END %][% END %])</h1>
 
 	[% IF ( check_member ) %]
 			<div class="dialog alert">
@@ -328,7 +329,7 @@ $(document).ready(function() {
 [% END # hide fieldset %]
 
 [% IF ( showguarantor ) %]
-    <input type="hidden" id="guarantorid" name="guarantorid"   value="[% guarantorid %]" />
+    <input type="hidden" id="guarantorid" name="guarantorid" value="[% guarantorid %]" />
     [% UNLESS step_6 %]
         <input type="hidden" name="branchcode" value="[% branchcode %]" />
     [% END %]

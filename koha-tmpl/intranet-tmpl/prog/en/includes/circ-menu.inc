@@ -1,6 +1,16 @@
 [% USE Koha %]
+[% USE Borrowers %]
 [% IF ( borrowernumber ) %]
-<div class="patroninfo"><h5>[% INCLUDE 'patron-title.inc' %]</h5>
+<div class="patroninfo"><h5>[% INCLUDE 'patron-title.inc' %][% IF ( guarantorid ) %]<br/>[% SET guarantordata = Borrowers.GetGuarantor( guarantorid ) %]
+[% IF ( Borrowers.IsFamilyCard( guarantorid ) ) %]<br />
+<span class="family-card-member"><i class="fa fa-users" aria-hidden="true"></i> Family card:<br />
+<a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% guarantorid %]">[% guarantordata.firstname %] [% guarantordata.surname %] [% IF ( guarantordata.cardnumber ) %]([% guarantordata.cardnumber | html %])[% END %]</a></span>
+[% ELSE %]
+<span class="family-card-member"><i class="fa fa-user" aria-hidden="true"></i> Guarantor:<br />
+<a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% guarantorid %]">[% guarantordata.firstname %] [% guarantordata.surname %] [% IF ( guarantordata.cardnumber ) %]([% guarantordata.cardnumber | html %])[% END %]</a></span>
+[% END %][% ELSIF ( Borrowers.IsFamilyCard( borrowernumber ) ) %]<br /><br />
+<span class="family-card-member"><i class="fa fa-users" aria-hidden="true"></i> Family card<br />
+[% END %]</h5>
 <!--[if IE 6]>
 <style type="tex/css">img { width: expression(this.width > 140 ? 140: true);
 }</style>

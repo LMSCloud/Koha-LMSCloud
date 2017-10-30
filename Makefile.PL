@@ -283,6 +283,7 @@ my $target_map = {
   './installer-CPAN.pl'         => 'NONE',
   './installer'                 => 'INTRANET_CGI_DIR',
   './errors'                    => {target => 'INTRANET_CGI_DIR'},
+  './external'                  => 'INTRANET_CGI_DIR',
   './Koha'                      => 'PERL_MODULE_DIR',
   './Koha.pm'                   => 'PERL_MODULE_DIR',
   './koha-tmpl/intranet-tmpl'   => {target => 'INTRANET_TMPL_DIR', trimdir => -1},

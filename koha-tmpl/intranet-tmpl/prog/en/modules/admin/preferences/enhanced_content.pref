@@ -426,8 +426,32 @@ Enhanced Content:
                   no: Show
             - the title data created by the ekz web services for ordered media in the OPAC. If title data are hidden initially, you have to explicitly activate the visibility of the title data after receiving an item.
         -
-            - When an ekz web service signals an order and an item is created, set the item's subfields as specified. (e.g. 7=-1|x="Item created by ekz web service.")
+            - When an ekz web service signals an order and an item is created, set the item's subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)
             - pref: ekzWebServicesSetItemSubfieldsWhenOrdered
         -
-            - When an ekz web service signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x="notforloan set to 5 by ekz web service")
+            - When an ekz web service signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)
             - pref: ekzWebServicesSetItemSubfieldsWhenReceived
+    ekz Cover:
+        -
+            - pref: EKZCover
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - cover display from the German library service company EKZ.
+        -
+            - Base URL to read covers from EKZ service:
+            - pref: EKZCoverURL
+    Divibib:
+        -
+            - pref: DivibibEnabled
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - the Divibib Onleihe integration in Koha. Onleihe title und item data needs to be synchronized regularly to use the Onleihe integration. 
+            - The integration activates the use of the Onleihe NCIP services to get availabilty status and to authenticate patrons.
+        -
+            - Onleihe Library ID as prvided from the Divibib
+            - pref: DivibibAgencyId
+        -
+            - Mode of the Divibib NCIP Service. If set to "test" it uses the test URL
+            - pref: DivibibNCIPServiceMode

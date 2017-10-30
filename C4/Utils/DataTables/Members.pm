@@ -28,6 +28,7 @@ sub search {
     my $inactivesince = $params->{inactivesince};
     my $issuecountstart = $params->{issuecountstart};
     my $issuecountend = $params->{issuecountend};
+    my $validemailavailable = $params->{validemailavailable};
 
     unless ( $searchmember ) {
         $searchmember = $dt_params->{sSearch} // '';
@@ -177,6 +178,17 @@ sub search {
         push @where_strs, "NOT EXISTS (SELECT 1 FROM issues iss WHERE iss.borrowernumber = borrowers.borrowernumber AND iss.timestamp > ?)";
         push @where_strs, "NOT EXISTS (SELECT 1 FROM old_issues oiss WHERE oiss.borrowernumber = borrowers.borrowernumber AND oiss.timestamp > ?)";
         push @where_args, $inactivesince, $inactivesince;
+    }
+    
+    if ( defined($validemailavailable) && $validemailavailable eq 'yes' ) {
+        push @where_strs, '(borrowers.email REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR '.
+                           'borrowers.emailpro REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\')';
+    }
+    if ( defined($validemailavailable) && $validemailavailable eq 'no' ) {
+        push @where_strs, '(borrowers.email NOT REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR '.
+                           'borrowers.email IS NULL) AND ' .
+                           '(borrowers.emailpro NOT REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR ' .
+                           'borrowers.emailpro IS NULL)';
     }
 
     my $searchfields = {

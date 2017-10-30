@@ -463,30 +463,34 @@ sub MARCfindbreeding {
                         }
                     }
                 }
-                $record->delete_field( $record->field($tag) );
-                foreach my $fieldtag (@auth_fields) {
-                    next unless ( $record->field($fieldtag) );
-                    my $lastname  = $record->field($fieldtag)->subfield('a');
-                    my $firstname = $record->field($fieldtag)->subfield('b');
-                    my $title     = $record->field($fieldtag)->subfield('c');
-                    my $number    = $record->field($fieldtag)->subfield('d');
-                    if ($title) {
+                if ($field) {
+                    $record->delete_field( $record->field($tag) );
+                    foreach my $fieldtag (@auth_fields) {
+                        next unless ( $record->field($fieldtag) );
+                        my $lastname  = $record->field($fieldtag)->subfield('a');
+                        my $firstname = $record->field($fieldtag)->subfield('b');
+                        my $title     = $record->field($fieldtag)->subfield('c');
+                        my $number    = $record->field($fieldtag)->subfield('d');
+                        if ($title) {
 
-#                         $field->add_subfields("$subfield"=>"[ ".ucfirst($title).ucfirst($firstname)." ".$number." ]");
-                        $field->add_subfields(
-                                "$subfield" => ucfirst($title) . " "
-                            . ucfirst($firstname) . " "
-                            . $number );
-                    }
-                    else {
+    #                        $field->add_subfields("$subfield"=>"[ ".ucfirst($title).ucfirst($firstname)." ".$number." ]");
+                            my $val;
+                            $val = ucfirst($title) if ($title);
+                            $val = "$val " . ucfirst($firstname) if ( $firstname );
+                            $val = "$val " . ucfirst($number) if ( $number );
+                            $field->add_subfields("$subfield" => $val ) if ( $val );
+                        }
+                        else {
 
-#                       $field->add_subfields("$subfield"=>"[ ".ucfirst($firstname).", ".ucfirst($lastname)." ]");
-                        $field->add_subfields(
-                            "$subfield" => ucfirst($firstname) . ", "
-                            . ucfirst($lastname) );
+    #                       $field->add_subfields("$subfield"=>"[ ".ucfirst($firstname).", ".ucfirst($lastname)." ]");
+                            my $val;
+                            $val = ucfirst($lastname) if ( $lastname );
+                            $val = "$val, " . ucfirst($firstname) if ( $firstname );
+                            $field->add_subfields("$subfield" => $val ) if ( $val );
+                        }
                     }
+                    $record->insert_fields_ordered($field);
                 }
-                $record->insert_fields_ordered($field);
             }
             return $record, $encoding;
         }

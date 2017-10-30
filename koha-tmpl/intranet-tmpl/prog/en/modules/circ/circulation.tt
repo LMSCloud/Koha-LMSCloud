@@ -5,6 +5,7 @@
 [% USE ColumnsSettings %]
 [% USE ItemTypes %]
 [% USE Price %]
+[% USE Borrowers %]
 [% IF Koha.Preference('ExportRemoveFields') OR Koha.Preference('ExportWithCsvProfile') %]
    [% SET exports_enabled = 1 %]
 [% END %]
@@ -785,7 +786,10 @@ No patron matched <span class="ex">[% message | html %]</span>
 
 			[% IF ( expired ) %]
 			<li><span class="circ-hlt">Expiration:</span> Patron's card has expired.
-            [% IF ( expiry ) %]Patron's card expired on [% expiry | $KohaDates %][% END %] <a href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% borrowernumber %]&amp;destination=circ&amp;reregistration=y">Renew</a> or <a href="/cgi-bin/koha/members/memberentry.pl?op=modify&amp;destination=circ&amp;borrowernumber=[% borrowernumber %]&amp;categorycode=[% categorycode %]">Edit Details</a>
+            [% IF ( expiry ) %]Patron's card expired on [% expiry | $KohaDates %][% END %][% SET IsFamilyCard = (Borrowers.IsFamilyCard( borrowernumber ) || Borrowers.IsFamilyCard( guarantorid )) %]
+            [% IF ( guarantorid && IsFamilyCard ) %]<a href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% guarantorid %]&amp;destination=circ&amp;reregistration=y;followupborrower=[% borrowernumber %]">Renew family card</a>
+            [% ELSE %]<a href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% borrowernumber %]&amp;destination=circ&amp;reregistration=y">[% IF ( IsFamilyCard ) %]Renew family card[% ELSE %]Renew[% END %]</a>
+            [% END %] or <a href="/cgi-bin/koha/members/memberentry.pl?op=modify&amp;destination=circ&amp;borrowernumber=[% borrowernumber %]&amp;categorycode=[% categorycode %]">Edit Details</a>
 
 			</li>
 			[% END %]

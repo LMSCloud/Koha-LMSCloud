@@ -38,6 +38,7 @@ checkauth($input, 0, { borrowers => 1 }, 'intranet');
 
 my $destination = $input->param("destination") || '';
 my $borrowernumber=$input->param('borrowernumber');
+my $followupborrower=$input->param('followupborrower');
 my $status = $input->param('status');
 my $reregistration = $input->param('reregistration') || '';
 
@@ -51,8 +52,9 @@ if ( $reregistration eq 'y' ) {
     my $sth = $dbh->prepare("UPDATE borrowers SET debarred = ?, debarredcomment = '' WHERE borrowernumber = ?");
     $sth->execute( $status, $borrowernumber );
 	$sth->finish;
-	}
+}
 
+$borrowernumber = $followupborrower if ( $followupborrower );
 if($destination eq "circ"){
     if($dateexpiry){
         print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber&was_renewed=1");

@@ -354,7 +354,7 @@ $(document).ready(function() {
             <li>
               [% IF adding %]
                   <label for="code" class="required">Code:</label>
-                  <input type="text" id="code" name="code" size="20" maxlength="20" value="" required="required"/>
+                  <input type="text" id="code" name="code" size="30" maxlength="50" value="" required="required"/>
                   <span class="required">Required</span>
               [% ELSE %]
                   <span class="label">Code:</span>

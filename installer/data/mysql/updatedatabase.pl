@@ -13294,10 +13294,10 @@ if ( CheckVersion($DBversion) ) {
     # Add permission and systempreference to send adhoc notices to patrons
     $dbh->do( q{  
         INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
-        ('AdhocNoticesLetterCodes','FINES_DUE*',NULL,'Provide a comma-separated list of letter codes which can be used to send adhoc notices (available in the patron result list). An asterix can be used as wildcard character to match multiple letter codes.','Free')
+        ('AdhocNoticesLetterCodes','',NULL,'Provide a comma-separated list of letter codes which can be used to send adhoc notices (available in the patron result list). An asterix can be used as wildcard character to match multiple letter codes.','Free')
     });
     $dbh->do( q{ 
-        INSERT INTO permissions (module_bit, code, description) VALUES
+        INSERT IGNORE INTO permissions (module_bit, code, description) VALUES
         (1, 'send_adhoc_notices', 'Send adhoc notices to patrons')
     });
     $dbh->do(q{ ALTER TABLE `letter` MODIFY `code` VARCHAR(50) });
@@ -13310,7 +13310,7 @@ $DBversion = '16.05.12.006';
 if ( CheckVersion($DBversion) ) {
     # Add tables acquisition_import and acquisition_import_objects for backtracking the vendor's information on order, delivery, invoice, etc.
     $dbh->do( q{
-        "CREATE TABLE `acquisition_import` ( -- for backtracking the vendor's information on order, delivery, invoice, etc.
+        CREATE TABLE `acquisition_import` ( -- for backtracking the vendor's information on order, delivery, invoice, etc.
             `id` int(11) NOT NULL auto_increment, -- unique key, used to identify the record
             `vendor_id` varchar(200) NOT NULL default '', -- code for identifying the vendor, e.g. "ekz"
             `object_type` varchar(80) NOT NULL default '', -- code of object type, eg. "order", "delivery", "invoice"
@@ -13324,17 +13324,17 @@ if ( CheckVersion($DBversion) ) {
             `object_reference` int(11) default NULL, -- reference to base object (acquisition_import.id), e.g. the order item a invoice item refers to
             PRIMARY KEY  (`id`),
             KEY `object_item` (`vendor_id`, `object_type`, `object_number`, `rec_type`, `object_item_number`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     });
     $dbh->do( q{
-        "CREATE TABLE `acquisition_import_objects` ( -- supplement to table acquisition_import, showing the connection to Koha records automatically created based on vendor's information on orders, deliveries, invoices, etc.
+        CREATE TABLE `acquisition_import_objects` ( -- supplement to table acquisition_import, showing the connection to Koha records automatically created based on vendor's information on orders, deliveries, invoices, etc.
             `id` int(11) NOT NULL auto_increment, -- unique key, used to identify the record
             `acquisition_import_id` int(11) NOT NULL default 0, -- foreign key from the acquisition_import table to identify the connection (value of acquisition_import.id) 
             `koha_object` varchar(80) NOT NULL default '', -- code of type of created koha object, eg. "title", "item"
             `koha_object_id` int(11) NOT NULL default 0, -- foreign key of the connected Koha record, e.g. value of items.itemnumber
             PRIMARY KEY  (`id`),
             KEY `acquisition_import_id` (`acquisition_import_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     });
 
     # Add support for ekz web services
@@ -13350,13 +13350,31 @@ if ( CheckVersion($DBversion) ) {
             ('ekzWebServicesDefaultBranch','',NULL,'The ekz web services will use this branch code as default home branch code when creating items. Ekz web services containing explicitly selected branch codes will overwrite this default initialization.','Free'),
             ('ekzWebServicesUserName','',NULL,'Name of library staff who is registered and authorized in the library\'s account at ekz.bibliotheksservice GmbH. This name is part of the credentials used in the requests of the ekz web services.','Free'),
             ('ekzWebServicesHideOrderedTitlesInOpac','1',NULL,'Hide the title data created by the ekz web services for ordered media in the OPAC. If title data are hidden initially, you have to explicitly activate the visibility of the title data after receiving an item.','YesNo'),
-            ('ekzWebServicesSetItemSubfieldsWhenOrdered','',NULL,'When an ekz web service signals an order and an item is created, set the item\'s subfields as specified. (e.g. 7=-1|x="Item created by ekz web service.")','Free'),
-            ('ekzWebServicesSetItemSubfieldsWhenReceived','',NULL,'When an ekz web service signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x="notforloan set to 5 by ekz web service")','Free')
+            ('ekzWebServicesSetItemSubfieldsWhenOrdered','',NULL,'When an ekz web service signals an order and an item is created, set the item\'s subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)','Free'),
+            ('ekzWebServicesSetItemSubfieldsWhenReceived','',NULL,'When an ekz web service signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)','Free')
     });
 
     print "Upgrade to $DBversion done (adding tables acquisition_import and acquisition_import_objects)\n";
     SetVersion ($DBversion);
 }
+
+$DBversion = '16.05.12.007';
+if ( CheckVersion($DBversion) ) {
+    
+    # Add preferences of Divibib and ekz Cover services
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES 
+            ('DivibibAgencyId','',NULL,'Divibib Library ID','Free'),
+            ('DivibibEnabled',0,NULL,'Enable Divibib Onleihe integration ','YesNo'),
+            ('DivibibNCIPServiceMode','',NULL,'Mode of the Divibib NCIP Service. If set to \"test\" it uses the Test URL.','Free'),
+            ('EKZCover','0',NULL,'Enable/Disable to display covers from the German library service company EKZ','YesNo'),
+            ('EKZCoverURL','http://cover.ekz.de/',NULL,'Base URL to read covers from EKZ service.','Free')
+    });
+    
+    print "Upgrade to $DBversion done (adding preferences of Divibib and ekz Cover services)\n";
+    SetVersion ($DBversion);
+}
+
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
