@@ -198,11 +198,21 @@ print STDERR Dumper($datenSatzNodes) if $debugIt;
                         if ( defined $datenSatzNode && defined $datenSatzNode->textContent ) {
                             my $marc21XmlData = decode_base64($datenSatzNode->textContent);
 print STDERR "EkzWebServices::callWsMedienDaten() marc21XmlData:", $marc21XmlData, ":\n" if $debugIt;
-					        push @{$result->{'records'}}, MARC::Record->new_from_xml( $marc21XmlData, "UTF-8", "MARC21" );
-print STDERR "EkzWebServices::callWsMedienDaten() result->{'records'}->[0]:", $result->{'records'}->[0], ":\n" if $debugIt;
+                            if ( defined($marc21XmlData) && length($marc21XmlData) > 0 ) {
+                                my $marcrecord;
+                                eval {
+                                    $marcrecord =  MARC::Record::new_from_xml( $marc21XmlData, "utf8", 'MARC21' );
+                                };
+                                carp "EkzWebServices::callWsMedienDaten: error in MARC::Record::new_from_xml:$@:\nmarc21XmlData:$marc21XmlData" if $@;
+
+                                if ( $marcrecord ) {
+                                    push @{$result->{'records'}}, $marcrecord;
 print STDERR Dumper($result->{'records'}->[0]) if $debugIt;
-					        $result->{'count'} += 1;
-                            last;
+print STDERR Dumper($result->{'records'}->[0]) if $debugIt;
+                                    $result->{'count'} += 1;
+                                    last;
+                                }
+                            }
 				        }
 				    }
 				}
@@ -506,7 +516,7 @@ print STDERR "EkzWebServices::callWsLieferscheinDetail() selId:", defined($selId
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
 	
-	my $soapResponse = $self->doQuery('"urn:lieferscheinlist"', $soapEnvelope);
+	my $soapResponse = $self->doQuery('"urn:lieferscheindetail"', $soapEnvelope);
 
 print STDERR "EkzWebServices::callWsLieferscheinDetail() soapResponse:", $soapResponse, ":\n" if $debugIt;
 print STDERR Dumper($soapResponse) if $debugIt;
@@ -648,7 +658,7 @@ sub getLastRunDate {
     if ( length($ekzWSLastRunDateSysPrefName) > 0 ) {
         $ekzWsLastRunDate = C4::Context->preference($ekzWSLastRunDateSysPrefName);    # stored in american form yyyy-mm-dd
 print STDERR "EkzWebServices::getLastRunDate($ekzWSName) ekzWSLastRunDateSysPrefName:$ekzWSLastRunDateSysPrefName: ekzWsLastRunDate:", defined($ekzWsLastRunDate) ? $ekzWsLastRunDate : 'undef', ":\n" if $debugIt;
-        if ( defined($ekzWsLastRunDate) && length($ekzWsLastRunDate) > 0 && $ekzWsLastRunDate !~ /\d\d\d\d-\d\d-\d\d/ ) {
+        if ( defined($ekzWsLastRunDate) && length($ekzWsLastRunDate) > 0 && $ekzWsLastRunDate !~ /^\d\d\d\d-\d\d-\d\d$/ ) {
             croak "EkzWebServices::getLastRunDate($ekzWSName) got invalid ekzWsLastRunDate value:" . $ekzWsLastRunDate . ": for ekzWSLastRunDateSysPrefName:", $ekzWSLastRunDateSysPrefName, "\n";
         }
         if ( defined($ekzWsLastRunDate) && length($ekzWsLastRunDate) > 0 && $dateForm eq 'E' ) {    # transform it into european form dd.mm.yyyy
