@@ -23,7 +23,7 @@ use warnings;
 use utf8;
 use Data::Dumper;
 
-use C4::External::EKZ::EkzWsStandingOrder;
+use C4::External::EKZ::EkzWsStandingOrder qw( getCurrentYear readStoFromEkzWsStoList genKohaRecords );
 
 
 binmode( STDIN, ":utf8" );
@@ -33,7 +33,6 @@ binmode( STDERR, ":utf8" );
 
 
 my $debugIt = 1;
-my $dbh = C4::Context->dbh;
 
 my $currentYear;
 my $lastRunDate;
@@ -49,7 +48,7 @@ my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d\n",1900+$year,1+$mon,$
 
 print STDERR "ekzWsStoList Start:$startTime\n" if $debugIt;
 
-$currentYear = C4::External::EKZ::EkzWsStandingOrder::getCurrentYear();
+$currentYear = &getCurrentYear();
 $lastRunDate = C4::External::EKZ::lib::EkzWebServices::getLastRunDate('StoList', 'A');    # value for 'von' / 'from', required in american form yyyy-mm-dd
 $todayDate = `date +%Y-%m-%d`;
 chomp($todayDate);
@@ -59,11 +58,11 @@ print STDERR "ekzWsStoList currentYear:$currentYear: lastRunDate:$lastRunDate: t
 if ( $simpleTest ) {
     print STDERR "ekzWsStoList read STO of year 2017; calling readStoFromEkzWsStoList (2017,undef,false,false,false,undef,undef)\n" if $debugIt;
     # read all stoIDs of 2017
-    my $stoOf2017 = C4::External::EKZ::EkzWsStandingOrder::readStoFromEkzWsStoList ('2017',undef,'false','false','false',undef,undef);
+    my $stoOf2017 = &readStoFromEkzWsStoList ('2017',undef,'false','false','false',undef,undef);
     
     foreach my $sto ( @{$stoOf2017->{'standingOrderRecords'}} ) {
         print STDERR "ekzWsStoList read StoId $sto->{stoID}: calling readStoFromEkzWsStoList (2017,$sto->{stoID},true,true,true,'2017-09-01','true')\n" if $debugIt;
-        C4::External::EKZ::EkzWsStandingOrder::readStoFromEkzWsStoList ('2017',$sto->{stoID},'true','true','true','2017-09-01','true');
+        &readStoFromEkzWsStoList ('2017',$sto->{stoID},'true','true','true','2017-09-01','true');
     }
 }
 
@@ -73,19 +72,19 @@ if ( $genKohaRecords ) {
 
     # read all stoIDs of current year
     print STDERR "ekzWsStoList read STO of year:$currentYear; calling readStoFromEkzWsStoList ($currentYear,undef,false,false,false,undef,undef)\n" if $debugIt;
-    my $stoOfYear = C4::External::EKZ::EkzWsStandingOrder::readStoFromEkzWsStoList ($currentYear,undef,'false','false','false',undef,undef,undef);
+    my $stoOfYear = &readStoFromEkzWsStoList ($currentYear,undef,'false','false','false',undef,undef,undef);
     
     foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
         print STDERR "ekzWsStoList read StoId:$sto->{stoID}: state changes since lastRunDate:$lastRunDate; calling readStoFromEkzWsStoList ($currentYear,$sto->{stoID},true,true,true,$lastRunDate,'true',\\\$stoListElement)\n" if $debugIt;
-        $result = C4::External::EKZ::EkzWsStandingOrder::readStoFromEkzWsStoList ($currentYear,$sto->{stoID},'true','true','true',undef,'true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
-        $result = C4::External::EKZ::EkzWsStandingOrder::readStoFromEkzWsStoList ($currentYear,$sto->{stoID},'true','true','true',$lastRunDate,'true',undef);        # read titles with modified state of the standig order 
+        $result = &readStoFromEkzWsStoList ($currentYear,$sto->{stoID},'true','true','true',undef,'true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
+        $result = &readStoFromEkzWsStoList ($currentYear,$sto->{stoID},'true','true','true',$lastRunDate,'true',undef);        # read titles with modified state of the standig order 
 print STDERR Dumper($result->{'standingOrderRecords'}->[0]) if $debugIt;
 
-#        if ( $result->{'standingOrderCount'} > 0 ) {
-#            if ( C4::External::EKZ::EkzWsStandingOrder::genKohaRecords($result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate) ) {
-#                $res = 1;
-#            }
-#        }
+        if ( $result->{'standingOrderCount'} > 0 ) {
+            if ( &genKohaRecords($result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate) ) {
+                $res = 1;
+            }
+        }
     }
     if ( $res == 1 ) {
         C4::External::EKZ::lib::EkzWebServices::setLastRunDate('StoList', DateTime->now(time_zone => 'local'));
