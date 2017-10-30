@@ -23,6 +23,7 @@ use warnings;
 use utf8;
 use Data::Dumper;
 use CGI::Carp;
+use Exporter;
 
 use C4::Items qw(AddItem);
 use C4::Branch qw(GetBranches);
@@ -32,18 +33,11 @@ use Koha::AcquisitionImport::AcquisitionImportObjects;
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
 
+our @ISA = qw(Exporter);
+our @EXPORT = qw( getCurrentYear readStoFromEkzWsStoList genKohaRecords );
+
 
 my $debugIt = 1;
-my $dbh = C4::Context->dbh;
-
-# variables for email log
-my @logresult = ();
-my @actionresult = ();
-my $importerror = 0;          # flag if an insert error happened
-my %importIds = ();
-my $dt = DateTime->now;
-$dt->set_time_zone( 'Europe/Berlin' );
-my ($message, $subject, $haserror) = ('','',0);
 
 
 ###################################################################################################
@@ -97,6 +91,17 @@ sub genKohaRecords {
     my $biblionumber = 0;
     my $biblioitemnumber;
     my $ekzBestellNr = '';
+    my $lastRunDateIsSet = 0;
+    my $dbh = C4::Context->dbh;
+
+    # variables for email log
+    my @logresult = ();
+    my @actionresult = ();
+    my $importerror = 0;          # flag if an insert error happened
+    my %importIds = ();
+    my $dt = DateTime->now;
+    $dt->set_time_zone( 'Europe/Berlin' );
+    my ($message, $subject, $haserror) = ('','',0);
     
     print STDERR "ekzWsStoList::genKohaRecords() Start;  messageID:$messageID stoID:$stoWithNewState->{'stoID'}: stoWithNewState->{'titelCount'}:$stoWithNewState->{'titelCount'}: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
 
@@ -118,7 +123,10 @@ sub genKohaRecords {
         $ekzWebServicesHideOrderedTitlesInOpac == 0 ) {
             $ekzWsHideOrderedTitlesInOpac = 0;
     }
-    # insert/update the order message if at least one item has got state 10 or 20 or 99
+    if ( defined($lastRunDate) && $lastRunDate =~ /^\d\d\d\d-\d\d-\d\d$/ ) {    # format:yyyy-mm-dd
+        $lastRunDateIsSet = 1;
+    }
+    # insert/update the order message if at least one item has got state 10 or 20 or 99 ( 99 only if lastRunDate is set)
     my $insOrUpd = 0;
 
     my $minStatusDatum = '9999-12-31';
@@ -127,11 +135,19 @@ sub genKohaRecords {
         if ( $minStatusDatum gt $statusDatum ) {
             $minStatusDatum = $statusDatum;
         }
-        if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered'
-             $statusDatum ge $lastRunDate && 
-             $statusDatum lt $todayDate ) {
-                $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
-                last;
+        if ( $lastRunDateIsSet ) {
+            if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
+                $statusDatum ge $lastRunDate && 
+                $statusDatum lt $todayDate ) {
+                    $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
+                    last;
+            }
+        } else {
+            if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20) &&    # 'vorbreitet' || 'in nächster Lieferung' (i.e. 'prepared' || 'included in next delivery'
+                $statusDatum lt $todayDate ) {
+                    $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
+                    last;
+            }
         }
     }
     my $bestellDatum = DateTime->new( year => substr($minStatusDatum,0,4), month => substr($minStatusDatum,5,2), day => substr($minStatusDatum,8,2), time_zone => 'local' );
@@ -176,9 +192,17 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
 
         foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
             print STDERR "ekzWsStoList::genKohaRecords() titel ekzArtikelNr:$titel->{'ekzArtikelNummer'}: isbn:$titel->{'isbn'}: status:$titel->{'status'}: statusDatum:$titel->{'statusDatum'}:\n" if $debugIt;
-            if ( !(($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered'
-                   $titel->{'statusDatum'} ge $lastRunDate && 
-                   $titel->{'statusDatum'} lt $todayDate) ) {
+            if ( !(($lastRunDateIsSet &&
+                    ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
+                    $titel->{'statusDatum'} ge $lastRunDate && 
+                    $titel->{'statusDatum'} lt $todayDate
+                   ) ||
+                   (!$lastRunDateIsSet &&
+                    ($titel->{'status'} == 10 || $titel->{'status'} == 20) &&    # 'vorbreitet' || 'in nächster Lieferung (i.e. 'prepared' || 'included in next delivery')
+                    $titel->{'statusDatum'} lt $todayDate
+                   )
+                  )
+               ) {
                 next;
             }
 
@@ -454,11 +478,11 @@ print STDERR "Dumper(\\\@logresult): ###########################################
 print STDERR Dumper(\@logresult) if $debugIt;
 
 
-        # roll it back for TEST XXXWH
-        #$dbh->rollback;
+        #$dbh->rollback;    # roll it back for TEST XXXWH
 
         # commit the complete standing order update (only as a single transaction)
         $dbh->commit();
+        $dbh->{AutoCommit} = 1;
     
         if ( scalar(@logresult) > 0 ) {
             my @importIds = keys %importIds;
