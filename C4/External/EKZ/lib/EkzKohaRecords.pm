@@ -246,7 +246,7 @@ sub readTitleDubletten {
             print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
             
             ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
-            ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
+            ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
         
             if (defined $error) {
                 my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:\n", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
@@ -810,9 +810,11 @@ sub createProcessingMessageText {
 
     my $libraryName = C4::Context->preference("LibraryName");
     my $kohaInstanceName = C4::External::EKZ::EkzAuthentication::kohaInstanceName();
-    #XXXWH my $kohaInstanceUrl = 'https://' . $kohaInstanceName . '-lms.lmscloud.net';
-    my $kohaInstanceUrl = 'http://192.168.122.100:8080';    # XXXWH for test only
-    
+    my $kohaInstanceUrl = 'https://' . $kohaInstanceName . '-lms.lmscloud.net';
+    my $envKohaInstanceUrl =  $ENV{'KOHAINSTANCEURL'};    # for test in development environment
+    if ( defined($envKohaInstanceUrl) && length($envKohaInstanceUrl) ) {
+        $kohaInstanceUrl = $envKohaInstanceUrl;
+    }
     my $printdate =  $dt->dmy('.') . ' um ' . sprintf("%02d:%02d Uhr", $dt->hour, $dt->minute);
 print STDERR "EkzKohaRecords::createProcessingMessageText() printdate:$printdate: Anz. logresult:", @{$logresult}+0, ": importIDs->[0]:$importIDs->[0]: ekzBestellOrLsNr:$ekzBestellOrLsNr:\n" if $debugIt;
     
