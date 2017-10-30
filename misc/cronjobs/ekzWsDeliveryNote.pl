@@ -23,7 +23,7 @@ use warnings;
 use utf8;
 use Data::Dumper;
 
-use C4::External::EKZ::EkzWsDeliveryNote;
+use C4::External::EKZ::EkzWsDeliveryNote qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
 
 
 binmode( STDIN, ":utf8" );
@@ -33,7 +33,6 @@ binmode( STDERR, ":utf8" );
 
 
 my $debugIt = 1;
-my $dbh = C4::Context->dbh;
 
 my $lastRunDate;
 my $yesterdayDate;
@@ -83,9 +82,9 @@ if ( $genKohaRecords ) {
 
 print STDERR "Dumper(\$result->{'lieferscheinRecords'}->[0]):\n", Dumper($result->{'lieferscheinRecords'}->[0]) if $debugIt;
         if ( $result->{'lieferscheinCount'} > 0 ) {
-#            if ( &genKohaRecords($lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0]) ) {
-#                $res = 1;
-#            }
+            if ( &genKohaRecords($result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0]) ) {
+                $res = 1;
+            }
         }
     }
     if ( $res == 1 ) {
