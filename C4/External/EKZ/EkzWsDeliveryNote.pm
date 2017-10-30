@@ -24,6 +24,7 @@ use utf8;
 use Data::Dumper;
 use CGI::Carp;
 use DateTime::Format::MySQL;
+use Exporter;
 
 use C4::External::EKZ::lib::EkzWebServices;
 use Koha::AcquisitionImport::AcquisitionImports;
@@ -31,19 +32,11 @@ use Koha::AcquisitionImport::AcquisitionImportObjects;
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
 
+our @ISA = qw(Exporter);
+our @EXPORT = qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
 
 
 my $debugIt = 1;
-my $dbh = C4::Context->dbh;
-
-# variables for email log
-my @logresult = ();
-my @actionresult = ();
-my $importerror = 0;          # flag if an insert error happened
-my %importIds = ();
-my $dt = DateTime->now;
-$dt->set_time_zone( 'Europe/Berlin' );
-my ($message, $subject, $haserror) = ('','',0);
 
 
 ###################################################################################################
@@ -94,7 +87,7 @@ print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinDetail() result->{'l
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($lieferscheinDetailElement, $lieferscheinRecord) = @_;
+    my ($messageID, $lieferscheinDetailElement, $lieferscheinRecord) = @_;
 
     my $lieferscheinNummerIsDuplicate = 0;
     my $titleHits = { 'count' => 0, 'records' => [] };
@@ -105,11 +98,19 @@ sub genKohaRecords {
     my $lieferscheinNummer = '';
     my $lieferscheinDatum = '';
     my $acquisitionImportIdTitle = 0;
-
-    print STDERR "ekzWsLieferschein::genKohaRecords() Start;  id:$lieferscheinRecord->{'id'}: Lieferscheinnummer:$lieferscheinRecord->{'nummer'}: lieferscheinRecord->{'teilLieferungCount'}:$lieferscheinRecord->{'teilLieferungCount'}\n" if $debugIt;
-
-    $dbh = C4::Context->dbh;
+    my $dbh = C4::Context->dbh;
     $dbh->{AutoCommit} = 0;
+
+    # variables for email log
+    my @logresult = ();
+    my @actionresult = ();
+    my $importerror = 0;          # flag if an insert error happened
+    my %importIds = ();
+    my $dt = DateTime->now;
+    $dt->set_time_zone( 'Europe/Berlin' );
+    my ($message, $subject, $haserror) = ('','',0);
+
+    print STDERR "ekzWsLieferschein::genKohaRecords() Start;  messageID:$messageID id:$lieferscheinRecord->{'id'}: Lieferscheinnummer:$lieferscheinRecord->{'nummer'}: lieferscheinRecord->{'teilLieferungCount'}:$lieferscheinRecord->{'teilLieferungCount'}\n" if $debugIt;
 
     my $zweigstellenname = '';
     my $homebranch = C4::Context->preference("ekzWebServicesDefaultBranch");
@@ -184,7 +185,6 @@ print STDERR "ekzWsLieferschein::genKohaRecords() ref(schemaResultAcquitionImpor
 print STDERR "ekzWsLieferschein::genKohaRecords() Dumper(schemaResultAcquitionImport->{_column_data}):", Dumper($schemaResultAcquitionImport->{_column_data}), ":\n" if $debugIt;
 print STDERR "ekzWsLieferschein::genKohaRecords() acquisitionImportIdLieferschein:", $acquisitionImportIdLieferschein, ":\n" if $debugIt;
     }
-#exit 4;
 
 
 
@@ -641,7 +641,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() actionresultTit->[10]->[0]:", 
     }
 
     # create @logresult message for log email, representing all titles of the current $lieferscheinResult with all their processed items
-    push @logresult, ['LieferscheinDetail', $result->{'messageID'}, \@actionresult];
+    push @logresult, ['LieferscheinDetail', $messageID, \@actionresult];
 print STDERR "Dumper(\\\@logresult): ####################################################################################################################\n" if $debugIt;
 print STDERR Dumper(\@logresult) if $debugIt;
     
@@ -652,11 +652,11 @@ print STDERR Dumper(\@logresult) if $debugIt;
     }
 
 
-    # roll it back for TEST
-    $dbh->rollback;
+    #$dbh->rollback;    # roll it back for TEST XXXWH
 
     # commit the complete delivery note (only as a single transaction)
-    #$dbh->commit();
+    $dbh->commit();
+    $dbh->{AutoCommit} = 1;
 
     return 1;
 }
