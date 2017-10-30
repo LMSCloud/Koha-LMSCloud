@@ -8,6 +8,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('AcqWarnOnDuplicateInvoice','0','','Warn librarians when they try to create a duplicate invoice','YesNo'),
 ('ActivateCashRegisterTransactionsOnly', '0', NULL, 'By activating cash registers, all cash transactions must be treated through an opened cash register. If activated, all payments of patrons and refunds can be managed by staff members who are authorized to use a cash register only.', 'YesNo'),
 ('AddressFormat','us','','Choose format to display postal addresses', 'Choice'),
+('AdhocNoticesLetterCodes','',NULL,'Provide a comma-separated list of letter codes which can be used to send adhoc notices (available in the patron result list). An asterix can be used as wildcard character to match multiple letter codes.','Free'),
 ('advancedMARCeditor','0','','If ON, the MARC editor won\'t display field/subfield descriptions','YesNo'),
 ('AdvancedSearchLanguages','','','ISO 639-2 codes of languages you wish to see appear as an Advanced search option.  Example: eng|fre|ita','Textarea'),
 ('AdvancedSearchTypes','itemtypes','itemtypes|ccode','Select which set of fields comprise the Type limit in the advanced search','Choice'),
