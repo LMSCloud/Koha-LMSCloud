@@ -1906,6 +1906,22 @@ sub getCashRegisterHandoverInformationByLastOpeningAction {
     }
     $sth->finish;
     
+    if (! $lastOpeningId ) {
+        $query = q{
+            SELECT min(a.id) as id
+            FROM   cash_register_account a
+            WHERE  a.cash_register_id = ?
+           }; $query =~ s/^\s+/ /mg;
+        $sth = $dbh->prepare($query);
+        $sth->execute($cash_register_id);
+        if (my $row = $sth->fetchrow_hashref) {
+            if ( $row && $row->{'id'} ) {
+                $lastOpeningId =  $row->{'id'};
+            }
+        }
+        $sth->finish;
+    }
+    
     # lets now retrieve the data of the last oping action
     my $lastOpeningAction = Koha::CashRegister::CashRegisterAccounts->find({ id => $lastOpeningId });
     return undef if (! $lastOpeningAction );
