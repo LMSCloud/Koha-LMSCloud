@@ -1620,7 +1620,7 @@ sub getCashTransactionOverviewByBranch {
         my $query = q{
             SELECT  a.current_balance as balance
             FROM cash_register_account a
-            WHERE     a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.booking_time < ? and b.cash_register_id = ? ) 
+            WHERE     a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE b.booking_time < ? and b.cash_register_id = ? ) 
                   AND a.cash_register_id = ?
            }; $query =~ s/^\s+/ /mg;
         my $sth = $dbh->prepare($query);
@@ -1637,7 +1637,7 @@ sub getCashTransactionOverviewByBranch {
         $query = q{
             SELECT  a.current_balance as balance
             FROM cash_register_account a
-            WHERE     a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.booking_time <= ? and b.cash_register_id = ? ) 
+            WHERE     a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE b.booking_time <= ? and b.cash_register_id = ? ) 
                   AND a.cash_register_id = ?
            }; $query =~ s/^\s+/ /mg;
         $sth = $dbh->prepare($query);
