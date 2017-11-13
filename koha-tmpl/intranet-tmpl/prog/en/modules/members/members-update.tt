@@ -54,6 +54,7 @@
 [% CASE 'sex'                 %]<span>Sex</span>
 [% CASE 'altcontactfirstname' %]<span>Alternate contact: First name</span>
 [% CASE 'altcontactsurname'   %]<span>Alternate contact: Surname</span>
+[% CASE 'altcontacttitle'     %]<span>Alternate contact: Title</span>
 [% CASE 'altcontactaddress1'  %]<span>Alternate contact: Address</span>
 [% CASE 'altcontactaddress2'  %]<span>Alternate contact: Address 2</span>
 [% CASE 'altcontactaddress3'  %]<span>Alternate contact: City</span>

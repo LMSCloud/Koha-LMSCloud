@@ -530,7 +530,7 @@ $(document).ready(function() {
     [% END # UNLESS noB_address && noB_city && noB_state && noB_phone && noB_email %]
 [% END %]
 [% IF ( step_2 ) %]
-    [% UNLESS noaltcontactsurname && noaltcontactfirstname && noaltcontactaddress1 && noaltcontactaddress2 && noaltcontactaddress3 && noaltcontactstate && noaltcontactzipcode && noaltcontactcountry && noaltcontactphone %]
+    [% UNLESS noaltcontactsurname && noaltcontactfirstname && noaltcontacttitle && noaltcontactaddress1 && noaltcontactaddress2 && noaltcontactaddress3 && noaltcontactstate && noaltcontactzipcode && noaltcontactcountry && noaltcontactphone %]
         [% IF Koha.Preference( 'AddressFormat' ) %]
             [% INCLUDE "member-alt-contact-style-${ Koha.Preference( 'AddressFormat' ) }.inc" %]
         [% ELSE %]

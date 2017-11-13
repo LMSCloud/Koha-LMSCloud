@@ -341,6 +341,12 @@ __PACKAGE__->table("deletedborrowers");
   is_nullable: 1
   size: 255
 
+=head2 altcontacttitle
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 255
+
 =head2 altcontactaddress1
 
   data_type: 'varchar'
@@ -546,6 +552,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactsurname",
   { data_type => "varchar", is_nullable => 1, size => 255 },
+  "altcontacttitle",
+  { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactaddress1",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactaddress2",
@@ -578,8 +586,8 @@ __PACKAGE__->add_columns(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-16 11:50:05
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:XCHCsGrQHetrH2rde9Ygzg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-11-13 12:35:45
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:S2feJpdYF2/FVUMpTp3Izg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

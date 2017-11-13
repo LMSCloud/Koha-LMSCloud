@@ -379,7 +379,8 @@ sub GetPatronInfo {
             'email',              'emailpro',           'fax',                 'mobile',          'phone',             'phonepro',
             'streetnumber',       'zipcode',            'city',                'streettype',      'B_address',         'B_city',
             'B_email',            'B_phone',            'B_zipcode',           'address',         'address2',          'altcontactaddress1',
-            'altcontactaddress2', 'altcontactaddress3', 'altcontactfirstname', 'altcontactphone', 'altcontactsurname', 'altcontactzipcode'
+            'altcontactaddress2', 'altcontactaddress3', 'altcontactfirstname', 'altcontactphone', 'altcontactsurname', 'altcontactzipcode',
+            'altcontacttitle'
         );
 
         # and delete them
