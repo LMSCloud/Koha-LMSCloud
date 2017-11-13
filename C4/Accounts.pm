@@ -48,6 +48,7 @@ BEGIN {
         &makepartialpayment
         &recordpayment_selectaccts
         &WriteOffFee
+        &CancelFee
         &purge_zero_balance_fees
 	);
 }
@@ -897,7 +898,7 @@ C<$payment_note> is the note to attach to this payment
 =cut
 
 sub WriteOffFee {
-    my ( $borrowernumber, $accountlines_id, $itemnum, $accounttype, $amount, $branch, $payment_note ) = @_;
+    my ( $borrowernumber, $accountlines_id, $itemnum, $accounttype, $amount, $branch, $payment_note, $description ) = @_;
     $payment_note //= "";
     $branch ||= C4::Context->userenv->{branch};
     my $manager_id = 0;
@@ -924,15 +925,20 @@ sub WriteOffFee {
             manager_id            => $manager_id,
         }));
     }
+    
+    my $desc = "Writeoff";
+    if ( $description ) {
+        $desc .= ": $description";
+    }
 
     $query ="
         INSERT INTO accountlines
         ( borrowernumber, accountno, itemnumber, date, amount, description, accounttype, manager_id, note, branchcode )
-        VALUES ( ?, ?, ?, NOW(), ?, 'Writeoff', 'W', ?, ?, ? )
+        VALUES ( ?, ?, ?, NOW(), ?, ?, 'W', ?, ?, ? )
     ";
     $sth = $dbh->prepare( $query );
     my $acct = getnextacctno($borrowernumber);
-    $sth->execute( $borrowernumber, $acct, $itemnum, $amount, $manager_id, $payment_note, $branch);
+    $sth->execute( $borrowernumber, $acct, $itemnum, $amount, $desc, $manager_id, $payment_note, $branch);
 
     if ( C4::Context->preference("FinesLog") ) {
         logaction("FINES", 'CREATE',$borrowernumber,Dumper({
@@ -950,6 +956,86 @@ sub WriteOffFee {
     UpdateStats({
                 branch => $branch,
                 type => 'writeoff',
+                amount => $amount,
+                borrowernumber => $borrowernumber}
+    );
+
+}
+
+=head2 CancelFee
+
+  CancelFee( $borrowernumber, $accountline_id, $itemnum, $accounttype, $amount, $branch, $payment_note );
+
+Cancel a fine for a patron.
+C<$borrowernumber> is the patron's borrower number.
+C<$accountline_id> is the accountline_id of the fee to write off.
+C<$itemnum> is the itemnumber of of item whose fine is being written off.
+C<$accounttype> is the account type of the fine being written off.
+C<$amount> is a floating-point number, giving the amount that is being written off.
+C<$branch> is the branchcode of the library where the cancel fee occurred.
+C<$payment_note> is the note to attach to this payment
+
+=cut
+
+sub CancelFee {
+    my ( $borrowernumber, $accountlines_id, $itemnum, $accounttype, $amount, $branch, $payment_note, $description ) = @_;
+    $payment_note //= "";
+    $branch ||= C4::Context->userenv->{branch};
+    my $manager_id = 0;
+    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
+
+    # if no item is attached to fine, make sure to store it as a NULL
+    $itemnum ||= undef;
+
+    my ( $sth, $query );
+    my $dbh = C4::Context->dbh();
+
+    $query = "
+        UPDATE accountlines SET amountoutstanding = 0
+        WHERE accountlines_id = ? AND borrowernumber = ?
+    ";
+    $sth = $dbh->prepare( $query );
+    $sth->execute( $accountlines_id, $borrowernumber );
+
+    if ( C4::Context->preference("FinesLog") ) {
+        logaction("FINES", 'MODIFY', $borrowernumber, Dumper({
+            action                => 'fee_cancelled',
+            borrowernumber        => $borrowernumber,
+            accountlines_id       => $accountlines_id,
+            manager_id            => $manager_id,
+        }));
+    }
+
+    my $desc = "Fine cancelled";
+    if ( $description ) {
+        $desc .= ": $description";
+    }
+    
+    $query ="
+        INSERT INTO accountlines
+        ( borrowernumber, accountno, itemnumber, date, amount, description, accounttype, manager_id, note, branchcode )
+        VALUES ( ?, ?, ?, NOW(), ?, ?, 'CAN', ?, ?, ? )
+    ";
+    $sth = $dbh->prepare( $query );
+    my $acct = getnextacctno($borrowernumber);
+    $sth->execute( $borrowernumber, $acct, $itemnum, $amount, $desc, $manager_id, $payment_note, $branch);
+
+    if ( C4::Context->preference("FinesLog") ) {
+        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
+            action            => 'create_cancelfee',
+            borrowernumber    => $borrowernumber,
+            accountno         => $acct,
+            amount            => 0 - $amount,
+            accounttype       => 'CAN',
+            itemnumber        => $itemnum,
+            accountlines_paid => [ $accountlines_id ],
+            manager_id        => $manager_id,
+        }));
+    }
+
+    UpdateStats({
+                branch => $branch,
+                type => 'cancelfee',
                 amount => $amount,
                 borrowernumber => $borrowernumber}
     );

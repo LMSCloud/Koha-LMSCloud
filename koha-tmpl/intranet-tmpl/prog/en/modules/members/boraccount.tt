@@ -93,6 +93,7 @@ $(document).ready(function() {
           [% CASE 'M' %]Sundry
           [% CASE 'L' %]Lost item
           [% CASE 'W' %]Writeoff
+          [% CASE 'CAN' %]Fine cancelled
           [% CASE 'FU' %]Accruing fine
           [% CASE 'HE' %]Hold waiting too long
           [% CASE 'Rent' %]Rental fee
@@ -110,7 +111,7 @@ $(document).ready(function() {
           [% CASE 'NOTF' %]Notice fee
           [% CASE %][% account.accounttype %]
         [%- END -%]
-        [%- IF account.description %], [% account.description %][% END %]
+        [%- IF account.description %], [% account.description.replace('^(Writeoff|Fine cancelled)[:]?','') %][% END %]
         &nbsp;[% IF ( account.itemnumber ) %]<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% account.biblionumber %]&amp;itemnumber=[% account.itemnumber %]">[% account.title |html %]</a>[% END %]</td>
       <td>[% account.note | html_line_break %]</td>
       [% IF ( account.amountcredit ) %]<td class="credit" style="text-align: right;">[% ELSE %]<td class="debit" style="text-align: right;">[% END %][% account.amount | $Price %]</td>

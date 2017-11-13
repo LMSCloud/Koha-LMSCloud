@@ -46,7 +46,7 @@ use Koha::Patron::Images;
 
 our $input = CGI->new;
 
-my $updatecharges_permissions = $input->param('woall') ? 'writeoff' : 'remaining_permissions';
+my $updatecharges_permissions = $input->param('woall') ? 'writeoff' : $input->param('cancelall') ? 'cancel_fee': 'remaining_permissions';
 our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'members/pay.tt',
         query           => $input,
@@ -74,6 +74,7 @@ our $branch = C4::Context->userenv->{'branch'};
 my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 
 my $writeoff_item = $input->param('confirm_writeoff');
+my $cancel_item = $input->param('confirm_cancelfee');
 my $paycollect    = $input->param('paycollect');
 if ($paycollect && $checkCashRegisterOk ) {
     print $input->redirect(
@@ -93,7 +94,21 @@ if ($writeoff_all) {
     my $account_type = $input->param('accounttype');
     my $amount       = $input->param('amountoutstanding');
     my $payment_note = $input->param("payment_note");
-    WriteOffFee( $borrowernumber, $accountlines_id, $itemno, $account_type, $amount, $branch, $payment_note );
+    my $description  = $input->param("description");
+    WriteOffFee( $borrowernumber, $accountlines_id, $itemno, $account_type, $amount, $branch, $payment_note, $description );
+}
+
+my $cancel_all = $input->param('cancelall');    # cancel all fines
+if ($cancel_all) {
+    cancel_all(@names);
+} elsif ($cancel_item) {
+    my $accountlines_id = $input->param('accountlines_id');
+    my $itemno       = $input->param('itemnumber');
+    my $account_type = $input->param('accounttype');
+    my $amount       = $input->param('amountoutstanding');
+    my $payment_note = $input->param("payment_note");
+    my $description  = $input->param("description");
+    CancelFee( $borrowernumber, $accountlines_id, $itemno, $account_type, $amount, $branch, $payment_note, $description );
 }
 
 for (@names) {
@@ -103,8 +118,13 @@ for (@names) {
     } elsif (/^wo_indiv_(\d+)$/) {
         my $line_no = $1;
         redirect_to_paycollect( 'writeoff_individual', $line_no );
+    } elsif (/^cancel_indiv_(\d+)$/) {
+        my $line_no = $1;
+        redirect_to_paycollect( 'cancel_individual', $line_no );
     }
 }
+
+add_accounts_to_template();
 
 $template->param(
     finesview => 1,
@@ -113,7 +133,6 @@ $template->param(
     RoutingSerials => C4::Context->preference('RoutingSerials'),
 );
 
-add_accounts_to_template();
 
 output_html_with_http_headers $input, $cookie, $template->output;
 
@@ -207,7 +226,32 @@ sub writeoff_all {
             my $amount    = $input->param("amountoutstanding$value");
             my $accountlines_id = $input->param("accountlines_id$value");
             my $payment_note = $input->param("payment_note_$value");
-            WriteOffFee( $borrowernumber, $accountlines_id, $itemno, $accounttype, $amount, $branch, $payment_note );
+            my $description = $input->param("payment_note_$value");
+            WriteOffFee( $borrowernumber, $accountlines_id, $itemno, $accounttype, $amount, $branch, $payment_note, $description);
+        }
+    }
+
+    $borrowernumber = $input->param('borrowernumber');
+    print $input->redirect(
+        "/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber");
+    return;
+}
+
+sub cancel_all {
+    my @params = @_;
+    my @wo_lines = grep { /^accountlines_id\d+$/ } @params;
+    for (@wo_lines) {
+        if (/(\d+)/) {
+            my $value       = $1;
+            my $accounttype = $input->param("accounttype$value");
+
+            #    my $borrowernum    = $input->param("borrowernumber$value");
+            my $itemno    = $input->param("itemnumber$value");
+            my $amount    = $input->param("amountoutstanding$value");
+            my $accountlines_id = $input->param("accountlines_id$value");
+            my $payment_note = $input->param("payment_note_$value");
+            my $description = $input->param("payment_note_$value");
+            CancelFee( $borrowernumber, $accountlines_id, $itemno, $accounttype, $amount, $branch, $payment_note, $description);
         }
     }
 
