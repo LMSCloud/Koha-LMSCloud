@@ -363,6 +363,14 @@ Circulation:
                   no: "Create"
             - overdue notices on closing days of a library if the use of the calendar is deactivated for period calculation of overdue notices. 
         -
+            - pref: BookMobileStationOverdueRulesActive
+              default: 0
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - bookmobile station specific overdue rules. If activated, book mobile stations can have individual overdue and claiming fee rules. Requires to have the preference BookMobileSupportEnabled enabled.
+
+        -
             - Include up to
             - pref: PrintNoticesMaxLines
               class: integer

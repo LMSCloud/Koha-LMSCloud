@@ -493,20 +493,28 @@ my $noticeFees = C4::NoticeFees->new();
 # All matching issues are ordered by borrowernumber so that a borrower gets only one letter per
 # matching overduerule.
 foreach my $branchcode (@branches) {
+    my $library             = Koha::Libraries->find($branchcode);
+    my $usebranch           = $branchcode;
+    $usebranch = $library->mobilebranch if ( $library->mobilebranch );
+    
     if ( C4::Context->preference('OverdueNoticeCalendar') || C4::Context->preference('OverdueNoticeSkipWhenClosed') ) {
-        my $calendar = Koha::Calendar->new( branchcode => $branchcode );
+        my $calendar = Koha::Calendar->new( branchcode => $usebranch );
         if ( $calendar->is_holiday($date_to_run) ) {
             next;
         }
     }
-
-    my $library             = Koha::Libraries->find($branchcode);
+    
     my $admin_email_address = $library->branchemail
       || C4::Context->preference('KohaAdminEmailAddress');
     my @output_chunks;    # may be sent to mail or stdout or csv file.
 
     $verbose and warn sprintf "branchcode : '%s' using %s\n", $branchcode, $admin_email_address;
 
+    my $mobileselect = '';
+    if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
+        $mobileselect = 'OR b.mobilebranch = ?';
+    }
+    
     my $sth2 = $dbh->prepare( <<"END_SQL" );
 SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
   FROM items,biblio, biblioitems, branches b, issues
@@ -526,7 +534,7 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(cla
            )
         )
     AND TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
-    AND ( b.branchcode = ? OR b.mobilebranch = ? )
+    AND ( b.branchcode = ? $mobileselect )
 END_SQL
 
     my $query = "SELECT * FROM overduerules WHERE delay1 IS NOT NULL AND branchcode = ? ";
@@ -535,6 +543,16 @@ END_SQL
     
     my $rqoverduerules =  $dbh->prepare($query);
     $rqoverduerules->execute($branchcode, @myborcat, @myborcatout);
+    
+    # If it is a mobile branch station check wether there are rules for the mobile branch
+    if ($rqoverduerules->rows == 0 && $library->mobilebranch ){
+        $query = "SELECT * FROM overduerules WHERE delay1 IS NOT NULL AND branchcode = ? ";
+        $query .= " AND categorycode IN (".join( ',' , ('?') x @myborcat ).") " if (@myborcat);
+        $query .= " AND categorycode NOT IN (".join( ',' , ('?') x @myborcatout ).") " if (@myborcatout);
+        
+        $rqoverduerules = $dbh->prepare($query);
+        $rqoverduerules->execute($library->mobilebranch, @myborcat, @myborcatout);
+    }
     
     # We get default rules is there is no rule for this branch
     if($rqoverduerules->rows == 0){
@@ -569,7 +587,7 @@ END_SQL
             # $letter->{'content'} is the text of the mail that is sent.
             # this text contains fields that are replaced by their value. Those fields must be written between brackets
             # The following fields are available :
-	    # itemcount is interpreted here as the number of items in the overdue range defined by the current notice or all overdues < max if(-list-all).
+            # itemcount is interpreted here as the number of items in the overdue range defined by the current notice or all overdues < max if(-list-all).
             # <date> <itemcount> <firstname> <lastname> <address1> <address2> <address3> <city> <postcode> <country>
 
             my $borrower_sql = <<"END_SQL";
@@ -586,8 +604,13 @@ AND    issues.date_due <= $date
 END_SQL
             my @borrower_parameters;
             if ($branchcode) {
-                $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
-                push @borrower_parameters, $branchcode, $branchcode;
+                if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
+                    $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
+                    push @borrower_parameters, $branchcode, $branchcode;
+                } else {
+                    $borrower_sql .= 'AND branches.branchcode = ?';
+                    push @borrower_parameters, $branchcode;
+                }
             }
             if ( $overdue_rules->{categorycode} ) {
                 $borrower_sql .= ' AND borrowers.categorycode=? ';
@@ -609,8 +632,13 @@ AND    branches.branchcode = issues.branchcode
 AND    issues.date_due <= $date
 END_SQL
             if ($branchcode) {
-                $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
-                push @borrower_parameters, $branchcode, $branchcode;
+                if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
+                    $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
+                    push @borrower_parameters, $branchcode, $branchcode;
+                } else {
+                    $borrower_sql .= 'AND branches.branchcode = ?';
+                    push @borrower_parameters, $branchcode;
+                }
             }
             if ( $overdue_rules->{categorycode} ) {
                 $borrower_sql .= ' AND bo.categorycode=? ';
@@ -689,7 +717,7 @@ END_SQL
                     }
                 }
 
-                my $letter = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $branchcode );
+                my $letter = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $usebranch );
 
                 unless ($letter) {
                     $verbose and warn qq|Message '$overdue_rules->{"letter$i"}' content not found|;
@@ -711,7 +739,10 @@ END_SQL
                     ) unless $test_mode;
                     $verbose and warn "debarring $borr\n";
                 }
-                my @params = ($borrowernumber, $borrowernumber, $branchcode, $branchcode);
+                my @params = ($borrowernumber, $borrowernumber, $branchcode);
+                if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
+                    push(@params,$branchcode);
+                }
                 $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber";
 
                 $sth2->execute(@params);
@@ -802,7 +833,7 @@ END_SQL
                     # check whether there are claiming fee rules defined
                     if ( $nocharge==0 && $new_overdue_item == 1 && $claimFees->checkForClaimingRules() == 1 ) {
                         # check whether there is a matching claiming fee rule
-                        my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $branchcode);
+                        my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $usebranch);
                         
                         if ( $claimFeeRule ) {
                             my $fee = 0.0;
@@ -822,7 +853,7 @@ END_SQL
                                         due            => $item_info->{date_due},
                                         claimlevel     => $i,
                                         due_since_days => $days_between,
-                                        branchcode     => $branchcode,
+                                        branchcode     => $usebranch,
                                         
                                         # these are parameters that we need for fancy message printing
                                         items          => [$item_info],
@@ -849,7 +880,7 @@ END_SQL
                 }
                 $sth2->finish;
 
-                my @message_transport_types = @{ GetOverdueMessageTransportTypes( $branchcode, $overdue_rules->{categorycode}, $i) };
+                my @message_transport_types = @{ GetOverdueMessageTransportTypes( $usebranch, $overdue_rules->{categorycode}, $i) };
                 @message_transport_types = @{ GetOverdueMessageTransportTypes( q{}, $overdue_rules->{categorycode}, $i) }
                     unless @message_transport_types;
 
@@ -875,11 +906,11 @@ END_SQL
                         $titles = join("",@titles[0..$lastind]);
                     }
 
-                    my $letter_exists = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $branchcode, $effective_mtt ) ? 1 : 0;
+                    my $letter_exists = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $usebranch, $effective_mtt ) ? 1 : 0;
                     my $letter = parse_overdues_letter(
                         {   letter_code     => $overdue_rules->{"letter$i"},
                             borrowernumber  => $borrowernumber,
-                            branchcode      => $branchcode,
+                            branchcode      => $usebranch,
                             items           => \@items,
                             substitute      => {    # this appears to be a hack to overcome incomplete features in this code.
                                                 bib             => $library->branchname, # maybe 'bib' is a typo for 'lib<rary>'?
@@ -954,7 +985,7 @@ END_SQL
                             # check whether there are notice fee rules defined
                             if ( $nocharge == 0 && $noticeFees->checkForNoticeFeeRules() == 1) {
                                 #check whether there is a matching notice fee rule
-                                my $noticeFeeRule = $noticeFees->getNoticeFeeRule($branchcode, $overdue_rules->{categorycode}, $effective_mtt, $overdue_rules->{"letter$i"} );
+                                my $noticeFeeRule = $noticeFees->getNoticeFeeRule($usebranch, $overdue_rules->{categorycode}, $effective_mtt, $overdue_rules->{"letter$i"} );
                                 
                                 if ( $noticeFeeRule ) {
                                     my $fee = $noticeFeeRule->notice_fee();
@@ -968,7 +999,7 @@ END_SQL
                                                 letter_code    => $overdue_rules->{"letter$i"},
                                                 letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
                                                 claimlevel     => $i,
-                                                branchcode     => $branchcode,
+                                                branchcode     => $usebranch,
                                                 
                                                 # these are parameters that we need for fancy message printig
                                                 substitute     => {    # this appears to be a hack to overcome incomplete features in this code.
@@ -990,7 +1021,7 @@ END_SQL
                                     message_transport_type => $effective_mtt,
                                     from_address           => $admin_email_address,
                                     to_address             => join(',', @emails_to_use),
-                                    branchcode             => $branchcode
+                                    branchcode             => $usebranch
                                 }
                             ) unless $test_mode;
                             # A print notice should be sent only once per overdue level.
@@ -1046,7 +1077,7 @@ END_SQL
                 message_transport_type => 'email',
                 attachments            => [$attachment],
                 to_address             => $admin_email_address,
-                branchcode             => $branchcode
+                branchcode             => $usebranch
             }
         ) unless $test_mode;
     }
