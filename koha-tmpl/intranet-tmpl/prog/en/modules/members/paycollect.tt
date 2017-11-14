@@ -70,8 +70,8 @@ $(document).ready(function() {
     updateReturnAmount($("#handedout"));
     recalculatePaidAmount($("#payindivfine"));
 
-[% ELSIF ( writeoff_individual ) %]
-    // The form woindivfine does not contain fields 'handedout' or 'paid', so no special event listener required in this case.
+[% ELSIF ( writeoff_individual || cancelfee_individual ) %]
+    // The form woindivfine/cancelindivfine does not contain fields 'handedout' or 'paid', so no special event listener required in this case.
 
 [% ELSE %]
     updateReturnAmount($("#handedout"));
@@ -156,7 +156,7 @@ function updReturnAmount() {
 <body id="pat_paycollect" class="pat">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'patron-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Pay fines for [% borrower.firstname %] [% borrower.surname %]</a> &rsaquo; [% IF ( pay_individual ) %]Pay an individual fine[% ELSIF ( writeoff_individual ) %]Write off an individual fine[% ELSE %][% IF ( selected_accts ) %]Pay an amount toward selected fines[% ELSE %]Pay an amount toward all fines[% END %][% END %]</div>
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Pay fines for [% borrower.firstname %] [% borrower.surname %]</a> &rsaquo; [% IF ( pay_individual ) %]Pay an individual fine[% ELSIF ( writeoff_individual ) %]Write off an individual fine[% ELSIF ( cancelfee_individual ) %]Cancel an individual fine[% ELSE %][% IF ( selected_accts ) %]Pay an amount toward selected fines[% ELSE %]Pay an amount toward all fines[% END %][% END %]</div>
 
 <div id="doc3" class="yui-t2">
 
@@ -194,7 +194,7 @@ function updReturnAmount() {
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
     <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
-    <input type="hidden" name="description" id="description" value="[% description %]" />
+    <input type="hidden" name="description" id="description" value="[% individual_description %]" />
     <input type="hidden" name="accounttype" id="accounttype" value="[% accounttype %]" />
     <input type="hidden" name="notify_id" id="notify_id" value="[% notify_id %]" />
     <input type="hidden" name="notify_level" id="notify_level" value="[% notify_level %]" />
@@ -258,7 +258,7 @@ function updReturnAmount() {
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
     <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
-    <input type="hidden" name="description" id="description" value="[% description %]" />
+    <input type="hidden" name="description" id="description" value="[% individual_description %]" />
     <input type="hidden" name="accounttype" id="accounttype" value="[% accounttype %]" />
     <input type="hidden" name="notify_id" id="notify_id" value="[% notify_id %]" />
     <input type="hidden" name="notify_level" id="notify_level" value="[% notify_level %]" />
@@ -279,7 +279,7 @@ function updReturnAmount() {
         </tr></thead>
     <tfoot><td colspan="5">Total amount to be written off:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
     <tbody><tr>
-            <td>[% description %] [% title_desc %]</td>
+            <td>[% individual_description %] [% title_desc %]</td>
             <td>[% accounttypename %]</td>
             <td>[% notify_id %]</td>
             <td>[% notify_level %]</td>
@@ -291,6 +291,47 @@ function updReturnAmount() {
     <div class="action"><input type="submit" name="confirm_writeoff" id="confirm_writeoff" value="Write off this charge" />
         <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a></div>
     </form>
+[% ELSIF ( cancelfee_individual ) %]
+    <form name="cancelindivfine" id="cancelindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
+    <fieldset class="rows">
+    <legend>Cancel an individual fine</legend>
+    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
+    <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
+    <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
+    <input type="hidden" name="description" id="description" value="[% individual_description %]" />
+    <input type="hidden" name="accounttype" id="accounttype" value="[% accounttype %]" />
+    <input type="hidden" name="notify_id" id="notify_id" value="[% notify_id %]" />
+    <input type="hidden" name="notify_level" id="notify_level" value="[% notify_level %]" />
+    <input type="hidden" name="amount" id="amount" value="[% amount %]" />
+    <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
+    <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
+    <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
+    <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
+    <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note %]" />
+    <table>
+    <thead><tr>
+            <th>Description</th>
+            <th>Account type</th>
+            <th>Notify id</th>
+            <th>Level</th>
+            <th>Amount</th>
+            <th>Amount outstanding</th>
+        </tr></thead>
+    <tfoot><td colspan="5">Total amount to be cancelled:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
+    <tbody><tr>
+            <td>[% individual_description %] [% title_desc %]</td>
+            <td>[% accounttypename %]</td>
+            <td>[% notify_id %]</td>
+            <td>[% notify_level %]</td>
+            <td class="debit">[% amount | $Price %]</td>
+            <td class="debit">[% amountoutstanding | $Price %]</td>
+        </tr></tbody>
+    </table>
+    </fieldset>
+    <div class="action"><input type="submit" name="confirm_cancelfee" id="confirm_cancelfee" value="Cancel this charge" />
+        <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a></div>
+    </form>
+
 [% ELSE %]
 
     <form name="payfine" id="payfine" method="post" action="/cgi-bin/koha/members/paycollect.pl">

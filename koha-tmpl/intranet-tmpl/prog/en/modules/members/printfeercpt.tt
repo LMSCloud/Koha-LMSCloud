@@ -58,6 +58,7 @@
           [% CASE 'M' %]Sundry
           [% CASE 'L' %]Lost Item
           [% CASE 'W' %]Writeoff
+          [% CASE 'CAN' %]Fee cancelled
           [% CASE 'CL1' %]Overdue fine (level 1)
           [% CASE 'CL2' %]Overdue fine (level 2)
           [% CASE 'CL3' %]Overdue fine (level 3)

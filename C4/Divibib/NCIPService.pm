@@ -20,6 +20,8 @@ package C4::Divibib::NCIPService;
 use strict;
 use warnings;
 
+use Carp;
+
 use utf8;
 
 use LWP::UserAgent;
@@ -105,7 +107,7 @@ sub lookupUser {
     if ( $userId ne '' ) {
         my $cmd = C4::Divibib::NCIP::LookupUser->new($userId,$withAccount);
         $self->_fetch_divibib_data($cmd);
-        return ($cmd->getResponse(),$cmd->getResponseOk,$cmd->getResponseError(),$cmd->getResponseErrorCode());
+        return ($cmd->getResponse(),$cmd->getResponseOk(),$cmd->getResponseError(),$cmd->getResponseErrorCode());
     }
     return (undef,0,"Incomplete request data. User id not provided.",undef);
 }
@@ -119,7 +121,7 @@ sub lookupItem {
     if ( $itemId ne '' ) {
         my $cmd = C4::Divibib::NCIP::LookupItem->new($itemId);
         $self->_fetch_divibib_data($cmd);
-        return ($cmd->getResponse(),$cmd->getResponseOk,$cmd->getResponseError(),$cmd->getResponseErrorCode());
+        return ($cmd->getResponse(),$cmd->getResponseOk(),$cmd->getResponseError(),$cmd->getResponseErrorCode());
     }
     return (undef,0,"Incomplete request data. Item id not provided.",undef);
 }
@@ -134,7 +136,7 @@ sub requestItem {
     if ( $itemId ne '' && $userId ne '' ) {
         my $cmd = C4::Divibib::NCIP::RequestItem->new($userId, $itemId, $doLoan);
         $self->_fetch_divibib_data($cmd);
-        return ($cmd->getResponse(),$cmd->getResponseOk,$cmd->getResponseError(),$cmd->getResponseErrorCode());
+        return ($cmd->getResponse(),$cmd->getResponseOk(),$cmd->getResponseError(),$cmd->getResponseErrorCode());
     }
     return (undef,0,"Incomplete request data. Item order user id not provided: ItemId='$itemId' userId='$userId'",undef);
 }
@@ -323,10 +325,15 @@ sub _fetch_divibib_data {
     my $response = $self->{'ua'}->post($self->{'url'}, Content_Type => 'application/xml', Content => $cmd->getXML());
     
     if ( $response->is_success ) {
-	$cmd->parseResponse($response->content);
+        $cmd->parseResponse($response->content);
+        
+        if (! $cmd->getResponseOk() ) {
+            carp "C4::Divibib::NCIPService unsuccessful command: " . $cmd->getXML() . "\nResult: " . $response->content;
+        }
     }
     else {
-	$cmd->responseError($response->error_as_HTML, $response->code);
+        carp "C4::Divibib::NCIPService error calling command: " . $cmd->getXML() . "\nResult: " . $response->error_as_HTML;
+        $cmd->responseError($response->error_as_HTML, $response->code);
     }
     
     #use Data::Dumper;

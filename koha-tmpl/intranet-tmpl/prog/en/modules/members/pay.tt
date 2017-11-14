@@ -110,6 +110,7 @@ function enableCheckboxActions(){
             <input type="submit" name="pay_indiv_[% line.accountlines_id %]" value="Pay" />
         [% END %]
         [% IF CAN_user_updatecharges_writeoff %]<input type="submit" name="wo_indiv_[% line.accountlines_id %]" value="Write off" />[% END %]
+        [% IF CAN_user_updatecharges_cancel_fee %]<input type="submit" name="cancel_indiv_[% line.accountlines_id %]" value="Cancel fee" />[% END %]
     [% END %]
     <input type="hidden" name="itemnumber[% line.accountlines_id %]" value="[% line.itemnumber %]" />
     <input type="hidden" name="description[% line.accountlines_id %]" value="[% line.description | html %]" />
@@ -136,6 +137,7 @@ function enableCheckboxActions(){
           [% CASE 'M' %]Sundry
           [% CASE 'L' %]Lost item
           [% CASE 'W' %]Writeoff
+          [% CASE 'CAN' %]Fee cancelled
           [% CASE 'FU' %]Accruing fine
           [% CASE 'HE' %]Hold waiting too long
           [% CASE 'Rent' %]Rental fee
@@ -143,6 +145,7 @@ function enableCheckboxActions(){
           [% CASE 'LR' %]Lost item fee refund
           [% CASE 'PAY' %]Payment
           [% CASE 'WO' %]Writeoff
+          [% CASE 'CAN' %]Fee cancelled
           [% CASE 'C' %]Credit
           [% CASE 'CR' %]Credit
           [% CASE 'CL1' %]Overdue fine (level 1)
@@ -180,7 +183,8 @@ function enableCheckboxActions(){
 [% ELSE %]
     <input type="submit" id="paycollect" name="paycollect"  value="Pay amount" class="submit" />
 [% END %]
-[% IF CAN_user_updatecharges_writeoff %]<input type="submit" name="woall"  id="woall" value="Write off all" class="submit" />[% END %]
+[% IF CAN_user_updatecharges_writeoff %] <input type="submit" name="woall"  id="woall" value="Write off all" class="submit" />[% END %]
+[% IF CAN_user_updatecharges_cancel_fee %] <input type="submit" name="cancelall"  id="cancelall" value="Cancel all" class="submit" />[% END %]
 [% IF (checkCashRegisterFailed) %] 
     <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" disabled="disabled" />
 [% ELSE %]

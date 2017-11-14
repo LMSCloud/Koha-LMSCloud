@@ -24,6 +24,8 @@ use C4::Context;
 use C4::Members;
 use XML::Simple;
 
+use Carp;
+
 use Scalar::Util qw/reftype/;
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
@@ -189,9 +191,11 @@ sub getResponseErrorCode {
 sub parseResponse {
     my $self = shift;
     
+    my $dvbresponse = shift;
+    
     $self->_initResponse();
     
-    my $response = XMLin( shift, ForceArray => [ 'LoanedItem', 'RequestedItem' ] );
+    my $response = XMLin( $dvbresponse, ForceArray => [ 'LoanedItem', 'RequestedItem' ] );
     
     return unless ($response);
     

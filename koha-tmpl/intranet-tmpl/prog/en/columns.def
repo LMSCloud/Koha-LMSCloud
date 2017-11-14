@@ -33,6 +33,7 @@
 <field name="borrowers.B_phone">Alternate address: Phone</field>
 <field name="borrowers.B_email">Alternate address: Email</field>
 <field name="borrowers.contactnote">Alternate contact: Note</field>
+<field name="borrowers.altcontacttitle">Alternate contact: Title</field>
 <field name="borrowers.altcontactfirstname">Alternate contact: First name</field>
 <field name="borrowers.altcontactsurname">Alternate contact: Surname</field>
 <field name="borrowers.altcontactaddress1">Alternate contact: Address</field>

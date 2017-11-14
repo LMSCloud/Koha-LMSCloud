@@ -114,6 +114,7 @@
                                             [% CASE 'M' %]Sundry
                                             [% CASE 'L' %]Lost item
                                             [% CASE 'W' %]Writeoff
+                                            [% CASE 'CAN' %]Fine cancelled
                                             [% CASE 'FU' %]Accruing fine
                                             [% CASE 'HE' %]Hold waiting too long
                                             [% CASE 'Rent' %]Rental fee
@@ -131,7 +132,7 @@
                                             [% CASE 'NOTF' %]Notice fee
                                             [% CASE %][% ACCOUNT_LINE.accounttype %]
                                           [%- END -%]
-                                          [%- IF ACCOUNT_LINE.description %], [% ACCOUNT_LINE.description %][% END %]
+                                          [%- IF ACCOUNT_LINE.description %], [% ACCOUNT_LINE.description.replace('^(Writeoff|Fine cancelled)[:]?','') %][% END %]
                                           [% IF ACCOUNT_LINE.title %]([% ACCOUNT_LINE.title %])[% END %]
                                         </td>
                                         [% IF ( ACCOUNT_LINE.amountcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% ACCOUNT_LINE.amount | $Price %]</td>

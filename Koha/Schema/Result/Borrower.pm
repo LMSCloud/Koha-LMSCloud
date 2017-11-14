@@ -343,6 +343,12 @@ __PACKAGE__->table("borrowers");
   is_nullable: 1
   size: 255
 
+=head2 altcontacttitle
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 255
+
 =head2 altcontactaddress1
 
   data_type: 'varchar'
@@ -560,6 +566,8 @@ __PACKAGE__->add_columns(
   "altcontactfirstname",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactsurname",
+  { data_type => "varchar", is_nullable => 1, size => 255 },
+  "altcontacttitle",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactaddress1",
   { data_type => "varchar", is_nullable => 1, size => 255 },
@@ -1248,8 +1256,8 @@ Composing rels: L</aqorder_users> -> ordernumber
 __PACKAGE__->many_to_many("ordernumbers", "aqorder_users", "ordernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-14 18:08:01
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:QLUbtEKIXN4KTFCHrNwrDw
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-11-10 17:46:37
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:RIKY9nsceqCbzvVER9sEcg
 
 __PACKAGE__->belongs_to(
     "guarantor",

@@ -651,6 +651,7 @@ CREATE TABLE `deletedborrowers` ( -- stores data related to the patrons/borrower
   `sort2` varchar(80) default NULL, -- a field that can be used for any information unique to the library
   `altcontactfirstname` varchar(255) default NULL, -- first name of alternate contact for the patron/borrower
   `altcontactsurname` varchar(255) default NULL, -- surname or last name of the alternate contact for the patron/borrower
+  `altcontacttitle` varchar(255) default NULL, -- title of the alternate contact for the patron/borrower
   `altcontactaddress1` varchar(255) default NULL, -- the first address line for the alternate contact for the patron/borrower
   `altcontactaddress2` varchar(255) default NULL, -- the second address line for the alternate contact for the patron/borrower
   `altcontactaddress3` varchar(255) default NULL, -- the city for the alternate contact for the patron/borrower
@@ -1664,6 +1665,7 @@ CREATE TABLE `borrowers` ( -- this table includes information about your patrons
   `sort2` varchar(80) default NULL, -- a field that can be used for any information unique to the library
   `altcontactfirstname` varchar(255) default NULL, -- first name of alternate contact for the patron/borrower
   `altcontactsurname` varchar(255) default NULL, -- surname or last name of the alternate contact for the patron/borrower
+  `altcontacttitle` varchar(255) default NULL, -- title of the alternate contact for the patron/borrower
   `altcontactaddress1` varchar(255) default NULL, -- the first address line for the alternate contact for the patron/borrower
   `altcontactaddress2` varchar(255) default NULL, -- the second address line for the alternate contact for the patron/borrower
   `altcontactaddress3` varchar(255) default NULL, -- the city for the alternate contact for the patron/borrower
@@ -3424,6 +3426,7 @@ CREATE TABLE IF NOT EXISTS `borrower_modifications` (
   `sort2` varchar(80) DEFAULT NULL,
   `altcontactfirstname` varchar(255) DEFAULT NULL,
   `altcontactsurname` varchar(255) DEFAULT NULL,
+  `altcontacttitle` varchar(255) DEFAULT NULL,
   `altcontactaddress1` varchar(255) DEFAULT NULL,
   `altcontactaddress2` varchar(255) DEFAULT NULL,
   `altcontactaddress3` varchar(255) DEFAULT NULL,

@@ -56,17 +56,20 @@ my $total_paid = $input->param('paid');
 
 my $individual   = $input->param('pay_individual');
 my $writeoff     = $input->param('writeoff_individual');
+my $cancel_fee     = $input->param('cancel_individual');
 my $select_lines = $input->param('selected');
 my $select       = $input->param('selected_accts');
 my $payment_note = uri_unescape $input->param('payment_note');
 my $accountno;
 my $accountlines_id;
 
-if ( $individual || $writeoff ) {
+if ( $individual || $writeoff || $cancel_fee ) {
     if ($individual) {
         $template->param( pay_individual => 1 );
     } elsif ($writeoff) {
         $template->param( writeoff_individual => 1 );
+    } elsif ($cancel_fee) {
+        $template->param( cancelfee_individual => 1 );
     }
     my $accounttype       = $input->param('accounttype');
     my $accounttypename   = $input->param('accounttypename');

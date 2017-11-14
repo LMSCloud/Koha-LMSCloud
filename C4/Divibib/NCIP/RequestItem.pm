@@ -182,10 +182,11 @@ sub getResponseErrorCode {
 
 sub parseResponse {
     my $self = shift;
+    my $dvbresponse = shift;
     
     $self->_initResponse();
     
-    my $response = XMLin( shift, ForceArray => [ ] );
+    my $response = XMLin( $dvbresponse, ForceArray => [ ] );
     
     return unless ($response);
     
@@ -202,12 +203,12 @@ sub parseResponse {
     }
     
     
-    if ( exists($response->{'LookupUserResponse'}) && 
-         exists($response->{'LookupUserResponse'}->{'Problem'}) ) 
+    if ( exists($response->{'RequestItemResponse'}) && 
+         exists($response->{'RequestItemResponse'}->{'Problem'}) ) 
     {
         $self->responseError(
-                $response->{'LookupUserResponse'}->{'Problem'}->{'ProblemDetail'},
-                $response->{'LookupUserResponse'}->{'Problem'}->{'ProblemType'});
+                $response->{'RequestItemResponse'}->{'Problem'}->{'ProblemDetail'},
+                $response->{'RequestItemResponse'}->{'Problem'}->{'ProblemType'});
     }
 }
 1;

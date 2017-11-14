@@ -9,6 +9,7 @@
   [% CASE 'M' %]Sundry
   [% CASE 'L' %]Lost item
   [% CASE 'W' %]Writeoff
+  [% CASE 'CAN' %]Fine cancelled
   [% CASE 'FU' %]Accruing fine
   [% CASE 'HE' %]Hold waiting too long
   [% CASE 'Rent' %]Rental fee

@@ -787,17 +787,52 @@ returns a list of branch codes for branches with overdue rules defined.
 
 sub GetBranchcodesWithOverdueRules {
     my $dbh               = C4::Context->dbh;
-    my $branchcodes = $dbh->selectcol_arrayref(q|
-        SELECT DISTINCT(b.branchcode)
-        FROM overduerules o, branches b
-        WHERE o.delay1 IS NOT NULL
-        AND o.branchcode = b.branchcode
-        AND (b.mobilebranch is NULL OR b.mobilebranch = '')
-        ORDER BY b.branchcode
-    |);
+    my $branchcodes;
+    
+    if (!C4::Context->preference('BookMobileSupportEnabled') ||
+        !C4::Context->preference('BookMobileStationOverdueRulesActive')) 
+    {
+        $branchcodes = $dbh->selectcol_arrayref(q|
+            SELECT DISTINCT(b.branchcode)
+            FROM overduerules o, branches b
+            WHERE o.delay1 IS NOT NULL
+            AND o.branchcode = b.branchcode
+            AND (b.mobilebranch is NULL OR b.mobilebranch = '')
+            ORDER BY b.branchcode
+        |);
+    } else {
+        $branchcodes = $dbh->selectcol_arrayref(q|
+            SELECT DISTINCT(b.branchcode)
+            FROM overduerules o, branches b
+            WHERE o.delay1 IS NOT NULL
+            AND o.branchcode = b.branchcode
+            UNION
+            SELECT DISTINCT(b.branchcode)
+            FROM branches b
+            WHERE 
+            NOT EXISTS (
+                SELECT 1
+                FROM overduerules o
+                WHERE o.delay1 IS NOT NULL
+                AND o.branchcode = b.branchcode )
+            AND b.mobilebranch > ''
+            AND EXISTS (
+                SELECT DISTINCT 1
+                FROM branches bb, overduerules ob
+                WHERE ob.delay1 IS NOT NULL
+                AND ob.branchcode = bb.branchcode
+                AND b.mobilebranch = bb.branchcode)
+            ORDER BY branchcode
+        |);
+    }
     if ( $branchcodes->[0] eq '' ) {
         # If a default rule exists, all branches should be returned
-        my $availbranches = C4::Branch::GetBranchesWithoutMobileStations();
+        my $availbranches;
+        if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
+            $availbranches = C4::Branch::GetBranchesWithoutMobileStations();
+        } else {
+            $availbranches = C4::Branch::GetBranches();
+        }
         return keys %$availbranches;
     }
     return @$branchcodes;

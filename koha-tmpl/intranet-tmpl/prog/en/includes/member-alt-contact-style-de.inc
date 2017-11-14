@@ -1,5 +1,28 @@
         <fieldset class="rows" id="memberentry_altaddress">
             <legend id="alt_contact_lgd">Alternate contact</legend><ol>
+        [% UNLESS noaltcontacttitle %]
+        [% IF Koha.Preference('BorrowersTitles') %]
+            <li>
+            [% IF ( mandatoryaltcontacttitle ) %]
+                <label for="altcontacttitle" class="required">
+            [% ELSE %]
+                <label for="altcontacttitle">
+            [% END %]
+            Salutation: </label>
+            <select id="altcontacttitle" name="altcontacttitle">
+                <option value=""></option>
+                [% FOREACH t IN Koha.Preference('BorrowersTitles').split('\|') %]
+                    [% IF altcontacttitle == t %]
+                        <option value="[% t %]" selected="selected">[% t %]</option>
+                    [% ELSE %]
+                        <option value="[% t %]">[% t %]</option>
+                    [% END %]
+                [% END %]
+            </select>
+            [% IF ( mandatoryaltcontacttitle ) %]<span class="required">Required</span>[% END %]
+            </li>
+		[% END %]
+        [% END %]
         [% UNLESS noaltcontactsurname %]
             <li>
                 [% IF ( mandatoryaltcontactsurname ) %]

@@ -328,7 +328,13 @@ elsif ( $op eq 'cloneRules') {
 ########################################
 #  Read branches
 ########################################
-my $branches = GetBranchesWithoutMobileStations();
+my $branches;
+if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
+    $branches = GetBranchesWithoutMobileStations();
+} else {
+    $branches = GetBranches();
+}
+
 my @branchloop;
 for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
     push @branchloop, {

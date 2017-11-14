@@ -73,7 +73,7 @@ my @loop2;
 foreach my $payment (@payments) {
 
     my @charges;
-    if ( $payment->{'type'} ne 'writeoff' ) {
+    if ( $payment->{'type'} ne 'writeoff' && $payment->{'type'} ne 'cancelfee' ) {
 
         @charges = getcharges(
             $payment->{'borrowernumber'},

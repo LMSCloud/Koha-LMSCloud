@@ -54,7 +54,7 @@ __PACKAGE__->table("acquisition_import");
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
-  is_nullable: 1
+  is_nullable: 0
 
 =head2 rec_type
 
@@ -105,7 +105,7 @@ __PACKAGE__->add_columns(
   "object_number",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 255 },
   "object_date",
-  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 0 },
   "rec_type",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 80 },
   "object_item_number",
@@ -138,8 +138,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-09-07 12:38:41
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:lQi78W+VyQsdCCZhCF34Sw
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-11-10 17:46:37
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:hyANxyFFjnkJ6uxkYUDtcg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

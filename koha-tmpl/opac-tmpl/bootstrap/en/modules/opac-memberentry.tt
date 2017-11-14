@@ -693,12 +693,36 @@
                 [% UNLESS
                     hidden.defined('altcontactsurname') && hidden.defined('altcontactfirstname') && hidden.defined('altcontactaddress1') &&
                     hidden.defined('altcontactaddress2') && hidden.defined('altcontactaddress3') && hidden.defined('altcontactstate') &&
-                    hidden.defined('altcontactzipcode') && hidden.defined('altcontactcountry') && hidden.defined('altcontactphone')
+                    hidden.defined('altcontactzipcode') && hidden.defined('altcontactcountry') && hidden.defined('altcontactphone') &&
+                    hidden.defined('altcontacttitle')
                 %]
                     <fieldset class="rows" id="memberentry_alternatecontact">
                         <legend id="alternatecontact_legend">Alternate contact</legend>
 
                         <ol>
+                            [% UNLESS hidden.defined('altcontacttitle') %]
+                                [% IF Koha.Preference('BorrowersTitles') %]
+                                    <li>
+                                    [% IF ( mandatory.defined('altcontacttitle') ) %]
+                                        <label for="borrower_altcontacttitle" class="required">
+                                    [% ELSE %]
+                                        <label for="borrower_altcontacttitle">
+                                    [% END %]
+                                    Salutation: </label>
+                                    <select id="borrower_altcontacttitle" name="borrower_altcontacttitle">
+                                        <option value=""></option>
+                                        [% FOREACH t IN Koha.Preference('BorrowersTitles').split('\|') %]
+                                            [% IF altcontacttitle == t %]
+                                                <option value="[% t %]" selected="selected">[% t %]</option>
+                                            [% ELSE %]
+                                                <option value="[% t %]">[% t %]</option>
+                                            [% END %]
+                                        [% END %]
+                                    </select>
+                                    [% IF ( mandatory.defined('altcontacttitle') ) %]<span class="required">Required</span>[% END %]
+                                    </li>
+                                [% END %]
+                            [% END %]
                             [% UNLESS hidden.defined('altcontactsurname') %]
                                 <li>
                                     [% IF mandatory.defined('altcontactsurname') %]
