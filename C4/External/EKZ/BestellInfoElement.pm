@@ -306,6 +306,7 @@ print STDERR Dumper(\@logresult) if $debugIt;
 
     # commit the complete BestellInfo (only as a single transaction)
     $dbh->commit();
+    $dbh->{AutoCommit} = 1;
     
     if ( scalar(@logresult) > 0 ) {
         my @importIds = keys %importIds;
