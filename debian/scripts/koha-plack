@@ -74,7 +74,7 @@ start_plack()
 
     _check_and_fix_perms $instancename
 
-    STARMANOPTS="-M FindBin --max-requests 50 --workers 2 \
+    STARMANOPTS="-M FindBin --max-requests 50 --workers 4 \
                  --user=${instancename}-koha --group ${instancename}-koha \
                  --pid ${PIDFILE} \
                  --daemonize \
