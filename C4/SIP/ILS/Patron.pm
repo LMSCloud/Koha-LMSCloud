@@ -544,6 +544,7 @@ __END__
 | sort2               | varchar(80)  | YES  |     | NULL    |                |
 | altcontactfirstname | varchar(255) | YES  |     | NULL    |                |
 | altcontactsurname   | varchar(255) | YES  |     | NULL    |                |
+| altcontacttitle     | varchar(255) | YES  |     | NULL    |                |
 | altcontactaddress1  | varchar(255) | YES  |     | NULL    |                |
 | altcontactaddress2  | varchar(255) | YES  |     | NULL    |                |
 | altcontactaddress3  | varchar(255) | YES  |     | NULL    |                |

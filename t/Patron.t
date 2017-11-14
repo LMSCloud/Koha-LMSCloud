@@ -117,6 +117,7 @@ my $patron = Koha::Patron->new(
         sort2               => 'mySort2',
         altcontactfirstname => 'myAltcontactfirstname',
         altcontactsurname   => 'myAltcontactsurname',
+        altcontacttitle     => 'myAltcontacttitle',
         altcontactaddress1  => 'myAltcontactaddress1',
         altcontactaddress2  => 'myAltcontactaddress2',
         altcontactaddress3  => 'myAltcontactaddress3',
@@ -188,6 +189,7 @@ subtest 'Accessor tests' => sub {
     is( $patron->sort2,               'mySort2',               'sort2 accessor returns correct value' );
     is( $patron->altcontactfirstname, 'myAltcontactfirstname', 'altcontactfirstname accessor returns correct value' );
     is( $patron->altcontactsurname,   'myAltcontactsurname',   'altcontactsurname accessor returns correct value' );
+    is( $patron->altcontacttitle,     'myAltcontacttitle',     'altcontacttitle accessor returns correct value' );
     is( $patron->altcontactaddress1,  'myAltcontactaddress1',  'altcontactaddress1 accessor returns correct value' );
     is( $patron->altcontactaddress2,  'myAltcontactaddress2',  'altcontactaddress2 accessor returns correct value' );
     is( $patron->altcontactaddress3,  'myAltcontactaddress3',  'altcontactaddress3 accessor returns correct value' );
@@ -261,6 +263,7 @@ subtest 'Set tests' => sub {
             sort2               => 'SmySort2',
             altcontactfirstname => 'SmyAltcontactfirstname',
             altcontactsurname   => 'SmyAltcontactsurname',
+            altcontacttitle     => 'SmyAltcontacttitle',
             altcontactaddress1  => 'SmyAltcontactaddress1',
             altcontactaddress2  => 'SmyAltcontactaddress2',
             altcontactaddress3  => 'SmyAltcontactaddress3',
@@ -329,6 +332,7 @@ subtest 'Set tests' => sub {
     is( $patron->sort2,               'SmySort2',                         'sort2 field set ok' );
     is( $patron->altcontactfirstname, 'SmyAltcontactfirstname',           'altcontactfirstname field set ok' );
     is( $patron->altcontactsurname,   'SmyAltcontactsurname',             'altcontactsurname field set ok' );
+    is( $patron->altcontacttitle,     'SmyAltcontacttitle',               'altcontacttitle field set ok' );
     is( $patron->altcontactaddress1,  'SmyAltcontactaddress1',            'altcontactaddress1 field set ok' );
     is( $patron->altcontactaddress2,  'SmyAltcontactaddress2',            'altcontactaddress2 field set ok' );
     is( $patron->altcontactaddress3,  'SmyAltcontactaddress3',            'altcontactaddress3 field set ok' );

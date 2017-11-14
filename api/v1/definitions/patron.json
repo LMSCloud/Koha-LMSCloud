@@ -225,6 +225,10 @@
           "type": ["string", "null"],
           "description": "surname or last name of the alternate contact for the patron"
         },
+        "altcontacttitle": {
+          "type": ["string", "null"],
+          "description": "title of the alternate contact for the patron"
+        },
         "altcontactaddress1": {
           "type": ["string", "null"],
           "description": "the first address line for the alternate contact for the patron"
