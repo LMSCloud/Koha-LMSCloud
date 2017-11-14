@@ -248,15 +248,28 @@ sub searchDubletten {
             my @exemplare = ();
 
             my $biblionumber = $marcrecord->subfield("999","c");
-            my $ekzArtikelNr = 'not found';
+            my $ekzArtikelNr = 'ohne ekz-Artikelnummer';
             my $kontrollNrID = $marcrecord->field("003")->data();
 
             if ( $kontrollNrID eq "DE-Rt5" ) {
-                $ekzArtikelNr = $marcrecord->field("001")->data();
+                $ekzArtikelNr = $marcrecord->field("001")->data();    # the cn is a ekz article number only if cna == "DE-Rt5"
+            } else {
+                my $id = '';
+                if ( defined($reqParamTitelInfo->{'isbn13'}) && length($reqParamTitelInfo->{'isbn13'}) > 0 ) {
+                    $id = $reqParamTitelInfo->{'isbn13'};
+                } elsif ( defined($reqParamTitelInfo->{'isbn'}) && length($reqParamTitelInfo->{'isbn'}) > 0 ) {
+                    $id = $reqParamTitelInfo->{'isbn'};
+                } elsif ( defined($reqParamTitelInfo->{'titel'}) && length($reqParamTitelInfo->{'titel'}) > 0 ) {
+                    $id = $reqParamTitelInfo->{'titel'};
+                }
+                if ( length($id) > 0 ) {
+                    $ekzArtikelNr = 'keine ekz-Artikelnummer für: ' . $id;
+                }
             }
             $titel{'ekzArtikelNr'} = $ekzArtikelNr;
 print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", $marcrecord->field("003")->data(), ": marcrecord->field('001'):", $marcrecord->field("001")->data(), ": ekzArtikelNr:$ekzArtikelNr:\n";
 
+            
             # read items of this biblio number
             my @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };
             for my $itemnumber ( @itemnumbers )
@@ -266,13 +279,18 @@ print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):
                 my $itemrecord = C4::Items::GetItem( $itemnumber, 0, 0);
 
                 $exemplar{'zweigstelle'} = defined $itemrecord->{'homebranch'} ? $itemrecord->{'homebranch'} : "";
-                if ( defined $marcrecord->subfield("260","c") && length $marcrecord->subfield("260","c") > 0 ) {
-                    $exemplar{'erscheinungsjahr'} = $marcrecord->subfield("260","c");
-                } else {
-                    $exemplar{'erscheinungsjahr'} = defined $marcrecord->subfield("264","c") ? $marcrecord->subfield("264","c") : "";
-                }
-                my $auflage =  defined $marcrecord->subfield("250","a") ? $marcrecord->subfield("250","a") : "";
 
+                my $erscheinungsjahr = '';
+                if ( defined $marcrecord->subfield("260","c") && length $marcrecord->subfield("260","c") > 0 ) {
+                    $erscheinungsjahr = $marcrecord->subfield("260","c");
+                } else {
+                    $erscheinungsjahr = defined $marcrecord->subfield("264","c") ? $marcrecord->subfield("264","c") : "";
+                }
+                if ( $erscheinungsjahr =~ /^.*?(\d\d\d\d).*$/m ) {
+                    $exemplar{'erscheinungsjahr'} =  $1;
+                } 
+
+                my $auflage =  defined $marcrecord->subfield("250","a") ? $marcrecord->subfield("250","a") : "";
                 # would be nice to have, but only integers are allowed in <auflage> of response:
                 # my $itemtype =  defined $marcrecord->subfield("942","c") ? $marcrecord->subfield("942","c") : "";
                 # my $description = $itemtypes->{$itemtype}->{'description'};
@@ -280,7 +298,7 @@ print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):
                 # if ( length($auflage) > 0 ) {
                 #     $exemplar{'auflage'} .=  " " . $auflage;
                 # }
-                if ( $auflage =~ /^(\d+).*$/m ) {
+                if ( $auflage =~ /^.*?(\d+).*$/m ) {
                     $exemplar{'auflage'} =  $1;
                 }
 
