@@ -13375,6 +13375,28 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 }
 
+$DBversion = '16.05.12.008';
+if ( CheckVersion($DBversion) ) {
+    
+    # Add new permission to cancel a fee 
+    $dbh->do( q{ 
+        INSERT IGNORE INTO permissions (module_bit, code, description) VALUES (10, 'cancel_fee', 'Cancel fines and fees')
+    });
+    # Add preference to enable to setup bookmobile station specific overdue rules
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES 
+            ('BookMobileStationOverdueRulesActive','0',NULL,'Enable bookmobile station specific overdue rules. If activated, book mobile stations can have individual overdue and claiming fee rules.','YesNo')
+    });
+    
+    # Add title field for a alternative contact to the borrowers table
+    $dbh->do( q{ ALTER TABLE borrowers ADD `altcontacttitle` varchar(255) default NULL AFTER `altcontactsurname` });
+    $dbh->do( q{ ALTER TABLE deletedborrowers ADD `altcontacttitle` varchar(255) default NULL AFTER `altcontactsurname` });
+    $dbh->do( q{ ALTER TABLE borrower_modifications ADD `altcontacttitle` varchar(255) default NULL AFTER `altcontactsurname` });
+    
+    print "Upgrade to $DBversion done (add alternative contact to the borrower table and add permissions to cancel fines and fees, setup bookmobile station overdue rules)\n";
+    SetVersion ($DBversion);
+}
+
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
