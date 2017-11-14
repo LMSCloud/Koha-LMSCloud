@@ -420,6 +420,7 @@ print STDERR "EkzWebServices::callWsLieferscheinList() selVon:", $selVon, ": sel
 
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
+print STDERR "EkzWebServices::callWsLieferscheinList() soapEnvelope:", $soapEnvelope, ":\n" if $debugIt;
 	
 	my $soapResponse = $self->doQuery('"urn:lieferscheinlist"', $soapEnvelope);
 
@@ -606,8 +607,9 @@ sub doQuery {
     my $soapAction = shift;
     my $soapEnvelope = shift;
 
+    my $soapEnvelopeAsOctets = Encode::encode('UTF-8', $soapEnvelope, Encode::FB_CROAK);    # 'encode' required for avoiding error: HTTP::Message content must be bytes at /usr/share/perl5/HTTP/Request/Common.pm line 94.
 
-	my $soapResponse = $self->{'ua'}->post($self->{'url'}, 'Content-Type' => 'text/xml; charset="utf-8"', 'SOAPAction' => $soapAction, Content => $soapEnvelope);
+	my $soapResponse = $self->{'ua'}->post($self->{'url'}, 'Content-Type' => 'text/xml; charset="utf-8"', 'SOAPAction' => $soapAction, Content => $soapEnvelopeAsOctets);
 
 print STDERR "EkzWebServices::doQuery() soapResponse:", $soapResponse, ":\n" if $debugIt;
 print STDERR Dumper(\$soapResponse) if $debugIt;
