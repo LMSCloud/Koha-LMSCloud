@@ -28,6 +28,7 @@ use Exporter;
 use C4::Items qw(AddItem);
 use C4::Branch qw(GetBranches);
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
+use C4::External::EKZ::lib::EkzWebServices;
 use Koha::AcquisitionImport::AcquisitionImports;
 use Koha::AcquisitionImport::AcquisitionImportObjects;
 use C4::External::EKZ::lib::EkzWebServices;
@@ -85,11 +86,6 @@ print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderRec
 sub genKohaRecords {
     my ($messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
 
-    my $titleHits = { 'count' => 0, 'records' => [] };
-    my $biblioExisting = 0;
-    my $biblioInserted = 0;
-    my $biblionumber = 0;
-    my $biblioitemnumber;
     my $ekzBestellNr = '';
     my $lastRunDateIsSet = 0;
     my $dbh = C4::Context->dbh;
@@ -205,6 +201,12 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
                ) {
                 next;
             }
+
+            my $titleHits = { 'count' => 0, 'records' => [] };
+            my $biblioExisting = 0;
+            my $biblioInserted = 0;
+            my $biblionumber = 0;
+            my $biblioitemnumber;
 
             # variables for email log
             my $processedTitlesCount = 1;       # counts the title processed in this step (1)
