@@ -200,9 +200,9 @@
                                                     </td>
                                                     [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 %]
                                                         <td>
-                                                            [% IF ( suggestions_loo.branchcodesuggestedby ) %]
+                                                            [% IF ( suggestions_loo.branchcodesuggestedfor ) %]
                                                                 <span class="tdlabel">Suggested for:</span>
-                                                                [% suggestions_loo.branchcodesuggestedby %]
+                                                                [% suggestions_loo.branchcodesuggestedfor %]
                                                             [% END %]
                                                         </td>
                                                     [% END %]
