@@ -498,7 +498,7 @@ foreach my $branchcode (@branches) {
     $usebranch = $library->mobilebranch if ( $library->mobilebranch );
     
     if ( C4::Context->preference('OverdueNoticeCalendar') || C4::Context->preference('OverdueNoticeSkipWhenClosed') ) {
-        my $calendar = Koha::Calendar->new( branchcode => $usebranch );
+        my $calendar = Koha::Calendar->new( branchcode => $branchcode );
         if ( $calendar->is_holiday($date_to_run) ) {
             next;
         }
@@ -521,7 +521,7 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(cla
   LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
   WHERE items.itemnumber=issues.itemnumber
     AND biblio.biblionumber   = items.biblionumber
-    AND b.branchcode = items.homebranch
+    AND b.branchcode = issues.branchcode
     AND biblio.biblionumber   = biblioitems.biblionumber
     AND ( issues.borrowernumber = ? OR issues.borrowernumber IN 
            (
