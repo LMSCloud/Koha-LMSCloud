@@ -438,6 +438,13 @@ sub build_patron_status {
 
         my $msg = $patron->screen_msg;
         $msg .= ' -- '. INVALID_PW if $patron_pwd && !$password_rc;
+                
+        if ( C4::Context->preference('SIPVendorDialect') 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
+             && !$patron->charge_ok ) 
+        {
+            $msg .= ' -- ' . "Patron Blocked";
+        }
         $resp .= maybe_add( FID_SCREEN_MSG, $msg, $server );
 
         $resp .= maybe_add( FID_SCREEN_MSG, $patron->{branchcode}, $server )
@@ -616,7 +623,9 @@ sub handle_checkout {
         if ( C4::Context->preference('SIPVendorDialect') 
             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
         {
-            $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
+            if ( $item && $item->permanent_location)  {
+                $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
+            }
             if ( $patron && $patron->dateexpiry)  {
                 $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
             }
