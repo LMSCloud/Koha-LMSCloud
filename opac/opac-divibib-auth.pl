@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2000-2002 Katipo Communications
+# Copyright 2017 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -21,7 +21,7 @@
 =head1 opac-divibib-auth.pl
 
 This program implements the Authentication interface of the German onleihe, a paid service of the divibib GmbH.
-It's a simple HTTP POST with two parameters is been sent (userid and password) and an XML response strcutre expected
+It's a simple HTTP POST request with two parameters sent (userid and password) and an XML response structure expected
 which tells whether the authentication call was successful or not. Using the authentication interface, the onleihe 
 validates user logins against the origin ILS system.
 
@@ -45,17 +45,36 @@ my $query = new CGI;
 my $dbh = C4::Context->dbh;
 
 
-# open the xml response template
-my ( $template, $loggedinuser, $templatename) = get_template_and_user(
-    {
-        template_name   => "opac-divibib-auth.tt",
-        query           => $query,
-        type            => "opac",
-        authnotrequired => 1
-    }
-);
 
-# the two parameters are sno (userid) and pwd (password)
+# Generate the CGI response (text/xml in this case) without using template toolkit
+# in order to avoid errors caused by translation of templates containing a xml prolog.
+sub output_divibib_xml {
+    my ( $query, $data ) = @_;
+
+    my $options = {
+        type              => 'text/xml',
+        status            => '200 OK',
+        charset           => 'UTF-8',
+        Pragma            => 'no-cache',
+        'Cache-Control'   => 'no-cache, no-store, max-age=0',
+        'X-Frame-Options' => 'SAMEORIGIN',
+    };
+    $options->{expires} = 'now';
+
+    $data =~ s/\&amp\;amp\; /\&amp\; /g;
+    binmode(STDOUT, ":utf8");
+    print $query->header($options), $data;
+}
+
+
+# check if divibib communication is enabled at all; if not: deny access
+unless (C4::Context->preference('DivibibEnabled')) {
+    print $query->header(status => '403 Forbidden - Divibib Onleihe integration in OPAC is not enabled');
+    exit;
+}
+
+
+# the two request parameters are sno (userid) and pwd (password)
 my $borrowernumber = $query->param("sno") || '';
 my $password       = $query->param("pwd") || '';
 
@@ -64,12 +83,12 @@ my ($borrower, $age, $checkpw);
 
 # initialize a default response structure
 my $response = {
-		'status'   => -1, # wrong login-data (user or password)
-		'fsk'      => 0,
-		'cardid'   => '',
-		'userid'   => '',
-		'library'  => '',
-		'trace'    => ''
+		'status'   => -1, # wrong login-data (user or password)    # mandatory
+		'fsk'      => 0,                                           # mandatory
+		'cardid'   => '',                                          # mandatory
+		'userid'   => '',                                          # mandatory
+		'library'  => '',                                          # optional
+		'trace'    => ''                                           # optional
 		};
 
 # let's check with the userid 
@@ -106,10 +125,10 @@ if ( $borrower ) {
 	# we implement two password checks
 	# If the user logs in to the onleihe user interface he needs two provide username and password 
 	# for that case we use the second check
-	# The first check is used for NCIP service inegration from Koha to teh onleihe where we
+	# The first check is used for NCIP service inegration from Koha to the onleihe where we
 	# use the saved encrypted password to authenticate user activities on behalf of the user
 	# automatically. Since the onleihe is sending the passowrd back to us to authenticate/authorize
-	# onleihe actions, we use that hack to prevent that wer need to request each time a password
+	# onleihe actions, we use that hack to prevent that we need to request each time a password
 	# from a logged in opac user.
 	if ( $checkpw eq $password || &checkpw_hash($password,$checkpw) ) {
 		$response->{'status'} = 3; # online user access permitted
@@ -150,37 +169,53 @@ if ( $borrower ) {
 		elsif ( $non_issue_charges > $amountlimit ) {
 			$response->{'status'} = 4; # user debarred due to too much fines
 		}
+	
+	    # determine the the correct age level
+	    if ( $age > 0 && $age < 6 ) {
+		    $response->{'fsk'} = 0;
+	    }
+	    elsif ( $age >= 6 && $age < 12 ) {
+		    $response->{'fsk'} = 6;
+	    }
+	    elsif ( $age >= 12 && $age < 16 ) {
+		    $response->{'fsk'} = 12;
+	    }
+	    elsif ( $age >= 16 && $age < 18 ) {
+		    $response->{'fsk'} = 16;
+	    }
+	    else {
+		    $response->{'fsk'} = 18;
+	    }
+	    
+	    $response->{'cardid'} = $borrower->{'cardnumber'};
+	    $response->{'userid'} = $borrower->{'borrowernumber'};
 	}
 	else {
 		$response->{'status'} = -2; # wrong password
 	}
-	
-	# determine the the correct age level
-	if ( $age > 0 && $age < 6 ) {
-		$response->{'fsk'} = 0;
-	}
-	elsif ( $age >= 6 && $age < 12 ) {
-		$response->{'fsk'} = 6;
-	}
-	elsif ( $age >= 12 && $age < 16 ) {
-		$response->{'fsk'} = 12;
-	}
-	elsif ( $age >= 16 && $age < 18 ) {
-		$response->{'fsk'} = 16;
-	}
-	else {
-		$response->{'fsk'} = 18;
-	}
-	
-	# fill the response strucre
-	$response->{'cardid'} = $borrower->{'cardnumber'};
-	$response->{'userid'} = $borrower->{'borrowernumber'};
 }
 
-# return the response structure
-$template->param(
-	response => $response
-);
+# In order to avoid errors caused by translation of templates containing a xml prolog, we do not use a template here but
+# build and output the xml response directly.
 
-# output needs to be of type text/xml
-output_with_http_headers $query, '', $template->output, 'xml', undef, { force_no_caching => 1 };
+# build the components of the response
+my $output_header = "<?xml version=\"1.0\" encoding=\"utf8\" ?>\n";
+my $output_response_tag_start = "<response>\n";
+my $output_status_tag = sprintf("<status>%s</status>\n",$response->{'status'});
+my $output_fsk_tag = sprintf("<fsk>%s</fsk>\n",$response->{'fsk'});
+my $output_cardid_tag = sprintf("<cardid>%s</cardid>\n",$response->{'cardid'});
+my $output_userid_tag = sprintf("<userid>%s</userid>\n",$response->{'userid'});
+my $output_trace_tag = '';
+my $output_response_tag_end = "</response>\n";
+
+# $response->{'trace'} = "put your trace here as required";    # optional trace
+if ( $response->{'trace'} && length($response->{'trace'}) > 0 ) {
+    $output_trace_tag = sprintf("<trace>%s</trace>\n",$response->{'trace'});
+}
+    
+# finally build the response from its components
+my $output = sprintf("%s%s%s%s%s%s%s%s", $output_header, $output_response_tag_start, $output_status_tag, $output_fsk_tag, $output_cardid_tag, $output_userid_tag, $output_trace_tag, $output_response_tag_end);
+
+# send the response
+&output_divibib_xml( $query, $output );
+
