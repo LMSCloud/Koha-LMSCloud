@@ -180,7 +180,8 @@ sub get_xslt_sysprefs {
                               OPACItemLocation DisplayIconsXSLT
                               AlternateHoldingsField AlternateHoldingsSeparator
                               TrackClicks opacthemes IdRef OpacSuppression
-                              OPACResultsLibrary DivibibEnabled / )
+                              OPACResultsLibrary DivibibEnabled 
+                              ExcludeReviewsWithMARC520Indicator1Value / )
     {
         my $sp = C4::Context->preference( $syspref );
         next unless defined($sp);
