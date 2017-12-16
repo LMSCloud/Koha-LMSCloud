@@ -573,6 +573,15 @@ OPAC:
                 yes: "Block"
                 no: "Don't block"
             - expired patrons from OPAC actions such as placing a hold or renewing.  Note that the setting for a patron category takes priority over this system preference.
+        -
+            - Specify the number of monthes 
+            - pref: OpacSelectNewAcquisitionsMonthes
+              class: integer
+            - used to build the selection date in the past that can be used in OPAC to select new acquisitions of a library.
+        -
+            - Do not display MARC field 520 content if the value of the first indicator of the field 520 content is contained in following list 
+            - pref: ExcludeReviewsWithMARC520Indicator1Value
+            - seperated by | (e.g. 4|8). Use # instead of a space.
 
     Privacy:
         -
