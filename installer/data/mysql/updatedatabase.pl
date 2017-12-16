@@ -13397,6 +13397,35 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 }
 
+$DBversion = '16.05.12.009';
+if ( CheckVersion($DBversion) ) {
+
+    # Add parameter to initialize the pickup location of item level holds for libraries that do not support transfers
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES ('SetPickupLocationOfReservedItems','','|homebranch|holdingbranch','Initialize the pickup location of item level holds with the home branch or holding branch of the item if the user is not allowed to select the pickup location (parameter: OPACAllowUserToChooseBranch not set). Setting this parameter prevents transfers. The patron has to pick up the item at the selected location.','Choice')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter to initialize the pickup location of item level holds for libraries that do not support transfers)\n";
+    SetVersion ($DBversion);
+} 
+
+$DBversion = '16.05.12.010';
+if ( CheckVersion($DBversion) ) {
+
+    # Update the name of the name of the OpacSelectNewAcquisitionsMonthes preference if already defined
+    $dbh->do( q{ 
+        UPDATE systempreferences set variable = 'OpacSelectNewAcquisitionsMonthes' WHERE variable = 'OpacSelectNewAcquisitionsMonthes'
+    });
+    # Add new parameter to enable exclusion of review display and to specify the monthes to build a new acquisitions date that can be used for OPAC selections
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+            ('ExcludeReviewsWithMARC520Indicator1Value','',NULL,'Do not display MARC field 520 content if the value of the first indicator of the field 520 content is provided in the list seperated by | (e.g. 4|8). Use # instead of a space.','Free'),
+            ('OpacSelectNewAcquisitionsMonthes','6',NULL,'Specify the number of monthes used to build the date in the past that is used to select new acquisitions of a library.','Integer')
+    });
+    
+    print "Upgrade to $DBversion done (Add new syspref ExcludeReviewsWithMARC520Indicator1Value to prevent display of MARC 520 content, Add syspref to )\n";
+    SetVersion ($DBversion);
+}
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
