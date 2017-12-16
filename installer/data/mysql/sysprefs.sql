@@ -462,6 +462,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('SeparateHoldingsBranch','homebranch','homebranch|holdingbranch','Branch used to separate holdings','Choice'),
 ('SessionRestrictionByIP','1','Check for change in remote IP address for session security. Disable only when remote IP address changes frequently.','','YesNo'),
 ('SessionStorage','mysql','mysql|Pg|tmp','Use database or a temporary file for storing session data','Choice'),
+('SetPickupLocationOfReservedItems','','|homebranch|holdingbranch','Initialize the pickup location of item level holds with the home branch or holding branch of the item if the user is not allowed to select the pickup location (parameter: OPACAllowUserToChooseBranch not set). Setting this parameter prevents transfers. The patron has to pick up the item at the selected location.','Choice'),
 ('ShelfBrowserUsesCcode','1','0','Use the item collection code when finding items for the shelf browser.','YesNo'),
 ('ShelfBrowserUsesHomeBranch','1','1','Use the item home branch when finding items for the shelf browser.','YesNo'),
 ('ShelfBrowserUsesLocation','1','1','Use the item location when finding items for the shelf browser.','YesNo'),

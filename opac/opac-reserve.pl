@@ -263,6 +263,13 @@ if ( $query->param('place_reserve') ) {
             $canreserve = 1 if CanItemBeReserved( $borrowernumber, $itemNum ) eq 'OK';
             $rank = '0' unless C4::Context->preference('ReservesNeedReturns');
             my $item = GetItem($itemNum);
+            
+            if ( C4::Context->preference('SetPickupLocationOfReservedItems') && !$OPACChooseBranch ) {
+                my $pickUpBranch = C4::Context->preference('SetPickupLocationOfReservedItems');
+                if ( $pickUpBranch && exists($item->{$pickUpBranch}) ) {
+                    $branch = $item->{$pickUpBranch};
+                }
+            }
             if ( $item->{'holdingbranch'} eq $branch ) {
                 $found = 'W'
                   unless C4::Context->preference('ReservesNeedReturns');
