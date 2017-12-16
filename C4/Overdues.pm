@@ -37,6 +37,7 @@ use Koha::DateUtils;
 use Koha::Account::Line;
 use Koha::Account::Lines;
 use Koha::IssuingRules;
+use Koha::Issues;
 
 use vars qw(@ISA @EXPORT);
 
@@ -608,7 +609,10 @@ sub UpdateFine {
 
             my $desc = ( $type ? "$type " : '' ) . "$title $due";    # FIXEDME, avoid whitespace prefix on empty $type
 
-            my $branchcode  = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+            my $issue = Koha::Issues->find({ issue_id => $issue_id });
+            my $branchcode = undef;
+            $branchcode  = $issue->branchcode() if ($issue);
+            
             my $accountline = Koha::Account::Line->new(
                 {
                     borrowernumber    => $borrowernumber,
