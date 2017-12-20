@@ -29,7 +29,7 @@ use base qw(Koha::Objects);
 
 =head1 NAME
 
-Koha::AcquisitionImport::AcquisitionImport - Koha acquisition import information Object class
+Koha::AcquisitionImport::AcquisitionImportObjects - Koha acquisition import information Object class
 
 =head1 API
 

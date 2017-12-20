@@ -254,8 +254,7 @@ print STDERR "BestellInfoElement::BestellInfoElement() acquisitionImportIdBestel
     print STDERR "BestellInfoElement::BestellInfoElement() Anzahl idPaarListe:",@idPaarListe+0, "\n" if $debugIt;
     print STDERR "BestellInfoElement::BestellInfoElement() idPaarListe:",@idPaarListe, "\n" if $debugIt;
 
-    # roll it back for TEST XXXWH
-    #$dbh->rollback;
+    #$dbh->rollback;    # roll it back for TEST XXXWH
     #@idPaarListe = ();
 
 
@@ -531,12 +530,9 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() zweigstelle:", $zweig
                 my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
 
                 # collect title controlnumbers for HTML URL to Koha records of handled titles
-                my $importID = $titleHits->{'records'}->[0]->subfield("035","a");
-                #if ( defined $importID && length($importID) > 0 ) {
-                #    $importIds{$importID} = $itemnumber;   # deactivated, because this could lead to other orders, even to complete(!) standing orders, if the title refers to them via MARC 035.a
-                #} else {    # should not happen in reality
-                    $importIds{'(ControlNumber)' . $titleHits->{'records'}->[0]->field("001")->data()} = $itemnumber;    # in most cases this cn is the ekz article number
-                #}
+                my $importId = '(ControlNumber)' . $titleHits->{'records'}->[0]->field("001")->data() . '(ControlNrId)' . $titleHits->{'records'}->[0]->field("003")->data();    # if cna = 'DE-Rt5' then this cn is the ekz article number
+                $importIds{$importId} = $itemnumber;
+print STDERR "BestellInfoElement::genKohaRecords() importedItemsCount:$importedItemsCount; set next importIds:", $importId, ":\n" if $debugIt;
 
                 if ( defined $itemnumber && $itemnumber > 0 ) {
 
@@ -609,8 +605,8 @@ print STDERR "BestellInfoElement::BestellInfoElement() itemImportObjectRS->{_col
                 }
                 # add result of adding item to log email
                 my ($titeldata, $isbnean) = ($itemnumber, '');
-print STDERR "BestellInfoElement::handleTitelBestellInfo() item titeldata:", $titeldata, ":\n";
-                push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2] if $debugIt;
+print STDERR "BestellInfoElement::handleTitelBestellInfo() item titeldata:", $titeldata, ":\n" if $debugIt;
+                push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2];
             }
         }
     }    # End $biblioExisting || $biblioInserted

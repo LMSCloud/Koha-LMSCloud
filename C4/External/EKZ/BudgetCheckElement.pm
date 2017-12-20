@@ -35,26 +35,26 @@ my $inBudget = 1;    # will be set to 0 if at least one of the budgets is not su
 sub BudgetCheckElement {
     my ($request) = @_;    # $request->{'soap:Envelope'}->{'soap:Body'} contains our deserialized BudgetCheckElement of the HTTP request
 
-print STDERR "BudgetCheckElement::BudgetCheckElement() START\n";
-print STDERR Dumper($request);
-print STDERR Dumper($request->{'soap:Envelope'});
-print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Header'});
-print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Body'});
-print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Body'}->{'ns2:BudgetCheckElement'});
+print STDERR "BudgetCheckElement::BudgetCheckElement() START\n" if $debugIt;
+print STDERR Dumper($request) if $debugIt;
+print STDERR Dumper($request->{'soap:Envelope'}) if $debugIt;
+print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Header'}) if $debugIt;
+print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Body'}) if $debugIt;
+print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Body'}->{'ns2:BudgetCheckElement'}) if $debugIt;
 
-print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request request->{'soap:Envelope'}->{'soap:Body'}:", $request->{'soap:Envelope'}->{'soap:Body'}, ":\n";
-print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request request messageID:", $request->{'soap:Envelope'}->{'soap:Body'}->{'ns2:BudgetCheckElement'}->{'messageID'}, ":\n";
+print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request request->{'soap:Envelope'}->{'soap:Body'}:", $request->{'soap:Envelope'}->{'soap:Body'}, ":\n" if $debugIt;
+print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request request messageID:", $request->{'soap:Envelope'}->{'soap:Body'}->{'ns2:BudgetCheckElement'}->{'messageID'}, ":\n" if $debugIt;
 
     my $soapEnvelopeHeader = $request->{'soap:Envelope'}->{'soap:Header'};
     my $soapEnvelopeBody = $request->{'soap:Envelope'}->{'soap:Body'};
 
 foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BudgetCheckElement'}}) {
-    print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request tag:", $tag, ":\n";
+    print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request tag:", $tag, ":\n" if $debugIt;
 }
 
     my $wssusername = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'} : "WSS-username not defined";
     my $wsspassword = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'} : "WSS-username not defined";
-print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n";
+print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n" if $debugIt;
     my $authenticated = C4::External::EKZ::EkzAuthentication::authenticate($wssusername, $wsspassword);
     my $ekzLocalServicesEnabled = C4::External::EKZ::EkzAuthentication::ekzLocalServicesEnabled();
 
@@ -69,8 +69,8 @@ print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request header wss u
     $inBudget = 1;    # will be set to 0 if at least one of the budgets is not sufficient
     if($authenticated && $ekzLocalServicesEnabled)
     {
-print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request titel:",$soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'titel'},":\n";
-print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'titel'}),":\n";
+print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request titel:",$soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'titel'},":\n" if $debugIt;
+print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'titel'}),":\n" if $debugIt;
         my $titeldefined = ( exists $soapEnvelopeBody->{'ns2:BudgetCheckElement'} && defined $soapEnvelopeBody->{'ns2:BudgetCheckElement'} &&
                              exists $soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'titel'} && defined $soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'titel'});
         my $titelArrayRef = [];    #  using ref to empty array if there are sent no titel blocks
@@ -83,12 +83,12 @@ print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(titel):"
                  $titelArrayRef = $soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'titel'}; # ref to deserialized array containing the hash references
             }
         }
-        print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n";
+        print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n" if $debugIt;
 
         my $titleCount = scalar @$titelArrayRef;
-        print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP titleCount:",$titleCount, ":\n";
+        print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP titleCount:",$titleCount, ":\n" if $debugIt;
         for ( my $i = 0; $i < $titleCount; $i++ ) {
-            print STDERR "BudgetCheckElement::BudgetCheckElement() title loop $i\n";
+            print STDERR "BudgetCheckElement::BudgetCheckElement() title loop $i\n" if $debugIt;
             my $titel = $titelArrayRef->[$i];
 
             # extracting the search criteria
@@ -118,8 +118,8 @@ print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(titel):"
                 print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request einzelPreis:$logstr:\n";
             }
 
-            print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request exemplar:",$titel->{'exemplar'},":\n";
-            print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(exemplar):",ref($titel->{'exemplar'}),":\n";
+            print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request exemplar:",$titel->{'exemplar'},":\n" if $debugIt;
+            print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(exemplar):",ref($titel->{'exemplar'}),":\n" if $debugIt;
             my $exemplardefined = ( exists $titel->{'exemplar'} && defined $titel->{'exemplar'} );
             my $exemplarArrayRef = [];    #  using ref to empty array if there are sent no exemplar blocks
             # if there is sent only one exemplar block, it is delivered here as hash ref
@@ -131,7 +131,7 @@ print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(titel):"
                     $exemplarArrayRef = $titel->{'exemplar'};  # ref to deserialized array containing the hash references
                 }
             }
-            print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request exemplarArray:",@$exemplarArrayRef," AnzElem:", 0+@$exemplarArrayRef,":\n";
+            print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request exemplarArray:",@$exemplarArrayRef," AnzElem:", 0+@$exemplarArrayRef,":\n" if $debugIt;
             my $titelInfo = &handleBudgetCheck($reqEkzArtikelNr, $reqIsbn, $reqIsbn13, $exemplarArrayRef);
 
             print STDERR "BudgetCheckElement::BudgetCheckElement() titelInfo:",%$titelInfo, "\n" if $debugIt;
@@ -185,8 +185,8 @@ print STDERR "BudgetCheckElement::BudgetCheckElement() HTTP request ref(titel):"
 
         push @soapTitelInfoListe, $soapTitelInfo;
     }
-print STDERR "BudgetCheckElement::BudgetCheckElement() ENDE \@soapTitelInfoListe\n";
-print STDERR Dumper(\@soapTitelInfoListe);
+print STDERR "BudgetCheckElement::BudgetCheckElement() ENDE \@soapTitelInfoListe\n" if $debugIt;
+print STDERR Dumper(\@soapTitelInfoListe) if $debugIt;
 
     my $soapResponseElement = SOAP::Data->name( 'ns1:BudgetCheckResultatElement' )->SOAP::Header::value(
         [$soapStatusCode,
@@ -221,7 +221,7 @@ sub handleBudgetCheck {
 
         print STDERR "BudgetCheckElement::handleBudgetCheck() titel-ID:",$titel{'id'},":\n" if $debugIt;
         print STDERR "BudgetCheckElement::handleBudgetCheck() Exemplare:",@exemplare,":\n" if $debugIt;
-        print STDERR "BudgetCheckElement::handleBudgetCheck() Anz. Exemplare:",@exemplare+0,":\n";
+        print STDERR "BudgetCheckElement::handleBudgetCheck() Anz. Exemplare:",@exemplare+0,":\n" if $debugIt;
         print STDERR "BudgetCheckElement::handleBudgetCheck() titel-Exemplare:",$titel{'exemplare'},":\n" if $debugIt;
         print STDERR "BudgetCheckElement::handleBudgetCheck() Anz. titel-Exemplare:",@#{$titel{'exemplare'}}-1,":\n" if $debugIt;
     } else
@@ -233,11 +233,11 @@ sub handleBudgetCheck {
 
         my $itemCount = scalar @{$exemplarArrayRef};
         for ( my $i = 0; $i < $itemCount; $i++ ) {
-            print STDERR "BudgetCheckElement::handleBudgetCheck() reqEkzArtikelNr:$reqEkzArtikelNr: exemplar loop $i\n";
+            print STDERR "BudgetCheckElement::handleBudgetCheck() reqEkzArtikelNr:$reqEkzArtikelNr: exemplar loop $i\n" if $debugIt;
 
             my $temporaryId = (defined $exemplarArrayRef->[$i]->{'temporaryId'} && length($exemplarArrayRef->[$i]->{'temporaryId'}) > 0) ? $exemplarArrayRef->[$i]->{'temporaryId'} : "temporaryId not set";
             my $exemplarcount = $exemplarArrayRef->[$i]->{'konfiguration'}->{'anzahl'};
-            print STDERR "BudgetCheckElement::handleBudgetCheck() exemplar itemCount $itemCount loop $i exemplarcount $exemplarcount\n";
+            print STDERR "BudgetCheckElement::handleBudgetCheck() exemplar itemCount $itemCount loop $i exemplarcount $exemplarcount\n" if $debugIt;
 
             for ( my $j = 0; $j < $exemplarcount; $j++ ) {
                 my %exemplar = ();
@@ -256,7 +256,7 @@ sub handleBudgetCheck {
         print STDERR "BudgetCheckElement::handleBudgetCheck() titel-ID:", $titel{'id'}, ":\n" if $debugIt;
         print STDERR "BudgetCheckElement::handleBudgetCheck() inBudget:", $inBudget, ":\n" if $debugIt;
         print STDERR "BudgetCheckElement::handleBudgetCheck() Exemplare:", @exemplare, ":\n" if $debugIt;
-        print STDERR "BudgetCheckElement::handleBudgetCheck() Anz. Exemplare:", @exemplare+0, ":\n";
+        print STDERR "BudgetCheckElement::handleBudgetCheck() Anz. Exemplare:", @exemplare+0, ":\n" if $debugIt;
         print STDERR "BudgetCheckElement::handleBudgetCheck() titel-Exemplare:", $titel{'exemplare'}, ":\n" if $debugIt;
         print STDERR "BudgetCheckElement::handleBudgetCheck() Anz. titel-Exemplare:", @{$titel{'exemplare'}}, ":\n" if $debugIt;
     }
@@ -271,28 +271,28 @@ sub NotImplementedElement {
     my ($request) = @_;    # $request->{'soap:Envelope'}->{'soap:Body'} contains our deserialized not implemented SOAP element of the HTTP request
     my $soapElementName = "";
 
-print STDERR "BudgetCheckElement::NotImplementedElement() START\n";
-print STDERR Dumper($request);
-print STDERR Dumper($request->{'soap:Envelope'});
-print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Header'});
-print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Body'});
+print STDERR "BudgetCheckElement::NotImplementedElement() START\n" if $debugIt;
+print STDERR Dumper($request) if $debugIt;
+print STDERR Dumper($request->{'soap:Envelope'}) if $debugIt;
+print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Header'}) if $debugIt;
+print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Body'}) if $debugIt;
 
-print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request request->{'soap:Envelope'}->{'soap:Body'}:", $request->{'soap:Envelope'}->{'soap:Body'}, ":\n";
+print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request request->{'soap:Envelope'}->{'soap:Body'}:", $request->{'soap:Envelope'}->{'soap:Body'}, ":\n" if $debugIt;
     my $soapEnvelopeHeader = $request->{'soap:Envelope'}->{'soap:Header'};
     my $soapEnvelopeBody = $request->{'soap:Envelope'}->{'soap:Body'};
 
 foreach my $tag  (keys %{$soapEnvelopeBody}) {
-    print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request tag1:", $tag, ":\n";
+    print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request tag1:", $tag, ":\n" if $debugIt;
     $soapElementName = $tag;
     last;
 }
 foreach my $tag  (keys %{$soapEnvelopeBody->{$soapElementName}}) {
-    print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request tag2:", $tag, ":\n";
+    print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request tag2:", $tag, ":\n" if $debugIt;
 }
 
     my $wssusername = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'} : "WSS-username not defined";
     my $wsspassword = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'} : "WSS-username not defined";
-print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n";
+print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n" if $debugIt;
     my $authenticated = C4::External::EKZ::EkzAuthentication::authenticate($wssusername, $wsspassword);
     my $ekzLocalServicesEnabled = C4::External::EKZ::EkzAuthentication::ekzLocalServicesEnabled();
 
@@ -325,8 +325,8 @@ print STDERR "BudgetCheckElement::NotImplementedElement() HTTP request header ws
          $soapTransactionID,
          @soapTitelInfoListe])->SOAP::Header::attr('xmlns:ns1="http://www.ekz.de/BestellsystemWSDL"');
 
-print STDERR "BudgetCheckElement::NotImplementedElement() ENDE \$soapResponseElement:\n";
-print STDERR Dumper($soapResponseElement);
+print STDERR "BudgetCheckElement::NotImplementedElement() ENDE \$soapResponseElement:\n" if $debugIt;
+print STDERR Dumper($soapResponseElement) if $debugIt;
 
     return $soapResponseElement;
      

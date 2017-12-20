@@ -38,19 +38,18 @@ use C4::External::EKZ::lib::EkzKohaRecords;
 my $debugIt = 1;
 
 sub DublettenCheckElement {
-    #my $self = shift;
     my ($request) = @_;    # $request->{'soap:Envelope'}->{'soap:Body'} contains our deserialized DublettenCheckElement of the HTTP request
 
     my $soapEnvelopeHeader = $request->{'soap:Envelope'}->{'soap:Header'};
     my $soapEnvelopeBody = $request->{'soap:Envelope'}->{'soap:Body'};
 
 foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:DublettenCheckElement'}}) {
-    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request tag:", $tag, ":\n";
+    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request tag:", $tag, ":\n" if $debugIt;
 }
 
     my $wssusername = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'} : "WSS-username not defined";
     my $wsspassword = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'} : "WSS-username not defined";
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n";
+print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n" if $debugIt;
     my $authenticated = C4::External::EKZ::EkzAuthentication::authenticate($wssusername, $wsspassword);
     my $ekzLocalServicesEnabled = C4::External::EKZ::EkzAuthentication::ekzLocalServicesEnabled();
 
@@ -66,8 +65,8 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request header
 
     if ( $authenticated && $ekzLocalServicesEnabled )
     {
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:",$soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'},":\n";
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}),":\n";
+print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:",$soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'},":\n" if $debugIt;
+print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}),":\n" if $debugIt;
         my $titeldefined = ( exists $soapEnvelopeBody->{'ns2:DublettenCheckElement'} && defined $soapEnvelopeBody->{'ns2:DublettenCheckElement'} &&
                              exists $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'} && defined $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'});
         my $titelArrayRef = [];    #  using ref to empty array if there are sent no titel blocks
@@ -80,12 +79,12 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
                  $titelArrayRef = $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}; # ref to deserialized array containing the hash references
             }
         }
-        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n";
+        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n" if $debugIt;
 
         $titleCount = scalar @$titelArrayRef;
-        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP titleCount:",$titleCount, ":\n";
+        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP titleCount:",$titleCount, ":\n" if $debugIt;
         for ( my $i = 0; $i < $titleCount; $i++ ) {
-            print STDERR "DublettenCheckElement::DublettenCheckElement() title loop $i\n";
+            print STDERR "DublettenCheckElement::DublettenCheckElement() title loop $i\n" if $debugIt;
             my $titel = $titelArrayRef->[$i];
 
             # extracting the search criteria
@@ -217,7 +216,7 @@ sub searchDubletten {
 
         print STDERR "DublettenCheckElement::searchDubletten() titelListe:",@titelListe,":\n" if $debugIt;
         print STDERR "DublettenCheckElement::searchDubletten() Exemplare:",@exemplare,":\n" if $debugIt;
-        print STDERR "DublettenCheckElement::searchDubletten() Anz. Exemplare:",@exemplare+0,":\n";
+        print STDERR "DublettenCheckElement::searchDubletten() Anz. Exemplare:",@exemplare+0,":\n" if $debugIt;
         print STDERR "DublettenCheckElement::searchDubletten() titel-Exemplare:",@{$titel{'exemplare'}},":\n" if $debugIt;
         print STDERR "DublettenCheckElement::searchDubletten() Anz. titel-Exemplare:",@#{titel{'exemplare'}}-1,":\n" if $debugIt;
     } else
@@ -248,26 +247,31 @@ sub searchDubletten {
             my @exemplare = ();
 
             my $biblionumber = $marcrecord->subfield("999","c");
-            my $ekzArtikelNr = 'ohne ekz-Artikelnummer';
+            my $ekzArtikelNr = 'ohne ekz-Artikelnr.';
             my $kontrollNrID = $marcrecord->field("003")->data();
 
-            if ( $kontrollNrID eq "DE-Rt5" ) {
-                $ekzArtikelNr = $marcrecord->field("001")->data();    # the cn is a ekz article number only if cna == "DE-Rt5"
+            if ( defined($reqParamTitelInfo->{'ekzArtikelNr'}) && length($reqParamTitelInfo->{'ekzArtikelNr'}) > 0 ) {
+                $ekzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};    # effect of returning this value: the ekz web site displays title and ISBN of this medium; otherwise these two columns stay empty
             } else {
-                my $id = '';
-                if ( defined($reqParamTitelInfo->{'isbn13'}) && length($reqParamTitelInfo->{'isbn13'}) > 0 ) {
-                    $id = $reqParamTitelInfo->{'isbn13'};
-                } elsif ( defined($reqParamTitelInfo->{'isbn'}) && length($reqParamTitelInfo->{'isbn'}) > 0 ) {
-                    $id = $reqParamTitelInfo->{'isbn'};
-                } elsif ( defined($reqParamTitelInfo->{'titel'}) && length($reqParamTitelInfo->{'titel'}) > 0 ) {
-                    $id = $reqParamTitelInfo->{'titel'};
-                }
-                if ( length($id) > 0 ) {
-                    $ekzArtikelNr = 'keine ekz-Artikelnummer für: ' . $id;
+                # the ekz web site displays column Artikelnummer; we use it to display title or isbn
+                if ( $kontrollNrID eq "DE-Rt5" ) {
+                    $ekzArtikelNr = $marcrecord->field("001")->data();    # the cn is a ekz article number only if cna == "DE-Rt5"
+                } else {
+                    my $id = '';
+                    if ( defined($reqParamTitelInfo->{'titel'}) && length($reqParamTitelInfo->{'titel'}) > 0 ) {
+                        $id = $reqParamTitelInfo->{'titel'};
+                    } elsif ( defined($reqParamTitelInfo->{'isbn13'}) && length($reqParamTitelInfo->{'isbn13'}) > 0 ) {
+                        $id = $reqParamTitelInfo->{'isbn13'};
+                    } elsif ( defined($reqParamTitelInfo->{'isbn'}) && length($reqParamTitelInfo->{'isbn'}) > 0 ) {
+                        $id = $reqParamTitelInfo->{'isbn'};
+                    }
+                    if ( length($id) > 0 ) {
+                        $ekzArtikelNr = 'keine ekz-Artikelnr. für: ' . $id;
+                    }
                 }
             }
             $titel{'ekzArtikelNr'} = $ekzArtikelNr;
-print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", $marcrecord->field("003")->data(), ": marcrecord->field('001'):", $marcrecord->field("001")->data(), ": ekzArtikelNr:$ekzArtikelNr:\n";
+print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", $marcrecord->field("003")->data(), ": marcrecord->field('001'):", $marcrecord->field("001")->data(), ": ekzArtikelNr:$ekzArtikelNr:\n" if $debugIt;
 
             
             # read items of this biblio number
@@ -302,7 +306,7 @@ print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):
                     $exemplar{'auflage'} =  $1;
                 }
 
-print STDERR "DublettenCheckElement::searchDubletten() exemplar{'auflage'}:", $exemplar{'auflage'}, ":\n";
+print STDERR "DublettenCheckElement::searchDubletten() exemplar{'auflage'}:", $exemplar{'auflage'}, ":\n" if $debugIt;
             
                 push @exemplare, \%exemplar;
             }

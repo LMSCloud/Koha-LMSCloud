@@ -134,6 +134,7 @@ print STDERR "EkzKohaRecords::readTitleInLocalDB() result->{'records'}:$result->
 sub readTitleDubletten {
 	my $class = shift;
     my $selParam = shift;
+print STDERR "EkzKohaRecords::readTitleDubletten() selParam:", Dumper($selParam), ":\n" if $debugIt;
 
     my $query = "cn:\"-1\"";                    # control number search, initial definition for no hit
     my $error = undef;
@@ -175,13 +176,13 @@ sub readTitleDubletten {
             # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
             $query = '';
             if ( defined $selParam->{'isbn'} && length($selParam->{'isbn'}) > 0 ) {
-                $query = "nb:\"$selParam->{'isbn'}\" or id-other:\"$selParam->{'isbn'}\"\"";
+                $query .= "nb:\"$selParam->{'isbn'}\" or id-other:\"$selParam->{'isbn'}\"";
             }
             if ( defined $selParam->{'isbn13'} && length($selParam->{'isbn13'}) > 0 ) {
                 if ( length($query) > 0 ) {
                     $query .= ' or ';
                 }
-                $query = "nb:\"$selParam->{'isbn13'}\" or id-other:\"$selParam->{'isbn13'}\"";
+                $query .= "nb:\"$selParam->{'isbn13'}\" or id-other:\"$selParam->{'isbn13'}\"";
             }
             print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
             
@@ -206,22 +207,25 @@ sub readTitleDubletten {
         {
             # build search query for issn/ismn/ean search for searching index ident
             # search for catalog title record by MARC21 category 020/022/024 (ISBN/ISSN/ISMN/EAN)
-            $query = '';
+            my $query1 = '';
+            my $query2 = '';
+            my $query3 = '';
             if ( defined $selParam->{'issn'} && length($selParam->{'issn'}) > 0 ) {
-                $query = "ident:\"$selParam->{'issn'}\"\"";
+                $query1 .= "ident:\"$selParam->{'issn'}\"";
             }
             if ( defined $selParam->{'ismn'} && length($selParam->{'ismn'}) > 0 ) {
-                if ( length($query) > 0 ) {
-                    $query .= ' or ';
+                if ( length($query1) > 0 ) {
+                    $query1 .= ' or ';
                 }
-                $query = "ident:\"$selParam->{'ismn'}\"\"";
+                $query1 .= "ident:\"$selParam->{'ismn'}\"";
             }
             if ( defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 ) {
-                if ( length($query) > 0 ) {
-                    $query .= ' or ';
+                if ( length($query1) > 0 ) {
+                    $query2 .= ' or ';
                 }
-                $query = "ident:\"$selParam->{'ean'}\"\"";
+                $query2 .= "ident:\"$selParam->{'ean'}\"";
             }
+            $query = $query1 . $query2;
             print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
             
             ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
@@ -231,7 +235,26 @@ sub readTitleDubletten {
                 my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:\n", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
                 carp $log_str;
             }
-            print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search total_hits:$total_hits:\n" if $debugIt;
+            print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:\n" if $debugIt;
+                
+            # ekz sends EAN without leading 0
+            if ($total_hits == 0 && defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 && length($selParam->{'ean'}) < 13) {
+                if ( length($query1) > 0 ) {
+                    $query3 .= ' or ';
+                }
+                $query3 .= sprintf("ident:\"%013d\"",$selParam->{'ean'});
+                $query = $query1 . $query3;
+                print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+                
+                ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+                ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+            
+                if (defined $error) {
+                    my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:\n", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
+                    carp $log_str;
+                }
+                print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits:\n" if $debugIt;
+            }
         }
     }
 
@@ -394,8 +417,7 @@ print STDERR "EkzKohaRecords::readTitleFromZ3950Target() z3950kohaservername:$z3
             isbn => '',
             issn => '',
             title => '',
-            author => '',
-            #controlnumber => $selEkzArtikelNr,    #XXXWH macht das auch Sinn?
+            author => ''
         };
         if ( defined($selIsbn13) && length($selIsbn13) > 0 ) {
             $params->{'isbn'} = $selIsbn13;
@@ -471,7 +493,7 @@ sub createTitleFromFields {
     my $marcrecord =  MARC::Record->new();
 
     $marcrecord->MARC::Record::encoding( 'UTF-8' );
-    $marcrecord->insert_fields_ordered(MARC::Field->new('001', $reqParamTitelInfo->{'ekzArtikelNr'}));    # XXXWH Bei nicht-EKZ-Medien steht hier die ISBN13 ...
+    $marcrecord->insert_fields_ordered(MARC::Field->new('001', $reqParamTitelInfo->{'ekzArtikelNr'}));
     $marcrecord->insert_fields_ordered(MARC::Field->new('003', "DE-Rt5"));
     $marcrecord->insert_fields_ordered(MARC::Field->new('005', $lasttransaction));
 
@@ -540,7 +562,8 @@ sub createTitleFromFields {
         $field007content = 'zu';
         $ltype = 'p';
         $lbib = "m";
-        # Spiele (Visual material; Type of visual material: legal article) # XXXWH: noch blöder als obige Variante, bessere Belegungen für Spiel/Game nicht gefunden
+
+        # Spiele (Visual material; Type of visual material: legal article) # deactivated, worse than Mixed materials alternative
         #$f06lead = 'r';
         #$f06rest = '|||||||||||||||g|';
         #$ltype = 'r';
@@ -965,18 +988,24 @@ print STDERR Dumper( $action ) if $debugIt;
         my $orderCnt = 0;
         my $allQuery = '';
         foreach my $importID (@{$importIDs}) {
-            if ( $importID =~ /^\(ControlNumber\)(\d+)$/s ) {
+print STDERR "EkzKohaRecords::createProcessingMessageText() importID:", $importID, ":\n" if $debugIt;
+            if ( $importID =~ /^\(ControlNumber\)(\d+)\(ControlNrId\)(.*)$/s ) {
                 if ( length($controlNumberQuery) > 0 ) {
                     $controlNumberQuery .= " or ";
                 }
-                # $controlNumberQuery .= "(cn%3A" . $1 . " and cna%3ADE-Rt5)";    # XXXWH ist die cna-Bedingung zulässig?
-                $controlNumberQuery .= "cn%3A" . $1;
+                $controlNumberQuery .= '(cn%3A%22' . $1 . '%22 and cna%3A%22' . $2 . '%22)';    # i.e. '(cn:"' . $1 . '" and cna:"' . $2 . '")'
+                $controlNumberCnt += 1;
+            } elsif ( $importID =~ /^\(ControlNumber\)(\d+)$/s ) {
+                if ( length($controlNumberQuery) > 0 ) {
+                    $controlNumberQuery .= " or ";
+                }
+                $controlNumberQuery .= '(cn%3A%22' . $1 . '%22)';    # i.e. '(cn:"' . $1 . '")'
                 $controlNumberCnt += 1;
             } else {
                 if ( length($orderQuery) > 0 ) {
-                    $orderQuery .= " or ";
+                    $orderQuery .= ' or ';
                 }
-                $orderQuery .= "(Other-control-number%3A" . $importID . ")";
+                $orderQuery .= '(Other-control-number%3A%22' . $importID . '%22)';    # i.e. '(Other-control-number:"' . $importID . '")'
                 $orderCnt += 1;
             }
         }
@@ -1104,7 +1133,7 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
                     # fields if title: [$recordId,$biblionumber,$importresult,$titeldata,$isbnean,$problems]
                     # fields if item:  [$recordId,$ekzItemNumber,$importresult,$titeldata,$isbnean,$problems]
                     
-                    if ( $j == 0 ) {    # title data
+                    if ( $record->[7] == 1 ) {    # title data
                         $message .= '    <tr class="recordresult">'."\n";
 
                         # Lfd. Nr.
@@ -1143,9 +1172,9 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
                         $message .= '        <td>'."\n";
                         if ( $record->[2] == 1 || $record->[2] == 2 ) {
                             if ( $logresult->[0]->[0] eq 'LieferscheinDetail' || $action->[$updIC] > 0 ) {
-                                $message .= '            ' . $action->[$impIC] . ' von ' . $action->[$prcIC] . ' Exemplaren importiert, ' . $action->[$updIC] . ' Exemplare aktualisiert.' . "\n";
+                                $message .= '            Von ' . $action->[$prcIC] . ' Exemplaren wurden ' . $action->[$impIC] . ' importiert und ' . $action->[$updIC] . ' aktualisiert.' . "\n";
                             } else {
-                                $message .= '            ' . $action->[$impIC] . ' von ' . $action->[$prcIC] . ' Exemplaren importiert.' . "\n";
+                                $message .= '            Von ' . $action->[$prcIC] . ' Exemplaren wurden ' . $action->[$impIC] . ' importiert.' . "\n";
                             }
                         }
                         if ( length($record->[5]) > 0) {
