@@ -581,7 +581,7 @@ OPAC:
         -
             - Do not display MARC field 520 content if the value of the first indicator of the field 520 content is contained in following list 
             - pref: ExcludeReviewsWithMARC520Indicator1Value
-            - seperated by | (e.g. 4|8). Use # instead of a space.
+            - "seperated by | (e.g. 4|8). Use # instead of a space."
 
     Privacy:
         -
