@@ -98,6 +98,8 @@ sub genKohaRecords {
     my $dt = DateTime->now;
     $dt->set_time_zone( 'Europe/Berlin' );
     my ($message, $subject, $haserror) = ('','',0);
+    my $cntTitlesHandled = 0;
+    my $cntItemsHandled = 0;
     
     print STDERR "ekzWsStoList::genKohaRecords() Start;  messageID:$messageID stoID:$stoWithNewState->{'stoID'}: stoWithNewState->{'titelCount'}:$stoWithNewState->{'titelCount'}: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
 
@@ -344,8 +346,8 @@ print STDERR "ekzWsStoList::genKohaRecords() selParam:", Dumper($selParam), ":\n
                 my $hit = $acquisitionImportTitle->_resultset()->find( $selParam );
 print STDERR "ekzWsStoList::genKohaRecords() ref(acquisitionImportTitle):", ref($acquisitionImportTitle), ": ref(hit):", ref($hit), ":\n" if $debugIt;
                 if ( defined($hit) ) {
-print STDERR "ekzWsStoList::genKohaRecords() hit->{_column_data}:", Dumper($hit->{_column_data}), ":\n";
-                    my $mess = sprintf("The ekz article number '%s' has already been used in the standing order %s at %s. Processing skipped for this title in order to avoid repeated item record creation.\n",$reqParamTitelInfo->{'ekzArtikelNr'}, $stoWithNewState->{'stoID'}, $hit->get_column('processingtime')) if $debugIt;
+print STDERR "ekzWsStoList::genKohaRecords() hit->{_column_data}:", Dumper($hit->{_column_data}), ":\n" if $debugIt;
+                    my $mess = sprintf("The ekz article number '%s' has already been used in the standing order %s at %s. Processing skipped for this title in order to avoid repeated item record creation.\n",$reqParamTitelInfo->{'ekzArtikelNr'}, $stoWithNewState->{'stoID'}, $hit->get_column('processingtime'));
                     carp $mess;
 
                     next;    # The ekz article number has already been used in this standing. Skip processing of this title in order to avoid repeated item record creation.
@@ -356,6 +358,7 @@ print STDERR "ekzWsStoList::genKohaRecords() hit->{_column_data}:", Dumper($hit-
 print STDERR "ekzWsStoList::genKohaRecords() Dumper(schemaResultAcquitionImport->{_column_data}):", Dumper($schemaResultAcquitionImport->{_column_data}), ":\n" if $debugIt;
 print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportIdTitle:", $acquisitionImportIdTitle, ":\n" if $debugIt;
                 }
+                $cntTitlesHandled += 1;
 
                 # Insert a record into table acquisition_import_object representing the Koha title data.
                 $insParam = {
@@ -383,6 +386,7 @@ print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}
                     my $item_hash;
 
                     $processedItemsCount += 1;
+                    $cntItemsHandled += 1;
 
                     if ( &C4::External::EKZ::lib::EkzKohaRecords::checkbranchcode($zweigstellenname) ) {
                         $item_hash->{homebranch} = $zweigstellenname;
@@ -394,7 +398,9 @@ print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}
                     $item_hash->{replacementprice} = $titel->{'preis'};
                     
                     my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
-                    $importIds{'(ControlNumber)' . $titleHits->{'records'}->[0]->field("001")->data()} = $itemnumber;    # maybe this cn is the ekz article number
+                    my $importId = '(ControlNumber)' . $titleHits->{'records'}->[0]->field("001")->data() . '(ControlNrId)' . $titleHits->{'records'}->[0]->field("003")->data();    # if cna = 'DE-Rt5' then this cn is the ekz article number
+                    $importIds{$importId} = $itemnumber;
+print STDERR "ekzWsStoList::genKohaRecords() importedItemsCount:$importedItemsCount; set next importIds:", $importId, ":\n" if $debugIt;
 
                     if ( defined $itemnumber && $itemnumber > 0 ) {
 
@@ -485,8 +491,9 @@ print STDERR Dumper(\@logresult) if $debugIt;
         # commit the complete standing order update (only as a single transaction)
         $dbh->commit();
         $dbh->{AutoCommit} = 1;
-    
-        if ( scalar(@logresult) > 0 ) {
+
+print STDERR "ekzWsStoList::genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:\n" if $debugIt;
+        if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {
             my @importIds = keys %importIds;
             ($message, $subject, $haserror) = C4::External::EKZ::lib::EkzKohaRecords->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
             C4::External::EKZ::lib::EkzKohaRecords->sendMessage($message, $subject);
