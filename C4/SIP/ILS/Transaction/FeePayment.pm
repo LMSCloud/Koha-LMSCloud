@@ -20,9 +20,10 @@ use strict;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use C4::Accounts qw(recordpayment);
-use parent qw(C4::SIP::ILS::Transaction);
+use Koha::Account;
+use Koha::Account::Lines;
 
+use parent qw(C4::SIP::ILS::Transaction);
 
 our $debug   = 0;
 
@@ -41,12 +42,51 @@ sub new {
 }
 
 sub pay {
-    my $self           = shift;
-    my $borrowernumber = shift;
-    my $amt            = shift;
-    my $type           = shift;
+    my $self                 = shift;
+    my $borrowernumber       = shift;
+    my $amt                  = shift;
+    my $sip_type             = shift;
+    my $fee_id               = shift;
+    my $is_writeoff          = shift;
+    my $disallow_overpayment = shift;
+
+    my $type = $is_writeoff ? 'writeoff' : undef;
+
     warn("RECORD:$borrowernumber::$amt");
-    recordpayment( $borrowernumber, $amt,$type );
+
+    my $account = Koha::Account->new( { patron_id => $borrowernumber } );
+
+    if ($disallow_overpayment) {
+        return 0 if $account->balance < $amt;
+    }
+
+    if ($fee_id) {
+        my $fee = Koha::Account::Lines->find($fee_id);
+        if ( $fee ) {
+            $account->pay(
+                {
+                    amount => $amt,
+                    sip    => $sip_type,
+                    type   => $type,
+                    lines  => [$fee],
+                }
+            );
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+    else {
+        $account->pay(
+            {
+                amount => $amt,
+                sip    => $sip_type,
+                type   => $type,
+            }
+        );
+        return 1;
+    }
 }
 
 #sub DESTROY {

@@ -27,6 +27,7 @@ use Koha::NoticeFeeRule;
 use Koha::NoticeFeeRules;
 use Koha::Account::Line;
 use Koha::Account::Lines;
+use Koha::Account::Offset;
 use Koha::DateUtils;
 use C4::Accounts;
 use C4::Log; # logaction
@@ -328,6 +329,14 @@ sub AddNoticeFee {
                 issue_id          => undef,
                 branchcode        => $branchcode
             } )->store();
+            
+        Koha::Account::Offset->new(
+            {
+                debit_id => $accountline->id,
+                type     => 'Notice Fee',
+                amount   => $amount,
+            }
+        )->store();
 
         # logging action
         &logaction(

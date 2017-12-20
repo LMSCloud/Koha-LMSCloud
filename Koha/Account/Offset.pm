@@ -1,4 +1,4 @@
-package Koha::Patron::Categories;
+package Koha::Account::Offset;
 
 # This file is part of Koha.
 #
@@ -21,41 +21,20 @@ use Carp;
 
 use Koha::Database;
 
-use Koha::Patron::Category;
-
-use base qw(Koha::Objects);
+use base qw(Koha::Object);
 
 =head1 NAME
-
-Koha::Patron::Categories - Koha Patron Category Object set class
-
+Koha::Account::Offset - Koha account offset Object class
+Account offsets are used to track the changes in account lines
 =head1 API
-
-=head2 Class Methods
-
+=head2 Internal methods
 =cut
 
-sub search_limited {
-    my ( $self, $params, $attributes ) = @_;
-    my $branch_limit = C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
-    if ( $branch_limit ) {
-        $params->{'categories_branches.branchcode'} = [ $branch_limit, undef ];
-        $attributes->{join} = 'categories_branches';
-    }
-    $attributes->{order_by} = ['description'] unless $attributes->{order_by};
-    return $self->search($params, $attributes);
-}
-
-=head3 type
-
+=head3 _type
 =cut
 
 sub _type {
-    return 'Category';
-}
-
-sub object_class {
-    return 'Koha::Patron::Category';
+    return 'AccountOffset';
 }
 
 1;

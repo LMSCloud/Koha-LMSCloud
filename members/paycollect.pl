@@ -28,12 +28,16 @@ use C4::Members;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Accounts;
 use C4::Koha;
-use C4::Branch;
 use Koha::Patron::Images;
+use Koha::Patrons;
+use Koha::Account;
+use Koha::Token;
+
+use Koha::Patron::Categories;
 
 my $input = CGI->new();
 
-my $updatecharges_permissions = $input->param('writeoff_individual') ? 'writeoff' : 'remaining_permissions';
+my $updatecharges_permissions = $input->param('writeoff_individual') ? 'writeoff' : $input->param('cancel_individual') ? 'cancel_fee': 'remaining_permissions';
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'members/paycollect.tt',
         query           => $input,
@@ -46,7 +50,15 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 # get borrower details
 my $borrowernumber = $input->param('borrowernumber');
-my $borrower       = GetMember( borrowernumber => $borrowernumber );
+my $patron         = Koha::Patrons->find( $borrowernumber );
+unless ( $patron ) {
+    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
+    exit;
+}
+my $borrower       = $patron->unblessed;
+my $category       = $patron->category;
+$borrower->{description} = $category->description;
+$borrower->{category_type} = $category->category_type;
 my $user           = $input->remote_user;
 
 my $branch         = C4::Context->userenv->{'branch'};
@@ -59,8 +71,7 @@ my $writeoff     = $input->param('writeoff_individual');
 my $cancel_fee     = $input->param('cancel_individual');
 my $select_lines = $input->param('selected');
 my $select       = $input->param('selected_accts');
-my $payment_note = uri_unescape $input->param('payment_note');
-my $accountno;
+my $payment_note = uri_unescape scalar $input->param('payment_note');
 my $accountlines_id;
 
 if ( $individual || $writeoff || $cancel_fee ) {
@@ -76,25 +87,19 @@ if ( $individual || $writeoff || $cancel_fee ) {
     $accountlines_id      = $input->param('accountlines_id');
     my $amount            = $input->param('amount');
     my $amountoutstanding = $input->param('amountoutstanding');
-    $accountno = $input->param('accountno');
     my $itemnumber  = $input->param('itemnumber');
     my $description  = $input->param('description');
     my $title        = $input->param('title');
-    my $notify_id    = $input->param('notify_id');
-    my $notify_level = $input->param('notify_level');
     $total_due = $amountoutstanding;
     $template->param(
         accounttype       => $accounttype,
         accounttypename   => $accounttypename,
         accountlines_id   => $accountlines_id,
-        accountno         => $accountno,
         amount            => $amount,
         amountoutstanding => $amountoutstanding,
         title_desc        => $title,
         itemnumber        => $itemnumber,
         individual_description => $description,
-        notify_id         => $notify_id,
-        notify_level      => $notify_level,
         payment_note    => $payment_note,
     );
 } elsif ($select_lines) {
@@ -113,14 +118,22 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             total_due => $total_due
         );
     } else {
+        die "Wrong CSRF token"
+            unless Koha::Token->new->check_csrf( {
+                session_id => $input->cookie('CGISESSID'),
+                token  => scalar $input->param('csrf_token'),
+            });
+
         if ($individual) {
-            if ( $total_paid == $total_due ) {
-                makepayment( $accountlines_id, $borrowernumber, $accountno, $total_paid, $user,
-                    $branch, $payment_note );
-            } else {
-                makepartialpayment( $accountlines_id, $borrowernumber, $accountno, $total_paid,
-                    $user, $branch, $payment_note );
-            }
+            my $line = Koha::Account::Lines->find($accountlines_id);
+            Koha::Account->new( { patron_id => $borrowernumber } )->pay(
+                {
+                    lines      => [$line],
+                    amount     => $total_paid,
+                    library_id => $branch,
+                    note       => $payment_note
+                }
+            );
             print $input->redirect(
                 "/cgi-bin/koha/members/pay.pl?borrowernumber=$borrowernumber");
         } else {
@@ -130,13 +143,33 @@ if ( $total_paid and $total_paid ne '0.00' ) {
                 }
                 my @acc = split /,/, $select;
                 my $note = $input->param('selected_accts_notes');
-                recordpayment_selectaccts( $borrowernumber, $total_paid, \@acc, $note );
-            } else {
-                my $note = $input->param('selected_accts_notes');
-                recordpayment( $borrowernumber, $total_paid, '', $note );
-            }
 
-# recordpayment does not return success or failure so lets redisplay the boraccount
+                my @lines = Koha::Account::Lines->search(
+                    {
+                        borrowernumber    => $borrowernumber,
+                        amountoutstanding => { '<>' => 0 },
+                        accountlines_id   => { 'IN' => \@acc },
+                    },
+                    { order_by => 'date' }
+                );
+
+                Koha::Account->new(
+                    {
+                        patron_id => $borrowernumber,
+                    }
+                  )->pay(
+                    {
+                        amount => $total_paid,
+                        lines  => \@lines,
+                        note   => $note,
+                    }
+                  );
+            }
+            else {
+                my $note = $input->param('selected_accts_notes');
+                Koha::Account->new( { patron_id => $borrowernumber } )
+                  ->pay( { amount => $total_paid, note => $note } );
+            }
 
             print $input->redirect(
 "/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber"
@@ -158,6 +191,8 @@ $template->param(
     total         => $total_due,
     RoutingSerials => C4::Context->preference('RoutingSerials'),
     ExtendedPatronAttributes => C4::Context->preference('ExtendedPatronAttributes'),
+
+    csrf_token => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID') }),
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;
@@ -169,15 +204,9 @@ sub borrower_add_additional_fields {
 # in a number of templates. It should not be the business of this script but in lieu of
 # a revised api here it is ...
     if ( $b_ref->{category_type} eq 'C' ) {
-        my ( $catcodes, $labels ) =
-          GetborCatFromCatType( 'A', 'WHERE category_type = ?' );
-        if ( @{$catcodes} ) {
-            if ( @{$catcodes} > 1 ) {
-                $b_ref->{CATCODE_MULTI} = 1;
-            } elsif ( @{$catcodes} == 1 ) {
-                $b_ref->{catcode} = $catcodes->[0];
-            }
-        }
+        my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
+        $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
+        $template->param( 'catcode' => $patron_categories->next )  if $patron_categories->count == 1;
     } elsif ( $b_ref->{category_type} eq 'A' || $b_ref->{category_type} eq 'I' ) {
         $b_ref->{adultborrower} = 1;
     }
@@ -189,6 +218,5 @@ sub borrower_add_additional_fields {
         $b_ref->{extendedattributes} = GetBorrowerAttributes($b_ref->{borrowernumber});
     }
 
-    $b_ref->{branchname} = GetBranchName( $b_ref->{branchcode} );
     return;
 }

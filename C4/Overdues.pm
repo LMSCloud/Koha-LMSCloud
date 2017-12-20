@@ -36,6 +36,7 @@ use C4::Debug;
 use Koha::DateUtils;
 use Koha::Account::Line;
 use Koha::Account::Lines;
+use Koha::Account::Offsets;
 use Koha::IssuingRules;
 use Koha::Issues;
 
@@ -539,6 +540,7 @@ sub UpdateFine {
     #   "REF" is Cash Refund
     #   "CL"1..5 are claim fees
     #   "NOTF" is Notice fee
+    #   "CAN" is cancelled Fine
     my $sth = $dbh->prepare(
         "SELECT * FROM accountlines
         WHERE borrowernumber=? AND
@@ -596,6 +598,14 @@ sub UpdateFine {
                     accounttype   => 'FU',
                 }
             )->store();
+            
+            Koha::Account::Offset->new(
+                {
+                    debit_id => $accountline->id,
+                    type     => 'Fine Update',
+                    amount   => $diff,
+                }
+            )->store();
         }
     } else {
         if ( $amount ) { # Don't add new fines with an amount of 0
@@ -626,6 +636,14 @@ sub UpdateFine {
                     accountno         => $nextaccntno,
                     issue_id          => $issue_id,
                     branchcode        => $branchcode,
+                }
+            )->store();
+            
+            Koha::Account::Offset->new(
+                {
+                    debit_id => $accountline->id,
+                    type     => 'Fine',
+                    amount   => $amount,
                 }
             )->store();
         }

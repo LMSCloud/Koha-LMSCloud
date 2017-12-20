@@ -75,6 +75,35 @@ sub holding_branch {
     return $self->{_holding_branch};
 }
 
+=head3 biblio
+
+my $biblio = $item->biblio;
+
+Return the bibliographic record of this item
+
+=cut
+
+sub biblio {
+    my ( $self ) = @_;
+    my $biblio_rs = $self->_result->biblio;
+    return Koha::Biblio->_new_from_dbic( $biblio_rs );
+}
+
+=head3 biblioitem
+
+my $biblioitem = $item->biblioitem;
+
+Return the biblioitem record of this item
+
+=cut
+
+sub biblioitem {
+    my ( $self ) = @_;
+    my $biblioitem_rs = $self->_result->biblioitem;
+    return Koha::Biblioitem->_new_from_dbic( $biblioitem_rs );
+}
+
+
 =head3 get_transfer
 
 my $transfer = $item->get_transfer;

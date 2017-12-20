@@ -201,6 +201,36 @@ __PACKAGE__->set_primary_key("accountlines_id");
 
 =head1 RELATIONS
 
+=head2 account_offsets_credits
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AccountOffset>
+
+=cut
+
+__PACKAGE__->has_many(
+  "account_offsets_credits",
+  "Koha::Schema::Result::AccountOffset",
+  { "foreign.credit_id" => "self.accountlines_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 account_offsets_debits
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AccountOffset>
+
+=cut
+
+__PACKAGE__->has_many(
+  "account_offsets_debits",
+  "Koha::Schema::Result::AccountOffset",
+  { "foreign.debit_id" => "self.accountlines_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 borrowernumber
 
 Type: belongs_to
@@ -272,8 +302,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-14 14:17:51
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:oEsg8A9U9d0RtLM33+kIDw
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-12-17 13:48:38
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:uOZeXFtMLkYDUFbe1VIO3A
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

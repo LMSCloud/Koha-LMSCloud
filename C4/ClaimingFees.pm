@@ -28,6 +28,7 @@ use Koha::ClaimingRule;
 use Koha::ClaimingRules;
 use Koha::Account::Line;
 use Koha::Account::Lines;
+use Koha::Account::Offset;
 use Koha::DateUtils;
 use C4::Log; # logaction
 use C4::Letters;
@@ -288,6 +289,14 @@ sub AddClaimFee {
                 issue_id          => $issue_id,
                 branchcode        => $branchcode
             } )->store();
+            
+        Koha::Account::Offset->new(
+            {
+                debit_id => $accountline->id,
+                type     => 'Overdue Fee',
+                amount   => $amount,
+            }
+        )->store();
 
         # logging action
         &logaction(

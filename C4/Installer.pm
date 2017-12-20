@@ -314,6 +314,7 @@ sub load_sql_in_order {
     push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/userflags.sql";
     push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/userpermissions.sql";
     push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/audio_alerts.sql";
+    push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/account_offset_types.sql";
     foreach my $file (@fnames) {
         #      warn $file;
         undef $/;
