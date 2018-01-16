@@ -38,14 +38,11 @@ usage()
 
     cat <<EOF
 $scriptname
-
 This script lets you manage the plack daemons for your Koha instances.
-
 Usage:
 $scriptname --start|--stop|--restart [--quiet|-q] instancename1 [instancename2...]
 $scriptname --enable|--disable instancename1 [instancename2]
 $scriptname -h|--help
-
     --start               Start the plack daemon for the specified instances
     --stop                Stop the plack daemon for the specified instances
     --restart             Restart the plack daemon for the specified instances
@@ -54,7 +51,6 @@ $scriptname -h|--help
     --quiet|-q            Make the script quiet about non existent instance names
                           (useful for calling from another scripts).
     --help|-h             Display this help message
-
 EOF
 }
 
@@ -68,13 +64,18 @@ start_plack()
     local NAME="${instancename}-koha-plack"
 
     if [ -e "/etc/koha/sites/${instancename}/plack.psgi" ]; then
-        # pick instance-specific psgi file
+        # pick instance-specific psgi file
         PSGIFILE="/etc/koha/sites/${instancename}/plack.psgi"
-    fi # else stick with the default one
+    fi # else stick with the default one
 
     _check_and_fix_perms $instancename
 
-    STARMANOPTS="-M FindBin --max-requests 50 --workers 2 \
+    PLACK_MAX_REQUESTS=$(run_safe_xmlstarlet $instancename plack_max_requests)
+    [ -z $PLACK_MAX_REQUESTS ] && PLACK_MAX_REQUESTS="50"
+    PLACK_WORKERS=$(run_safe_xmlstarlet $instancename plack_workers)
+    [ -z $PLACK_WORKERS ] && PLACK_WORKERS="2"
+
+    STARMANOPTS="-M FindBin --max-requests ${PLACK_MAX_REQUESTS} --workers ${PLACK_WORKERS} \
                  --user=${instancename}-koha --group ${instancename}-koha \
                  --pid ${PIDFILE} \
                  --daemonize \
@@ -148,7 +149,7 @@ enable_plack()
     local instancefile=$(get_apache_config_for "$instancename")
 
     if ! is_plack_enabled $instancename; then
-        # Uncomment the plack related lines for OPAC and intranet
+        # Uncomment the plack related lines for OPAC and intranet
         sed -i 's:^\s*#\(\s*Include /etc/koha/apache-shared-opac-plack.conf\)$:\1:' "$instancefile"
         sed -i 's:^\s*#\(\s*Include /etc/koha/apache-shared-intranet-plack.conf\)$:\1:' "$instancefile"
         [ "${quiet}" != "yes" ] && warn "Plack enabled for ${instancename}"
@@ -165,7 +166,7 @@ disable_plack()
     local instancefile=$(get_apache_config_for "$instancename")
 
     if is_plack_enabled $instancename; then
-        # Comment out the plack related lines for OPAC and intranet
+        # Comment out the plack related lines for OPAC and intranet
         sed -i 's:^\(\s*Include /etc/koha/apache-shared-opac-plack.conf\)$:#\1:' "$instancefile"
         sed -i 's:^\(\s*Include /etc/koha/apache-shared-intranet-plack.conf\)$:#\1:' "$instancefile"
         [ "${quiet}" != "yes" ] && warn "Plack disabled for ${instancename}"
@@ -200,9 +201,7 @@ check_env_and_warn()
         cat 1>&2 <<EOM
 WARNING: koha-plack requires some Apache modules that you are missing.
 You can install them with:
-
     sudo a2enmod ${missing_modules}
-
 EOM
 
     fi
@@ -270,12 +269,6 @@ while [ $# -gt 0 ]; do
 
 done
 
-if [ -z $PERL5LIB ]; then
-    PERL5LIB="/usr/share/koha/lib"
-fi
-
-export PERL5LIB
-
 [ "${quiet}" != "yes" ] && check_env_and_warn
 
 if [ $# -gt 0 ]; then
@@ -283,6 +276,9 @@ if [ $# -gt 0 ]; then
     for name in "$@"; do
 
         if is_instance $name; then
+
+            adjust_paths_dev_install $name
+            export DEV_INSTALL KOHA_HOME PERL5LIB=$PERL5LIB:$KOHA_HOME/installer:$KOHA_HOME/lib/installer
 
             case $op in
                 "start")

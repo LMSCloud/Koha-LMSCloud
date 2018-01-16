@@ -438,6 +438,13 @@ sub build_patron_status {
 
         my $msg = $patron->screen_msg;
         $msg .= ' -- '. INVALID_PW if $patron_pwd && !$password_rc;
+                
+        if ( C4::Context->preference('SIPVendorDialect') 
+             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
+             && !$patron->charge_ok ) 
+        {
+            $msg .= ' -- ' . "Patron Blocked";
+        }
         $resp .= maybe_add( FID_SCREEN_MSG, $msg, $server );
 
         $resp .= maybe_add( FID_SCREEN_MSG, $patron->{branchcode}, $server )
@@ -616,7 +623,9 @@ sub handle_checkout {
         if ( C4::Context->preference('SIPVendorDialect') 
             && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
         {
-            $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
+            if ( $item && $item->permanent_location)  {
+                $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
+            }
             if ( $patron && $patron->dateexpiry)  {
                 $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
             }
@@ -1116,6 +1125,11 @@ sub handle_fee_paid {
     my ( $fee_id, $trans_id );
     my $status;
     my $resp = FEE_PAID_RESP;
+    
+    my $disallow_overpayment  = $server->{account}->{disallow_overpayment};
+    my $payment_type_writeoff = $server->{account}->{payment_type_writeoff} || q{};
+
+    my $is_writeoff = $pay_type eq $payment_type_writeoff;
 
     $fee_amt    = $fields->{ (FID_FEE_AMT) };
     $inst_id    = $fields->{ (FID_INST_ID) };
@@ -1126,7 +1140,7 @@ sub handle_fee_paid {
 
     $ils->check_inst_id( $inst_id, "handle_fee_paid" );
 
-    $status = $ils->pay_fee( $patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency );
+    $status = $ils->pay_fee( $patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency, $is_writeoff, $disallow_overpayment );
 
     $resp .= ( $status->ok ? 'Y' : 'N' ) . timestamp;
     $resp .= add_field( FID_INST_ID,   $inst_id );

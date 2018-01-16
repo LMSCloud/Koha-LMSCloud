@@ -23,6 +23,7 @@ use Carp;
 
 use Koha::Database;
 use Koha::Patrons;
+use Koha::Patron::Categories;
 use Koha::Patron::Images;
 
 use base qw(Koha::Object);
@@ -36,6 +37,25 @@ Koha::Patron - Koha Patron Object class
 =head2 Class Methods
 
 =cut
+
+=head3 guarantor
+
+Returns a Koha::Patron object for this patron's guarantor
+
+=cut
+
+=head3 category
+
+my $patron_category = $patron->category
+
+Return the patron category for this patron
+
+=cut
+
+sub category {
+    my ( $self ) = @_;
+    return Koha::Patron::Category->_new_from_dbic( $self->_result->categorycode );
+}
 
 =head3 guarantor
 

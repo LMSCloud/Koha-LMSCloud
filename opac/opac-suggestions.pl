@@ -153,8 +153,13 @@ if ( $op eq "delete_confirm" ) {
 
 map{
     my $s = $_;
-    my $library = Koha::Libraries->find($s->{branchcodesuggestedby});
-    $library ? $s->{branchcodesuggestedby} = $library->branchname : ()
+    my $library = Koha::Libraries->find($s->{branchcode});
+    if ( $library ) {
+        $s->{branchcodesuggestedfor} = $library->branchname;
+    } else {
+        $library = Koha::Libraries->find($s->{branchcodesuggestedby});
+        $s->{branchcodesuggestedfor} = $library->branchname;
+    }
 } @$suggestions_loop;
 
 foreach my $suggestion(@$suggestions_loop) {
@@ -182,7 +187,7 @@ if ( C4::Context->preference("AllowPurchaseSuggestionBranchChoice") ) {
     my $branchcode = $input->param('branchcode') || $borr->{'branchcode'} || $userbranch || '' ;
 
 # make branch selection options...
-    my $branchloop = GetBranchesLoop($branchcode);
+    my $branchloop = GetBranchesLoopWithoutMobileStations($branchcode);
     $template->param( branchloop => $branchloop );
 }
 

@@ -191,13 +191,12 @@ function updReturnAmount() {
 
 [% IF ( pay_individual ) %]
     <form name="payindivfine" id="payindivfine" method="post" action="/cgi-bin/koha/members/paycollect.pl">
+    <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
     <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description %]" />
     <input type="hidden" name="accounttype" id="accounttype" value="[% accounttype %]" />
-    <input type="hidden" name="notify_id" id="notify_id" value="[% notify_id %]" />
-    <input type="hidden" name="notify_level" id="notify_level" value="[% notify_level %]" />
     <input type="hidden" name="amount" id="amount" value="[% amount %]" />
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
     <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
@@ -213,21 +212,17 @@ function updReturnAmount() {
     <thead><tr>
             <th>Description</th>
             <th>Account type</th>
-            <th>Notify id</th>
-            <th>Level</th>
             <th>Amount</th>
             <th>Amount outstanding</th>
         </tr></thead>
     <tfoot>
-        <td colspan="5">Total amount payable:</td><td>[% amountoutstanding | $Price %]</td>
+        <td colspan="3">Total amount payable:</td><td>[% amountoutstanding | $Price %]</td>
     </tfoot>
     <tbody><tr>
             <td>
                 [% individual_description %] [% title_desc %]
             </td>
             <td>[% accounttypename %]</td>
-            <td>[% notify_id %]</td>
-            <td>[% notify_level %]</td>
             <td class="debit">[% amount | $Price %]</td>
             <td class="debit">[% amountoutstanding | $Price %]</td>
         </tr></tbody>
@@ -253,6 +248,7 @@ function updReturnAmount() {
     </form>
 [% ELSIF ( writeoff_individual ) %]
     <form name="woindivfine" id="woindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
+    <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
     <fieldset class="rows">
     <legend>Write off an individual fine</legend>
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
@@ -260,10 +256,8 @@ function updReturnAmount() {
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description %]" />
     <input type="hidden" name="accounttype" id="accounttype" value="[% accounttype %]" />
-    <input type="hidden" name="notify_id" id="notify_id" value="[% notify_id %]" />
-    <input type="hidden" name="notify_level" id="notify_level" value="[% notify_level %]" />
     <input type="hidden" name="amount" id="amount" value="[% amount %]" />
-    <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
+    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding %]" />
     <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
@@ -272,17 +266,13 @@ function updReturnAmount() {
     <thead><tr>
             <th>Description</th>
             <th>Account type</th>
-            <th>Notify id</th>
-            <th>Level</th>
             <th>Amount</th>
             <th>Amount outstanding</th>
         </tr></thead>
-    <tfoot><td colspan="5">Total amount to be written off:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
+    <tfoot><td colspan="3">Total amount to be written off:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
     <tbody><tr>
             <td>[% individual_description %] [% title_desc %]</td>
             <td>[% accounttypename %]</td>
-            <td>[% notify_id %]</td>
-            <td>[% notify_level %]</td>
             <td class="debit">[% amount | $Price %]</td>
             <td class="debit">[% amountoutstanding | $Price %]</td>
         </tr></tbody>
@@ -293,6 +283,7 @@ function updReturnAmount() {
     </form>
 [% ELSIF ( cancelfee_individual ) %]
     <form name="cancelindivfine" id="cancelindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
+    <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
     <fieldset class="rows">
     <legend>Cancel an individual fine</legend>
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
@@ -300,10 +291,8 @@ function updReturnAmount() {
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description %]" />
     <input type="hidden" name="accounttype" id="accounttype" value="[% accounttype %]" />
-    <input type="hidden" name="notify_id" id="notify_id" value="[% notify_id %]" />
-    <input type="hidden" name="notify_level" id="notify_level" value="[% notify_level %]" />
     <input type="hidden" name="amount" id="amount" value="[% amount %]" />
-    <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
+    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding %]" />
     <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
@@ -312,17 +301,13 @@ function updReturnAmount() {
     <thead><tr>
             <th>Description</th>
             <th>Account type</th>
-            <th>Notify id</th>
-            <th>Level</th>
             <th>Amount</th>
             <th>Amount outstanding</th>
         </tr></thead>
-    <tfoot><td colspan="5">Total amount to be cancelled:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
+    <tfoot><td colspan="3">Total amount to be cancelled:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
     <tbody><tr>
             <td>[% individual_description %] [% title_desc %]</td>
             <td>[% accounttypename %]</td>
-            <td>[% notify_id %]</td>
-            <td>[% notify_level %]</td>
             <td class="debit">[% amount | $Price %]</td>
             <td class="debit">[% amountoutstanding | $Price %]</td>
         </tr></tbody>
@@ -335,6 +320,7 @@ function updReturnAmount() {
 [% ELSE %]
 
     <form name="payfine" id="payfine" method="post" action="/cgi-bin/koha/members/paycollect.pl">
+    <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
     <input type="hidden" name="selected_accts" id="selected_accts" value="[% selected_accts %]" />
     <input type="hidden" name="total" id="total" value="[% total %]" />

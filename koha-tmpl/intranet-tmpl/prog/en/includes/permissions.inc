@@ -109,5 +109,6 @@
     [%- CASE 'run_batch_programs' -%]<span>Run batch programs</span>
     [%- CASE 'duedate_update' -%]<span>Update due-dates of checked-out items</span>
     [%- CASE 'send_adhoc_notices' -%]<span>Send adhoc notices to patrons</span>
+    [%- CASE 'cancel_fee' -%]<span>Cancel fines and fees</span>
     [%- END -%]
 [%- END -%]

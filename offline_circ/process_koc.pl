@@ -34,6 +34,8 @@ use C4::Members;
 use C4::Stats;
 use Koha::Upload;
 use C4::BackgroundJob;
+use Koha::Account;
+use Koha::Patrons;
 
 use Date::Calc qw( Add_Delta_Days Date_to_Days );
 
@@ -356,17 +358,25 @@ sub kocReturnItem {
 }
 
 sub kocMakePayment {
-    my ( $circ ) = @_;
-    my $borrower = GetMember( 'cardnumber'=>$circ->{ 'cardnumber' } );
-    recordpayment( $borrower->{'borrowernumber'}, $circ->{'amount'} );
-    push @output, {
-        payment => 1,
-        amount => $circ->{'amount'},
-        firstname => $borrower->{'firstname'},
-        surname => $borrower->{'surname'},
-        cardnumber => $circ->{'cardnumber'},
-        borrower => $borrower->{'borrowernumber'}
-    };
+    my ($circ) = @_;
+
+    my $cardnumber = $circ->{cardnumber};
+    my $amount = $circ->{amount};
+
+    my $patron = Koha::Patrons->find( { cardnumber => $cardnumber } );
+
+    Koha::Account->new( { patron_id => $patron->id } )
+      ->pay( { amount => $amount } );
+
+    push @output,
+      {
+        payment    => 1,
+        amount     => $circ->{'amount'},
+        firstname  => $patron->firstname,
+        surname    => $patron->surname,
+        cardnumber => $patron->cardnumber,
+        borrower   => $patron->id,
+      };
 }
 
 =head2 _get_borrowernumber_from_barcode

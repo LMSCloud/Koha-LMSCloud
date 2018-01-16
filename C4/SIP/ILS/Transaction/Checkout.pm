@@ -64,6 +64,7 @@ sub do_checkout {
         C4::Context->preference("AllowItemsOnHoldCheckout")
     );
 	my $noerror=1;
+	my $chargeerror=0;
     if (scalar keys %$issuingimpossible) {
         foreach (keys %$issuingimpossible) {
             # do something here so we pass these errors
@@ -93,7 +94,7 @@ sub do_checkout {
                 $self->screen_msg('Loan period reduced for high-demand item');
             } elsif ($confirmation eq 'RENTALCHARGE') {
                 if ($self->{fee_ack} ne 'Y') {
-                    $noerror = 0;
+                    $chargeerror = 1;
                 }
             } else {
                 $self->screen_msg($needsconfirmation->{$confirmation});
@@ -116,11 +117,20 @@ sub do_checkout {
     if ( $fee > 0 ) {
         $self->{sip_fee_type} = '06';
         $self->{fee_amount} = sprintf '%.2f', $fee;
-        if ($self->{fee_ack} eq 'N' ) {
+        if ($self->{fee_ack} eq 'N' && $noerror ) {
             $noerror = 0;
+            # Display a confirmation about issuing charges only if there are no other errors blocking the checkout
+            # E.g. a patrons confirms a charge and cannot borrow the book later due to an age restriction
+            $self->screen_msg("Please confirm issuing charges!");
         }
-        $self->screen_msg("Please confirm issuing charges!");
     }
+    # Just in case $chargerror was set as $needsconfirmation result and $noerror is still not set 
+    # which actually should never happen because GetIssuingCharges should return a fee > 0
+    if ( $noerror && $chargeerror ) {
+        $noerror = 0;
+        $self->screen_msg("Unconfirmed rental charges block checkout!");
+    }
+
 	unless ($noerror) {
 		$debug and warn "cannot issue: " . Dumper($issuingimpossible) . "\n" . Dumper($needsconfirmation);
 		$self->ok(0);

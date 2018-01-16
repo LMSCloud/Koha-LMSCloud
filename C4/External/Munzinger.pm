@@ -192,6 +192,7 @@ sub simpleSearch {
    
     my $requestkey = '';
     my $user = 'dummy';
+    my $munzingerKey = '';
     
     if ( $userid ) {
         my $borrower = &GetMember( userid => $userid );
@@ -202,7 +203,8 @@ sub simpleSearch {
     
     if ( exists($self->{'key'}) ) {
         my $datestring = strftime "%Y%m%e%H%M%S", localtime;
-        $requestkey = $self->encryptKey("userid=". $user . "&portalid=" , C4::Context->preference('MunzingerPortalID') . "&ts=$datestring");
+        $munzingerKey = "userid=". $user . "&portalid=" . C4::Context->preference('MunzingerPortalID') . "&ts=$datestring";
+        $requestkey = $self->encryptKey($munzingerKey);
     }
  
     my $url;
@@ -226,24 +228,24 @@ sub simpleSearch {
     if ( defined($response) && $response->is_success ) {
         # print Dumper($response->content);
         
-        carp "C4::External::Munzinger->simpleSearch() with URL $url";
+        carp "C4::External::Munzinger->simpleSearch() with URL $url (key=$munzingerKey)" if (C4::Context->preference('MunzingerTraceEnabled'));
             
         my $respstruct = XMLin( $response->content, KeyAttr => { hit => 'id' }, ForceArray => ["hitlist","hit"], KeepRoot => 1 );
         
         if ( defined($respstruct->{error}) ) {
-            carp "C4::External::Munzinger->simpleSearch() with URL $url returned with error result. Error id " . $respstruct->{error}->{id} . ": " . $respstruct->{error}->{content}; 
+            carp "C4::External::Munzinger->simpleSearch() with URL $url (key=$munzingerKey) returned with error result. Error id " . $respstruct->{error}->{id} . ": " . $respstruct->{error}->{content} if (C4::Context->preference('MunzingerTraceEnabled')); 
         }
         
         $respstruct->{'searchmunzinger'}  = $self->{'allsearch'} . "stichwort=$searchtext&portalid=" . C4::Context->preference('MunzingerPortalID');
         $respstruct->{'searchmunzinger'} .= "&key=$requestkey" if ($requestkey ne '');
 
         # 
-        # print Dumper($respstruct);
+        carp Dumper($respstruct) if (C4::Context->preference('MunzingerTraceEnabled'));
         
         return $respstruct;
     }
     else {
-        carp "C4::External::Munzinger->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML;   
+        carp "C4::External::Munzinger->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML if (C4::Context->preference('MunzingerTraceEnabled'));   
     }
     return undef;
 }
@@ -312,6 +314,7 @@ Execute a simple search and return the as new data structure grouping the result
 
 sub getCategorySummary {
     my $self = shift;
+    my $userid = shift;
     my $searchtext = shift;
     my $publication = shift;
     my $maxcount = shift;
@@ -320,7 +323,7 @@ sub getCategorySummary {
     
     my $result;
     
-    $result = $self->simpleSearch($searchtext,$publication,$maxcount) if ( defined($searchtext) );
+    $result = $self->simpleSearch($userid,$searchtext,$publication,$maxcount) if ( defined($searchtext) );
         
     if ( defined($result) && exists($result->{'hitlists'} ) ) {
         $categories->{'searchmunzinger'} = $result->{'searchmunzinger'};
@@ -391,7 +394,7 @@ sub normalizeSearchRequest {
     if ( defined($search) ) {
         
         $search =~ s/(\x{0098}|\x{009c}|\x{00ac})//g;
-        $search =~ s/(,\s*)?(homebranch|itype|mc-itype|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
+        $search =~ s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
         
         if ( $search =~ /(sys|lcn)[A-Za-z0-9,-]*[:=]/i ) {
             return '';

@@ -13375,6 +13375,109 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 }
 
+$DBversion = '16.05.12.008';
+if ( CheckVersion($DBversion) ) {
+    
+    # Add new permission to cancel a fee 
+    $dbh->do( q{ 
+        INSERT IGNORE INTO permissions (module_bit, code, description) VALUES (10, 'cancel_fee', 'Cancel fines and fees')
+    });
+    # Add preference to enable to setup bookmobile station specific overdue rules
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES 
+            ('BookMobileStationOverdueRulesActive','0',NULL,'Enable bookmobile station specific overdue rules. If activated, book mobile stations can have individual overdue and claiming fee rules.','YesNo')
+    });
+    
+    # Add title field for a alternative contact to the borrowers table
+    $dbh->do( q{ ALTER TABLE borrowers ADD `altcontacttitle` varchar(255) default NULL AFTER `altcontactsurname` });
+    $dbh->do( q{ ALTER TABLE deletedborrowers ADD `altcontacttitle` varchar(255) default NULL AFTER `altcontactsurname` });
+    $dbh->do( q{ ALTER TABLE borrower_modifications ADD `altcontacttitle` varchar(255) default NULL AFTER `altcontactsurname` });
+    
+    print "Upgrade to $DBversion done (add alternative contact to the borrower table and add permissions to cancel fines and fees, setup bookmobile station overdue rules)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '16.05.12.009';
+if ( CheckVersion($DBversion) ) {
+
+    # Add parameter to initialize the pickup location of item level holds for libraries that do not support transfers
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES ('SetPickupLocationOfReservedItems','','|homebranch|holdingbranch','Initialize the pickup location of item level holds with the home branch or holding branch of the item if the user is not allowed to select the pickup location (parameter: OPACAllowUserToChooseBranch not set). Setting this parameter prevents transfers. The patron has to pick up the item at the selected location.','Choice')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter to initialize the pickup location of item level holds for libraries that do not support transfers)\n";
+    SetVersion ($DBversion);
+} 
+
+$DBversion = '16.05.12.010';
+if ( CheckVersion($DBversion) ) {
+
+    # Update the name of the name of the OpacSelectNewAcquisitionsMonthes preference if already defined
+    $dbh->do( q{ 
+        UPDATE systempreferences set variable = 'OpacSelectNewAcquisitionsMonthes' WHERE variable = 'OpacSelectNewAcquisitionsMonthes'
+    });
+    # Add new parameter to enable exclusion of review display and to specify the monthes to build a new acquisitions date that can be used for OPAC selections
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences ( variable, value, options, explanation, type ) VALUES
+            ('ExcludeReviewsWithMARC520Indicator1Value','',NULL,'Do not display MARC field 520 content if the value of the first indicator of the field 520 content is provided in the list seperated by | (e.g. 4|8). Use # instead of a space.','Free'),
+            ('OpacSelectNewAcquisitionsMonthes','6',NULL,'Specify the number of monthes used to build the date in the past that is used to select new acquisitions of a library.','Integer')
+    });
+    
+    print "Upgrade to $DBversion done (Add new syspref ExcludeReviewsWithMARC520Indicator1Value to prevent display of MARC 520 content, Add syspref to )\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '16.05.12.011';
+if( CheckVersion( $DBversion ) ) {
+    unless (TableExists('account_offsets')) {
+        $dbh->do(q{
+            DROP TABLE IF EXISTS `accountoffsets`;
+        });
+
+        $dbh->do(q{
+            CREATE TABLE IF NOT EXISTS `account_offset_types` (
+              `type` varchar(16) NOT NULL, -- The type of offset this is
+              PRIMARY KEY (`type`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+        });
+
+        $dbh->do(q{
+            CREATE TABLE IF NOT EXISTS `account_offsets` (
+              `id` int(11) NOT NULL auto_increment, -- unique identifier for each offset
+              `credit_id` int(11) NULL DEFAULT NULL, -- The id of the accountline the increased the patron's balance
+              `debit_id` int(11) NULL DEFAULT NULL, -- The id of the accountline that decreased the patron's balance
+              `type` varchar(16) NOT NULL, -- The type of offset this is
+              `amount` decimal(26,6) NOT NULL, -- The amount of the change
+              `created_on` timestamp NOT NULL default CURRENT_TIMESTAMP,
+              PRIMARY KEY (`id`),
+              CONSTRAINT `account_offsets_ibfk_p` FOREIGN KEY (`credit_id`) REFERENCES `accountlines` (`accountlines_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+              CONSTRAINT `account_offsets_ibfk_f` FOREIGN KEY (`debit_id`) REFERENCES `accountlines` (`accountlines_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+              CONSTRAINT `account_offsets_ibfk_t` FOREIGN KEY (`type`) REFERENCES `account_offset_types` (`type`) ON DELETE CASCADE ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+        });
+
+        $dbh->do(q{
+            INSERT IGNORE INTO account_offset_types ( type ) VALUES
+            ('Writeoff'),
+            ('Payment'),
+            ('Lost Item'),
+            ('Processing Fee'),
+            ('Manual Debit'),
+            ('Reverse Payment'),
+            ('Forgiven'),
+            ('Dropbox'),
+            ('Rental Fee'),
+            ('Fine Update'),
+            ('Fine'),
+            ('Cancel Fee'),
+            ('Notice Fee'),
+            ('Overdue Fee');
+        });
+    }
+
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 14826 - Resurrect account offsets table (Add new tables account_offsets and account_offset_types))\n";
+}
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss

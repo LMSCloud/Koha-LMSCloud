@@ -859,7 +859,7 @@ sub _parseletter_sth {
     my $query = 
     ($table eq 'biblio'       ) ? "SELECT * FROM $table WHERE   biblionumber = ?"                                  :
     ($table eq 'biblioitems'  ) ? "SELECT * FROM $table WHERE   biblionumber = ?"                                  :
-    ($table eq 'items'        ) ? "SELECT * FROM $table WHERE     itemnumber = ?"                                  :
+    ($table eq 'items'        ) ? "SELECT items.*,itemtypes.description AS itemtypename FROM $table LEFT JOIN itemtypes ON items.itype = itemtypes.itemtype WHERE itemnumber = ?" :
     ($table eq 'issues'       ) ? "SELECT * FROM $table WHERE     itemnumber = ?"                                  :
     ($table eq 'old_issues'   ) ? "SELECT * FROM $table WHERE     itemnumber = ? ORDER BY timestamp DESC LIMIT 1"  :
     ($table eq 'reserves'     ) ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?"             :

@@ -35,8 +35,6 @@ BEGIN {
 	require Exporter;
 	@ISA    = qw(Exporter);
 	@EXPORT = qw(
-		&recordpayment
-		&makepayment
 		&manualinvoice
 		&getnextacctno
 		&getcharges
@@ -45,10 +43,6 @@ BEGIN {
 		&getrefunds
 		&chargelostitem
 		&ReversePayment
-        &makepartialpayment
-        &recordpayment_selectaccts
-        &WriteOffFee
-        &CancelFee
         &purge_zero_balance_fees
 	);
 }
@@ -68,276 +62,6 @@ including looking up and modifying the amount of money owed by a
 patron.
 
 =head1 FUNCTIONS
-
-=head2 recordpayment
-
-  &recordpayment($borrowernumber, $payment, $sip_paytype, $note);
-
-Record payment by a patron. C<$borrowernumber> is the patron's
-borrower number. C<$payment> is a floating-point number, giving the
-amount that was paid. C<$sip_paytype> is an optional flag to indicate this
-payment was made over a SIP2 interface, rather than the staff client. The
-value passed is the SIP2 payment type value (message 37, characters 21-22)
-
-Amounts owed are paid off oldest first. That is, if the patron has a
-$1 fine from Feb. 1, another $1 fine from Mar. 1, and makes a payment
-of $1.50, then the oldest fine will be paid off in full, and $0.50
-will be credited to the next one.
-
-=cut
-
-#'
-sub recordpayment {
-
-    #here we update the account lines
-    my ( $borrowernumber, $data, $sip_paytype, $payment_note ) = @_;
-    my $dbh        = C4::Context->dbh;
-    my $newamtos   = 0;
-    my $accdata    = "";
-    my $branch     = C4::Context->userenv ?
-	                         C4::Context->userenv->{'branch'} : undef;
-    my $amountleft = $data;
-    my $manager_id = 0;
-    
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-    
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( !$sip_paytype && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
-    }
-    
-    $payment_note //= "";
-
-    # begin transaction
-    my $nextaccntno = getnextacctno($borrowernumber);
-
-    # get lines with outstanding amounts to offset
-    my $sth = $dbh->prepare(
-        "SELECT * FROM accountlines
-  WHERE (borrowernumber = ?) AND (amountoutstanding<>0)
-  ORDER BY date"
-    );
-    $sth->execute($borrowernumber);
-
-    # offset transactions
-    my @ids;
-    while ( ( $accdata = $sth->fetchrow_hashref ) and ( $amountleft > 0 ) ) {
-        if ( $accdata->{'amountoutstanding'} < $amountleft ) {
-            $newamtos = 0;
-            $amountleft -= $accdata->{'amountoutstanding'};
-        }
-        else {
-            $newamtos   = $accdata->{'amountoutstanding'} - $amountleft;
-            $amountleft = 0;
-        }
-        my $thisacct = $accdata->{accountlines_id};
-        my $usth     = $dbh->prepare(
-            "UPDATE accountlines SET amountoutstanding= ?
-     WHERE (accountlines_id = ?)"
-        );
-        $usth->execute( $newamtos, $thisacct );
-
-        if ( C4::Context->preference("FinesLog") ) {
-            $accdata->{'amountoutstanding_new'} = $newamtos;
-            logaction("FINES", 'MODIFY', $borrowernumber, Dumper({
-                action                => 'fee_payment',
-                borrowernumber        => $accdata->{'borrowernumber'},
-                old_amountoutstanding => $accdata->{'amountoutstanding'},
-                new_amountoutstanding => $newamtos,
-                amount_paid           => $accdata->{'amountoutstanding'} - $newamtos,
-                accountlines_id       => $accdata->{'accountlines_id'},
-                accountno             => $accdata->{'accountno'},
-                manager_id            => $manager_id,
-                note                  => $payment_note,
-            }));
-            push( @ids, $accdata->{'accountlines_id'} );
-        }
-    }
-
-    # create new line
-    my $usth = $dbh->prepare(
-        "INSERT INTO accountlines
-  (borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding,manager_id, note,branchcode)
-  VALUES (?,?,now(),?,'',?,?,?,?,?)"
-    );
-
-    my $paytype = "Pay";
-    $paytype .= $sip_paytype if defined $sip_paytype;
-    if ( $usth->execute( $borrowernumber, $nextaccntno, 0 - $data, $paytype, 0 - $amountleft, $manager_id, $payment_note, $branch ) ) {
-        my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
-        # If it is not SIP it is a cash payment and if cash registers are activated as too,
-        # the cash payment need to registered for the opened cash register as cash receipt
-        if ( !$sip_paytype && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-            $cash_register_mngmt->registerPayment($branch, $manager_id, $data, $lastID);
-        }
-    }
-    $usth->finish;
-
-    UpdateStats({
-                branch => $branch,
-                type =>'payment',
-                amount => $data,
-                borrowernumber => $borrowernumber,
-                accountno => $nextaccntno }
-    );
-
-    if ( C4::Context->preference("FinesLog") ) {
-        $accdata->{'amountoutstanding_new'} = $newamtos;
-        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-            action            => 'create_payment',
-            borrowernumber    => $borrowernumber,
-            accountno         => $nextaccntno,
-            amount            => $data * -1,
-            amountoutstanding => $amountleft * -1,
-            accounttype       => 'Pay',
-            accountlines_paid => \@ids,
-            manager_id        => $manager_id,
-        }));
-    }
-
-}
-
-=head2 makepayment
-
-  &makepayment($accountlines_id, $borrowernumber, $acctnumber, $amount, $branchcode);
-
-Records the fact that a patron has paid off the entire amount he or
-she owes.
-
-C<$borrowernumber> is the patron's borrower number. C<$acctnumber> is
-the account that was credited. C<$amount> is the amount paid (this is
-only used to record the payment. It is assumed to be equal to the
-amount owed). C<$branchcode> is the code of the branch where payment
-was made.
-
-=cut
-
-#'
-# FIXME - I'm not at all sure about the above, because I don't
-# understand what the acct* tables in the Koha database are for.
-sub makepayment {
-
-    #here we update both the accountoffsets and the account lines
-    #updated to check, if they are paying off a lost item, we return the item
-    # from their card, and put a note on the item record
-    my ( $accountlines_id, $borrowernumber, $accountno, $amount, $user, $branch, $payment_note ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $manager_id = 0;
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv; 
-
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
-    }
-    
-    # begin transaction
-    my $nextaccntno = getnextacctno($borrowernumber);
-    my $newamtos    = 0;
-    my $sth         = $dbh->prepare("SELECT * FROM accountlines WHERE accountlines_id=?");
-    $sth->execute( $accountlines_id );
-    my $data = $sth->fetchrow_hashref;
-
-    my $payment;
-    if ( $data->{'accounttype'} eq "Pay" ){
-        my $udp = 		
-            $dbh->prepare(
-                "UPDATE accountlines
-                    SET amountoutstanding = 0
-                    WHERE accountlines_id = ?
-                "
-            );
-        $udp->execute($accountlines_id);
-        
-        # If cash registers are activated, the cash payment need to registered for the 
-        # opened cash register as cash receipt
-        if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $accountlines_id);
-        }
-    }else{
-        my $udp = 		
-            $dbh->prepare(
-                "UPDATE accountlines
-                    SET amountoutstanding = 0
-                    WHERE accountlines_id = ?
-                "
-            );
-        $udp->execute($accountlines_id);
-
-         # create new line
-        my $payment = 0 - $amount;
-        $payment_note //= "";
-        
-        my $ins = 
-            $dbh->prepare( 
-                "INSERT 
-                    INTO accountlines (borrowernumber, accountno, date, amount, itemnumber, description, accounttype, amountoutstanding, manager_id, note, branchcode)
-                    VALUES ( ?, ?, now(), ?, ?, '', 'Pay', 0, ?, ?, ?)"
-            );
-        my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
-        if ( $ins->execute($borrowernumber, $nextaccntno, $payment, $data->{'itemnumber'}, $manager_id, $payment_note, $branchcode) 
-            && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) 
-        {
-            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
-            # If cash registers are activated, the cash payment need to registered for the 
-            # opened cash register as cash receipt
-            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $lastID);
-        }
-    }
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'MODIFY', $borrowernumber, Dumper({
-            action                => 'fee_payment',
-            borrowernumber        => $borrowernumber,
-            old_amountoutstanding => $data->{'amountoutstanding'},
-            new_amountoutstanding => 0,
-            amount_paid           => $data->{'amountoutstanding'},
-            accountlines_id       => $data->{'accountlines_id'},
-            accountno             => $data->{'accountno'},
-            manager_id            => $manager_id,
-        }));
-
-
-        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-            action            => 'create_payment',
-            borrowernumber    => $borrowernumber,
-            accountno         => $nextaccntno,
-            amount            => $payment,
-            amountoutstanding => 0,,
-            accounttype       => 'Pay',
-            accountlines_paid => [$data->{'accountlines_id'}],
-            manager_id        => $manager_id,
-        }));
-    }
-
-    UpdateStats({
-        branch => $branch,
-        type   => 'payment',
-        amount => $amount,
-        borrowernumber => $borrowernumber,
-        accountno => $accountno
-    });
-
-    #check to see what accounttype
-    if ( $data->{itemnumber} && ( $data->{'accounttype'} eq 'Rep' || $data->{'accounttype'} eq 'L' ) ) {
-        C4::Circulation::ReturnLostItem( $borrowernumber, $data->{'itemnumber'} );
-    }
-    my $sthr = $dbh->prepare("SELECT max(accountlines_id) AS lastinsertid FROM accountlines");
-    $sthr->execute();
-    my $datalastinsertid = $sthr->fetchrow_hashref;
-    return $datalastinsertid->{'lastinsertid'};
-}
 
 =head2 getnextacctno
 
@@ -394,49 +118,114 @@ EOT
 =cut
 
 sub chargelostitem{
-# lost ==1 Lost, lost==2 longoverdue, lost==3 lost and paid for
-# FIXME: itemlost should be set to 3 after payment is made, should be a warning to the interface that
-# a charge has been added
-# FIXME : if no replacement price, borrower just doesn't get charged?
     my $dbh = C4::Context->dbh();
     my ($borrowernumber, $itemnumber, $amount, $description) = @_;
-
     my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
-
+    my $itype = Koha::ItemTypes->find({ itemtype => Koha::Items->find($itemnumber)->effective_itemtype() });
+    my $replacementprice = $amount;
+    my $defaultreplacecost = $itype->defaultreplacecost;
+    my $processfee = $itype->processfee;
+    my $usedefaultreplacementcost = C4::Context->preference("useDefaultReplacementCost");
+    my $processingfeenote = C4::Context->preference("ProcessingFeeNote");
+    if ($usedefaultreplacementcost && $amount == 0 && $defaultreplacecost){
+        $replacementprice = $defaultreplacecost;
+    }
     # first make sure the borrower hasn't already been charged for this item
-    my $sth1=$dbh->prepare("SELECT * from accountlines
-    WHERE borrowernumber=? AND itemnumber=? and accounttype='L'");
-    $sth1->execute($borrowernumber,$itemnumber);
-    my $existing_charge_hashref=$sth1->fetchrow_hashref();
+    # FIXME this should be more exact
+    #       there is no reason a user can't lose an item, find and return it, and lost it again
+    my $existing_charges = Koha::Account::Lines->search(
+        {
+            borrowernumber => $borrowernumber,
+            itemnumber     => $itemnumber,
+            accounttype    => 'L',
+        }
+    )->count();
 
     # OK, they haven't
-    unless ($existing_charge_hashref) {
-        my $manager_id = 0;
-        $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-        # This item is on issue ... add replacement cost to the borrower's record and mark it returned
-        #  Note that we add this to the account even if there's no replacement price, allowing some other
-        #  process (or person) to update it, since we don't handle any defaults for replacement prices.
-        my $accountno = getnextacctno($borrowernumber);
-        my $sth2=$dbh->prepare("INSERT INTO accountlines
-        (borrowernumber,accountno,date,amount,description,accounttype,amountoutstanding,itemnumber,manager_id,branchcode)
-        VALUES (?,?,now(),?,?,'L',?,?,?,?)");
-        $sth2->execute( $borrowernumber, $accountno, $amount, $description,
-            $amount, $itemnumber, $manager_id, $branchcode );
+    unless ($existing_charges) {
+        #add processing fee
+        if ($processfee && $processfee > 0){
+            my $accountline = Koha::Account::Line->new(
+                {
+                    borrowernumber    => $borrowernumber,
+                    accountno         => getnextacctno($borrowernumber),
+                    date              => \'NOW()',
+                    amount            => $processfee,
+                    description       => $description,
+                    accounttype       => 'PF',
+                    amountoutstanding => $processfee,
+                    itemnumber        => $itemnumber,
+                    note              => $processingfeenote,
+                    manager_id        => C4::Context->userenv ? C4::Context->userenv->{'number'} : 0,
+                    branchcode        => $branchcode,
+                }
+            )->store();
 
-        if ( C4::Context->preference("FinesLog") ) {
-            logaction("FINES", 'CREATE', $borrowernumber, Dumper({
-                action            => 'create_fee',
-                borrowernumber    => $borrowernumber,
-                accountno         => $accountno,
-                amount            => $amount,
-                amountoutstanding => $amount,
-                description       => $description,
-                accounttype       => 'L',
-                itemnumber        => $itemnumber,
-                manager_id        => $manager_id,
-            }));
+            my $account_offset = Koha::Account::Offset->new(
+                {
+                    debit_id => $accountline->id,
+                    type     => 'Processing Fee',
+                    amount   => $accountline->amount,
+                }
+            )->store();
+
+            if ( C4::Context->preference("FinesLog") ) {
+                logaction("FINES", 'CREATE',$borrowernumber,Dumper({
+                    action            => 'create_fee',
+                    borrowernumber    => $accountline->borrowernumber,,
+                    accountno         => $accountline->accountno,
+                    amount            => $accountline->amount,
+                    description       => $accountline->description,
+                    accounttype       => $accountline->accounttype,
+                    amountoutstanding => $accountline->amountoutstanding,
+                    note              => $accountline->note,
+                    itemnumber        => $accountline->itemnumber,
+                    manager_id        => $accountline->manager_id,
+                    branchcode        => $accountline->branchcode,
+                }));
+            }
         }
+        #add replace cost
+        if ($replacementprice > 0){
+            my $accountline = Koha::Account::Line->new(
+                {
+                    borrowernumber    => $borrowernumber,
+                    accountno         => getnextacctno($borrowernumber),
+                    date              => \'NOW()',
+                    amount            => $replacementprice,
+                    description       => $description,
+                    accounttype       => 'L',
+                    amountoutstanding => $replacementprice,
+                    itemnumber        => $itemnumber,
+                    manager_id        => C4::Context->userenv ? C4::Context->userenv->{'number'} : 0,
+                    branchcode        => $branchcode,
+                }
+            )->store();
 
+            my $account_offset = Koha::Account::Offset->new(
+                {
+                    debit_id => $accountline->id,
+                    type     => 'Lost Item',
+                    amount   => $accountline->amount,
+                }
+            )->store();
+
+            if ( C4::Context->preference("FinesLog") ) {
+                logaction("FINES", 'CREATE',$borrowernumber,Dumper({
+                    action            => 'create_fee',
+                    borrowernumber    => $accountline->borrowernumber,,
+                    accountno         => $accountline->accountno,
+                    amount            => $accountline->amount,
+                    description       => $accountline->description,
+                    accounttype       => $accountline->accounttype,
+                    amountoutstanding => $accountline->amountoutstanding,
+                    note              => $accountline->note,
+                    itemnumber        => $accountline->itemnumber,
+                    manager_id        => $accountline->manager_id,
+                    branchcode        => $accountline->branchcode,
+                }));
+            }
+        }
     }
 }
 
@@ -470,55 +259,35 @@ sub manualinvoice {
     my ( $borrowernumber, $itemnum, $desc, $type, $amount, $note ) = @_;
     my $manager_id = 0;
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-    my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
     my $dbh      = C4::Context->dbh;
-    my $notifyid = 0;
     my $insert;
     my $accountno  = getnextacctno($borrowernumber);
     my $amountleft = $amount;
+    my $branchcode     = C4::Context->userenv->{'branch'};
 
-    if (   ( $type eq 'L' )
-        or ( $type eq 'F' )
-        or ( $type eq 'A' )
-        or ( $type eq 'N' )
-        or ( $type eq 'M' ) )
-    {
-        $notifyid = 1;
-    }
-    
-    my $branch     = C4::Context->userenv->{'branch'};
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( $type eq 'C' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
-    }
-
-    if ( $itemnum ) {
-        $desc .= ' ' . $itemnum;
-        my $sth = $dbh->prepare(
-            'INSERT INTO  accountlines
-                        (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding, itemnumber,notify_id, note, manager_id, branchcode)
-        VALUES (?, ?, now(), ?,?, ?,?,?,?,?,?,?)');
-     $sth->execute($borrowernumber, $accountno, $amount, $desc, $type, $amountleft, $itemnum,$notifyid, $note, $manager_id, $branchcode) || return $sth->errstr;
-  } else {
-    my $sth=$dbh->prepare("INSERT INTO  accountlines
-            (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding,notify_id, note, manager_id, branchcode)
-            VALUES (?, ?, now(), ?, ?, ?, ?,?,?,?,?)"
-        );
-        if ( $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type,
-            $amountleft, $notifyid, $note, $manager_id, $branchcode ) && $type eq 'C' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) 
+    my $accountline = Koha::Account::Line->new(
         {
-            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
-            # If cash registers are activated, the cash payment need to registered for the 
-            # opened cash register as cash receipt
-            $cash_register_mngmt->registerCredit($branch, $manager_id, $amount*(-1), $lastID)
+            borrowernumber    => $borrowernumber,
+            accountno         => $accountno,
+            date              => \'NOW()',
+            amount            => $amount,
+            description       => $desc,
+            accounttype       => $type,
+            amountoutstanding => $amountleft,
+            itemnumber        => $itemnum || undef,
+            note              => $note,
+            manager_id        => $manager_id,
+            branchcode        => $branchcode
         }
-    }
+    )->store();
+
+    my $account_offset = Koha::Account::Offset->new(
+        {
+            debit_id => $accountline->id,
+            type     => 'Manual Debit',
+            amount   => $amount,
+        }
+    )->store();
 
     if ( C4::Context->preference("FinesLog") ) {
         logaction("FINES", 'CREATE',$borrowernumber,Dumper({
@@ -529,10 +298,10 @@ sub manualinvoice {
             description       => $desc,
             accounttype       => $type,
             amountoutstanding => $amountleft,
-            notify_id         => $notifyid,
             note              => $note,
             itemnumber        => $itemnum,
             manager_id        => $manager_id,
+            branchcode        => $branchcode
         }));
     }
 
@@ -604,14 +373,14 @@ sub getrefunds {
     return (@results);
 }
 
+#FIXME: ReversePayment should be replaced with a Void Payment feature
 sub ReversePayment {
-    my ( $accountlines_id ) = @_;
+    my ($accountlines_id) = @_;
     my $dbh = C4::Context->dbh;
 
     my $branch     = C4::Context->userenv->{branch};
     my $manager_id = 0;
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-
+    $manager_id    = C4::Context->userenv->{'number'} if C4::Context->userenv;
     my $cash_register_mngmt = undef;
     # Check whether cash registers are activated and mandatory for payment actions.
     # If thats the case than we need to check whether the manager has opened a cash
@@ -623,423 +392,52 @@ sub ReversePayment {
         return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
     }
     
-    my $sth = $dbh->prepare('SELECT * FROM accountlines WHERE accountlines_id = ?');
-    $sth->execute( $accountlines_id );
-    my $row = $sth->fetchrow_hashref();
-    my $amount_outstanding = $row->{'amountoutstanding'};
+    my $accountline        = Koha::Account::Lines->find($accountlines_id);
+    my $amount_outstanding = $accountline->amountoutstanding;
 
-    if ( $amount_outstanding <= 0 ) {
-        $sth = $dbh->prepare('UPDATE accountlines SET amountoutstanding = amount * -1, description = CONCAT( description, " Reversed -" ) WHERE accountlines_id = ?');
-        if ( $sth->execute( $accountlines_id ) ) {
-            # A payment is reversed. Means for the cash register that the patron gets money back.
-            # If cash registers are activated as too, the cash payment need to registered for the 
-            # opened cash register as cash receipt
-            if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $row->{'accounttype'} eq 'Pay' && $row->{'amount'} != 0.0 ) {
-                $cash_register_mngmt->registerReversePayment($branch, $manager_id, ($row->{'amount'} * -1), $accountlines_id);
-            }
+    my $new_amountoutstanding =
+      $amount_outstanding <= 0 ? $accountline->amount * -1 : 0;
+
+    $accountline->description( $accountline->description . " Reversed -" );
+    $accountline->amountoutstanding($new_amountoutstanding);
+    $accountline->store();
+
+    my $account_offset = Koha::Account::Offset->new(
+        {
+            credit_id => $accountline->id,
+            type      => 'Reverse Payment',
+            amount    => $amount_outstanding - $new_amountoutstanding,
         }
-    } else {
-        $sth = $dbh->prepare('UPDATE accountlines SET amountoutstanding = 0, description = CONCAT( description, " Reversed -" ) WHERE accountlines_id = ?');
-        if ( $sth->execute( $accountlines_id ) ) {
-            # A reversed payment is going to be reversed. Means for the cash register that the patron pays money again.
-            # If cash registers are activated as too, the cash payment need to registered for the 
-            # opened cash register as cash receipt
-            if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $row->{'accounttype'} eq 'Pay' && $row->{'amount'} != 0.0 ) {
-                $cash_register_mngmt->registerPayment($branch, $manager_id, ($row->{'amount'} * -1), $accountlines_id);
-            }
-        }
-    }
-
-    if ( C4::Context->preference("FinesLog") ) {
-
-        if ( $amount_outstanding <= 0 ) {
-            $row->{'amountoutstanding'} *= -1;
-        } else {
-            $row->{'amountoutstanding'} = '0';
-        }
-        $row->{'description'} .= ' Reversed -';
-        logaction("FINES", 'MODIFY', $row->{'borrowernumber'}, Dumper({
-            action                => 'reverse_fee_payment',
-            borrowernumber        => $row->{'borrowernumber'},
-            old_amountoutstanding => $row->{'amountoutstanding'},
-            new_amountoutstanding => 0 - $amount_outstanding,,
-            accountlines_id       => $row->{'accountlines_id'},
-            accountno             => $row->{'accountno'},
-            manager_id            => $manager_id,
-        }));
-
-    }
-
-}
-
-=head2 recordpayment_selectaccts
-
-  recordpayment_selectaccts($borrowernumber, $payment,$accts);
-
-Record payment by a patron. C<$borrowernumber> is the patron's
-borrower number. C<$payment> is a floating-point number, giving the
-amount that was paid. C<$accts> is an array ref to a list of
-accountnos which the payment can be recorded against
-
-Amounts owed are paid off oldest first. That is, if the patron has a
-$1 fine from Feb. 1, another $1 fine from Mar. 1, and makes a payment
-of $1.50, then the oldest fine will be paid off in full, and $0.50
-will be credited to the next one.
-
-=cut
-
-sub recordpayment_selectaccts {
-    my ( $borrowernumber, $amount, $accts, $note ) = @_;
-
-    my $dbh        = C4::Context->dbh;
-    my $newamtos   = 0;
-    my $accdata    = q{};
-    my $branch     = C4::Context->userenv->{branch};
-    my $amountleft = $amount;
-    my $manager_id = 0;
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
-    }
+    )->store();
     
-    my $sql = 'SELECT * FROM accountlines WHERE (borrowernumber = ?) ' .
-    'AND (amountoutstanding<>0) ';
-    if (@{$accts} ) {
-        $sql .= ' AND accountlines_id IN ( ' .  join ',', @{$accts};
-        $sql .= ' ) ';
+    # A payment is reversed. Means for the cash register that the patron gets money back.
+    # If cash registers are activated as too, the cash payment need to registered for the 
+    # opened cash register as cash receipt
+    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $accountline->accounttype eq 'Pay' && $accountline->amount != 0.0 ) {
+        $cash_register_mngmt->registerReversePayment($branch, $manager_id, (($amount_outstanding - $new_amountoutstanding) * -1), $accountline->id);
     }
-    $sql .= ' ORDER BY date';
-    # begin transaction
-    my $nextaccntno = getnextacctno($borrowernumber);
-
-    # get lines with outstanding amounts to offset
-    my $rows = $dbh->selectall_arrayref($sql, { Slice => {} }, $borrowernumber);
-
-    # offset transactions
-    my $sth     = $dbh->prepare('UPDATE accountlines SET amountoutstanding= ? ' .
-        'WHERE accountlines_id=?');
-
-    my @ids;
-    for my $accdata ( @{$rows} ) {
-        if ($amountleft == 0) {
-            last;
-        }
-        if ( $accdata->{amountoutstanding} < $amountleft ) {
-            $newamtos = 0;
-            $amountleft -= $accdata->{amountoutstanding};
-        }
-        else {
-            $newamtos   = $accdata->{amountoutstanding} - $amountleft;
-            $amountleft = 0;
-        }
-        my $thisacct = $accdata->{accountlines_id};
-        $sth->execute( $newamtos, $thisacct );
-
-        if ( C4::Context->preference("FinesLog") ) {
-            logaction("FINES", 'MODIFY', $borrowernumber, Dumper({
-                action                => 'fee_payment',
-                borrowernumber        => $borrowernumber,
-                old_amountoutstanding => $accdata->{'amountoutstanding'},
-                new_amountoutstanding => $newamtos,
-                amount_paid           => $accdata->{'amountoutstanding'} - $newamtos,
-                accountlines_id       => $accdata->{'accountlines_id'},
-                accountno             => $accdata->{'accountno'},
-                manager_id            => $manager_id,
-            }));
-            push( @ids, $accdata->{'accountlines_id'} );
-        }
-
-    }
-
-    # create new line
-    $sql = 'INSERT INTO accountlines ' .
-    '(borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding,manager_id,note,branchcode) ' .
-    q|VALUES (?,?,now(),?,'','Pay',?,?,?,?)|;
-    
-    if ( $dbh->do($sql,{},$borrowernumber, $nextaccntno, 0 - $amount, 0 - $amountleft, $manager_id, $note, $branch ) ) {
-        # If it is not SIP it is a cash payment and if cash registers are activated as too,
-        # the cash payment need to registered for the opened cash register as cash receipt
-        if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
-            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $lastID);
-        }
-    }
-    UpdateStats({
-                branch => $branch,
-                type => 'payment',
-                amount => $amount,
-                borrowernumber => $borrowernumber,
-                accountno => $nextaccntno}
-    );
 
     if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-            action            => 'create_payment',
-            borrowernumber    => $borrowernumber,
-            accountno         => $nextaccntno,
-            amount            => 0 - $amount,
-            amountoutstanding => 0 - $amountleft,
-            accounttype       => 'Pay',
-            accountlines_paid => \@ids,
-            manager_id        => $manager_id,
-        }));
+        my $manager_id = 0;
+        $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
+
+        logaction(
+            "FINES", 'MODIFY',
+            $accountline->borrowernumber,
+            Dumper(
+                {
+                    action                => 'reverse_fee_payment',
+                    borrowernumber        => $accountline->borrowernumber,
+                    old_amountoutstanding => $amount_outstanding,
+                    new_amountoutstanding => $new_amountoutstanding,
+                    ,
+                    accountlines_id => $accountline->id,
+                    accountno       => $accountline->accountno,
+                    manager_id      => $manager_id,
+                }
+            )
+        );
     }
-
-    return;
-}
-
-# makepayment needs to be fixed to handle partials till then this separate subroutine
-# fills in
-sub makepartialpayment {
-    my ( $accountlines_id, $borrowernumber, $accountno, $amount, $user, $branch, $payment_note ) = @_;
-    my $manager_id = 0;
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-    if (!$amount || $amount < 0) {
-        return;
-    }
-    $payment_note //= "";
-    my $dbh = C4::Context->dbh;
-    
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
-    }
-
-    my $nextaccntno = getnextacctno($borrowernumber);
-    my $newamtos    = 0;
-
-    my $data = $dbh->selectrow_hashref(
-        'SELECT * FROM accountlines WHERE  accountlines_id=?',undef,$accountlines_id);
-    my $new_outstanding = $data->{amountoutstanding} - $amount;
-
-    my $update = 'UPDATE  accountlines SET amountoutstanding = ?  WHERE accountlines_id = ? ';
-    $dbh->do( $update, undef, $new_outstanding, $accountlines_id);
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'MODIFY', $borrowernumber, Dumper({
-            action                => 'fee_payment',
-            borrowernumber        => $borrowernumber,
-            old_amountoutstanding => $data->{'amountoutstanding'},
-            new_amountoutstanding => $new_outstanding,
-            amount_paid           => $data->{'amountoutstanding'} - $new_outstanding,
-            accountlines_id       => $data->{'accountlines_id'},
-            accountno             => $data->{'accountno'},
-            manager_id            => $manager_id,
-        }));
-    }
-
-    # create new line
-    my $insert = 'INSERT INTO accountlines (borrowernumber, accountno, date, amount, '
-    .  'description, accounttype, amountoutstanding, itemnumber, manager_id, note, branchcode) '
-    . ' VALUES (?, ?, now(), ?, ?, ?, 0, ?, ?, ?, ?)';
-
-    if ( $dbh->do(  $insert, undef, $borrowernumber, $nextaccntno, $amount,
-        '', 'Pay', $data->{'itemnumber'}, $manager_id, $payment_note, C4::Context->userenv->{'branch'}) ) 
-    {
-        # If it is not SIP it is a cash payment and if cash registers are activated as too,
-        # the cash payment need to registered for the opened cash register as cash receipt
-        if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-            my $lastID = $dbh->last_insert_id(undef, 'public', 'accountlines', 'accountlines_id');
-            $cash_register_mngmt->registerPayment($branch, $manager_id, $amount, $lastID);
-        }
-    }
-
-    UpdateStats({
-        branch => $branch,
-        type   => 'payment',
-        amount => $amount,
-        borrowernumber => $borrowernumber,
-        accountno => $accountno
-    });
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-            action            => 'create_payment',
-            borrowernumber    => $user,
-            accountno         => $nextaccntno,
-            amount            => 0 - $amount,
-            accounttype       => 'Pay',
-            itemnumber        => $data->{'itemnumber'},
-            accountlines_paid => [ $data->{'accountlines_id'} ],
-            manager_id        => $manager_id,
-        }));
-    }
-
-    return;
-}
-
-=head2 WriteOffFee
-
-  WriteOffFee( $borrowernumber, $accountline_id, $itemnum, $accounttype, $amount, $branch, $payment_note );
-
-Write off a fine for a patron.
-C<$borrowernumber> is the patron's borrower number.
-C<$accountline_id> is the accountline_id of the fee to write off.
-C<$itemnum> is the itemnumber of of item whose fine is being written off.
-C<$accounttype> is the account type of the fine being written off.
-C<$amount> is a floating-point number, giving the amount that is being written off.
-C<$branch> is the branchcode of the library where the writeoff occurred.
-C<$payment_note> is the note to attach to this payment
-
-=cut
-
-sub WriteOffFee {
-    my ( $borrowernumber, $accountlines_id, $itemnum, $accounttype, $amount, $branch, $payment_note, $description ) = @_;
-    $payment_note //= "";
-    $branch ||= C4::Context->userenv->{branch};
-    my $manager_id = 0;
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-
-    # if no item is attached to fine, make sure to store it as a NULL
-    $itemnum ||= undef;
-
-    my ( $sth, $query );
-    my $dbh = C4::Context->dbh();
-
-    $query = "
-        UPDATE accountlines SET amountoutstanding = 0
-        WHERE accountlines_id = ? AND borrowernumber = ?
-    ";
-    $sth = $dbh->prepare( $query );
-    $sth->execute( $accountlines_id, $borrowernumber );
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'MODIFY', $borrowernumber, Dumper({
-            action                => 'fee_writeoff',
-            borrowernumber        => $borrowernumber,
-            accountlines_id       => $accountlines_id,
-            manager_id            => $manager_id,
-        }));
-    }
-    
-    my $desc = "Writeoff";
-    if ( $description ) {
-        $desc .= ": $description";
-    }
-
-    $query ="
-        INSERT INTO accountlines
-        ( borrowernumber, accountno, itemnumber, date, amount, description, accounttype, manager_id, note, branchcode )
-        VALUES ( ?, ?, ?, NOW(), ?, ?, 'W', ?, ?, ? )
-    ";
-    $sth = $dbh->prepare( $query );
-    my $acct = getnextacctno($borrowernumber);
-    $sth->execute( $borrowernumber, $acct, $itemnum, $amount, $desc, $manager_id, $payment_note, $branch);
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-            action            => 'create_writeoff',
-            borrowernumber    => $borrowernumber,
-            accountno         => $acct,
-            amount            => 0 - $amount,
-            accounttype       => 'W',
-            itemnumber        => $itemnum,
-            accountlines_paid => [ $accountlines_id ],
-            manager_id        => $manager_id,
-        }));
-    }
-
-    UpdateStats({
-                branch => $branch,
-                type => 'writeoff',
-                amount => $amount,
-                borrowernumber => $borrowernumber}
-    );
-
-}
-
-=head2 CancelFee
-
-  CancelFee( $borrowernumber, $accountline_id, $itemnum, $accounttype, $amount, $branch, $payment_note );
-
-Cancel a fine for a patron.
-C<$borrowernumber> is the patron's borrower number.
-C<$accountline_id> is the accountline_id of the fee to write off.
-C<$itemnum> is the itemnumber of of item whose fine is being written off.
-C<$accounttype> is the account type of the fine being written off.
-C<$amount> is a floating-point number, giving the amount that is being written off.
-C<$branch> is the branchcode of the library where the cancel fee occurred.
-C<$payment_note> is the note to attach to this payment
-
-=cut
-
-sub CancelFee {
-    my ( $borrowernumber, $accountlines_id, $itemnum, $accounttype, $amount, $branch, $payment_note, $description ) = @_;
-    $payment_note //= "";
-    $branch ||= C4::Context->userenv->{branch};
-    my $manager_id = 0;
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-
-    # if no item is attached to fine, make sure to store it as a NULL
-    $itemnum ||= undef;
-
-    my ( $sth, $query );
-    my $dbh = C4::Context->dbh();
-
-    $query = "
-        UPDATE accountlines SET amountoutstanding = 0
-        WHERE accountlines_id = ? AND borrowernumber = ?
-    ";
-    $sth = $dbh->prepare( $query );
-    $sth->execute( $accountlines_id, $borrowernumber );
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'MODIFY', $borrowernumber, Dumper({
-            action                => 'fee_cancelled',
-            borrowernumber        => $borrowernumber,
-            accountlines_id       => $accountlines_id,
-            manager_id            => $manager_id,
-        }));
-    }
-
-    my $desc = "Fine cancelled";
-    if ( $description ) {
-        $desc .= ": $description";
-    }
-    
-    $query ="
-        INSERT INTO accountlines
-        ( borrowernumber, accountno, itemnumber, date, amount, description, accounttype, manager_id, note, branchcode )
-        VALUES ( ?, ?, ?, NOW(), ?, ?, 'CAN', ?, ?, ? )
-    ";
-    $sth = $dbh->prepare( $query );
-    my $acct = getnextacctno($borrowernumber);
-    $sth->execute( $borrowernumber, $acct, $itemnum, $amount, $desc, $manager_id, $payment_note, $branch);
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-            action            => 'create_cancelfee',
-            borrowernumber    => $borrowernumber,
-            accountno         => $acct,
-            amount            => 0 - $amount,
-            accounttype       => 'CAN',
-            itemnumber        => $itemnum,
-            accountlines_paid => [ $accountlines_id ],
-            manager_id        => $manager_id,
-        }));
-    }
-
-    UpdateStats({
-                branch => $branch,
-                type => 'cancelfee',
-                amount => $amount,
-                borrowernumber => $borrowernumber}
-    );
-
 }
 
 =head2 purge_zero_balance_fees
