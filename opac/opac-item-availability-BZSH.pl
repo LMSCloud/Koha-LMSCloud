@@ -411,7 +411,7 @@ if (!defined $sel_titel)     # If TITEL param is not sent, then do not search at
                     next;
                 }
                 my $item_onloan = $itemrecord->{'onloan'};
-                if (length($item_onloan) > 0 && !($best_item_status == 1 || $best_item_status == 2))
+                if (length($item_onloan) > 0 && $best_item_status != 1)
                 {
                     $best_item_status = 2;      # this is the second best status of all: item on loan
                     $best_itemnumber = $itemnumber;
