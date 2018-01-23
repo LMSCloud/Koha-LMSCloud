@@ -13,6 +13,10 @@
         <li><a href="/cgi-bin/koha/reports/reserves_stats.pl">Holds</a></li>        
 	</ul>
 
+    <h5>Aggregated statistics</h5>
+	<ul>
+		<li><a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=DBS">DBS</a></li>
+	</ul>
 
     <h5>Top lists</h5>
 	<ul>
