@@ -92,7 +92,7 @@ sub pay {
     # Check whether cash registers are activated and mandatory for payment actions.
     # If thats the case than we need to check whether the manager has opened a cash
     # register to use for payments.
-    if ( !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+    if ( !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
         $cash_register_mngmt = C4::CashRegisterManagement->new($library_id, $manager_id);
         
         # if there is no open cash register of the manager we return without a doing the payment
@@ -242,7 +242,7 @@ sub pay {
 
     # If it is not SIP it is a cash payment and if cash registers are activated as too,
     # the cash payment need to registered for the opened cash register as cash receipt
-    if ( !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+    if ( !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
         $cash_register_mngmt->registerPayment($library_id, $manager_id, $amount, $payment->id());
     }
 
