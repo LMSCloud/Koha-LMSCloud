@@ -1,0 +1,87 @@
+<script type="text/javascript">
+//<![CDATA[
+
+    var categories = {};
+    var selcateg = '[% selcateg | html %]';
+    [% FOREACH category IN categories %]
+        categories["[% category.categorycode | html %]"] = { name: "[% category.categoryname | html %]", libraries: [], sel: false};
+    [% END %]
+    if ( selcateg != '' ) {
+        categories[selcateg]["sel"] = true;
+    }
+    
+    var libraries = {};
+    var libcodes = new Array();
+    [% FOREACH branchloo IN branchloop %]
+        libraries["[% branchloo.value | html %]"] = { name: "[% branchloo.branchname | html %]", category: [] };
+        libcodes.push("[% branchloo.value | html %]");
+        [% FOREACH branchcategory IN branchloo.category.keys %]
+            libraries["[% branchloo.value | html %]"]["category"].push("[% branchcategory | html %]");
+            categories["[% branchcategory | html %]"]["libraries"].push("[% branchloo.value | html %]");
+        [% END %]
+    [% END %]
+    
+    function resetLibrarySelection() {
+        var selgroup = $( "#groups" ).val();
+        var libs = new Array();
+        var libselect = $("#branches");
+        
+        if ( selgroup == '*' ) {
+            libcodes.forEach(function(library) {
+                libs.push([library,libraries[library].name]);
+            });
+        }
+        else {
+            categories[selgroup]['libraries'].forEach(function(library) {
+                libs.push([library,libraries[library].name]);
+            });
+        }
+        
+        $('#branches option[value!="*"]').remove();
+        
+        $.each(libs, function(idx, value) {
+            libselect.append($('<option></option>').val(value[0]).html(value[1]));
+        });
+    }
+ 
+    $(document).ready(function() {
+        var sel = $('#groups');
+        
+        var selectedgroup = "[% selectedgroup %]";
+        var selectedbranch = "[% selectedbranch %]";
+        
+        $.each(categories, function(code, categ) {
+            sel.append($('<option></option>').val(code).html(categ.name).attr('selected', categ.sel));
+        });
+        
+        sel.val(selectedgroup).change();
+        resetLibrarySelection();
+        
+        sel.on('change', function() {
+            resetLibrarySelection();
+        });
+        $('#branches').val(selectedbranch).change();
+    });
+//]]>
+</script>
+
+        <fieldset class="rows">
+            <legend>Additional parameters</legend>
+            <ol>
+              <li>
+                    <label for="selectedgroup" >Select a group:</label>
+                    <select name="selectedgroup" id="groups" required="required">
+                    <option value="*">All library categories</option>
+                    </select>
+                    <span class="required">Required</span>
+              </li>
+              <li>
+                    <label for="selectedbranch" >Select a library:</label>
+                    <select name="selectedbranch" id="branches" required="required">
+                    <option value="*">All libraries</option>
+                    </select>
+                    <span class="required">Required</span>
+              </li>
+            </ol>
+        </fieldset>
+

@@ -1,0 +1,1604 @@
+[% USE Koha %]
+[% USE KohaDates %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Reports &rsaquo; Aggregated statistics &rsaquo; DBS</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% INCLUDE 'greybox.inc' %]
+<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% INCLUDE 'datatables.inc' %]
+[% USE Price %]
+[% INCLUDE 'format_price.inc' %]
+
+<script type="text/javascript">
+//<![CDATA[
+    $(document).ready(function() {
+
+
+      $('#DBScalc').click(function() {
+            $('#op').val("dbs_calc");
+//alert("DBScalc.click");
+            $("#DBS_edit").submit();
+            return true;
+      });
+
+      $('#DBSdel').on("click", function() {
+            var statname = DBSdel.getAttribute("statname");
+            var deleteIt = confirm(_("Are you sure you want to delete all entries of statistics %s?").format(statname) );
+	        if (!deleteIt) {
+                return false;
+            }
+            $('#op').val("dbs_del");
+            $("#DBS_edit").submit();
+            return true;
+      });
+
+      $('#DBSsave').click(function() {
+            $('#op').val("dbs_save");
+//alert("DBSsave.click");
+            $("#DBS_edit").submit();
+            return true;
+      });
+
+      //$('#DBSdownload').click(function() {
+      $('#DBSdownload_csv').click(function() {
+alert("DBSdownload_csv.click");
+            // $('#op').val("dbs_download_csv");
+            // $('#format').val("csv");
+            // $("#DBS_edit").submit();
+            // return true;
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'export.csv');
+      });
+    });
+
+    function exportTableToCSV($table, filename) {
+        var $rows = $table.find('tr:has(td)'),
+
+        // Temporary delimiter characters unlikely to be typed by keyboard
+        // This is to avoid accidentally splitting the actual contents
+        tmpColDelim = String.fromCharCode(11), // vertical tab character
+        tmpRowDelim = String.fromCharCode(0), // null character
+
+        // actual delimiter characters for CSV format
+        [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
+        [% IF kohaColDelimiter == "" %][% SET kohaColDelimiter = "," %][% END %]
+        [% IF kohaColDelimiter == "tabulation" %][% SET kohaColDelimiter = "\t" %][% END %]
+        [% IF kohaColDelimiter == "\\" %][% SET kohaColDelimiter = "\\\\" %][% END %]
+        colDelim = '"' + '[% kohaColDelimiter | html %]' + '"',
+        rowDelim = '"\r\n"',
+
+        // Grab text from table into CSV formatted string
+        csv = '"' + $rows.map(function(i, row) {
+            var $row = $(row),
+                $cols = $row.find('td');
+
+                return $cols.map(function(j, col) {
+                    var $col = $(col),
+                        text = $col.text(),
+                        inp = $col.find('input').val();
+
+                    if ( ! (inp === undefined) ) {
+                        text = inp;
+                    }
+            
+//alert($col);
+//alert(_("exportTableToCSV i:%s: j:%s: text:%s: col.val:%s:").format(i,j,text,$col.find('input').val()));
+//alert(_("exportTableToCSV i:%s: j:%s: text:%s: inp:%s:").format(i,j,text,inp));
+//alert(text);
+
+                    return text.replace(/"/g, '""'); // escape double quotes
+
+                }).get().join(tmpColDelim);
+
+            }).get().join(tmpRowDelim)
+                .split(tmpRowDelim).join(rowDelim)
+                .split(tmpColDelim).join(colDelim) + '"',
+
+        // Data URI
+        csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+
+        $(this).attr({
+            'download': filename,
+            'href': csvData,
+            'target': '_blank'
+        });
+    }
+
+//]]>
+</script>
+
+<script type= "text/javascript">
+//<![CDATA[
+
+function floatInput(floatAsText,decimalplaces) {
+//alert("moneyInput START");
+            // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
+            var len = floatAsText.value.length;
+            var decSepPos = floatAsText.value.indexOf(".");
+//alert(decSepPos);
+            var decSepPos2 = floatAsText.value.indexOf(",");
+//alert(decSepPos2);
+            if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
+//alert("moneyInput IF 1");
+                decSepPos = decSepPos2;
+            }
+            if ( decSepPos >= 0 && len > decSepPos + 1 + decimalplaces ) {
+//alert("moneyInput IF 2");
+                floatAsText.value = floatAsText.value.substr(0, decSepPos + 1 + decimalplaces);
+            }
+//alert("moneyInput END");
+}
+
+function moneyNormalize(textObj) {
+//alert("moneyNormalize START");
+
+            var amountNew = parseFloat(textObj.value.replace(",","."));
+            if ( isNaN(amountNew) ) {
+                amountNew = 0.0;
+            }
+            textObj.value = parseFloat(amountNew);
+//alert(textObj.value);
+//alert("moneyNormalize END");
+}
+
+function moneyFormat(textObj) {
+    var newValue = textObj.value.replace(",",".");
+    var decAmount = "";
+    var dolAmount = "";
+    var decFlag   = false;
+    var aChar     = "";
+//alert("moneyFormat START");
+//alert(newValue);
+
+    for(i=0; i < newValue.length; i++) {
+        aChar = newValue.substring(i, i+1);
+        if (aChar >= "0" && aChar <= "9") {
+            if(decFlag) {
+                decAmount = "" + decAmount + aChar;
+            }
+            else {
+                dolAmount = "" + dolAmount + aChar;
+            }
+        }
+        if (aChar == ".") {
+            if (decFlag) {
+                break;
+            }
+            decFlag = true;
+        }
+    }
+
+    if (dolAmount == "") {
+        dolAmount = "0";
+    }
+// Strip leading 0s
+    if (dolAmount.length > 1) {
+        while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
+            dolAmount = dolAmount.substring(1,dolAmount.length);
+        }
+    }
+    if (decAmount.length > 2) {
+        decAmount = decAmount.substring(0,2);
+    }
+// Pad right side
+    if (decAmount.length == 1) {
+       decAmount = decAmount + "0";
+    }
+    if (decAmount.length == 0) {
+       decAmount = decAmount + "00";
+    }
+
+    textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
+//alert("moneyFormat END");
+}
+
+//]]>
+</script>
+
+</head>
+
+<body id="rep_aggregated_statistics" class="rep">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> &rsaquo; <a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype %]">Aggregated statistics</a> &rsaquo; DBS</div>
+
+<div id="doc3" class="yui-t2">
+  <div id="bd">
+    <div id="yui-main">
+      <div class="yui-b">
+
+        <h1>[% statisticstypedesignation %] [% name %]</h1>
+
+        <h4>Report period: [% startdate | $KohaDates %] - [% enddate | $KohaDates %]</h4>
+
+        <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname %][% END %] Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname %][% END %]</h4>
+
+        <div>The fields marked with <b style="font-size: 125%">*</b> will be overwritten by values selected from Koha when clicking on button 'Recalculate'.</div>
+
+        <div id="toolbar" class="btn-toolbar">
+            <div class="btn-group">
+                <button class="btn btn-small" id="DBScalc" name="DBScalc"> Recalculate</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-small" id="DBSdel" name="DBSdel" statname="[% name %]"> Delete</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-small" id="DBSsave" name="DBSsave"> Save</button>
+            </div>
+                <div class="btn-group">
+                    <button class="btn btn-small dropdown-toggle" data-toggle="dropdown" id="DBSdownload" name="DBSdownload"> <i class="fa fa-upload"></i> Download <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <!-- <li><a id="csv" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=csv&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">Comma separated text</a></li>
+                        <li><a id="tab" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=tab&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">Tab separated text</a></li>
+                        <li><a id="ods" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=ods&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">Open Document Spreadsheet</a></li> -->
+                        <li><a id="DBSdownload_csv" >Comma separated text</a></li>
+                        <li><a id="DBSdownload_tab" >Tab separated text</a></li>
+                        <li><a id="DBSdownload_ods" >Open Document Spreadsheet</a></li>
+                    </ul>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-small dropdown-toggle" data-toggle="dropdown" id="DBSexport" name="DBSexport"> <i class="fa fa-upload"></i> Export <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <!-- <li><a id="csv" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=csv&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">DBS Grundfragebogen (105 Sp.)</a></li>
+                        <li><a id="tab" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=tab&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]"> + Daten Patientenbibliothek (116 Sp.)</a></li>
+                        <li><a id="ods" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=ods&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]"> + Daten Fahrbibliothek (123 Sp.)</a></li>
+                        <li><a id="ods" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=ods&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]"> + Daten Musikibliothek (145 Sp.)</a></li> -->
+                        <li><a id="dbs105" >DBS Grundfragebogen (105 Sp.)</a></li>
+                        <li><a id="dbs116" > + Daten Patientenbibliothek (116 Sp.)</a></li>
+                        <li><a id="dbs123" > + Daten Fahrbibliothek (123 Sp.)</a></li>
+                        <li><a id="dbs145" > + Daten Musikbibliothek (145 Sp.)</a></li>
+                    </ul>
+                </div>
+            
+        </div>
+
+        <form id="DBS_edit" name="DBS_edit" method="post" enctype="multipart/form-data" class="validate">
+          <input type="hidden" id="op" name="op" value="XXXWH_validate" />
+          <input type="hidden" id="id" name="id" value="[% id %]" />
+          <input type="hidden" id="statisticstype" name="statisticstype" value="[% statisticstype %]" />
+          <input type="hidden" id="statisticstypedesignation" name="statisticstypedesignation" value="[% statisticstypedesignation %]" />
+          <input type="hidden" id="name" name="name" value="[% name %]" />
+          <input type="hidden" id="startdate" name="startdate" value="[% startdate %]" />
+          <input type="hidden" id="enddate" name="enddate" value="[% enddate %]" />
+          <input type="hidden" id="groupselect" name="groupselect" value="[% groupselect %]" />
+          <input type="hidden" id="branchselect" name="branchselect" value="[% branchselect %]" />
+
+        <table id="dbs_values_table">
+            <thead>
+                <tr>
+                    <th class="NoSort" colspan="2">1. ALLGEMEINE ANGABEN</th>
+                    <th class="NoSort">Berichtszeitraum: <br>[% startdate | $KohaDates %] - [% enddate | $KohaDates %]</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>0</td>
+                    <td>DBS-ID der Bibliothek</td>
+                    <td>
+                        <input type="text" id="st_gen_dbs_id" name="st_gen_dbs_id" size="12" maxlength="12" value="[% st.gen_dbs_id %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>1</td>
+                    <td>Einwohnerzahl des Bibliotheksortes</td>
+                    <td>
+                        <input type="number" id="st_gen_population" name="st_gen_population" min="0" size="12" maxlength="12" value="[% st.gen_population %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>2</td>
+                    <td>Zahl der Bibliotheken (Einrichtungen)</td>
+                    <td>
+                        <input type="number" id="st_gen_libcount" name="st_gen_libcount" min="0" size="12" maxlength="12" value="[% st.gen_libcount %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>3</td>
+                    <td>... darunter: Zweigstellen</td>
+                    <td>
+                        <input type="number" id="st_gen_branchcount" name="st_gen_branchcount" min="0" size="12" maxlength="12" value="[% st.gen_branchcount %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>4</td>
+                    <td>... darunter: Fahrbibliotheken</td>
+                    <td>
+                        <input type="number" id="st_gen_buscount" name="st_gen_buscount" min="0" size="12" maxlength="12" value="[% st.gen_buscount %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>5</td>
+                    <td>Zahl der externen Dienstleistungsstellen</td>
+                    <td>
+                        <input type="number" id="st_gen_extservlocation" name="st_gen_extservlocation" min="0" size="12" maxlength="12" value="[% st.gen_extservlocation %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>6</td>
+                    <td>Publikumsfläche (m²)</td>
+                    <td>
+                        <input type="text" id="st_gen_publicarea" name="st_gen_publicarea" value="[% st.gen_publicarea | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_publicarea,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_publicarea)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>7</td>
+                    <td>Jahresöffnungsstunden</td>
+                    <td>
+                        <input type="text" id="st_gen_openinghours_year" name="st_gen_openinghours_year" value="[% st.gen_openinghours_year | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_openinghours_year,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_year)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>8</td>
+                    <td>Wochenöffnungsstunden</td>
+                    <td>
+                        <input type="text" id="st_gen_openinghours_week" name="st_gen_openinghours_week" value="[% st.gen_openinghours_week | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_openinghours_week,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_week)" />
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th  colspan="2">2. BENUTZER</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>9</td>
+                    <td>Aktive Benutzer</td>
+                    <td>
+                        <input type="number" id="st_pat_active" name="st_pat_active" min="0" size="12" maxlength="12" value="[% st.pat_active %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>10.1</td>
+                    <td>... darunter: Aktive Benutzer bis einschl. 12 Jahre</td>
+                    <td>
+                        <input type="number" id="st_pat_active_to_12" name="st_pat_active_to_12" min="0" size="12" maxlength="12" value="[% st.pat_active_to_12 %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>10.2</td>
+                    <td>... darunter: Aktive Benutzer ab einschl. 60 Jahre</td>
+                    <td>
+                        <input type="number" id="st_pat_active_from_60" name="st_pat_active_from_60" min="0" size="12" maxlength="12" value="[% st.pat_active_from_60 %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>11</td>
+                    <td>Neuanmeldungen</td>
+                    <td>
+                        <input type="number" id="st_pat_new_registrations" name="st_pat_new_registrations" min="0" size="12" maxlength="12" value="[% st.pat_new_registrations %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>12</td>
+                    <td>Besuche</td>
+                    <td>
+                        <input type="number" id="st_pat_visits" name="st_pat_visits" min="0" size="12" maxlength="12" value="[% st.pat_visits %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>12.1</td>
+                    <td>Virtuelle Besuche (visits) - Eingabe gesperrt</td>
+                    <td>
+                        <input type="number" id="st_pat_visits_virt" name="st_pat_visits_virt" min="0" size="12" maxlength="12" value="[% st.pat_visits_virt %]" disabled />
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th colspan="2">3. MEDIENANGEBOTE UND -NUTZUNG</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>13</td>
+                    <td>Medien insgesamt - physischer Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_tot_phys_stock" name="st_med_tot_phys_stock" min="0" size="12" maxlength="12" value="[% st.med_tot_phys_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>14</td>
+                    <td>Medien insgesamt - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_tot_issues" name="st_med_tot_issues" min="0" size="12" maxlength="12" value="[% st.med_tot_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>14.1</td>
+                    <td>Physische Medien insgesamt - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_phys_issues" name="st_med_phys_issues" min="0" size="12" maxlength="12" value="[% st.med_phys_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>15</td>
+                    <td>Medien in Freihandaufstellung insges. - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_openaccess_stock" name="st_med_openaccess_stock" min="0" size="12" maxlength="12" value="[% st.med_openaccess_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>16</td>
+                    <td>Medien in Freihandaufstellung bzw. im 'direkten Zugriff' insges. - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_openaccess_issues" name="st_med_openaccess_issues" min="0" size="12" maxlength="12" value="[% st.med_openaccess_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>17</td>
+                    <td>Magazinbestand - Printmedien und Non-Book-Medien in physischen Einheiten</td>
+                    <td>
+                        <input type="number" id="st_med_stack_stock" name="st_med_stack_stock" min="0" size="12" maxlength="12" value="[% st.med_stack_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>18</td>
+                    <td>Printmedien insgesamt - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_print_stock" name="st_med_print_stock" min="0" size="12" maxlength="12" value="[% st.med_print_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>19</td>
+                    <td>Printmedien insgesamt - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_print_issues" name="st_med_print_issues" min="0" size="12" maxlength="12" value="[% st.med_print_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>20</td>
+                    <td>... davon: Sachliteratur - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_nonfiction_stock" name="st_med_nonfiction_stock" min="0" size="12" maxlength="12" value="[% st.med_nonfiction_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>21</td>
+                    <td>... davon: Sachliteratur - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_nonfiction_issues" name="st_med_nonfiction_issues" min="0" size="12" maxlength="12" value="[% st.med_nonfiction_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>22</td>
+                    <td>	... davon: Belletristik - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_fiction_stock" name="st_med_fiction_stock" min="0" size="12" maxlength="12" value="[% st.med_fiction_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>23</td>
+                    <td>... davon: Belletristik - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_fiction_issues" name="st_med_fiction_issues" min="0" size="12" maxlength="12" value="[% st.med_fiction_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>24</td>
+                    <td>... davon: Kinder- und Jugendliteratur - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_juvenile_stock" name="st_med_juvenile_stock" min="0" size="12" maxlength="12" value="[% st.med_juvenile_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>25</td>
+                    <td>... davon: Kinder- und Jugendliteratur - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_juvenile_issues" name="st_med_juvenile_issues" min="0" size="12" maxlength="12" value="[% st.med_juvenile_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>26</td>
+                    <td>... davon: Zeitschriftenhefte in Printform - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_printissue_stock" name="st_med_printissue_stock" min="0" size="12" maxlength="12" value="[% st.med_printissue_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>27</td>
+                    <td>... davon: Zeitschriftenhefte in Printform - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_printissue_issues" name="st_med_printissue_issues" min="0" size="12" maxlength="12" value="[% st.med_printissue_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>28</td>
+                    <td>Non-Book-Medien insgesamt - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_nonbook_tot_stock" name="st_med_nonbook_tot_stock" min="0" size="12" maxlength="12" value="[% st.med_nonbook_tot_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>29</td>
+                    <td>Non-Book-Medien insgesamt - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_nonbook_tot_issues" name="st_med_nonbook_tot_issues" min="0" size="12" maxlength="12" value="[% st.med_nonbook_tot_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>30</td>
+                    <td>... davon: Analoge und digitale Medien - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_nonbook_anadig_stock" name="st_med_nonbook_anadig_stock" min="0" size="12" maxlength="12" value="[% st.med_nonbook_anadig_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>31</td>
+                    <td>... davon: Analoge und digitale Medien - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_nonbook_anadig_issues" name="st_med_nonbook_anadig_issues" min="0" size="12" maxlength="12" value="[% st.med_nonbook_anadig_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>32</td>
+                    <td>... davon: Andere Non-Book-Medien (z.B. Spiele) - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_nonbook_other_stock" name="st_med_nonbook_other_stock" min="0" size="12" maxlength="12" value="[% st.med_nonbook_other_stock %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>33</td>
+                    <td>... davon: Andere Non-Book-Medien (z.B. Spiele) - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_nonbook_other_issues" name="st_med_nonbook_other_issues" min="0" size="12" maxlength="12" value="[% st.med_nonbook_other_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>34</td>
+                    <td>Virtueller Bestand - Bestand</td>
+                    <td>
+                        <input type="number" id="st_med_virtsupply_stock" name="st_med_virtsupply_stock" min="0" size="12" maxlength="12" value="[% st.med_virtsupply_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>34.1</td>
+                    <td>Virtueller Bestand im Verbund</td>
+                    <td>
+                        <input type="number" id="st_med_virtconsort_stock" name="st_med_virtconsort_stock" min="0" size="12" maxlength="12" value="[% st.med_virtconsort_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>34.2</td>
+                    <td>Bibliotheken im Verbund</td>
+                    <td>
+                        <input type="number" id="st_med_consort_libcount" name="st_med_consort_libcount" min="0" size="12" maxlength="12" value="[% st.med_consort_libcount %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>35</td>
+                    <td>Virtueller Bestand - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_med_virtsupply_issues" name="st_med_virtsupply_issues" min="0" size="12" maxlength="12" value="[% st.med_virtsupply_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>36</td>
+                    <td>Zugang an Medieneinheiten</td>
+                    <td>
+                        <input type="number" id="st_med_access_units" name="st_med_access_units" min="0" size="12" maxlength="12" value="[% st.med_access_units %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>37</td>
+                    <td>Abgang an Medieneinheiten</td>
+                    <td>
+                        <input type="number" id="st_med_withdrawal_units" name="st_med_withdrawal_units" min="0" size="12" maxlength="12" value="[% st.med_withdrawal_units %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>38</td>
+                    <td>Datenbanken</td>
+                    <td>
+                        <input type="number" id="st_med_database_cnt" name="st_med_database_cnt" min="0" size="12" maxlength="12" value="[% st.med_database_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>39</td>
+                    <td>Laufende Zeitungs- und Zeitschriftenabos in Printform</td>
+                    <td>
+                        <input type="number" id="st_med_subscription_print" name="st_med_subscription_print" min="0" size="12" maxlength="12" value="[% st.med_subscription_print %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>40</td>
+                    <td>Laufende Zeitungs- und Zeitschriftenabos in elektronischer Form</td>
+                    <td>
+                        <input type="number" id="st_med_subscription_elect" name="st_med_subscription_elect" min="0" size="12" maxlength="12" value="[% st.med_subscription_elect %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>41</td>
+                    <td>Empfangene Austausch-/Blockbestände</td>
+                    <td>
+                        <input type="number" id="st_med_blockcollection_rcvd" name="st_med_blockcollection_rcvd" min="0" size="12" maxlength="12" value="[% st.med_blockcollection_rcvd %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>42</td>
+                    <td>Verliehene Austausch-/Blockbestände</td>
+                    <td>
+                        <input type="number" id="st_med_blockcollection_lent" name="st_med_blockcollection_lent" min="0" size="12" maxlength="12" value="[% st.med_blockcollection_lent %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>43</td>
+                    <td>Bestellungen im nehmenden (passiven) Leihverkehr</td>
+                    <td>
+                        <input type="number" id="st_med_ILL_borrowing_orders" name="st_med_ILL_borrowing_orders" min="0" size="12" maxlength="12" value="[% st.med_ILL_borrowing_orders %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>44</td>
+                    <td>Bestellungen im gebenden (aktiven) Leihverkehr</td>
+                    <td>
+                        <input type="number" id="st_med_ILL_lending_orders" name="st_med_ILL_lending_orders" min="0" size="12" maxlength="12" value="[% st.med_ILL_lending_orders %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>45</td>
+                    <td>Dokumentlieferungen an den Endnutzer</td>
+                    <td>
+                        <input type="number" id="st_med_document_delivery" name="st_med_document_delivery" min="0" size="12" maxlength="12" value="[% st.med_document_delivery %]" />
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th colspan="2">4. FINANZEN</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>49</td>
+                    <td>Laufende Ausgaben insgesamt</td>
+                    <td>
+                        <input type="text" id="st_fin_current_expenses_tot" name="st_fin_current_expenses_tot" value="[% st.fin_current_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_current_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_current_expenses_tot)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>50</td>
+                    <td>... davon: Ausgaben für Erwerbung (inkl. Einband, Lizenzen, Portalkosten))</td>
+                    <td>
+                        <input type="text" id="st_fin_cur_exp_acquisitions" name="st_fin_cur_exp_acquisitions" value="[% st.fin_cur_exp_acquisitions | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acquisitions,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acquisitions)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>50.1</td>
+                    <td>... darunter: Ausgaben für Lizenzen, Datenbanken und Portalkosten</td>
+                    <td>
+                        <input type="text" id="st_fin_cur_exp_acq_licences" name="st_fin_cur_exp_acq_licences" value="[% st.fin_cur_exp_acq_licences | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acq_licences,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acq_licences)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>51</td>
+                    <td>... davon: Ausgaben für Personal</td>
+                    <td>
+                        <input type="text" id="st_fin_cur_exp_staff" name="st_fin_cur_exp_staff" value="[% st.fin_cur_exp_staff | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_staff,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_staff)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>52</td>
+                    <td>... davon: sonstige laufende Ausgaben</td>
+                    <td>
+                        <input type="text" id="st_fin_cur_exp_other" name="st_fin_cur_exp_other" value="[% st.fin_cur_exp_other | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_other,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_other)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>53</td>
+                    <td>Einmalige Investitionen</td>
+                    <td>
+                        <input type="text" id="st_fin_singulary_investments" name="st_fin_singulary_investments" value="[% st.fin_singulary_investments | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_singulary_investments,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_singulary_investments)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>54</td>
+                    <td>Gesamtausgaben</td>
+                    <td>
+                        <input type="text" id="st_fin_expenses_tot" name="st_fin_expenses_tot" value="[% st.fin_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_expenses_tot)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>54.1</td>
+                    <td>Höhe des Gesamthaushalts des Hauptträgers</td>
+                    <td>
+                        <input type="text" id="st_fin_costunit_funds_tot" name="st_fin_costunit_funds_tot" value="[% st.fin_costunit_funds_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_costunit_funds_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_costunit_funds_tot)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>55</td>
+                    <td>Ausgaben des Trägers für die Bibliothek</td>
+                    <td>
+                        <input type="text" id="st_fin_costunit_expenses" name="st_fin_costunit_expenses" value="[% st.fin_costunit_expenses | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_costunit_expenses,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_costunit_expenses)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>56</td>
+                    <td>Fremdmittel insgesamt</td>
+                    <td>
+                        <input type="text" id="st_fin_external_funds_tot" name="st_fin_external_funds_tot" value="[% st.fin_external_funds_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_external_funds_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_external_funds_tot)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>57</td>
+                    <td>... davon: Europäische Union</td>
+                    <td>
+                        <input type="text" id="st_fin_ext_funds_EU" name="st_fin_ext_funds_EU" value="[% st.fin_ext_funds_EU | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_EU,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_EU)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>58</td>
+                    <td>... davon: Bund</td>
+                    <td>
+                        <input type="text" id="st_fin_ext_funds_national" name="st_fin_ext_funds_national" value="[% st.fin_ext_funds_national | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_national,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_national)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>59</td>
+                    <td>... davon: Land</td>
+                    <td>
+                        <input type="text" id="st_fin_ext_funds_fedstate" name="st_fin_ext_funds_fedstate" value="[% st.fin_ext_funds_fedstate | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_fedstate,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_fedstate)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>60</td>
+                    <td>... davon: Landkreis</td>
+                    <td>
+                        <input type="text" id="st_fin_ext_funds_communal" name="st_fin_ext_funds_communal" value="[% st.fin_ext_funds_communal | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_communal,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_communal)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>61</td>
+                    <td>... davon: Bistum/Landeskirche</td>
+                    <td>
+                        <input type="text" id="st_fin_ext_funds_church" name="st_fin_ext_funds_church" value="[% st.fin_ext_funds_church | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_church,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_church)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>62</td>
+                    <td>... davon: Sonstige</td>
+                    <td>
+                        <input type="text" id="st_fin_ext_funds_other" name="st_fin_ext_funds_other" value="[% st.fin_ext_funds_other | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_other,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_other)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>63</td>
+                    <td>Eigene Einnahmen</td>
+                    <td>
+                        <input type="text" id="st_fin_lib_revenue" name="st_fin_lib_revenue" value="[% st.fin_lib_revenue | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_lib_revenue,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_lib_revenue)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>65</td>
+                    <td>Jährliche Benutzungsgebühren</td>
+                    <td>
+                        [% IF ( st.fin_user_charge_yn ) %]
+                            <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th colspan="2">5. PERSONALKAPAZITÄT</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>66</td>
+                    <td>Stellen laut Stellenplan</td>
+                    <td>
+                        <input type="number" id="st_stf_staff_scheme_appointments" name="st_stf_staff_scheme_appointments" min="0" size="12" maxlength="12" value="[% st.stf_staff_scheme_appointments %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>67</td>
+                    <td>Zahl der Beschäftigten (Personen)</td>
+                    <td>
+                        <input type="number" id="st_stf_staff_cnt" name="st_stf_staff_cnt" min="0" size="12" maxlength="12" value="[% st.stf_staff_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>68</td>
+                    <td>Personalkapazität aller Beschäftigten (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_stf_capacity_FTE" name="st_stf_capacity_FTE" value="[% st.stf_capacity_FTE | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_capacity_FTE,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_capacity_FTE)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>69</td>
+                    <td>... davon: Fachbibliothekare (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_stf_cap_FTE_librarians" name="st_stf_cap_FTE_librarians" value="[% st.stf_cap_FTE_librarians | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_librarians,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_librarians)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>70</td>
+                    <td>... davon: Fachangestellte/Bibliotheksassist. (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_stf_cap_FTE_assistants" name="st_stf_cap_FTE_assistants" value="[% st.stf_cap_FTE_assistants | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_assistants,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_assistants)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>72</td>
+                    <td>... davon: Mitarb. aus Förderprogrammen (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_stf_cap_FTE_promotional" name="st_stf_cap_FTE_promotional" value="[% st.stf_cap_FTE_promotional | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_promotional,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_promotional)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>74</td>
+                    <td>... davon: sonstiges Personal (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_stf_cap_FTE_others" name="st_stf_cap_FTE_others" value="[% st.stf_cap_FTE_others | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_others,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_others)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>75</td>
+                    <td>Ehrenamtliches Personal (Personen)</td>
+                    <td>
+                        <input type="number" id="st_stf_honorary_cnt" name="st_stf_honorary_cnt" min="0" size="12" maxlength="12" value="[% st.stf_honorary_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>76</td>
+                    <td>Personalkapazität des ehrenamtl. Personals (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_stf_cap_FTE_honorary" name="st_stf_cap_FTE_honorary" value="[% st.stf_cap_FTE_honorary | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_honorary,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_honorary)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>77</td>
+                    <td>Auszubildende (Personen)</td>
+                    <td>
+                        <input type="number" id="st_stf_apprentices_cnt" name="st_stf_apprentices_cnt" min="0" size="12" maxlength="12" value="[% st.stf_apprentices_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>78</td>
+                    <td>Fortbildungsstunden der Mitarbeiter</td>
+                    <td>
+                        <input type="text" id="st_stf_advanced_training_hrs" name="st_stf_advanced_training_hrs" value="[% st.stf_advanced_training_hrs | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_advanced_training_hrs,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_advanced_training_hrs)" />
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th  colspan="2">6. SERVICES / DIENSTLEISTUNGEN</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>79</td>
+                    <td>Recherchen (Auskunftsanfragen)</td>
+                    <td>
+                        <input type="number" id="st_srv_patron_recherches" name="st_srv_patron_recherches" min="0" size="12" maxlength="12" value="[% st.srv_patron_recherches %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>80</td>
+                    <td>Benutzerarbeitsplätze insgesamt</td>
+                    <td>
+                        <input type="number" id="st_srv_patron_workplaces" name="st_srv_patron_workplaces" min="0" size="12" maxlength="12" value="[% st.srv_patron_workplaces %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>81</td>
+                    <td>... darunter: Computerarbeitsplätze einschließlich OPACs und Internetterminals</td>
+                    <td>
+                        <input type="number" id="st_srv_pat_workplc_inclopac" name="st_srv_pat_workplc_inclopac" min="0" size="12" maxlength="12" value="[% st.srv_pat_workplc_inclopac %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>82</td>
+                    <td>... darunter: Internetterminals</td>
+                    <td>
+                        <input type="number" id="st_srv_pat_workplc_web" name="st_srv_pat_workplc_web" min="0" size="12" maxlength="12" value="[% st.srv_pat_workplc_web %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>83</td>
+                    <td>Bibliothekshomepage</td>
+                    <td>
+                        [% IF ( st.srv_libhomepage_yn ) %]
+                            <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>85</td>
+                    <td>Internet-Angebot: WEB-OPAC / Internet-Katalog</td>
+                    <td>
+                        [% IF ( st.srv_webopac_yn ) %]
+                            <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>86</td>
+                    <td>... interaktive Funktionen</td>
+                    <td>
+                        [% IF ( st.srv_interactive_yn ) %]
+                            <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>87</td>
+                    <td>... Socialweb / Web 2.0 Angebote</td>
+                    <td>
+                        [% IF ( st.srv_socialweb_yn ) %]
+                            <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>88</td>
+                    <td>... Auskunftsdienst per E-Mail</td>
+                    <td>
+                        [% IF ( st.srv_emailquery_yn ) %]
+                            <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>89</td>
+                    <td>... Virtuelle Bestände</td>
+                    <td>
+                        [% IF ( st.srv_virtualstock_yn ) %]
+                            <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>90</td>
+                    <td>... Aktive Informationsdienste</td>
+                    <td>
+                        [% IF ( st.srv_activeinfo_yn ) %]
+                            <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>91</td>
+                    <td>... W-LAN Angebot</td>
+                    <td>
+                        [% IF ( st.srv_publicwlan_yn ) %]
+                            <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>92</td>
+                    <td>Soziale Bibliotheksarbeit</td>
+                    <td>
+                        [% IF ( st.srv_socialwork_yn ) %]
+                            <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>94</td>
+                    <td>Veranstaltungen, Führungen, Ausstellungen insgesamt</td>
+                    <td>
+                        <input type="number" id="st_srv_events_tot" name="st_srv_events_tot" min="0" size="12" maxlength="12" value="[% st.srv_events_tot %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>95</td>
+                    <td>... davon: Einführungen in die Bibliotheksnutzung</td>
+                    <td>
+                        <input type="number" id="st_srv_evt_libintro" name="st_srv_evt_libintro" min="0" size="12" maxlength="12" value="[% st.srv_evt_libintro %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>96</td>
+                    <td>... davon: für Kinder und Jugendliche</td>
+                    <td>
+                        <input type="number" id="st_srv_evt_juvenile" name="st_srv_evt_juvenile" min="0" size="12" maxlength="12" value="[% st.srv_evt_juvenile %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>97</td>
+                    <td>... davon: für Erwachsene</td>
+                    <td>
+                        <input type="number" id="st_srv_evt_adult" name="st_srv_evt_adult" min="0" size="12" maxlength="12" value="[% st.srv_evt_adult %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>98</td>
+                    <td>... davon: Ausstellungen</td>
+                    <td>
+                        <input type="number" id="st_srv_evt_exhibition" name="st_srv_evt_exhibition" min="0" size="12" maxlength="12" value="[% st.srv_evt_exhibition %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>99</td>
+                    <td>... davon: Sonstige</td>
+                    <td>
+                        <input type="number" id="st_srv_evt_other" name="st_srv_evt_other" min="0" size="12" maxlength="12" value="[% st.srv_evt_other %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>100</td>
+                    <td>Schulbibliothekarische Dienstleistungen</td>
+                    <td>
+                        <input type="number" id="st_srv_school_libs" name="st_srv_school_libs" min="0" size="12" maxlength="12" value="[% st.srv_school_libs %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>101</td>
+                    <td>Betreuung von Verwaltungsbibliotheken</td>
+                    <td>
+                        <input type="number" id="st_srv_admin_libs" name="st_srv_admin_libs" min="0" size="12" maxlength="12" value="[% st.srv_admin_libs %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>102</td>
+                    <td>Sonstige vertraglich geregelte Dienstleistungen</td>
+                    <td>
+                        <input type="number" id="st_srv_contracts" name="st_srv_contracts" min="0" size="12" maxlength="12" value="[% st.srv_contracts %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>103</td>
+                    <td>RFID-Verbuchung</td>
+                    <td>
+                        [% IF ( st.srv_rfidcheckio_yn ) %]
+                            <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>104</td>
+                    <td>Stellen Sie mobile Endgeräte zur Verfügung?</td>
+                    <td>
+                        [% IF ( st.srv_mobiledevices_yn ) %]
+                            <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>199</td>
+                    <td>Anmerkungen</td>
+                    <td>
+                        <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3" form="DBS_edit">[% st.srv_remarks %]</textarea>
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th  colspan="2">PATIENTENBIBLIOTHEKEN</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>200</td>
+                    <td>Teil eines Klinikverbundes</td>
+                    <td>
+                        [% IF ( st.ptl_clinical_network_yn ) %]
+                            <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>201</td>
+                    <td>... Zahl der Krankenhäuser im Verbund</td>
+                    <td>
+                        <input type="number" id="st_ptl_clinet_clinics" name="st_ptl_clinet_clinics" min="0" size="12" maxlength="12" value="[% st.ptl_clinet_clinics %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>202</td>
+                    <td>... Zahl der Patientenbibliotheken im Verbund</td>
+                    <td>
+                        <input type="number" id="st_ptl_clinet_patientslibs" name="st_ptl_clinet_patientslibs" min="0" size="12" maxlength="12" value="[% st.ptl_clinet_patientslibs %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>203</td>
+                    <td>Anzahl der Betten des Krankenhauses</td>
+                    <td>
+                        <input type="number" id="st_ptl_clinic_beds" name="st_ptl_clinic_beds" min="0" size="12" maxlength="12" value="[% st.ptl_clinic_beds %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>204</td>
+                    <td>Anzahl der ambulant behandelten Patienten</td>
+                    <td>
+                        <input type="number" id="st_ptl_outpatients" name="st_ptl_outpatients" min="0" size="12" maxlength="12" value="[% st.ptl_outpatients %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>205</td>
+                    <td>Wagenausleihe</td>
+                    <td>
+                        [% IF ( st.ptl_trolley_service_yn ) %]
+                            <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>206</td>
+                    <td>Anzahl der wöchentlichen Wagenausleihstunden</td>
+                    <td>
+                        <input type="text" id="st_ptl_trolley_service_hrs" name="st_ptl_trolley_service_hrs" value="[% st.ptl_trolley_service_hrs | $Price %]"  oninput="floatInput(document.DBS_edit.st_ptl_trolley_service_hrs,2)"  onchange="moneyFormat(document.DBS_edit.st_ptl_trolley_service_hrs)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>207</td>
+                    <td>Laptop-Einsatz auf Stationen (z.B. EDV-Ausleihe)</td>
+                    <td>
+                        [% IF ( st.ptl_laptop_service_yn ) %]
+                            <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>208</td>
+                    <td>Ausleihe von Abspielgeräten (Hardware)</td>
+                    <td>
+                        [% IF ( st.ptl_mediaplayer_service_yn ) %]
+                            <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>209</td>
+                    <td>Medizinische Fachbibliothek vorhanden</td>
+                    <td>
+                        [% IF ( st.ptl_medical_lib_yn ) %]
+                            <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>210</td>
+                    <td>Kombinierte Fach- und Patientenbibliothek vorhanden</td>
+                    <td>
+                        [% IF ( st.ptl_combined_lib_yn ) %]
+                            <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th  colspan="2">FAHRBIBLIOTHEKEN</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>300</td>
+                    <td>Zahl der Fahrzeuge</td>
+                    <td>
+                        <input type="number" id="st_mol_vehicles" name="st_mol_vehicles" min="0" size="12" maxlength="12" value="[% st.mol_vehicles %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>301</td>
+                    <td>Für mehrere Gemeinden tätig</td>
+                    <td>
+                        [% IF ( st.mol_multiple_communes_yn ) %]
+                            <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>302</td>
+                    <td>Zahl der Haltepunkte</td>
+                    <td>
+                        <input type="number" id="st_mol_stop_stations" name="st_mol_stop_stations" min="0" size="12" maxlength="12" value="[% st.mol_stop_stations %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>303</td>
+                    <td>Fahrplanturnus in Tagen</td>
+                    <td>
+                        <input type="number" id="st_mol_cycle_days" name="st_mol_cycle_days" min="0" size="12" maxlength="12" value="[% st.mol_cycle_days %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>304</td>
+                    <td>Öffnungsstunden pro Woche</td>
+                    <td>
+                        <input type="text" id="st_mol_openinghours_week" name="st_mol_openinghours_week" value="[% st.mol_openinghours_week | $Price %]"  oninput="floatInput(document.DBS_edit.st_mol_openinghours_week,2)"  onchange="moneyFormat(document.DBS_edit.st_mol_openinghours_week)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>305</td>
+                    <td>Bestand in Medieneinh. insges.</td>
+                    <td>
+                        <input type="number" id="st_mol_stock_media_units" name="st_mol_stock_media_units" min="0" size="12" maxlength="12" value="[% st.mol_stock_media_units %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>307</td>
+                    <td>Entleihungen in Medieneinheiten insgesamt</td>
+                    <td>
+                        <input type="number" id="st_mol_media_unit_issues" name="st_mol_media_unit_issues" min="0" size="12" maxlength="12" value="[% st.mol_media_unit_issues %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th  colspan="2">MUSIKBIBLIOTHEKEN</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>400</td>
+                    <td>Noten - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_sheetmusic_stock" name="st_mus_sheetmusic_stock" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>401</td>
+                    <td>Noten - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_sheetmusic_issues" name="st_mus_sheetmusic_issues" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>402</td>
+                    <td>Bücher (Sekundärlit. Musik) - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_secondarylit_stock" name="st_mus_secondarylit_stock" min="0" size="12" maxlength="12" value="[% st.mus_secondarylit_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>403</td>
+                    <td>Bücher (Sekundärlit. Musik) - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_secondarylit_issues" name="st_mus_secondarylit_issues" min="0" size="12" maxlength="12" value="[% st.mus_secondarylit_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>404</td>
+                    <td>Musik-CDs - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_cd_stock" name="st_mus_cd_stock" min="0" size="12" maxlength="12" value="[% st.mus_cd_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>405</td>
+                    <td>Musik-CDs - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_cd_issues" name="st_mus_cd_issues" min="0" size="12" maxlength="12" value="[% st.mus_cd_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>406</td>
+                    <td>Musik-Kassetten - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_cassette_stock" name="st_mus_cassette_stock" min="0" size="12" maxlength="12" value="[% st.mus_cassette_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>407</td>
+                    <td>Musik-Kassetten - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_cassette_issues" name="st_mus_cassette_issues" min="0" size="12" maxlength="12" value="[% st.mus_cassette_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>408</td>
+                    <td>Schallplatten (Vinyl) - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_record_stock" name="st_mus_record_stock" min="0" size="12" maxlength="12" value="[% st.mus_record_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>409</td>
+                    <td>Schallplatten (Vinyl) - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_record_issues" name="st_mus_record_issues" min="0" size="12" maxlength="12" value="[% st.mus_record_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>410</td>
+                    <td>Musik-Videos (VHS) - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_VHS_stock" name="st_mus_VHS_stock" min="0" size="12" maxlength="12" value="[% st.mus_VHS_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>411</td>
+                    <td>Musik-Videos (VHS) - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_VHS_issues" name="st_mus_VHS_issues" min="0" size="12" maxlength="12" value="[% st.mus_VHS_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>412</td>
+                    <td>Musik-DVDs - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_DVD_stock" name="st_mus_DVD_stock" min="0" size="12" maxlength="12" value="[% st.mus_DVD_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>413</td>
+                    <td>Musik-DVDs - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_DVD_issues" name="st_mus_DVD_issues" min="0" size="12" maxlength="12" value="[% st.mus_DVD_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>414</td>
+                    <td>Musik-Zeitschriften - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_periodicals_stock" name="st_mus_periodicals_stock" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>415</td>
+                    <td>Musik-Zeitschriften - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_periodicals_issues" name="st_mus_periodicals_issues" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>416</td>
+                    <td>Sonstige - Bestand</td>
+                    <td>
+                        <input type="number" id="st_mus_other_stock" name="st_mus_other_stock" min="0" size="12" maxlength="12" value="[% st.mus_other_stock %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>417</td>
+                    <td>Sonstige - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_mus_other_issues" name="st_mus_other_issues" min="0" size="12" maxlength="12" value="[% st.mus_other_issues %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>418</td>
+                    <td>BESTAND insgesamt (Summe 400,...,416)</td>
+                    <td>
+                        <input type="number" id="st_mus_stock_tot" name="st_mus_stock_tot" min="0" size="12" maxlength="12" value="[% st.mus_stock_tot %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>419</td>
+                    <td>ENTLEIHUNGEN insgesamt (Summe 401,...,417)</td>
+                    <td>
+                        <input type="number" id="st_mus_issues_tot" name="st_mus_issues_tot" min="0" size="12" maxlength="12" value="[% st.mus_issues_tot %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>420</td>
+                    <td>Abspielungen von Tonträgern</td>
+                    <td>
+                        <input type="number" id="st_mus_audioplaybacks" name="st_mus_audioplaybacks" min="0" size="12" maxlength="12" value="[% st.mus_audioplaybacks %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>421</td>
+                    <td>Ausgaben für Erwerbung</td>
+                    <td>
+                        <input type="text" id="st_mus_acq_expenses" name="st_mus_acq_expenses" value="[% st.mus_acq_expenses | $Price %]"  oninput="floatInput(document.DBS_edit.st_mus_acq_expenses,2)"  onchange="moneyFormat(document.DBS_edit.st_mus_acq_expenses)" />
+                    </td>
+                </tr>
+            </tbody>
+
+
+        </table>
+        </form>
+
+
+
+
+      </div>
+    </div>
+    <div class="yui-b">
+  </div>
+</div>
+[% INCLUDE 'intranet-bottom.inc' %]
