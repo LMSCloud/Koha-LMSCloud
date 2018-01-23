@@ -1,0 +1,67 @@
+#!/usr/bin/perl
+
+# This file is part of Koha.
+#
+# Copyright 2018 LMSCloud
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
+
+use C4::Service;
+use C4::AggregatedStatistics qw( GetAggregatedStatistics );
+
+=head1 NAME
+
+svc/aggregated_statistics - Web service for getting aggregated_statistics records
+
+=head1 SYNOPSIS
+
+  GET /svc/aggregated_statistics
+
+=head1 DESCRIPTION
+
+For the moment, this service is only used to get aggregated_statistics records from type and name.
+
+=head1 METHODS
+
+=cut
+
+our ( $query, $response ) = C4::Service->init( reports => 'aggregated_statistics' );
+#XXXWH hau wech: our ( $query, $response ) = C4::Service->init(); # without permission check
+
+sub get_aggregated_statistics {
+    my @hits;
+    my $aggregatedStatistics = GetAggregatedStatistics({ type => $query->param('type'), name => $query->param('name') });    # select aggregated_statistics records by type and name
+
+    if ($aggregatedStatistics && $aggregatedStatistics->_resultset()) {
+        foreach my $rsHit ($aggregatedStatistics->_resultset()->all()) {
+            my $hit = {
+                id => $rsHit->get_column('id'),
+                type => $rsHit->get_column('type'),
+                name => $rsHit->get_column('name'),
+                description => $rsHit->get_column('description'),
+                startdate => $rsHit->get_column('startdate'),
+                enddate => $rsHit->get_column('enddate'),
+            };
+            push @hits, $hit;
+        }
+    }
+    $response->param( aggregatedStatistics => \@hits );
+    C4::Service->return_success( $response );
+}
+
+C4::Service->dispatch(
+    [ 'GET /', [ 'type', 'name' ], \&get_aggregated_statistics ],
+);
