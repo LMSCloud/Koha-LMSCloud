@@ -39,7 +39,6 @@ For the moment, this service is only used to get aggregated_statistics records f
 =cut
 
 our ( $query, $response ) = C4::Service->init( reports => 'aggregated_statistics' );
-#XXXWH hau wech: our ( $query, $response ) = C4::Service->init(); # without permission check
 
 sub get_aggregated_statistics {
     my @hits;
