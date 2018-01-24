@@ -7,8 +7,6 @@
 <script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script>
 </head>
 <body id="circ_managecashregister" class="circ">
-
-
         <div id="doc3" class="yui-t1">
             <div id="bd">
                 <div id="yui-main">

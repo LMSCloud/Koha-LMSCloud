@@ -18,6 +18,7 @@
 	<ul>
 		<li><a href="/cgi-bin/koha/reports/bor_issues_top.pl">Patrons with the most checkouts</a></li>
         <li><a href="/cgi-bin/koha/reports/cat_issues_top.pl">Most-circulated items</a></li>
+        <li><a href="/cgi-bin/koha/reports/fines_overviews.pl">Fines overview</a></li>
 	</ul>
 	
 	<h5>Inactive</h5>

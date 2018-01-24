@@ -120,7 +120,8 @@ my $op = $query->param('op') || '';
 my $cash_register_id = $query->param('cash_register_id');
 my $lastTransaction = undef;
 
-my ($journalfrom,$journalto);
+my $journalfrom = $query->param('journalfrom');
+my $journalto = $query->param('journalto');
 my $manageaction = 'journal';
 my $cash_register_info;
 my $bookingstats;
@@ -242,22 +243,38 @@ elsif ( $op eq 'adjust' && $status eq 'manage' ) {
     }
 }
 elsif ( $op eq 'dayview' ) {
-    my $from = $query->param('journalfrom');
-    my $to = $query->param('journalto');
     my $finestype = $query->param('finestype');
     
-    $finestype = 'inoutpaymentoverview' if (! $finestype );
-    $finestype = 'paidfinesoverview' if ( !defined($cash_register) && $finestype eq 'inoutpaymentoverview' );
+    $finestype = 'inoutpaymentoverview';
     
-    ($bookingstats,$journalfrom,$journalto) = $cash_management->getCashTransactionOverviewByBranch($branch, $from, $to);
-    if ( $finestype ne 'inoutpaymentoverview' ) {
-        my $cashreg;
-        $cashreg = $cash_register->{cash_register_id} if ( $cash_register && $cash_register->{cash_register_id} );
-        ($finesstats,$journalfrom,$journalto) = $cash_management->getFinesOverviewByBranch($branch, $from, $to, $finestype, $cashreg);
-    } else {
-        ($finesstats,$journalfrom,$journalto) = $cash_management->getCashRegisterPaymentAndDepositOverview($cash_register->{cash_register_id}, $from, $to);
-    }
+    ($bookingstats,$journalfrom,$journalto) = $cash_management->getCashTransactionOverviewByBranch($branch, $journalfrom, $journalto);
+    ($finesstats,$journalfrom,$journalto) = $cash_management->getCashRegisterPaymentAndDepositOverview($cash_register->{cash_register_id}, $journalfrom, $journalto);
+    
     $manageaction = 'dayview';
+}
+elsif ( $op eq 'finesreport' ) {
+    my $finestype = $query->param('finestype');
+    my $reportbranch = $query->param('reportbranch');
+    
+    $finestype = 'finesoverview' if (! $finestype );
+    $finestype = 'finesoverview' if ( !defined($cash_register) && $finestype eq 'inoutpaymentoverview' );
+    
+    ($bookingstats,$journalfrom,$journalto) = $cash_management->getCashTransactionOverviewByBranch($branch, $journalfrom, $journalto);
+    
+    my $cashreg;
+    $cashreg = $cash_register->{cash_register_id} if ( $cash_register && $cash_register->{cash_register_id} );
+    ($finesstats,$journalfrom,$journalto) = $cash_management->getFinesOverview(
+            { 
+                branchcode => $reportbranch,
+                from => $journalfrom,
+                to => $journalto,
+                type => $finestype,
+                cash_register_id => $cashreg
+            }
+        );
+    $manageaction = 'finesreport';
+    
+    $template->param( reportbranch => $reportbranch );
 }
 
 my $wrongBranch=0;
@@ -269,8 +286,6 @@ if ( $cash_register ) {
         $wrongBranch = 1;
     }
     if ( $status eq 'manage' && $manageaction eq 'journal' ) {
-        $journalfrom = $query->param('journalfrom');
-        $journalto = $query->param('journalto');
         my $allFromOpening = $query->param('allFromOpening');
         my $trans;
         if ($allFromOpening) {

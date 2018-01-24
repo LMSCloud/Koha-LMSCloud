@@ -1281,7 +1281,6 @@ sub getCashRegisterPaymentAndDepositOverview {
     return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
 }
 
-
 =head2 getFinesOverviewByBranch
 
   $cash_management->getFinesOverviewByBranch($branchcode,$from,$to)
@@ -1290,128 +1289,253 @@ This function returns an overview of fines by type.
 
 =cut
 
-sub getFinesOverviewByBranch {
+sub getFinesOverview {
     my $self = shift;
     my $dbh = C4::Context->dbh;
-    my $branchcode = shift;
-    my $from = shift;
-    my $to = shift;
-    my $type = shift;
-    my $cash_register_id = shift;
-  
     
-    if ( ! $type ) {
-        $type = 'accounttype';
-    }
+    # read parameters
+    my $params           = shift;
+    my $branchcode       = defined($params->{branchcode}) ? $params->{branchcode} : undef;
+    my $from             = $params->{from};
+    my $to               = $params->{to};
+    my $type             = $params->{type};
+    my $cash_register_id = $params->{cash_register_id};
+  
+    # initialization of processing
+    $type = 'accounttype' if ( ! $type );
     my ($date_from,$date_to) = $self->getValidFromToPeriod($from, $to);
     my $result = {};
-            
     $result->{type} = $type;
     my $ACCOUNT_TYPE_LENGTH = 5;
     
+    # read manual invoice types
     my %manual_invtypes;
     foreach my $inv_type(@{$dbh->selectcol_arrayref(qq{SELECT authorised_value FROM authorised_values WHERE category = 'MANUAL_INV'})}) {
         my $val = substr($inv_type, 0, $ACCOUNT_TYPE_LENGTH);
         $manual_invtypes{$val} = $inv_type;
     }
     
+    # read itemtypes
     my %itemtypes;
     foreach my $it(Koha::ItemTypes->search) {
         $itemtypes{$it->itemtype} = $it->description;
     }
     
-    if ( $type eq 'paidfinesoverview' or $type eq 'finesoverview' ) {
+    my $branchselect = '';
+    my $cashregisterselect = '';
+    if ( $branchcode ) {
+        $branchselect = "AND ( br.branchcode = " . $dbh->quote($branchcode) . " OR br.mobilebranch = " . $dbh->quote($branchcode) . " )";
+        $cashregisterselect = "AND (r.no_branch_restriction = 1 OR br.branchcode = " . $dbh->quote($branchcode) . " OR br.mobilebranch = " . $dbh->quote($branchcode) . " )";
+    }
+
+    my $tmpdate = dclone($date_to);
     
-        my ($fmtfrom,$fmtto,$dateselect);
-        # get the accountlines statistics by type
-        
-        if ( $type eq 'paidfinesoverview' ) {
-            my $tmpdate = dclone($date_to);
-            
-            # set dateselect
-            $fmtfrom = DateTime::Format::MySQL->format_datetime($date_from);
-            $fmtto = DateTime::Format::MySQL->format_datetime($tmpdate);
-            $dateselect = "( a.timestamp BETWEEN ? AND ?)";
-        }
-        else {
-            $fmtfrom = DateTime::Format::MySQL->format_date($date_from);
-            $fmtto = DateTime::Format::MySQL->format_date($date_to);
-            $dateselect = "a.date >= ? and a.date <= ?";
-        }
+    # set dateselect
+    my $fmtfrom = DateTime::Format::MySQL->format_datetime($date_from);
+    my $fmtto = DateTime::Format::MySQL->format_datetime($tmpdate);
+    my $dateselect = "ao.created_on BETWEEN '$fmtfrom' AND '$fmtto'";
+    my $cashdateselect = "c.booking_time BETWEEN '$fmtfrom' AND '$fmtto'";
+    
+    my $authValuesAll;
+    my $authValues = GetAuthorisedValues("CASHREG_PAYOUT",0);
+    foreach my $val( @$authValues ) { $authValuesAll->{'PAYOUT'}->{$val->{authorised_value}} = $val->{lib} };
+    $authValues = GetAuthorisedValues("CASHREG_DEPOSIT",0);
+    foreach my $val( @$authValues ) { $authValuesAll->{'DEPOSIT'}->{$val->{authorised_value}} = $val->{lib} };
+    $authValues = GetAuthorisedValues("CASHREG_ADJUST",0);
+    foreach my $val( @$authValues ) { $authValuesAll->{'ADJUSTMENT'}->{$val->{authorised_value}} = $val->{lib} };
+    $authValues = GetAuthorisedValues("ACCOUNT_TYPE_MAPPING",0);
+    foreach my $val( @$authValues ) { $authValuesAll->{'ACCOUNT_TYPE'}->{$val->{authorised_value}} = $val->{lib} };
+    
+    # check fines overview type
+    if ($type eq 'finesoverview' ) {
+
         my $query = qq{
-            SELECT  
-                    a.accounttype as accounttype, 
-                    SUM(a.amount-a.amountoutstanding) as sum, 
-                    COUNT(*) as count,
-                    i.itype as itemtype
-            FROM    branches br, accountlines a
-            JOIN items AS i USING (itemnumber)
-            WHERE a.branchcode = br.branchcode
-                    AND a.amountoutstanding <> a.amount 
-                    AND $dateselect 
-                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
-                    AND ( br.branchcode = ? OR br.mobilebranch = ? )
+            SELECT 
+                   a.accounttype,
+                   SUM(ao.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets ao, accountlines c, accountlines a
+            JOIN   items AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = a.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
             GROUP BY 
-                    a.accounttype, i.itype
+                   a.accounttype, i.itype
             UNION ALL
-            SELECT  
-                    a.accounttype as accounttype, 
-                    SUM(a.amount-a.amountoutstanding) as sum, 
-                    COUNT(*) as count,
-                    i.itype as itemtype
-            FROM    branches br, accountlines a
-            JOIN deleteditems AS i USING (itemnumber)
-            WHERE a.branchcode = br.branchcode
-                    AND a.amountoutstanding <> a.amount 
-                    AND $dateselect 
-                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
-                    AND ( br.branchcode = ? OR br.mobilebranch = ? )
+            SELECT 
+                   a.accounttype,
+                   SUM(ao.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets ao, accountlines c, accountlines a
+            JOIN   deleteditems AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = a.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
             GROUP BY 
-                    a.accounttype, i.itype
+                   a.accounttype, i.itype
             UNION ALL
-            SELECT  
-                    a.accounttype as accounttype, 
-                    SUM(a.amount-a.amountoutstanding) as sum, 
-                    COUNT(*) as count,
-                    "" as itemtype
-            FROM    branches br, accountlines a
-            WHERE a.branchcode = br.branchcode
-                    AND a.amountoutstanding <> a.amount 
-                    AND $dateselect 
-                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
-                    AND ( br.branchcode = ? OR br.mobilebranch = ? )
-                    AND itemnumber IS NULL
+            SELECT 
+                   a.accounttype,
+                   SUM(ao.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   "" AS itemtype
+            FROM   branches br, account_offsets ao, accountlines c, accountlines a
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = a.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
             GROUP BY 
-                    a.accounttype, ''
-            ORDER BY 
-                    accounttype, itemtype;
+                   a.accounttype, itemtype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) * -1 ,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
+            JOIN   items AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            GROUP BY 
+                   a.accounttype, i.itype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
+            JOIN   deleteditems AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            GROUP BY 
+                   a.accounttype, i.itype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   "" AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+            GROUP BY 
+                   a.accounttype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            JOIN   items AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            GROUP BY 
+                   a.accounttype, i.itype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            JOIN   deleteditems AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            GROUP BY 
+                   a.accounttype, i.itype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   "" AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+            GROUP BY 
+                   a.accounttype
            }; $query =~ s/^\s+/ /mg;
+           
+        # warn "Query: $query\n";
+           
         my $sth = $dbh->prepare($query);
-        $sth->execute(
-                    $fmtfrom, 
-                    $fmtto,
-                    $branchcode,
-                    $branchcode,
-                    $fmtfrom, 
-                    $fmtto,
-                    $branchcode,
-                    $branchcode,
-                    $fmtfrom, 
-                    $fmtto,
-                    $branchcode,
-                    $branchcode
-                );
-        $result->{sum} = {
+        $sth->execute();
+        $result->{sum}->{paid} = {
                 amount => 0.0,
                 count => 0
             };
             
         while (my $row = $sth->fetchrow_hashref) {
-            my $amount = $row->{sum};
+            my $amount = $row->{amount};
             my $accounttype = $row->{accounttype};
             $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
-            if (! exists($result->{data}->{$accounttype}->{$row->{itemtype}}) ) {
-                $result->{data}->{$accounttype}->{$row->{itemtype}} = {
+            
+            # Add values to summary calculation grouped by account type and item type
+            if (! exists($result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}) ) {
+                $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}} = {
                     amount => $amount,
                     count => $row->{count},
                     itemtype => $row->{itemtype},
@@ -1421,119 +1545,584 @@ sub getFinesOverviewByBranch {
                 };
             }
             else {
-                $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{amount} += $amount;
-                $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{fines_amount} += sprintf('%.2f', $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{amount});
-                $result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{$row->{accounttype}}->{$row->{itemtype}}->{amount});
+                $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{amount} += $amount;
+                $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{fines_amount} += sprintf('%.2f', $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{amount});
+                $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{amount});
             }
-            $result->{sum}->{amount} += $amount;
-            $result->{sum}->{count} += $row->{count};
+            # Add values to summary calculation grouped by account type
+            if (! exists($result->{data}->{paidtype}->{$accounttype}) ) {
+                $result->{data}->{paidtype}->{$accounttype} = {
+                    amount => $amount,
+                    count => $row->{count},
+                    itemtype => $row->{itemtype},
+                    itemtypedescription => $itemtypes{$row->{itemtype}},
+                    fines_amount => sprintf('%.2f', $amount),
+                    fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                };
+            }
+            else {
+                $result->{data}->{paidtype}->{$accounttype}->{amount} += $amount;
+                $result->{data}->{paidtype}->{$accounttype}->{fines_amount} += sprintf('%.2f', $result->{data}->{paidtype}->{$accounttype}->{amount});
+                $result->{data}->{paidtype}->{$accounttype}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{paidtype}->{$accounttype}->{amount});
+            }
+            # Add values to summary calculation grouped by account if there exists an accounttype to account mapping
+            # defined with normalized value type ACCOUNT_TYPE_MAPPING
+            my $mapped = 'unmapped';
+            my $account = $row->{accounttype};
+            if ( exists($authValuesAll->{'ACCOUNT_TYPE'}->{$accounttype}) ) {
+                $mapped = 'mapped';
+                $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$accounttype};
+            }
+            if (! exists($result->{data}->{account}->{$mapped}->{$account}) ) {
+                $result->{data}->{account}->{$mapped}->{$account} = {
+                    amount => $amount,
+                    count => $row->{count},
+                    fines_amount => sprintf('%.2f', $amount),
+                    fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                };
+            } else {
+                $result->{data}->{account}->{$mapped}->{$account}->{amount} += $amount;
+                $result->{data}->{account}->{$mapped}->{$account}->{count} += $row->{count};
+                $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
+                $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
+            }
+
+            $result->{sum}->{paid}->{amount} += $amount;
+            $result->{sum}->{paid}->{count} += $row->{count};
         }
         
-        $result->{sum}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{amount});
-        $result->{sum}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{amount});
-    }
-    elsif ( $type eq 'paidfinesbyday' || $type eq 'paidfinesbymanager' || $type eq 'paidfinesbytype' 
-        || $type eq 'finesbyday' || $type eq 'finesbymanager' || $type eq 'finesbytype' 
-        || $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' 
-    ) {
-    
-        my ($fmtfrom,$fmtto,$addselect,$amountfield);
-        # get the accountlines statistics by type
+        $result->{sum}->{paid}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{paid}->{amount});
+        $result->{sum}->{paid}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{paid}->{amount});
         
-        if ( $type eq 'paidfinesbyday' || $type eq 'paidfinesbymanager' || $type eq 'paidfinesbytype'  ) {
-            my $tmpdate = dclone($date_to);
+        $sth->finish;
+        
+        $query = qq{
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) AS amount,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            JOIN   items AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.amount < 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            GROUP BY 
+                   a.accounttype, i.itype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) AS amount,
+                   COUNT(*) AS count,
+                   i.itype AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            JOIN   deleteditems AS i USING (itemnumber)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.amount < 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            GROUP BY 
+                   a.accounttype, i.itype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(o.amount) AS amount,
+                   COUNT(*) AS count,
+                   "" AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.amount < 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+            GROUP BY 
+                   a.accounttype
+           }; $query =~ s/^\s+/ /mg;
+           
+        $sth = $dbh->prepare($query);
+        $sth->execute();
+        $result->{sum}->{reversed} = {
+                amount => 0.0,
+                count => 0
+            };
             
-            # set dateselect
-            $fmtfrom = DateTime::Format::MySQL->format_datetime($date_from);
-            $fmtto = DateTime::Format::MySQL->format_datetime($tmpdate);
-            $amountfield = "(a.amount-a.amountoutstanding)";
-            $addselect = "(a.timestamp BETWEEN ? AND ?) AND a.amountoutstanding <> a.amount";
-        }
-        else {
-            $fmtfrom = DateTime::Format::MySQL->format_date($date_from);
-            $fmtto = DateTime::Format::MySQL->format_date($date_to);
-            $amountfield = "a.amount";
-            $addselect = "a.date >= ? and a.date <= ?";
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount = $row->{amount};
+            my $accounttype = $row->{accounttype};
+            $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
+            
+            # Add values to summary calculation grouped by account type and item type
+            if (! exists($result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}) ) {
+                $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}} = {
+                    amount => $amount,
+                    count => $row->{count},
+                    itemtype => $row->{itemtype},
+                    itemtypedescription => $itemtypes{$row->{itemtype}},
+                    fines_amount => sprintf('%.2f', $amount),
+                    fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                };
+            }
+            else {
+                $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{amount} += $amount;
+                $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{fines_amount} += sprintf('%.2f', $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{amount});
+                $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{amount});
+            }
+            
+            # Add values to summary calculation grouped by account type
+            if (! exists($result->{data}->{reversedtype}->{$accounttype}) ) {
+                $result->{data}->{reversedtype}->{$accounttype} = {
+                    amount => $amount,
+                    count => $row->{count},
+                    itemtype => $row->{itemtype},
+                    itemtypedescription => $itemtypes{$row->{itemtype}},
+                    fines_amount => sprintf('%.2f', $amount),
+                    fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                };
+            }
+            else {
+                $result->{data}->{reversedtype}->{$accounttype}->{amount} += $amount;
+                $result->{data}->{reversedtype}->{$accounttype}->{fines_amount} += sprintf('%.2f', $result->{data}->{reversedtype}->{$accounttype}->{amount});
+                $result->{data}->{reversedtype}->{$accounttype}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{reversedtype}->{$accounttype}->{amount});
+            }
+            
+            # Add values to summary calculation grouped by account if there exists an accounttype to account mapping
+            # defined with normalized value type ACCOUNT_TYPE_MAPPING
+            if ( exists($authValuesAll->{'ACCOUNT_TYPE'}->{$accounttype}) ) {
+                my $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$accounttype};
+                if (! exists($result->{data}->{account}->{mapped}->{$account}) ) {
+                    $result->{data}->{account}->{mapped}->{$account} = {
+                        amount => $amount,
+                        count => $row->{count},
+                        fines_amount => sprintf('%.2f', $amount),
+                        fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                    };
+                } else {
+                    $result->{data}->{account}->{mapped}->{$account}->{amount} += $amount;
+                    $result->{data}->{account}->{mapped}->{$account}->{count} -= $row->{count};
+                    $result->{data}->{account}->{mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{mapped}->{$account}->{amount});
+                    $result->{data}->{account}->{mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{mapped}->{$account}->{amount});
+                }
+            }
+            
+            $result->{sum}->{paid}->{amount} += $amount;
+            $result->{sum}->{paid}->{count} += $row->{count};
+            $result->{sum}->{reversed}->{amount} += $amount;
+            $result->{sum}->{reversed}->{count} += $row->{count};
         }
         
+        $sth->finish;
+        
+        $result->{sum}->{reversed}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{reversed}->{amount});
+        $result->{sum}->{reversed}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{reversed}->{amount});
+        
+        # calculate overall sum of fines
+        $result->{sum}->{fines} = {
+                amount => 0.0,
+                count => 0
+            };
+            
+        $result->{sum}->{fines}->{amount} = $result->{sum}->{reversed}->{amount} + $result->{sum}->{paid}->{amount};
+        $result->{sum}->{fines}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{fines}->{amount});
+        $result->{sum}->{fines}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{fines}->{amount});
+        
+        $query = qq{
+            SELECT c.action AS action,
+                   c.reason AS reason,
+                   l.accounttype AS accounttype,
+                   SUM(c.booking_amount) AS amount,
+                   COUNT(*) AS count,
+                   r.name AS cash_register
+            FROM   branches br, cash_register r, cash_register_account c
+            LEFT JOIN accountlines l ON c.accountlines_id = l.accountlines_id
+            WHERE  r.branchcode = br.branchcode
+               AND $cashdateselect $cashregisterselect
+               AND c.cash_register_id  = r.id
+               AND c.action NOT IN ('OPEN','CLOSE')
+            GROUP BY
+                   r.name, c.action, c.reason, l.accounttype
+        }; $query =~ s/^\s+/ /mg;
+           
+        $sth = $dbh->prepare($query);
+        $sth->execute();
+        
+        $result->{sum}->{cashreg}->{PAYOUT}       = { amount => 0.0, count => 0 };
+        $result->{sum}->{cashreg}->{ADJUSTMENT}   = { amount => 0.0, count => 0 };
+        $result->{sum}->{cashreg}->{DEPOSIT}      = { amount => 0.0, count => 0 };
+        
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount      = $row->{amount};
+            my $reason      = $row->{reason} || '';
+            my $action      = $row->{action};
+            my $cashreg     = $row->{cash_register};
+            my $accounttype = $row->{accounttype} || '';
+            $reason = $authValuesAll->{$action}->{$reason} if ( exists($authValuesAll->{$action}->{$reason}) );
+            if (! exists($result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}) ) {
+                $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype} = {
+                    amount => $amount,
+                    count => $row->{count},
+                    cash_register => $cashreg,
+                    reason => $reason,
+                    accounttype => $accounttype,
+                    fines_amount => sprintf('%.2f', $amount),
+                    fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                };
+            }
+            else {
+                $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{amount} += $amount;
+                $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{fines_amount} += sprintf('%.2f', $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{amount});
+                $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{amount});
+            }
+            $result->{sum}->{cashreg}->{$action}->{amount} += $amount;
+            $result->{sum}->{cashreg}->{$action}->{count}  += $row->{count};
+        }
+        $sth->finish;
+        
+        # get all transactions which are not related to cash registers
+        # get payments of cash registers
+        $query = qq{
+            SELECT 
+                   a.accounttype,
+                   SUM(ao.amount) AS amount,
+                   COUNT(*) AS count
+            FROM   branches br, account_offsets ao, accountlines a
+            WHERE      a.branchcode = br.branchcode
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = a.accountlines_id
+                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03', 'C', 'REF')
+            GROUP BY 
+                   a.accounttype
+            }; $query =~ s/^\s+/ /mg;
+
+        $sth = $dbh->prepare($query);
+        $sth->execute();
+        
+        my @ptypes = ('cash','card','unassigned');
+
+        foreach my $type(@ptypes) {
+            $result->{sum}->{cashtype}->{$type}->{payment} = {
+                amount => 0.0,
+                count_transactions => 0
+            };
+            $result->{sum}->{cashtype}->{$type}->{payout} = {
+                amount => 0.0,
+                count_transactions => 0
+            };
+            $result->{sum}->{cashtype}->{$type}->{bookings_found} = 0;
+        }
+        
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount = $row->{'amount'} * -1;
+            my $acctype = $row->{'accounttype'};
+            my $type = 'unassigned';
+            if ( $acctype eq 'Pay' ) {
+                $type = 'cash';
+            }
+            elsif ( $acctype eq 'Pay00' || $acctype eq 'Pay01' || $acctype eq 'Pay02' || $acctype eq 'Pay03' ) {
+                $type = 'card';
+            }
+            my $what = 'payout';
+            if ( $amount >= 0.00 ) {
+                # it's a payment
+                $what = 'payment';
+            }
+            $result->{sum}->{cashtype}->{$type}->{$what}->{amount} += $amount;
+            $result->{sum}->{cashtype}->{$type}->{$what}->{count} += $row->{count};
+            $result->{sum}->{cashtype}->{$type}->{bookings_found} = 1;
+        }
+        $sth->finish;
+        
+        push(@ptypes, 'sum');
+        foreach my $type(@ptypes) {
+            $result->{sum}->{cashtype}->{$type}->{payment}->{payment_amount} = sprintf('%.2f', $result->{sum}->{cashtype}->{$type}->{payment}->{amount} || 0.0);
+            $result->{sum}->{cashtype}->{$type}->{payment}->{payment_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{cashtype}->{$type}->{payment}->{amount});
+            $result->{sum}->{cashtype}->{$type}->{payout}->{payout_amount} = sprintf('%.2f', $result->{sum}->{cashtype}->{$type}->{payout}->{amount} || 0.0);
+            $result->{sum}->{cashtype}->{$type}->{payout}->{payout_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{cashtype}->{$type}->{payout}->{amount});
+        }
+        
+        # calculate account management fees grouped by borrowers town and borrower type
+        my %accoutfeegroups = ( 
+                    'borrower_type' => { 'select' => 'cat.description', 'group_by' => 'cat.description' },
+                    'borrower_town' => { 'select' => 'b.city', 'group_by' => 'b.city' }
+            );
+        foreach my $accoutfeegroup (keys %accoutfeegroups) {
+            my $selectfield = $accoutfeegroups{$accoutfeegroup}->{select};
+            my $groupfield = $accoutfeegroups{$accoutfeegroup}->{group_by};
+            $query = qq{
+                SELECT 
+                       $selectfield as description,
+                       SUM(ao.amount) * -1 AS amount,
+                       COUNT(*) AS count,
+                       ao.type AS paytype
+                FROM   branches br, account_offsets ao, accountlines c, accountlines a
+                JOIN   borrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.debit_id = a.accountlines_id
+                       AND ao.credit_id = c.accountlines_id
+                       AND ao.type = 'Payment'
+                       AND $dateselect $branchselect
+                       AND a.accounttype = 'A'
+                GROUP BY 
+                       paytype, $groupfield
+                UNION ALL
+                SELECT 
+                       $selectfield as description,
+                       SUM(o.amount) * -1 ,
+                       COUNT(*) AS count,
+                       ao.type AS paytype
+                FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
+                JOIN   borrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.debit_id = u.accountlines_id
+                       AND ao.credit_id = c.accountlines_id
+                       AND ao.type = 'Payment'
+                       AND $dateselect $branchselect
+                       AND ao.debit_id = o.credit_id
+                       AND o.type = 'Payment'
+                       AND o.debit_id = a.accountlines_id
+                       AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                       AND a.accounttype = 'A'
+                GROUP BY 
+                       paytype, $groupfield
+                UNION ALL
+                SELECT 
+                       $selectfield  as description,
+                       SUM(o.amount) * -1 AS amount,
+                       COUNT(*) AS count,
+                       ao.type AS paytype
+                FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+                JOIN   borrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.type = 'Reverse Payment'
+                       AND ao.credit_id = c.accountlines_id
+                       AND ao.amount > 0.0
+                       AND $dateselect $branchselect
+                       AND ao.credit_id = o.credit_id
+                       AND o.type = 'Payment'
+                       AND o.debit_id = a.accountlines_id
+                       AND a.accounttype = 'A'
+                GROUP BY 
+                       paytype, $groupfield
+                UNION ALL
+                SELECT 
+                       $selectfield as description,
+                       SUM(o.amount) AS amount,
+                       COUNT(*) AS count,
+                       ao.type AS paytype
+                FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+                JOIN   borrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.type = 'Reverse Payment'
+                       AND ao.amount < 0.0
+                       AND $dateselect $branchselect
+                       AND ao.credit_id = o.credit_id
+                       AND ao.credit_id = c.accountlines_id
+                       AND o.type = 'Payment'
+                       AND o.debit_id = a.accountlines_id
+                       AND a.accounttype = 'A'
+                GROUP BY 
+                       paytype, $groupfield
+                }; $query =~ s/^\s+/ /mg;
+
+            $sth = $dbh->prepare($query);
+            $sth->execute();
+        
+            while (my $row = $sth->fetchrow_hashref) {
+                my $amount       = $row->{'amount'};
+                my $paytype      = $row->{'paytype'};
+                my $count        = $row->{'count'};
+                my $description  = $row->{'description'} || '';
+                $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount} += $amount;
+                $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{count}  += $count;
+                $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{fines_amount} = sprintf('%.2f', $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount});
+                $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount});
+            }
+            $sth->finish;
+        }
+    }
+    elsif ( $type eq 'paidfinesbyday' || $type eq 'paidfinesbymanager' || $type eq 'paidfinesbytype' ) {
+        
+        my $query = qq{
+            SELECT 
+                   1 as entrytype,
+                   DATE(ao.created_on) as date,
+                   a.accounttype as accounttype, 
+                   ao.amount * -1 as amount,
+                   b.cardnumber as cardnumber,
+                   b.borrowernumber as borrowernumber,
+                   a.description as description,
+                   a.manager_id as manager_id,
+                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   '' as reason
+            FROM   branches br, account_offsets ao, accountlines c, accountlines a
+            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = a.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            UNION ALL
+            SELECT 
+                   1 as entrytype,
+                   DATE(ao.created_on) as date,
+                   a.accounttype as accounttype, 
+                   ao.amount * -1 as amount,
+                   b.cardnumber as cardnumber,
+                   b.borrowernumber as borrowernumber,
+                   a.description as description,
+                   a.manager_id as manager_id,
+                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   '' as reason
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
+            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            UNION ALL
+            SELECT 
+                   1 as entrytype,
+                   DATE(ao.created_on) as date,
+                   a.accounttype as accounttype, 
+                   ao.amount * -1 as amount,
+                   b.cardnumber as cardnumber,
+                   b.borrowernumber as borrowernumber,
+                   a.description as description,
+                   a.manager_id as manager_id,
+                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   '' as reason
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+            ORDER BY date,cardnumber
+           }; $query =~ s/^\s+/ /mg;
+           
+        # warn "Query: $query\n";
+           
+        my $sth = $dbh->prepare($query);
+        $sth->execute();
+    
+        my $rownum = 0;
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount = $row->{amount};
+            my $accounttype = $row->{accounttype};
+            $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
+            
+            $result->{data}->[$rownum++] = {
+                entrytype => $row->{entrytype},
+                reason => $row->{reason},
+                date => output_pref({dt => dt_from_string($row->{date}), dateonly => 1}),
+                accounttype => $accounttype,
+                amount => $amount,
+                fines_amount => sprintf('%.2f', $amount),
+                fines_amount_formatted => $self->formatAmountWithCurrency($amount),
+                cardnumber => $row->{cardnumber},
+                borrowernumber => $row->{borrowernumber},
+                description => $row->{description},
+                patron_name => $row->{patron_name},
+                manager_id => $row->{manager_id},
+                manager_name => $row->{manager_name}
+            };
+        }
+    }
+    elsif ( $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' ) {
         # get the accountlines statistics by type
         my $query = qq{
-            SELECT  1 as entrytype,
-                    a.date as date, 
-                    a.accounttype as accounttype, 
-                    $amountfield as amount,
+            SELECT 
+                    1 as entrytype,
+                    DATE(ao.created_on) as date,
+                    a.accounttype as accounttype,
+                    IF(ao.type = 'Payment', SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
                     b.cardnumber as cardnumber,
                     b.borrowernumber as borrowernumber,
                     a.description as description,
                     a.manager_id as manager_id,
-                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL, '', ' '), b.surname) as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL, '', ' '), m.surname) as manager_name,
-                    '' as reason
-            FROM    branches br, accountlines a
-            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
-            WHERE   a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
-                AND $addselect
-                AND a.branchcode = br.branchcode
-                AND (br.branchcode = ? OR br.mobilebranch = ?)
-           }; 
-           
-        my $authValuesAll = {};
-        
-        my @params = ($fmtfrom, $fmtto, $branchcode, $branchcode);
-        
-        if ( $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' ) {
-            $query =~ s/ NOT IN / IN /;
-            
-            if ( $cash_register_id ) {
-                $query .= qq{
-                    UNION ALL
-                    SELECT 2 as entrytype,
-                           DATE(c.booking_time) as date,
-                           c.action as accounttype,
-                           c.booking_amount as amount,
-                           '' as cardnumber,
-                           NULL as borrowernumber,
-                           c.description as description,
-                           c.manager_id as manager_id,
-                           '' as patron_name,
-                           CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL, '', ' '), m.surname) as manager_name,
-                           c.reason as reason
-                    FROM   cash_register_account c
-                    LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
-                    WHERE  c.action IN ('PAYOUT','ADJUSTMENT','DEPOSIT')
-                       AND (c.booking_time BETWEEN ? AND ?)
-                       AND c.cash_register_id = ?
-                }; 
-            
-                my $authValues = GetAuthorisedValues("CASHREG_PAYOUT",0);
-                foreach my $val( @$authValues ) { $authValuesAll->{'PAYOUT'}->{$val->{authorised_value}} = $val->{lib} };
-                $authValues = GetAuthorisedValues("CASHREG_DEPOSIT",0);
-                foreach my $val( @$authValues ) { $authValuesAll->{'DEPOSIT'}->{$val->{authorised_value}} = $val->{lib} };
-                $authValues = GetAuthorisedValues("CASHREG_ADJUST",0);
-                foreach my $val( @$authValues ) { $authValuesAll->{'ADJUSTMENT'}->{$val->{authorised_value}} = $val->{lib} };
-                
-                my $actfrom = DateTime::Format::MySQL->format_datetime($date_from);
-                my $actto   = DateTime::Format::MySQL->format_datetime($date_to);
-         
-                push @params, ($actfrom, $actto, $cash_register_id);
-            }
-        }
-        $query .= ' ORDER BY date,cardnumber';
-        $query =~ s/^\s+/ /mg;
+                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                    '' as reason,
+                    '' as cash_register_name
+             FROM 
+                    branches br, account_offsets ao 
+                    JOIN accountlines a ON (a.accountlines_id = ao.credit_id)
+                    LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
+                    LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+             WHERE      a.branchcode = br.branchcode
+                    AND ao.type IN ('Payment','Reverse Payment')
+                    AND $dateselect $branchselect
+             GROUP BY
+                    ao.type, ao.credit_id, ao.created_on, a.accounttype, b.cardnumber, b.borrowernumber,
+                    a.description, a.manager_id, b.firstname, b.surname, m.firstname, m.surname
+             UNION ALL
+             SELECT 2 as entrytype,
+                    DATE(c.booking_time) as date,
+                    c.action as accounttype,
+                    c.booking_amount as amount,
+                    '' as cardnumber,
+                    NULL as borrowernumber,
+                    c.description as description,
+                    c.manager_id as manager_id,
+                    '' as patron_name,
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                    c.reason as reason,
+                    r.name as cash_register_name
+             FROM   branches br, cash_register r, cash_register_account c
+             LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
+             WHERE      c.action IN ('PAYOUT','ADJUSTMENT','DEPOSIT')
+                    AND $cashdateselect $cashregisterselect
+                    AND r.branchcode = br.branchcode
+                    AND c.cash_register_id  = r.id
+             ORDER BY date,cardnumber
+            }; $query =~ s/^\s+/ /mg;
         
         my $sth = $dbh->prepare($query);
 
-        $sth->execute(@params);
+        $sth->execute();
 
         my $rownum = 0;
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{amount};
-            if ( ($type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype') && $row->{entrytype} == 1 ) {
-                $amount = $amount * -1;
-            }
-            $row->{patron_name} =~ s/^\s+|\s+$//g;
-            $row->{manager_name} =~ s/^\s+|\s+$//g;
             my $accounttype = $row->{accounttype};
             $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
             
@@ -1544,6 +2133,67 @@ sub getFinesOverviewByBranch {
                     $row->{reason} = $authValuesAll->{$row->{accounttype}}->{$row->{reason}};
                 }
             }
+            
+            $result->{data}->[$rownum++] = {
+                entrytype => $row->{entrytype},
+                reason => $row->{reason},
+                date => output_pref({dt => dt_from_string($row->{date}), dateonly => 1}),
+                accounttype => $accounttype,
+                amount => $amount,
+                fines_amount => sprintf('%.2f', $amount),
+                fines_amount_formatted => $self->formatAmountWithCurrency($amount),
+                cardnumber => $row->{cardnumber},
+                borrowernumber => $row->{borrowernumber},
+                description => $row->{description},
+                patron_name => $row->{patron_name},
+                manager_id => $row->{manager_id},
+                manager_name => $row->{manager_name},
+                cash_register_name => $row->{cash_register_name}
+            };
+        }
+    }
+    elsif ( $type eq 'finesbyday' || $type eq 'finesbymanager' || $type eq 'finesbytype' ) {
+    
+        my ($fmtfrom,$fmtto);
+        # get the accountlines statistics by type
+        $fmtfrom = DateTime::Format::MySQL->format_date($date_from);
+        $fmtto = DateTime::Format::MySQL->format_date($date_to);
+
+        # get the accountlines statistics by type
+        my $query = qq{
+            SELECT  1 as entrytype,
+                    a.date as date, 
+                    a.accounttype as accounttype, 
+                    a.amount as amount,
+                    b.cardnumber as cardnumber,
+                    b.borrowernumber as borrowernumber,
+                    a.description as description,
+                    a.manager_id as manager_id,
+                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                    '' as reason
+            FROM    branches br, accountlines a
+            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            WHERE   a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02')
+                AND a.date >= ? and a.date <= ?
+                AND a.branchcode = br.branchcode $branchselect
+            ORDER BY date,cardnumber
+           }; 
+        
+        my @params = ($fmtfrom, $fmtto);
+
+        $query =~ s/^\s+/ /mg;
+        
+        my $sth = $dbh->prepare($query);
+
+        $sth->execute(@params);
+
+        my $rownum = 0;
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount = $row->{amount};
+            my $accounttype = $row->{accounttype};
+            $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
             
             $result->{data}->[$rownum++] = {
                 entrytype => $row->{entrytype},

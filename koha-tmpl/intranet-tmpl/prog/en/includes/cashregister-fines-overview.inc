@@ -1,44 +1,5 @@
-[% BLOCK accountTypeName %][% SWITCH finestat %]
-  [% CASE 'Pay' %]Payment
-  [% CASE 'Pay00' %]Cash payment via SIP2
-  [% CASE 'Pay01' %]VISA Payment via SIP2
-  [% CASE 'Pay02' %]Credit card payment via SIP2
-  [% CASE 'N' %]New card
-  [% CASE 'F' %]Fine
-  [% CASE 'A' %]Account management fee
-  [% CASE 'M' %]Sundry
-  [% CASE 'L' %]Lost item
-  [% CASE 'W' %]Writeoff
-  [% CASE 'CAN' %]Fine cancelled
-  [% CASE 'FU' %]Accruing fine
-  [% CASE 'HE' %]Hold waiting too long
-  [% CASE 'Rent' %]Rental fee
-  [% CASE 'FOR' %]Forgiven
-  [% CASE 'LR' %]Lost item fee refund
-  [% CASE 'PAY' %]Payment
-  [% CASE 'WO' %]Writeoff
-  [% CASE 'C' %]Credit
-  [% CASE 'CR' %]Credit
-  [% CASE 'CL1' %]Overdue fine (level 1)
-  [% CASE 'CL2' %]Overdue fine (level 2)
-  [% CASE 'CL3' %]Overdue fine (level 3)
-  [% CASE 'CL4' %]Overdue fine (level 4)
-  [% CASE 'CL5' %]Overdue fine (level 5)
-  [% CASE 'NOTF' %]Notice fee
-  [% CASE 'Res' %]Reservation
-  [% CASE %]([% finestat %])
-[%- END -%][% END %]
-[% BLOCK translate_cashregisteraction %]
-[%    SWITCH action %]
-[%        CASE 'PAYMENT'         %]Patron payment
-[%        CASE 'REVERSE_PAYMENT' %]Reverse payment
-[%        CASE 'ADJUSTMENT'      %]Difference posting
-[%        CASE 'PAYOUT'          %]Cash payment
-[%        CASE 'DEPOSIT'         %]Deposit
-[%        CASE 'CREDIT'          %]Credit
-[%        CASE %][% action %]
-[%    END %]
-[% END %]
+[% PROCESS 'cashregister-fines-macros.inc' %]
+
 <script type="text/javascript">
 //<![CDATA[
 
@@ -88,29 +49,47 @@ function money_format(number) {
 
 $(document).ready( function() {
 
-    [% IF (finesstats.type == 'finesoverview' || finesstats.type == 'paidfinesoverview') %]
+    [% IF (finesstats.type == 'finesoverview') %]
     $("#finesoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
-        'bAutoWidth': true,
+        'bAutoWidth': false,
         'aoColumnDefs': [
             { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-            { "aTargets": [ 2 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "aTargets": [ 0,1,3 ], "asSorting": [ "asc","desc" ]  },
+            { "aTargets": [ 4 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+            { "aTargets": [ 0,1,2,4 ], "asSorting": [ "asc","desc" ]  },
         ],
-        "aoColumns": [ { "sType": 'natural' }, null, null],
-        "iDisplayLength": 100,
+        "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { sWidth: '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
+        "iDisplayLength": 1000,
         "iDisplayStart": 0,
-        "order": [[ 0, "asc" ]],
+        "order": [[ 0, "asc" ],[ 1, "asc" ],[ 2, "asc" ]],
         "bSort" : true,
         "bPaginate": false,
         "serverSide": false,
         "bFilter": false,
         "bInfo" : false,
+        "autoWidth": true,
         "oLanguage": {
-            [% IF (finesstats.type == 'paidfinesoverview') %]
             "sEmptyTable": _("No paid fines during the selected period.")
-            [% ELSE %]
-            "sEmptyTable": _("No accrued fines during the selected period.")
-            [% END %]
+        }
+    }));
+    $("#finestypeoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
+        'bAutoWidth': false,
+        'aoColumnDefs': [
+            { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
+            { "aTargets": [ 3 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+            { "aTargets": [ 0,1,3 ], "asSorting": [ "asc","desc" ]  },
+        ],
+        "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
+        "iDisplayLength": 1000,
+        "iDisplayStart": 0,
+        "order": [[ 0, "asc" ],[ 1, "asc" ]],
+        "bSort" : true,
+        "bPaginate": false,
+        "serverSide": false,
+        "bFilter": false,
+        "bInfo" : false,
+        "autoWidth": true,
+        "oLanguage": {
+            "sEmptyTable": _("No paid fines during the selected period.")
         }
     }));
     [% END %]
@@ -139,6 +118,7 @@ $(document).ready( function() {
     [% END %]
     
     $("#finesoverview_wrapper .pager").removeClass("pager");
+    $("#finestypeoverview_wrapper .pager").removeClass("pager");
 
     [% IF (finesstats && ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbytype' ||  finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbytype' ||  finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbytype' ||  finesstats.type == 'paymentsbymanager')) %]
     [% IF    ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'finesbyday' || finesstats.type == 'paymentsbyday')     %][% groupcol = '0' %][% sortdir = 'desc' %]
@@ -224,141 +204,28 @@ $(document).ready( function() {
 });
 
 </script>
-<h3>Day-end closing: [% branchname %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h3>
-[% IF (! printview) %]
-<form id="showfinesoverview" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
-    <input type="hidden" name="op" value="dayview" />
-    <fieldset class="rows" style="float: unset">
-        <ol>
-            <li>
-                Day-end closing statistics <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
-                to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
-                [% seltypes = [ 'paidfinesoverview', 'paidfinesbytype', 'paidfinesbymanager', 'paidfinesbyday', 'finesoverview', 'finesbytype', 'finesbymanager', 'finesbyday', 'paymentsbytype', 'paymentsbymanager', 'paymentsbyday'] %]
-                [% IF ( status == 'manage' ) %][% seltypes.unshift('inoutpaymentoverview') %][% END %]
-                <select name="finestype">
-                    [% FOREACH seltype IN seltypes %]
-                        [% IF (finesstats.type == seltype) %]
-                        <option value="[% seltype %]" selected="selected">
-                        [% ELSE %]
-                        <option value="[% seltype %]">
-                        [% END %]
-                        [% SWITCH seltype %]
-                        [% CASE 'inoutpaymentoverview' %]Overview of inpayments/outpayments
-                        [% CASE 'paidfinesoverview' %]Paid fines overview
-                        [% CASE 'finesoverview' %]Accrued fines overview
-                        [% CASE 'paidfinesbytype' %]Detailed paid fines by type
-                        [% CASE 'paidfinesbymanager' %]Detailed paid fines by manager
-                        [% CASE 'paidfinesbyday' %]Detailed paid fines by day
-                        [% CASE 'finesbytype' %]Detailed accrued fines by type
-                        [% CASE 'finesbymanager' %]Detailed accrued fines by manager
-                        [% CASE 'finesbyday' %]Detailed accrued fines by day
-                        [% CASE 'paymentsbytype' %]Detailed payments by type
-                        [% CASE 'paymentsbymanager' %]Detailed payments by manager
-                        [% CASE 'paymentsbyday' %]Detailed payments by day
-                        [% CASE %][% seltype %]
-                        [%- END -%]
-                        </option>
-                    [% END %]
-                </select>&nbsp;<input type="hidden" name="printview" value="" />
-                <button id="noprintview" type="submit" name="allFromOpening" value="0">Select</button>
-                <button id="printview" type="submit" name="printview" value="print"">Printview</button>
-            </li>
-        </ol>                      
-    </fieldset>
-</form>
-[% ELSE %]
-<p>Manager: [% loggedinusername %], Date: [% datetimenow %]</p>
-[% END %]
-<h4 style="margin-top:20px">Cash position</h4>
-<table id="cashpaymentoverview">
-    <thead>
-        <tr>
-            <th>Cash register</th>
-            <th>Carry-over</th>
-            <th>Cash receipts</th>
-            <th>Cash payments</th>
-            <th>Cash balance</th>
-        </tr>
-    </thead>
-    <tbody>
-        [% count_registers = 0 %]
-        [% FOREACH stat IN bookingstats.keys.sort %]
-            [% showstat = bookingstats.$stat %]
-            [% IF ( stat == 'sum' ) %][% sumstat = bookingstats.$stat %][% END %]
-            [% IF ( stat.match('^\d+$') && stat > 0 ) %][% count_registers = count_registers + 1 %][% END %]
-            [% IF ( stat != 'sum' && (stat != 'unassigned' || showstat.bookings_found)) %]
-                <tr>
-                    <td>
-                        [% IF (stat.match('^\d+$') && stat > 0 ) %]
-                            [% showstat.info.cash_register_name %]
-                        [% ELSIF (stat == 'cash' ) %]
-                            Cash payments via SIP2
-                        [% ELSIF (stat == 'card' ) %]
-                            Credit card payments via SIP2
-                        [% ELSIF (stat == 'unassigned' ) %]
-                            Other payments (not traced by cash registers)
-                        [% END %]
-                    </td>
-                    <td style="text-align:right;">[% IF (stat.match('^\d+$') && stat > 0 ) %][% showstat.starting_balance.booking_amount_formatted %][%END%]</td>
-                    <td style="text-align:right;">[% showstat.payment.booking_amount_formatted %]</td>
-                    <td style="text-align:right;">[% showstat.payout.booking_amount_formatted %]</td>
-                    <td style="text-align:right;">[% showstat.final_balance.booking_amount_formatted %]</td>
-                </tr>
-            [% END %]
-        [% END %]
-    </tbody>
-    <tfoot>
-        <tr>
-            <td>
-                Total
-            </td>
-            <td style="text-align:right;">[% IF (count_registers > 0 ) %][% sumstat.starting_balance.booking_amount_formatted %][%END%]</td>
-            <td style="text-align:right;">[% sumstat.payment.booking_amount_formatted %]</td>
-            <td style="text-align:right;">[% sumstat.payout.booking_amount_formatted %]</td>
-            <td style="text-align:right;">[% sumstat.final_balance.booking_amount_formatted %]</td>
-        </tr>
-    </tfoot>
-</table>
 
-[% IF (finesstats.type == 'finesoverview' || finesstats.type == 'paidfinesoverview') %]
-    <h4 style="margin-top:20px">Paid fines overview by fine type</h4>
-    <table id="finesoverview">
-        <thead>
-            <tr>
-                <th>Fine type (paid)</th>
-                <th>Item type</th>
-                <th>Count</th>
-                <th>Sum</th>
-            </tr>
-        </thead>
-        <tbody>
-            [% FOREACH finestat IN finesstats.data.keys %]
-                [% typestat = finesstats.data.$finestat.keys %]
-                [% FOREACH typestat IN finesstats.data.$finestat.keys %]
-                [% showstat = finesstats.data.$finestat.$typestat %]
-                <tr>
-                    <td>
-                        [% INCLUDE accountTypeName %] 
-                    </td>
-                    <td style="text-align:right;">[% showstat.itemtypedescription %]</td>
-                    <td style="text-align:right;">[% showstat.count %]</td>
-                    <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
-                </tr>
-                [% END %]
-            [% END %]
-        </tbody>
-        <tfoot>
-            <tr>
-                <td>
-                    Total
-                </td>
-                <td></td>
-                <td style="text-align:right;">[% finesstats.sum.count %]</td>
-                <td style="text-align:right;">[% finesstats.sum.fines_amount_formatted %]</td>
-            </tr>
-        </tfoot>
-    </table>
-[% ELSIF (finesstats.type == 'inoutpaymentoverview') %]
+[% IF (finesstats.type == 'inoutpaymentoverview') %]
+    <h2>Cash register overview: [% branchname %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h2>
+    <p>Manager: [% loggedinusername %], Date: [% datetimenow %]</p>
+    [% IF (! printview) %]
+    <form id="showfinesoverview" action="/cgi-bin/koha/[% used_perl_script %]" method="post">
+        <input type="hidden" name="op" value="dayview" />
+        <fieldset class="rows" style="float: unset">
+            <ol>
+                <li>
+                    Cash register overview <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
+                    to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
+                    <input type="hidden" name="finestype" value="inoutpaymentoverview" />
+                    <input type="hidden" name="printview" value="" />
+                    <button id="noprintview" type="submit" name="allFromOpening" value="0">Select</button>
+                    <button id="printview" type="button" name="printview" value="print">Printview</button>
+                </li>
+            </ol>                      
+        </fieldset>
+    </form>
+    [% END %]
+    [% showCashRegisterOverview %]
     <h4 style="margin-top:20px;">Inpayment overview ([% cash_register.cash_register_name %])</h4>
     <table id="inpaymentoverview">
         <thead>
@@ -371,9 +238,9 @@ $(document).ready( function() {
         <tbody>
             [% FOREACH showstat IN finesstats.INPAYMENT %]
                 <tr>
-                    <td>[% PROCESS translate_cashregisteraction action=showstat.action %]</td>
+                    <td>[% resolveCashRegisterActionName(showstat.action) %]</td>
                     <td style="text-align:right;">[% showstat.booking_amount_formatted %]</td>
-                    <td style="text-align:right;">[% showstat.reason %][% IF (showstat.accounttype) %][% PROCESS accountTypeName finestat=showstat.accounttype %][% END %]</td>
+                    <td style="text-align:right;">[% showstat.reason %][% IF (showstat.accounttype) %][% resolveFinesTypeName(showstat.accounttype) %][% END %]</td>
                 </tr>
             [% END %]
         </tbody>
@@ -399,9 +266,9 @@ $(document).ready( function() {
         <tbody>
             [% FOREACH showstat IN finesstats.OUTPAYMENT %]
                 <tr>
-                    <td>[% PROCESS translate_cashregisteraction action=showstat.action %]</td>
+                    <td>[% resolveCashRegisterActionName(showstat.action) %]</td>
                     <td style="text-align:right;">[% showstat.booking_amount_formatted %]</td>
-                    <td style="text-align:right;">[% showstat.reason %][% IF (showstat.accounttype) %][% PROCESS accountTypeName finestat=showstat.accounttype %][% END %]</td>
+                    <td style="text-align:right;">[% showstat.reason %][% IF (showstat.accounttype) %][% resolveFinesTypeName(showstat.accounttype) %][% END %]</td>
                 </tr>
             [% END %]
         </tbody>
@@ -415,8 +282,356 @@ $(document).ready( function() {
             </tr>
         </tfoot>
     </table>
+[% ELSE %]
+     <h2>Fines overview: [% resolveReportBranchName(reportbranch) %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h2>
+    [% IF (!printview) %]
+        <form id="showfinesoverview" action="/cgi-bin/koha/[% used_perl_script %]" method="post">
+            <input type="hidden" name="op" value="finesreport" />
+            <fieldset class="rows" style="float: unset">
+                <ol>
+                    <li>
+                        Fines overview <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
+                        to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
+                        [% seltypes = [ 'paidfinesbytype', 'paidfinesbymanager', 'paidfinesbyday', 'finesoverview', 'finesbytype', 'finesbymanager', 'finesbyday', 'paymentsbytype', 'paymentsbymanager', 'paymentsbyday'] %]
+                        <select name="finestype">
+                            [% FOREACH seltype IN seltypes %]
+                                [% IF (finesstats.type == seltype) %]
+                                <option value="[% seltype %]" selected="selected">
+                                [% ELSE %]
+                                <option value="[% seltype %]">
+                                [% END %]
+                                [% SWITCH seltype %]
+                                [% CASE 'finesoverview' %]Fines overview
+                                [% CASE 'paidfinesbytype' %]Detailed paid fines by type
+                                [% CASE 'paidfinesbymanager' %]Detailed paid fines by manager
+                                [% CASE 'paidfinesbyday' %]Detailed paid fines by day
+                                [% CASE 'finesbytype' %]Detailed accrued fines by type
+                                [% CASE 'finesbymanager' %]Detailed accrued fines by manager
+                                [% CASE 'finesbyday' %]Detailed accrued fines by day
+                                [% CASE 'paymentsbytype' %]Detailed payments by type
+                                [% CASE 'paymentsbymanager' %]Detailed payments by manager
+                                [% CASE 'paymentsbyday' %]Detailed payments by day
+                                [% CASE %][% seltype %]
+                                [%- END -%]
+                                </option>
+                            [% END %]
+                        </select>&nbsp;<input type="hidden" name="printview" value="" />
+                        of library
+                        <select name="reportbranch">
+                            <option value="" selected="selected">All libraries</option>
+                            [% FOREACH branch IN branchloop %]
+                            [% IF (branch.branchcode == reportbranch) %]
+                                <option value="[% branch.branchcode %]" selected="selected">[% branch.branchname %]</option>
+                            [% ELSE %]
+                                <option value="[% branch.branchcode %]">[% branch.branchname %]</option>
+                            [% END %]
+                            [% END %]
+                        </select>
+                        <button id="noprintview" type="submit" name="allFromOpening" value="0">Select</button>
+                        <button id="printview" type="submit" name="printview" value="print"">Printview</button>
+                    </li>
+                </ol>                      
+            </fieldset>
+        </form>
+    [% ELSE %]
+        <p>Manager: [% loggedinusername %], Date: [% datetimenow %]</p>
+    [% END %]
+[% END %]    
+[% IF (finesstats.type == 'finesoverview') %]
+
+    <h3 style="margin-top:30px">Fines overviews</h3>
+    
+    [% IF (finesstats.data.account.mapped) %]
+        <h4 style="margin-top:20px">Paid fines by account</h4>
+        <table id="mappedaccountoverview">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Count</th>
+                    <th>Sum</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH ptype IN finesstats.data.account.mapped.keys.sort %]
+                    [% showstat = finesstats.data.account.mapped.$ptype %]
+                    <tr>
+                        <td>[% ptype %]</td>
+                        <td style="text-align:right;">[% showstat.count %]</td>
+                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+    
+        [% IF (finesstats.data.account.unmapped) %]
+        <h4 style="margin-top:20px">Unmapped paid fines (to above accounts)</h4>
+        <table id="unmappedaccountoverview">
+            <thead>
+                <tr>
+                    <th>Unmapped fine type</th>
+                    <th>Description</th>
+                    <th>Count</th>
+                    <th>Sum</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH ptype IN finesstats.data.account.unmapped.keys.sort %]
+                    [% showstat = finesstats.data.account.unmapped.$ptype %]
+                    <tr>
+                        <td>[% ptype %]</td>
+                        <td>[% resolveFinesTypeName(ptype) %] </td>
+                        <td style="text-align:right;">[% showstat.count %]</td>
+                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+        [% END %]
+    [% END %]
+    
+    <h4 style="margin-top:20px">Paid fines overview by fine type</h4>
+    <table id="finestypeoverview">
+        <thead>
+            <tr>
+                <th>Payment type</th>
+                <th>Fine type</th>
+                <th>Count</th>
+                <th>Sum</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH finestat IN finesstats.data.paidtype.keys.sort %]
+                [% showstat = finesstats.data.paidtype.$finestat %]
+                <tr>
+                    <td>Payment</td>
+                    <td>
+                        [% resolveFinesTypeName(finestat) %] 
+                    </td>
+                    <td style="text-align:right;">[% showstat.count %]</td>
+                    <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                </tr>
+            [% END %]
+            [% FOREACH finestat IN finesstats.data.reversedtype.keys.sort %]
+                [% showstat = finesstats.data.reversedtype.$finestat %]
+                <tr>
+                    <td>Reverse Payment</td>
+                    <td>
+                        [% resolveFinesTypeName(finestat) %] 
+                    </td>
+                    <td style="text-align:right;">[% showstat.count %]</td>
+                    <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                </tr>
+            [% END %]
+        </tbody>
+        <tfoot>
+            [% IF (finesstats.sum.paid && finesstats.sum.paid.count > 0 ) %]
+            <tr>
+                <td colspan="2">
+                    Total fines paid
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    ... paid by card
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.payment_amount_formatted %]</td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    ... paid cash
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.payment_amount_formatted %]</td>
+            </tr>
+            [% END %]
+            [% IF (finesstats.sum.reversed && finesstats.sum.reversed.count > 0) %]
+            <tr>
+                <td colspan="2">
+                    Total reversed
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.reversed.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.reversed.fines_amount_formatted %]</td>
+            </tr>
+            [% END %]
+        </tfoot>
+    </table>
+    
+    <h4 style="margin-top:20px">Paid fines overview by fine type and item type</h4>
+    <table id="finesoverview">
+        <thead>
+            <tr>
+                <th>Payment type</th>
+                <th>Fine type</th>
+                <th>Item type</th>
+                <th>Count</th>
+                <th>Sum</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH finestat IN finesstats.data.paid.keys.sort %]
+                [% typestat = finesstats.data.paid.$finestat.keys.sort %]
+                [% FOREACH typestat IN finesstats.data.paid.$finestat.keys.sort %]
+                    [% showstat = finesstats.data.paid.$finestat.$typestat %]
+                    <tr>
+                        <td>Payment</td>
+                        <td>
+                            [% resolveFinesTypeName(finestat) %] 
+                        </td>
+                        <td>[% showstat.itemtypedescription %]</td>
+                        <td style="text-align:right;">[% showstat.count %]</td>
+                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                    </tr>
+                [% END %]
+            [% END %]
+            [% FOREACH finestat IN finesstats.data.reversed.keys.sort %]
+                [% typestat = finesstats.data.reversed.$finestat.keys.sort %]
+                [% FOREACH typestat IN finesstats.data.reversed.$finestat.keys.sort %]
+                    [% showstat = finesstats.data.reversed.$finestat.$typestat %]
+                    <tr>
+                        <td>Reverse Payment</td>
+                        <td>
+                            [% resolveFinesTypeName(finestat) %] 
+                        </td>
+                        <td>[% showstat.itemtypedescription %]</td>
+                        <td style="text-align:right;">[% showstat.count %]</td>
+                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                    </tr>
+                [% END %]
+            [% END %]
+        </tbody>
+        <tfoot>
+            [% IF (finesstats.sum.paid && finesstats.sum.paid.count > 0 ) %]
+            <tr>
+                <td colspan="3">
+                    Total fines paid
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
+            </tr>
+            <tr>
+                <td colspan="3">
+                    ... paid by card
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.payment_amount_formatted %]</td>
+            </tr>
+            <tr>
+                <td colspan="3">
+                    ... paid cash
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.payment_amount_formatted %]</td>
+            </tr>
+            [% END %]
+            [% IF (finesstats.sum.reversed && finesstats.sum.reversed.count > 0 ) %]
+            <tr>
+                <td colspan="3">
+                    Total reversed
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.reversed.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.reversed.fines_amount_formatted %]</td>
+            </tr>
+            [% END %]
+        </tfoot>
+    </table>
+    
+    [% IF (finesstats.data.cashregister) %]
+    <h3 style="margin-top:30px">Cash register overview</h3>
+    
+    [% FOREACH cashreg IN finesstats.data.cashregister.keys.sort %]
+    <h4 style="margin-top:20px">Cash register: [% cashreg %]</h4>
+    <table id="cashregoverview">
+        <thead>
+            <tr>
+                <th>Payment type</th>
+                <th>Reason</th>
+                <th>Type</th>
+                <th>Count</th>
+                <th>Sum</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH action IN finesstats.data.cashregister.$cashreg.keys.sort %]
+                [% FOREACH reason IN finesstats.data.cashregister.$cashreg.$action.keys.sort %]
+                    [% FOREACH accounttype IN finesstats.data.cashregister.$cashreg.$action.$reason.keys.sort %]
+                        [% showstat = finesstats.data.cashregister.$cashreg.$action.$reason.$accounttype %]
+                        <tr>
+                            <td>[% resolveCashRegisterActionName(action) %]</td>
+                            <td>[% reason %]</td>
+                            <td>[% IF (accounttype) %][% resolveFinesTypeName(accounttype) %][% END %]</td>
+                            <td style="text-align:right;">[% showstat.count %]</td>
+                            <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                        </tr>
+                    [% END %]
+                [% END %]
+            [% END %]
+        </tbody>
+    </table>
+    [% END %]
+    [% END %]
+
+    [% IF (finesstats.data.accountfee) %]
+    <h3 style="margin-top:30px">Account management fees</h3>
+    
+    [% IF (finesstats.data.accountfee.borrower_type) %]
+    <h4 style="margin-top:20px">Paid account management fee by borrower category</h4>
+    <table id="accountmanagementfeebyborrowertype">
+        <thead>
+            <tr>
+                <th>Payment type</th>
+                <th>Borrower category</th>
+                <th>Count</th>
+                <th>Sum</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH ptype IN finesstats.data.accountfee.borrower_type.keys.sort %]
+                [% FOREACH categ IN finesstats.data.accountfee.borrower_type.$ptype.keys.sort %]
+                    [% showstat = finesstats.data.accountfee.borrower_type.$ptype.$categ %]
+                    <tr>
+                        <td>[% resolveAccountOffsetActionTypeName(ptype) %]</td>
+                        <td>[% categ %]</td>
+                        <td style="text-align:right;">[% showstat.count %]</td>
+                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                    </tr>
+                [% END %]
+            [% END %]
+        </tbody>
+    </table>
+    [% END %]
+    
+    [% IF (finesstats.data.accountfee.borrower_town) %]
+    <h4 style="margin-top:20px">Paid account management fee by borrower town</h4>
+    <table id="accountmanagementfeebyborrowertown">
+        <thead>
+            <tr>
+                <th>Payment type</th>
+                <th>Town</th>
+                <th>Count</th>
+                <th>Sum</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH ptype IN finesstats.data.accountfee.borrower_town.keys.sort %]
+                [% FOREACH categ IN finesstats.data.accountfee.borrower_town.$ptype.keys.sort %]
+                    [% showstat = finesstats.data.accountfee.borrower_town.$ptype.$categ %]
+                    <tr>
+                        <td>[% resolveAccountOffsetActionTypeName(ptype) %]</td>
+                        <td>[% categ %]</td>
+                        <td style="text-align:right;">[% showstat.count %]</td>
+                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                    </tr>
+                [% END %]
+            [% END %]
+        </tbody>
+    </table>
+    [% END %]
+    [% END %]
 [% ELSIF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype') %]
-    <h4 style="margin-top:20px">
+    <h3 style="margin-top:20px">
         [% SWITCH finesstats.type %]
         [% CASE 'paidfinesbytype' %]Detailed paid fines by type
         [% CASE 'paidfinesbymanager' %]Detailed paid fines by manager
@@ -432,7 +647,7 @@ $(document).ready( function() {
     </h4>
     [% IF (finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype') %]
     <p>
-        The following payment overview lists detailed payments of the current branch during the selected period. If a cash register is opened, it includes all cash payments, deposits and adjustments made during the selected period.
+        The following payment overview lists detailed payments of the selected branch during the selected period. It includes all cash payments, deposits and adjustments of cash registers during the selected period.
     </p>
     [% END %]
     <table id="finesbydate">
@@ -456,10 +671,10 @@ $(document).ready( function() {
                     <td style="text-align:right;">[% showstat.date %]</td>
                     <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                     <td>
-                        [% IF (showstat.type == 1) %]
-                            [% INCLUDE accountTypeName %]
+                        [% IF (showstat.entrytype == 1) %]
+                            [% resolveFinesTypeName(showstat.accounttype) %]
                         [% ELSE %]
-                            [% PROCESS translate_cashregisteraction action=showstat.accounttype %][% IF (showstat.reason) %] ([% showstat.reason %])[% END %]
+                            [% resolveCashRegisterActionName(showstat.accounttype) %] ([% showstat.cash_register_name %]) [% IF (showstat.reason) %] ([% showstat.reason %])[% END %]
                         [% END %]
                     </td>
                     <td>

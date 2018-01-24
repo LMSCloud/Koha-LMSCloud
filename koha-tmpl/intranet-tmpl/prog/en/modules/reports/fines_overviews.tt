@@ -1,0 +1,46 @@
+[% USE Branches %]
+[% USE KohaDates %]
+[% USE ItemTypes %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Reports &rsaquo; Fines overview</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% INCLUDE 'calendar.inc' %]
+<script type="text/javascript">
+//<![CDATA[
+$(document).ready( function() {
+    $('.cashregisterlink').click(function(){
+        var journalfrom = $('#journalfrom').val();
+        var journalto = $('#journalto').val();
+        if ( this.href.indexOf('?') < 0 ) this.href += '?';
+        if ( journalfrom ) this.href += '&journalfrom=' + journalfrom;
+        if ( journalto ) this.href += '&journalto=' + journalto;
+    });
+});
+//]]>
+</script>
+</head>
+<body id="rep_bor_issues_top" class="rep">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+
+<div id="breadcrumbs">
+         <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+&rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Reports</a>
+&rsaquo; <a class="cashregisterlink" href="/cgi-bin/koha/reports/fines_overviews.pl">Fines overviews</a>
+</div>
+
+<div id="doc3" class="yui-t2">
+   
+ <div id="bd">
+  <div id="yui-main">
+	<div class="yui-b">
+
+[% INCLUDE 'cashregister-fines-overview.inc' used_perl_script="reports/fines_overviews.pl" %]
+
+</div>
+</div>
+<div class="yui-b">
+[% INCLUDE 'reports-menu.inc' %]
+</div>
+</div>
+[% INCLUDE 'intranet-bottom.inc' %]

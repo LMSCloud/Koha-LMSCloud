@@ -29,6 +29,14 @@ $(document).ready( function() {
         }
     }));
     
+    $('.cashregisterlink').click(function(){
+        var journalfrom = $('#journalfrom').val();
+        var journalto = $('#journalto').val();
+        if ( this.href.indexOf('?') < 0 ) this.href += '?';
+        if ( journalfrom ) this.href += '&journalfrom=' + journalfrom;
+        if ( journalto ) this.href += '&journalto=' + journalto;
+    });
+    
     $('#cash_payment').on("keyup change", function() {
         var amount = parseFloat($('#cash_payment').val()).toFixed(2);
         var maxval =  parseFloat($('#cash_balance_val').val()).toFixed(2);
@@ -100,7 +108,7 @@ $(document).ready( function() {
 <div id="breadcrumbs">
          <a href="/cgi-bin/koha/mainpage.pl">Home</a>
 &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-&rsaquo; <a href="/cgi-bin/koha/circ/managecashregister.pl">Cash register management</a> [% IF status == 'manage' %]
+&rsaquo; <a class="cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl">Cash register management</a> [% IF status == 'manage' %]
 &rsaquo; Open cash register: [% cashreg.cash_register_name %][% END %]
 </div>
 
@@ -139,8 +147,8 @@ $(document).ready( function() {
                         </div><!-- help-->
                         [% END %]
                         <div id="toolbar" class="btn-toolbar">
-                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
-                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Day-end closing</a>
+                            <a id="closecashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
+                            <a id="finesreport" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                         </div>
                         [% END %]
                         
@@ -159,27 +167,32 @@ $(document).ready( function() {
                                 [% END %]
                             </select>
                             <input type="hidden" name="op" value="open" />
+                            <input id="journalfrom" type="hidden" name="journalfrom" value="[% journalfrom %]">
+                            <input id="journalto" type="hidden" name="journalto" value="[% journalto %]">
                             &nbsp;&nbsp;<button class="btn btn-small" submit=""><i class="fa fa-money"></i> Open cash register</button>
                         </form>
                         <div id="toolbar" class="btn-toolbar">
-                            <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Day-end closing</a>
+                            <a id="linkfinesreport" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                         </div>
                         [% END %]
                         
                         [% IF status == 'manage' %]
                             <div id="toolbar" class="btn-toolbar">
-                                <a id="linkclosecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
-                                <a id="linkpayoutcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dopayout"><i class="fa fa-money"></i> Cash payment</a>
-                                <a id="linkdepositcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dodeposit"><i class="fa fa-gift"></i> Deposit</a>
-                                <a id="linkadjustcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa fa-adjust"></i> Difference posting</a>
-                                <a id="linkshowcashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa fa-list"></i> Cash journal</a>
-                                <a id="closecashregister" class="btn btn-small" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Day-end closing</a>
+                                <a id="linkclosecashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
+                                <a id="linkpayoutcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dopayout"><i class="fa fa-money"></i> Cash payment</a>
+                                <a id="linkdepositcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dodeposit"><i class="fa fa-gift"></i> Deposit</a>
+                                <a id="linkadjustcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa fa-adjust"></i> Difference posting</a>
+                                <a id="linkshowcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa fa-list"></i> Cash journal</a>
+                                <a id="linkcashregisteroverview" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Cash register overview</a>
+                                <a id="linkfinesreport" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                             </div>
                             [% IF manageaction == 'payout' %]
                                 <h3>Cash payment</h3>
                                 <form name="payoutcashregister" id="payoutcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="payout">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
+                                <input id="journalfrom" type="hidden" name="journalfrom" value="[% journalfrom %]">
+                                <input id="journalto" type="hidden" name="journalto" value="[% journalto %]">
                                 <fieldset class="rows">
                                     <legend>Define cash payment amount</legend>
                                     <ol>
@@ -239,6 +252,8 @@ $(document).ready( function() {
                                 <form name="payoutcashregister" id="payoutcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="deposit">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
+                                <input id="journalfrom" type="hidden" name="journalfrom" value="[% journalfrom %]">
+                                <input id="journalto" type="hidden" name="journalto" value="[% journalto %]">
                                 <fieldset class="rows">
                                     <legend>Define deposit amount</legend>
                                     <ol>
@@ -298,6 +313,8 @@ $(document).ready( function() {
                                 <form name="adjustcashregister" id="adjustcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="adjust">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
+                                <input id="journalfrom" type="hidden" name="journalfrom" value="[% journalfrom %]">
+                                <input id="journalto" type="hidden" name="journalto" value="[% journalto %]">
                                 <fieldset class="rows">
                                     <legend>Define difference posting amount</legend>
                                     <ol>
@@ -357,6 +374,8 @@ $(document).ready( function() {
                                 <form name="closecashregister" id="closecashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="close">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
+                                <input id="journalfrom" type="hidden" name="journalfrom" value="[% journalfrom %]">
+                                <input id="journalto" type="hidden" name="journalto" value="[% journalto %]">
                                 <fieldset class="rows">
                                     <legend>Define cash payment amount</legend>
                                     <ol>
@@ -455,8 +474,8 @@ $(document).ready( function() {
                                 </div>
                             [% END %]
                         [% END %]
-                        [% IF manageaction == 'dayview' %]
-                            [% INCLUDE 'cashregister-fines-overview.inc' %]
+                        [% IF ( manageaction == 'dayview' || manageaction == 'finesreport') %]
+                            [% INCLUDE 'cashregister-fines-overview.inc' used_perl_script="circ/managecashregister.pl" %]
                         [% END %]
                         [% debug %]
                     </div>
