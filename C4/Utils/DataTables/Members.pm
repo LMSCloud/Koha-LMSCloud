@@ -70,10 +70,12 @@ sub search {
         borrowers.borrowernotes, borrowers.branchcode, borrowers.email,
         borrowers.userid, borrowers.dateofbirth, borrowers.categorycode,
         categories.description AS category_description, categories.category_type,
-        branches.branchname";
+        branches.branchname, borrowers.lost, borrowers.gonenoaddress,
+        debar.expiration as debarred, debar.comment as debarredcomment ";
     my $from = "FROM borrowers
         LEFT JOIN branches ON borrowers.branchcode = branches.branchcode
-        LEFT JOIN categories ON borrowers.categorycode = categories.categorycode";
+        LEFT JOIN categories ON borrowers.categorycode = categories.categorycode
+        LEFT JOIN (SELECT borrowernumber, IFNULL('9999-12-31',max(expiration)) as expiration, GROUP_CONCAT(comment SEPARATOR ' / ') AS comment FROM borrower_debarments WHERE expiration > CURRENT_DATE() OR expiration IS NULL GROUP BY borrowernumber) AS debar on borrowers.borrowernumber = debar.borrowernumber ";
     my @where_args;
     my @where_strs;
     if(defined $firstletter and $firstletter ne '') {

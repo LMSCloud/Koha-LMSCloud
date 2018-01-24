@@ -374,6 +374,9 @@ $(document).ready(function() {
                 'name': 'branch_sorton',
                 'value': 'branches.branchname'
             },{
+                'name': 'debarred_sorton',
+                'value': 'debarredcomment borrowers.lost borrowers.gonenoaddress',
+            },{
                 'name': 'template_path',
                 'value': 'members/tables/members_results.tt',
             });
@@ -402,6 +405,7 @@ $(document).ready(function() {
             { 'mDataProp': 'dt_dateofbirth' },
             { 'mDataProp': 'dt_category' },
             { 'mDataProp': 'dt_branch' },
+            { 'mDataProp': 'dt_debarred' },
             { 'mDataProp': 'dt_dateexpiry' },
             { 'mDataProp': 'dt_od_checkouts', 'bSortable': false },
             { 'mDataProp': 'dt_fines', 'bSortable': false },
@@ -595,6 +599,7 @@ function filterByFirstLetterSurname(letter) {
                   <th>Date of birth</th>
                   <th>Category</th>
                   <th>Library</th>
+                  <th>Restrictions</th>
                   <th>Expires on</th>
                   <th>OD/Checkouts</th>
                   <th>Fines</th>
