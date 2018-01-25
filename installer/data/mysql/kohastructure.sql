@@ -75,7 +75,7 @@ DROP TABLE IF EXISTS `aggregated_statistics_parameters`;
 CREATE TABLE `aggregated_statistics_parameters` ( -- contains additional selection parameters for a record in table aggregated_statistics.
   `statistics_id` int(11) NOT NULL, -- foreign key from the aggregated_statistics table to identify the join (value of aggregated_statistics.id)
   `name` varchar(80) NOT NULL default '', -- name of the parameter, e.g. "branchcode"
-  `value` mediumtext NOT NULL default '', -- value of the parameter, eg. "Zentrale"
+  `value` mediumtext, -- value of the parameter, eg. "Zentrale"
   PRIMARY KEY  (`statistics_id`, `name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -87,7 +87,7 @@ DROP TABLE IF EXISTS `aggregated_statistics_values`;
 CREATE TABLE `aggregated_statistics_values` ( -- contains the resulting values for a record in table aggregated_statistics.
   `statistics_id` int(11) NOT NULL, -- foreign key from the aggregated_statistics table to identify the join (value of aggregated_statistics.id)
   `name` varchar(80) NOT NULL default '', -- name of the result value, e.g. "med_printissue_stock"
-  `value` mediumtext NOT NULL default '', -- calculated/edited result value
+  `value` mediumtext, -- calculated/edited result value
   `type` varchar(20) NOT NULL default '', -- enum of value type, e.g. "text", "bool", "int", "float", "money"
   PRIMARY KEY  (`statistics_id`, `name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
