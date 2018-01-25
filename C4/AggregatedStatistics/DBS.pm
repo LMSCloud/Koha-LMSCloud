@@ -1193,8 +1193,8 @@ sub add_form_parameters {
     print STDERR "C4::AggregatedStatistics::DBS::add_form_parameters Dumper(input):", Dumper($input), ":\n" if $debug;
     print STDERR "C4::AggregatedStatistics::DBS::add_form_parameters input->param('selectedgroup')", scalar $input->param('selectedgroup'), ": input->param('selectedbranch')", scalar $input->param('selectedbranch'), ":\n" if $debug;
 
-    my $selectedgroup  = $input->param('selectedgroup') || '*';
-    my $selectedbranch = $input->param('selectedbranch') || '*';
+    my $selectedgroup  = $input->param('selectedgroup') || '*';    # default, in case it can not be read from table aggregated_statistics_parameters
+    my $selectedbranch = $input->param('selectedbranch') || '*';   # default, in case it can not be read from table aggregated_statistics_parameters
 
     if ( defined($aggregated_statistics_id) && length($aggregated_statistics_id) > 0 ) {
         my $aggregatedStatisticsParameters = C4::AggregatedStatistics::GetAggregatedStatisticsParameters(
@@ -1276,6 +1276,89 @@ print STDERR "C4::AggregatedStatistics::DBS::add_validate_parameters input->para
         };
         $res = C4::AggregatedStatistics::UpdAggregatedStatisticsParameters( $insParam );
     }
+}
+
+#  copy all records from aggregated_statistics_values where statistics_id = id_source to records with statistics_id = id_target
+sub copy_ag_values {
+    my ($id_source, $id_target) = @_;
+    my $res;
+
+print STDERR "C4::AggregatedStatistics::DBS::copy_ag_values NOW IT IS USED! id_source:$id_source:  id_target:$id_target:\n" if $debug;
+
+    if ( defined($id_source) && length($id_source) > 0 && defined($id_target) && length($id_target) > 0 && $id_source ne $id_target) {
+        my $selParam = { 
+            statistics_id => $id_target
+        };
+        $res = C4::AggregatedStatistics::DelAggregatedStatisticsValues($selParam);    # delete all entries from aggregated_statistics_parameters where statistics_id = $id_target
+
+        my $aggregatedStatisticsValues = C4::AggregatedStatistics::GetAggregatedStatisticsValues(
+            {
+                statistics_id => $id_source,
+            }
+        );
+print STDERR "C4::AggregatedStatistics::DBS::copy_ag_values  count aggregatedStatisticsValues:", $aggregatedStatisticsValues->_resultset()+0, ":\n" if $debug;
+        if ($aggregatedStatisticsValues && $aggregatedStatisticsValues->_resultset() && $aggregatedStatisticsValues->_resultset()->all()) {
+            foreach my $rsHit ($aggregatedStatisticsValues->_resultset()->all()) {
+print STDERR "C4::AggregatedStatistics::DBS::copy_ag_values  rsHit statistics_id:", $rsHit->get_column('statistics_id'), ": name:", $rsHit->get_column('name'), ": value:", $rsHit->get_column('value'), ":\n" if $debug;
+                C4::AggregatedStatistics::UpdAggregatedStatisticsValues(
+                    {
+                        statistics_id => $id_target,
+                        name => $rsHit->get_column('name'),
+                        value => $rsHit->get_column('value'),
+                        type => $rsHit->get_column('type'),
+                    }
+                );
+            }
+        }
+    }
+}
+
+# Calculate DBS values from Koha fields and update table aggregated_statistics_values accordingly.
+sub recalculate_ag_values {
+    my ($aggregated_statistics_id, $startdateDB, $enddateDB) = @_;
+    my $res;
+
+print STDERR "C4::AggregatedStatistics::DBS::recalculate_ag_values NOW IT IS USED! startdateDB:$startdateDB: enddateDB:$enddateDB: aggregated_statistics_id:$aggregated_statistics_id:\n" if $debug;
+
+    my ($branchgroupSel, $branchgroup, $branchcodeSel, $branchcode) = &get_branchgroup_branchcode_selection($aggregated_statistics_id);
+
+    # calculate DBS statistics values where possible
+    foreach my $name (keys %{$as_values}) {
+        if ( defined($as_values->{$name}->{'calc'}) ) {
+            $res = &{$as_values->{$name}->{'calc'}}($name, $as_values->{$name}->{'param'}, $startdateDB, $enddateDB, $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
+
+print STDERR "C4::AggregatedStatistics::DBS::recalculate_ag_values loop aggregated_statistics_id:$aggregated_statistics_id: name:$name: res:$res:\n" if $debug;
+            C4::AggregatedStatistics::UpdAggregatedStatisticsValues(
+                {
+                    statistics_id => $aggregated_statistics_id,
+                    name => $name,
+                    value => $res,
+                    type => $as_values->{$name}->{'type'},
+                }
+            );
+        }
+    }
+}
+
+sub get_branchgroup_branchcode_selection {
+    my ($aggregated_statistics_id) = @_;
+
+    my $branchgroupSel = 0;    # default: no selection for branchgroup
+    my $branchgroup = readAggregatedStatisticsParametersValue($aggregated_statistics_id, 'branchgroup');
+    if ( !defined($branchgroup) || length($branchgroup) == 0 || $branchgroup eq '*' ) {
+        $branchgroup = '';
+    } else {
+        $branchgroupSel = 1;
+    }
+    my $branchcodeSel = 0;    # default: no selection for branchcode
+    my $branchcode = readAggregatedStatisticsParametersValue($aggregated_statistics_id, 'branchcode');
+    if ( !defined($branchcode) || length($branchcode) == 0 || $branchcode eq '*' ) {
+        $branchcode = '';
+    } else {
+        $branchcodeSel = 1;
+        $branchgroupSel = 0;    # of course the finer selection 'branchcode' has to be used, if existing, in favour of 'branchgroup'
+    }
+    return ($branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
 }
 
 sub read_categories_and_branches {
@@ -1386,38 +1469,25 @@ print STDERR "C4::AggregatedStatistics::DBS::eval_form \$dbs_values->{", $name, 
     output_html_with_http_headers $input, $cookie, $template->output;
 }
 
+# Calculate DBS values from Koha fields and prepare them for display in HTML form.
 sub dbs_calc {
-    my ($script_name, $input, $aggregated_statistics_id) = @_;
-    my $res;
+    my ($input, $aggregated_statistics_id) = @_;
+
 print STDERR "C4::AggregatedStatistics::DBS::dbs_calc Start aggregated_statistics_id:", $aggregated_statistics_id, ": statisticstype:". scalar $input->param('statisticstype'), ": statisticstypedesignation:", scalar $input->param('statisticstypedesignation'), ": name:", scalar $input->param('name'), ": st_gen_population:", scalar $input->param('st_gen_population'), ": st_gen_libcount:", scalar $input->param('st_gen_libcount'), ":\n" if $debug;
 print STDERR "C4::AggregatedStatistics::DBS::dbs_calc Start ref(\$input):", ref($input), ": input:", $input, ":\n" if $debug;
 
-    my $branchgroupSel = 0;    # default: no selection for branchgroup
-    my $branchgroup = readAggregatedStatisticsParametersValue($aggregated_statistics_id, 'branchgroup');
-    if ( !defined($branchgroup) || length($branchgroup) == 0 || $branchgroup eq '*' ) {
-        $branchgroup = '';
-    } else {
-        $branchgroupSel = 1;
-    }
-    my $branchcodeSel = 0;    # default: no selection for branchcode
-    my $branchcode = readAggregatedStatisticsParametersValue($aggregated_statistics_id, 'branchcode');
-    if ( !defined($branchcode) || length($branchcode) == 0 || $branchcode eq '*' ) {
-        $branchcode = '';
-    } else {
-        $branchcodeSel = 1;
-        $branchgroupSel = 0;    # of course the finer selection 'branchcode' has to be used, if existing, in favour of 'branchgroup'
-    }
+    my ($branchgroupSel, $branchgroup, $branchcodeSel, $branchcode) = &get_branchgroup_branchcode_selection($aggregated_statistics_id);
 
     # calculate DBS statistics values where possible
     foreach my $name (keys %{$as_values}) {
         if ( defined($as_values->{$name}->{'calc'}) ) {
-            &{$as_values->{$name}->{'calc'}}($input, $aggregated_statistics_id, $name, $as_values->{$name}->{'param'}, $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
+            $input->{'param'}->{'st_' . $name}->[0] = &{$as_values->{$name}->{'calc'}}($name, $as_values->{$name}->{'param'}, scalar $input->param('startdate'), scalar $input->param('enddate'), $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
         }
     }
 }
 
 sub dbs_save {
-    my ($script_name, $input, $aggregated_statistics_id) = @_;
+    my ($input, $aggregated_statistics_id) = @_;
     my $res;
 print STDERR "C4::AggregatedStatistics::DBS::dbs_save Start aggregated_statistics_id:", $aggregated_statistics_id, ": statisticstype:". scalar $input->param('statisticstype'), ": statisticstypedesignation:", scalar $input->param('statisticstypedesignation'), ": name:", scalar $input->param('name'), ": st_gen_population:", scalar $input->param('st_gen_population'), ": st_gen_libcount:", scalar $input->param('st_gen_libcount'), ":\n" if $debug;
 print STDERR "C4::AggregatedStatistics::DBS::dbs_save Start ref(\$input):", ref($input), ": input:", $input, ":\n" if $debug;
@@ -1501,7 +1571,7 @@ print STDERR "C4::AggregatedStatistics::DBS::readAggregatedStatisticsValue Start
 }
 
 sub dbs_del {
-    my ($script_name, $input, $aggregated_statistics_id) = @_;
+    my ($input, $aggregated_statistics_id) = @_;
     my $res;
 print STDERR "C4::AggregatedStatistics::DBS::dbs_del Start aggregated_statistics_id:", $aggregated_statistics_id, ": statisticstype:". scalar $input->param('statisticstype'), ": statisticstypedesignation:", scalar $input->param('statisticstypedesignation'), ": name:", scalar $input->param('name'), ": st_gen_population:", scalar $input->param('st_gen_population'), ": st_gen_libcount:", scalar $input->param('st_gen_libcount'), ":\n" if $debug;
 print STDERR "C4::AggregatedStatistics::DBS::dbs_del Start ref(\$input):", ref($input), ": input:", $input, ":\n" if $debug;
@@ -1552,21 +1622,15 @@ print STDERR "C4::AggregatedStatistics::DBS::readAggregatedStatisticsParametersV
 }
 
 sub func_call_sql {
-    my ($input, $aggregated_statistics_id, $name, $param, $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode) = @_;
+    my ($name, $param, $startdate, $enddate, $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode) = @_;
     my $res = 0;
-#print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start ref(\$input):", ref($input), ": input:", $input, ":\n" if $debug;
-#print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start Dumper(input):", Dumper($input), ":\n" if $debug
 
-#print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start Dumper(input->{'param'}):", Dumper($input->{'param'}), ":\n" if $debug;
-print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start Dumper(input->{'param'}->{'st_' . $name}):", Dumper($input->{'param'}->{'st_' . $name}), ":\n" if $debug;
-print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start Dumper(input->{'param'}->{'st_' . $name}->[0]):", Dumper($input->{'param'}->{'st_' . $name}->[0]), ":\n" if $debug;
+print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start name:$name: startdate:$startdate: enddate:$enddate: branchgroupSel:$branchgroupSel: branchgroup:$branchgroup: branchcodeSel:$branchcodeSel: branchcode:$branchcode:\n" if $debug;
 
-print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start input->param('startdate'):", scalar $input->param('startdate'), ": input->param('enddate'):", scalar $input->param('enddate'), ":\n" if $debug;
-print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start branchgroupSel:$branchgroupSel: branchgroup:$branchgroup: branchcodeSel:$branchcodeSel: branchcode:$branchcode:\n" if $debug;
 print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start sql statement:", $dbs_sql_statements->{$name}, ":\n" if $debug;
 
     my $sth = $dbh->prepare($dbs_sql_statements->{$name});
-    $sth->execute(scalar $input->param('startdate'), scalar $input->param('enddate'), $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
+    $sth->execute($startdate, $enddate, $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
 
     unless ($sth) {
         die "execute_query failed to return sth for sql statement: $dbs_sql_statements->{$name}";
@@ -1576,7 +1640,7 @@ print STDERR "C4::AggregatedStatistics::DBS::func_call_sql Start sql statement:"
 print STDERR "C4::AggregatedStatistics::DBS::func_call_sql res:$res:\n" if $debug;
     }
 
-    $input->{'param'}->{'st_' . $name}->[0] = $res;
+    return $res;
 
 }
     

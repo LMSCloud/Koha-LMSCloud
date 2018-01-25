@@ -107,14 +107,6 @@ $template->param(
 	enddate => $enddate
 );
 
-## the handling of table DB aggregated_statistics_parameters depends on statisticstype
-#print STDERR "aggregated_statistics::add_form statisticstype:$statisticstype: eq DBS:", $statisticstype eq 'DBS', ":\n" if $debug;
-#if ( $statisticstype eq 'DBS' ) {
-#    eval {use C4::AggregatedStatistics::DBS};
-#    C4::AggregatedStatistics::DBS::get_param_parameters($template);
-#    eval {no C4::AggregatedStatistics::DBS};
-#}
-
 if ( $op eq 'add_validate' or $op eq 'copy_validate' ) {
     add_validate();
     $op = q{}; # we return to the default screen for the next operation
@@ -141,15 +133,15 @@ elsif ( $op eq 'eval_form' ) {
     eval_form();
 }
 elsif ( $op eq 'dbs_calc' ) {
-    C4::AggregatedStatistics::DBS::dbs_calc($script_name, $input, $id);
+    C4::AggregatedStatistics::DBS::dbs_calc($input, $id);
     eval_form();
 }
 elsif ( $op eq 'dbs_save' ) {
-    C4::AggregatedStatistics::DBS::dbs_save($script_name, $input, $id);
+    C4::AggregatedStatistics::DBS::dbs_save($input, $id);
     eval_form();
 }
 elsif ( $op eq 'dbs_del' ) {
-    C4::AggregatedStatistics::DBS::dbs_del($script_name, $input, $id);
+    C4::AggregatedStatistics::DBS::dbs_del($input, $id);
     eval_form();
 }
 else {
@@ -220,8 +212,6 @@ print STDERR "aggregated_statistics::add_form statisticstype:$statisticstype: eq
 
         #XXXWH use C4::AggregatedStatistics::DBS;
         #XXXWH eval {use C4::AggregatedStatistics::DBS};
-
-        # Schlecht:
         eval "use C4::AggregatedStatistics::$statisticstype";
 
 print STDERR "aggregated_statistics::add_form NOW IS CALLING C4::AggregatedStatistics::DBS::add_form_parameters(...)\n" if $debug;
@@ -238,8 +228,8 @@ sub add_validate {
     my $statisticstype = $input->param('statisticstype');
     my $name           = $input->param('name');
     my $description    = $input->param('description');
-    my $startdate      = output_pref({ dt => dt_from_string( scalar $input->param('startdate') ), dateformat => 'iso', dateonly => 1 });
-    my $enddate        = output_pref({ dt => dt_from_string( scalar $input->param('enddate') ), dateformat => 'iso', dateonly => 1 });
+    my $startdateDB    = output_pref({ dt => dt_from_string( scalar $input->param('startdate') ), dateformat => 'iso', dateonly => 1 });
+    my $enddateDB      = output_pref({ dt => dt_from_string( scalar $input->param('enddate') ), dateformat => 'iso', dateonly => 1 });
     my $op             = $input->param('op');
 
     my %param;
@@ -250,8 +240,8 @@ print STDERR "aggregated_statistics::add_validate  op:$op: input->param(selected
         $param{'type'} = $statisticstype;
         $param{'name'} = $name;
         $param{'description'} = $description;
-        $param{'startdate'} = $startdate;
-        $param{'enddate'}   = $enddate;
+        $param{'startdate'} = $startdateDB;
+        $param{'enddate'}   = $enddateDB;
     } else {
         
 print STDERR "aggregated_statistics::add_validate op ne 'copy_validate'   id:", $id, ":\n" if $debug;
@@ -259,17 +249,21 @@ print STDERR "aggregated_statistics::add_validate op ne 'copy_validate'   id:", 
         $param{'type'} = $statisticstype;
         $param{'name'} = $name;
         $param{'description'} = $description;
-        $param{'startdate'} = $startdate;
-        $param{'enddate'}   = $enddate;
+        $param{'startdate'} = $startdateDB;
+        $param{'enddate'}   = $enddateDB;
     }
     my $aggregatedStatistics = C4::AggregatedStatistics::CreateAggregatedStatistics(\%param);
 
-    # the handling of aggregated_statistics_parameters depends on statisticstype
+    # the handling of aggregated_statistics_parameters and aggregated_statistics_values depends on statisticstype
 print STDERR "aggregated_statistics::add_validate statisticstype:$statisticstype: eq DBS:", $statisticstype eq 'DBS', ":\n" if $debug;
     if ( $statisticstype eq 'DBS' ) {
         eval {use C4::AggregatedStatistics::DBS};
 print STDERR "aggregated_statistics::add_validate NOW IS CALLING C4::AggregatedStatistics::DBS::add_validate_parameters(...)\n" if $debug;
         C4::AggregatedStatistics::DBS::add_validate_parameters($input, $aggregatedStatistics->_resultset()->get_column('id'));
+        if ( $op eq 'copy_validate' ) {
+            C4::AggregatedStatistics::DBS::copy_ag_values($id, $aggregatedStatistics->_resultset()->get_column('id'));
+            C4::AggregatedStatistics::DBS::recalculate_ag_values($aggregatedStatistics->_resultset()->get_column('id'), $startdateDB, $enddateDB);
+        }
     }
 
 print STDERR "aggregated_statistics::add_validate result \$!:$!:\n";
@@ -324,12 +318,11 @@ sub eval_form {
 print STDERR "aggregated_statistics::eval_form Sart statisticstype:$statisticstype: eq DBS:", $statisticstype eq 'DBS', ": id:$id: op:$op: input:", $input, ":\n" if $debug;
     if ( $statisticstype eq 'DBS' ) {
         eval {use C4::AggregatedStatistics::DBS};
-        #XXXWH hau wech use C4::AggregatedStatistics::DBS;
 print STDERR "aggregated_statistics::eval_form NOW IS CALLING C4::AggregatedStatistics::DBS::eval_form(...)\n" if $debug;
         if ( $op eq 'dbs_calc' ) {
-            C4::AggregatedStatistics::DBS::eval_form($script_name, $input, $id, $input);
+            C4::AggregatedStatistics::DBS::eval_form($script_name, $input, $id, $input);    # take values from 4th argument (i.e. from %input in this case)
         } else {
-            C4::AggregatedStatistics::DBS::eval_form($script_name, $input, $id);
+            C4::AggregatedStatistics::DBS::eval_form($script_name, $input, $id);    # read values from table aggregated_statistics_values
         }
     } else {
         # not implemented for remaining statistics types, so avoid HTTP error 500:
@@ -391,8 +384,8 @@ sub statisticstypeloop {
     # build array of aggregated statistics types (currently this is 'DBS' only; can be extended in the future, even by "select distinct type from aggregated_statistics" etc.)
     my $statisticstypes = {};
     $statisticstypes->{'DBS'}->{'designation'} = 'Deutsche Bibliotheksstatistik';
-    $statisticstypes->{'TEST1'}->{'designation'} = 'Statistiktyp TEST1';    # XXXWH hau wech
-    $statisticstypes->{'TEST2'}->{'designation'} = 'Statistiktyp TEST2';    # XXXWH hau wech
+# XXXWH hau wech    $statisticstypes->{'TEST1'}->{'designation'} = 'Statistiktyp TEST1';    # XXXWH hau wech
+# XXXWH hau wech    $statisticstypes->{'TEST2'}->{'designation'} = 'Statistiktyp TEST2';    # XXXWH hau wech
 
     my @statisticstypeloop;
     for my $statisticstype (sort { $statisticstypes->{$a}->{designation} cmp $statisticstypes->{$b}->{designation} } keys %$statisticstypes) {
