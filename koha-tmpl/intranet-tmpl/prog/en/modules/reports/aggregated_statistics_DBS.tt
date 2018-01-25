@@ -23,7 +23,7 @@
 
       $('#DBSdel').on("click", function() {
             var statname = DBSdel.getAttribute("statname");
-            var deleteIt = confirm(_("Are you sure you want to delete all entries of statistics %s?").format(statname) );
+            var deleteIt = confirm(_("Are you sure you want to reset all entries of statistics %s?").format(statname) );
 	        if (!deleteIt) {
                 return false;
             }
@@ -220,7 +220,7 @@ function moneyFormat(textObj) {
                 <button class="btn btn-small" id="DBScalc" name="DBScalc"> Recalculate</button>
             </div>
             <div class="btn-group">
-                <button class="btn btn-small" id="DBSdel" name="DBSdel" statname="[% name %]"> Delete</button>
+                <button class="btn btn-small" id="DBSdel" name="DBSdel" statname="[% name %]"> Reset values</button>
             </div>
             <div class="btn-group">
                 <button class="btn btn-small" id="DBSsave" name="DBSsave"> Save</button>
