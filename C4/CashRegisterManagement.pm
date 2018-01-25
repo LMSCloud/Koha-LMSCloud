@@ -1720,9 +1720,7 @@ sub getFinesOverview {
                     $result->{data}->{account}->{mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{mapped}->{$account}->{amount});
                 }
             }
-            
-            $result->{sum}->{paid}->{amount} += $amount;
-            $result->{sum}->{paid}->{count} += $row->{count};
+
             $result->{sum}->{reversed}->{amount} += $amount;
             $result->{sum}->{reversed}->{count} += $row->{count};
         }
@@ -1731,6 +1729,12 @@ sub getFinesOverview {
         
         $result->{sum}->{reversed}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{reversed}->{amount});
         $result->{sum}->{reversed}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{reversed}->{amount});
+        
+        $result->{sum}->{overall}->{amount} = $result->{sum}->{reversed}->{amount} + $result->{sum}->{paid}->{amount};
+        $result->{sum}->{overall}->{count}  = $result->{sum}->{reversed}->{count}  + $result->{sum}->{paid}->{count};
+        $result->{sum}->{overall}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{overall}->{amount});
+        $result->{sum}->{overall}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{overall}->{amount});
+        
         
         # calculate overall sum of fines
         $result->{sum}->{fines} = {

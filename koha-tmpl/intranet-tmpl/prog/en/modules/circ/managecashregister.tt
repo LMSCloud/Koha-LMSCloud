@@ -248,7 +248,7 @@ $(document).ready( function() {
                                 </fieldset>
                                 </form>
                             [% ELSIF manageaction == 'deposit' %]
-                                <h3>Cash payment</h3>
+                                <h3>Deposit</h3>
                                 <form name="payoutcashregister" id="payoutcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="deposit">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
@@ -370,7 +370,7 @@ $(document).ready( function() {
                                 </fieldset>
                                 </form>
                             [% ELSIF manageaction == 'close' %]
-                                <h3>Cash payment</h3>
+                                <h3>Close cash register</h3>
                                 <form name="closecashregister" id="closecashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="close">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
