@@ -1998,6 +1998,15 @@ sub AddReturn {
         UpdateHoldingbranch($branch, $item->{'itemnumber'});
         $item->{'holdingbranch'} = $branch; # update item data holdingbranch too
     }
+    
+    # if it's configured that an item has to remain always at the holding library, 
+    # the homebranch is changed to the holding branch
+    if ( C4::Context->preference("ReturnBranchBecomesHomeBranch") && $item->{'homebranch'} ne $branch ) {
+        ModItem({ homebranch => $branch }, undef, $item->{'itemnumber'});
+        $item->{'homebranch'} = $branch;
+        $returnbranch = $branch;
+    }
+    
     ModDateLastSeen( $item->{'itemnumber'} );
 
     # check if we have a transfer for this document

@@ -13483,7 +13483,7 @@ $DBversion = '16.05.12.012';
 if ( CheckVersion($DBversion) ) {
     # Add tables aggregated_statistics, aggregated_statistics_parameters, aggregated_statistics_values for variable handing of different statistics types.
     $dbh->do( q{
-        CREATE TABLE `aggregated_statistics` ( -- for defining statistic evaluations for different statistic types and selection parameters.
+        CREATE TABLE IF NOT EXISTS `aggregated_statistics` ( -- for defining statistic evaluations for different statistic types and selection parameters.
             `id` int(11) NOT NULL auto_increment, -- unique key, used to identify the record
             `type` varchar(80) NOT NULL default '', -- code for type of statistic, e.g. "DBS"
             `name` varchar(200) NOT NULL default '', -- name of statistic, eg. "complete DBS 2017"
@@ -13496,18 +13496,18 @@ if ( CheckVersion($DBversion) ) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     });
     $dbh->do( q{
-        CREATE TABLE `aggregated_statistics_parameters` ( -- contains additional selection parameters for a record in table aggregated_statistics.
+        CREATE TABLE IF NOT EXISTS `aggregated_statistics_parameters` ( -- contains additional selection parameters for a record in table aggregated_statistics.
             `statistics_id` int(11) NOT NULL, -- foreign key from the aggregated_statistics table to identify the join (value of aggregated_statistics.id)
             `name` varchar(80) NOT NULL default '', -- name of the parameter, e.g. "branchcode"
-            `value` mediumtext NOT NULL default '', -- value of the parameter, eg. "Zentrale"
+            `value` mediumtext, -- value of the parameter, eg. "Zentrale"
             PRIMARY KEY  (`statistics_id`, `name`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     });
     $dbh->do( q{
-        CREATE TABLE `aggregated_statistics_values` ( -- contains the resulting values for a record in table aggregated_statistics.
+        CREATE TABLE IF NOT EXISTS `aggregated_statistics_values` ( -- contains the resulting values for a record in table aggregated_statistics.
             `statistics_id` int(11) NOT NULL, -- foreign key from the aggregated_statistics table to identify the join (value of aggregated_statistics.id)
             `name` varchar(80) NOT NULL default '', -- name of the result value, e.g. "med_printissue_stock"
-            `value` mediumtext NOT NULL default '', -- calculated/edited result value
+            `value` mediumtext, -- calculated/edited result value
             `type` varchar(20) NOT NULL default '', -- enum of value type, e.g. "text", "bool", "int", "float", "money"
             PRIMARY KEY  (`statistics_id`, `name`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
@@ -13516,6 +13516,18 @@ if ( CheckVersion($DBversion) ) {
     print "Upgrade to $DBversion done (adding tables aggregated_statistics, aggregated_statistics_parameters, aggregated_statistics_values)\n";
     SetVersion ($DBversion);
 }
+
+$DBversion = '16.05.12.013';
+if ( CheckVersion($DBversion) ) {
+
+    # Add parameter to reset the home branch to the return branch of an item
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES ('ReturnBranchBecomesHomeBranch','0',NULL,'If ON, the return library will be set as home branch of an item. The setting is useful for a library system that does not transfer items.','YesNo')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter to reset the home branch to the return branch of an item)\n";
+    SetVersion ($DBversion);
+} 
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss

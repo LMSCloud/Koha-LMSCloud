@@ -445,6 +445,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('RestrictedPageTitle','',NULL,'Title of the restricted page (breadcrumb and header)','Free'),
 ('RestrictionBlockRenewing','0',NULL,'If patron is restricted, should renewal be allowed or blocked','YesNo'),
 ('ReturnBeforeExpiry','0',NULL,'If ON, checkout will be prevented if returndate is after patron card expiry','YesNo'),
+('ReturnBranchBecomesHomeBranch','0',NULL,'If ON, the return library becomes will be set as home branch of an item. The setting is useful for a library system that does not transfer items.','YesNo'),
 ('ReturnLog','1',NULL,'If ON, enables the circulation (returns) log','YesNo'),
 ('ReturnToShelvingCart','0','','If set, when any item is \'checked in\', it\'s location code will be changed to CART.','YesNo'),
 ('reviewson','1','','If ON, enables patron reviews of bibliographic records in the OPAC','YesNo'),

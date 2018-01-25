@@ -477,6 +477,13 @@ Circulation:
             - calculate and update overdue charges when an item is returned.
             - <br /><b>NOTE If you are doing hourly loans then you should have this on.</b>
         -
+            - pref: ReturnBranchBecomesHomeBranch
+              choices:
+                  yes: Reset
+                  no: "Don't reset"
+            - the home library of an item with the return library. The setting is useful, if the library system does not support transfers at all. 
+            - <br />Returned Material will remain at the return/holding library.
+        -
             - pref: UpdateNotForLoanStatusOnCheckin
               type: textarea
               class: code
