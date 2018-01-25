@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: German Koha Translation\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2017-12-17 20:29+0100\n"
+"PO-Revision-Date: 2018-01-25 10:04+0100\n"
 "Last-Translator: Katrin <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -3259,6 +3259,22 @@ msgstr "Erfordere,"
 # Circulation > Checkout Policy
 msgid "circulation.pref#ReturnBeforeExpiry# patrons to return books before their accounts expire (by restricting due dates to before the patron's expiration date)."
 msgstr "dass Benutzer Ihre Bücher zurückgeben, bevor ihr Benutzerkonto abläuft (indem die Fälligkeitsdaten auf ein Datum vor dem Ablaufdatum gesetzt werden),"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#ReturnBranchBecomesHomeBranch# <br />Returned Material will remain at the return/holding library."
+msgstr "<br />Zurückgegebene Medien verbleiben dauerhaft im Bestand der Rückgabezweigstelle."
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#ReturnBranchBecomesHomeBranch# Don't reset"
+msgstr "Ersetze nicht"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#ReturnBranchBecomesHomeBranch# Reset"
+msgstr "Ersetze"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#ReturnBranchBecomesHomeBranch# the home library of an item with the return library. The setting is useful, if the library system does not support transfers at all."
+msgstr "die Heimatbibliothek eines zurückgegebenen Mediums mit der Rückgabezweigstelle. Diese Einstellung ist kann verwendet werden, wenn zwischen den Zweigstellen keine Transporte durchgeführt werden."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#ReturnToShelvingCart# Don't move"

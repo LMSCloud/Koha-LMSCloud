@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: German Koha Translation\n"
-"POT-Creation-Date: 2017-12-18 19:07+0100\n"
-"PO-Revision-Date: 2017-11-13 14:29+0100\n"
+"POT-Creation-Date: 2018-01-25 10:26+0100\n"
+"PO-Revision-Date: 2018-01-24 15:11+0100\n"
 "Last-Translator: Marc <veron@veron.ch>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -9074,7 +9074,7 @@ msgstr "Liste teilen"
 #. A
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1115
 msgid "Share on Delicious"
-msgstr "Teien über Delicious"
+msgstr "Teilen über Delicious"
 
 #. A
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1113
