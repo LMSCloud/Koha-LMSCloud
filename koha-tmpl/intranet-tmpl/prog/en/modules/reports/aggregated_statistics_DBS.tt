@@ -720,7 +720,7 @@ function moneyFormat(textObj) {
 
                 <tr>
                     <td>50</td>
-                    <td>... davon: Ausgaben für Erwerbung (inkl. Einband, Lizenzen, Portalkosten))</td>
+                    <td>... davon: Ausgaben für Erwerbung (inkl. Einband, Lizenzen, Portalkosten)</td>
                     <td>
                         <input type="text" id="st_fin_cur_exp_acquisitions" name="st_fin_cur_exp_acquisitions" value="[% st.fin_cur_exp_acquisitions | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acquisitions,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acquisitions)" />
                     </td>

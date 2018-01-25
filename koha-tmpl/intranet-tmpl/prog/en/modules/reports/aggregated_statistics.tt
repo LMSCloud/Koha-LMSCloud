@@ -218,7 +218,7 @@ tinyMCE.init({
           [% IF ( statisticstype ) %]
             <p>There are no aggregated statistics of this type.</p>
           [% ELSE %]
-            <p>There are no aggregated statistics created.</p>
+            <p>There were no aggregated statistics created.</p>
           [% END %]
         </div>
       [% END %]
