@@ -1517,6 +1517,11 @@ print STDERR "C4::AggregatedStatistics::DBS::saveAggregatedStatisticsValue Start
             $param{'statistics_id'} = $aggregated_statistics_id;
             $param{'name'} = $name;
             if ( $type eq 'float' ) {
+                my $thousands_sep = ' ';    # default, correct if Koha.Preference("CurrencyFormat") == 'FR'  (i.e. european format like "1 234 567,89")
+                if ( substr($value,-3,1) eq '.' ) {    # american format, like "1,234,567.89"
+                    $thousands_sep = ',';
+                }
+                $value =~ s/$thousands_sep//g;    # get rid of the thousands separator
                 $value =~ tr/,/./;      # decimal separator in DB is '.'
             }
             $param{'value'} = $value;
