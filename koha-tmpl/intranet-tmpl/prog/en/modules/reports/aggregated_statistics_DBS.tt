@@ -64,17 +64,21 @@
 
     function getcolvalues(j, col) {
         var $col = $(col),
-        text = $col.text(),
-        inp = $col.find('input').val();
+        text = $col.text();
+        var $myinput = $col.find('input');
+        var type = $myinput.attr('type'),
+            inpval = $myinput.val();
 
-        if ( ! (inp === undefined) ) {
-            text = inp;
+        if ( type == "checkbox" ) {
+            var ischecked = $myinput.prop('checked');
+            if ( ischecked ) {
+                text = 'ja';
+            } else {
+                text = 'nein';
+            }
+        } else if ( ! (inpval === undefined) ) {
+            text = inpval;
         }
-            
-//alert($col);
-//alert(_("getcolvalues i:%s: j:%s: text:%s: col.val:%s:").format(i,j,text,$col.find('input').val()));
-//alert(_("getcolvalues i:%s: j:%s: text:%s: inp:%s:").format(i,j,text,inp));
-//alert(text);
 
         return text.replace(/"/g, '""'); // escape double quotes
     }
@@ -878,7 +882,7 @@
                         [% IF ( st.fin_user_charge_yn ) %]
                             <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="0" />
+                            <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1030,7 +1034,7 @@
                         [% IF ( st.srv_libhomepage_yn ) %]
                             <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="0" />
+                            <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1042,7 +1046,7 @@
                         [% IF ( st.srv_webopac_yn ) %]
                             <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="0" />
+                            <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1054,7 +1058,7 @@
                         [% IF ( st.srv_interactive_yn ) %]
                             <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="0" />
+                            <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1066,7 +1070,7 @@
                         [% IF ( st.srv_socialweb_yn ) %]
                             <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="0" />
+                            <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1078,7 +1082,7 @@
                         [% IF ( st.srv_emailquery_yn ) %]
                             <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="0" />
+                            <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1090,7 +1094,7 @@
                         [% IF ( st.srv_virtualstock_yn ) %]
                             <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="0" />
+                            <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1102,7 +1106,7 @@
                         [% IF ( st.srv_activeinfo_yn ) %]
                             <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="0" />
+                            <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1114,7 +1118,7 @@
                         [% IF ( st.srv_publicwlan_yn ) %]
                             <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="0" />
+                            <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1126,7 +1130,7 @@
                         [% IF ( st.srv_socialwork_yn ) %]
                             <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="0" />
+                            <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1210,7 +1214,7 @@
                         [% IF ( st.srv_rfidcheckio_yn ) %]
                             <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="0" />
+                            <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1222,7 +1226,7 @@
                         [% IF ( st.srv_mobiledevices_yn ) %]
                             <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="0" />
+                            <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1253,7 +1257,7 @@
                         [% IF ( st.ptl_clinical_network_yn ) %]
                             <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="0" />
+                            <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1297,7 +1301,7 @@
                         [% IF ( st.ptl_trolley_service_yn ) %]
                             <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="0" />
+                            <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1317,7 +1321,7 @@
                         [% IF ( st.ptl_laptop_service_yn ) %]
                             <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="0" />
+                            <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1329,7 +1333,7 @@
                         [% IF ( st.ptl_mediaplayer_service_yn ) %]
                             <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="0" />
+                            <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1341,7 +1345,7 @@
                         [% IF ( st.ptl_medical_lib_yn ) %]
                             <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="0" />
+                            <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1353,7 +1357,7 @@
                         [% IF ( st.ptl_combined_lib_yn ) %]
                             <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="0" />
+                            <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
@@ -1383,7 +1387,7 @@
                         [% IF ( st.mol_multiple_communes_yn ) %]
                             <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="0" />
+                            <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="1" />
                         [% END %]
                     </td>
                 </tr>
