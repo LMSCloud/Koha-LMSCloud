@@ -2201,7 +2201,7 @@ sub getFinesOverview {
                    AND o.debit_id = a.accountlines_id
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND o.amount <> 0.00
-                   AND -ao.amount = c.amount
+                   AND ABS(ao.amount) = ABS(c.amount)
             UNION ALL
             SELECT 
                    1 as entrytype,
