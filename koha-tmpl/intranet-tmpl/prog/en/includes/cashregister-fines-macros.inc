@@ -26,6 +26,10 @@
   [% CASE 'CL5' %]Overdue fine (level 5)
   [% CASE 'NOTF' %]Notice fee
   [% CASE 'Res' %]Reservation
+  [% CASE 'PaymentOfPaidBackPayment' %]Payment of another reversed payment
+  [% CASE 'PartialPaymentOfPaidBackPayment' %]Partial payment of another reversed payment
+  [% CASE 'PartialPaymentReverseOfPaidBackPayment' %]Partial payment of a reversed payment
+  [% CASE 'ReversedPaymentOfPaidBackPayment' %]Reversed payment of another reversed payment
   [% CASE %]([% finestat %])
 [% END %][% END-%]
 

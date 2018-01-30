@@ -427,6 +427,13 @@ $(document).ready( function() {
             [% IF (finesstats.sum.paid && finesstats.sum.paid.count > 0 ) %]
             <tr>
                 <td colspan="2">
+                    Total fines paid
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
+            </tr>
+            <tr>
+                <td colspan="2">
                     ... paid by card
                 </td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.count %]</td>
@@ -438,13 +445,6 @@ $(document).ready( function() {
                 </td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.count %]</td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.payment_amount_formatted %]</td>
-            </tr>
-            <tr>
-                <td colspan="2">
-                    Total fines paid
-                </td>
-                <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
-                <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
             </tr>
             [% END %]
             [% IF (finesstats.sum.reversed && finesstats.sum.reversed.count > 0) %]
@@ -515,6 +515,13 @@ $(document).ready( function() {
             [% IF (finesstats.sum.paid && finesstats.sum.paid.count > 0 ) %]
             <tr>
                 <td colspan="3">
+                    Total fines paid
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
+            </tr>
+            <tr>
+                <td colspan="3">
                     ... paid by card
                 </td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.count %]</td>
@@ -526,13 +533,6 @@ $(document).ready( function() {
                 </td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.count %]</td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.cash.payment.payment_amount_formatted %]</td>
-            </tr>
-            <tr>
-                <td colspan="3">
-                    Total fines paid
-                </td>
-                <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
-                <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
             </tr>
             [% END %]
             [% IF (finesstats.sum.reversed && finesstats.sum.reversed.count > 0 ) %]

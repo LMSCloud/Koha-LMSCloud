@@ -1349,9 +1349,15 @@ sub getFinesOverview {
     # check fines overview type
     if ($type eq 'finesoverview' ) {
 
+        # query of paid fines
+        # the 1st to the 3rd SELECT are use to search fines that are paid with a normal payment
+        # the 4th to the 6th SELECT is used to search new payments of reversed payments
+        #                    This one is tricky because new payments may be partial payments
+        # the 7th to the 9th SELECT is used to search reversed payments so that they are payments agains
+        # the 10th select is used to select paid back payments which have been paid again a new payment
         my $query = qq{
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(ao.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
@@ -1363,11 +1369,12 @@ sub getFinesOverview {
                    AND ao.type = 'Payment'
                    AND $dateselect $branchselect
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> 0.00
             GROUP BY 
                    a.accounttype, i.itype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(ao.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
@@ -1379,11 +1386,12 @@ sub getFinesOverview {
                    AND ao.type = 'Payment'
                    AND $dateselect $branchselect
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> 0.00
             GROUP BY 
                    a.accounttype, i.itype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(ao.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    "" AS itemtype
@@ -1396,12 +1404,13 @@ sub getFinesOverview {
                    AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
                    AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> 0.00
             GROUP BY 
                    a.accounttype, itemtype
             UNION ALL
             SELECT 
-                   a.accounttype,
-                   SUM(o.amount) * -1 ,
+                   a.accounttype AS accounttype,
+                   SUM(o.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
             FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
@@ -1416,11 +1425,13 @@ sub getFinesOverview {
                    AND o.debit_id = a.accountlines_id
                    AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
+                   AND ao.amount = u.amount
             GROUP BY 
                    a.accounttype, i.itype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
@@ -1436,11 +1447,13 @@ sub getFinesOverview {
                    AND o.debit_id = a.accountlines_id
                    AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
+                   AND ao.amount = u.amount
             GROUP BY 
                    a.accounttype, i.itype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    "" AS itemtype
@@ -1457,11 +1470,13 @@ sub getFinesOverview {
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
                    AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND ao.amount = u.amount
             GROUP BY 
                    a.accounttype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
@@ -1476,11 +1491,14 @@ sub getFinesOverview {
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
+                   AND -ao.amount = c.amount
             GROUP BY 
-                   a.accounttype, i.itype
+                    a.accounttype, i.itype
+            
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
@@ -1495,11 +1513,13 @@ sub getFinesOverview {
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
+                   AND -ao.amount = c.amount
             GROUP BY 
                    a.accounttype, i.itype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) * -1 AS amount,
                    COUNT(*) AS count,
                    "" AS itemtype
@@ -1515,8 +1535,66 @@ sub getFinesOverview {
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
                    AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND -ao.amount = c.amount
             GROUP BY 
                    a.accounttype
+            UNION ALL
+            SELECT 
+                   'PaymentOfPaidBackPayment' AS accounttype,
+                   SUM(ao.amount) * -1 AS amount,
+                   COUNT(*) AS count,
+                   '' AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> 0.00
+            GROUP BY 
+                   a.accounttype
+            UNION ALL
+            SELECT 
+                   'PartialPaymentOfPaidBackPayment' AS accounttype,
+                   ao.amount * -1 AS amount,
+                   1 AS count,
+                   '' AS itemtype
+            FROM   branches br, account_offsets ao, accountlines c, accountlines u
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND EXISTS (
+                       SELECT 1
+                       FROM account_offsets o, accountlines a
+                       WHERE
+                               ao.debit_id = o.credit_id
+                           AND o.type = 'Payment'
+                           AND o.debit_id = a.accountlines_id
+                           AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   )
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> u.amount
+            UNION ALL
+            SELECT 
+                   'PartialPaymentReverseOfPaidBackPayment' AS accounttype,
+                   ao.amount AS amount,
+                   1 AS count,
+                   "" AS itemtype
+            FROM   branches br, account_offsets ao,  accountlines c
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND $dateselect $branchselect
+                   AND ao.amount <> -c.amount
            }; $query =~ s/^\s+/ /mg;
            
         # warn "Query: $query\n";
@@ -1598,7 +1676,7 @@ sub getFinesOverview {
         
         $query = qq{
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
@@ -1613,11 +1691,12 @@ sub getFinesOverview {
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
             GROUP BY 
                    a.accounttype, i.itype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) AS amount,
                    COUNT(*) AS count,
                    i.itype AS itemtype
@@ -1632,11 +1711,12 @@ sub getFinesOverview {
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
             GROUP BY 
                    a.accounttype, i.itype
             UNION ALL
             SELECT 
-                   a.accounttype,
+                   a.accounttype AS accounttype,
                    SUM(o.amount) AS amount,
                    COUNT(*) AS count,
                    "" AS itemtype
@@ -1652,6 +1732,26 @@ sub getFinesOverview {
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
                    AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+            GROUP BY 
+                   a.accounttype
+            UNION ALL
+            SELECT 
+                   'ReversedPaymentOfPaidBackPayment' AS accounttype,
+                   SUM(o.amount) AS amount,
+                   COUNT(*) AS count,
+                   '' AS itemtype
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.amount < 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
             GROUP BY 
                    a.accounttype
            }; $query =~ s/^\s+/ /mg;
@@ -1701,24 +1801,27 @@ sub getFinesOverview {
                 $result->{data}->{reversedtype}->{$accounttype}->{fines_amount} += sprintf('%.2f', $result->{data}->{reversedtype}->{$accounttype}->{amount});
                 $result->{data}->{reversedtype}->{$accounttype}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{reversedtype}->{$accounttype}->{amount});
             }
-            
+
             # Add values to summary calculation grouped by account if there exists an accounttype to account mapping
             # defined with normalized value type ACCOUNT_TYPE_MAPPING
+            my $mapped = 'unmapped';
+            my $account = $row->{accounttype};
             if ( exists($authValuesAll->{'ACCOUNT_TYPE'}->{$accounttype}) ) {
-                my $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$accounttype};
-                if (! exists($result->{data}->{account}->{mapped}->{$account}) ) {
-                    $result->{data}->{account}->{mapped}->{$account} = {
-                        amount => $amount,
-                        count => $row->{count},
-                        fines_amount => sprintf('%.2f', $amount),
-                        fines_amount_formatted => $self->formatAmountWithCurrency($amount)
-                    };
-                } else {
-                    $result->{data}->{account}->{mapped}->{$account}->{amount} += $amount;
-                    $result->{data}->{account}->{mapped}->{$account}->{count} -= $row->{count};
-                    $result->{data}->{account}->{mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{mapped}->{$account}->{amount});
-                    $result->{data}->{account}->{mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{mapped}->{$account}->{amount});
-                }
+                $mapped = 'mapped';
+                $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$accounttype};
+            }
+            if (! exists($result->{data}->{account}->{$mapped}->{$account}) ) {
+                $result->{data}->{account}->{$mapped}->{$account} = {
+                    amount => $amount,
+                    count => $row->{count},
+                    fines_amount => sprintf('%.2f', $amount),
+                    fines_amount_formatted => $self->formatAmountWithCurrency($amount)
+                };
+            } else {
+                $result->{data}->{account}->{$mapped}->{$account}->{amount} += $amount;
+                $result->{data}->{account}->{$mapped}->{$account}->{count} += $row->{count};
+                $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
+                $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
             }
 
             $result->{sum}->{reversed}->{amount} += $amount;
@@ -1758,7 +1861,39 @@ sub getFinesOverview {
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
                AND c.cash_register_id  = r.id
-               AND c.action NOT IN ('OPEN','CLOSE')
+               AND c.action NOT IN ('OPEN','CLOSE','REVERSE_PAYMENT')
+            GROUP BY
+                   r.name, c.action, c.reason, l.accounttype
+            UNION ALL
+            SELECT 'PAYMENT' AS action,
+                   c.reason AS reason,
+                   l.accounttype AS accounttype,
+                   SUM(c.booking_amount) AS amount,
+                   COUNT(*) AS count,
+                   r.name AS cash_register
+            FROM   branches br, cash_register r, cash_register_account c
+            LEFT JOIN accountlines l ON c.accountlines_id = l.accountlines_id
+            WHERE  r.branchcode = br.branchcode
+               AND $cashdateselect $cashregisterselect
+               AND c.cash_register_id  = r.id
+               AND c.action = 'REVERSE_PAYMENT'
+               AND c.booking_amount > 0.00
+            GROUP BY
+                   r.name, c.action, c.reason, l.accounttype
+            UNION ALL
+            SELECT c.action AS action,
+                   c.reason AS reason,
+                   l.accounttype AS accounttype,
+                   SUM(c.booking_amount) AS amount,
+                   COUNT(*) AS count,
+                   r.name AS cash_register
+            FROM   branches br, cash_register r, cash_register_account c
+            LEFT JOIN accountlines l ON c.accountlines_id = l.accountlines_id
+            WHERE  r.branchcode = br.branchcode
+               AND $cashdateselect $cashregisterselect
+               AND c.cash_register_id  = r.id
+               AND c.action = 'REVERSE_PAYMENT'
+               AND c.booking_amount < 0.00
             GROUP BY
                    r.name, c.action, c.reason, l.accounttype
         }; $query =~ s/^\s+/ /mg;
@@ -1798,8 +1933,8 @@ sub getFinesOverview {
         }
         $sth->finish;
         
-        # get all transactions which are not related to cash registers
-        # get payments of cash registers
+        # get summary of payments by payment type: 'Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03'
+        # in order to calculate cash and card payments
         $query = qq{
             SELECT 
                    a.accounttype,
@@ -1810,7 +1945,22 @@ sub getFinesOverview {
                    AND ao.type = 'Payment'
                    AND $dateselect $branchselect
                    AND ao.credit_id = a.accountlines_id
-                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03', 'C', 'REF')
+                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> 0.00
+            GROUP BY 
+                   a.accounttype
+            UNION ALL
+            SELECT 
+                   a.accounttype,
+                   SUM(ao.amount) * -1 AS amount,
+                   COUNT(*) AS count
+            FROM   branches br, account_offsets ao, accountlines a
+            WHERE      a.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = a.accountlines_id
+                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount > 0.00
             GROUP BY 
                    a.accounttype
             }; $query =~ s/^\s+/ /mg;
@@ -1884,6 +2034,7 @@ sub getFinesOverview {
                        AND ao.type = 'Payment'
                        AND $dateselect $branchselect
                        AND a.accounttype = 'A'
+                       AND ao.amount <> 0.00
                 GROUP BY 
                        paytype, $groupfield
                 UNION ALL
@@ -1905,6 +2056,8 @@ sub getFinesOverview {
                        AND o.debit_id = a.accountlines_id
                        AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                        AND a.accounttype = 'A'
+                       AND ao.amount = u.amount
+                       AND o.amount <> 0.00
                 GROUP BY 
                        paytype, $groupfield
                 UNION ALL
@@ -1912,7 +2065,7 @@ sub getFinesOverview {
                        $selectfield  as description,
                        SUM(o.amount) * -1 AS amount,
                        COUNT(*) AS count,
-                       ao.type AS paytype
+                       'Payment' AS paytype
                 FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
                 JOIN   borrowers AS b USING (borrowernumber)
                 JOIN   categories AS cat USING (categorycode)
@@ -1925,6 +2078,8 @@ sub getFinesOverview {
                        AND o.type = 'Payment'
                        AND o.debit_id = a.accountlines_id
                        AND a.accounttype = 'A'
+                       AND o.amount <> 0.00
+                       AND -ao.amount = c.amount
                 GROUP BY 
                        paytype, $groupfield
                 UNION ALL
@@ -1938,13 +2093,15 @@ sub getFinesOverview {
                 JOIN   categories AS cat USING (categorycode)
                 WHERE      c.branchcode = br.branchcode
                        AND ao.type = 'Reverse Payment'
+                       AND ao.credit_id = c.accountlines_id
                        AND ao.amount < 0.0
                        AND $dateselect $branchselect
                        AND ao.credit_id = o.credit_id
-                       AND ao.credit_id = c.accountlines_id
                        AND o.type = 'Payment'
                        AND o.debit_id = a.accountlines_id
                        AND a.accounttype = 'A'
+                       AND o.amount <> 0.00
+                       AND ao.amount = c.amount
                 GROUP BY 
                        paytype, $groupfield
                 }; $query =~ s/^\s+/ /mg;
@@ -1957,6 +2114,7 @@ sub getFinesOverview {
                 my $paytype      = $row->{'paytype'};
                 my $count        = $row->{'count'};
                 my $description  = $row->{'description'} || '';
+                
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount} += $amount;
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{count}  += $count;
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{fines_amount} = sprintf('%.2f', $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount});
@@ -1978,33 +2136,34 @@ sub getFinesOverview {
                    a.description as description,
                    a.manager_id as manager_id,
                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
-            FROM   branches br, account_offsets ao, accountlines c, accountlines a
-            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            FROM   branches br, account_offsets ao, accountlines a, accountlines c
+            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = a.accountlines_id
                    AND ao.credit_id = c.accountlines_id
                    AND ao.type = 'Payment'
                    AND $dateselect $branchselect
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> 0.00
             UNION ALL
             SELECT 
                    1 as entrytype,
                    DATE(ao.created_on) as date,
                    a.accounttype as accounttype, 
-                   ao.amount * -1 as amount,
+                   o.amount * -1 as amount,
                    b.cardnumber as cardnumber,
                    b.borrowernumber as borrowernumber,
                    a.description as description,
                    a.manager_id as manager_id,
                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
-            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
-            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines u, accountlines a, accountlines c
+            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = u.accountlines_id
                    AND ao.credit_id = c.accountlines_id
@@ -2015,32 +2174,142 @@ sub getFinesOverview {
                    AND o.debit_id = a.accountlines_id
                    AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
+                   AND ao.amount = u.amount
             UNION ALL
             SELECT 
                    1 as entrytype,
                    DATE(ao.created_on) as date,
                    a.accounttype as accounttype, 
-                   ao.amount * -1 as amount,
+                   o.amount as amount,
                    b.cardnumber as cardnumber,
                    b.borrowernumber as borrowernumber,
                    a.description as description,
                    a.manager_id as manager_id,
                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
-            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
-            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines a, accountlines c
+            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.type = 'Reverse Payment'
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.amount > 0.0
                    AND $dateselect $branchselect
                    AND ao.credit_id = o.credit_id
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
                    AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
-            ORDER BY date,cardnumber
+                   AND o.amount <> 0.00
+                   AND -ao.amount = c.amount
+            UNION ALL
+            SELECT 
+                   1 as entrytype,
+                   DATE(ao.created_on) as date,
+                   'PaymentOfPaidBackPayment' AS accounttype,
+                   ao.amount * -1 AS amount,
+                   b.cardnumber as cardnumber,
+                   b.borrowernumber as borrowernumber,
+                   a.description as description,
+                   a.manager_id as manager_id,
+                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   '' as reason
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines u, accountlines a, accountlines c
+            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> 0.00
+            UNION ALL
+            SELECT 
+                   1 as entrytype,
+                   DATE(ao.created_on) as date,
+                   'PartialPaymentOfPaidBackPayment' AS accounttype,
+                   ao.amount * -1 AS amount,
+                   b.cardnumber as cardnumber,
+                   b.borrowernumber as borrowernumber,
+                   u.description as description,
+                   u.manager_id as manager_id,
+                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   '' as reason
+            FROM   branches br, account_offsets ao, accountlines u, accountlines c
+            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND $dateselect $branchselect
+                   AND EXISTS (
+                       SELECT 1
+                       FROM account_offsets o, accountlines a
+                       WHERE
+                               ao.debit_id = o.credit_id
+                           AND o.type = 'Payment'
+                           AND o.debit_id = a.accountlines_id
+                           AND a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   )
+                   AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND ao.amount <> u.amount
+            UNION ALL
+            SELECT 
+                   1 as entrytype,
+                   DATE(ao.created_on) as date,
+                   'PartialPaymentReverseOfPaidBackPayment' AS accounttype,
+                   ao.amount AS amount,
+                   b.cardnumber as cardnumber,
+                   b.borrowernumber as borrowernumber,
+                   c.description as description,
+                   c.manager_id as manager_id,
+                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   '' as reason
+            FROM   branches br, account_offsets ao,  accountlines c
+            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND $dateselect $branchselect
+                   AND ao.amount <> -c.amount
+            UNION ALL
+            SELECT 
+                   1 as entrytype,
+                   DATE(ao.created_on) as date,
+                   'ReversedPaymentOfPaidBackPayment' AS accounttype,
+                   o.amount AS amount,
+                   b.cardnumber as cardnumber,
+                   b.borrowernumber as borrowernumber,
+                   c.description as description,
+                   c.manager_id as manager_id,
+                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
+                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   '' as reason
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines a, accountlines c
+            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
+            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.amount < 0.0
+                   AND $dateselect $branchselect
+                   AND ao.credit_id = o.credit_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND o.amount <> 0.00
+            ORDER BY date, cardnumber
            }; $query =~ s/^\s+/ /mg;
            
         # warn "Query: $query\n";

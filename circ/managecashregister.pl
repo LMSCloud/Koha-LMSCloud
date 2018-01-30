@@ -171,7 +171,7 @@ elsif ( $op eq 'dodeposit' && $status eq 'manage' ) {
         cash_deposit => '0.00'
     );
 }
-elsif ( $op eq 'doclose' && $status eq 'manage' ) {
+elsif ( $op eq 'doclose' && ($status eq 'manage' || $status eq 'close') ) {
     # let's check wehther this is a real close action
     if (  $cash_management->smartCloseCashRegister($cash_register_id, $loggedinuser) ) {
         print $query->redirect("/cgi-bin/koha/circ/managecashregister.pl");
