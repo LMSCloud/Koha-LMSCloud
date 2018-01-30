@@ -210,8 +210,8 @@ function moneyFormat(textObj) {
         <h1>[% statisticstypedesignation %] [% name %]</h1>
 
         <h4>Report period: [% startdate | $KohaDates %] - [% enddate | $KohaDates %]</h4>
-
-        <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname %][% END %] Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname %][% END %]</h4>
+        <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname %][% END %]</h4>
+        <h4>Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname %][% END %]</h4>
 
         <div>The fields marked with <b style="font-size: 125%">*</b> will be overwritten by values selected from Koha when clicking on button 'Recalculate'.</div>
 
