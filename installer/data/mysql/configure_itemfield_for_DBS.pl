@@ -28,6 +28,12 @@ sub insertinto_authorised_values {
 
     my $loadvalues = [
         { 'category'         => 'DBS_WERTE', 
+          'authorised_value' => '', 
+          'lib'              => undef,    # results in NULL
+          'lib_opac'         => undef,    # results in NULL
+          'imageurl'         => ''
+        },
+        { 'category'         => 'DBS_WERTE', 
           'authorised_value' => 'F_B_F', 
           'lib'              => 'Freihand - Printmedien Schöne Literatur', 
           'lib_opac'         => undef,    # results in NULL
