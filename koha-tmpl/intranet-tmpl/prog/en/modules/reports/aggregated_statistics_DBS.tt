@@ -13,88 +13,139 @@
 //<![CDATA[
     $(document).ready(function() {
 
-
-      $('#DBScalc').click(function() {
+        $('#DBScalc').click(function() {
             $('#op').val("dbs_calc");
-//alert("DBScalc.click");
             $("#DBS_edit").submit();
             return true;
-      });
+        });
 
-      $('#DBSdel').on("click", function() {
+        $('#DBSdel').on("click", function() {
             var statname = DBSdel.getAttribute("statname");
             var deleteIt = confirm(_("Are you sure you want to reset all entries of statistics %s?").format(statname) );
-	        if (!deleteIt) {
+            if (!deleteIt) {
                 return false;
             }
             $('#op').val("dbs_del");
             $("#DBS_edit").submit();
             return true;
-      });
+        });
 
-      $('#DBSsave').click(function() {
+        $('#DBSsave').click(function() {
             $('#op').val("dbs_save");
-//alert("DBSsave.click");
             $("#DBS_edit").submit();
             return true;
-      });
+        });
 
-      //$('#DBSdownload').click(function() {
-      $('#DBSdownload_csv').click(function() {
-alert("DBSdownload_csv.click");
-            // $('#op').val("dbs_download_csv");
-            // $('#format').val("csv");
-            // $("#DBS_edit").submit();
-            // return true;
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'export.csv');
-      });
+        $('#DBSdownload_csv').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'export.csv', 'csv');
+        });
+
+        $('#DBSdownload_tab').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'export.tab', 'tab');
+        });
+
+        $('#DBSdownload_dbs105').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs105.csv', 'dbs105');
+        });
+
+        $('#DBSdownload_dbs116').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs116.csv', 'dbs116');
+        });
+
+        $('#DBSdownload_dbs123').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs123.csv', 'dbs123');
+        });
+
+        $('#DBSdownload_dbs145').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs145.csv', 'dbs145');
+        });
+
     });
 
-    function exportTableToCSV($table, filename) {
-        var $rows = $table.find('tr:has(td)'),
+    function getcolvalues(j, col) {
+        var $col = $(col),
+        text = $col.text(),
+        inp = $col.find('input').val();
+
+        if ( ! (inp === undefined) ) {
+            text = inp;
+        }
+            
+//alert($col);
+//alert(_("getcolvalues i:%s: j:%s: text:%s: col.val:%s:").format(i,j,text,$col.find('input').val()));
+//alert(_("getcolvalues i:%s: j:%s: text:%s: inp:%s:").format(i,j,text,inp));
+//alert(text);
+
+        return text.replace(/"/g, '""'); // escape double quotes
+    }
+
+    function exportTableToCSV($table, filename, format) {
+        var $rows = $table.find('tr:has(td)');
 
         // Temporary delimiter characters unlikely to be typed by keyboard
         // This is to avoid accidentally splitting the actual contents
-        tmpColDelim = String.fromCharCode(11), // vertical tab character
-        tmpRowDelim = String.fromCharCode(0), // null character
+        tmpColDelim = String.fromCharCode(11); // vertical tab character
+        tmpRowDelim = String.fromCharCode(0); // null character
 
         // actual delimiter characters for CSV format
-        [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
-        [% IF kohaColDelimiter == "" %][% SET kohaColDelimiter = "," %][% END %]
-        [% IF kohaColDelimiter == "tabulation" %][% SET kohaColDelimiter = "\t" %][% END %]
-        [% IF kohaColDelimiter == "\\" %][% SET kohaColDelimiter = "\\\\" %][% END %]
-        colDelim = '"' + '[% kohaColDelimiter | html %]' + '"',
-        rowDelim = '"\r\n"',
+        rowDelim = '\r\n';
+        if ( format == "tab" ) {
+            colDelim = '\t';
+        } else if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
+            colDelim = ';';
+        } else {
+            [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
+            [% IF kohaColDelimiter == "" %][% SET kohaColDelimiter = "," %][% END %]
+            [% IF kohaColDelimiter == "tabulation" %][% SET kohaColDelimiter = "\t" %][% END %]
+            [% IF kohaColDelimiter == "\\" %][% SET kohaColDelimiter = "\\\\" %][% END %]
+            colDelim = '[% kohaColDelimiter | html %]';
+        }
 
         // Grab text from table into CSV formatted string
-        csv = '"' + $rows.map(function(i, row) {
-            var $row = $(row),
-                $cols = $row.find('td');
+        csv = '';
+        if ( format == "csv" || format == "tab" ) {
+            var row_array = $rows.map(
+                function(i, row) {
+                    var $row = $(row);
+                    var $cols = $row.find('td');
 
-                return $cols.map(function(j, col) {
-                    var $col = $(col),
-                        text = $col.text(),
-                        inp = $col.find('input').val();
+                    return $cols.map(getcolvalues).get().join(tmpColDelim);
+                }
+            );
 
-                    if ( ! (inp === undefined) ) {
-                        text = inp;
-                    }
-            
-//alert($col);
-//alert(_("exportTableToCSV i:%s: j:%s: text:%s: col.val:%s:").format(i,j,text,$col.find('input').val()));
-//alert(_("exportTableToCSV i:%s: j:%s: text:%s: inp:%s:").format(i,j,text,inp));
-//alert(text);
+            csv = '"DBS-Rubrik"' + colDelim + '"Bezeichnung"' + colDelim + '"Wert"' + rowDelim;
+            csv += '"' + row_array.get().join(tmpRowDelim)
+                    .split(tmpRowDelim).join('"' + rowDelim + '"')
+                    .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
 
-                    return text.replace(/"/g, '""'); // escape double quotes
+            // Data URI
+            csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+        }
 
-                }).get().join(tmpColDelim);
 
-            }).get().join(tmpRowDelim)
-                .split(tmpRowDelim).join(rowDelim)
-                .split(tmpColDelim).join(colDelim) + '"',
+        if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
+            var values = $rows.map(
+                function(i, row) {
+                    var $row = $(row);
+                    var $cols = $row.find('td');
 
-        // Data URI
-        csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+                    return $cols.map(getcolvalues).get()[2];
+                }
+            );
+            // default length corresponds to dbs145
+            if ( format == "dbs105" ) {
+                values = values.slice(0,105);
+            } else if ( format == "dbs116" ) {
+                values = values.slice(0,116);
+            } else if ( format == "dbs123" ) {
+                values = values.slice(0,123);
+            }
+            csv += '"' + values.get().join(tmpColDelim)
+                    .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
+
+            // Data URI (we export using UTF-8 encoding; converting to the required charset ISO-8859-1 has to be done in Excel / LibreOfficeCalc / etc.)
+            csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+        }
 
         $(this).attr({
             'download': filename,
@@ -109,87 +160,74 @@ alert("DBSdownload_csv.click");
 <script type= "text/javascript">
 //<![CDATA[
 
-function floatInput(floatAsText,decimalplaces) {
-//alert("moneyInput START");
-            // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
-            var len = floatAsText.value.length;
-            var decSepPos = floatAsText.value.indexOf(".");
-//alert(decSepPos);
-            var decSepPos2 = floatAsText.value.indexOf(",");
-//alert(decSepPos2);
-            if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
-//alert("moneyInput IF 1");
-                decSepPos = decSepPos2;
-            }
-            if ( decSepPos >= 0 && len > decSepPos + 1 + decimalplaces ) {
-//alert("moneyInput IF 2");
-                floatAsText.value = floatAsText.value.substr(0, decSepPos + 1 + decimalplaces);
-            }
-//alert("moneyInput END");
-}
-
-function moneyNormalize(textObj) {
-//alert("moneyNormalize START");
-
-            var amountNew = parseFloat(textObj.value.replace(",","."));
-            if ( isNaN(amountNew) ) {
-                amountNew = 0.0;
-            }
-            textObj.value = parseFloat(amountNew);
-//alert(textObj.value);
-//alert("moneyNormalize END");
-}
-
-function moneyFormat(textObj) {
-    var newValue = textObj.value.replace(",",".");
-    var decAmount = "";
-    var dolAmount = "";
-    var decFlag   = false;
-    var aChar     = "";
-//alert("moneyFormat START");
-//alert(newValue);
-
-    for(i=0; i < newValue.length; i++) {
-        aChar = newValue.substring(i, i+1);
-        if (aChar >= "0" && aChar <= "9") {
-            if(decFlag) {
-                decAmount = "" + decAmount + aChar;
-            }
-            else {
-                dolAmount = "" + dolAmount + aChar;
-            }
+    function floatInput(floatAsText,decimalplaces) {
+        // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
+        var len = floatAsText.value.length;
+        var decSepPos = floatAsText.value.indexOf(".");
+        var decSepPos2 = floatAsText.value.indexOf(",");
+        if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
+            decSepPos = decSepPos2;
         }
-        if (aChar == ".") {
-            if (decFlag) {
-                break;
-            }
-            decFlag = true;
+        if ( decSepPos >= 0 && len > decSepPos + 1 + decimalplaces ) {
+            floatAsText.value = floatAsText.value.substr(0, decSepPos + 1 + decimalplaces);
         }
     }
 
-    if (dolAmount == "") {
-        dolAmount = "0";
-    }
-// Strip leading 0s
-    if (dolAmount.length > 1) {
-        while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
-            dolAmount = dolAmount.substring(1,dolAmount.length);
+    function moneyNormalize(textObj) {
+        var amountNew = parseFloat(textObj.value.replace(",","."));
+        if ( isNaN(amountNew) ) {
+            amountNew = 0.0;
         }
-    }
-    if (decAmount.length > 2) {
-        decAmount = decAmount.substring(0,2);
-    }
-// Pad right side
-    if (decAmount.length == 1) {
-       decAmount = decAmount + "0";
-    }
-    if (decAmount.length == 0) {
-       decAmount = decAmount + "00";
+        textObj.value = parseFloat(amountNew);
     }
 
-    textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
-//alert("moneyFormat END");
-}
+    function moneyFormat(textObj) {
+        var newValue = textObj.value.replace(",",".");
+        var decAmount = "";
+        var dolAmount = "";
+        var decFlag   = false;
+        var aChar     = "";
+
+        for(i=0; i < newValue.length; i++) {
+            aChar = newValue.substring(i, i+1);
+            if (aChar >= "0" && aChar <= "9") {
+                if(decFlag) {
+                    decAmount = "" + decAmount + aChar;
+                }
+                else {
+                    dolAmount = "" + dolAmount + aChar;
+                }
+            }
+            if (aChar == ".") {
+                if (decFlag) {
+                    break;
+                }
+                decFlag = true;
+            }
+        }
+
+        if (dolAmount == "") {
+            dolAmount = "0";
+        }
+        // Strip leading 0s
+        if (dolAmount.length > 1) {
+            while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
+                dolAmount = dolAmount.substring(1,dolAmount.length);
+            }
+        }
+        if (decAmount.length > 2) {
+            decAmount = decAmount.substring(0,2);
+        }
+        // Pad right side
+        if (decAmount.length == 1) {
+            decAmount = decAmount + "0";
+        }
+        if (decAmount.length == 0) {
+        decAmount = decAmount + "00";
+        }
+
+        textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
+    }
 
 //]]>
 </script>
@@ -228,25 +266,12 @@ function moneyFormat(textObj) {
                 <div class="btn-group">
                     <button class="btn btn-small dropdown-toggle" data-toggle="dropdown" id="DBSdownload" name="DBSdownload"> <i class="fa fa-upload"></i> Download <span class="caret"></span></button>
                     <ul class="dropdown-menu">
-                        <!-- <li><a id="csv" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=csv&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">Comma separated text</a></li>
-                        <li><a id="tab" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=tab&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">Tab separated text</a></li>
-                        <li><a id="ods" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=ods&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">Open Document Spreadsheet</a></li> -->
                         <li><a id="DBSdownload_csv" >Comma separated text</a></li>
                         <li><a id="DBSdownload_tab" >Tab separated text</a></li>
-                        <li><a id="DBSdownload_ods" >Open Document Spreadsheet</a></li>
-                    </ul>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-small dropdown-toggle" data-toggle="dropdown" id="DBSexport" name="DBSexport"> <i class="fa fa-upload"></i> Export <span class="caret"></span></button>
-                    <ul class="dropdown-menu">
-                        <!-- <li><a id="csv" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=csv&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]">DBS Grundfragebogen (105 Sp.)</a></li>
-                        <li><a id="tab" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=tab&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]"> + Daten Patientenbibliothek (116 Sp.)</a></li>
-                        <li><a id="ods" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=ods&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]"> + Daten Fahrbibliothek (123 Sp.)</a></li>
-                        <li><a id="ods" href="/cgi-bin/koha/reports/guided_reports.pl?reports=1&phase=Export&amp;format=ods&amp;sql=[% sql |uri %]&amp;reportname=[% name |uri %]"> + Daten Musikibliothek (145 Sp.)</a></li> -->
-                        <li><a id="dbs105" >DBS Grundfragebogen (105 Sp.)</a></li>
-                        <li><a id="dbs116" > + Daten Patientenbibliothek (116 Sp.)</a></li>
-                        <li><a id="dbs123" > + Daten Fahrbibliothek (123 Sp.)</a></li>
-                        <li><a id="dbs145" > + Daten Musikbibliothek (145 Sp.)</a></li>
+                        <li><a id="DBSdownload_dbs105" >DBS base questionaire (105 col.)</a></li>
+                        <li><a id="DBSdownload_dbs116" > + patients' library (116 col.)</a></li>
+                        <li><a id="DBSdownload_dbs123" > + mobile library (123 col.)</a></li>
+                        <li><a id="DBSdownload_dbs145" > + music library (145 col.)</a></li>
                     </ul>
                 </div>
             
@@ -853,7 +878,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.fin_user_charge_yn ) %]
                             <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="1" />
+                            <input type="checkbox" id="st_fin_user_charge_yn" name="st_fin_user_charge_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1005,7 +1030,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_libhomepage_yn ) %]
                             <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="1" />
+                            <input type="checkbox" id="st_srv_libhomepage_yn" name="st_srv_libhomepage_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1017,7 +1042,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_webopac_yn ) %]
                             <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="1" />
+                            <input type="checkbox" id="st_srv_webopac_yn" name="st_srv_webopac_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1029,7 +1054,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_interactive_yn ) %]
                             <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="1" />
+                            <input type="checkbox" id="st_srv_interactive_yn" name="st_srv_interactive_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1041,7 +1066,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_socialweb_yn ) %]
                             <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="1" />
+                            <input type="checkbox" id="st_srv_socialweb_yn" name="st_srv_socialweb_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1053,7 +1078,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_emailquery_yn ) %]
                             <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="1" />
+                            <input type="checkbox" id="st_srv_emailquery_yn" name="st_srv_emailquery_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1065,7 +1090,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_virtualstock_yn ) %]
                             <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="1" />
+                            <input type="checkbox" id="st_srv_virtualstock_yn" name="st_srv_virtualstock_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1077,7 +1102,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_activeinfo_yn ) %]
                             <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="1" />
+                            <input type="checkbox" id="st_srv_activeinfo_yn" name="st_srv_activeinfo_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1089,7 +1114,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_publicwlan_yn ) %]
                             <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="1" />
+                            <input type="checkbox" id="st_srv_publicwlan_yn" name="st_srv_publicwlan_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1101,7 +1126,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_socialwork_yn ) %]
                             <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="1" />
+                            <input type="checkbox" id="st_srv_socialwork_yn" name="st_srv_socialwork_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1185,7 +1210,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_rfidcheckio_yn ) %]
                             <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="1" />
+                            <input type="checkbox" id="st_srv_rfidcheckio_yn" name="st_srv_rfidcheckio_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1197,7 +1222,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.srv_mobiledevices_yn ) %]
                             <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" />
+                            <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1206,7 +1231,8 @@ function moneyFormat(textObj) {
                     <td>199</td>
                     <td>Anmerkungen</td>
                     <td>
-                        <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3" form="DBS_edit">[% st.srv_remarks %]</textarea>
+                        <!-- <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3" form="DBS_edit">[% st.srv_remarks %]</textarea> -->
+                        <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3" >[% st.srv_remarks %]</textarea>
                     </td>
                 </tr>
             </tbody>
@@ -1227,7 +1253,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.ptl_clinical_network_yn ) %]
                             <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="1" />
+                            <input type="checkbox" id="st_ptl_clinical_network_yn" name="st_ptl_clinical_network_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1271,7 +1297,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.ptl_trolley_service_yn ) %]
                             <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="1" />
+                            <input type="checkbox" id="st_ptl_trolley_service_yn" name="st_ptl_trolley_service_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1291,7 +1317,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.ptl_laptop_service_yn ) %]
                             <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="1" />
+                            <input type="checkbox" id="st_ptl_laptop_service_yn" name="st_ptl_laptop_service_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1303,7 +1329,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.ptl_mediaplayer_service_yn ) %]
                             <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="1" />
+                            <input type="checkbox" id="st_ptl_mediaplayer_service_yn" name="st_ptl_mediaplayer_service_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1315,7 +1341,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.ptl_medical_lib_yn ) %]
                             <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="1" />
+                            <input type="checkbox" id="st_ptl_medical_lib_yn" name="st_ptl_medical_lib_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1327,7 +1353,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.ptl_combined_lib_yn ) %]
                             <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="1" />
+                            <input type="checkbox" id="st_ptl_combined_lib_yn" name="st_ptl_combined_lib_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
@@ -1357,7 +1383,7 @@ function moneyFormat(textObj) {
                         [% IF ( st.mol_multiple_communes_yn ) %]
                             <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="1" checked="checked" />
                         [% ELSE %]
-                            <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="1" />
+                            <input type="checkbox" id="st_mol_multiple_communes_yn" name="st_mol_multiple_communes_yn" value="0" />
                         [% END %]
                     </td>
                 </tr>
