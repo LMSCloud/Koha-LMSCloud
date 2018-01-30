@@ -147,6 +147,8 @@ tinyMCE.init({
         </p>
         <div id="toolbar" class="btn-toolbar">
           <input type="hidden" id="op" name="op" value="add_form" >
+          <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
+          <input type="hidden" name="statisticstypedesignation" value="[% selected_statisticstype_designation %]" />
           <button type="submit" class="btn btn-small" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value %]</button>
         </div>
       </form>
