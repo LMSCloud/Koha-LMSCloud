@@ -1624,6 +1624,7 @@ sub getFinesOverview {
             }
             else {
                 $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{amount} += $amount;
+                $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{count}  += $row->{count};
                 $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{fines_amount} += sprintf('%.2f', $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{amount});
                 $result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{paid}->{$accounttype}->{$row->{itemtype}}->{amount});
             }
@@ -1640,6 +1641,7 @@ sub getFinesOverview {
             }
             else {
                 $result->{data}->{paidtype}->{$accounttype}->{amount} += $amount;
+                $result->{data}->{paidtype}->{$accounttype}->{count}  += $row->{count};
                 $result->{data}->{paidtype}->{$accounttype}->{fines_amount} += sprintf('%.2f', $result->{data}->{paidtype}->{$accounttype}->{amount});
                 $result->{data}->{paidtype}->{$accounttype}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{paidtype}->{$accounttype}->{amount});
             }
@@ -1660,7 +1662,7 @@ sub getFinesOverview {
                 };
             } else {
                 $result->{data}->{account}->{$mapped}->{$account}->{amount} += $amount;
-                $result->{data}->{account}->{$mapped}->{$account}->{count} += $row->{count};
+                $result->{data}->{account}->{$mapped}->{$account}->{count}  += $row->{count};
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
             }
@@ -1781,6 +1783,7 @@ sub getFinesOverview {
             }
             else {
                 $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{amount} += $amount;
+                $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{count}  += $row->{count};
                 $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{fines_amount} += sprintf('%.2f', $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{amount});
                 $result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{reversed}->{$accounttype}->{$row->{itemtype}}->{amount});
             }
@@ -1798,6 +1801,7 @@ sub getFinesOverview {
             }
             else {
                 $result->{data}->{reversedtype}->{$accounttype}->{amount} += $amount;
+                $result->{data}->{reversedtype}->{$accounttype}->{count}  += $row->{count};
                 $result->{data}->{reversedtype}->{$accounttype}->{fines_amount} += sprintf('%.2f', $result->{data}->{reversedtype}->{$accounttype}->{amount});
                 $result->{data}->{reversedtype}->{$accounttype}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{reversedtype}->{$accounttype}->{amount});
             }
@@ -1819,7 +1823,7 @@ sub getFinesOverview {
                 };
             } else {
                 $result->{data}->{account}->{$mapped}->{$account}->{amount} += $amount;
-                $result->{data}->{account}->{$mapped}->{$account}->{count} += $row->{count};
+                $result->{data}->{account}->{$mapped}->{$account}->{count}  += $row->{count};
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
             }
@@ -1925,6 +1929,7 @@ sub getFinesOverview {
             }
             else {
                 $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{amount} += $amount;
+                $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{count}  += $row->{count};
                 $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{fines_amount} += sprintf('%.2f', $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{amount});
                 $result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{cashregister}->{$cashreg}->{$action}->{$reason}->{$accounttype}->{amount});
             }
@@ -1998,7 +2003,7 @@ sub getFinesOverview {
                 $what = 'payment';
             }
             $result->{sum}->{cashtype}->{$type}->{$what}->{amount} += $amount;
-            $result->{sum}->{cashtype}->{$type}->{$what}->{count} += $row->{count};
+            $result->{sum}->{cashtype}->{$type}->{$what}->{count}  += $row->{count};
             $result->{sum}->{cashtype}->{$type}->{bookings_found} = 1;
         }
         $sth->finish;
