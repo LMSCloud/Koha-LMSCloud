@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: German Koha Translation\n"
-"POT-Creation-Date: 2018-01-25 11:14+0100\n"
+"POT-Creation-Date: 2018-01-30 13:10+0100\n"
 "PO-Revision-Date: 2017-08-21 20:51+0100\n"
 "Last-Translator: Marc <veron@veron.ch>\n"
 "Language-Team: \n"

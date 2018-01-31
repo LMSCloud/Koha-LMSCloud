@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: German Koha Translation\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2018-01-25 10:04+0100\n"
+"PO-Revision-Date: 2018-01-25 18:55+0100\n"
 "Last-Translator: Katrin <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -3274,7 +3274,7 @@ msgstr "Ersetze"
 
 # Circulation > Checkin Policy
 msgid "circulation.pref#ReturnBranchBecomesHomeBranch# the home library of an item with the return library. The setting is useful, if the library system does not support transfers at all."
-msgstr "die Heimatbibliothek eines zurückgegebenen Mediums mit der Rückgabezweigstelle. Diese Einstellung ist kann verwendet werden, wenn zwischen den Zweigstellen keine Transporte durchgeführt werden."
+msgstr "die Heimatbibliothek eines zurückgegebenen Mediums mit der Rückgabezweigstelle. Diese Einstellung kann verwendet werden, wenn zwischen den Zweigstellen keine Transporte durchgeführt werden."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#ReturnToShelvingCart# Don't move"
