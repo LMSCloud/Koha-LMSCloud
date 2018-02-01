@@ -695,7 +695,7 @@ $(document).ready(function() {
                                                 </option>
                                             [% END %]
                                         </select>
-                                        <input type="text" name="sublength" id="sublength" value="[% sublength %]" size="3" /> (enter amount in numerals)
+                                        <input type="text" name="sublength" id="sublength" value="[% sublength %]" size="3" maxlength="5" /> (enter amount in numerals)
                                         <input type="hidden" name="issuelengthcount">
                                     </li>
                                     <li>
