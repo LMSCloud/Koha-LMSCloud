@@ -41,7 +41,7 @@ sub insertinto_authorised_values {
         },
         { 'category'         => 'DBS_WERTE', 
           'authorised_value' => 'F_B_J', 
-          'lib'              => 'Printmedien Kinder- und Jugendliteratur', 
+          'lib'              => 'Freihand - Printmedien Kinder- und Jugendliteratur', 
           'lib_opac'         => undef,    # results in NULL
           'imageurl'         => ''
         },
@@ -53,7 +53,7 @@ sub insertinto_authorised_values {
         },
         { 'category'         => 'DBS_WERTE', 
           'authorised_value' => 'F_B_P', 
-          'lib'              => 'Printmedien Zeitschriftenhefte', 
+          'lib'              => 'Freihand - Printmedien Zeitschriftenhefte', 
           'lib_opac'         => undef,    # results in NULL
           'imageurl'         => ''
         },
@@ -101,7 +101,7 @@ sub insertinto_authorised_values {
         },
         { 'category'         => 'DBS_WERTE', 
           'authorised_value' => 'M_N_O', 
-          'lib'              => 'Magazin - Non-Book-Medien analog und digital', 
+          'lib'              => 'Magazin - Non-Book-Medien, übrige', 
           'lib_opac'         => undef,    # results in NULL
           'imageurl'         => ''
         },
