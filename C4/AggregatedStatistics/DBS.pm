@@ -1043,13 +1043,25 @@ $dbs_sql_statements->{'med_access_units'} = q{
 # DBS2017:37
 $dbs_sql_statements->{'med_withdrawal_units'} = q{
     select sum(cnt) as res from
-    (   select count(*) as cnt from deleteditems
-        where ( date(timestamp) >= (@startdatum := ?) ) 
-          and ( date(timestamp) <= (@enddatum := ?) )
+    (   select count(*) as cnt from items
+        where ( withdrawn != 0 ) 
+          and ( date(withdrawn_on) >= (@startdatum := ?) ) 
+          and ( date(withdrawn_on) <= (@enddatum := ?) )
           and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+              )
+        union all
+        select count(*) as cnt from deleteditems
+        where ( date(timestamp) >= (@startdatum) ) 
+          and ( date(timestamp) <= (@enddatum) )
+          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) )
+          and ( ((@branchgroupSelect0or1) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel) COLLATE utf8_unicode_ci))
+                or
+                ((@branchcodeSelect0or1) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel) COLLATE utf8_unicode_ci)
                 or
                 (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
               )
@@ -1058,9 +1070,10 @@ $dbs_sql_statements->{'med_withdrawal_units'} = q{
 # DBS2017:39
 $dbs_sql_statements->{'med_subscription_print'} = q{
     select sum(cnt) as res from
-    (   select count(*) as cnt from subscription s
-        where ( s.enddate >= (@startdatum := ?) ) 
-          and ( s.startdate <= (@enddatum := ?) )
+    (   select count(*) as cnt from subscription s, subscriptionhistory h
+        where ( s.subscriptionid = h.subscriptionid ) 
+          and ( s.enddate >= (@startdatum := ?) ) 
+          and ( h.histstartdate <= (@enddatum := ?) )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
