@@ -15,6 +15,8 @@ use Koha::DateUtils;
 
 
 my $debug = 1;
+my @categories;
+my @branchloop;
 my $dbh = C4::Context->dbh;
 
 my $as_values = {};    # hash for storing all read records from table aggregated_statistics_values for one statistics_id, with aggregated_statistics_values.name as key
@@ -1192,8 +1194,6 @@ $dbs_sql_statements->{'mol_media_unit_issues'} = q{
 };
 
 
-my @categories;
-my @branchloop;
 
 # 1. section: functions required for aggregated-statistics-parameters-DBS.inc
 
@@ -1377,6 +1377,7 @@ sub get_branchgroup_branchcode_selection {
 sub read_categories_and_branches {
 
     # read library categories into variable @categories
+    @categories = ();
     for my $category ( Koha::LibraryCategories->search ) {    # fields used in template: category.categorycode and category.categoryname
         push @categories, $category->unblessed();
         print STDERR "C4::AggregatedStatistics::DBS::read_categories_and_branches category->unblessed categorycode:", $category->unblessed->{'categorycode'},  ": categoryname:", $category->unblessed->{'categoryname'}, ":\n" if $debug;
@@ -1384,6 +1385,7 @@ sub read_categories_and_branches {
 
     # read branch information into variable @branchloop
     my $branches = GetBranches();
+    @branchloop = ();
     for my $loopbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
         push @branchloop, {
             value      => $loopbranch,
