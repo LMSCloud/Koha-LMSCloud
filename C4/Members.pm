@@ -2240,11 +2240,11 @@ sub IssueSlip {
         }
     }
 
-    # Sort on timestamp then on issuedate (useful for tests and could be if modified in a batch
+    # Sort on date_due then on issuedate 
     @issues = sort {
-        my $s = $b->{timestamp} <=> $a->{timestamp};
-        $s == 0 ?
-             $b->{issuedate} <=> $a->{issuedate} : $s;
+           $a->{date_due} cmp $b->{date_due}
+        or $b->{timestamp} <=> $a->{timestamp}
+        or $b->{issuedate} <=> $a->{issuedate}
     } @issues;
 
     my ($letter_code, %repeat);
