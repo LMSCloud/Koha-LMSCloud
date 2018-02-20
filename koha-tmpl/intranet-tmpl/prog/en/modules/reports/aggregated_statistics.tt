@@ -6,7 +6,6 @@
 <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
 [% INCLUDE 'datatables.inc' %]
 [% INCLUDE 'calendar.inc' %]
-<!-- <script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script> -->
 
 <script type="text/javascript">
 //<![CDATA[
@@ -141,14 +140,13 @@ tinyMCE.init({
           Select a statistics type:
             <select name="statisticstype" id="astype" style="width:20em;">
             [% FOREACH statisticstypeloo IN statisticstypeloop %]
-                [% IF ( statisticstypeloo.selected ) %][% selected_statisticstype_value = statisticstypeloo.value %][% selected_statisticstype_designation = statisticstypeloo.designation %]<option value="[% statisticstypeloo.value %]" selected="selected">[% statisticstypeloo.designation %]</option>[% ELSE %]<option value="[% statisticstypeloo.value %]">[% statisticstypeloo.designation %]</option>[% END %]
+                [% IF ( statisticstypeloo.selected ) %][% selected_statisticstype_value = statisticstypeloo.type %]<option value="[% statisticstypeloo.type %]" selected="selected">[% statisticstypeloo.designation %]</option>[% ELSE %]<option value="[% statisticstypeloo.type %]">[% statisticstypeloo.designation %]</option>[% END %]
             [% END %]
             </select>
         </p>
         <div id="toolbar" class="btn-toolbar">
           <input type="hidden" id="op" name="op" value="add_form" >
           <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
-          <input type="hidden" name="statisticstypedesignation" value="[% selected_statisticstype_designation %]" />
           <button type="submit" class="btn btn-small" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value %]</button>
         </div>
       </form>
@@ -178,7 +176,6 @@ tinyMCE.init({
                       <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
                         <input type="hidden" name="op" value="copy_form" />
                         <input type="hidden" name="statisticstype" value="[% hit.type %]" />
-                        <input type="hidden" name="statisticstypedesignation" value="[% selected_statisticstype_designation %]" />
                         <input type="hidden" name="name" value="[% hit.name %]" />
                         <input type="hidden" name="description" value="[% hit.description %]" />
                         <input type="hidden" name="startdate" value="[% hit.startdate %]" />
@@ -189,7 +186,6 @@ tinyMCE.init({
                       <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
                         <input type="hidden" name="op" value="add_form" />
                         <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
-                        <input type="hidden" name="statisticstypedesignation" value="[% selected_statisticstype_designation %]" />
                         <input type="hidden" name="name" value="[% hit.name %]" />
                         <input type="hidden" name="description" value="[% hit.description %]" />
                         <input type="hidden" name="startdate" value="[% hit.startdate %]" />
@@ -203,7 +199,6 @@ tinyMCE.init({
                         <input type="hidden" name="op" value="eval_form" />
                         <input type="hidden" name="id" value="[% hit.id %]" />
                         <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
-                        <input type="hidden" name="statisticstypedesignation" value="[% selected_statisticstype_designation %]" />
                         <input type="hidden" name="name" value="[% hit.name %]" />
                         <input type="hidden" name="description" value="[% hit.description %]" />
                         <input type="hidden" name="startdate" value="[% hit.startdate %]" />
@@ -311,7 +306,7 @@ tinyMCE.init({
             </tr>
         </table>
 
-        <form action="[% actionWithParam %]" method="post">
+        <form action="[% action %]" method="post">
             <input type="hidden" name="op" value="delete_confirmed">
             <input type="hidden" name="statisticstype" value="[% hit.type %]" />
             <input type="hidden" name="name" value="[% hit.name %]" />
