@@ -254,6 +254,13 @@ OPAC:
             - pref: OPACMySummaryNote
               type: textarea
         -
+            - pref: OPACMySummaryLibrary
+              default: 0
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - a column with the library branch of the checked out / overdue items on the "my summary" tab.
+        -
             - "Include the following HTML under the facets in OPAC search results:"
             - pref: OPACResultsSidebar
               type: htmlarea

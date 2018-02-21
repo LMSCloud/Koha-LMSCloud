@@ -42,6 +42,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 use constant DIVIBIBAGENCYID => 'DE-Wi27';
 use constant DIVIBIBITEMSOURCE => 'onleihe';
+use constant DIVIBIBISSUEBRANCHCODE => 'eBib';
 
 BEGIN {
     require Exporter;
@@ -303,6 +304,7 @@ sub getPendingIssues {
                    setItemTypeIconAndDescription($divibibIssue->{itemtype}, $divibibIssue);
 
                    $divibibIssue->{barcode} = $divibibIssue->{itemtype};
+                   $divibibIssue->{branchcode} = DIVIBIBISSUEBRANCHCODE;
                    
                    $divibibIssue->{renewal_imposssible} = 1;
                    

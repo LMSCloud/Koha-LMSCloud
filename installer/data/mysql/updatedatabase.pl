@@ -13527,7 +13527,19 @@ if ( CheckVersion($DBversion) ) {
     
     print "Upgrade to $DBversion done (add parameter to reset the home branch to the return branch of an item)\n";
     SetVersion ($DBversion);
-} 
+}
+
+$DBversion = "16.05.12.014";
+if ( CheckVersion($DBversion) ) {
+
+    # Add parameter if to display a column showing the issuing library branch of the checked out / overdue items on the OPAC user's "my summary" tab.
+    $dbh->do( q{
+        INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES ('OPACMySummaryLibrary','0',NULL,'If ON, display a column showing the issuing library branch of the checked out / overdue items on the "my summary" tab.','YesNo')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter OPACMySummaryLibrary syspref)\n";
+    SetVersion($DBversion);
+}
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss

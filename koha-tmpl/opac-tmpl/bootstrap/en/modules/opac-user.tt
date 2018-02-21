@@ -133,6 +133,7 @@ Using this account is not recommended because some parts of Koha will not functi
                         </div>
                     [% END # / IF patron_flagged %]
 
+                    [% SET OPACMySummaryLibrary = Koha.Preference('OPACMySummaryLibrary') %]
                     [% SET OPACMySummaryNote = Koha.Preference('OPACMySummaryNote') %]
                     [% IF OPACMySummaryNote %][% OPACMySummaryNote %][% END %]
 
@@ -170,6 +171,9 @@ Using this account is not recommended because some parts of Koha will not functi
                                                     <th>Call no.</th>
                                                 [% IF ( OpacRenewalAllowed && !( borrower.is_expired && borrower.BlockExpiredPatronOpacActions ) ) %]
                                                     <th class="nosort">Renew</th>
+                                                [% END %]
+                                                [% IF ( OPACMySummaryLibrary ) %]
+                                                    <th>Library</th>
                                                 [% END %]
                                                 [% IF ( OPACFinesTab ) %]
                                                     <th>Fines</th>
@@ -279,6 +283,12 @@ Using this account is not recommended because some parts of Koha will not functi
                                                         No renewal before [% ISSUE.soonestrenewdate %]
                                                         <span class="renewals">([% ISSUE.renewsleft %] of [% ISSUE.renewsallowed %] renewals remaining)</span>
                                                     [% END %]
+                                                    </td>
+                                                [% END %]
+                                                [% IF ( OPACMySummaryLibrary ) %]
+                                                    <td class="branch">
+                                                        <span class="tdlabel">Library:</span>
+                                                        [% ISSUE.branchname_displayed %]
                                                     </td>
                                                 [% END %]
                                                 [% IF ( OPACFinesTab ) %]
@@ -427,6 +437,9 @@ Using this account is not recommended because some parts of Koha will not functi
                                             [% IF ( OpacRenewalAllowed ) %]
                                                 <th class="nosort">Renew</th>
                                             [% END %]
+                                            [% IF ( OPACMySummaryLibrary ) %]
+                                                <th>Library</th>
+                                            [% END %]
                                             [% IF ( OPACFinesTab ) %]
                                                 <th>Fines</th>
                                             [% END %]
@@ -516,6 +529,12 @@ Using this account is not recommended because some parts of Koha will not functi
                                                         [% ELSE %]
                                                             No renewals left
                                                         [% END %]
+                                                    </td>
+                                                [% END %]
+                                                [% IF ( OPACMySummaryLibrary ) %]
+                                                    <td>
+                                                        <span class="tdlabel">Library:</span>
+                                                        [% OVERDUE.branchname_displayed %]
                                                     </td>
                                                 [% END %]
                                                 [% IF ( OPACFinesTab ) %]

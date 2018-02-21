@@ -171,6 +171,37 @@ $template->param(   BORROWER_INFO     => $borr,
                     borrower          => $borr,
                 );
 
+# load the branches
+my $branches = GetBranches();
+my @branch_loop;
+for my $branch_hash ( sort keys %{$branches} ) {
+    my $selected;
+    if ( C4::Context->preference('SearchMyLibraryFirst') ) {
+        $selected =
+          ( C4::Context->userenv
+              && ( $branch_hash eq C4::Context->userenv->{branch} ) );
+    }
+    push @branch_loop,
+      { value      => "branch: $branch_hash",
+        branchname => $branches->{$branch_hash}->{'branchname'},
+        selected   => $selected,
+      };
+
+    # enrich %{$branches} by branchname for display (special handling for mobile branches)
+    $branches->{$branch_hash}->{'branchcode_displayed'} = $branches->{$branch_hash}->{'mobilebranch'};
+    if ( !defined($branches->{$branch_hash}->{'branchcode_displayed'}) || length($branches->{$branch_hash}->{'branchcode_displayed'}) == 0 ) {
+        $branches->{$branch_hash}->{'branchcode_displayed'} = $branch_hash;
+    }
+    $branches->{$branch_hash}->{'branchname_displayed'} = $branches->{$branches->{$branch_hash}->{'branchcode_displayed'}}->{'branchname'};
+    if ( !defined($branches->{$branch_hash}->{'branchname_displayed'}) || length($branches->{$branch_hash}->{'branchname_displayed'}) == 0 ) {
+        $branches->{$branch_hash}->{'branchname_displayed'} = $branches->{$branch_hash}->{'branchcode_displayed'};
+    }
+    if ( !defined($branches->{$branch_hash}->{'branchname_displayed'}) || length($branches->{$branch_hash}->{'branchname_displayed'}) == 0 ) {    # should not happen
+        $branches->{$branch_hash}->{'branchname_displayed'} = $branch_hash;
+    }
+}
+$template->param( branchloop => \@branch_loop );
+
 #get issued items ....
 
 my $count          = 0;
@@ -214,10 +245,13 @@ if ($issues){
             }
             $issue->{'charges'} = $charges;
         }
+        # supply branchname for display (special handling for mobile branches)
+        $issue->{'branchname_displayed'} = $branches->{$issue->{'branchcode'}}->{'branchname_displayed'};
+
         my $marcrecord = GetMarcBiblio( $issue->{'biblionumber'} );
         $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
         
-         if ( $issue->{itemSource} eq 'koha' ) { 
+        if ( $issue->{itemSource} eq 'koha' ) {
             # check if item is renewable
             my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
             ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
@@ -294,24 +328,6 @@ if ($show_barcode) {
     undef $show_barcode if defined($patron_show_barcode) && !$patron_show_barcode;
 }
 $template->param( show_barcode => 1 ) if $show_barcode;
-
-# load the branches
-my $branches = GetBranches();
-my @branch_loop;
-for my $branch_hash ( sort keys %{$branches} ) {
-    my $selected;
-    if ( C4::Context->preference('SearchMyLibraryFirst') ) {
-        $selected =
-          ( C4::Context->userenv
-              && ( $branch_hash eq C4::Context->userenv->{branch} ) );
-    }
-    push @branch_loop,
-      { value      => "branch: $branch_hash",
-        branchname => $branches->{$branch_hash}->{'branchname'},
-        selected   => $selected,
-      };
-}
-$template->param( branchloop => \@branch_loop );
 
 # now the reserved items....
 my $reserves = Koha::Holds->search( { borrowernumber => $borrowernumber } );
