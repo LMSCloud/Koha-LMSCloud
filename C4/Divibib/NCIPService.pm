@@ -23,6 +23,7 @@ use warnings;
 use Carp;
 
 use utf8;
+use Data::Dumper;
 
 use LWP::UserAgent;
 use Clone qw(clone);
@@ -301,7 +302,7 @@ sub getPendingIssues {
                    $divibibIssue->{itemSource} = DIVIBIBITEMSOURCE;
                    $divibibIssue->{itemtype} = $divibibItem->{'BibliographicDescription'}->{'MediumType'};
                 
-                   setItemTypeIconAndDescription($divibibIssue->{itemtype}, $divibibIssue);
+                   setItemTypeIconAndDescription(lc($divibibIssue->{itemtype}), $divibibIssue);
 
                    $divibibIssue->{barcode} = $divibibIssue->{itemtype};
                    $divibibIssue->{branchcode} = DIVIBIBISSUEBRANCHCODE;

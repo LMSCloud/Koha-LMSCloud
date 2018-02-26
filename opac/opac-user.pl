@@ -279,21 +279,48 @@ if ($issues){
                 }
             }
         }
+        
+print STDERR "opac-user.pl issue->{itemSource}:$issue->{itemSource}: issue->{'itemnumber'}:$issue->{'itemnumber'}: issue->{'itemtype'}:$issue->{'itemtype'}:issue->{'imageurl'}:$issue->{'imageurl'}: issue->{'description'}:$issue->{'description'}:\n";
+        if ( $issue->{itemSource} eq 'onleihe' ) {
+            my $itemtype = $issue->{'itemtype'};                
+            if ( !exists($itemtypes->{$itemtype}) ) {
+                $itemtype = lc($issue->{'itemtype'});    # e.g. treat eBook as ebook
+            }
+            # divibib items are not matched to dummy records in table items, so item-level itypes are ignored
+            if ( $itemtype && exists($itemtypes->{$itemtype}) ) {
+                $issue->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
+                $issue->{'itype_description'} = $itemtypes->{$itemtype}->{'translated_description'};
+            }
+            if ( !defined($issue->{'itype_imageurl'}) ) {
+                $issue->{'itype_imageurl'} = getitemtypeimagelocation( 'opac', $issue->{'imageurl'});
+                $issue->{'itype_description'} = $issue->{'description'};
+            }
+            $issue->{'imageurl'} = $issue->{'itype_imageurl'};
+            $issue->{'description'} = $issue->{'itype_description'};
+        } else
+        {
+            # which imageurl is used depends on system preference item_level_itypes
+            # imageurl for biblioitems.itemtype:
+            my $itemtype = $issue->{'itemtype'};
+            if ( $itemtype && (! $issue->{'imageurl'} )  ) {
+                $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
+                $issue->{'description'} = $itemtypes->{$itemtype}->{'translated_description'};
+            }
+            # imageurl for items.itype:
+            if (exists $issue->{'itype'} && defined($issue->{'itype'}) && exists $itemtypes->{ $issue->{'itype'} }) {
+                $issue->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $issue->{'itype'} }->{'imageurl'} );
+                $issue->{'itype_description'} = $itemtypes->{ $issue->{'itype'} }->{'translated_description'};
+            }
+        }
+print STDERR "opac-user.pl danach issue->{itemSource}:$issue->{itemSource}: issue->{'imageurl'}:$issue->{'imageurl'}: issue->{'description'}:$issue->{'description'}:\n";
 
         if ( $issue->{'overdue'} ) {
+            $issue->{'overdue'} = 1;
             push @overdues, $issue;
             $overdues_count++;
-            $issue->{'overdue'} = 1;
         }
         else {
             $issue->{'issued'} = 1;
-        }
-        
-        # imageurl:
-        my $itemtype = $issue->{'itemtype'};
-        if ( $itemtype && (! $issue->{'imageurl'} )  ) {
-            $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
-            $issue->{'description'} = $itemtypes->{$itemtype}->{'description'};
         }
         push @issuedat, $issue;
         $count++;
