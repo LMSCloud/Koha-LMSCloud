@@ -204,10 +204,12 @@ $template->param( branchloop => \@branch_loop );
 
 #get issued items ....
 
-my $count          = 0;
+my $koha_issues_count = 0;
+my $divibib_issues_count = 0;
 my $overdues_count = 0;
 my @overdues;
-my @issuedat;
+my @koha_issuedat;
+my @divibib_issuedat;
 my $itemtypes = GetItemTypes();
 my $issues = GetPendingIssues($borrowernumber);
 if (C4::Context->preference('DivibibEnabled')) {
@@ -322,8 +324,13 @@ print STDERR "opac-user.pl danach issue->{itemSource}:$issue->{itemSource}: issu
         else {
             $issue->{'issued'} = 1;
         }
-        push @issuedat, $issue;
-        $count++;
+        if ( $issue->{itemSource} eq 'onleihe' ) {
+            push @divibib_issuedat, $issue;
+            $divibib_issues_count++;
+        } else {
+            push @koha_issuedat, $issue;
+            $koha_issues_count++;
+        }
 
         my $isbn = GetNormalizedISBN($issue->{'isbn'});
         $issue->{normalized_isbn} = $isbn;
@@ -342,9 +349,11 @@ print STDERR "opac-user.pl danach issue->{itemSource}:$issue->{itemSource}: issu
     }
 }
 my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
-$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $count);
-$template->param( ISSUES       => \@issuedat );
-$template->param( issues_count => $count );
+$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $koha_issues_count);
+$template->param( KOHA_ISSUES       => \@koha_issuedat );
+$template->param( koha_issues_count => $koha_issues_count );
+$template->param( DIVIBIB_ISSUES       => \@divibib_issuedat );
+$template->param( divibib_issues_count => $divibib_issues_count );
 $template->param( canrenew     => $canrenew );
 $template->param( OVERDUES       => \@overdues );
 $template->param( overdues_count => $overdues_count );
