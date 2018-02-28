@@ -40,6 +40,7 @@ use Koha::Holds;
 use Koha::Database;
 use Koha::Patron::Messages;
 use Koha::Patron::Discharge;
+use Koha::Biblioitems;
 
 use constant ATTRIBUTE_SHOW_BARCODE => 'SHOW_BCODE';
 
@@ -282,7 +283,6 @@ if ($issues){
             }
         }
         
-print STDERR "opac-user.pl issue->{itemSource}:$issue->{itemSource}: issue->{'itemnumber'}:$issue->{'itemnumber'}: issue->{'itemtype'}:$issue->{'itemtype'}:issue->{'imageurl'}:$issue->{'imageurl'}: issue->{'description'}:$issue->{'description'}:\n";
         if ( $issue->{itemSource} eq 'onleihe' ) {
             my $itemtype = $issue->{'itemtype'};                
             if ( !exists($itemtypes->{$itemtype}) ) {
@@ -314,7 +314,6 @@ print STDERR "opac-user.pl issue->{itemSource}:$issue->{itemSource}: issue->{'it
                 $issue->{'itype_description'} = $itemtypes->{ $issue->{'itype'} }->{'translated_description'};
             }
         }
-print STDERR "opac-user.pl danach issue->{itemSource}:$issue->{itemSource}: issue->{'imageurl'}:$issue->{'imageurl'}: issue->{'description'}:$issue->{'description'}:\n";
 
         if ( $issue->{'overdue'} ) {
             $issue->{'overdue'} = 1;
@@ -367,9 +366,44 @@ $template->param( show_barcode => 1 ) if $show_barcode;
 
 # now the reserved items....
 my $reserves = Koha::Holds->search( { borrowernumber => $borrowernumber } );
+my @reservesdat = ();
+
+# getting imageurl and description via itemtype/itype
+foreach my $reserve ($reserves->as_list()) {
+    my $reservedat = {};
+
+    $reservedat->{'reserve'} = $reserve;
+
+    my $biblioitem = Koha::Biblioitems->find( $reserve->biblionumber());
+    my $item = $reserve->item();
+
+    # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
+    if ( defined($item) && defined($item->itype()) && exists $itemtypes->{ $item->itype() }) {
+        $reservedat->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $item->itype() }->{'imageurl'} );
+        $reservedat->{'itype_description'} = $itemtypes->{ $item->itype() }->{'translated_description'};
+    }
+    if ( defined($reserve->itemtype()) && exists $itemtypes->{ $reserve->itemtype() } ) {
+        $reservedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $reserve->itemtype() }->{'imageurl'} );
+        $reservedat->{'itemtype_description'} = $itemtypes->{ $reserve->itemtype() }->{'translated_description'};
+    }
+    if ( !defined($reservedat->{'itemtype_description'}) || length($reservedat->{'itemtype_description'}) == 0 ) {
+        if ( defined($biblioitem->itemtype()) && exists $itemtypes->{ $biblioitem->itemtype() } ) {
+            $reservedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $biblioitem->itemtype() }->{'imageurl'} );
+            $reservedat->{'itemtype_description'} = $itemtypes->{ $biblioitem->itemtype() }->{'translated_description'};
+        }
+    }
+    if ( !defined($reservedat->{'itype_description'}) || length($reservedat->{'itype_description'}) == 0 ) {
+        if ( defined($reservedat->{'itemtype_description'}) && length($reservedat->{'itemtype_description'}) > 0 ) {
+            $reservedat->{'itype_imageurl'}    = $reservedat->{'itemtype_imageurl'};
+            $reservedat->{'itype_description'} = $reservedat->{'itemtype_description'};
+        }
+    }
+
+    push @reservesdat, $reservedat;
+}
 
 $template->param(
-    RESERVES       => $reserves,
+    RESERVESDAT    => { 'count' => $reserves->count(), 'reservesdat' => \@reservesdat },
     showpriority   => $show_priority,
 );
 

@@ -149,7 +149,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                 [% IF ( BORROWER_INFO.amountoverzero ) %]<li><a href="#opac-user-fines">Fines ([% BORROWER_INFO.amountoutstanding | $Price %])</a></li>[% END %]
                                 [% IF ( BORROWER_INFO.amountlessthanzero ) %]<li><a href="#opac-user-fines">Credits ([% BORROWER_INFO.amountoutstanding | $Price %])</a></li>[% END %]
                             [% END %]
-                            [% IF ( RESERVES.count ) %]<li><a href="#opac-user-holds">Holds ([% RESERVES.count %])</a></li>[% END %]
+                            [% IF ( RESERVESDAT.count ) %]<li><a href="#opac-user-holds">Holds ([% RESERVESDAT.count %])</a></li>[% END %]
                         </ul>
 
                         <div id="opac-user-checkouts">
@@ -161,11 +161,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                         <caption>[% koha_issues_count %] Item(s) checked out</caption>
                                         <thead>
                                             <tr>
-                                                [% IF ( item_level_itypes ) %]
-                                                    <th>Item type</th>
-                                                [% ELSE %]
-                                                    <th>Item type</th>
-                                                [% END %]
+                                                <th>Item type</th>
 
                                                 [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
 
@@ -384,11 +380,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                     <caption>[% divibib_issues_count %] Item(s) checked out</caption>
                                     <thead>
                                         <tr>
-                                            [% IF ( item_level_itypes ) %]
-                                                <th>Item type</th>
-                                            [% ELSE %]
-                                                <th>Item type</th>
-                                            [% END %]
+                                            <th>Item type</th>
 
                                             [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
 
@@ -641,11 +633,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                     <!-- OVERDUES TABLE ROWS -->
                                     <thead>
                                         <tr>
-                                            [% IF ( item_level_itypes ) %]
-                                                <th>Item type</th>
-                                            [% ELSE %]
-                                                <th>Item type</th>
-                                            [% END %]
+                                            <th>Item type</th>
 
                                             [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
 
@@ -812,13 +800,14 @@ Using this account is not recommended because some parts of Koha will not functi
                         [% END # /overdues_count %]
 
 
-                        [% IF ( RESERVES.count ) %]
+                        [% IF ( RESERVESDAT.count ) %]
                             <div id="opac-user-holds">
                                 <table id="holdst" class="table table-bordered table-striped">
-                                    <caption>Holds <span class="count">([% RESERVES.count %] total)</span></caption>
+                                    <caption>Holds <span class="count">([% RESERVESDAT.count %] total)</span></caption>
                                     <!-- RESERVES TABLE ROWS -->
                                     <thead>
                                         <tr>
+                                            <th>Item type</th>
                                             <th class="anti-the">Title</th>
                                             <th class="psort">Placed on</th>
                                             <th>Expires on</th>
@@ -834,7 +823,8 @@ Using this account is not recommended because some parts of Koha will not functi
                                         </tr>
                                     </thead>
                                     <tbody>
-                                    [% FOREACH RESERVE IN RESERVES %]
+                                    [% FOREACH RESERVEDAT IN RESERVESDAT.reservesdat %]
+                                        [% SET RESERVE = RESERVEDAT.reserve %]
                                         [% IF ( RESERVE.is_waiting ) %]
                                             [% IF ( RESERVE.is_at_destination ) %]
                                                 [% IF ( RESERVE.is_found ) %]
@@ -848,6 +838,26 @@ Using this account is not recommended because some parts of Koha will not functi
                                         [% ELSE %]
                                             <tr>
                                         [% END %]
+
+                                            <td class="itype">
+                                                <span class="tdlabel">Item type:</span>
+                                                [% UNLESS ( noItemTypeImages ) %]
+                                                    [% IF ( item_level_itypes ) %]
+                                                        [% IF ( RESERVEDAT.itype_imageurl ) %]
+                                                            <img src="[% RESERVEDAT.itype_imageurl %]" title="[% RESERVEDAT.itype_description %]" alt="[% RESERVEDAT.itype_description %]" />
+                                                        [% END %]
+                                                    [% ELSE %]
+                                                        [% IF ( RESERVEDAT.itemtype_imageurl ) %]
+                                                            <img src="[% RESERVEDAT.itemtype_imageurl %]" title="[% RESERVEDAT.itemtype_description %]" alt="[% RESERVEDAT.itemtype_description %]" />
+                                                        [% END %]
+                                                    [% END %]
+                                                [% END %]
+                                                [% IF ( item_level_itypes ) %]
+                                                    [% RESERVEDAT.itype_description %]
+                                                [% ELSE %]
+                                                    [% RESERVEDAT.itemtype_description %]
+                                                [% END %]
+                                            </td>
                                             <td class="title">
                                                 <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% RESERVE.biblionumber %]">
                                                     [% RESERVE.biblio.title %]
@@ -979,7 +989,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                                 [% END %]
                                             </td>
                                         </tr>
-                                    [% END # /FOREACH RESERVES %]
+                                    [% END # /FOREACH RESERVESDAT.reservesdat %]
                                 </tbody>
                             </table>
 
@@ -1005,7 +1015,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                 </div>
                             [% END %]
                         </div> <!-- / #opac-user-holds -->
-                        [% END # / #RESERVES.count %]
+                        [% END # / #RESERVESDAT.count %]
                     </div> <!-- /#opac-user-views -->
                 </div> <!-- /#userdetails -->
             </div> <!-- /.span10 -->
