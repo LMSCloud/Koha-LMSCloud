@@ -86,6 +86,13 @@ $(document).ready(function(){
             alert( _("An error occured while retrieving available letters for adhoc-notices.") );
         }
     });
+    $("#send_notice_letter_select").on('click', function(e){
+        var patronCount = 1;
+        $('#selectAdhocNoticeLetterPatronCount').text(patronCount);
+        $("#selectAdhocNoticeLetter").modal("show");
+
+        return true;
+    });
     $("#send_notice_submit").on('click', function(e){
         e.preventDefault();
         var patronCount = 1;
@@ -267,7 +274,7 @@ function searchToHold(){
                     <li><a href="/cgi-bin/koha/members/discharge.pl?borrowernumber=[% borrowernumber %]">Discharge</a></li>
                 [% END %]
                 [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-                    <li><a href="#selectAdhocNoticeLetter" data-toggle="modal" >Send notice</a></li>
+                    <li><a id="send_notice_letter_select" href="#selectAdhocNoticeLetter" >Send notice</a></li>
                 [% END %]
                 [% IF ( CAN_user_borrowers ) %]
                     [% IF ( NorwegianPatronDBEnable == 1 ) %]
@@ -309,7 +316,7 @@ function searchToHold(){
             Please select the letter that will be used to create notices to the selected patron. Please be aware that patrons might be charged for notices depending on the defined notice fee rules.
         </p>
         <p>
-            Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount">1</span>
+            Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount"></span>
         </p>
         <p id="adhocNoticeLetterSelection">
             <label for="adhocNoticeLetterSelection_letter">Select letter: </label>
