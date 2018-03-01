@@ -66,6 +66,77 @@ $(document).ready(function(){
         searchToHold();
         return false;
     })
+
+    [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+    $("#notice_sent_dialog").hide();
+
+    $.ajax({
+        data: {},
+        type: 'POST',
+        url: '/cgi-bin/koha/svc/members/adhocletters',
+        success: function(data) {
+            var letterSelect =  $("#adhocNoticeLetterSelection_letter");
+            letterSelect.find('option').remove();
+            for (var i=0; i < data.letters.length; i++ ) {
+               letterSelect.append($('<option></option>').val(data.letters[i].code).html(data.letters[i].name));
+            }
+
+        },
+        error: function() {
+            alert( _("An error occured while retrieving available letters for adhoc-notices.") );
+        }
+    });
+    $("#send_notice_submit").on('click', function(e){
+        e.preventDefault();
+        var patronCount = 1;
+
+        var borrowernumbers = [];
+        borrowernumbers.push([% borrowernumber %]);
+
+        var data = {
+            use_letter: $("#adhocNoticeLetterSelection_letter").val(),
+            use_email: ($('#preferEmail').is(":checked") ? $("#preferEmail").val() : ''),
+            no_notice_fees: ($('#dontCharge').is(":checked") ? $("#dontCharge").val() : ''),
+            borrowernumbers: borrowernumbers
+        };
+
+        $.ajax({
+            data: data,
+            type: 'POST',
+            url: '/cgi-bin/koha/svc/members/sendnotice',
+            success: function(data) {
+                var patronExportModal = $("#selectAdhocNoticeLetter");
+                $("#notice_sent_dialog").show();
+                $("#notice_sent_dialog").find(".patrons-length").text(patronCount);
+                $("#notice_sent_dialog").find(".letter-name").text($("#adhocNoticeLetterSelection_letter").find("option:selected").text());
+                if ( data.letter_mailed > 0 ) {
+                    $("#notice_sent_dialog").find(".letter-email-count").text(data.letter_mailed);
+                    $("#notice_sent_dialog").find(".letter-email").show();
+                }
+                else {
+                    $("#notice_sent_dialog").find(".letter-email").hide();
+                }
+                if ( data.letter_printed > 0 ) {
+                    $("#notice_sent_dialog").find(".letter-print-count").text(data.letter_printed);
+                    $("#notice_sent_dialog").find("a").attr("href","/cgi-bin/koha/tools/download-files.pl?filename=" + data.printedfile + "&op=download");
+                    $("#notice_sent_dialog").find(".letter-print").show();
+                }
+                else {
+                    $("#notice_sent_dialog").find(".letter-print").hide();
+                }
+
+                //console.log(data);
+                patronExportModal.modal("hide");
+                $("#memberresultst").DataTable().ajax.reload();
+            },
+            error: function() {
+                alert( _("A server error occured processing the adhoc notice request.") );
+            }
+        });
+
+        return true;
+    });
+    [% END %]
 });
 function confirm_local_deletion() {
     var is_confirmed = window.confirm(_("Are you sure you want to delete this patron from the local database? This cannot be undone."));
@@ -195,6 +266,9 @@ function searchToHold(){
                 [% IF CAN_user_borrowers && useDischarge %]
                     <li><a href="/cgi-bin/koha/members/discharge.pl?borrowernumber=[% borrowernumber %]">Discharge</a></li>
                 [% END %]
+                [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+                    <li><a href="#selectAdhocNoticeLetter" data-toggle="modal" >Send notice</a></li>
+                [% END %]
                 [% IF ( CAN_user_borrowers ) %]
                     [% IF ( NorwegianPatronDBEnable == 1 ) %]
                         <li><a id="deletepatronlocal" href="#">Delete local</a></li>
@@ -220,4 +294,41 @@ function searchToHold(){
                 [% END %]
             </ul>
     </div>
+</div>
+
+
+<!-- Modal to send adhoc notices -->
+<div class="modal hide" id="selectAdhocNoticeLetter" tabindex="-1" role="dialog" aria-labelledby="selectAdhocNoticeLetter_label" aria-hidden="true">
+    <form id="noticeform">
+    <div class="modal-header">
+        <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
+    </div>
+    <div class="modal-body">
+        <p>
+            Please select the letter that will be used to create notices to the selected patron. Please be aware that patrons might be charged for notices depending on the defined notice fee rules.
+        </p>
+        <p>
+            Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount">1</span>
+        </p>
+        <p id="adhocNoticeLetterSelection">
+            <label for="adhocNoticeLetterSelection_letter">Select letter: </label>
+            <select name="adhocNoticeLetterSelection_letter" id="adhocNoticeLetterSelection_letter">
+            </select>
+        </p>
+        <p>
+            <label>
+                Prefer Email notification if an email address is available: <input type="checkbox" id="preferEmail" name="preferEmail" value="yes" checked>
+            </label>
+        </p>
+        <p>
+            <label>
+                Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
+            </label>
+        </p>
+    </div>
+    <div class="modal-footer">
+        <input id="send_notice_submit" type="submit" class="submit" value="Create notices">
+    </div>
+    </form>
 </div>
