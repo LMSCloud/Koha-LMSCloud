@@ -13532,14 +13532,16 @@ if ( CheckVersion($DBversion) ) {
 $DBversion = "16.05.12.014";
 if ( CheckVersion($DBversion) ) {
 
+    # Add parameter if to show book mobile stations in branches select box when placing a hold.
     # Add parameter if to show a column containing the call number of the items on the OPAC user's "my summary" tab.
     # Add parameter if to show a column containing the issuing library branch of the checked out / overdue items on the OPAC user's "my summary" tab.
     $dbh->do( q{
+        INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES ('OPACAllowUserToChooseMobileStation','1',NULL,'If set, show book mobile stations in branches select box when placing a hold.','YesNo');
         INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES ('OPACMySummaryCallNumber','0',NULL,'If ON, show a column containing the call number of the items on the "my summary" tab.','YesNo');
         INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES ('OPACMySummaryLibrary','0',NULL,'If ON, show a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.','YesNo')
     });
     
-    print "Upgrade to $DBversion done (add syspref parameters OPACMySummaryCallNumber, OPACMySummaryLibrary)\n";
+    print "Upgrade to $DBversion done (add syspref parameters OPACAllowUserToChooseMobileStation, OPACMySummaryCallNumber, OPACMySummaryLibrary)\n";
     SetVersion($DBversion);
 }
 
