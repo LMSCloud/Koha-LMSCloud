@@ -26,9 +26,10 @@ sub search {
     my $agerangeend = $params->{agerangeend};
     my $overduelevel = $params->{overduelevel};
     my $inactivesince = $params->{inactivesince};
+    my $validemailavailable = $params->{validemailavailable};
+    my $patronlistid = $params->{patronlistid};
     my $issuecountstart = $params->{issuecountstart};
     my $issuecountend = $params->{issuecountend};
-    my $validemailavailable = $params->{validemailavailable};
 
     unless ( $searchmember ) {
         $searchmember = $dt_params->{sSearch} // '';
@@ -191,6 +192,10 @@ sub search {
                            'borrowers.email IS NULL) AND ' .
                            '(borrowers.emailpro NOT REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR ' .
                            'borrowers.emailpro IS NULL)';
+    }
+    if (defined($patronlistid) && $patronlistid =~ /^\d+$/ ) {
+        push @where_strs, "EXISTS (SELECT 1 FROM  patron_list_patrons p WHERE p.patron_list_id = ? AND p.borrowernumber = borrowers.borrowernumber )";
+        push @where_args, $patronlistid;
     }
 
     my $searchfields = {

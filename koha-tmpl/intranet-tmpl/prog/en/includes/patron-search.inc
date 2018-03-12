@@ -263,6 +263,21 @@ $(document).ready(function() {
                 [% END %]
            </select>
         </p>
+        
+        <p>
+            <label for="patronlistid">Patron list: </label>
+            <select id="patronlistid" name="patronlistid">
+              <option value="">Not selected</option>
+                [% FOREACH p IN patron_lists %]
+                  [% IF p.patron_list_id == patronlistid %]
+                    <option selected="selected" value="[% p.patron_list_id %]">[% p.name %]</option>
+                  [% ELSE %]
+                    <option value="[% p.patron_list_id %]">[% p.name %]</option>
+                  [% END %]
+                [% END %]
+            </select>
+        </p>
+
     </div>
     </form>
 </div>

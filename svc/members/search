@@ -57,6 +57,7 @@ my $agerangeend = $input->param('agerangeend');
 my $overduelevel = $input->param('overduelevel');
 my $inactivesince = $input->param('inactivesince');
 my $validemailavailable = $input->param('validemailavailable');
+my $patronlistid = $input->param('patronlistid');
 my $issuecountstart = $input->param('issuecountstart');
 my $issuecountend = $input->param('issuecountend');
 
@@ -138,6 +139,7 @@ $results = C4::Utils::DataTables::Members::search(
         overduelevel => $overduelevel,
         inactivesince => $inactivesince,
         validemailavailable => $validemailavailable,
+        patronlistid => $patronlistid,
         issuecountstart => $issuecountstart,
         issuecountend => $issuecountend
     }
