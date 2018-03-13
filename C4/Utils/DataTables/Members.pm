@@ -21,6 +21,8 @@ sub search {
     my $chargessince =  $params->{chargessince};
     my $accountexpiresto = $params->{accountexpiresto};
     my $accountexpiresfrom = $params->{accountexpiresfrom};
+    my $debarreduntilto = $params->{debarreduntilto};
+    my $debarreduntilfrom = $params->{debarreduntilfrom};
     my $lastlettercode = $params->{lastlettercode};
     my $agerangestart = $params->{agerangestart};
     my $agerangeend = $params->{agerangeend};
@@ -130,6 +132,14 @@ sub search {
     if ( defined($accountexpiresfrom) && $accountexpiresfrom =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
         push @where_strs, "borrowers.dateexpiry >= ?";
         push @where_args, $accountexpiresfrom;
+    }
+    if ( defined($debarreduntilto) && $debarreduntilto =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+        push @where_strs, "borrowers.debarred <= ?";
+        push @where_args, $debarreduntilto;
+    }
+    if ( defined($debarreduntilfrom) && $debarreduntilfrom =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+        push @where_strs, "borrowers.debarred >= ?";
+        push @where_args, $debarreduntilfrom;
     }
     if ( defined($lastlettercode) and $lastlettercode !~ /^\s*$/ ) {
         push @where_strs, "EXISTS (SELECT 1 FROM message_queue m WHERE m.borrowernumber = borrowers.borrowernumber AND m.letter_code = ? and m.time_queued = (SELECT MAX(time_queued) FROM message_queue mq WHERE mq.borrowernumber = borrowers.borrowernumber and status = ?))";

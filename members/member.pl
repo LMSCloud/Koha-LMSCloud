@@ -82,6 +82,8 @@ $template->param(
     chargessince        => scalar $input->param('chargessince'),
     accountexpiresto    => scalar $input->param('accountexpiresto'),
     accountexpiresfrom  => scalar $input->param('accountexpiresfrom'),
+    debarreduntilto     => scalar $input->param('debarreduntilto'),
+    debarreduntilfrom   => scalar $input->param('debarreduntilfrom'),
     agerangestart       => scalar $input->param('agerangestart'),
     agerangeend         => scalar $input->param('agerangeend'),
     lastlettercode      => scalar $input->param('lastlettercode'),

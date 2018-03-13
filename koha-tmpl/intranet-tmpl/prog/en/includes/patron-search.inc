@@ -40,6 +40,28 @@ $(document).ready(function() {
         showOtherMonths: true,
         selectOtherMonths: true
     });
+    $("#debarreduntilfrom").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#debarreduntilto").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
     $("#inactivesince").datepicker( { 
         autoclose: true, 
         maxDate: -1,
@@ -208,6 +230,12 @@ $(document).ready(function() {
             <label for="accountexpiresfrom">Account expires/expired: </label>
             from&#160;<input type="text" size="13" id="accountexpiresfrom" name="accountexpiresfrom" value="" class="dateinput" />
             to&#160;<input type="text" size="13" id="accountexpiresto" name="accountexpiresto" value="" class="dateinput" />
+        </p>
+        
+        <p>
+            <label for="debarreduntilfrom">Debarred until: </label>
+            from&#160;<input type="text" size="13" id="debarreduntilfrom" name="debarreduntilfrom" value="" class="dateinput" />
+            to&#160;<input type="text" size="13" id="debarreduntilto" name="debarreduntilto" value="" class="dateinput" />
         </p>
         
         <p>

@@ -51,6 +51,8 @@ my $chargesto = $input->param('chargesto');
 my $chargessince = $input->param('chargessince');
 my $accountexpiresto = $input->param('accountexpiresto');
 my $accountexpiresfrom = $input->param('accountexpiresfrom');
+my $debarreduntilto = $input->param('debarreduntilto');
+my $debarreduntilfrom = $input->param('debarreduntilfrom');
 my $lastlettercode = $input->param('lastlettercode');
 my $agerangestart = $input->param('agerangestart');
 my $agerangeend = $input->param('agerangeend');
@@ -109,6 +111,22 @@ if ( $accountexpiresfrom ) {
         $accountexpiresfrom = output_pref({dt => $tmpdate, dateonly => 1, dateformat => 'iso'});
    }
 }
+if ( $debarreduntilto ) {
+    eval {
+        my $tmpdate = $debarreduntilto;
+        $debarreduntilto = undef;
+        $tmpdate = dt_from_string( $tmpdate ) ;
+        $debarreduntilto = output_pref({dt => $tmpdate, dateonly => 1, dateformat => 'iso'});
+   }
+}
+if ( $debarreduntilfrom ) {
+    eval {
+        my $tmpdate = $debarreduntilfrom;
+        $debarreduntilfrom = undef;
+        $tmpdate = dt_from_string( $tmpdate ) ;
+        $debarreduntilfrom = output_pref({dt => $tmpdate, dateonly => 1, dateformat => 'iso'});
+   }
+}
 if ( $inactivesince ) {
     eval {
         my $tmpdate = $inactivesince;
@@ -133,6 +151,8 @@ $results = C4::Utils::DataTables::Members::search(
         chargessince => $chargessince,
         accountexpiresto => $accountexpiresto,
         accountexpiresfrom => $accountexpiresfrom,
+        debarreduntilto => $debarreduntilto,
+        debarreduntilfrom => $debarreduntilfrom,
         lastlettercode => $lastlettercode,
         agerangestart => $agerangestart,
         agerangeend => $agerangeend,

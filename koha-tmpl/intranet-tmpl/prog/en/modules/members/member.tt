@@ -231,6 +231,28 @@ $(document).ready(function() {
         showOtherMonths: true,
         selectOtherMonths: true
     });
+    $("#debarreduntilto_filter").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#debarreduntilfrom_filter").datepicker( { 
+        autoclose: true, 
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
     $("#inactivesince_filter").datepicker( { 
         autoclose: true, 
         showOn: "both",
@@ -343,6 +365,12 @@ $(document).ready(function() {
             },{
                 'name': 'accountexpiresfrom',
                 'value': $("#accountexpiresfrom_filter").val()
+            },{
+                'name': 'debarreduntilto',
+                'value': $("#debarreduntilto_filter").val()
+            },{
+                'name': 'debarreduntilfrom',
+                'value': $("#debarreduntilfrom_filter").val()
             },{
                 'name': 'lastlettercode',
                 'value': $("#lastlettercode_filter").val()
@@ -486,6 +514,8 @@ function clearFilters(redraw) {
     $("#chargessince_filter").val('');
     $("#accountexpiresto_filter").val('');
     $("#accountexpiresfrom_filter").val('');
+    $("#debarreduntilto_filter").val('');
+    $("#debarreduntilfrom_filter").val('');
     $("#lastlettercode_filter").val('');
     $("#overduelevel_filter").val('');
     $("#inactivesince_filter").val('');
@@ -760,6 +790,11 @@ function filterByFirstLetterSurname(letter) {
               <label for="accountexpiresfrom_filter">Account expires/expired: </label>
               from&#160;<input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" value="[% accountexpiresfrom %]" /><br />
               to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" />
+            </li>
+            <li>
+              <label for="debarreduntilfrom_filter">Debarred until: </label>
+              from&#160;<input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" value="[% debarreduntilfrom %]" /><br />
+              to&#160;<input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" value="[% debarreduntilto %]" />
             </li>
             <li>
               <label for="inactivesince_filter">Inactive since:</label>
