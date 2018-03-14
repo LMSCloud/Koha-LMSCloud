@@ -951,9 +951,9 @@ Using this account is not recommended because some parts of Koha will not functi
                                                                         <div class="modal-header">
                                                                             <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
                                                                             [% IF RESERVE.suspend %]
-                                                                                <h3 id="suspendModal[% RESERVE.reserve_id %]Label">Resume your hold on <i>[% RESERVE.biblio.title %]</i></h3>
+                                                                                <h3 id="suspendModal[% RESERVE.reserve_id %]Label">Resume your hold on <i>[% RESERVE.biblio.title %]<br>[% RESERVE.item.enumchron %]</i></h3>
                                                                             [% ELSE %]
-                                                                                <h3 id="suspendModal[% RESERVE.reserve_id %]Label">Suspend your hold on <i>[% RESERVE.biblio.title %]</i></h3>
+                                                                                <h3 id="suspendModal[% RESERVE.reserve_id %]Label">Suspend your hold on <i>[% RESERVE.biblio.title %]<br>[% RESERVE.item.enumchron %]</i></h3>
                                                                             [% END %]
                                                                         </div>
                                                                         <div class="modal-body">
