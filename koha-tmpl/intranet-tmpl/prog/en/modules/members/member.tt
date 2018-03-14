@@ -231,8 +231,8 @@ $(document).ready(function() {
         showOtherMonths: true,
         selectOtherMonths: true
     });
-    $("#debarreduntilto_filter").datepicker( { 
-        autoclose: true, 
+    $("#debarreduntilto_filter").datepicker( {
+        autoclose: true,
         showOn: "both",
         changeMonth: true,
         changeYear: true,
@@ -242,8 +242,8 @@ $(document).ready(function() {
         showOtherMonths: true,
         selectOtherMonths: true
     });
-    $("#debarreduntilfrom_filter").datepicker( { 
-        autoclose: true, 
+    $("#debarreduntilfrom_filter").datepicker( {
+        autoclose: true,
         showOn: "both",
         changeMonth: true,
         changeYear: true,

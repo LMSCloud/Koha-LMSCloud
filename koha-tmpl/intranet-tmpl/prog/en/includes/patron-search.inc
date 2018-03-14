@@ -40,8 +40,8 @@ $(document).ready(function() {
         showOtherMonths: true,
         selectOtherMonths: true
     });
-    $("#debarreduntilfrom").datepicker( { 
-        autoclose: true, 
+    $("#debarreduntilfrom").datepicker( {
+        autoclose: true,
         showOn: "both",
         changeMonth: true,
         changeYear: true,
@@ -51,8 +51,8 @@ $(document).ready(function() {
         showOtherMonths: true,
         selectOtherMonths: true
     });
-    $("#debarreduntilto").datepicker( { 
-        autoclose: true, 
+    $("#debarreduntilto").datepicker( {
+        autoclose: true,
         showOn: "both",
         changeMonth: true,
         changeYear: true,
