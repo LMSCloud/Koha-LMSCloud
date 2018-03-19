@@ -262,7 +262,7 @@ OPAC:
               choices:
                   yes: Show
                   no: "Don't show"
-            - a column containing the library branch of the checked out / overdue items on the "my summary" tab.
+            - a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.
         -
             - "Note to display on the patron summary page. This note only appears if the patron is logged in:"
             - pref: OPACMySummaryNote
