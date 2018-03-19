@@ -141,7 +141,7 @@ Using this account is not recommended because some parts of Koha will not functi
                     <div id="opac-user-views" class="toptabs">
                         <ul>
                             <li><a href="#opac-user-checkouts">Checked out ([% koha_issues_count %])</a></li>
-                            [% IF relatives %]<li><a href="#opac-user-relative-issues">Relatives' checkouts</a></li>[% END %]
+                            [% IF RELATIVESDAT %]<li><a href="#opac-user-relative-issues">Relatives' checkouts</a></li>[% END %]
                             [% IF ( overdues_count ) %]<li><a href="#opac-user-overdues">Overdue ([% overdues_count %])</a></li>[% END %]
                             [% IF ( divibib_issues_count ) %]<li><a href="#opac-user-divibibcheckouts">Onleihen ([% divibib_issues_count %])</a></li>[% END %]
                             [% IF ( OPACFinesTab ) %]
@@ -580,40 +580,104 @@ Using this account is not recommended because some parts of Koha will not functi
                             [% END %]
                         [% END # / OPACFinesTab %]
 
-                        [% IF relatives %]
+                        [% IF RELATIVESDAT %]
                             <div id="opac-user-relative-issues">
                                 <table id="opac-user-relative-issues-table" class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
+                                            <th>Item type</th>
+
                                             <th class="anti-the">Title</th>
+
                                             <th>Due</th>
-                                            <th>Barcode</th>
-                                            <th>Call no.</th>
+
+                                            [% IF ( OPACMySummaryLibrary ) %]
+                                                <th>Library</th>
+                                            [% END %]
+
+                                            [% IF ( show_barcode ) %]
+                                                <th>Barcode</th>
+                                            [% END %]
+
+                                            [% IF ( OPACMySummaryCallNumber ) %]
+                                                <th>Call no.</th>
+                                            [% END %]
+
                                             <th class="psort">Relative</th>
                                         </tr>
                                     </thead>
 
                                     <tbody>
-                                        [% FOREACH r IN relatives %]
-                                            [% FOREACH i IN r.issues %]
+                                        [% FOREACH RELATIVEDAT IN RELATIVESDAT %]
+                                            [% r = RELATIVEDAT.relative %]
+                                            [% FOREACH issuedat IN RELATIVEDAT.issuesdat %]
+                                                [% i = issuedat.issue %]
                                                 <tr>
+
+                                                    <td class="itype">
+                                                        <span class="tdlabel">Item type:</span>
+                                                        [% UNLESS ( noItemTypeImages ) %]
+                                                            [% IF ( item_level_itypes ) %]
+                                                                [% IF ( issuedat.itype_imageurl ) %]
+                                                                    <img src="[% issuedat.itype_imageurl %]" title="[% issuedat.itype_description %]" alt="[% issuedat.itype_description %]" />
+                                                                [% END %]
+                                                            [% ELSE %]
+                                                                [% IF ( issuedat.itemtype_imageurl ) %]
+                                                                    <img src="[% issuedat.itemtype_imageurl %]" title="[% issuedat.itemtype_description %]" alt="[% issuedat.itemtype_description %]" />
+                                                                [% END %]
+                                                            [% END %]
+                                                        [% END %]
+                                                        [% IF ( item_level_itypes ) %]
+                                                            [% issuedat.itype_description %]
+                                                        [% ELSE %]
+                                                            [% issuedat.itemtype_description %]
+                                                        [% END %]
+                                                    </td>
+
                                                     <td>
                                                         <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% i.item.biblio.biblionumber %]">
                                                             [% i.item.biblio.title %]  [% i.item.enumchron %]
                                                         </a>
                                                     </td>
 
-                                                    <td>
-                                                        [% i.date_due | $KohaDates %]
-                                                    </td>
+                                                    [% IF ( issuedat.overdue ) %]
+                                                        <td class="date_due overdue">
+                                                            <span title="[% i.date_due %]">
+                                                                <span class="tdlabel">Date due:</span>
+                                                                [% i.date_due | $KohaDates as_due_date => 1 %]
+                                                            </span>
+                                                        </td>
+                                                    [% ELSE %]
+                                                        <td class="date_due">
+                                                            <span title="[% i.date_due %]">
+                                                                <span class="tdlabel">Date due:</span>
+                                                                [% i.date_due | $KohaDates as_due_date => 1 %]
+                                                            </span>
+                                                        </td>
+                                                    [% END %]
 
-                                                    <td>
-                                                        [% i.item.barcode %]
-                                                    </td>
+                                                    [% IF ( OPACMySummaryLibrary ) %]
+                                                        <td class="branch">
+                                                            <span class="tdlabel">Library:</span>
+                                                            [% i.item.homebranch.branchcode %]
+                                                            [% i.branchcode %]
+                                                            [% issuedat.branchname_displayed %]
+                                                        </td>
+                                                    [% END %]
 
-                                                    <td>
-                                                        [% i.item.itemcallnumber %]
-                                                    </td>
+                                                    [% IF ( show_barcode ) %]
+                                                        <td class="barcode">
+                                                            <span class="tdlabel">Barcode:</span>
+                                                            [% i.item.barcode %]
+                                                        </td>
+                                                    [% END %]
+
+                                                    [% IF ( OPACMySummaryCallNumber ) %]
+                                                        <td class="call_no">
+                                                            span class="tdlabel">Call no.:</span>
+                                                            [% i.item.itemcallnumber %]
+                                                        </td>
+                                                    [% END %]
 
                                                     <td>
                                                         [% r.firstname %] [% r.surname %]

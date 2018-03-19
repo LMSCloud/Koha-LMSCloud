@@ -19,6 +19,7 @@
 
 use strict;
 #use warnings; FIXME - Bug 2505
+use Data::Dumper;
 
 use CGI qw ( -utf8 );
 
@@ -283,6 +284,7 @@ if ($issues){
             }
         }
         
+        # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
         if ( $issue->{itemSource} eq 'onleihe' ) {
             my $itemtype = $issue->{'itemtype'};                
             if ( !exists($itemtypes->{$itemtype}) ) {
@@ -301,7 +303,6 @@ if ($issues){
             $issue->{'description'} = $issue->{'itype_description'};
         } else
         {
-            # which imageurl is used depends on system preference item_level_itypes
             # imageurl for biblioitems.itemtype:
             my $itemtype = $issue->{'itemtype'};
             if ( $itemtype && (! $issue->{'imageurl'} )  ) {
@@ -458,7 +459,55 @@ if (   C4::Context->preference('AllowPatronToSetCheckoutsVisibilityForGuarantor'
         },
         { prefetch => [ { 'issues' => { 'item' => 'biblio' } } ] }
       );
-    $template->param( relatives => \@relatives );
+    my @relativesdat = ();
+    my $today = dt_from_string('', 'sql');
+
+    # getting imageurl and description via itemtype/itype
+    foreach my $relative (@relatives) {
+        my $relativedat = {};
+
+        $relativedat->{'relative'} = $relative;
+        $relativedat->{'issuesdat'} = [];
+
+        foreach my $issue ($relative->issues()) {
+            my $issuedat = {};
+            $issuedat->{'issue'} = $issue;
+            my $issuebranchcode = $issue->branchcode();
+            my $item = $issue->item();
+            my $itemitype = undef;
+            if ( defined($item) ) {
+                $itemitype = $item->itype();
+            }
+            my $biblioitem = $item->biblioitem();
+
+            if ( scalar $issue->date_due() ) {
+                $issuedat->{'date_due_cmp'} = dt_from_string(scalar $issue->date_due(), 'sql');
+                if ( DateTime->compare($issuedat->{'date_due_cmp'}, $today) == -1 ) {
+                    $issuedat->{overdue} = 1;
+                }
+            }
+
+            # supply branchname for display (special handling for mobile branches)
+            $issuedat->{'branchname_displayed'} = $branches->{$issuebranchcode}->{'branchname_displayed'};
+
+            # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
+            # imageurl for biblioitems.itemtype:
+            my $itemtype = undef;
+            $itemtype = $biblioitem->itemtype() if defined($biblioitem);
+            if ( defined($itemtype) && exists $itemtypes->{ $itemtype } ) {
+                $issuedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itemtype }->{'imageurl'} );
+                $issuedat->{'itemtype_description'} = $itemtypes->{ $itemtype }->{'translated_description'};
+            }
+            # imageurl for items.itype:
+            if ( defined($itemitype) && exists $itemtypes->{ $itemitype }) {
+                $issuedat->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itemitype }->{'imageurl'} );
+                $issuedat->{'itype_description'} = $itemtypes->{ $itemitype }->{'translated_description'};
+            }
+            push @{$relativedat->{'issuesdat'}}, $issuedat;
+        }
+        push @relativesdat, $relativedat;
+    }
+    $template->param( RELATIVESDAT => \@relativesdat );
 }
 
 $template->param(
