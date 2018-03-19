@@ -19,7 +19,6 @@
 
 use strict;
 #use warnings; FIXME - Bug 2505
-use Data::Dumper;
 
 use CGI qw ( -utf8 );
 
