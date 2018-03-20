@@ -109,6 +109,12 @@ if (scalar keys %params > 0) {
                     field => $p,
                     query => \@q,
                 };
+                if ( scalar @q == 1 ) {
+                    $f->{'query'} = $q[0];    # transfering the value directly, not wrapped in an array having 1 element
+                }
+                if ( $p eq 'issues' ) {
+                    $f->{'handleNullLikeValue'} = 0;    # specifying that a items record where items.issues IS NULL should be treated like a items record where items.issues = 0
+                }
                 if (my $op = scalar $cgi->param($p . '_op')) {
                     $f->{operator} = $op;
                 }
