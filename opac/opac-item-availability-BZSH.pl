@@ -70,7 +70,7 @@ Datum voraussichtliche Rückgabe: 04.07.2017
 <p><a href="https://wallenheim.lmscloud.net/bib/6391">Weitere Informationen zu diesem Titel</a></p>
 </b></p></pre></td>
 <status>2 </status><br>
-<ruckdat>20170704<ruckdat><br>
+<ruckdat>20170704</ruckdat><br>
 
 
 =cut
@@ -458,11 +458,11 @@ if ( $best_item_status == 1) {
     $BZSH_output_statuscode = "\n<status>2 </status><br>\n";
     if ( length($best_item_date_due_year) == 4 &&  length($best_item_date_due_month) == 2 && length($best_item_date_due_day) == 2 ) {
         $BZSH_output_ruckdattext = sprintf("Datum voraussichtliche Rückgabe: %02d.%02d.%04d\n", $best_item_date_due_day, $best_item_date_due_month, $best_item_date_due_year);
-        $BZSH_output_ruckdatcode = sprintf("<ruckdat>%04d%02d%02d<ruckdat><br>\n", $best_item_date_due_year, $best_item_date_due_month, $best_item_date_due_day);
+        $BZSH_output_ruckdatcode = sprintf("<ruckdat>%04d%02d%02d</ruckdat><br>\n", $best_item_date_due_year, $best_item_date_due_month, $best_item_date_due_day);
     }
 } elsif ( $best_item_status == 4) {
-    $BZSH_output_statustext = "<Status: nicht ausleihbar\n";
-    $BZSH_output_statuscode = "<\nstatus>4 </status><br>\n";
+    $BZSH_output_statustext = "Status: nicht ausleihbar\n";
+    $BZSH_output_statuscode = "\n<status>4 </status><br>\n";
 }
 if ( $best_biblionumber > 0 ) {
     $BZSH_output_permalink = sprintf("<p><a href=\"%s\">Weitere Informationen zu diesem Titel</a></p>\n", &genPermalink($best_biblionumber));

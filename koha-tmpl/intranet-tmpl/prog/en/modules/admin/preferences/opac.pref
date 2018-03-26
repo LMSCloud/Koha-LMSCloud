@@ -244,11 +244,25 @@ OPAC:
               type: textarea
               class: code
         -
+            - pref: OPACMySummaryCallNumber
+              default: 0
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - a column containing the call number of the items on the "my summary" tab.
+        -
             - 'Include a "Links" column on the "my summary" and "my reading history" tabs when a user is logged in to the OPAC, with the following HTML (leave blank to disable):'
             - '<br />Note: The placeholders {BIBLIONUMBER}, {TITLE}, {ISBN} and {AUTHOR} will be replaced with information from the displayed record.'
             - pref: OPACMySummaryHTML
               type: htmlarea
               class: code
+        -
+            - pref: OPACMySummaryLibrary
+              default: 0
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.
         -
             - "Note to display on the patron summary page. This note only appears if the patron is logged in:"
             - pref: OPACMySummaryNote

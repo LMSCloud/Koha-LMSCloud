@@ -128,7 +128,12 @@ my $branch = $query->param('branch') || $borr->{'branchcode'} || C4::Context->us
 $template->param( branch => $branch );
 
 # make branch selection options...
-my $branchloop = GetBranchesLoop($branch);
+my $branchloop = {};
+if ( C4::Context->preference("OPACAllowUserToChooseMobileStation") ) {
+    $branchloop = GetBranchesLoop($branch);
+} else {
+    $branchloop = GetBranchesLoopWithoutMobileStations($branch);
+}
 
 # Is the person allowed to choose their branch
 my $OPACChooseBranch = (C4::Context->preference("OPACAllowUserToChooseBranch")) ? 1 : 0;

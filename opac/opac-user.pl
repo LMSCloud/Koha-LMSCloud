@@ -40,6 +40,7 @@ use Koha::Holds;
 use Koha::Database;
 use Koha::Patron::Messages;
 use Koha::Patron::Discharge;
+use Koha::Biblioitems;
 
 use constant ATTRIBUTE_SHOW_BARCODE => 'SHOW_BCODE';
 
@@ -171,12 +172,45 @@ $template->param(   BORROWER_INFO     => $borr,
                     borrower          => $borr,
                 );
 
+# load the branches
+my $branches = GetBranches();
+my @branch_loop;
+for my $branch_hash ( sort keys %{$branches} ) {
+    my $selected;
+    if ( C4::Context->preference('SearchMyLibraryFirst') ) {
+        $selected =
+          ( C4::Context->userenv
+              && ( $branch_hash eq C4::Context->userenv->{branch} ) );
+    }
+    push @branch_loop,
+      { value      => "branch: $branch_hash",
+        branchname => $branches->{$branch_hash}->{'branchname'},
+        selected   => $selected,
+      };
+
+    # enrich %{$branches} by branchname for display (special handling for mobile branches)
+    $branches->{$branch_hash}->{'branchcode_displayed'} = $branches->{$branch_hash}->{'mobilebranch'};
+    if ( !defined($branches->{$branch_hash}->{'branchcode_displayed'}) || length($branches->{$branch_hash}->{'branchcode_displayed'}) == 0 ) {
+        $branches->{$branch_hash}->{'branchcode_displayed'} = $branch_hash;
+    }
+    $branches->{$branch_hash}->{'branchname_displayed'} = $branches->{$branches->{$branch_hash}->{'branchcode_displayed'}}->{'branchname'};
+    if ( !defined($branches->{$branch_hash}->{'branchname_displayed'}) || length($branches->{$branch_hash}->{'branchname_displayed'}) == 0 ) {
+        $branches->{$branch_hash}->{'branchname_displayed'} = $branches->{$branch_hash}->{'branchcode_displayed'};
+    }
+    if ( !defined($branches->{$branch_hash}->{'branchname_displayed'}) || length($branches->{$branch_hash}->{'branchname_displayed'}) == 0 ) {    # should not happen
+        $branches->{$branch_hash}->{'branchname_displayed'} = $branch_hash;
+    }
+}
+$template->param( branchloop => \@branch_loop );
+
 #get issued items ....
 
-my $count          = 0;
+my $koha_issues_count = 0;
+my $divibib_issues_count = 0;
 my $overdues_count = 0;
 my @overdues;
-my @issuedat;
+my @koha_issuedat;
+my @divibib_issuedat;
 my $itemtypes = GetItemTypes();
 my $issues = GetPendingIssues($borrowernumber);
 if (C4::Context->preference('DivibibEnabled')) {
@@ -214,10 +248,13 @@ if ($issues){
             }
             $issue->{'charges'} = $charges;
         }
+        # supply branchname for display (special handling for mobile branches)
+        $issue->{'branchname_displayed'} = $branches->{$issue->{'branchcode'}}->{'branchname_displayed'};
+
         my $marcrecord = GetMarcBiblio( $issue->{'biblionumber'} );
         $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
         
-         if ( $issue->{itemSource} eq 'koha' ) { 
+        if ( $issue->{itemSource} eq 'koha' ) {
             # check if item is renewable
             my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
             ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
@@ -245,24 +282,54 @@ if ($issues){
                 }
             }
         }
+        
+        # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
+        if ( $issue->{itemSource} eq 'onleihe' ) {
+            my $itemtype = $issue->{'itemtype'};                
+            if ( !exists($itemtypes->{$itemtype}) ) {
+                $itemtype = lc($issue->{'itemtype'});    # e.g. treat eBook as ebook
+            }
+            # divibib items are not matched to dummy records in table items, so item-level itypes are ignored
+            if ( $itemtype && exists($itemtypes->{$itemtype}) ) {
+                $issue->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
+                $issue->{'itype_description'} = $itemtypes->{$itemtype}->{'translated_description'};
+            }
+            if ( !defined($issue->{'itype_imageurl'}) ) {
+                $issue->{'itype_imageurl'} = getitemtypeimagelocation( 'opac', $issue->{'imageurl'});
+                $issue->{'itype_description'} = $issue->{'description'};
+            }
+            $issue->{'imageurl'} = $issue->{'itype_imageurl'};
+            $issue->{'description'} = $issue->{'itype_description'};
+        } else
+        {
+            # imageurl for biblioitems.itemtype:
+            my $itemtype = $issue->{'itemtype'};
+            if ( $itemtype && (! $issue->{'imageurl'} )  ) {
+                $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
+                $issue->{'description'} = $itemtypes->{$itemtype}->{'translated_description'};
+            }
+            # imageurl for items.itype:
+            if (exists $issue->{'itype'} && defined($issue->{'itype'}) && exists $itemtypes->{ $issue->{'itype'} }) {
+                $issue->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $issue->{'itype'} }->{'imageurl'} );
+                $issue->{'itype_description'} = $itemtypes->{ $issue->{'itype'} }->{'translated_description'};
+            }
+        }
 
         if ( $issue->{'overdue'} ) {
+            $issue->{'overdue'} = 1;
             push @overdues, $issue;
             $overdues_count++;
-            $issue->{'overdue'} = 1;
         }
         else {
             $issue->{'issued'} = 1;
         }
-        
-        # imageurl:
-        my $itemtype = $issue->{'itemtype'};
-        if ( $itemtype && (! $issue->{'imageurl'} )  ) {
-            $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
-            $issue->{'description'} = $itemtypes->{$itemtype}->{'description'};
+        if ( $issue->{itemSource} eq 'onleihe' ) {
+            push @divibib_issuedat, $issue;
+            $divibib_issues_count++;
+        } else {
+            push @koha_issuedat, $issue;
+            $koha_issues_count++;
         }
-        push @issuedat, $issue;
-        $count++;
 
         my $isbn = GetNormalizedISBN($issue->{'isbn'});
         $issue->{normalized_isbn} = $isbn;
@@ -281,9 +348,11 @@ if ($issues){
     }
 }
 my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
-$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $count);
-$template->param( ISSUES       => \@issuedat );
-$template->param( issues_count => $count );
+$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $koha_issues_count);
+$template->param( KOHA_ISSUES       => \@koha_issuedat );
+$template->param( koha_issues_count => $koha_issues_count );
+$template->param( DIVIBIB_ISSUES       => \@divibib_issuedat );
+$template->param( divibib_issues_count => $divibib_issues_count );
 $template->param( canrenew     => $canrenew );
 $template->param( OVERDUES       => \@overdues );
 $template->param( overdues_count => $overdues_count );
@@ -295,29 +364,46 @@ if ($show_barcode) {
 }
 $template->param( show_barcode => 1 ) if $show_barcode;
 
-# load the branches
-my $branches = GetBranches();
-my @branch_loop;
-for my $branch_hash ( sort keys %{$branches} ) {
-    my $selected;
-    if ( C4::Context->preference('SearchMyLibraryFirst') ) {
-        $selected =
-          ( C4::Context->userenv
-              && ( $branch_hash eq C4::Context->userenv->{branch} ) );
-    }
-    push @branch_loop,
-      { value      => "branch: $branch_hash",
-        branchname => $branches->{$branch_hash}->{'branchname'},
-        selected   => $selected,
-      };
-}
-$template->param( branchloop => \@branch_loop );
-
 # now the reserved items....
 my $reserves = Koha::Holds->search( { borrowernumber => $borrowernumber } );
+my @reservesdat = ();
+
+# getting imageurl and description via itemtype/itype
+foreach my $reserve ($reserves->as_list()) {
+    my $reservedat = {};
+
+    $reservedat->{'reserve'} = $reserve;
+
+    my $biblioitem = Koha::Biblioitems->find( $reserve->biblionumber());
+    my $item = $reserve->item();
+
+    # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
+    if ( defined($item) && defined($item->itype()) && exists $itemtypes->{ $item->itype() }) {
+        $reservedat->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $item->itype() }->{'imageurl'} );
+        $reservedat->{'itype_description'} = $itemtypes->{ $item->itype() }->{'translated_description'};
+    }
+    if ( defined($reserve->itemtype()) && exists $itemtypes->{ $reserve->itemtype() } ) {
+        $reservedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $reserve->itemtype() }->{'imageurl'} );
+        $reservedat->{'itemtype_description'} = $itemtypes->{ $reserve->itemtype() }->{'translated_description'};
+    }
+    if ( !defined($reservedat->{'itemtype_description'}) || length($reservedat->{'itemtype_description'}) == 0 ) {
+        if ( defined($biblioitem->itemtype()) && exists $itemtypes->{ $biblioitem->itemtype() } ) {
+            $reservedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $biblioitem->itemtype() }->{'imageurl'} );
+            $reservedat->{'itemtype_description'} = $itemtypes->{ $biblioitem->itemtype() }->{'translated_description'};
+        }
+    }
+    if ( !defined($reservedat->{'itype_description'}) || length($reservedat->{'itype_description'}) == 0 ) {
+        if ( defined($reservedat->{'itemtype_description'}) && length($reservedat->{'itemtype_description'}) > 0 ) {
+            $reservedat->{'itype_imageurl'}    = $reservedat->{'itemtype_imageurl'};
+            $reservedat->{'itype_description'} = $reservedat->{'itemtype_description'};
+        }
+    }
+
+    push @reservesdat, $reservedat;
+}
 
 $template->param(
-    RESERVES       => $reserves,
+    RESERVESDAT    => { 'count' => $reserves->count(), 'reservesdat' => \@reservesdat },
     showpriority   => $show_priority,
 );
 
@@ -372,7 +458,55 @@ if (   C4::Context->preference('AllowPatronToSetCheckoutsVisibilityForGuarantor'
         },
         { prefetch => [ { 'issues' => { 'item' => 'biblio' } } ] }
       );
-    $template->param( relatives => \@relatives );
+    my @relativesdat = ();
+    my $today = dt_from_string('', 'sql');
+
+    # getting imageurl and description via itemtype/itype
+    foreach my $relative (@relatives) {
+        my $relativedat = {};
+
+        $relativedat->{'relative'} = $relative;
+        $relativedat->{'issuesdat'} = [];
+
+        foreach my $issue ($relative->issues()) {
+            my $issuedat = {};
+            $issuedat->{'issue'} = $issue;
+            my $issuebranchcode = $issue->branchcode();
+            my $item = $issue->item();
+            my $itemitype = undef;
+            if ( defined($item) ) {
+                $itemitype = $item->itype();
+            }
+            my $biblioitem = $item->biblioitem();
+
+            if ( scalar $issue->date_due() ) {
+                $issuedat->{'date_due_cmp'} = dt_from_string(scalar $issue->date_due(), 'sql');
+                if ( DateTime->compare($issuedat->{'date_due_cmp'}, $today) == -1 ) {
+                    $issuedat->{overdue} = 1;
+                }
+            }
+
+            # supply branchname for display (special handling for mobile branches)
+            $issuedat->{'branchname_displayed'} = $branches->{$issuebranchcode}->{'branchname_displayed'};
+
+            # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
+            # imageurl for biblioitems.itemtype:
+            my $itemtype = undef;
+            $itemtype = $biblioitem->itemtype() if defined($biblioitem);
+            if ( defined($itemtype) && exists $itemtypes->{ $itemtype } ) {
+                $issuedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itemtype }->{'imageurl'} );
+                $issuedat->{'itemtype_description'} = $itemtypes->{ $itemtype }->{'translated_description'};
+            }
+            # imageurl for items.itype:
+            if ( defined($itemitype) && exists $itemtypes->{ $itemitype }) {
+                $issuedat->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itemitype }->{'imageurl'} );
+                $issuedat->{'itype_description'} = $itemtypes->{ $itemitype }->{'translated_description'};
+            }
+            push @{$relativedat->{'issuesdat'}}, $issuedat;
+        }
+        push @relativesdat, $relativedat;
+    }
+    $template->param( RELATIVESDAT => \@relativesdat );
 }
 
 $template->param(

@@ -59,8 +59,13 @@ if (defined $format and $format eq 'json') {
             my @words = split /\s+/, $sSearch;
             foreach my $word (@words) {
                 push @f, $columns[$i];
-                push @q, "%$word%";
-                push @op, 'like';
+                if ( $columns[$i] eq 'issues' ) {
+                    push @q, "$word";
+                    push @op, '=';
+                } else {
+                    push @q, "%$word%";
+                    push @op, 'like';
+                }
                 push @c, 'and';
             }
         }
@@ -109,6 +114,12 @@ if (scalar keys %params > 0) {
                     field => $p,
                     query => \@q,
                 };
+                if ( scalar @q == 1 ) {
+                    $f->{'query'} = $q[0];    # transfering the value directly, not wrapped in an array having 1 element
+                }
+                if ( $p eq 'issues' ) {
+                    $f->{'handleNullLikeValue'} = 0;    # specifying that a items record where items.issues IS NULL should be treated like a items record where items.issues = 0
+                }
                 if (my $op = scalar $cgi->param($p . '_op')) {
                     $f->{operator} = $op;
                 }
@@ -139,14 +150,18 @@ if (scalar keys %params > 0) {
                 };
             } else {
                 my $c = shift @c;
+                my $nextfilter = {
+                    field => $field,
+                    query => $q,
+                    operator => $op,
+                };
+                if ( $field eq 'issues' ) {
+                    $nextfilter->{handleNullLikeValue} = 0;    # specifying that a items record where items.issues IS NULL should be treated like a items record where items.issues = 0
+                }
                 $f = {
                     conjunction => $c,
                     filters => [
-                        $f, {
-                            field => $field,
-                            query => $q,
-                            operator => $op,
-                        }
+                        $f, $nextfilter
                     ],
                 };
             }

@@ -1,3 +1,4 @@
+[% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Patron lists</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -7,6 +8,7 @@
 
 <script type="text/javascript">
 //<![CDATA[
+
     $(document).ready(function() {
         var patronExportModal = $("#patronExportModal");
         var patronExportModalBody = $("#patronExportModal .modal-body")
@@ -50,6 +52,13 @@
         });
 
     });
+
+    [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+        function startpatronlistidsearch(patron_list_id) {
+            document.getElementById('patronlistid').value = patron_list_id;
+            document.startPatronlistIdSearch.submit();
+        }
+    [% END %]
 //]]>
 </script>
 
@@ -100,6 +109,13 @@
                                     <li><a class="delete_patron" href="/cgi-bin/koha/patron_lists/delete.pl?patron_list_id=[% l.patron_list_id %]" data-list-name="[% l.name %]"><i class="fa fa-trash"></i> Delete list</a></li>
                                     [% IF ( l.patron_list_patrons_rs.count ) %]
                                         <li class="divider"></li>
+                                        [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+                                            <li>
+                                                <a href="#startPatronlistIdSearch" onclick="startpatronlistidsearch([% l.patron_list_id %])" >
+                                                    <i class="fa fa-search"></i> Show in patron search
+                                                </a>
+                                            </li>
+                                        [% END %]
                                         <li>
                                             <a class="print_cards" href="/cgi-bin/koha/patroncards/print.pl?patronlist_id=[% l.patron_list_id %]" data-patron_list_id="[% l.patron_list_id %]"><i class="fa fa-print"></i> Print patron cards</a>
                                         </li>
@@ -136,6 +152,12 @@
                     <div id="loading"> <img src="[% interface %]/[% theme %]/img/loading-small.gif" alt="" /> Loading </div>
                 </div>
             </div>
+
+            [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+                <form name="startPatronlistIdSearch" id="startPatronlistIdSearch" style="display:none;" action="/cgi-bin/koha/members/member.pl" method="post" >
+                    <input type="hidden" id="patronlistid" name="patronlistid" value="" />
+                </form>
+            [% END %]
 
         [% ELSE %]
            <div class="dialog message">There are no patron lists.</div>

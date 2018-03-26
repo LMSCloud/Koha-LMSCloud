@@ -3,7 +3,7 @@
 
     var categories = {};
     var selcateg = '[% selcateg | html %]';
-    [% FOREACH category IN categories %]
+    [% FOREACH category IN additionalparameters.categories %]
         categories["[% category.categorycode | html %]"] = { name: "[% category.categoryname | html %]", libraries: [], sel: false};
     [% END %]
     if ( selcateg != '' ) {
@@ -12,7 +12,7 @@
     
     var libraries = {};
     var libcodes = new Array();
-    [% FOREACH branchloo IN branchloop %]
+    [% FOREACH branchloo IN additionalparameters.branchloop %]
         libraries["[% branchloo.value | html %]"] = { name: "[% branchloo.branchname | html %]", category: [] };
         libcodes.push("[% branchloo.value | html %]");
         [% FOREACH branchcategory IN branchloo.category.keys %]
@@ -47,8 +47,8 @@
     $(document).ready(function() {
         var sel = $('#groups');
         
-        var selectedgroup = "[% selectedgroup %]";
-        var selectedbranch = "[% selectedbranch %]";
+        var selectedgroup = "[% additionalparameters.selectedgroup %]";
+        var selectedbranch = "[% additionalparameters.selectedbranch %]";
         
         $.each(categories, function(code, categ) {
             sel.append($('<option></option>').val(code).html(categ.name).attr('selected', categ.sel));

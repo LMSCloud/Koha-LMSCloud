@@ -21,14 +21,17 @@ sub search {
     my $chargessince =  $params->{chargessince};
     my $accountexpiresto = $params->{accountexpiresto};
     my $accountexpiresfrom = $params->{accountexpiresfrom};
+    my $debarreduntilto = $params->{debarreduntilto};
+    my $debarreduntilfrom = $params->{debarreduntilfrom};
     my $lastlettercode = $params->{lastlettercode};
     my $agerangestart = $params->{agerangestart};
     my $agerangeend = $params->{agerangeend};
     my $overduelevel = $params->{overduelevel};
     my $inactivesince = $params->{inactivesince};
+    my $validemailavailable = $params->{validemailavailable};
+    my $patronlistid = $params->{patronlistid};
     my $issuecountstart = $params->{issuecountstart};
     my $issuecountend = $params->{issuecountend};
-    my $validemailavailable = $params->{validemailavailable};
 
     unless ( $searchmember ) {
         $searchmember = $dt_params->{sSearch} // '';
@@ -130,6 +133,14 @@ sub search {
         push @where_strs, "borrowers.dateexpiry >= ?";
         push @where_args, $accountexpiresfrom;
     }
+    if ( defined($debarreduntilto) && $debarreduntilto =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+        push @where_strs, "borrowers.debarred <= ?";
+        push @where_args, $debarreduntilto;
+    }
+    if ( defined($debarreduntilfrom) && $debarreduntilfrom =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+        push @where_strs, "borrowers.debarred >= ?";
+        push @where_args, $debarreduntilfrom;
+    }
     if ( defined($lastlettercode) and $lastlettercode !~ /^\s*$/ ) {
         push @where_strs, "EXISTS (SELECT 1 FROM message_queue m WHERE m.borrowernumber = borrowers.borrowernumber AND m.letter_code = ? and m.time_queued = (SELECT MAX(time_queued) FROM message_queue mq WHERE mq.borrowernumber = borrowers.borrowernumber and status = ?))";
         push @where_args, $lastlettercode;
@@ -191,6 +202,10 @@ sub search {
                            'borrowers.email IS NULL) AND ' .
                            '(borrowers.emailpro NOT REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR ' .
                            'borrowers.emailpro IS NULL)';
+    }
+    if (defined($patronlistid) && $patronlistid =~ /^\d+$/ ) {
+        push @where_strs, "EXISTS (SELECT 1 FROM  patron_list_patrons p WHERE p.patron_list_id = ? AND p.borrowernumber = borrowers.borrowernumber )";
+        push @where_args, $patronlistid;
     }
 
     my $searchfields = {

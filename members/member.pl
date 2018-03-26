@@ -82,6 +82,8 @@ $template->param(
     chargessince        => scalar $input->param('chargessince'),
     accountexpiresto    => scalar $input->param('accountexpiresto'),
     accountexpiresfrom  => scalar $input->param('accountexpiresfrom'),
+    debarreduntilto     => scalar $input->param('debarreduntilto'),
+    debarreduntilfrom   => scalar $input->param('debarreduntilfrom'),
     agerangestart       => scalar $input->param('agerangestart'),
     agerangeend         => scalar $input->param('agerangeend'),
     lastlettercode      => scalar $input->param('lastlettercode'),
@@ -90,6 +92,7 @@ $template->param(
     issuecountstart     => scalar $input->param('issuecountstart'),
     issuecountend       => scalar $input->param('issuecountend'),
     validemailavailable => scalar $input->param('validemailavailable'),
+    patronlistid        => scalar $input->param('patronlistid'),
     PatronsPerPage      => C4::Context->preference("PatronsPerPage") || 20,
     view                => $view,
 );

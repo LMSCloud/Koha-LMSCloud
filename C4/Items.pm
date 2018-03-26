@@ -2677,10 +2677,29 @@ sub _SearchItems_build_where_fragment {
                     args => $query,
                 };
             } else {
-                $where_fragment = {
-                    str => "$column $op ?",
-                    args => [ $query ],
-                };
+                if (defined($filter->{'handleNullLikeValue'}) ) {    # $filter->{'handleNullLikeValue'} specifies that a items record where items.$column IS NULL should be treated like a items record where items.$column = $filter->{'handleNullLikeValue'} (e.g. 0, or '')
+                    if ( ( $op eq '=' && $query == $filter->{'handleNullLikeValue'} ) ||
+                         ( $op eq '!=' && $query != $filter->{'handleNullLikeValue'} ) ||
+                         ( $op eq '>' && $query < $filter->{'handleNullLikeValue'} ) ||
+                         ( $op eq '>=' && $query <= $filter->{'handleNullLikeValue'} ) ||
+                         ( $op eq '<' && $query > $filter->{'handleNullLikeValue'} ) ||
+                         ( $op eq '<=' && $query >= $filter->{'handleNullLikeValue'} ) ) {
+                        $where_fragment = {
+                            str => "NOT ( NOT ( $column $op ?) AND ( $column IS NOT NULL ) )",    # more efficient than the equivalent and intuitive "( $column $op ? OR $column IS NULL )"
+                            args => [ $query ],
+                        };
+                    } else {
+                        $where_fragment = {
+                            str => "$column $op ?",
+                            args => [ $query ],
+                        };
+                    }
+                } else {
+                    $where_fragment = {
+                        str => "$column $op ?",
+                        args => [ $query ],
+                    };
+                }
             }
         }
     }

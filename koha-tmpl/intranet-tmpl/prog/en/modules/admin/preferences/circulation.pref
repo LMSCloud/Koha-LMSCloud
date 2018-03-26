@@ -582,6 +582,12 @@ Circulation:
                   no: "Don't allow"
             - a user to choose the library to pick up a hold from.
         -
+            - pref: OPACAllowUserToChooseMobileStation
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - book mobile stations in branches select box when placing a hold.
+        -
             - pref: ReservesNeedReturns
               choices:
                   yes: "Don't automatically"

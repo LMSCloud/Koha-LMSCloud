@@ -23,6 +23,7 @@ use warnings;
 use Carp;
 
 use utf8;
+use Data::Dumper;
 
 use LWP::UserAgent;
 use Clone qw(clone);
@@ -42,6 +43,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 use constant DIVIBIBAGENCYID => 'DE-Wi27';
 use constant DIVIBIBITEMSOURCE => 'onleihe';
+use constant DIVIBIBISSUEBRANCHCODE => 'eBib';
 
 BEGIN {
     require Exporter;
@@ -300,9 +302,10 @@ sub getPendingIssues {
                    $divibibIssue->{itemSource} = DIVIBIBITEMSOURCE;
                    $divibibIssue->{itemtype} = $divibibItem->{'BibliographicDescription'}->{'MediumType'};
                 
-                   setItemTypeIconAndDescription($divibibIssue->{itemtype}, $divibibIssue);
+                   setItemTypeIconAndDescription(lc($divibibIssue->{itemtype}), $divibibIssue);
 
                    $divibibIssue->{barcode} = $divibibIssue->{itemtype};
+                   $divibibIssue->{branchcode} = DIVIBIBISSUEBRANCHCODE;
                    
                    $divibibIssue->{renewal_imposssible} = 1;
                    

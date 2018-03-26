@@ -14,7 +14,7 @@
     $(document).ready(function() {
 
         $('#DBScalc').click(function() {
-            $('#op').val("dbs_calc");
+            $('#op').val("dcv_calc");    // calculate derived class values for display
             $("#DBS_edit").submit();
             return true;
         });
@@ -25,13 +25,13 @@
             if (!deleteIt) {
                 return false;
             }
-            $('#op').val("dbs_del");
+            $('#op').val("dcv_del");    // delete derived class values from database
             $("#DBS_edit").submit();
             return true;
         });
 
         $('#DBSsave').click(function() {
-            $('#op').val("dbs_save");
+            $('#op').val("dcv_save");    // store derived class values into database
             $("#DBS_edit").submit();
             return true;
         });
@@ -285,7 +285,6 @@
           <input type="hidden" id="op" name="op" value="XXXWH_validate" />
           <input type="hidden" id="id" name="id" value="[% id %]" />
           <input type="hidden" id="statisticstype" name="statisticstype" value="[% statisticstype %]" />
-          <input type="hidden" id="statisticstypedesignation" name="statisticstypedesignation" value="[% statisticstypedesignation %]" />
           <input type="hidden" id="name" name="name" value="[% name %]" />
           <input type="hidden" id="startdate" name="startdate" value="[% startdate %]" />
           <input type="hidden" id="enddate" name="enddate" value="[% enddate %]" />
@@ -1235,7 +1234,6 @@
                     <td>199</td>
                     <td>Anmerkungen</td>
                     <td>
-                        <!-- <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3" form="DBS_edit">[% st.srv_remarks %]</textarea> -->
                         <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3" >[% st.srv_remarks %]</textarea>
                     </td>
                 </tr>

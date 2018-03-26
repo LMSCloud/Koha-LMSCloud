@@ -231,6 +231,28 @@ $(document).ready(function() {
         showOtherMonths: true,
         selectOtherMonths: true
     });
+    $("#debarreduntilto_filter").datepicker( {
+        autoclose: true,
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+    $("#debarreduntilfrom_filter").datepicker( {
+        autoclose: true,
+        showOn: "both",
+        changeMonth: true,
+        changeYear: true,
+        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+        buttonImageOnly: true,
+        showButtonPanel: true,
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
     $("#inactivesince_filter").datepicker( { 
         autoclose: true, 
         showOn: "both",
@@ -344,6 +366,12 @@ $(document).ready(function() {
                 'name': 'accountexpiresfrom',
                 'value': $("#accountexpiresfrom_filter").val()
             },{
+                'name': 'debarreduntilto',
+                'value': $("#debarreduntilto_filter").val()
+            },{
+                'name': 'debarreduntilfrom',
+                'value': $("#debarreduntilfrom_filter").val()
+            },{
                 'name': 'lastlettercode',
                 'value': $("#lastlettercode_filter").val()
             },{
@@ -361,6 +389,9 @@ $(document).ready(function() {
             },{
                 'name': 'validemailavailable',
                 'value': $("#validemailavailable_filter").val()
+            },{
+                'name': 'patronlistid',
+                'value': $("#patronlistid_filter").val()
             },{
                 'name': 'name_sorton',
                 'value': 'borrowers.surname borrowers.firstname'
@@ -483,6 +514,8 @@ function clearFilters(redraw) {
     $("#chargessince_filter").val('');
     $("#accountexpiresto_filter").val('');
     $("#accountexpiresfrom_filter").val('');
+    $("#debarreduntilto_filter").val('');
+    $("#debarreduntilfrom_filter").val('');
     $("#lastlettercode_filter").val('');
     $("#overduelevel_filter").val('');
     $("#inactivesince_filter").val('');
@@ -521,8 +554,8 @@ function filterByFirstLetterSurname(letter) {
           [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
             <div id="notice_sent_dialog" class="dialog alert">
               Letter "<span class="letter-name"></span>" successfully created as notice to <span class="patrons-length"></span> patron(s).
-              <span class="letter-email"><br /><span class="letter-email-count"></span> patrons(s) notified my email.</span>
-              <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Klick here to download the notices for printing.</a></span>
+              <span class="letter-email"><br /><span class="letter-email-count"></span> patron(s) notified by email.</span>
+              <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Click here to download the notices for printing.</a></span>
             </div>
           [% END %]
 
@@ -759,6 +792,11 @@ function filterByFirstLetterSurname(letter) {
               to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" />
             </li>
             <li>
+              <label for="debarreduntilfrom_filter">Debarred until: </label>
+              from&#160;<input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" value="[% debarreduntilfrom %]" /><br />
+              to&#160;<input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" value="[% debarreduntilto %]" />
+            </li>
+            <li>
               <label for="inactivesince_filter">Inactive since:</label>
               <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" value="[% inactivesince %]" />
             </li>
@@ -807,6 +845,19 @@ function filterByFirstLetterSurname(letter) {
                         <option value="no">Email not available</option>
                     [% END %]
                </select>
+            </li>
+            <li>
+                <label for="patronlistid_filter">Patron list: </label>
+                <select id="patronlistid_filter">
+                    <option value="">Not selected</option>
+                    [% FOREACH p IN patron_lists %]
+                      [% IF p.patron_list_id == patronlistid %]
+                        <option selected="selected" value="[% p.patron_list_id %]">[% p.name %]</option>
+                      [% ELSE %]
+                        <option value="[% p.patron_list_id %]">[% p.name %]</option>
+                      [% END %]
+                    [% END %]
+                </select>
             </li>
           </ol>
           <fieldset class="action">
