@@ -100,10 +100,10 @@ print STDERR "EkzKohaRecords::readTitleInLocalDB() selEkzArtikelNr:", defined($s
                                                 ": selEan:", defined($selParam->{'ean'}) ? $selParam->{'ean'} : 'undef', 
                                                 ": maxhits:", defined($maxhits) ? $maxhits : 'undef', ":\n" if $debugIt;
 
-    my $marcresults = $class->readTitleDubletten($selParam);
+    my $marcresults = $class->readTitleDubletten($selParam,1);
     $hits = scalar @$marcresults if $marcresults;
 
-    for (my $i = 0; $i < $hits && $maxhits > 0 and defined $marcresults->[$i]; $i++)
+    HITS: for (my $i = 0; $i < $hits && $maxhits > 0 and defined $marcresults->[$i]; $i++)
     {
         my $marcrecord;
         eval {
@@ -112,6 +112,15 @@ print STDERR "EkzKohaRecords::readTitleInLocalDB() selEkzArtikelNr:", defined($s
         carp "EkzKohaRecords::readTitleInLocalDB: error in MARC::Record::new_from_xml:$@:\n" if $@;
 
         if ( $marcrecord ) {
+            # Onleihe e-media have to be filtered out
+            my $biblionumber = $marcrecord->subfield("999","c");
+            my $items = &C4::Items::GetItemsByBiblioitemnumber( $biblionumber );
+            foreach my $item (@$items) {
+                if ( isOnleiheItem($item) ) {
+                    next HITS;
+                }
+            }
+
             push @{$result->{'records'}}, $marcrecord;
             $result->{'count'} += 1;
             if ( defined($maxhits) && $maxhits >= 0 && $result->{'count'} >= $maxhits ) {
@@ -128,18 +137,75 @@ print STDERR "EkzKohaRecords::readTitleInLocalDB() result->{'records'}:$result->
 
 ##############################################################################
 #
+# test if the item's itype qualifies the title as Onleihe medium
+#
+##############################################################################
+sub isOnleiheItem {
+    my ($item) = @_;
+    my $ret = 0;
+
+    print STDERR "EkzKohaRecords::isOnleiheItem() item->{itype}:", $item->{itype}, ":\n" if $debugIt;
+
+    if ( $item->{itype} eq 'eaudio' ||
+         $item->{itype} eq 'ebook' ||
+         $item->{itype} eq 'emusic' ||
+         $item->{itype} eq 'epaper' ||
+         $item->{itype} eq 'evideo' ) {
+        $ret = 1;
+    }
+    return $ret;
+}
+
+
+##############################################################################
+#
+# insert elements from the second marcresults array in the first marcresults array if the title is not contained yet.
+#
+##############################################################################
+sub mergeMarcresults {
+    my ($marcresults1, $biblionumberhash, $marcresults2, $hitscntref) = @_;
+
+    foreach my $marcresult2 ( @{$marcresults2} ) {
+    }
+    my $hits2 = 0;
+    $hits2 = scalar @{$marcresults2} if $marcresults2;
+
+
+    for (my $i = 0; $i < $hits2 and defined $marcresults2->[$i]; $i++)
+    {
+        my $marcrecord2;
+        eval {
+            $marcrecord2 =  MARC::Record::new_from_xml( $marcresults2->[$i], "utf8", 'MARC21' );
+        };
+        carp "EkzKohaRecords::mergeMarcresults: error in MARC::Record::new_from_xml:$@:\n" if $@;
+
+        if ( $marcrecord2 ) {
+            my $biblionumber = $marcrecord2->subfield("999","c");
+            if ( !exists($biblionumberhash->{$biblionumber}) ) {
+                push @{$marcresults1}, $marcresults2->[$i];
+                $biblionumberhash->{$biblionumber} = $biblionumber;
+                $$hitscntref += 1;
+            }
+        }
+    }
+}
+
+
+##############################################################################
+#
 # search title records with same ekzArtikelNr or ISBN or ISSN/ISMN/EAN or title and author and publication year
 #
 ##############################################################################
 sub readTitleDubletten {
 	my $class = shift;
     my $selParam = shift;
-print STDERR "EkzKohaRecords::readTitleDubletten() selParam:", Dumper($selParam), ":\n" if $debugIt;
+    my $strictMatch = shift;
+print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: selParam:", Dumper($selParam), ":\n" if $debugIt;
 
     my $query = "cn:\"-1\"";                    # control number search, initial definition for no hit
-    my $error = undef;
-    my $marcresults = \();
-    my $total_hits = 0;
+    my @allmarcresults = ();
+    my $allinall_hits = 0;
+    my %biblionumbersfound = ();
 
     # search priority:
     # 1. ekzArtikelNr
@@ -147,85 +213,113 @@ print STDERR "EkzKohaRecords::readTitleDubletten() selParam:", Dumper($selParam)
     # 3. issn or ismn or ean
     # 4. titel and author and erscheinungsJahr
 
+    # check for ekzArtikelNr search
     if ( !defined $selParam->{'ekzArtikelNr'} || length($selParam->{'ekzArtikelNr'}) == 0 ) {
         carp "EkzKohaRecords::readTitleDubletten() ekzArtikelNr is empty -> not searching for ekzArtikelNr.\n";
     } else
     {
         # build search query for ekzArtikelNr search
-        $query = "(cn:\"$selParam->{'ekzArtikelNr'}\" and cna:\"DE-Rt5\") or (kw,phr:\"(DE-Rt5)$selParam->{'ekzArtikelNr'}\")";
+        # If used for spotting the title the new item is assigned to (e.g. webservice BestellInfo), $strictMatch has to be set.
+        # If also related titles have to be found (e.g. webservice DublettencheckElement), a wider hit set is recommended, so $strictMatch has to be 0.
+        if ( $strictMatch ) {    # used for web service BestellInfo etc.
+            $query = "(cn:\"$selParam->{'ekzArtikelNr'}\" and cna:\"DE-Rt5\")";
+        } else {    # used for web service DublettenCheckElement
+            $query = "(cn:\"$selParam->{'ekzArtikelNr'}\" and cna:\"DE-Rt5\") or (kw,phr:\"(DE-Rt5)$selParam->{'ekzArtikelNr'}\")";
+        }
         print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
 
-        ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
         ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
         
         if (defined $error) {
             my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for ekzArtikelNr:%s: returned error:%d/%s:\n", $selParam->{'ekzArtikelNr'}, $error,$error);
             carp $log_str;
-        }
-        print STDERR "EkzKohaRecords::readTitleDubletten() ekzArtikelNr search total_hits:$total_hits:\n" if $debugIt;
-    }
-
-    if ($total_hits == 0)
-    {
-        if ( (!defined $selParam->{'isbn'} || length($selParam->{'isbn'}) == 0) && 
-             (!defined $selParam->{'isbn13'} || length($selParam->{'isbn13'}) == 0) ) {
-            carp("EkzKohaRecords::readTitleDubletten() isbn and isbn13 are empty -> not searching for isbn or isbn13.\n");
         } else
         {
-            # build search query for isbn/isbn13 search
-            # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-            $query = '';
-            if ( defined $selParam->{'isbn'} && length($selParam->{'isbn'}) > 0 ) {
-                $query .= "nb:\"$selParam->{'isbn'}\" or id-other:\"$selParam->{'isbn'}\"";
+            mergeMarcresults(\@allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+        }
+        print STDERR "EkzKohaRecords::readTitleDubletten() ekzArtikelNr search total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
+    }
+
+    # check for isbn/isbn13 search
+    if ( (!defined $selParam->{'isbn'} || length($selParam->{'isbn'}) == 0) && 
+         (!defined $selParam->{'isbn13'} || length($selParam->{'isbn13'}) == 0) ) {
+        carp("EkzKohaRecords::readTitleDubletten() isbn and isbn13 are empty -> not searching for isbn or isbn13.\n");
+    } else
+    {
+        # build search query for isbn/isbn13 search
+        # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
+        $query = '';
+        if ( defined $selParam->{'isbn'} && length($selParam->{'isbn'}) > 0 ) {
+            $query .= "nb:\"$selParam->{'isbn'}\" or id-other:\"$selParam->{'isbn'}\"";
+        }
+        if ( defined $selParam->{'isbn13'} && length($selParam->{'isbn13'}) > 0 ) {
+            if ( length($query) > 0 ) {
+                $query .= ' or ';
             }
-            if ( defined $selParam->{'isbn13'} && length($selParam->{'isbn13'}) > 0 ) {
-                if ( length($query) > 0 ) {
-                    $query .= ' or ';
-                }
-                $query .= "nb:\"$selParam->{'isbn13'}\" or id-other:\"$selParam->{'isbn13'}\"";
-            }
-            print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
-            
-            ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
-            ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+            $query .= "nb:\"$selParam->{'isbn13'}\" or id-other:\"$selParam->{'isbn13'}\"";
+        }
+        print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
         
-            if (defined $error) {
-                my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for isbn:%s: or isbn13:%s: returned error:%d/%s:\n", $selParam->{'isbn'}, $selParam->{'isbn13'}, $error,$error);
-                carp $log_str;
-            }
-            print STDERR "EkzKohaRecords::readTitleDubletten() isbn/isbn13 search total_hits:$total_hits:\n" if $debugIt;
-        }
-    }
-
-    if ($total_hits == 0)
-    {
-        if ( (!defined $selParam->{'issn'} || length($selParam->{'issn'}) == 0) && 
-             (!defined $selParam->{'ismn'} || length($selParam->{'ismn'}) == 0) && 
-             (!defined $selParam->{'ean'} || length($selParam->{'ean'}) == 0) ) {
-            carp("EkzKohaRecords::readTitleDubletten() issn and ismn and ean are empty -> not searching for issn or ismn or ean.\n");
+        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+        ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+    
+        if (defined $error) {
+            my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for isbn:%s: or isbn13:%s: returned error:%d/%s:\n", $selParam->{'isbn'}, $selParam->{'isbn13'}, $error,$error);
+            carp $log_str;
         } else
         {
-            # build search query for issn/ismn/ean search for searching index ident
-            # search for catalog title record by MARC21 category 020/022/024 (ISBN/ISSN/ISMN/EAN)
-            my $query1 = '';
-            my $query2 = '';
-            my $query3 = '';
-            if ( defined $selParam->{'issn'} && length($selParam->{'issn'}) > 0 ) {
-                $query1 .= "ident:\"$selParam->{'issn'}\"";
+            mergeMarcresults(\@allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+        }
+        print STDERR "EkzKohaRecords::readTitleDubletten() isbn/isbn13 search total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
+    }
+
+    # check for issn/ismn/ean search
+    if ( (!defined $selParam->{'issn'} || length($selParam->{'issn'}) == 0) && 
+         (!defined $selParam->{'ismn'} || length($selParam->{'ismn'}) == 0) && 
+         (!defined $selParam->{'ean'} || length($selParam->{'ean'}) == 0) ) {
+        carp("EkzKohaRecords::readTitleDubletten() issn and ismn and ean are empty -> not searching for issn or ismn or ean.\n");
+    } else
+    {
+        # build search query for issn/ismn/ean search for searching index ident
+        # search for catalog title record by MARC21 category 020/022/024 (ISBN/ISSN/ISMN/EAN)
+        my $query1 = '';
+        my $query2 = '';
+        my $query3 = '';
+        if ( defined $selParam->{'issn'} && length($selParam->{'issn'}) > 0 ) {
+            $query1 .= "ident:\"$selParam->{'issn'}\"";
+        }
+        if ( defined $selParam->{'ismn'} && length($selParam->{'ismn'}) > 0 ) {
+            if ( length($query1) > 0 ) {
+                $query1 .= ' or ';
             }
-            if ( defined $selParam->{'ismn'} && length($selParam->{'ismn'}) > 0 ) {
-                if ( length($query1) > 0 ) {
-                    $query1 .= ' or ';
-                }
-                $query1 .= "ident:\"$selParam->{'ismn'}\"";
+            $query1 .= "ident:\"$selParam->{'ismn'}\"";
+        }
+        if ( defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 ) {
+            if ( length($query1) > 0 ) {
+                $query2 .= ' or ';
             }
-            if ( defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 ) {
-                if ( length($query1) > 0 ) {
-                    $query2 .= ' or ';
-                }
-                $query2 .= "ident:\"$selParam->{'ean'}\"";
+            $query2 .= "ident:\"$selParam->{'ean'}\"";
+        }
+        $query = $query1 . $query2;
+        print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+        
+        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+        ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+    
+        if (defined $error) {
+            my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:\n", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
+            carp $log_str;
+        }
+        print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:\n" if $debugIt;
+            
+        # ekz sends EAN without leading 0
+        if ($total_hits == 0 && defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 && length($selParam->{'ean'}) < 13) {
+            if ( length($query1) > 0 ) {
+                $query3 .= ' or ';
             }
-            $query = $query1 . $query2;
+            $query3 .= sprintf("ident:\"%013d\"",$selParam->{'ean'});
+            $query = $query1 . $query3;
             print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
             
             ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
@@ -234,52 +328,37 @@ print STDERR "EkzKohaRecords::readTitleDubletten() selParam:", Dumper($selParam)
             if (defined $error) {
                 my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:\n", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
                 carp $log_str;
+            } else
+            {
+                mergeMarcresults(\@allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
             }
-            print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:\n" if $debugIt;
-                
-            # ekz sends EAN without leading 0
-            if ($total_hits == 0 && defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 && length($selParam->{'ean'}) < 13) {
-                if ( length($query1) > 0 ) {
-                    $query3 .= ' or ';
-                }
-                $query3 .= sprintf("ident:\"%013d\"",$selParam->{'ean'});
-                $query = $query1 . $query3;
-                print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
-                
-                ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
-                ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
-            
-                if (defined $error) {
-                    my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:\n", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
-                    carp $log_str;
-                }
-                print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits:\n" if $debugIt;
-            }
+            print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
         }
     }
 
-    if ($total_hits == 0)
+    # check for author and title and publication year search
+    if ( (!defined $selParam->{'author'} || length($selParam->{'author'}) == 0) || (!defined $selParam->{'titel'} || length($selParam->{'titel'}) == 0) || (!defined $selParam->{'erscheinungsJahr'} || length($selParam->{'erscheinungsJahr'}) == 0) ) {
+        carp("EkzKohaRecords::readTitleDubletten() author and titel and erscheinungsJahr is empty -> not searching for it.\n");
+    } else
     {
-        if ( (!defined $selParam->{'author'} || length($selParam->{'author'}) == 0) || (!defined $selParam->{'titel'} || length($selParam->{'titel'}) == 0) || (!defined $selParam->{'erscheinungsJahr'} || length($selParam->{'erscheinungsJahr'}) == 0) ) {
-            carp("EkzKohaRecords::readTitleDubletten() author and titel and erscheinungsJahr is empty -> not searching for it.\n");
+        # build search query for author and title and publication year search
+        $query = "au,phr:\"$selParam->{'author'}\" and ti,phr,ext:\"$selParam->{'titel'}\" and yr,st-year:\"$selParam->{'erscheinungsJahr'}\"";
+        print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+        
+        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+        ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+    
+        if (defined $error) {
+            my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:\n", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
+            carp $log_str;
         } else
         {
-            # build search query for author and title and publication year search
-            $query = "au,phr:\"$selParam->{'author'}\" and ti,phr,ext:\"$selParam->{'titel'}\" and yr,st-year:\"$selParam->{'erscheinungsJahr'}\"";
-            print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
-            
-            ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
-            ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
-        
-            if (defined $error) {
-                my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:\n", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
-                carp $log_str;
-            }
-            print STDERR "EkzKohaRecords::readTitleDubletten() author/title/publicationyear search total_hits:$total_hits:\n" if $debugIt;
+            mergeMarcresults(\@allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
         }
+        print STDERR "EkzKohaRecords::readTitleDubletten() author/title/publicationyear search total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
     }
     
-    return $marcresults;
+    return \@allmarcresults;
 }
 
 

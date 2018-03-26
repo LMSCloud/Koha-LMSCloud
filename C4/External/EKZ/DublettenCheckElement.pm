@@ -154,14 +154,14 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
     my $soapTransactionID = SOAP::Data->name( 'transactionID'  => $respTransactionID )->type( 'string' );
 
     my @soapTitelListe = ();
-    foreach my $dublette (@dublettenInfoListe)
+    foreach my $dublettenInfo (@dublettenInfoListe)
     {
-        print STDERR "DublettenCheckElement::DublettenCheckElement(); EkzArtikelNr:",$dublette->{'ekzArtikelNr'},":\n" if $debugIt;
+        print STDERR "DublettenCheckElement::DublettenCheckElement(); EkzArtikelNr:",$dublettenInfo->{'ekzArtikelNr'},":\n" if $debugIt;
 
-        my $soapEkzArtikelNr = SOAP::Data->name( 'ekzArtikelNr' => $dublette->{'ekzArtikelNr'} )->type( 'string' );
+        my $soapEkzArtikelNr = SOAP::Data->name( 'ekzArtikelNr' => $dublettenInfo->{'ekzArtikelNr'} )->type( 'string' );
         my @soapExemplare = ();
 
-        foreach my $dupExemplar (@{$dublette->{'exemplare'}})
+        foreach my $dupExemplar (@{$dublettenInfo->{'exemplare'}})
         {
             print STDERR "DublettenCheckElement::DublettenCheckElement(); dupExemplar->{'zweigstelle'}:",$dupExemplar->{'zweigstelle'},":\n" if $debugIt;
 
@@ -222,7 +222,7 @@ sub searchDubletten {
     } else
     {
         # search priority:  1. ekzArtikelNr  /  2. isbn or isbn13  /  3. issn or ismn or ean  /  4. titel and author and erscheinungsJahr
-        $marcresults = C4::External::EKZ::lib::EkzKohaRecords->readTitleDubletten($reqParamTitelInfo);
+        $marcresults = C4::External::EKZ::lib::EkzKohaRecords->readTitleDubletten($reqParamTitelInfo,0);
     }
 
     $hits = scalar @$marcresults if $marcresults;
@@ -231,10 +231,11 @@ sub searchDubletten {
         $itemtypes = GetItemTypes();
     }
     
-    # Search the items of the catalogue titles found. 
+    # Search the items of the catalogue titles found (= candidates for duplicates). 
+    # The caller of this web service expects in the response 1 XML 'titel' block for each XML 'titel' block in the request.
+    # So we have to accumulate all items of the found duplicates candidates in 1 XML 'titel' block even if we found more than one duplicate candidates title.
     for (my $i = 0; $i < $hits and defined $marcresults->[$i]; $i++)
     {
-        
         my $marcrecord;
         eval {
             $marcrecord =  MARC::Record::new_from_xml( $marcresults->[$i], "utf8", 'MARC21' );
@@ -243,37 +244,38 @@ sub searchDubletten {
 
         if ( $marcrecord )
         {
-            my %titel = ();
-            my @exemplare = ();
-
             my $biblionumber = $marcrecord->subfield("999","c");
-            my $ekzArtikelNr = 'ohne ekz-Artikelnr.';
-            my $kontrollNrID = $marcrecord->field("003")->data();
 
-            if ( defined($reqParamTitelInfo->{'ekzArtikelNr'}) && length($reqParamTitelInfo->{'ekzArtikelNr'}) > 0 ) {
-                $ekzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};    # effect of returning this value: the ekz web site displays title and ISBN of this medium; otherwise these two columns stay empty
-            } else {
-                # the ekz web site displays column Artikelnummer; we use it to display title or isbn
-                if ( $kontrollNrID eq "DE-Rt5" ) {
-                    $ekzArtikelNr = $marcrecord->field("001")->data();    # the cn is a ekz article number only if cna == "DE-Rt5"
+            if ( !exists($titel{'ekzArtikelNr'}) ) {
+                my $ekzArtikelNr = 'ohne ekz-Artikelnr.';
+                my $kontrollNrID = $marcrecord->field("003")->data();
+
+                if ( defined($reqParamTitelInfo->{'ekzArtikelNr'}) && length($reqParamTitelInfo->{'ekzArtikelNr'}) > 0 ) {
+                    $ekzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};    # effect of returning this value: the ekz web site displays title and ISBN of this medium; otherwise these two columns stay empty
                 } else {
-                    my $id = '';
-                    if ( defined($reqParamTitelInfo->{'titel'}) && length($reqParamTitelInfo->{'titel'}) > 0 ) {
-                        $id = $reqParamTitelInfo->{'titel'};
-                    } elsif ( defined($reqParamTitelInfo->{'isbn13'}) && length($reqParamTitelInfo->{'isbn13'}) > 0 ) {
-                        $id = $reqParamTitelInfo->{'isbn13'};
-                    } elsif ( defined($reqParamTitelInfo->{'isbn'}) && length($reqParamTitelInfo->{'isbn'}) > 0 ) {
-                        $id = $reqParamTitelInfo->{'isbn'};
-                    }
-                    if ( length($id) > 0 ) {
-                        $ekzArtikelNr = 'keine ekz-Artikelnr. für: ' . $id;
+                    # the ekz web site displays column Artikelnummer; we use it to display title or isbn
+                    if ( $kontrollNrID eq "DE-Rt5" ) {
+                        $ekzArtikelNr = $marcrecord->field("001")->data();    # the cn is a ekz article number only if cna == "DE-Rt5"
+                    } else {
+                        my $id = '';
+                        if ( defined($reqParamTitelInfo->{'titel'}) && length($reqParamTitelInfo->{'titel'}) > 0 ) {
+                            $id = $reqParamTitelInfo->{'titel'};
+                        } elsif ( defined($reqParamTitelInfo->{'isbn13'}) && length($reqParamTitelInfo->{'isbn13'}) > 0 ) {
+                            $id = $reqParamTitelInfo->{'isbn13'};
+                        } elsif ( defined($reqParamTitelInfo->{'isbn'}) && length($reqParamTitelInfo->{'isbn'}) > 0 ) {
+                            $id = $reqParamTitelInfo->{'isbn'};
+                        }
+                        if ( length($id) > 0 ) {
+                            $ekzArtikelNr = 'keine ekz-Artikelnr. für: ' . $id;
+                        }
                     }
                 }
-            }
-            $titel{'ekzArtikelNr'} = $ekzArtikelNr;
+                $titel{'ekzArtikelNr'} = $ekzArtikelNr;
 print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", $marcrecord->field("003")->data(), ": marcrecord->field('001'):", $marcrecord->field("001")->data(), ": ekzArtikelNr:$ekzArtikelNr:\n" if $debugIt;
+            }
 
             
+print STDERR "DublettenCheckElement::searchDubletten() reqParamTitelInfo->{'ekzArtikelNr'}:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": duplicate candidate biblionumber: $biblionumber:\n" if $debugIt;
             # read items of this biblio number
             my @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };
             for my $itemnumber ( @itemnumbers )
@@ -310,10 +312,11 @@ print STDERR "DublettenCheckElement::searchDubletten() exemplar{'auflage'}:", $e
             
                 push @exemplare, \%exemplar;
             }
-
-            $titel{'exemplare'} = \@exemplare;
-            push @titelListe, \%titel;
         }
+    }
+    if ( exists($titel{'ekzArtikelNr'}) ) {
+        $titel{'exemplare'} = \@exemplare;
+        push @titelListe, \%titel;
     }
 
     return (@titelListe);
