@@ -76,11 +76,11 @@ sub new {
             'xsi:schemaLocation' => 'http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_0/ncip_v2_0.xsd'
         };
         
-    my $borrower = &GetMember( userid => $borrowernumber );
-    # we did not find the borrower by userid
-    # let's check whether the borrower number is used instead
+    my $borrower = &GetMemberDetails($borrowernumber);
+    # if we did not find the borrowernumber
+    # let's check whether the borrower userid is used instead
     if (! $borrower ) { 
-        $borrower = &GetMemberDetails($borrowernumber);
+        $borrower = &GetMember( userid => $borrowernumber );
     }
 
     
