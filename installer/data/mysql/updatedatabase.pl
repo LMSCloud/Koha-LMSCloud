@@ -13529,7 +13529,7 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "16.05.12.014";
+$DBversion = '16.05.12.014';
 if ( CheckVersion($DBversion) ) {
 
     # Add parameter if to show book mobile stations in branches select box when placing a hold.
@@ -13545,7 +13545,7 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
-$DBversion = '16.05.12.014';
+$DBversion = '16.05.12.015';
 if ( CheckVersion($DBversion) ) {
 
     # Add parameter to enable or disable Divibib interface logging
