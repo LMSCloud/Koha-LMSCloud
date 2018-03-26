@@ -13529,6 +13529,18 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 } 
 
+$DBversion = '16.05.12.014';
+if ( CheckVersion($DBversion) ) {
+
+    # Add parameter to enable or disable Divibib interface logging
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES ('DivibibLog','1',NULL,'If ON, log Divibib interface actions like Divibib authentication.','YesNo')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter to enable or disable Divibib interface logging.)\n";
+    SetVersion ($DBversion);
+} 
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.

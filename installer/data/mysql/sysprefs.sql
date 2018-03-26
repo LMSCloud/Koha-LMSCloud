@@ -133,6 +133,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('DisplayMultiPlaceHold','1','','Display the ability to place multiple holds or not','YesNo'),
 ('DisplayOPACiconsXSLT','1','','If ON, displays the format, audience, and material type icons in XSLT MARC21 results and detail pages in the OPAC.','YesNo'),
 ('DivibibAgencyId','',NULL,'Divibib Library ID','Free'),
+('DivibibLog','1',NULL,'If ON, log Divibib interface actions like Divibib authentication.','YesNo'),
 ('DivibibEnabled',0,NULL,'Enable Divibib Onleihe integration ','YesNo'),
 ('DivibibNCIPServiceMode','',NULL,'Mode of the Divibib NCIP Service. If set to \"test\" it uses the Test URL.','Free'),
 ('dontmerge','1',NULL,'If ON, modifying an authority record will not update all associated bibliographic records immediately, ask your system administrator to enable the merge_authorities.pl cron job','YesNo'),

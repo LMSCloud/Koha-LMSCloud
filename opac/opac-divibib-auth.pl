@@ -32,6 +32,8 @@ use warnings;
 
 use DateTime;
 
+use Data::Dumper;
+
 use C4::Auth;
 use C4::Context;
 use C4::Output;
@@ -39,6 +41,7 @@ use CGI qw ( -utf8 );
 use C4::Members;
 use Koha::AuthUtils qw(hash_password);
 use C4::Auth qw(&checkpw_hash);
+use C4::Log qw( logaction );
 
 my $query = new CGI;
 
@@ -86,28 +89,37 @@ my $response = {
 		'status'   => -1, # wrong login-data (user or password)    # mandatory
 		'fsk'      => 0,                                           # mandatory
 		'cardid'   => '',                                          # mandatory
-		'userid'   => '',                                          # mandatory
-		'library'  => '',                                          # optional
-		'trace'    => ''                                           # optional
+		'userid'   => ''                                           # mandatory
 		};
 
-# let's check with the userid 
-$borrower = &GetMember( userid => $borrowernumber );
+# Check the borrower with the internal borrower number
+$borrower = &GetMemberDetails($borrowernumber);
 if ( $borrower ) {
-	# we need to read the member details, thats why we read the member record again
-	$borrower = &GetMemberDetails($borrower->{'borrowernumber'});
+    $checkpw = $borrower->{'password'};
+    if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
+        $borrower = undef;
+    }
 }
 
-# we did not find the borrower by userid
-# let's check whether the borrower number is used instead
-if (! $borrower ) { 
-	$borrower = &GetMemberDetails($borrowernumber);
-}
-
-# we did not find the borrower by userid and also not by borrowernumber
-# let's check whether the barcode is used instead
+# if we did not find the borrower by borrower number, we check with
+# users' barcode instead
 if (! $borrower ) { 
 	$borrower = &GetMemberDetails('',$borrowernumber);
+	if ( $borrower ) {
+        $checkpw = $borrower->{'password'};
+        if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
+            $borrower = undef;
+        }
+    }
+}
+
+# finally let test the userid 
+if (! $borrower ) { 
+    $borrower = &GetMember( userid => $borrowernumber );
+    if ( $borrower ) {
+        # we need to read the member details, thats why we read the member record again
+        $borrower = &GetMemberDetails($borrower->{'borrowernumber'});
+    }
 }
 
 # if the borrower was found
@@ -193,6 +205,14 @@ if ( $borrower ) {
 	else {
 		$response->{'status'} = -2; # wrong password
 	}
+	if ( C4::Context->preference("DivibibLog") ) {
+        my $dumper = Data::Dumper->new( [{ request_userid => $borrowernumber, requester_ip => $ENV{'REMOTE_ADDR'}, response => $response }]);
+        logaction(  "DIVIBIB", 
+                    "AUTHENTICATION", 
+                    $borrower->{'borrowernumber'}, 
+                    $dumper->Terse(1)->Dump
+                );
+    }
 }
 
 # In order to avoid errors caused by translation of templates containing a xml prolog, we do not use a template here but
@@ -205,16 +225,11 @@ my $output_status_tag = sprintf("<status>%s</status>\n",$response->{'status'});
 my $output_fsk_tag = sprintf("<fsk>%s</fsk>\n",$response->{'fsk'});
 my $output_cardid_tag = sprintf("<cardid>%s</cardid>\n",$response->{'cardid'});
 my $output_userid_tag = sprintf("<userid>%s</userid>\n",$response->{'userid'});
-my $output_trace_tag = '';
 my $output_response_tag_end = "</response>\n";
 
-# $response->{'trace'} = "put your trace here as required";    # optional trace
-if ( $response->{'trace'} && length($response->{'trace'}) > 0 ) {
-    $output_trace_tag = sprintf("<trace>%s</trace>\n",$response->{'trace'});
-}
     
 # finally build the response from its components
-my $output = sprintf("%s%s%s%s%s%s%s%s", $output_header, $output_response_tag_start, $output_status_tag, $output_fsk_tag, $output_cardid_tag, $output_userid_tag, $output_trace_tag, $output_response_tag_end);
+my $output = sprintf("%s%s%s%s%s%s%s%s", $output_header, $output_response_tag_start, $output_status_tag, $output_fsk_tag, $output_cardid_tag, $output_userid_tag, $output_response_tag_end);
 
 # send the response
 &output_divibib_xml( $query, $output );
