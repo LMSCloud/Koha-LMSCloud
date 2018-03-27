@@ -455,3 +455,9 @@ Enhanced Content:
         -
             - Mode of the Divibib NCIP Service. If set to "test" it uses the test URL
             - pref: DivibibNCIPServiceMode
+        -
+            - pref: DivibibLog
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - the Divibib interface action log e.g. Divibib authentications.

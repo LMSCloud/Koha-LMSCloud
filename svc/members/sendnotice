@@ -343,7 +343,7 @@ sub CreatePrintOutput {
     $printfilename .= '_' . $lettercode if ( $lettercode );
     
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime;
-    $printfilename .= sprintf("_%04d-%02d-%02d_%02d-%02d-%02d",$year+2000,$mon+1,$mday,$hour,$min,$sec);
+    $printfilename .= sprintf("_%04d-%02d-%02d_%02d-%02d-%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
     $printfilename .= ".html";
     
     my $outputdir = C4::Context->config('outputdownloaddir');
