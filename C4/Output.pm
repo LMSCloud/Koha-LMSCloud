@@ -254,24 +254,31 @@ sub output_with_http_headers {
         'js'   => 'text/javascript',
         'json' => 'application/json',
         'xml'  => 'text/xml',
+        'zip'  => 'application/zip',
         # NOTE: not using application/atom+xml or application/rss+xml because of
         # Internet Explorer 6; see bug 2078.
         'rss'  => 'text/xml',
-        'atom' => 'text/xml'
+        'atom' => 'text/xml',
+        'csv' => 'text/x-csv'
     );
 
     die "Unknown content type '$content_type'" if ( !defined( $content_type_map{$content_type} ) );
     my $cache_policy = 'no-cache';
     $cache_policy .= ', no-store, max-age=0' if $extra_options->{force_no_caching};
+    
+    my $characterset = 'UTF-8';
+    $characterset = uc($extra_options->{encoding}) if ( $extra_options->{encoding} );
+    
     my $options = {
         type              => $content_type_map{$content_type},
         status            => $status,
-        charset           => 'UTF-8',
+        charset           => $characterset,
         Pragma            => 'no-cache',
         'Cache-Control'   => $cache_policy,
         'X-Frame-Options' => 'SAMEORIGIN',
     };
     $options->{expires} = 'now' if $extra_options->{force_no_caching};
+    $options->{attachment} = $extra_options->{filename} if $extra_options->{filename};
 
     $options->{cookie} = $cookie if $cookie;
     if ($content_type eq 'html') {  # guaranteed to be one of the content_type_map keys, else we'd have died
@@ -283,7 +290,7 @@ sub output_with_http_headers {
 # We need to fix the encoding as it comes out of the database, or when we pass the variables to templates
 
     $data =~ s/\&amp\;amp\; /\&amp\; /g;
-    binmode(STDOUT, ":utf8");
+    binmode(STDOUT, ":encoding($characterset)");
     print $query->header($options), $data;
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2016 LMSCLoud GmbH
+# Copyright 2016-2018 LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -65,16 +65,41 @@ if ( $op eq 'download' ) {
     my $content;
     my $filename = $input->param('filename');
     my $fullname = File::Spec->catfile( $outputdir, $filename);
+    
+    my $extraoptions = { filename => $filename };
+    my $charset = `file -i -b $fullname`;
+    my $encoding = 'UTF-8';
+    
+    if ( $charset =~ /charset=([^\s]+)/ ) {
+	$charset = $1;
+        if ( $charset !~ /utf-8/i ) {
+	    # $extraoptions->{encoding} = $charset;
+	    $encoding = $charset;
+	}
+    }
+    
     {
         local $/ = undef;
-	open(my $fh, "<:encoding(UTF-8)", $fullname);
+        my $enc = ":encoding($encoding)";
+        if ( $encoding eq 'binary' ) {
+            $extraoptions->{encoding} = 'binary';
+            $enc = ':raw';
+        }
+	open(my $fh, "<$enc", $fullname);
 	$content = <$fh>;
 	close $fh;
     }
     if ( $content eq '') {
 	$content = "<html><head><title>No content</title></head><body>The requested file $filename has no content.</body></html>";
     }
-    output_html_with_http_headers $input, $cookie, $content;
+    my $content_type = 'html';
+    $content_type = 'csv' if ( $filename =~ /\.csv$/i );
+    $content_type = 'json' if ( $filename =~ /\.json$/i );
+    $content_type = 'xml' if ( $filename =~ /\.xml$/i );
+    $content_type = 'zip' if ( $filename =~ /\.zip$/i );   
+    
+    
+    output_with_http_headers $input, $cookie, $content, $content_type, '200 OK', $extraoptions;
     exit 0;
 }
 
