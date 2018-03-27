@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2017 LMSCloud GmbH
+# Copyright 2017-2018 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -149,7 +149,7 @@ my $myentry;
 my $i=0;
 
 if ( $filter ne '' ) {
-     $sth = $dbh->prepare("SELECT * FROM browser WHERE parent = ? ORDER BY description");
+     $sth = $dbh->prepare("SELECT * FROM browser WHERE parent = ? ORDER BY prefix, classval, startrange, description");
     $sth->execute($filter);
     
     while (my $line = $sth->fetchrow_hashref) {
@@ -218,7 +218,7 @@ if ($filter eq '' and $level == 1) {
     $have_hierarchy = 1 if @level_loop;
 } 
 else {
-    $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ?");
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ? ORDER BY prefix, classval, startrange, description");
     my $val = $filter;
     while (length($val)>0) {
         $sth->execute($val);
