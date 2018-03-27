@@ -90,7 +90,8 @@ sub printorders {
                     ( $line->{itemtype} ? " " . $line->{itemtype} : '' ) .
                     ( $line->{edition} ? ", " . $line->{edition} : '' ) .
                     ( $line->{publishercode} ? ' Verlag: '. $line->{publishercode} : '') .
-                    ( $line->{copyrightdate} ? ' '. $line->{copyrightdate} : '');
+                    ( $line->{copyrightdate} ? ' '. $line->{copyrightdate} : '' ) .
+                    ( ($line->{cna} && $line->{cna} eq 'DE-Rt5' && $line->{cn}) ? "\nekz-Artikelnr.: " . $line->{cn} : '');    # for vendor 'ekz' only: print vendor specific title id
             }
             push( @$arrbasket,
                 $basket->{basketno}.'-'.$line->{ordernumber},
@@ -109,20 +110,21 @@ sub printorders {
     
     $pdftable->table($pdf, $page, $abaskets,
         x => 10/mm,
-        w => ($width - 20)/mm,
+        w => ($width - 16)/mm,
         start_y => 285/mm,
         next_y  => 285/mm,
         start_h => 260/mm,
         next_h  => 260/mm,
-        padding => 5,
-        padding_right => 5,
-        background_color_odd  => "lightgray",
+        padding => 3,
+        padding_right => 3,
+        background_color_odd  => "gray96",
         font       => $pdf->corefont("Times", -encoding => "utf8"),
-        font_size => 3/mm,
+        font_size => 3.75/mm,
         header_props   => {
             font       => $pdf->corefont("Times", -encoding => "utf8"),
-            font_size  => 10,
-            bg_color   => 'gray',
+            font_size  => 11,
+            font_color => 'black',
+            bg_color   => 'gray92',
             repeat     => 1,
         },
         column_props => [

@@ -177,6 +177,8 @@ sub printbasketgrouppdf{
             #isbn, itemtype, author, title, publishercode, quantity, listprice ecost discount gstrate
 
             # Editor Number
+            my $cn;
+            my $cna;
             my $en;
             my $edition;
             my $marcrecord=eval{MARC::Record::new_from_xml( $ord->{marcxml},'UTF-8' )};
@@ -185,11 +187,15 @@ sub printbasketgrouppdf{
                     $en = $marcrecord->subfield( '345', "b" );
                     $edition = $marcrecord->subfield( '205', 'a' );
                 } elsif ( C4::Context->preference("marcflavour") eq 'MARC21' ) {
+                    $cn = $marcrecord->field("001")->data();
+                    $cna = $marcrecord->field("003")->data();
                     $en = $marcrecord->subfield( '037', "a" );
                     $edition = $marcrecord->subfield( '250', 'a' );
                 }
             }
 
+            $ord->{cn} = $cn ? $cn : undef;
+            $ord->{cna} = $cna ? $cna : undef;
             $ord->{itemtype} = ( $ord->{itemtype} and $bib->{itemtype} ) ? $itemtypes->{$bib->{itemtype}}->{description} : undef;
             $ord->{en} = $en ? $en : undef;
             $ord->{edition} = $edition ? $edition : undef;
