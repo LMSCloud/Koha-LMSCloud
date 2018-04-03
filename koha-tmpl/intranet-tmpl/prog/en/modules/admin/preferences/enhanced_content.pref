@@ -456,6 +456,9 @@ Enhanced Content:
             - Mode of the Divibib NCIP Service. If set to "test" it uses the test URL
             - pref: DivibibNCIPServiceMode
         -
+            - URL to access Divibib titles. The value will be used to provide a link to Divibib titles in OPAC result and detail views for not logged in users. A placeholder {TITLEID} within the URL will be replaced with the Divibib title ID.
+            - pref: DivibibTitleAccessURL
+        -
             - pref: DivibibLog
               choices:
                   yes: Enable

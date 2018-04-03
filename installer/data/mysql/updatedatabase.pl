@@ -13536,9 +13536,10 @@ if ( CheckVersion($DBversion) ) {
     # Add parameter if to show a column containing the call number of the items on the OPAC user's "my summary" tab.
     # Add parameter if to show a column containing the issuing library branch of the checked out / overdue items on the OPAC user's "my summary" tab.
     $dbh->do( q{
-        INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES ('OPACAllowUserToChooseMobileStation','1',NULL,'If set, show book mobile stations in branches select box when placing a hold.','YesNo');
-        INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES ('OPACMySummaryCallNumber','0',NULL,'If ON, show a column containing the call number of the items on the "my summary" tab.','YesNo');
-        INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES ('OPACMySummaryLibrary','0',NULL,'If ON, show a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.','YesNo')
+        INSERT IGNORE INTO `systempreferences` (variable,value,options,explanation,type) VALUES 
+            ('OPACAllowUserToChooseMobileStation','1',NULL,'If set, show book mobile stations in branches select box when placing a hold.','YesNo'),
+            ('OPACMySummaryCallNumber','0',NULL,'If ON, show a column containing the call number of the items on the "my summary" tab.','YesNo'),
+            ('OPACMySummaryLibrary','0',NULL,'If ON, show a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.','YesNo')
     });
     
     print "Upgrade to $DBversion done (add syspref parameters OPACAllowUserToChooseMobileStation, OPACMySummaryCallNumber, OPACMySummaryLibrary)\n";
@@ -13548,12 +13549,14 @@ if ( CheckVersion($DBversion) ) {
 $DBversion = '16.05.12.015';
 if ( CheckVersion($DBversion) ) {
 
-    # Add parameter to enable or disable Divibib interface logging
+    # Add parameter to enable or disable Divibib interface logging and to provide a Divibib title access URL
     $dbh->do( q{ 
-        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES ('DivibibLog','1',NULL,'If ON, log Divibib interface actions like Divibib authentication.','YesNo')
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES 
+            ('DivibibLog','1',NULL,'If ON, log Divibib interface actions like Divibib authentication.','YesNo'),
+            ('DivibibTitleAccessURL','',NULL,'Access URL of Divibib titles. The value will be used to provide a link to Divibib titles in OPAC result and detail views for not logged in users. A placeholder {TITLEID} within the URL will be replaced with the Divibib title ID.','Free')
     });
     
-    print "Upgrade to $DBversion done (add parameter to enable or disable Divibib interface logging.)\n";
+    print "Upgrade to $DBversion done (add parameter DivibibLog and DivibibTitleAccessURL to enable or disable Divibib interface logging and to provide a Divibib title access URL.)\n";
     SetVersion ($DBversion);
 } 
 
