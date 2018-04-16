@@ -244,6 +244,8 @@ if ($issues){
                       if $ac->{'accounttype'} eq 'FU';
                     $charges += $ac->{'amountoutstanding'}
                       if $ac->{'accounttype'} eq 'L';
+                    $charges += $ac->{'amountoutstanding'}
+                      if $ac->{'accounttype'} eq 'Rent';    # rental fee
                 }
             }
             $issue->{'charges'} = $charges;
@@ -255,6 +257,12 @@ if ($issues){
         $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
         
         if ( $issue->{itemSource} eq 'koha' ) {
+            # check if renewal of issued item causes effective rentalcharge 
+            $issue->{'rentalcharge'} = 0.0;
+            my ( $charge, $type ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber, 1, $issue->{'branchcode'});
+            if ( defined($charge) ) {
+                $issue->{'rentalcharge'} = $charge;
+            }
             # check if item is renewable
             my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
             ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
