@@ -26,6 +26,7 @@ use C4::Context;
 use String::Random qw( random_string );
 use Scalar::Util qw( looks_like_number );
 use Date::Calc qw/Today Add_Delta_YM check_date Date_to_Days/;
+use Locale::Currency::Format 1.28;
 use C4::Log; # logaction
 use C4::Overdues;
 use C4::Reserves;
@@ -2227,7 +2228,12 @@ sub IssueSlip {
     # FIXME Check callers before removing this statement
     #return unless $borrowernumber;
 
+    my $active_currency = Koha::Acquisition::Currencies->get_active;
+    my $currency_format;
+    $currency_format = $active_currency->currency if defined($active_currency);
+
     my @issues = @{ GetPendingIssues($borrowernumber) };
+    my ($amountoutstanding) = GetMemberAccountRecords($borrowernumber);
 
     for my $issue (@issues) {
         $issue->{date_due} = $issue->{date_due_sql};
@@ -2247,7 +2253,7 @@ sub IssueSlip {
         or $b->{issuedate} <=> $a->{issuedate}
     } @issues;
 
-    my ($letter_code, %repeat);
+    my ($letter_code, %repeat, %substitute);
     if ( $quickslip ) {
         $letter_code = 'ISSUEQSLIP';
         %repeat =  (
@@ -2282,6 +2288,11 @@ sub IssueSlip {
             } @{ GetNewsToDisplay("slip",$branch) } ],
         );
     }
+    %substitute =  (
+        'issues_count' => scalar @issues
+    );
+    $substitute{'fines'} = currency_format($currency_format, "$amountoutstanding", FMT_SYMBOL);
+    $substitute{'fines'} = sprintf('%.2f', $amountoutstanding) unless $substitute{'fines'};
 
     return  C4::Letters::GetPreparedLetter (
         module => 'circulation',
@@ -2291,6 +2302,7 @@ sub IssueSlip {
             'branches'    => $branch,
             'borrowers'   => $borrowernumber,
         },
+        substitute => \%substitute,
         repeat => \%repeat,
     );
 }
