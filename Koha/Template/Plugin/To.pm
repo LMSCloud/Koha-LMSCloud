@@ -32,4 +32,18 @@ sub json {
     return $json;
 }
 
+# If using the json() function above for strings that are transformed to HTML text in a following step (e.g. by template tool), 
+# the replacement of character " by string \", done by JSON->encode(), would in the end yield string \&quot; , 
+# which is considered as invalid JSON when ajax parses the json response.
+# In this case one can simply use jsonForHTMLEscaping() instead of json() in one's tt-file.
+sub jsonForHTMLEscaping {
+    my ( $self, $value ) = @_;
+
+    $value =~ s/"/_Koha_Quote_Placeholder_/g;    # thus JSON->encode() will not be upset
+
+    $value = $self->json($value);
+    $value =~ s/_Koha_Quote_Placeholder_/"/g;    # so the " has survived uncluttered, the following [% ... | html %] will transform it to a simple %quot;
+    return $value;
+}
+
 1;
