@@ -37,6 +37,7 @@ use Locale::Currency::Format;
 use DateTime::Format::MySQL;
 use Storable qw(dclone);
 use Koha::ItemTypes;
+use C4::Branch;
 
 use constant false => 0;
 use constant true  => 1;
@@ -48,6 +49,15 @@ BEGIN {
     @EXPORT    = qw(passCashRegisterCheck);
     @EXPORT_OK = qw(passCashRegisterCheck);
 }
+
+    
+# If logged in as a book mobile station, the cash register of the assigned book mobile has to be used;
+# cash registers for book mobile station make no sense and therefore can not be created.
+# The variable %assignedBookMobileBranchcode is constructed to make the mapping from station to mobile faster.
+my %assignedBookMobileBranchcode;
+my $bookMobileBranchcodeMappingInitialized = 0;
+
+
     
 =head1 FUNCTIONS
 
@@ -99,6 +109,36 @@ sub getCurrencyFormatterData {
     
     my $currency = $self->{currency_format};
     return [$currency,currency_symbol($currency),decimal_precision($currency),decimal_separator($currency),thousands_separator($currency)];
+}
+
+=head2 getEffectiveBranchcode
+
+  C4::CashRegisterManagement::getEffectiveBranchcode($branch)
+
+Returns the branchcode of the assigned book mobile if $branch is the branchcode of a book mobile station; 
+returns $branch otherwise.
+
+=cut
+
+sub getEffectiveBranchcode {
+    my $branch = shift;
+
+    $bookMobileBranchcodeMappingInitialized %= 16;    # repeat checking the branches every 16 times
+    if ( $bookMobileBranchcodeMappingInitialized == 0 ) {
+        %assignedBookMobileBranchcode = ();
+        my $branches = GetBranches();
+        for my $branchi (sort { $branches->{$a}->{branchcode} cmp $branches->{$b}->{branchcode} } keys %$branches) {
+            if ( $branches->{$branchi}->{'mobilebranch'} ) {
+                $assignedBookMobileBranchcode{$branchi} = $branches->{$branchi}->{'mobilebranch'};
+            }
+        }
+    }
+    $bookMobileBranchcodeMappingInitialized += 1;
+    
+    if ( defined($branch) && exists($assignedBookMobileBranchcode{$branch}) ) {
+        $branch = $assignedBookMobileBranchcode{$branch};
+    }
+    return $branch
 }
 
 =head2 passCashRegisterCheck
@@ -197,6 +237,7 @@ sub getOpenedCashRegister {
     if (! C4::Context->preference('ActivateCashRegisterTransactionsOnly')) {
         return undef;
     }
+    $branch = getEffectiveBranchcode($branch);
         
     if (! C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
         my $cash_register = Koha::CashRegister::CashRegisters->search({
@@ -1300,6 +1341,8 @@ sub getFinesOverview {
     my $to               = $params->{to};
     my $type             = $params->{type};
     my $cash_register_id = $params->{cash_register_id};
+    $branchcode = getEffectiveBranchcode($branchcode);
+
   
     # initialization of processing
     $type = 'accounttype' if ( ! $type );
@@ -2512,6 +2555,7 @@ sub getCashTransactionOverviewByBranch {
     my $to = shift;
     my ($date_from,$date_to) = $self->getValidFromToPeriod($from, $to);
     my $result = {};
+    $branchcode = getEffectiveBranchcode($branchcode);
     
     my $cash_register = Koha::CashRegister::CashRegisters->search({
             branchcode => $branchcode

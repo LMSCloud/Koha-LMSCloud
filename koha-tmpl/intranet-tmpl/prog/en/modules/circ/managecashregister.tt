@@ -159,10 +159,10 @@ $(document).ready( function() {
                         <form name="select" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                             <select name="cash_register_id" id="cash_register_id">
                                 [% FOREACH cashreg IN cash_registers %]
-                                [% IF ( cashreg.cash_register_no_branch_restriction == 0 && cashreg.cash_register_branchcode != sessionbranch ) %]
-                                <option value="[% cashreg.cash_register_id %]" disabled="disabled">[% cashreg.cash_register_name %]</option>
-                                [% ELSE %]
+                                [% IF ( cashreg.cash_register_no_branch_restriction || cashreg.cash_register_branchcode == sessionbranch || (assignedmobilebranch && cashreg.cash_register_branchcode == assignedmobilebranch) ) %]
                                 <option value="[% cashreg.cash_register_id %]">[% cashreg.cash_register_name %]</option>
+                                [% ELSE %]
+                                <option value="[% cashreg.cash_register_id %]" disabled="disabled">[% cashreg.cash_register_name %]</option>
                                 [% END %]
                                 [% END %]
                             </select>
