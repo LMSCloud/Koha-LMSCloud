@@ -680,7 +680,7 @@ Using this account is not recommended because some parts of Koha will not functi
 
                                                     [% IF ( OPACMySummaryCallNumber ) %]
                                                         <td class="call_no">
-                                                            span class="tdlabel">Call no.:</span>
+                                                            <span class="tdlabel">Call no.:</span>
                                                             [% i.item.itemcallnumber %]
                                                         </td>
                                                     [% END %]
