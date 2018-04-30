@@ -107,7 +107,9 @@ if (C4::Context->preference("IndependentBranches")) {
 my $op = $input->param('op') || 'delete_confirm';
 my $dbh = C4::Context->dbh;
 my $is_guarantor = $dbh->selectrow_array("SELECT COUNT(*) FROM borrowers WHERE guarantorid=?", undef, $member);
-if ( $op eq 'delete_confirm' or $countissues > 0 or $flags->{'CHARGES'}  or $is_guarantor or $deletelocal == 0) {
+my $cash_management = C4::CashRegisterManagement->new();
+my $cash_register = $cash_management->getOpenedCashRegisterByManagerID($member);
+if ( $op eq 'delete_confirm' or $countissues > 0 or $flags->{'CHARGES'}  or $is_guarantor or $cash_register or $deletelocal == 0) {
     my $patron_image = Koha::Patron::Images->find($bor->{borrowernumber});
     $template->param( picture => 1 ) if $patron_image;
 
@@ -139,6 +141,9 @@ if ( $op eq 'delete_confirm' or $countissues > 0 or $flags->{'CHARGES'}  or $is_
     }
     if ($is_guarantor) {
         $template->param(guarantees => 1);
+    }
+    if ($cash_register) {
+        $template->param(cash_register_branchcode => $cash_register->{'cash_register_branchcode'});
     }
     if ($deletelocal == 0) {
         $template->param(keeplocal => 1);

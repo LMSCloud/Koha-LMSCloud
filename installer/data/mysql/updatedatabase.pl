@@ -13560,6 +13560,26 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 } 
 
+$DBversion = '16.05.12.016';
+if ( CheckVersion($DBversion) ) {
+
+    # Records from table cash_register_account must not be deleted, and therefore also the linked record in table accountlines. So the CONSTRAINT `accountlines_ibfk_1` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE has to be dropped.
+    my $showcreatetable;
+    my $sth = $dbh->prepare("SHOW CREATE Table accountlines");
+    $sth->execute;
+    my (@row) = $sth->fetchrow_array;
+    $showcreatetable = $row[1];
+
+    if ($showcreatetable =~ /CONSTRAINT.*accountlines_ibfk_1.*FOREIGN KEY.*borrowers.*borrowernumber.*ON DELETE CASCADE/igm) {
+        $dbh->do( q{ 
+            ALTER TABLE `accountlines` DROP FOREIGN KEY `accountlines_ibfk_1`
+        });
+    }
+    
+    print "Upgrade to $DBversion done (drop foreign key accountlines_ibfk_1 of table accountlines, because otherwise borrowers with cash_register_account entries cannot be deleted)\n";
+    SetVersion ($DBversion);
+}
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.

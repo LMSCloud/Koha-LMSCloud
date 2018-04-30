@@ -1,4 +1,5 @@
 [% PROCESS 'cashregister-fines-macros.inc' %]
+[% USE KohaDates %]
 
 <script type="text/javascript">
 //<![CDATA[
@@ -671,7 +672,7 @@ $(document).ready( function() {
     <table id="finesbydate">
         <thead>
             <tr>
-                <th>Day</th>
+                <th class="title-string" >Day</th>
                 <th>Amount</th>
                 <th>
                     [% IF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' ) %]Fine type[% ELSE %]Payment type[% END %]
@@ -686,7 +687,7 @@ $(document).ready( function() {
             [% FOREACH showstat IN finesstats.data %]
                 [% finestat = showstat.accounttype %]
                 <tr>
-                    <td style="text-align:right;">[% showstat.date %]</td>
+                    <td style="text-align:right;"><span title="[% showstat.date %]">[% showstat.date | $KohaDates %]</span></td>
                     <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                     <td>
                         [% IF (showstat.entrytype == 1) %]
@@ -696,7 +697,11 @@ $(document).ready( function() {
                         [% END %]
                     </td>
                     <td>
-                        [% IF (! printview) %]<a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% showstat.borrowernumber %]">[% END %][% showstat.patron_name %][% IF (showstat.cardnumber) %] ([% showstat.cardnumber %])[% END %][% IF (! printview) %]</a>[% END %]
+                        [% IF ( showstat.patron_is_deleted ) %]
+                            [% showstat.patron_name %][% IF (showstat.cardnumber) %] ([% showstat.cardnumber %])[% END %]
+                        [% ELSE %]
+                            [% IF (! printview) %]<a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% showstat.borrowernumber %]">[% END %][% showstat.patron_name %][% IF (showstat.cardnumber) %] ([% showstat.cardnumber %])[% END %][% IF (! printview) %]</a>[% END %]
+                        [% END %]
                     </td>
                     <td>[% showstat.description %]</td>
                     <td>[% showstat.manager_name %]</td>

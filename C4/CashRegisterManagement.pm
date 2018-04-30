@@ -176,12 +176,11 @@ sub loadRegisterManagerData {
     my $dbh = C4::Context->dbh;
 
     my $query = q{
-        SELECT distinct b.borrowernumber, b.firstname, b.surname, b.categorycode, b.flags 
-        FROM borrowers b
-        WHERE    b.borrowernumber IN (SELECT distinct manager_id FROM cash_register) 
-              OR b.borrowernumber IN (SELECT distinct prev_manager_id FROM cash_register)
-              OR b.borrowernumber IN (SELECT distinct manager_id FROM cash_register_manager)
-        ORDER BY b.firstname, b.surname ASC }; 
+        SELECT distinct manager_id as borrowernumber FROM cash_register
+        UNION ALL
+        SELECT distinct prev_manager_id as borrowernumber FROM cash_register
+        UNION ALL
+        SELECT distinct manager_id as borrowernumber FROM cash_register_manager };
     $query =~ s/^\s+/ /mg;
     
     my $sth = $dbh->prepare($query);
@@ -189,15 +188,50 @@ sub loadRegisterManagerData {
     
     my %borrowers = ();
     
-    while (my $row = $sth->fetchrow_hashref) {
-        if ( $row->{firstname} ) {
-            $row->{fullname} = $row->{firstname} . ' ' . $row->{surname};
-        } else {
-            $row->{fullname} = $row->{surname};
+    while ( my $row = $sth->fetchrow_hashref ) {
+        if ( $row->{'borrowernumber'} ) {
+            $borrowers{$row->{'borrowernumber'}} = $row;
         }
-        $borrowers{$row->{'borrowernumber'}} = $row;
     }
-    $self->{managers}=\%borrowers;
+    $sth->finish();
+
+    my $query_bor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname, b.categorycode, b.flags
+        FROM borrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_bor = $dbh->prepare($query_bor);
+    
+    my $query_delbor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname, b.categorycode, b.flags
+        FROM deletedborrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_delbor = $dbh->prepare($query_delbor);
+
+    foreach my $borrowernumber ( keys %borrowers ) {
+        if ( $borrowernumber ) {
+            $sth_bor->execute($borrowernumber);
+            my $row_bor = $sth_bor->fetchrow_hashref;
+            if ( ! $row_bor  ) {
+                $sth_delbor->execute($borrowernumber);
+                $row_bor = $sth_delbor->fetchrow_hashref;
+            }
+            if ( $row_bor ) {
+                $borrowers{$borrowernumber}->{firstname} = $row_bor->{firstname};
+                $borrowers{$borrowernumber}->{surname} = $row_bor->{surname};
+                $borrowers{$borrowernumber}->{categorycode} = $row_bor->{categorycode};
+                $borrowers{$borrowernumber}->{flags} = $row_bor->{flags};
+            }
+            if ( $borrowers{$borrowernumber}->{firstname} ) {
+                $borrowers{$borrowernumber}->{fullname} = $borrowers{$borrowernumber}->{firstname} . ' ' . $borrowers{$borrowernumber}->{surname};
+            } else {
+                $borrowers{$borrowernumber}->{fullname} = $borrowers{$borrowernumber}->{surname};
+            }
+        }
+    }
+    $sth_delbor->finish();
+    $sth_bor->finish();
+
+    $self->{managers} = \%borrowers;
 }
 
 =head2 managerHasOpenCashRegister
@@ -1038,19 +1072,35 @@ sub getLastBooking {
     my $self = shift;
     my $dbh = C4::Context->dbh;
     my $cash_register_id = shift;
+    my $row = undef;
         
     my $query = q{
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
-                a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description,
-                CONCAT(IFNULL(b.firstname,''), ' ', b.surname) as manager_name
-        FROM cash_register_account a, borrowers b
+                a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description
+        FROM cash_register_account a
         WHERE id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.cash_register_id = b.cash_register_id) 
-              AND a.manager_id = b.borrowernumber
               AND a.cash_register_id = ?
        }; $query =~ s/^\s+/ /mg;
     my $sth = $dbh->prepare($query);
+
+    my $query_bor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname
+        FROM borrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_bor = $dbh->prepare($query_bor);
+    
+    my $query_delbor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname
+        FROM deletedborrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_delbor = $dbh->prepare($query_delbor);
+
+
     $sth->execute($cash_register_id);
-    while (my $row = $sth->fetchrow_hashref) {
+
+    if ($row = $sth->fetchrow_hashref) {
+        $row->{manager_name} = '';
+
         my $amount = $row->{booking_amount};
         $row->{booking_amount} = sprintf('%.2f', $amount);
         $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
@@ -1058,9 +1108,28 @@ sub getLastBooking {
         $row->{current_balance} = sprintf('%.2f', $balance);
         $row->{current_balance_formatted} = $self->formatAmountWithCurrency($balance);
         $row->{booking_time} = output_pref ( { dt => dt_from_string($row->{booking_time}) } );
-        return $row;
+        
+        # read required record from borrowers or deletedborrowers for getting manager_name
+        if ( $row->{manager_id} ) {
+            my $borrower_is_deleted = 0;
+            $sth_bor->execute($row->{manager_id});
+            my $row_bor = $sth_bor->fetchrow_hashref;
+            if ( ! $row_bor  ) {
+                $borrower_is_deleted = 1;
+                $sth_delbor->execute($row->{manager_id});
+                $row_bor = $sth_delbor->fetchrow_hashref;
+            }
+            if ( $row_bor ) {
+                $row->{manager_name} = length($row_bor->{firstname}) ? $row_bor->{firstname} . ' ' . $row_bor->{surname} : $row_bor->{surname};
+            }
+            $row->{manager_is_deleted} = $borrower_is_deleted;
+        }
     }
-    return undef;
+    $sth_delbor->finish();
+    $sth_bor->finish();
+    $sth->finish();
+
+    return $row;
 }
 
 
@@ -1150,15 +1219,12 @@ sub getBookingsSinceLastOpening {
     my $query = q{
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
                 a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description, a.reason,
-                CONCAT(IFNULL(b.firstname, ''), IF(b.firstname IS NULL, '', ' '), b.surname) as manager_name,
-                CONCAT(IFNULL(o.firstname, ''), IF(o.firstname IS NULL, '', ' '), o.surname) as patron_name,
                 l.accounttype, l.note as accountlines_note, 
                 l.description as accountlines_description,
+                l.borrowernumber,
                 m.title as title
         FROM  cash_register_account a
-        LEFT JOIN borrowers b ON a.manager_id = b.borrowernumber
         LEFT JOIN accountlines l ON a.accountlines_id = l.accountlines_id
-        LEFT JOIN borrowers o ON o.borrowernumber = l.borrowernumber
         LEFT JOIN items i ON i.itemnumber = l.itemnumber
         LEFT JOIN biblio m ON i.biblionumber = m.biblionumber
         WHERE     a.cash_register_id = ?
@@ -1169,20 +1235,65 @@ sub getBookingsSinceLastOpening {
         ORDER BY id DESC
        }; $query =~ s/^\s+/ /mg;
     my $sth = $dbh->prepare($query);
+    
+    my %borrowers = ();
+
+    my $query_bor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname
+        FROM borrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_bor = $dbh->prepare($query_bor);
+    
+    my $query_delbor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname
+        FROM deletedborrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_delbor = $dbh->prepare($query_delbor);
+
     $sth->execute( $cash_register_id, 'OPEN');
     
     my @result;
     
     while (my $row = $sth->fetchrow_hashref) {
-       my $amount = $row->{booking_amount};
-       $row->{booking_amount} = sprintf('%.2f', $amount);
-       $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
-       my $balance = $row->{current_balance};
-       $row->{current_balance} = sprintf('%.2f', $balance);
-       $row->{current_balance_formatted} = $self->formatAmountWithCurrency($balance);
-       $row->{booking_time} = output_pref ( { dt => dt_from_string($row->{booking_time}) } );
-       push @result, $row;
+        my $amount = $row->{booking_amount};
+        $row->{booking_amount} = sprintf('%.2f', $amount);
+        $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
+        my $balance = $row->{current_balance};
+        $row->{current_balance} = sprintf('%.2f', $balance);
+        $row->{current_balance_formatted} = $self->formatAmountWithCurrency($balance);
+        
+        # read required record from borrowers or deletedborrowers for getting manager_name and patron_name
+        foreach my $borr ( { id => 'manager_id', desig_name => 'manager_name', desig_isdel => 'manager_is_deleted' }, { id => 'borrowernumber', desig_name => 'patron_name', desig_isdel => 'patron_is_deleted' } ) {
+            if ( $row->{$borr->{id}} ) {
+                if ( ! exists $borrowers{$row->{$borr->{id}}} ) {
+                    my $borrower_is_deleted = 0;
+                    $sth_bor->execute($row->{$borr->{id}});
+                    my $row_bor = $sth_bor->fetchrow_hashref;
+                    if ( ! $row_bor  ) {
+                        $borrower_is_deleted = 1;
+                        $sth_delbor->execute($row->{$borr->{id}});
+                        $row_bor = $sth_delbor->fetchrow_hashref;
+                    }
+                    if ( $row_bor ) {
+                        $borrowers{$row->{$borr->{id}}}->{fullname} = length($row_bor->{firstname}) ? $row_bor->{firstname} . ' ' . $row_bor->{surname} : $row_bor->{surname};
+                    } else {
+                        $borrowers{$row->{$borr->{id}}}->{fullname} = '';
+                    }
+                    $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted} = $borrower_is_deleted;
+                }
+                $row->{$borr->{desig_name}} = $borrowers{$row->{$borr->{id}}}->{fullname};
+                $row->{$borr->{desig_isdel}} = $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted};
+            } else {
+                $row->{$borr->{desig_name}} = '';
+                $row->{$borr->{desig_isdel}} = 1;
+            }
+        }
+
+        push @result, $row;
     }
+    $sth_delbor->finish();
+    $sth_bor->finish();
+    $sth->finish();
 
     return \@result;
 }
@@ -1204,17 +1315,13 @@ sub getLastBookingsFromTo {
     my ($date_from,$date_to) = $self->getValidFromToPeriod($from, $to);
         
     my $query = q{
-        SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
+        SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, l.borrowernumber, a.booking_time, 
                 a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description, a.reason, 
-                CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL, '', ' '), b.surname) as manager_name,
-                CONCAT(IFNULL(o.firstname,''), IF(o.firstname IS NULL, '', ' '), o.surname) as patron_name,
                 l.accounttype, l.note as accountlines_note, 
                 l.description as accountlines_description,
                 m.title as title, l.borrowernumber
         FROM  cash_register_account a
-        LEFT JOIN borrowers b ON a.manager_id = b.borrowernumber
         LEFT JOIN accountlines l ON a.accountlines_id = l.accountlines_id
-        LEFT JOIN borrowers o ON o.borrowernumber = l.borrowernumber
         LEFT JOIN items i ON i.itemnumber = l.itemnumber
         LEFT JOIN biblio m ON i.biblionumber = m.biblionumber
         WHERE     booking_time >= ? and booking_time <= ?
@@ -1228,18 +1335,62 @@ sub getLastBookingsFromTo {
             $cash_register_id
         );
     
+    my %borrowers = ();
+
+    my $query_bor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname
+        FROM borrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_bor = $dbh->prepare($query_bor);
+    
+    my $query_delbor = q{
+        SELECT b.borrowernumber, b.firstname, b.surname
+        FROM deletedborrowers b
+        WHERE b.borrowernumber = ? };
+    my $sth_delbor = $dbh->prepare($query_delbor);
+
     my @result;
     
     while (my $row = $sth->fetchrow_hashref) {
-       my $amount = $row->{booking_amount};
-       $row->{booking_amount} = sprintf('%.2f', $amount);
-       $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
-       my $balance = $row->{current_balance};
-       $row->{current_balance} = sprintf('%.2f', $balance);
-       $row->{current_balance_formatted} = $self->formatAmountWithCurrency($balance);
-       $row->{booking_time} = output_pref ( { dt => dt_from_string($row->{booking_time}) } );
-       push @result, $row;
+        my $amount = $row->{booking_amount};
+        $row->{booking_amount} = sprintf('%.2f', $amount);
+        $row->{booking_amount_formatted} = $self->formatAmountWithCurrency($amount);
+        my $balance = $row->{current_balance};
+        $row->{current_balance} = sprintf('%.2f', $balance);
+        $row->{current_balance_formatted} = $self->formatAmountWithCurrency($balance);
+        
+        # read required record from borrowers or deletedborrowers for getting manager_name and patron_name
+        foreach my $borr ( { id => 'manager_id', desig_name => 'manager_name', desig_isdel => 'manager_is_deleted' }, { id => 'borrowernumber', desig_name => 'patron_name', desig_isdel => 'patron_is_deleted' } ) {
+            if ( $row->{$borr->{id}} ) {
+                if ( ! exists $borrowers{$row->{$borr->{id}}} ) {
+                    my $borrower_is_deleted = 0;
+                    $sth_bor->execute($row->{$borr->{id}});
+                    my $row_bor = $sth_bor->fetchrow_hashref;
+                    if ( ! $row_bor  ) {
+                        $borrower_is_deleted = 1;
+                        $sth_delbor->execute($row->{$borr->{id}});
+                        $row_bor = $sth_delbor->fetchrow_hashref;
+                    }
+                    if ( $row_bor ) {
+                        $borrowers{$row->{$borr->{id}}}->{fullname} = length($row_bor->{firstname}) ? $row_bor->{firstname} . ' ' . $row_bor->{surname} : $row_bor->{surname};
+                    } else {
+                        $borrowers{$row->{$borr->{id}}}->{fullname} = '';
+                    }
+                    $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted} = $borrower_is_deleted;
+                }
+                $row->{$borr->{desig_name}} = $borrowers{$row->{$borr->{id}}}->{fullname};
+                $row->{$borr->{desig_isdel}} = $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted};
+            } else {
+                $row->{$borr->{desig_name}} = '';
+                $row->{$borr->{desig_isdel}} = 1;
+            }
+        }
+
+        push @result, $row;
     }
+    $sth_delbor->finish();
+    $sth_bor->finish();
+    $sth->finish();
 
     return (\@result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
 }
@@ -2088,6 +2239,25 @@ sub getFinesOverview {
                 UNION ALL
                 SELECT 
                        $selectfield as description,
+                       SUM(ao.amount) * -1 AS amount,
+                       COUNT(*) AS count,
+                       ao.type AS paytype
+                FROM   branches br, account_offsets ao, accountlines c, accountlines a
+                JOIN   deletedborrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.debit_id = a.accountlines_id
+                       AND ao.credit_id = c.accountlines_id
+                       AND ao.type = 'Payment'
+                       AND $dateselect $branchselect
+                       AND a.accounttype = 'A'
+                       AND ao.amount <> 0.00
+                GROUP BY 
+                       paytype, $groupfield
+
+                UNION ALL
+                SELECT 
+                       $selectfield as description,
                        SUM(o.amount) * -1 ,
                        COUNT(*) AS count,
                        ao.type AS paytype
@@ -2108,6 +2278,30 @@ sub getFinesOverview {
                        AND o.amount <> 0.00
                 GROUP BY 
                        paytype, $groupfield
+                UNION ALL
+                SELECT 
+                       $selectfield as description,
+                       SUM(o.amount) * -1 ,
+                       COUNT(*) AS count,
+                       ao.type AS paytype
+                FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a
+                JOIN   deletedborrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.debit_id = u.accountlines_id
+                       AND ao.credit_id = c.accountlines_id
+                       AND ao.type = 'Payment'
+                       AND $dateselect $branchselect
+                       AND ao.debit_id = o.credit_id
+                       AND o.type = 'Payment'
+                       AND o.debit_id = a.accountlines_id
+                       AND u.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                       AND a.accounttype = 'A'
+                       AND ao.amount = u.amount
+                       AND o.amount <> 0.00
+                GROUP BY 
+                       paytype, $groupfield
+
                 UNION ALL
                 SELECT 
                        $selectfield  as description,
@@ -2132,12 +2326,57 @@ sub getFinesOverview {
                        paytype, $groupfield
                 UNION ALL
                 SELECT 
+                       $selectfield  as description,
+                       SUM(o.amount) * -1 AS amount,
+                       COUNT(*) AS count,
+                       'Payment' AS paytype
+                FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+                JOIN   deletedborrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.type = 'Reverse Payment'
+                       AND ao.credit_id = c.accountlines_id
+                       AND ao.amount > 0.0
+                       AND $dateselect $branchselect
+                       AND ao.credit_id = o.credit_id
+                       AND o.type = 'Payment'
+                       AND o.debit_id = a.accountlines_id
+                       AND a.accounttype = 'A'
+                       AND o.amount <> 0.00
+                       AND -ao.amount = c.amount
+                GROUP BY 
+                       paytype, $groupfield
+
+                UNION ALL
+                SELECT 
                        $selectfield as description,
                        SUM(o.amount) AS amount,
                        COUNT(*) AS count,
                        ao.type AS paytype
                 FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
                 JOIN   borrowers AS b USING (borrowernumber)
+                JOIN   categories AS cat USING (categorycode)
+                WHERE      c.branchcode = br.branchcode
+                       AND ao.type = 'Reverse Payment'
+                       AND ao.credit_id = c.accountlines_id
+                       AND ao.amount < 0.0
+                       AND $dateselect $branchselect
+                       AND ao.credit_id = o.credit_id
+                       AND o.type = 'Payment'
+                       AND o.debit_id = a.accountlines_id
+                       AND a.accounttype = 'A'
+                       AND o.amount <> 0.00
+                       AND ao.amount = c.amount
+                GROUP BY 
+                       paytype, $groupfield
+                UNION ALL
+                SELECT 
+                       $selectfield as description,
+                       SUM(o.amount) AS amount,
+                       COUNT(*) AS count,
+                       ao.type AS paytype
+                FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a
+                JOIN   deletedborrowers AS b USING (borrowernumber)
                 JOIN   categories AS cat USING (categorycode)
                 WHERE      c.branchcode = br.branchcode
                        AND ao.type = 'Reverse Payment'
@@ -2179,16 +2418,11 @@ sub getFinesOverview {
                    DATE(ao.created_on) as date,
                    a.accounttype as accounttype, 
                    ao.amount * -1 as amount,
-                   b.cardnumber as cardnumber,
-                   b.borrowernumber as borrowernumber,
+                   c.borrowernumber as borrowernumber,
+                   c.manager_id as manager_id,
                    a.description as description,
-                   a.manager_id as manager_id,
-                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
             FROM   branches br, account_offsets ao, accountlines a, accountlines c
-            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = a.accountlines_id
                    AND ao.credit_id = c.accountlines_id
@@ -2202,16 +2436,11 @@ sub getFinesOverview {
                    DATE(ao.created_on) as date,
                    a.accounttype as accounttype, 
                    o.amount * -1 as amount,
-                   b.cardnumber as cardnumber,
-                   b.borrowernumber as borrowernumber,
+                   c.borrowernumber as borrowernumber,
+                   c.manager_id as manager_id,
                    a.description as description,
-                   a.manager_id as manager_id,
-                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
             FROM   branches br, account_offsets o, account_offsets ao, accountlines u, accountlines a, accountlines c
-            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = u.accountlines_id
                    AND ao.credit_id = c.accountlines_id
@@ -2230,16 +2459,11 @@ sub getFinesOverview {
                    DATE(ao.created_on) as date,
                    a.accounttype as accounttype, 
                    o.amount as amount,
-                   b.cardnumber as cardnumber,
-                   b.borrowernumber as borrowernumber,
+                   c.borrowernumber as borrowernumber,
+                   c.manager_id as manager_id,
                    a.description as description,
-                   a.manager_id as manager_id,
-                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
             FROM   branches br, account_offsets o, account_offsets ao, accountlines a, accountlines c
-            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.type = 'Reverse Payment'
                    AND ao.credit_id = c.accountlines_id
@@ -2256,16 +2480,11 @@ sub getFinesOverview {
                    DATE(ao.created_on) as date,
                    'PaymentOfPaidBackPayment' AS accounttype,
                    ao.amount * -1 AS amount,
-                   b.cardnumber as cardnumber,
-                   b.borrowernumber as borrowernumber,
+                   c.borrowernumber as borrowernumber,
+                   c.manager_id as manager_id,
                    a.description as description,
-                   a.manager_id as manager_id,
-                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
             FROM   branches br, account_offsets o, account_offsets ao, accountlines u, accountlines a, accountlines c
-            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = u.accountlines_id
                    AND ao.credit_id = c.accountlines_id
@@ -2283,16 +2502,11 @@ sub getFinesOverview {
                    DATE(ao.created_on) as date,
                    'PartialPaymentOfPaidBackPayment' AS accounttype,
                    ao.amount * -1 AS amount,
-                   b.cardnumber as cardnumber,
-                   b.borrowernumber as borrowernumber,
+                   c.borrowernumber as borrowernumber,
+                   c.manager_id as manager_id,
                    u.description as description,
-                   u.manager_id as manager_id,
-                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                    '' as reason
             FROM   branches br, account_offsets ao, accountlines u, accountlines c
-            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = u.accountlines_id
                    AND ao.credit_id = c.accountlines_id
@@ -2315,16 +2529,11 @@ sub getFinesOverview {
                    DATE(ao.created_on) as date,
                    'PartialPaymentReverseOfPaidBackPayment' AS accounttype,
                    ao.amount AS amount,
-                   b.cardnumber as cardnumber,
-                   b.borrowernumber as borrowernumber,
-                   c.description as description,
+                   c.borrowernumber as borrowernumber,
                    c.manager_id as manager_id,
-                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   c.description as description,
                    '' as reason
             FROM   branches br, account_offsets ao,  accountlines c
-            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.type = 'Reverse Payment'
                    AND ao.credit_id = c.accountlines_id
@@ -2337,16 +2546,11 @@ sub getFinesOverview {
                    DATE(ao.created_on) as date,
                    'ReversedPaymentOfPaidBackPayment' AS accounttype,
                    o.amount AS amount,
-                   b.cardnumber as cardnumber,
-                   b.borrowernumber as borrowernumber,
-                   c.description as description,
+                   c.borrowernumber as borrowernumber,
                    c.manager_id as manager_id,
-                   CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                   CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
+                   c.description as description,
                    '' as reason
             FROM   branches br, account_offsets o, account_offsets ao, accountlines a, accountlines c
-            LEFT JOIN borrowers b ON (b.borrowernumber = c.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
             WHERE      c.branchcode = br.branchcode
                    AND ao.type = 'Reverse Payment'
                    AND ao.amount < 0.0
@@ -2357,36 +2561,86 @@ sub getFinesOverview {
                    AND o.debit_id = a.accountlines_id
                    AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
                    AND o.amount <> 0.00
-            ORDER BY date, cardnumber
+            ORDER BY date, borrowernumber
            }; $query =~ s/^\s+/ /mg;
            
         # warn "Query: $query\n";
            
         my $sth = $dbh->prepare($query);
+        
+        my %borrowers = ();
+
+        my $query_bor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM borrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_bor = $dbh->prepare($query_bor);
+        
+        my $query_delbor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM deletedborrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_delbor = $dbh->prepare($query_delbor);
+
         $sth->execute();
-    
+
         my $rownum = 0;
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{amount};
             my $accounttype = $row->{accounttype};
             $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
             
+            # read required record from borrowers or deletedborrowers for getting manager_name and patron_name
+            foreach my $borr ( { id => 'manager_id', desig_name => 'manager_name', desig_cardno => 'manager_cardnumber', desig_isdel => 'manager_is_deleted' }, { id => 'borrowernumber', desig_name => 'patron_name', desig_cardno => 'cardnumber', desig_isdel => 'patron_is_deleted' } ) {
+                if ( $row->{$borr->{id}} ) {
+                    if ( ! exists $borrowers{$row->{$borr->{id}}} ) {
+                        my $borrower_is_deleted = 0;
+                        $sth_bor->execute($row->{$borr->{id}});
+                        my $row_bor = $sth_bor->fetchrow_hashref;
+                        if ( ! $row_bor  ) {
+                            $borrower_is_deleted = 1;
+                            $sth_delbor->execute($row->{$borr->{id}});
+                            $row_bor = $sth_delbor->fetchrow_hashref;
+                        }
+                        if ( $row_bor ) {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = length($row_bor->{firstname}) ? $row_bor->{firstname} . ' ' . $row_bor->{surname} : $row_bor->{surname};
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = $row_bor->{cardnumber};
+                        } else {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = '';
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = '';
+                        }
+                        $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted} = $borrower_is_deleted;
+                    }
+                    $row->{$borr->{desig_name}} = $borrowers{$row->{$borr->{id}}}->{fullname};
+                    $row->{$borr->{desig_cardno}} = $borrowers{$row->{$borr->{id}}}->{cardnumber};
+                    $row->{$borr->{desig_isdel}} = $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted};
+                } else {
+                    $row->{$borr->{desig_name}} = '';
+                    $row->{$borr->{desig_cardno}} = '';
+                    $row->{$borr->{desig_isdel}} = 1;
+                }
+            }
+            
             $result->{data}->[$rownum++] = {
                 entrytype => $row->{entrytype},
                 reason => $row->{reason},
-                date => output_pref({dt => dt_from_string($row->{date}), dateonly => 1}),
+                date => $row->{date},
                 accounttype => $accounttype,
                 amount => $amount,
                 fines_amount => sprintf('%.2f', $amount),
                 fines_amount_formatted => $self->formatAmountWithCurrency($amount),
-                cardnumber => $row->{cardnumber},
-                borrowernumber => $row->{borrowernumber},
                 description => $row->{description},
-                patron_name => $row->{patron_name},
+                borrowernumber => $row->{borrowernumber},
+                patron_name => $row->{patron_name},             # constructed from %borrowers
+                cardnumber => $row->{cardnumber},               # constructed from %borrowers
+                patron_is_deleted => $row->{patron_is_deleted}, # constructed from %borrowers
                 manager_id => $row->{manager_id},
-                manager_name => $row->{manager_name}
+                manager_name => $row->{manager_name}            # constructed from %borrowers
             };
         }
+        $sth_delbor->finish();
+        $sth_bor->finish();
+        $sth->finish();
     }
     elsif ( $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' ) {
         # get the accountlines statistics by type
@@ -2396,48 +2650,53 @@ sub getFinesOverview {
                     DATE(ao.created_on) as date,
                     a.accounttype as accounttype,
                     IF(ao.type = 'Payment', SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
-                    b.cardnumber as cardnumber,
-                    b.borrowernumber as borrowernumber,
+                    a.borrowernumber as borrowernumber,
                     a.description as description,
                     a.manager_id as manager_id,
-                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                     '' as reason,
                     '' as cash_register_name
              FROM 
                     branches br, account_offsets ao 
                     JOIN accountlines a ON (a.accountlines_id = ao.credit_id)
-                    LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
-                    LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
              WHERE      a.branchcode = br.branchcode
                     AND ao.type IN ('Payment','Reverse Payment')
                     AND $dateselect $branchselect
              GROUP BY
-                    ao.type, ao.credit_id, ao.created_on, a.accounttype, b.cardnumber, b.borrowernumber,
-                    a.description, a.manager_id, b.firstname, b.surname, m.firstname, m.surname
+                    ao.type, ao.credit_id, ao.created_on, a.accounttype, a.borrowernumber,
+                    a.description, a.manager_id
              UNION ALL
              SELECT 2 as entrytype,
                     DATE(c.booking_time) as date,
                     c.action as accounttype,
                     c.booking_amount as amount,
-                    '' as cardnumber,
                     NULL as borrowernumber,
                     c.description as description,
                     c.manager_id as manager_id,
-                    '' as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                     c.reason as reason,
                     r.name as cash_register_name
              FROM   branches br, cash_register r, cash_register_account c
-             LEFT JOIN borrowers m ON (m.borrowernumber = c.manager_id)
              WHERE      c.action IN ('PAYOUT','ADJUSTMENT','DEPOSIT')
                     AND $cashdateselect $cashregisterselect
                     AND r.branchcode = br.branchcode
                     AND c.cash_register_id  = r.id
-             ORDER BY date,cardnumber
+             ORDER BY date, borrowernumber
             }; $query =~ s/^\s+/ /mg;
         
         my $sth = $dbh->prepare($query);
+        
+        my %borrowers = ();
+
+        my $query_bor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM borrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_bor = $dbh->prepare($query_bor);
+        
+        my $query_delbor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM deletedborrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_delbor = $dbh->prepare($query_delbor);
 
         $sth->execute();
 
@@ -2455,20 +2714,52 @@ sub getFinesOverview {
                 }
             }
             
+            # read required record from borrowers or deletedborrowers for getting manager_name and patron_name
+            foreach my $borr ( { id => 'manager_id', desig_name => 'manager_name', desig_cardno => 'manager_cardnumber', desig_isdel => 'manager_is_deleted' }, { id => 'borrowernumber', desig_name => 'patron_name', desig_cardno => 'cardnumber', desig_isdel => 'patron_is_deleted' } ) {
+                if ( $row->{$borr->{id}} ) {
+                    if ( ! exists $borrowers{$row->{$borr->{id}}} ) {
+                        my $borrower_is_deleted = 0;
+                        $sth_bor->execute($row->{$borr->{id}});
+                        my $row_bor = $sth_bor->fetchrow_hashref;
+                        if ( ! $row_bor  ) {
+                            $borrower_is_deleted = 1;
+                            $sth_delbor->execute($row->{$borr->{id}});
+                            $row_bor = $sth_delbor->fetchrow_hashref;
+                        }
+                        if ( $row_bor ) {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = length($row_bor->{firstname}) ? $row_bor->{firstname} . ' ' . $row_bor->{surname} : $row_bor->{surname};
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = $row_bor->{cardnumber};
+                        } else {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = '';
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = '';
+                        }
+                        $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted} = $borrower_is_deleted;
+                    }
+                    $row->{$borr->{desig_name}} = $borrowers{$row->{$borr->{id}}}->{fullname};
+                    $row->{$borr->{desig_cardno}} = $borrowers{$row->{$borr->{id}}}->{cardnumber};
+                    $row->{$borr->{desig_isdel}} = $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted};
+                } else {
+                    $row->{$borr->{desig_name}} = '';
+                    $row->{$borr->{desig_cardno}} = '';
+                    $row->{$borr->{desig_isdel}} = 1;
+                }
+            }
+            
             $result->{data}->[$rownum++] = {
                 entrytype => $row->{entrytype},
                 reason => $row->{reason},
-                date => output_pref({dt => dt_from_string($row->{date}), dateonly => 1}),
+                date => $row->{date},
                 accounttype => $accounttype,
                 amount => $amount,
                 fines_amount => sprintf('%.2f', $amount),
                 fines_amount_formatted => $self->formatAmountWithCurrency($amount),
-                cardnumber => $row->{cardnumber},
                 borrowernumber => $row->{borrowernumber},
                 description => $row->{description},
-                patron_name => $row->{patron_name},
+                patron_name => $row->{patron_name},             # constructed from %borrowers
+                cardnumber => $row->{cardnumber},               # constructed from %borrowers
+                patron_is_deleted => $row->{patron_is_deleted}, # constructed from %borrowers
                 manager_id => $row->{manager_id},
-                manager_name => $row->{manager_name},
+                manager_name => $row->{manager_name},           # constructed from %borrowers
                 cash_register_name => $row->{cash_register_name}
             };
         }
@@ -2486,20 +2777,15 @@ sub getFinesOverview {
                     a.date as date, 
                     a.accounttype as accounttype, 
                     a.amount as amount,
-                    b.cardnumber as cardnumber,
-                    b.borrowernumber as borrowernumber,
+                    a.borrowernumber as borrowernumber,
                     a.description as description,
                     a.manager_id as manager_id,
-                    CONCAT(IFNULL(b.firstname,''), IF(b.firstname IS NULL or b.firstname = '', '', ' '), b.surname) as patron_name,
-                    CONCAT(IFNULL(m.firstname,''), IF(m.firstname IS NULL or m.firstname = '', '', ' '), m.surname) as manager_name,
                     '' as reason
             FROM    branches br, accountlines a
-            LEFT JOIN borrowers b ON (b.borrowernumber = a.borrowernumber) 
-            LEFT JOIN borrowers m ON (m.borrowernumber = a.manager_id)
             WHERE   a.accounttype NOT IN ('Pay', 'Pay00', 'Pay01', 'Pay02')
                 AND a.date >= ? and a.date <= ?
                 AND a.branchcode = br.branchcode $branchselect
-            ORDER BY date,cardnumber
+            ORDER BY date, borrowernumber
            }; 
         
         my @params = ($fmtfrom, $fmtto);
@@ -2507,6 +2793,20 @@ sub getFinesOverview {
         $query =~ s/^\s+/ /mg;
         
         my $sth = $dbh->prepare($query);
+        
+        my %borrowers = ();
+
+        my $query_bor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM borrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_bor = $dbh->prepare($query_bor);
+        
+        my $query_delbor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM deletedborrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_delbor = $dbh->prepare($query_delbor);
 
         $sth->execute(@params);
 
@@ -2516,20 +2816,52 @@ sub getFinesOverview {
             my $accounttype = $row->{accounttype};
             $accounttype = $manual_invtypes{$accounttype} if ( exists($manual_invtypes{$accounttype}) );
             
+            # read required record from borrowers or deletedborrowers for getting manager_name and patron_name
+            foreach my $borr ( { id => 'manager_id', desig_name => 'manager_name', desig_cardno => 'manager_cardnumber', desig_isdel => 'manager_is_deleted' }, { id => 'borrowernumber', desig_name => 'patron_name', desig_cardno => 'cardnumber', desig_isdel => 'patron_is_deleted' } ) {
+                if ( $row->{$borr->{id}} ) {
+                    if ( ! exists $borrowers{$row->{$borr->{id}}} ) {
+                        my $borrower_is_deleted = 0;
+                        $sth_bor->execute($row->{$borr->{id}});
+                        my $row_bor = $sth_bor->fetchrow_hashref;
+                        if ( ! $row_bor  ) {
+                            $borrower_is_deleted = 1;
+                            $sth_delbor->execute($row->{$borr->{id}});
+                            $row_bor = $sth_delbor->fetchrow_hashref;
+                        }
+                        if ( $row_bor ) {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = length($row_bor->{firstname}) ? $row_bor->{firstname} . ' ' . $row_bor->{surname} : $row_bor->{surname};
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = $row_bor->{cardnumber};
+                        } else {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = '';
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = '';
+                        }
+                        $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted} = $borrower_is_deleted;
+                    }
+                    $row->{$borr->{desig_name}} = $borrowers{$row->{$borr->{id}}}->{fullname};
+                    $row->{$borr->{desig_cardno}} = $borrowers{$row->{$borr->{id}}}->{cardnumber};
+                    $row->{$borr->{desig_isdel}} = $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted};
+                } else {
+                    $row->{$borr->{desig_name}} = '';
+                    $row->{$borr->{desig_cardno}} = '';
+                    $row->{$borr->{desig_isdel}} = 1;
+                }
+            }
+            
             $result->{data}->[$rownum++] = {
                 entrytype => $row->{entrytype},
                 reason => $row->{reason},
-                date => output_pref({dt => dt_from_string($row->{date}), dateonly => 1}),
+                date => $row->{date},
                 accounttype => $accounttype,
                 amount => $amount,
                 fines_amount => sprintf('%.2f', $amount),
                 fines_amount_formatted => $self->formatAmountWithCurrency($amount),
-                cardnumber => $row->{cardnumber},
-                borrowernumber => $row->{borrowernumber},
                 description => $row->{description},
-                patron_name => $row->{patron_name},
+                borrowernumber => $row->{borrowernumber},
+                patron_name => $row->{patron_name},             # constructed from %borrowers
+                cardnumber => $row->{cardnumber},               # constructed from %borrowers
+                patron_is_deleted => $row->{patron_is_deleted}, # constructed from %borrowers
                 manager_id => $row->{manager_id},
-                manager_name => $row->{manager_name}
+                manager_name => $row->{manager_name}            # constructed from %borrowers
             };
         }
     }
@@ -2544,6 +2876,7 @@ sub getFinesOverview {
 This function returns an overview of all cash transactions during a selected period for a branch library.
 The payments and payout transactions are summarized by account and count for each defined cash register
 but also for SIP payments specifically cash and credit card.
+
 
 =cut
 
@@ -2699,10 +3032,26 @@ sub getCashTransactionOverviewByBranch {
                AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
                AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
             GROUP BY b.branchcode, a.accounttype
+
+            UNION ALL
+            SELECT a.accounttype accounttype, sum(a.amount-a.amountoutstanding) as amount, count(*) count_transactions
+            FROM   accountlines a, deletedborrowers b, branches br
+            WHERE  a.amount-a.amountoutstanding <> 0.00
+               AND a.date >= ? and a.date <= ?
+               AND a.manager_id = b.borrowernumber
+               AND a.branchcode = br.branchcode
+               AND ( br.branchcode = ? OR br.mobilebranch = ? )
+               AND a.accounttype IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'C', 'REF')
+               AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
+            GROUP BY b.branchcode, a.accounttype
         }; $query =~ s/^\s+/ /mg;
 
     $sth = $dbh->prepare($query);
     $sth->execute( 
+        DateTime::Format::MySQL->format_date($date_from),
+        DateTime::Format::MySQL->format_date($date_to),
+        $branchcode,
+        $branchcode,
         DateTime::Format::MySQL->format_date($date_from),
         DateTime::Format::MySQL->format_date($date_to),
         $branchcode,
@@ -2862,6 +3211,7 @@ sub getCashRegisterHandoverInformationByLastOpeningAction {
     
     # First we want fo find the last opening action of the cash
     # register
+
     my $lastOpeningId = 0;
     my $query = q{
         SELECT max(a.id) as id
