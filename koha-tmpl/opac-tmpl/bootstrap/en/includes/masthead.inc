@@ -3,17 +3,17 @@
 <div id="wrap">
     <div id="header-region" class="noprint">
         <div class="navbar navbar-inverse navbar-static-top">
+            <h1 id="logo">
+                <a class="brand" href="/cgi-bin/koha/opac-main.pl">
+                    [% IF ( LibraryNameTitle ) %]
+                        [% LibraryNameTitle %]
+                    [% ELSE %]
+                        Koha online
+                    [% END %]
+                </a>
+            </h1>
             <div class="navbar-inner">
                 <div class="container-fluid">
-                    <h1 id="logo">
-                        <a class="brand" href="/cgi-bin/koha/opac-main.pl">
-                            [% IF ( LibraryNameTitle ) %]
-                                [% LibraryNameTitle %]
-                            [% ELSE %]
-                                Koha online
-                            [% END %]
-                        </a>
-                    </h1>
                     [% IF ( Koha.Preference( 'opacbookbag' ) == 1 ) %]
                         <div id="cartDetails" class="cart-message">Your cart is empty.</div>
                     [% END %]
@@ -46,7 +46,7 @@
                                         [% IF number_of_public_shelves >= 10 %][% LAST %][% END %]
                                     [% END %]
                                     [% IF some_public_shelves > 10 %]
-                                        <li role="presentation"><a href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=2" tabindex="-1" role="menuitem" class="listmenulink">View All</a></li>
+                                        <li role="presentation"><a href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=2" tabindex="-1" role="menuitem" class="listmenulink">View all</a></li>
                                     [% END %]
                                 [% ELSE %]
                                     <li role="presentation"><a href="#" tabindex="-1" class="menu-inactive" role="menuitem">No public lists</a></li>
@@ -63,7 +63,7 @@
                                                 [% IF number_of_private_shelves >= 10 %][% LAST %][% END %]
                                             [% END %]
                                             [% IF some_private_shelves > 10 %]
-                                                <li role="presentation"><a href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=1" tabindex="-1" role="menuitem" class="listmenulink">View All</a></li>
+                                                <li role="presentation"><a href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=1" tabindex="-1" role="menuitem" class="listmenulink">View all</a></li>
                                             [% END %]
                                         [% ELSE %]
                                             <li role="presentation"><a href="#" tabindex="-1" class="menu-inactive" role="menuitem">No private lists</a></li>
@@ -97,7 +97,7 @@
                                         [% END %]
                                     [% END %]
                                     [% IF ( loggedinusername ) %]
-                                        <li><p class="members navbar-text">Welcome, <a href="/cgi-bin/koha/opac-user.pl"><span class="loggedinusername">[% USER_INFO.title %] [% USER_INFO.firstname %] [% USER_INFO.surname %]</span></a></p></li>
+                                        <li><p class="members navbar-text">[% IF (USER_INFO.firstname ) %]Welcome, [% END %]<a href="/cgi-bin/koha/opac-user.pl"><span class="loggedinusername">[% IF (USER_INFO.firstname) %][% USER_INFO.firstname %][% ELSE %]Account overview[% END %]</span></a></p></li>
                                         <li class="divider-vertical"></li>
                                     [% END %]
                                 [% END %]
@@ -165,14 +165,14 @@
 
                                 <select name="idx" id="masthead_search">
                                 [% IF ( ms_kw ) %]
-                                    <option selected="selected" value="">Library catalog</option>
+                                    <option selected="selected" value="kw,wrdl">Library catalog</option>
                                 [% ELSE %]
-                                    <option value="">Library catalog</option>
+                                    <option value="kw,wrdl">Library catalog</option>
                                 [% END # /ms_kw %]
                                 [% IF ( ms_ti ) %]
-                                    <option selected="selected" value="ti">Title</option>
+                                    <option selected="selected" value="ti,phr"a>Title</option>
                                 [% ELSE %]
-                                    <option value="ti">Title</option>
+                                    <option value="ti,phr">Title</option>
                                 [% END # /ms_ti %]
                                 [% IF ( ms_au ) %]
                                     <option selected="selected" value="au">Author</option>
@@ -180,9 +180,9 @@
                                     <option value="au">Author</option>
                                 [% END # /ms_au%]
                                 [% IF ( ms_su ) %]
-                                    <option selected="selected" value="su">Subject</option>
+                                    <option selected="selected" value="su,phr">Subject</option>
                                 [% ELSE %]
-                                    <option value="su">Subject</option>
+                                    <option value="su,phr">Subject</option>
                                 [% END # /ms_su %]
                                 [% IF ( ms_nb ) %]
                                     <option selected="selected" value="nb">ISBN</option>
@@ -190,13 +190,13 @@
                                     <option value="nb">ISBN</option>
                                 [% END # /ms_nb%]
                                 [% IF ( ms_se ) %]
-                                    <option selected="selected" value="se">Series</option>
+                                    <option selected="selected" value="se,phr">Series</option>
                                 [% ELSE %]
-                                    <option value="se">Series</option>
+                                    <option value="se,phr">Series</option>
                                 [% END # /ms_se %]
                                 [% IF ( numbersphr ) %]
                                     [% IF ( ms_callnum ) %]
-                                            <option selected="selected" value="callnum,phr">Call number</option>
+                                        <option selected="selected" value="callnum,phr">Call number</option>
                                     [% ELSE %]
                                         <option value="callnum,phr">Call number</option>
                                     [% END #/ms_callnum %]
@@ -228,10 +228,10 @@
                                         <select name="branch_group_limit" id="select_library">
                                             <option value="">All libraries</option>
                                             [% IF BranchCategoriesLoop %]<optgroup label="Libraries">[% END %]
-                                                [% FOREACH BranchesLoo IN BranchesLoop %]
-                                                    [% IF ( BranchesLoo.selected ) %]<option selected="selected" value="branch:[% BranchesLoo.value %]">[% BranchesLoo.branchname %]</option>
-                                                    [% ELSE %]<option value="branch:[% BranchesLoo.value %]">[% BranchesLoo.branchname %]</option>[% END %]
-                                                [% END %]
+                                            [% FOREACH BranchesLoo IN BranchesLoop %]
+                                                [% IF ( BranchesLoo.selected ) %]<option selected="selected" value="branch:[% BranchesLoo.value %]">[% BranchesLoo.branchname %]</option>
+                                                [% ELSE %]<option value="branch:[% BranchesLoo.value %]">[% BranchesLoo.branchname %]</option>[% END %]
+                                            [% END %]
                                             [% IF BranchCategoriesLoop %]
                                                 </optgroup>
                                                 <optgroup label="Groups">
@@ -268,28 +268,39 @@
 
                     <div class="row-fluid">
                             <div id="moresearches">
-                                <ul>
-                                    <li><a href="/cgi-bin/koha/opac-search.pl">Advanced search</a></li>
-                                    [% IF ( Koha.Preference( 'UseCourseReserves' ) == 1 ) %]<li><a href="/cgi-bin/koha/opac-course-reserves.pl">Course reserves</a></li>[% END %]
-                                    [% IF Koha.Preference( 'OpacBrowser' ) == 1 %]<li><a href="/cgi-bin/koha/opac-browser.pl">Browse by hierarchy</a></li>[% END %]
-                                    [% IF Koha.Preference( 'OpacAuthorities' ) == 1 %]<li><a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a></li>[% END %]
-                                    [% IF ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'reviewson' ) == 1 ) && ( Koha.Preference( 'OpacShowRecentComments' ) == 1 ) ) %]<li><a href="/cgi-bin/koha/opac-showreviews.pl">Recent comments</a></li>[% END %]
-                                    [% IF Koha.Preference( 'TagsEnabled' ) == 1 %]<li><a href="/cgi-bin/koha/opac-tags.pl">Tag cloud</a></li>[% END %]
-                                    [% IF Koha.Preference( 'OpacCloud' ) == 1 %]<li><a href="/cgi-bin/koha/opac-tags_subject.pl">Subject cloud</a></li>[% END %]
-                                    [% IF Koha.Preference( 'OpacTopissue' ) == 1 %]<li><a href="/cgi-bin/koha/opac-topissues.pl">Most popular</a></li>[% END %]
-                                    [% IF Koha.Preference( 'suggestion' ) == 1 %]
-                                        [% IF Koha.Preference( 'AnonSuggestions' ) == 1 %]
-                                            <li><a href="/cgi-bin/koha/opac-suggestions.pl">Purchase suggestions</a></li>
-                                        [% ELSIF ( ( Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 ) ) %]
-                                            <li><a href="/cgi-bin/koha/opac-suggestions.pl">Purchase suggestions</a></li>
-                                        [% END %]
+                                [% SET opacmoresearchescontentname = 'OpacMoreSearchesContent' %]
+                                [% IF ( lang ) %]
+                                    [% SET testname = "OpacMoreSearchesContent_$lang" %]
+                                    [% IF ( Koha.Preference( "$testname" ) ) %]
+                                        [% SET opacmoresearchescontentname = "$testname" %]
                                     [% END %]
-                                </ul>
+                                [% END %]
+                                [% IF ( Koha.Preference( opacmoresearchescontentname ) ) %]
+                                    [% Koha.Preference( opacmoresearchescontentname ) | eval %]
+                                [% ELSE %]
+                                    <ul>
+                                        <li><a href="/cgi-bin/koha/opac-search.pl">Advanced search</a></li>
+                                        [% IF ( Koha.Preference( 'UseCourseReserves' ) == 1 ) %]<li><a href="/cgi-bin/koha/opac-course-reserves.pl">Course reserves</a></li>[% END %]
+                                        [% IF Koha.Preference( 'OpacBrowser' ) == 1 %]<li><a href="/cgi-bin/koha/opac-browser.pl">Browse by hierarchy</a></li>[% END %]
+                                        [% IF Koha.Preference( 'OpacAuthorities' ) == 1 %]<li><a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a></li>[% END %]
+                                        [% IF ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'reviewson' ) == 1 ) && ( Koha.Preference( 'OpacShowRecentComments' ) == 1 ) ) %]<li><a href="/cgi-bin/koha/opac-showreviews.pl">Recent comments</a></li>[% END %]
+                                        [% IF Koha.Preference( 'TagsEnabled' ) == 1 %]<li><a href="/cgi-bin/koha/opac-tags.pl">Tag cloud</a></li>[% END %]
+                                        [% IF Koha.Preference( 'OpacCloud' ) == 1 %]<li><a href="/cgi-bin/koha/opac-tags_subject.pl">Subject cloud</a></li>[% END %]
+                                        [% IF Koha.Preference( 'OpacTopissue' ) == 1 %]<li><a href="/cgi-bin/koha/opac-topissues.pl">Most popular</a></li>[% END %]
+                                        [% IF Koha.Preference( 'suggestion' ) == 1 %]
+                                            [% IF Koha.Preference( 'AnonSuggestions' ) == 1 %]
+                                                <li><a href="/cgi-bin/koha/opac-suggestions.pl">Purchase suggestions</a></li>
+                                            [% ELSIF ( ( Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 ) ) %]
+                                                <li><a href="/cgi-bin/koha/opac-suggestions.pl">Purchase suggestions</a></li>
+                                            [% END %]
+                                        [% END %]
+                                    </ul>
+                                [% END %]
                             </div> <!-- /#moresearches -->
                     </div> <!-- /.row-fluid -->
 
                 [% END # / OpacPublic %]
-            </div> <!-- /.span10 -->
+            </div> <!-- /.span12 -->
             </div> <!-- /.opac-main-search -->
         </div> <!-- / .row-fluid -->
     </div> <!-- /.container-fluid -->
