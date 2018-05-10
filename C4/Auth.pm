@@ -489,7 +489,8 @@ sub get_template_and_user {
             my $pagename = $1;
             unless ( $pagename =~ /^(?:MARC|ISBD)?detail$/
                 or $pagename =~ /^addbybiblionumber$/
-                or $pagename =~ /^review$/ ) {
+                or $pagename =~ /^review$/ 
+                or $pagename =~ /^basket$/ ) {
                 my $sessionSearch = get_session( $sessionID || $in->{'query'}->cookie("CGISESSID") );
                 $sessionSearch->clear( ["busc"] ) if ( $sessionSearch->param("busc") );
             }
