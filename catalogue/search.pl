@@ -169,7 +169,7 @@ my $cgi = new CGI;
 my $template_name;
 my $template_type;
 my @params = $cgi->multi_param("limit");
-if ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) ) {
+if ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) || ($cgi->param('limit-copydate')) ) {
     $template_name = 'catalogue/results.tt';
 }
 else {
@@ -438,6 +438,18 @@ if ($params->{'limit-yr'}) {
     #FIXME: Should return a error to the user, incorect date format specified
 }
 
+# append year limits if they exist
+my $limit_copydate;
+my $limit_copydate_value;
+if ($params->{'limit-copydate'}) {
+    if ($params->{'limit-copydate'} =~ /\d{4}/) {
+        $limit_copydate = "copydate,st-numeric=$params->{'limit-copydate'}";
+        $limit_copydate_value = $params->{'limit-copydate'};
+    }
+    push @limits,$limit_copydate;
+    #FIXME: Should return a error to the user, incorect date format specified
+}
+
 # convert indexes and operands to corresponding parameter names for the z3950 search
 # $ %z3950p will be a hash ref if the indexes are present (advacned search), otherwise undef
 my $z3950par;
@@ -513,6 +525,10 @@ for my $this_cgi ( split('&',$limit_cgi) ) {
     # handle special case limit-yr
     if ($this_cgi =~ /yr,st-numeric/) {
         push @limit_inputs, { input_name => 'limit-yr', input_value => $limit_yr_value };   
+        next;
+    }
+    if ($this_cgi =~ /copydate,st-numeric/) {
+        push @limit_inputs, { input_name => 'limit-copydate', input_value => $limit_copydate_value };   
         next;
     }
     $this_cgi =~ m/(.*=)(.*)/;

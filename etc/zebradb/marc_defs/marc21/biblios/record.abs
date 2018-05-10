@@ -141,7 +141,7 @@ melm 246        Title,Title:p,Title-abbreviated,Title-expanded,Title-former
 melm 247        Title,Title:p,Title-former,Title-other-variant,Related-periodical
 melm 260$a      pl:w,pl:p
 melm 260$b      Publisher:w,Publisher:p
-melm 260$c      copydate,copydate:s
+melm 260$c      copydate,copydate:s,copydate:n,copydate:y
 melm 260        pl
 melm 300        Extent:w,Extent:p
 melm 400$a      Name-and-title
@@ -352,3 +352,4 @@ melm 952$w      replacementpricedate
 #melm 952$x
 melm 952$y      itype:w,itype:p
 melm 952$z      Note:w,Note:p
+melm 998$a      zkshid:w,zkshid:p,zkshid:n

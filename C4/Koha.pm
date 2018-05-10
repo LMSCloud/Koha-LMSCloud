@@ -827,6 +827,12 @@ sub getFacets {
                 label => 'Genres',
                 tags  => [ qw/ 072a / ],
                 sep   => ', ',
+            },
+            {
+                idx   => 'publyear',
+                label => 'Years',
+                tags  => [ qw/ 260c / ],
+                sep   => ', ',
             }
             ];
 

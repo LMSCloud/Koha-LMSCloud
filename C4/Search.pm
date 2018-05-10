@@ -1287,6 +1287,7 @@ sub getIndexes{
                     'inv',
                     'uri',
                     'withdrawn',
+                    'zkshid'
 
                     # subject related
                   );

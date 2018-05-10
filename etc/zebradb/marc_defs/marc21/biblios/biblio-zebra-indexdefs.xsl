@@ -461,7 +461,7 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
     </xslo:for-each>
     <xslo:for-each select="marc:subfield">
       <xslo:if test="contains('c', @code)">
-        <z:index name="copydate:w copydate:s">
+        <z:index name="copydate:w copydate:s copydate:n copydate:y">
           <xslo:value-of select="."/>
         </z:index>
       </xslo:if>
@@ -1390,7 +1390,6 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
         </xslo:if>
       </xslo:for-each>
     </xslo:if>
-=======
   </xslo:template>
   <xslo:template mode="index_subfields" match="marc:datafield[@tag='898']">
     <xslo:for-each select="marc:subfield">
@@ -1409,7 +1408,17 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
         </z:index>
       </xslo:if>
     </xslo:for-each>
->>>>>>> origin/16.05.x
+  </xslo:template>
+  <xslo:template mode="index_subfields" match="marc:datafield[@tag='998']">
+    <xslo:if test="@ind1='i' and @ind2=' '">
+      <xslo:for-each select="marc:subfield">
+        <xslo:if test="contains('a', @code)">
+          <z:index name="zkshid:w zkshid:p zkshid:n">
+            <xslo:value-of select="."/>
+          </z:index>
+        </xslo:if>
+      </xslo:for-each>
+    </xslo:if>
   </xslo:template>
   <xslo:template mode="index_subfields" match="marc:datafield[@tag='999']">
     <xslo:for-each select="marc:subfield">
@@ -2772,6 +2781,13 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
     <xslo:if test="not(@ind1='z')">
       <z:index name="au:0">
         <xslo:value-of select="marc:subfield[@code='a']"/>
+      </z:index>
+    </xslo:if>
+  </xslo:template>
+  <xslo:template mode="index_facets" match="marc:datafield[@tag='260']">
+    <xslo:if test="not(@ind1='z')">
+      <z:index name="publyear:0">
+        <xslo:value-of select="marc:subfield[@code='c']"/>
       </z:index>
     </xslo:if>
   </xslo:template>

@@ -218,6 +218,7 @@ att 1234    Kateg-Name
 att 1235    SystematikPrefix
 att 1236    SystematikClassPart
 att 1237    SystematikNumPart
+att 1238    zkshid
 
 # Koha Local-Use Biblio Indexes
 att 9001    Control-number
