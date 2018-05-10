@@ -458,6 +458,108 @@ $(document).ready(function() {
         }
     }
 
+    // Don't load divibib issues table unless it is clicked on
+    var divibibIssuesTable;
+    $("#divibib-issues-tab").click( function() {
+        if ( ! divibibIssuesTable ) {
+            divibibIssuesTable = $("#divibib-issues-table").dataTable({
+                "oLanguage": {
+                    "sEmptyTable": "Patron has nothing checked out.",
+                },
+                "bAutoWidth": false,
+                "sDom": "rt",
+                "aaSorting": [],
+                "aoColumns": [
+                    {
+                        "mDataProp": "date_due",
+                        "bVisible": false,
+                    },
+                    {
+                        "iDataSort": 1, // Sort on hidden unformatted date due column
+                        "mDataProp": function( oObj ) {
+                            var today = new Date();
+                            var due = new Date( oObj.date_due );
+                            if ( today > due ) {
+                                return "<span class='overdue'>" + oObj.date_due_formatted + "</span>";
+                            } else {
+                                return oObj.date_due_formatted;
+                            }
+                        }
+                    },
+                    {
+                        "mDataProp": function ( oObj ) {
+                            title = "<span class='strong'><a href='/cgi-bin/koha/catalogue/detail.pl?biblionumber="
+                                  + oObj.biblionumber
+                                  + "'>"
+                                  + oObj.title;
+
+                            $.each(oObj.subtitle, function( index, value ) {
+                                      title += " " + value.subfield;
+                            });
+
+                            title += "</a></span>";
+
+                            if ( oObj.author ) {
+                                title += " " + BY.replace( "_AUTHOR_", " " + oObj.author );
+                            }
+
+                            if ( oObj.itemnotes ) {
+                                var span_class = "";
+                                if ( $.datepicker.formatDate('yy-mm-dd', new Date(oObj.issuedate) ) == ymd ) {
+                                    span_class = "circ-hlt";
+                                }
+                                title += " - <span class='" + span_class + "'>" + oObj.itemnotes + "</span>"
+                            }
+
+                            if ( oObj.itemnotes_nonpublic ) {
+                                var span_class = "";
+                                if ( $.datepicker.formatDate('yy-mm-dd', new Date(oObj.issuedate) ) == ymd ) {
+                                    span_class = "circ-hlt";
+                                }
+                                title += " - <span class='" + span_class + "'>" + oObj.itemnotes_nonpublic + "</span>"
+                            }
+
+                            title += " "
+                                  + "<a href='/cgi-bin/koha/catalogue/moredetail.pl?biblionumber="
+                                  + oObj.biblionumber
+                                  + "&itemnumber="
+                                  + oObj.itemnumber
+                                  + "#"
+                                  + oObj.itemnumber
+                                  + "'>"
+                                  + oObj.barcode
+                                  + "</a>";
+
+                            return title;
+                        },
+                        "sType": "anti-the"
+                    },
+                    { "mDataProp": "itemtype_description" },
+                    { "mDataProp": "issuedate_formatted" },
+                    { "mDataProp": "branchname" },
+                ],
+                "bPaginate": false,
+                "bProcessing": true,
+                "bServerSide": false,
+                "sAjaxSource": '/cgi-bin/koha/svc/checkoutsOnlineEmedia',
+                "fnServerData": function ( sSource, aoData, fnCallback ) {
+                    aoData.push( { "name": "borrowernumber", "value": borrowernumber } );
+
+                    $.getJSON( sSource, aoData, function (json) {
+                        fnCallback(json)
+                    } );
+                },
+            });
+        }
+    });
+
+    if ( $("#divibib-issues-table").length ) {
+        $("#divibib-issues-table_processing").position({
+            of: $( "#divibib-issues-table" ),
+            collision: "none"
+        });
+    }
+
     // Don't load relatives' issues table unless it is clicked on
     var relativesIssuesTable;
     $("#relatives-issues-tab").click( function() {

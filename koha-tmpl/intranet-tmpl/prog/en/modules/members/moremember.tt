@@ -472,6 +472,13 @@ function validate1(date) {
 <div id="finesholdsissues" class="toptabs">
     <ul>
         <li><a href="#checkouts">[% issuecount %] Checkout(s)</a></li>
+
+        [% IF ( Koha.Preference('DivibibEnabled') ) %]
+            [% SET divibib_issues_show_tab = 1 %]
+        [% END %]
+        [% IF ( divibib_issues_show_tab ) %]
+            <li><a href="#divibib-issues" id="divibib-issues-tab">Onleihen</a></li>
+        [% END %]
         [% IF relatives_issues_count %]
             <li><a href="#relatives-issues" id="relatives-issues-tab">Relatives' checkouts</a></li>
         [% END %]
@@ -487,6 +494,23 @@ function validate1(date) {
     </ul>
 
 [% INCLUDE "checkouts-table.inc" %]
+
+[% IF ( divibib_issues_show_tab ) %]
+    <div id="divibib-issues">
+        <table id="divibib-issues-table" style="width: 100% !Important;">
+            <thead>
+                <tr>
+                    <th scope="col">Due date hidden not formatted</th>
+                    <th scope="col">Due date</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Item type</th>
+                    <th scope="col">Checked out on</th>
+                    <th scope="col">Checked out from</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+[% END %]
 
 [% IF ( relatives_issues_count ) %]
     <div id="relatives-issues">

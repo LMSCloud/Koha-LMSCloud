@@ -222,6 +222,10 @@ if (C4::Context->preference('DivibibEnabled')) {
     }
 }
 if ($issues){
+
+    my $accountlineshavebeenread = 0;    # read the borrower's accountlines and sum the fines for each item only once
+    my %itemcharges = ();
+
     foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$issues} ) {
         if (! $issue->{itemSource} ) {
             $issue->{itemSource} = 'koha';
@@ -233,20 +237,24 @@ if ($issues){
             if ( $restype ) {
                 $issue->{'reserved'} = 1;
             }
-
-            my ( $total , $accts, $numaccts) = GetMemberAccountRecords( $borrowernumber );
-            my $charges = 0;
-            foreach my $ac (@$accts) {
-                if ( $ac->{'itemnumber'} == $issue->{'itemnumber'} ) {
-                    $charges += $ac->{'amountoutstanding'}
-                      if $ac->{'accounttype'} eq 'F';
-                    $charges += $ac->{'amountoutstanding'}
-                      if $ac->{'accounttype'} eq 'FU';
-                    $charges += $ac->{'amountoutstanding'}
-                      if $ac->{'accounttype'} eq 'L';
+            if ( !$accountlineshavebeenread ) {
+                my ( $total , $accts, $numaccts) = GetMemberAccountRecords( $borrowernumber );
+                foreach my $ac (@$accts) {
+                    if ( ( defined($ac->{'itemnumber'}) && length($ac->{'itemnumber'}) > 0 ) && 
+                         ( $ac->{'accounttype'} eq 'F' ||
+                           $ac->{'accounttype'} eq 'FU' ||
+                           $ac->{'accounttype'} eq 'L' ||
+                           $ac->{'accounttype'} eq 'Rent' ) ) {
+                        $itemcharges{$ac->{'itemnumber'}} += $ac->{'amountoutstanding'};
+                    }
                 }
+                $accountlineshavebeenread = 1;
             }
-            $issue->{'charges'} = $charges;
+            if ( exists($itemcharges{$issue->{'itemnumber'}}) && defined($itemcharges{$issue->{'itemnumber'}}) ) {
+                $issue->{'charges'} = $itemcharges{$issue->{'itemnumber'}};
+            } else {
+                $issue->{'charges'} = 0.0;
+            }
         }
         # supply branchname for display (special handling for mobile branches)
         $issue->{'branchname_displayed'} = $branches->{$issue->{'branchcode'}}->{'branchname_displayed'};
@@ -255,6 +263,12 @@ if ($issues){
         $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
         
         if ( $issue->{itemSource} eq 'koha' ) {
+            # check if renewal of issued item causes effective rentalcharge 
+            $issue->{'rentalcharge'} = 0.0;
+            my ( $charge, $type ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber, 1, $issue->{'branchcode'});
+            if ( defined($charge) ) {
+                $issue->{'rentalcharge'} = $charge;
+            }
             # check if item is renewable
             my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
             ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});

@@ -1,0 +1,33 @@
+[% USE Koha %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Browse Catalog &rsaquo; Children library</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% BLOCK cssinclude %][% END %]
+</head>
+[% INCLUDE 'bodytag.inc' bodyid='advsearch' bodyclass='scrollto' %]
+[% INCLUDE 'masthead.inc' %]
+
+[% SET opacentrypagename = "$pagename" %]
+[% IF ( lang ) %]
+    [% SET testname = "${pagename}_$lang" %]
+    [% IF ( Koha.Preference( "$testname" ) ) %]
+        [% SET opacentrypagename = "$testname" %]
+    [% END %]
+[% END %]
+[% Koha.Preference( opacentrypagename ) | eval %]
+
+[% INCLUDE 'opac-bottom.inc' %]
+[% BLOCK searchbuttons %]
+
+[% END %]
+
+[% BLOCK jsinclude %]
+<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.deserialize.min.js"></script>
+<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.cookie.min.js"></script>
+<script type="text/javascript">//<![CDATA[
+	function startSearch() {
+
+	}
+    //]]>
+</script>
+[% END %]

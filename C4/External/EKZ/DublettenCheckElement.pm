@@ -248,13 +248,13 @@ sub searchDubletten {
 
             if ( !exists($titel{'ekzArtikelNr'}) ) {
                 my $ekzArtikelNr = 'ohne ekz-Artikelnr.';
-                my $kontrollNrID = $marcrecord->field("003")->data();
+                my $kontrollNrID = defined($marcrecord->field("003")) ? $marcrecord->field("003")->data() : "undef";
 
                 if ( defined($reqParamTitelInfo->{'ekzArtikelNr'}) && length($reqParamTitelInfo->{'ekzArtikelNr'}) > 0 ) {
                     $ekzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};    # effect of returning this value: the ekz web site displays title and ISBN of this medium; otherwise these two columns stay empty
                 } else {
                     # the ekz web site displays column Artikelnummer; we use it to display title or isbn
-                    if ( $kontrollNrID eq "DE-Rt5" ) {
+                    if ( $kontrollNrID eq "DE-Rt5" && defined($marcrecord->field("001")) ) {
                         $ekzArtikelNr = $marcrecord->field("001")->data();    # the cn is a ekz article number only if cna == "DE-Rt5"
                     } else {
                         my $id = '';
@@ -271,7 +271,7 @@ sub searchDubletten {
                     }
                 }
                 $titel{'ekzArtikelNr'} = $ekzArtikelNr;
-print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", $marcrecord->field("003")->data(), ": marcrecord->field('001'):", $marcrecord->field("001")->data(), ": ekzArtikelNr:$ekzArtikelNr:\n" if $debugIt;
+print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", defined($marcrecord->field("003")) ? $marcrecord->field("003")->data() : "undef", ": marcrecord->field('001'):", defined($marcrecord->field("001")) ? $marcrecord->field("001")->data() : "undef", ": ekzArtikelNr:$ekzArtikelNr:\n" if $debugIt;
             }
 
             

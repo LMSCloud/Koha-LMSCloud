@@ -1,3 +1,4 @@
+[% USE KohaDates %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Circulation &rsaquo; Cash register management</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -15,7 +16,8 @@ $(document).ready( function() {
         'aoColumnDefs': [
             { "bSortable": true, "bSearchable": true, 'aTargets': ["_all"] },
             { "aTargets": [ 0 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "aTargets": [ 1,6 ], "asSorting": [ "asc","desc" ]  }
+            { "aTargets": [ 1,6 ], "asSorting": [ "asc","desc" ]  },
+            { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
         ],
         "aoColumns": [ { "sType": 'natural' }, null, null , null, null, null, null, null, null ],
         "iDisplayLength": 100,
@@ -159,10 +161,10 @@ $(document).ready( function() {
                         <form name="select" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                             <select name="cash_register_id" id="cash_register_id">
                                 [% FOREACH cashreg IN cash_registers %]
-                                [% IF ( cashreg.cash_register_no_branch_restriction == 0 && cashreg.cash_register_branchcode != sessionbranch ) %]
-                                <option value="[% cashreg.cash_register_id %]" disabled="disabled">[% cashreg.cash_register_name %]</option>
-                                [% ELSE %]
+                                [% IF ( cashreg.cash_register_no_branch_restriction || cashreg.cash_register_branchcode == sessionbranch || (assignedmobilebranch && cashreg.cash_register_branchcode == assignedmobilebranch) ) %]
                                 <option value="[% cashreg.cash_register_id %]">[% cashreg.cash_register_name %]</option>
+                                [% ELSE %]
+                                <option value="[% cashreg.cash_register_id %]" disabled="disabled">[% cashreg.cash_register_name %]</option>
                                 [% END %]
                                 [% END %]
                             </select>
@@ -442,7 +444,7 @@ $(document).ready( function() {
                                                 <th>Transaction</th>
                                                 <th>Amount</th>
                                                 <th>Cash balance</th>
-                                                <th>Date and Time</th>
+                                                <th class="title-string" >Date and Time</th>
                                                 <th>Patron</th>
                                                 <th>Cash register manager</th>
                                                 <th>Comment</th>
@@ -457,8 +459,8 @@ $(document).ready( function() {
                                                 <td>[% INCLUDE cashActionName %]</td>
                                                 <td style="text-align:right;">[% trans.booking_amount_formatted %]</td>
                                                 <td style="text-align:right;">[% trans.current_balance_formatted %]</td>
-                                                <td>[% trans.booking_time %]</td>
-                                                <td>[% IF (trans.borrowernumber) %]<a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% trans.borrowernumber %]">[% trans.patron_name %]</a>[% END%]</td>
+                                                <td><span title="[% trans.booking_time %]">[% trans.booking_time | $KohaDates with_hours => 1 %]</span></td>
+                                                <td>[% IF (trans.borrowernumber) %][% IF ( ! trans.patron_is_deleted ) %]<a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% trans.borrowernumber %]">[% END %][% trans.patron_name %][% IF ( ! trans.patron_is_deleted ) %]</a>[% END %][% END %]</td>
                                                 <td>[% trans.manager_name %]</td>
                                                 <td>[% contentbefore = 0 %]
                                                     [% IF (trans.description) %][% trans.description %][% contentbefore = 1 %][% END%]

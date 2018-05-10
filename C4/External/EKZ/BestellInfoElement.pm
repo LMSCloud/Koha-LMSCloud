@@ -530,7 +530,9 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() zweigstelle:", $zweig
                 my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
 
                 # collect title controlnumbers for HTML URL to Koha records of handled titles
-                my $importId = '(ControlNumber)' . $titleHits->{'records'}->[0]->field("001")->data() . '(ControlNrId)' . $titleHits->{'records'}->[0]->field("003")->data();    # if cna = 'DE-Rt5' then this cn is the ekz article number
+                my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
                 $importIds{$importId} = $itemnumber;
 print STDERR "BestellInfoElement::genKohaRecords() importedItemsCount:$importedItemsCount; set next importIds:", $importId, ":\n" if $debugIt;
 

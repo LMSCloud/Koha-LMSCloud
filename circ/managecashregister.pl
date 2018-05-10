@@ -75,6 +75,7 @@ for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{b
     push @branchloop, $branches->{$thisbranch};
 }
 
+
 ##########################################################
 #
 #  Get Payout reasons from Authorised Values
@@ -98,10 +99,11 @@ my $cash_management = C4::CashRegisterManagement->new($branch,$loggedinuser);
 my @cash_registers = $cash_management->getPermittedCashRegisters($loggedinuser);
 my $cash_register = $cash_management->getOpenedCashRegisterByManagerID($loggedinuser);
 if ( $cash_register ) {
-    if ( $cash_register->{cash_register_branchcode} ne $branch && !$cash_register->{cash_register_no_branch_restriction}) {
-        $status = 'close';
-    } else {
+    if ( $cash_register->{cash_register_no_branch_restriction} ||
+         $cash_register->{cash_register_branchcode} eq C4::CashRegisterManagement::getEffectiveBranchcode($branch) ) {
         $status = 'manage';
+    } else {
+        $status = 'close';
     }
 }
 elsif ( scalar(@cash_registers)>0 ) {
@@ -298,6 +300,7 @@ if ( $cash_register ) {
 }
 
 
+my $effectiveBranchcode = C4::CashRegisterManagement::getEffectiveBranchcode($branch);
 $template->param(
     status => $status,
     cash_registers => \@cash_registers,
@@ -305,6 +308,8 @@ $template->param(
     branchloop => \@branchloop,
     lastTransaction => $lastTransaction,
     sessionbranch => $branch,
+    assignedmobilebranch => $effectiveBranchcode,
+    branchname => GetBranchName($effectiveBranchcode),
     wrongBranch => $wrongBranch,
     transactions => \@transactions,
     journalfrom => $journalfrom,
@@ -316,7 +321,6 @@ $template->param(
     debug => $debug,
     currency_format => $cash_management->getCurrencyFormatterData(),
     printview => $printview,
-    branchname => GetBranchName($branch),
     datetimenow => output_pref({dt => DateTime->now, dateonly => 0}),
     authValuesPayout => $authValuesPayout,
     authValuesAdjust => $authValuesAdjust,

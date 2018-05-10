@@ -284,10 +284,12 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method1: titleObjectRS->{_colu
 
                                 if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                                     $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                                    if ( $titleHits->{'records'}->[0]->field("003")->data() eq "DE-Rt5" ) {
-                                        $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("001")->data();
+                                    my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                                    my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                                    if ( $tmp_cna eq "DE-Rt5" ) {
+                                        $lsEkzArtikelNr = $tmp_cn;
                                     } else {
-                                        $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("003")->data() . '-' . $titleHits->{'records'}->[0]->field("001")->data();
+                                        $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                                     }
                                     # positive message for log email
                                     $emaillog->{'importresult'} = 2;
@@ -295,7 +297,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method1: titleObjectRS->{_colu
 
                                     # add result of finding biblio to log email
                                     ($titeldata, $isbnean) = C4::External::EKZ::lib::EkzKohaRecords->getShortISBD($titleHits->{'records'}->[0]);
-                                    push @{$emaillog->{'records'}}, [$titleHits->{'records'}->[0]->field("001")->data, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1];
+                                    push @{$emaillog->{'records'}}, [$tmp_cna, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1];
 print STDERR "ekzWsLieferschein::genKohaRecords() method1: emaillog->{'records'}->[0]:", Dumper($emaillog->{'records'}->[0]), ":\n" if $debugIt;
                                 } else {
                                     next;    # next in acquisitionImportEkzExemplarIdHits->all()
@@ -330,7 +332,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method2: scalar acquisitionImp
                     }
                     print STDERR "ekzWsLieferschein::genKohaRecords() method2: acquisitionImportTitleHit->{_column_data}:", Dumper($acquisitionImportTitleHit->{_column_data}), ":\n" if $debugIt;
                     
-                    if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
+                    if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
                         # search the biblio record; if not found, create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method3)
                         my $reqParamTitelInfo = ();
                         $reqParamTitelInfo->{'ekzArtikelNr'} = $auftragsPosition->{'artikelNummer'};
@@ -350,10 +352,12 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method2: scalar acquisitionImp
 print STDERR "ekzWsLieferschein::genKohaRecords() method2: from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                             $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                            if ( $titleHits->{'records'}->[0]->field("003")->data() eq "DE-Rt5" ) {
-                                $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("001")->data();
+                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                            my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                            if ( $tmp_cna eq "DE-Rt5" ) {
+                                $lsEkzArtikelNr = $tmp_cn;
                             } else {
-                                $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("003")->data() . '-' . $titleHits->{'records'}->[0]->field("001")->data();
+                                $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                             }
                             $biblioExisting = 1;
                             # positive message for log email
@@ -397,7 +401,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() deliveredItemsCount:$delivered
             if ( $updOrInsItemsCount < $deliveredItemsCount) {
 print STDERR "ekzWsLieferschein::genKohaRecords() method3: create item for ekzArtikelNr:$auftragsPosition->{'artikelNummer'}:\n" if $debugIt;
 
-                if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
+                if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
 
                     my $reqParamTitelInfo = ();
                     $reqParamTitelInfo->{'ekzArtikelArt'}  = $auftragsPosition->{'artikelart'};    # TODO: this is not a code value as in BestellInfo, but plain text (e.g. 'Bücher' instead of 'B', so a mapping function is required
@@ -427,10 +431,12 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: reqParamTitelInfo->{'
 print STDERR "ekzWsLieferschein::genKohaRecords() method3: from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                     if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                         $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                        if ( $titleHits->{'records'}->[0]->field("003")->data() eq "DE-Rt5" ) {
-                            $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("001")->data();
+                        my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                        if ( $tmp_cna eq "DE-Rt5" ) {
+                            $lsEkzArtikelNr = $tmp_cn;
                         } else {
-                            $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("003")->data() . '-' . $titleHits->{'records'}->[0]->field("001")->data();
+                            $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                         }
                     }
 
@@ -489,8 +495,11 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: new biblionumber:",$b
                             $emaillog->{'importresult'} = 2;
                             $emaillog->{'importedTitlesCount'} += 0;
                         }
-                        if ( $titleHits->{'records'}->[0]->field("003")->data() eq "DE-Rt5" ) {
-                            $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("001")->data();
+                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                        if ( $tmp_cna eq "DE-Rt5" ) {
+                            my $tmp_biblionumber = defined($biblionumber) ? $biblionumber : "undef";
+                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $tmp_biblionumber;
+                            $lsEkzArtikelNr = $tmp_cn;
                         }
                         # add result of adding biblio to log email
                         ($titeldata, $isbnean) = C4::External::EKZ::lib::EkzKohaRecords->getShortISBD($titleHits->{'records'}->[0]);
@@ -503,7 +512,10 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: biblioExisting:$bibli
                 if ( $biblioExisting || $biblioInserted ) {
 
                     if ( !defined($lsEkzArtikelNr) || $lsEkzArtikelNr eq '0' ) {
-                        $lsEkzArtikelNr = $titleHits->{'records'}->[0]->field("003")->data() . '-' . $titleHits->{'records'}->[0]->field("001")->data();
+                        my $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+                        my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                        $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                     }
 
                     # Insert a record into table acquisition_import representing the title data of the 'invented' order.
@@ -672,7 +684,9 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportItem
                             $emaillog->{'importresult'} = -1;
                             $emaillog->{'importerror'} = 1;
                         }
-                        my $importId = '(ControlNumber)' . $titleHits->{'records'}->[0]->field("001")->data() . '(ControlNrId)' . $titleHits->{'records'}->[0]->field("003")->data();    # if cna = 'DE-Rt5' then this cn is the ekz article number
+                        my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                        my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
                         $emaillog->{'importIds'}->{$importId} = $itemnumber;
 print STDERR "ekzWsLieferschein::genKohaRecords() method3: importedItemsCount:$emaillog->{'importedItemsCount'}; set next importIds:", $importId, ":\n" if $debugIt;
                         # add result of inserting item to log email
@@ -792,7 +806,9 @@ print STDERR "ekzWsLieferschein::processItemHit() acquisitionImportTitleItemHit-
         $emaillog->{'importresult'} = -1;
         $emaillog->{'importerror'} = 1;
     }
-    my $importId = '(ControlNumber)' . $titleHits->{'records'}->[0]->field("001")->data() . '(ControlNrId)' . $titleHits->{'records'}->[0]->field("003")->data();    # if cna = 'DE-Rt5' then this cn is the ekz article number
+    my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+    my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+    my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
     $emaillog->{'importIds'}->{$importId} = $itemnumber;
 print STDERR "ekzWsLieferschein::processItemHit() updatedItemsCount:$emaillog->{'updatedItemsCount'}; set next importIds:", $importId, ":\n" if $debugIt;
     

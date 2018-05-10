@@ -49,6 +49,8 @@ my $filter = $query->param("filter");
 my $mediafilter = $query->param("mediafilter");
 my $medialevel = $query->param("medialevel");
 my $newAcquisitionMonthes = $query->param("monthesback") || C4::Context->preference("OpacSelectNewAcquisitionsMonthes") || 12;
+my $page = $query->param("page");
+my $pagename = '';
 
 my (@ElectronicMedia,@ClassificationTopLevelEntries);
 
@@ -64,9 +66,14 @@ sub getCurrentDateMinusXMonth {
 my $foundEEntries = 0;
 my $firstDateOfNew = getCurrentDateMinusXMonth($newAcquisitionMonthes);
 
-$templatename = "opac-entryadult.tt" if ( $enduser eq 'A' );
-$templatename = "opac-entrychildto9.tt" if ( $enduser eq '9' );
-$templatename = "opac-entrychildfrom9.tt" if ( $enduser eq 'T' );
+if ( $page ) {
+    $templatename = 'opac-entrypages.tt';
+    $pagename = 'OpacEntryPage' . $page;    # e.g. OpacEntryPageChild
+} else {
+    $templatename = "opac-entryadult.tt" if ( $enduser eq 'A' );
+    $templatename = "opac-entrychildto9.tt" if ( $enduser eq '9' );
+    $templatename = "opac-entrychildfrom9.tt" if ( $enduser eq 'T' );
+}
 
 ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -214,7 +221,8 @@ $template->param(
 	electronic_media => \@ElectronicMedia,
 	classification_top_level_entries => \@ClassificationTopLevelEntries,
 	count_eentries => $foundEEntries,
-	first_date_of_new => $firstDateOfNew
+	first_date_of_new => $firstDateOfNew,
+	pagename => $pagename                   # required for template opac-entrypages.tt only
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

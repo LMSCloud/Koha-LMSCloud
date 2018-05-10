@@ -321,6 +321,9 @@ Using this account is not recommended because some parts of Koha will not functi
                                                             <input type="checkbox" name="item" value="[% ISSUE.itemnumber %]"/> <a href="/cgi-bin/koha/opac-renew.pl?from=opac_user&amp;item=[% ISSUE.itemnumber %]&amp;borrowernumber=[% ISSUE.borrowernumber %]">Renew</a>
                                                         [% END %]
                                                         <span class="renewals">([% ISSUE.renewsleft %] of [% ISSUE.renewsallowed %] renewals remaining)</span>
+                                                        [% IF ( ISSUE.rentalcharge AND ISSUE.rentalcharge > 0.00 ) %]
+                                                            <span class="renewals"> Renewal fee: [% ISSUE.rentalcharge | $Price %]</span>
+                                                        [% END %]
                                                     [% ELSIF ( ISSUE.on_reserve ) %]
                                                         Not renewable <span class="renewals">(on hold)</span>
                                                     [% ELSIF ( ISSUE.too_many ) %]
@@ -332,6 +335,9 @@ Using this account is not recommended because some parts of Koha will not functi
                                                     [% ELSIF ( ISSUE.auto_renew || ISSUE.auto_too_soon ) %]
                                                         Automatic renewal
                                                         <span class="renewals">([% ISSUE.renewsleft %] of [% ISSUE.renewsallowed %] renewals remaining)</span>
+                                                        [% IF ( ISSUE.rentalcharge AND ISSUE.rentalcharge > 0.00 ) %]
+                                                            <span class="renewals"> Renewal fee: [% ISSUE.rentalcharge | $Price %]</span>
+                                                        [% END %]
                                                     [% ELSIF ( ISSUE.too_soon ) %]
                                                         No renewal before [% ISSUE.soonestrenewdate %]
                                                         <span class="renewals">([% ISSUE.renewsleft %] of [% ISSUE.renewsallowed %] renewals remaining)</span>
@@ -674,7 +680,7 @@ Using this account is not recommended because some parts of Koha will not functi
 
                                                     [% IF ( OPACMySummaryCallNumber ) %]
                                                         <td class="call_no">
-                                                            span class="tdlabel">Call no.:</span>
+                                                            <span class="tdlabel">Call no.:</span>
                                                             [% i.item.itemcallnumber %]
                                                         </td>
                                                     [% END %]
@@ -846,6 +852,9 @@ Using this account is not recommended because some parts of Koha will not functi
                                                                 <a href="/cgi-bin/koha/opac-renew.pl?from=opac_user&amp;item=[% OVERDUE.itemnumber %]&amp;bornum=[% OVERDUE.borrowernumber %]">Renew</a>
                                                             [% END %]
                                                                 <span class="renewals">([% OVERDUE.renewsleft %] of [% OVERDUE.renewsallowed %] renewals remaining)</span>
+                                                            [% IF ( OVERDUE.rentalcharge AND OVERDUE.rentalcharge > 0.00 ) %]
+                                                                <span class="renewals"> Renewal fee: [% OVERDUE.rentalcharge | $Price %]</span>
+                                                            [% END %]
                                                         [% ELSIF ( OVERDUE.norenew_overdue ) %]
                                                             Not allowed<span class="renewals">(overdue)</span>
                                                         [% ELSIF ( OVERDUE.onreserve ) %]

@@ -927,6 +927,13 @@ No patron matched <span class="ex">[% message | html %]</span>
         [% END %]
     </li>
 
+    [% IF ( Koha.Preference('DivibibEnabled') ) %]
+        [% SET divibib_issues_show_tab = 1 %]
+    [% END %]
+    [% IF ( divibib_issues_show_tab ) %]
+        <li><a id="divibib-issues-tab" href="#divibib-issues">Onleihen</a></li>
+    [% END %]
+
     [% IF relatives_issues_count %]
         <li><a id="relatives-issues-tab" href="#relatives-issues">Relatives' checkouts</a></li>
     [% END %]
@@ -944,6 +951,23 @@ No patron matched <span class="ex">[% message | html %]</span>
 <!-- SUMMARY : TODAY & PREVIOUS ISSUES -->
 
 [% INCLUDE "checkouts-table.inc" %]
+
+[% IF ( divibib_issues_show_tab ) %]
+    <div id="divibib-issues">
+        <table id="divibib-issues-table" style="width: 100% !Important;">
+            <thead>
+                <tr>
+                    <th scope="col">Due date (unformatted, hidden)</th>
+                    <th scope="col">Due date</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Item type</th>
+                    <th scope="col">Checked out on</th>
+                    <th scope="col">Checked out from</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+[% END %]
 
 [% IF ( relatives_issues_count ) %]
     <div id="relatives-issues">
