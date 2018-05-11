@@ -274,6 +274,7 @@ foreach my $advanced_srch_type (@advanced_search_types) {
                 push @itypesloop, \%row;
             }
 	}
+        @itypesloop = sort { uc($a->{description}) cmp uc($b->{description}) } @itypesloop;
         my %search_code = (  advanced_search_type => $advanced_srch_type,
                              code_loop => \@itypesloop );
         push @advancedsearchesloop, \%search_code;
@@ -295,6 +296,7 @@ foreach my $advanced_srch_type (@advanced_search_types) {
                 );
 		push @authvalueloop, \%row;
 	}
+        @authvalueloop = sort { uc($a->{description}) cmp uc($b->{description}) } @authvalueloop;
         my %search_code = (  advanced_search_type => $advanced_srch_type,
                              code_loop => \@authvalueloop );
         push @advancedsearchesloop, \%search_code;
