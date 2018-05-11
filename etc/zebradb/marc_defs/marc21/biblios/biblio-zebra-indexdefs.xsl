@@ -7,7 +7,7 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
 `xsltproc koha-indexdefs-to-zebra.xsl {biblio,authority}-koha-indexdefs.xml >
 {biblio,authority}-zebra-indexdefs.xsl` (substituting the appropriate file names).
 -->
-<xslo:stylesheet xmlns:xslo="http://www.w3.org/1999/XSL/Transform" xmlns:marc="http://www.loc.gov/MARC21/slim" xmlns:z="http://indexdata.com/zebra-2.0" xmlns:kohaidx="http://www.koha-community.org/schemas/index-defs" version="1.0">
+<xslo:stylesheet xmlns:xslo="http://www.w3.org/1999/XSL/Transform" xmlns:marc="http://www.loc.gov/MARC21/slim" xmlns:z="http://indexdata.com/zebra-2.0" xmlns:kohaidx="http://www.koha-community.org/schemas/index-defs" xmlns:exsl="http://exslt.org/common" extension-element-prefixes="exsl" version="1.0">
   <xslo:output indent="yes" method="xml" version="1.0" encoding="UTF-8"/>
   <xslo:template match="text()"/>
   <xslo:template match="text()" mode="index_subfields"/>
@@ -461,9 +461,46 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
     </xslo:for-each>
     <xslo:for-each select="marc:subfield">
       <xslo:if test="contains('c', @code)">
-        <z:index name="copydate:w copydate:s copydate:n copydate:y">
+        <xslo:variable name="years">
+          <xslo:call-template name="extract-year">
+            <xslo:with-param name="data" select="translate(.,'-',' ')"/>
+          </xslo:call-template>
+        </xslo:variable>
+        <xslo:for-each select="exsl:node-set($years)/year">
+          <z:index name="copydate:w copydate:s copydate:n copydate:y">
+            <xslo:value-of select="."/>
+          </z:index>
+        </xslo:for-each>
+      </xslo:if>
+    </xslo:for-each>
+  </xslo:template>
+  <xslo:template mode="index_subfields" match="marc:datafield[@tag='264']">
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('a', @code)">
+        <z:index name="pl:w pl:p">
           <xslo:value-of select="."/>
         </z:index>
+      </xslo:if>
+    </xslo:for-each>
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('b', @code)">
+        <z:index name="Publisher:w Publisher:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('c', @code)">
+        <xslo:variable name="years">
+          <xslo:call-template name="extract-year">
+            <xslo:with-param name="data" select="translate(.,'-',' ')"/>
+          </xslo:call-template>
+        </xslo:variable>
+        <xslo:for-each select="exsl:node-set($years)/year">
+          <z:index name="copydate:w copydate:s copydate:n copydate:y">
+            <xslo:value-of select="."/>
+          </z:index>
+        </xslo:for-each>
       </xslo:if>
     </xslo:for-each>
   </xslo:template>
@@ -2257,7 +2294,7 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
     </z:index>
   </xslo:template>
   <xslo:template mode="index_data_field" match="marc:datafield[@tag='264']">
-    <z:index name="Provider:w">
+    <z:index name="pl:w Provider:w">
       <xslo:variable name="raw_heading">
         <xslo:for-each select="marc:subfield">
           <xslo:if test="position() &gt; 1">
@@ -2786,9 +2823,30 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
   </xslo:template>
   <xslo:template mode="index_facets" match="marc:datafield[@tag='260']">
     <xslo:if test="not(@ind1='z')">
-      <z:index name="publyear:0">
-        <xslo:value-of select="marc:subfield[@code='c']"/>
-      </z:index>
+      <xslo:variable name="years">
+        <xslo:call-template name="extract-year">
+          <xslo:with-param name="data" select="translate(marc:subfield[@code='c'],'-',' ')"/>
+        </xslo:call-template>
+      </xslo:variable>
+      <xslo:for-each select="exsl:node-set($years)/year">
+        <z:index name="publyear:0">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:for-each>
+    </xslo:if>
+  </xslo:template>
+  <xslo:template mode="index_facets" match="marc:datafield[@tag='264']">
+    <xslo:if test="not(@ind1='z')">
+      <xslo:variable name="years">
+        <xslo:call-template name="extract-year">
+          <xslo:with-param name="data" select="translate(marc:subfield[@code='c'],'-',' ')"/>
+        </xslo:call-template>
+      </xslo:variable>
+      <xslo:for-each select="exsl:node-set($years)/year">
+        <z:index name="publyear:0">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:for-each>
     </xslo:if>
   </xslo:template>
   <xslo:template mode="index_facets" match="marc:datafield[@tag='440']">
@@ -2890,5 +2948,27 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
       </xslo:otherwise>
     </xslo:choose>
     <xslo:text/>
+  </xslo:template>
+  <xslo:template name="extract-year">
+    <xslo:param name="data"/>
+    <xslo:if test="string-length($data) &gt; 3">
+      <xslo:choose>
+        <xslo:when test="substring($data,1,1)&gt;-1 and substring($data,2,1)&gt;-1 and substring($data,3,1)&gt;-1 and substring($data,4,1)&gt;-1">
+          <xslo:element name="year">
+            <xslo:value-of select="substring($data,1,4)"/>
+          </xslo:element>
+          <xslo:if test="string-length($data) &gt; 4">
+            <xslo:call-template name="extract-year">
+              <xslo:with-param name="data" select="substring($data,5)"/>
+            </xslo:call-template>
+          </xslo:if>
+        </xslo:when>
+        <xslo:otherwise>
+          <xslo:call-template name="extract-year">
+            <xslo:with-param name="data" select="substring($data,2)"/>
+          </xslo:call-template>
+        </xslo:otherwise>
+      </xslo:choose>
+    </xslo:if>
   </xslo:template>
 </xslo:stylesheet>

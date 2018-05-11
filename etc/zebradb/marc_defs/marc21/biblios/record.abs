@@ -143,6 +143,10 @@ melm 260$a      pl:w,pl:p
 melm 260$b      Publisher:w,Publisher:p
 melm 260$c      copydate,copydate:s,copydate:n,copydate:y
 melm 260        pl
+melm 264$a      pl:w,pl:p
+melm 264$b      Publisher:w,Publisher:p
+melm 264$c      copydate,copydate:s,copydate:n,copydate:y
+melm 264        pl
 melm 300        Extent:w,Extent:p
 melm 400$a      Name-and-title
 melm 400$t      Author-title,Name-and-title,Title,Title-series

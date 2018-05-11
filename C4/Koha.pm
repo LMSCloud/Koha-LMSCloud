@@ -831,7 +831,7 @@ sub getFacets {
             {
                 idx   => 'publyear',
                 label => 'Years',
-                tags  => [ qw/ 260c / ],
+                tags  => [ qw/ 260c 264c / ],
                 sep   => ', ',
             }
             ];
