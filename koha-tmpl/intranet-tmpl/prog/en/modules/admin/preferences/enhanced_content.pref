@@ -441,6 +441,16 @@ Enhanced Content:
         -
             - Base URL to read covers from EKZ service:
             - pref: EKZCoverURL
+    Bibtip recommendations:
+        -
+            - pref: BibtipEnabled
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - Bibtip recommandations in OPAC.
+        -
+            - Name of the Bibtip catalog used to request recommendations from Bibtip service:
+            - pref: BibtipCatalog
     Divibib:
         -
             - pref: DivibibEnabled
