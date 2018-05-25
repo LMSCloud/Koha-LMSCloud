@@ -31,6 +31,13 @@
                                         <span class="no-image">No cover image available</span>
                                     [% END %]
                                 [% END %]
+                                [% IF ( Koha.Preference('EKZCover') && Koha.Preference('EKZCoverURL') ) %] 
+                                    [% FOREACH myurl IN item.browser_urls %] 
+                                       [% IF ( myurl.MARCURL.match(Koha.Preference('EKZCoverURL')) ) %]
+                                        <img src="[% myurl.MARCURL %]"></img>
+                                       [% END # /IF match %]
+                                    [% END # /FOREACH  %]
+                                [% END %]
 
                                 [% IF ( SyndeticsEnabled ) %]
                                     [% IF ( SyndeticsCoverImages ) %]
