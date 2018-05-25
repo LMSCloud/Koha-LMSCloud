@@ -13592,6 +13592,20 @@ if ( CheckVersion($DBversion) ) {
     
     print "Upgrade to $DBversion done (add parameter BibtipEnabled and BibtipCatalog to enable Bibtip recommendations.)\n";
     SetVersion ($DBversion);
+}
+
+$DBversion = '16.05.12.018';
+if ( CheckVersion($DBversion) ) {
+
+    # New preference to select the receiver of family card member overdue notices. 
+    # Can be each member seperate or collected for the family card owner.
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES 
+            ('FamilyCardMemberOverdueReceiver','owner','owner|member','Select the receiver of family card member overdue notices. Can be each member seperate or collected for the family card owner.','Choice')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter FamilyCardMemberOverdueReceiver to select the receiver of family card member overdue notices.)\n";
+    SetVersion ($DBversion);
 } 
 
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory

@@ -40,6 +40,7 @@ use C4::Overdues qw(GetFine GetOverdueMessageTransportTypes parse_overdues_lette
 use C4::ClaimingFees;
 use C4::NoticeFees;
 use C4::Log;
+use C4::Members;
 use Koha::Patron::Debarments qw(AddUniqueDebarment);
 use Koha::DateUtils;
 use Koha::Calendar;
@@ -307,6 +308,8 @@ alert them of items that have just become due.
 # These variables are set by command line options.
 # They are initially set to default values.
 my $dbh = C4::Context->dbh();
+$dbh->{AutoCommit} = 0;
+
 my $help    = 0;
 my $man     = 0;
 my $verbose = 0;
@@ -327,6 +330,7 @@ my @myborcat;
 my @myborcatout;
 my $checkPreviousClaimLevel = 0;
 my ( $date_input, $today );
+my %debarredPatrons = ();
 
 GetOptions(
     'help|?'         => \$help,
@@ -515,24 +519,21 @@ foreach my $branchcode (@branches) {
         $mobileselect = 'OR b.mobilebranch = ?';
     }
     
+    my $familyCardMemberOverdueReceiverSelect = '';
+    if ( C4::Context->preference('FamilyCardMemberOverdueReceiver') eq 'owner' ) {
+       $familyCardMemberOverdueReceiverSelect = ' OR issues.borrowernumber IN ( SELECT DISTINCT b.borrowernumber FROM borrowers b, borrowers o, categories c ' .
+                                                ' WHERE b.guarantorid = ? AND o.borrowernumber = b.guarantorid AND c.categorycode = o.categorycode AND c.family_card = 1)';
+    }
+    
     my $sth2 = $dbh->prepare( <<"END_SQL" );
 SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
-  FROM items,biblio, biblioitems, branches b, issues
+  FROM items, biblio, biblioitems, branches b, issues
   LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
   WHERE items.itemnumber=issues.itemnumber
     AND biblio.biblionumber   = items.biblionumber
     AND b.branchcode = issues.branchcode
     AND biblio.biblionumber   = biblioitems.biblionumber
-    AND ( issues.borrowernumber = ? OR issues.borrowernumber IN 
-           (
-            SELECT DISTINCT b.borrowernumber 
-               FROM borrowers b, borrowers o, categories c 
-               WHERE b.guarantorid = ? 
-                 AND o.borrowernumber = b.guarantorid
-                 AND c.categorycode = o.categorycode 
-                 AND c.family_card = 1
-           )
-        )
+    AND ( issues.borrowernumber = ? $familyCardMemberOverdueReceiverSelect )
     AND TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
     AND ( b.branchcode = ? $mobileselect )
 END_SQL
@@ -590,13 +591,16 @@ END_SQL
             # itemcount is interpreted here as the number of items in the overdue range defined by the current notice or all overdues < max if(-list-all).
             # <date> <itemcount> <firstname> <lastname> <address1> <address2> <address3> <city> <postcode> <country>
 
+            my $exludeFamilyCardMembers = '';
+            if ( C4::Context->preference('FamilyCardMemberOverdueReceiver') eq 'owner' ) {
+                $exludeFamilyCardMembers = 'AND NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = borrowers.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)';
+            }
             my $borrower_sql = <<"END_SQL";
 SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, 
                 cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
 FROM   branches, borrowers, categories, issues
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
-WHERE  issues.borrowernumber = borrowers.borrowernumber 
-AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = borrowers.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
+WHERE  issues.borrowernumber = borrowers.borrowernumber $exludeFamilyCardMembers
 AND    borrowers.categorycode=categories.categorycode
 AND    categories.overduenoticerequired=1
 AND    branches.branchcode = issues.branchcode
@@ -616,7 +620,8 @@ END_SQL
                 $borrower_sql .= ' AND borrowers.categorycode=? ';
                 push @borrower_parameters, $overdue_rules->{categorycode};
             }
-            $borrower_sql .= <<"END_SQL";
+            if ( $exludeFamilyCardMembers ) {
+                $borrower_sql .= <<"END_SQL";
 UNION
 SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, 
                 bo.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
@@ -631,20 +636,21 @@ AND    categories.overduenoticerequired=1
 AND    branches.branchcode = issues.branchcode
 AND    issues.date_due <= $date
 END_SQL
-            if ($branchcode) {
-                if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
-                    $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
-                    push @borrower_parameters, $branchcode, $branchcode;
-                } else {
-                    $borrower_sql .= 'AND branches.branchcode = ?';
-                    push @borrower_parameters, $branchcode;
+                if ($branchcode) {
+                    if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
+                        $borrower_sql .= 'AND ( branches.branchcode = ? OR branches.mobilebranch = ? )';
+                        push @borrower_parameters, $branchcode, $branchcode;
+                    } else {
+                        $borrower_sql .= 'AND branches.branchcode = ?';
+                        push @borrower_parameters, $branchcode;
+                    }
                 }
+                if ( $overdue_rules->{categorycode} ) {
+                    $borrower_sql .= ' AND bo.categorycode=? ';
+                    push @borrower_parameters, $overdue_rules->{categorycode};
+                }
+                $borrower_sql .= '  ORDER BY borrowernumber';
             }
-            if ( $overdue_rules->{categorycode} ) {
-                $borrower_sql .= ' AND bo.categorycode=? ';
-                push @borrower_parameters, $overdue_rules->{categorycode};
-            }
-            $borrower_sql .= '  ORDER BY borrowernumber';
 
             # $sth gets borrower info if at least one overdue item has triggered the overdue action.
 	        my $sth = $dbh->prepare($borrower_sql);
@@ -691,7 +697,7 @@ END_SQL
                     }
                 }
                 if (defined $borrowernumber && $borrowernumber eq $data->{'borrowernumber'}){
-# we have already dealt with this borrower
+                    # we have already dealt with this borrower
                     $verbose and warn "already dealt with this borrower $borrowernumber";
                     next;
                 }
@@ -703,9 +709,16 @@ END_SQL
                 $verbose
                   and warn "borrower $borr has items triggering level $i.";
 
+                # check whether the borrower is a family card member                
+                my $familyCardOwner = C4::Members::GetFamilyCardId($borrowernumber);
+
                 @emails_to_use = ();
                 my $notice_email =
                     C4::Members::GetNoticeEmailAddress($borrowernumber);
+                if ( !$notice_email && $familyCardOwner && GetMemberAge($borrowernumber) < 18 ) {
+                    C4::Members::GetNoticeEmailAddress($notice_email);
+                }
+                
                 unless ($nomail) {
                     if (@emails) {
                         foreach (@emails) {
@@ -726,20 +739,10 @@ END_SQL
                     # FIXME : Does this mean a letter must be defined in order to trigger a debar ?
                     next PERIOD;
                 }
-    
-                if ( $overdue_rules->{"debarred$i"} ) {
-    
-                    #action taken is debarring
-                    AddUniqueDebarment(
-                        {
-                            borrowernumber => $borrowernumber,
-                            type           => 'OVERDUES',
-                            comment => "OVERDUES_PROCESS " .  output_pref( dt_from_string() ),
-                        }
-                    ) unless $test_mode;
-                    $verbose and warn "debarring $borr\n";
-                }
-                my @params = ($borrowernumber, $borrowernumber, $branchcode);
+                
+                my @params = ($borrowernumber, $branchcode);
+                @params = ($borrowernumber, $borrowernumber, $branchcode) if ( $familyCardMemberOverdueReceiverSelect );
+                
                 if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
                     push(@params,$branchcode);
                 }
@@ -749,7 +752,9 @@ END_SQL
                 my $itemcount = 0;
                 my @titles = ();
                 my @items = ();
-                
+
+                # loop through all outstanding items of the borrower and check whether
+                # the overdue rules and settings apply to the current level
                 my $j = 0;
                 while ( my $item_info = $sth2->fetchrow_hashref() ) {
                     my $titleinfo = "";
@@ -830,10 +835,27 @@ END_SQL
                     $itemcount++;
                     push @items, $item_info;
                     
+                    my $borrowerCategoryCode = C4::Members::GetBorrowerCategorycode($item_info->{'borrowernumber'});
+                    
+                    if ( $overdue_rules->{"debarred$i"} && !exists($debarredPatrons{$item_info->{'borrowernumber'}}) ) {
+                        #action taken is debarring
+                        if (! $test_mode ) {
+                            AddUniqueDebarment(
+                                {
+                                    borrowernumber => $item_info->{'borrowernumber'},
+                                    type           => 'OVERDUES',
+                                    comment => "OVERDUES_PROCESS " .  output_pref( dt_from_string() ),
+                                }
+                            );
+                        }
+                        $debarredPatrons{$item_info->{'borrowernumber'}} = 1;
+                        $verbose and warn "debarring borrower $item_info->{'borrowernumber'}\n";
+                    }
+                    
                     # check whether there are claiming fee rules defined
                     if ( $nocharge==0 && $new_overdue_item == 1 && $claimFees->checkForClaimingRules() == 1 ) {
                         # check whether there is a matching claiming fee rule
-                        my $claimFeeRule = $claimFees->getFittingClaimingRule($overdue_rules->{categorycode}, $item_info->{itype}, $usebranch);
+                        my $claimFeeRule = $claimFees->getFittingClaimingRule($borrowerCategoryCode, $item_info->{itype}, $usebranch);
                         
                         if ( $claimFeeRule ) {
                             my $fee = 0.0;
@@ -877,7 +899,7 @@ END_SQL
                             } )->store();
                     }
                     
-                }
+                } # end item loop
                 $sth2->finish;
 
                 my @message_transport_types = @{ GetOverdueMessageTransportTypes( $usebranch, $overdue_rules->{categorycode}, $i) };
@@ -888,6 +910,9 @@ END_SQL
                 my @allitems = @items;
                 
                 my $print_sent = 0; # A print notice is not yet sent for this patron
+                
+                # now we loop trough the list of message_transport_types defined for the letter
+                # there might be multiple transport types activated
                 for my $mtt ( @message_transport_types ) {
                 
                     my $titles = join("",@titles);
@@ -905,14 +930,52 @@ END_SQL
                         @items = @allitems[0..$lastind];
                         $titles = join("",@titles[0..$lastind]);
                     }
+                    
+                    my $noticefee;
+                    
+                    # check whether there is notice fee rule matching
+                    # if so, set the the notice fee
+                    unless ( $effective_mtt eq 'print' and $print_sent == 1 ) {
+                        # check whether there are notice fee rules defined
+                        if ( $nocharge == 0 && $noticeFees->checkForNoticeFeeRules() == 1) {
+                            #check whether there is a matching notice fee rule
+                            my $noticeFeeRule = $noticeFees->getNoticeFeeRule($usebranch, $overdue_rules->{categorycode}, $effective_mtt, $overdue_rules->{"letter$i"} );
+                            if ( $noticeFeeRule ) {
+                                $noticefee = $noticeFeeRule->notice_fee();
+                                if ( $noticefee && $noticefee > 0.0 ) {
+                                    # Bad for the patron, staff has assigned a notice fee for sending the notification
+                                    $noticeFees->AddNoticeFee( 
+                                        {
+                                            borrowernumber    => $borrowernumber,
+                                            amount            => $noticefee,
+                                            letter_code       => $overdue_rules->{"letter$i"},
+                                            letter_date       => output_pref( { dt => dt_from_string, dateonly => 1 } ),
+                                            claimlevel        => $i,
+                                            branchcode        => $usebranch,
+                                            
+                                            # these are parameters that we need for fancy message printig
+                                            substitute     => {    # this appears to be a hack to overcome incomplete features in this code.
+                                                                    bib             => $library->branchname, # maybe 'bib' is a typo for 'lib<rary>'?
+                                                                    'items.content' => $titles,
+                                                                    'count'         => 1,
+                                                                   },
+                                            items          => \@items
+                                        }
+                                     );
+                                }
+                            }
+                        }
+                    }
 
                     my $letter_exists = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $usebranch, $effective_mtt ) ? 1 : 0;
                     my $letter = parse_overdues_letter(
-                        {   letter_code     => $overdue_rules->{"letter$i"},
-                            borrowernumber  => $borrowernumber,
-                            branchcode      => $usebranch,
-                            items           => \@items,
-                            substitute      => {    # this appears to be a hack to overcome incomplete features in this code.
+                        {   letter_code       => $overdue_rules->{"letter$i"},
+                            borrowernumber    => $borrowernumber,
+                            family_card_owner => $familyCardOwner,
+                            branchcode        => $usebranch,
+                            notice_fee        => $noticefee,
+                            items             => \@items,
+                            substitute        => {    # this appears to be a hack to overcome incomplete features in this code.
                                                 bib             => $library->branchname, # maybe 'bib' is a typo for 'lib<rary>'?
                                                 'items.content' => $titles,
                                                 'count'         => $itemcount,
@@ -925,6 +988,7 @@ END_SQL
                     unless ($letter) {
                         $verbose and warn qq|Message '$overdue_rules->{"letter$i"}' content not found|;
                         # this transport doesn't have a configured notice, so try another
+                        $dbh->rollback;
                         next;
                     }
 
@@ -981,39 +1045,7 @@ END_SQL
                                 }
                               );
                         }
-                        unless ( $effective_mtt eq 'print' and $print_sent == 1 ) {
-                            # check whether there are notice fee rules defined
-                            if ( $nocharge == 0 && $noticeFees->checkForNoticeFeeRules() == 1) {
-                                #check whether there is a matching notice fee rule
-                                my $noticeFeeRule = $noticeFees->getNoticeFeeRule($usebranch, $overdue_rules->{categorycode}, $effective_mtt, $overdue_rules->{"letter$i"} );
-                                
-                                if ( $noticeFeeRule ) {
-                                    my $fee = $noticeFeeRule->notice_fee();
-                                    
-                                    if ( $fee && $fee > 0.0 ) {
-                                        # Bad for the patron, staff has assigned a notice fee for sending the notification
-                                         $noticeFees->AddNoticeFee( 
-                                            {
-                                                borrowernumber => $borrowernumber,
-                                                amount         => $fee,
-                                                letter_code    => $overdue_rules->{"letter$i"},
-                                                letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
-                                                claimlevel     => $i,
-                                                branchcode     => $usebranch,
-                                                
-                                                # these are parameters that we need for fancy message printig
-                                                substitute     => {    # this appears to be a hack to overcome incomplete features in this code.
-                                                                        bib             => $library->branchname, # maybe 'bib' is a typo for 'lib<rary>'?
-                                                                        'items.content' => $titles,
-                                                                        'count'         => 1,
-                                                                       },
-                                                items          => \@items
-                                            }
-                                         );
-                                    }
-                                }
-                            }
-                            
+                        unless ( $effective_mtt eq 'print' and $print_sent == 1 ) {                            
                             # Just sent a print if not already done.
                             C4::Letters::EnqueueLetter(
                                 {   letter                 => $letter,
@@ -1080,6 +1112,7 @@ END_SQL
                 branchcode             => $usebranch
             }
         ) unless $test_mode;
+        $dbh->commit() unless $test_mode;
     }
 
 }

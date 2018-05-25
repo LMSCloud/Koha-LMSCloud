@@ -74,6 +74,7 @@ BEGIN {
         &GetNoticeEmailAddress
 
         &GetAge
+        &GetMemberAge
         &GetSortDetails
         &GetFamilyCardId
         &IsFamilyCard
@@ -1663,6 +1664,23 @@ sub GetAge{
 
     return $age;
 }    # sub get_age
+
+
+=head2 GetMemberAge
+
+  my $age = &GetMemberAge($borrowernumber);
+
+this function returns the borrowers age 
+
+=cut
+
+sub GetMemberAge {
+    my ($borrowernumber) = @_;
+    
+    my $borrower = GetMember(borrowernumber => $borrowernumber);
+    
+    return GetAge($borrower->{'dateofbirth'});
+}
 
 =head2 SetAge
 
