@@ -473,6 +473,8 @@
   <!--record.abs line 121: melm 260$c      copydate,copydate:s-->
   <index_subfields tag="260" subfields="c">
     <target_index>copydate:w</target_index>
+    <target_index>copydate:y</target_index>
+    <target_index>copydate:n</target_index>
     <target_index>copydate:s</target_index>
   </index_subfields>
   <!--record.abs line 122: melm 260        pl-->
@@ -480,8 +482,26 @@
     <target_index>pl:w</target_index>
     <target_index>Provider:w</target_index>
   </index_data_field>
-  <!--Index for RDA 264 field-->
+   <!-- Index for RDA 264 field-->
+  <index_subfields tag="264" subfields="a">
+    <target_index>pl:w</target_index>
+    <target_index>pl:p</target_index>
+  </index_subfields>
+  <!-- Index for RDA 264 field -->
+  <index_subfields tag="260" subfields="b">
+    <target_index>Publisher:w</target_index>
+    <target_index>Publisher:p</target_index>
+  </index_subfields>
+  <!-- Index for RDA 264 field -->
+  <index_subfields tag="264" subfields="c">
+    <target_index>copydate:w</target_index>
+    <target_index>copydate:y</target_index>
+    <target_index>copydate:n</target_index>
+    <target_index>copydate:s</target_index>
+  </index_subfields>
+  <!-- Index for RDA 264 field -->
   <index_data_field tag="264">
+    <target_index>pl:w</target_index>
     <target_index>Provider:w</target_index>
   </index_data_field>
   <!--record.abs line 123: melm 300        Extent:w,Extent:p-->
@@ -1451,7 +1471,11 @@
     <target_index>Note:w</target_index>
     <target_index>Note:p</target_index>
   </index_subfields>
-
+  <index_subfields tag="998" subfields="a" condition="@ind1='i' and @ind2=' '">
+    <target_index>zkshid:w</target_index>
+    <target_index>zkshid:p</target_index>
+    <target_index>zkshid:n</target_index>
+  </index_subfields>
   <facet tag="072" subfields="a">
     <target_index>sbg:0</target_index>
   </facet>
@@ -1460,6 +1484,9 @@
   </facet>
   <facet tag="110" subfields="a">
     <target_index>au:0</target_index>
+  </facet>
+  <facet tag="260" subfields="c">
+    <target_index>publyear:0</target_index>
   </facet>
   <facet tag="440" subfields="a">
     <target_index>se:0</target_index>

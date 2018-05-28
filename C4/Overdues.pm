@@ -1065,9 +1065,13 @@ sub parse_overdues_letter {
     my $substitute = $params->{'substitute'} || {};
     $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
 
-    my %tables = ( 'borrowers' => $params->{'borrowernumber'} );
+    my %tables = ( 'borrowers' => $params->{'borrowernumber'}, 'account' => $params->{'borrowernumber'} );
+    
+    if ( exists($params->{family_card_owner}) && $params->{family_card_owner} ) {
+        $tables{'account'} = $params->{family_card_owner};
+    }
 
-    my ($overdue_count, $issue_count, $total_fines) = C4::Members::GetFamilyCardMemberIssuesAndFines($params->{'borrowernumber'}, $params->{'branchcode'});
+    my ($overdue_count, $issue_count, $total_fines) = C4::Members::GetMemberIssuesAndFines($params->{'borrowernumber'});
     
     if ( my $p = $params->{'branchcode'} ) {
         $tables{'branches'} = $p;
@@ -1102,11 +1106,32 @@ sub parse_overdues_letter {
             };
         }
     }
+
+    if ( exists($params->{notice_fee}) ) {
+        my $notice_fee = $params->{notice_fee};
+        $notice_fee = 0.0 if (! $notice_fee);
+        $substitute->{notice_fee} = currency_format($currency_format, "$notice_fee", FMT_SYMBOL);
+        $substitute->{notice_fee} = sprintf('%.2f', $notice_fee) unless $substitute->{notice_fee};
+    }
+
     $substitute->{fines} = currency_format($currency_format, "$fines_sum", FMT_SYMBOL);
     $substitute->{fines} = sprintf('%.2f', $fines_sum) unless $substitute->{fines};
     $substitute->{total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
     $substitute->{total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{fines};
     $substitute->{overdue_count} = $overdue_count;
+    $substitute->{issue_count} = $issue_count;
+    
+    if ( exists($params->{family_card_owner}) && $params->{family_card_owner} ) {
+        ($overdue_count, $issue_count, $total_fines) = C4::Members::GetFamilyCardMemberIssuesAndFines($params->{'borrowernumber'});
+        $substitute->{family_total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
+        $substitute->{family_total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{fines};
+        $substitute->{family_overdue_count} = $overdue_count;
+        $substitute->{family_issue_count} = $issue_count;
+    } else {
+        $substitute->{family_total_fines}   = $substitute->{total_fines};
+        $substitute->{family_overdue_count} = $substitute->{overdue_count};
+        $substitute->{family_issue_count}   = $substitute->{issue_count};
+    }
 
     return C4::Letters::GetPreparedLetter (
         module => 'circulation',

@@ -327,13 +327,10 @@ sub genPermalink {
 
 
 # start the title search
-if (!defined $sel_titel)     # If TITEL param is not sent, then do not search at all. (specified so by RG)
-{
-    carp "main: sel_titel is empty - no search done. Returning status 0.\n";
-} else
+if (defined $sel_titel)
 {
     # search for catalog title record by MARC21 category 001 (control number)
-    $query = "cn:\"$sel_titel\"";
+    $query = "zkshid:\"$sel_titel\"";
     ( $error, $marcresults, $total_hits ) = ( '', (), 0 );
     ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
 
@@ -341,99 +338,98 @@ if (!defined $sel_titel)     # If TITEL param is not sent, then do not search at
         my $log_str = sprintf("main: search for sel_titel:%s: returned error:%d/%s:\n", $sel_titel,$error,$error);
         carp $log_str;
     }
-    
-    if ($total_hits == 0)
+}
+if ($total_hits == 0)
+{
+    if (!defined $sel_srisbn)
     {
-        if (!defined $sel_srisbn)
-        {
-          my $log_str = sprintf("opac-item-availability-BZSH: Title not found by sel_titel:%s: and sel_srisbn is empty - no 2nd search done. Returning status 0.\n", $sel_titel);
-          carp $log_str;
-        } else
-        {
-            # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-            $query = "nb:\"$sel_srisbn\" or id-other:\"$sel_srisbn\"";
-            ( $error, $marcresults, $total_hits ) = ( '', (), 0 );
-            ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
-            
-            if (defined $error) {
-                my $log_str = sprintf("main: search for sel_srisbn:%s: returned error:%d/%s:\n", $sel_srisbn,$error,$error);
-                carp $log_str;
-            }
+      my $log_str = sprintf("opac-item-availability-BZSH: Title not found by sel_titel:%s: and sel_srisbn is empty - no 2nd search done. Returning status 0.\n", $sel_titel);
+      carp $log_str;
+    } else
+    {
+        # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
+        $query = "nb:\"$sel_srisbn\" or id-other:\"$sel_srisbn\"";
+        ( $error, $marcresults, $total_hits ) = ( '', (), 0 );
+        ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
+        
+        if (defined $error) {
+            my $log_str = sprintf("main: search for sel_srisbn:%s: returned error:%d/%s:\n", $sel_srisbn,$error,$error);
+            carp $log_str;
         }
     }
-    $hits = scalar @$marcresults;
+}
+$hits = scalar @$marcresults;
+
+# Search "the best" item state for the catalogue titles found. Status 1 (item available) is the best possible one, status 2 (item on loan) the second best.
+for (my $i = 0; $i < $hits and defined $marcresults->[$i] and $best_item_status != 1; $i++)
+{
+    # item status code in BZSH:
+    # 0    # Titel nicht vorhanden / item does not exist
+    # 1    # nicht entliehen / item is loanable and not loaned
+    # 2    # ausgeliehen / item is loaned to a borrower
+    # 3    # im Buchhandel bestellt / ordered at a supplier (not used here)
+    # 4    # nicht ausleihbar / item not for loan
     
-    # Search "the best" item state for the catalogue titles found. Status 1 (item available) is the best possible one, status 2 (item on loan) the second best.
-    for (my $i = 0; $i < $hits and defined $marcresults->[$i] and $best_item_status != 1; $i++)
+    my $marcrecord;
+    eval {
+        $marcrecord =  MARC::Record::new_from_xml( $marcresults->[$i], "utf8", 'MARC21' );
+    };
+    carp "main: error in MARC::Record::new_from_xml:$@:\n" if $@;
+
+    if ( $marcrecord )
     {
-        # item status code in BZSH:
-        # 0    # Titel nicht vorhanden / item does not exist
-        # 1    # nicht entliehen / item is loanable and not loaned
-        # 2    # ausgeliehen / item is loaned to a borrower
-        # 3    # im Buchhandel bestellt / ordered at a supplier (not used here)
-        # 4    # nicht ausleihbar / item not for loan
+        my $biblionumber = $marcrecord->subfield("999","c");                        # get biblio number of the title hit
+        $marc_titledata = &genISBD($marcrecord);                                    # generate the ISBN output for this title
         
-        my $marcrecord;
-        eval {
-            $marcrecord =  MARC::Record::new_from_xml( $marcresults->[$i], "utf8", 'MARC21' );
-        };
-        carp "main: error in MARC::Record::new_from_xml:$@:\n" if $@;
-
-        if ( $marcrecord )
+        @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };    # read items of this biblio number
+        for my $itemnumber ( @itemnumbers )
         {
-            my $biblionumber = $marcrecord->subfield("999","c");                        # get biblio number of the title hit
-            $marc_titledata = &genISBD($marcrecord);                                    # generate the ISBN output for this title
-            
-            @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };    # read items of this biblio number
-            for my $itemnumber ( @itemnumbers )
-            {
-                # check if this item has a "better" status
-                my $itemrecord = C4::Items::GetItem( $itemnumber, 0, 0);
+            # check if this item has a "better" status
+            my $itemrecord = C4::Items::GetItem( $itemnumber, 0, 0);
 
-                my $item_notforloan = $itemrecord->{'notforloan'};
-                my $item_damaged = $itemrecord->{'damaged'};
-                my $item_itemlost = $itemrecord->{'itemlost'};
-                my $item_withdrawn = $itemrecord->{'withdrawn'};
-                my $item_restricted = $itemrecord->{'restricted'};
-                
-                if ($item_notforloan ||
-                    $item_damaged ||
-                    $item_itemlost ||
-                    $item_withdrawn ||
-                    $item_restricted)
+            my $item_notforloan = $itemrecord->{'notforloan'};
+            my $item_damaged = $itemrecord->{'damaged'};
+            my $item_itemlost = $itemrecord->{'itemlost'};
+            my $item_withdrawn = $itemrecord->{'withdrawn'};
+            my $item_restricted = $itemrecord->{'restricted'};
+            
+            if ($item_notforloan ||
+                $item_damaged ||
+                $item_itemlost ||
+                $item_withdrawn ||
+                $item_restricted)
+            {
+                if ($best_itemnumber == 0) 
                 {
-                    if ($best_itemnumber == 0) 
-                    {
-                        $best_item_status = 4;  # item exists but is not for loan
-                        $best_itemnumber = $itemnumber;
-                        $best_biblionumber = $biblionumber;
-                    }
-                    next;
-                }
-                my $item_onloan = $itemrecord->{'onloan'};
-                if (length($item_onloan) > 0 && $best_item_status != 1)
-                {
-                    $best_item_status = 2;      # this is the second best status of all: item on loan
+                    $best_item_status = 4;  # item exists but is not for loan
                     $best_itemnumber = $itemnumber;
                     $best_biblionumber = $biblionumber;
-                    next;                       # continue; maybe an item with better status exists
                 }
-                $best_item_status = 1;          # this is the best status of all: item available
+                next;
+            }
+            my $item_onloan = $itemrecord->{'onloan'};
+            if (length($item_onloan) > 0 && $best_item_status != 1)
+            {
+                $best_item_status = 2;      # this is the second best status of all: item on loan
                 $best_itemnumber = $itemnumber;
                 $best_biblionumber = $biblionumber;
-                last;                           # break; no better status possible
+                next;                       # continue; maybe an item with better status exists
             }
+            $best_item_status = 1;          # this is the best status of all: item available
+            $best_itemnumber = $itemnumber;
+            $best_biblionumber = $biblionumber;
+            last;                           # break; no better status possible
         }
     }
+}
 
-    if ($best_item_status == 2)    # For performance reasons, we search for date due only if we really have to. 
-    {
-        $best_item_date_due = &get_date_due_for_item( $best_biblionumber, $best_itemnumber );
-        if ( length($best_item_date_due) >= 10 ) {
-            $best_item_date_due_year = substr($best_item_date_due,0,4);
-            $best_item_date_due_month = substr($best_item_date_due,5,2);
-            $best_item_date_due_day = substr($best_item_date_due,8,2);
-        }
+if ($best_item_status == 2)    # For performance reasons, we search for date due only if we really have to. 
+{
+    $best_item_date_due = &get_date_due_for_item( $best_biblionumber, $best_itemnumber );
+    if ( length($best_item_date_due) >= 10 ) {
+        $best_item_date_due_year = substr($best_item_date_due,0,4);
+        $best_item_date_due_month = substr($best_item_date_due,5,2);
+        $best_item_date_due_day = substr($best_item_date_due,8,2);
     }
 }
 

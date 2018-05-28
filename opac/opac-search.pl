@@ -108,7 +108,7 @@ if ($format =~ /(rss|atom|opensearchdescription)/) {
 elsif (@params && $build_grouped_results) {
     $template_name = 'opac-results-grouped.tt';
 }
-elsif ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) ) {
+elsif ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr') || ($cgi->param('limit-copydate')) ) ) {
     $template_name = 'opac-results.tt';
 }
 else {
@@ -274,6 +274,7 @@ foreach my $advanced_srch_type (@advanced_search_types) {
                 push @itypesloop, \%row;
             }
 	}
+        @itypesloop = sort { uc($a->{description}) cmp uc($b->{description}) } @itypesloop;
         my %search_code = (  advanced_search_type => $advanced_srch_type,
                              code_loop => \@itypesloop );
         push @advancedsearchesloop, \%search_code;
@@ -295,6 +296,7 @@ foreach my $advanced_srch_type (@advanced_search_types) {
                 );
 		push @authvalueloop, \%row;
 	}
+        @authvalueloop = sort { uc($a->{description}) cmp uc($b->{description}) } @authvalueloop;
         my %search_code = (  advanced_search_type => $advanced_srch_type,
                              code_loop => \@authvalueloop );
         push @advancedsearchesloop, \%search_code;
@@ -510,6 +512,16 @@ $template->param(available => $available);
 if ($params->{'limit-yr'}) {
     if ($params->{'limit-yr'} =~ /\d{4}/) {
         push @limits, "yr,st-numeric=$params->{'limit-yr'}";
+    }
+    else {
+        #FIXME: Should return a error to the user, incorect date format specified
+    }
+}
+
+# append year limits if they exist
+if ($params->{'limit-copydate'}) {
+    if ($params->{'limit-copydate'} =~ /\d{4}/) {
+        push @limits, "copydate,st-numeric=$params->{'limit-copydate'}";
     }
     else {
         #FIXME: Should return a error to the user, incorect date format specified

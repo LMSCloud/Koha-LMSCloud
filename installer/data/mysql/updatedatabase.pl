@@ -13580,6 +13580,34 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 }
 
+$DBversion = '16.05.12.017';
+if ( CheckVersion($DBversion) ) {
+
+    # Support activation/deactivation of Bibtip recommendations
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES 
+            ('BibtipCatalog','',NULL,'Bibtip catalog name. Used to request recommendations from Bibtip.','Free'),
+            ('BibtipEnabled','0',NULL,'Enable Bibtip recommendations to be displayed in OPAC detail title view.','YesNo')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter BibtipEnabled and BibtipCatalog to enable Bibtip recommendations.)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '16.05.12.018';
+if ( CheckVersion($DBversion) ) {
+
+    # New preference to select the receiver of family card member overdue notices. 
+    # Can be each member seperate or collected for the family card owner.
+    $dbh->do( q{ 
+        INSERT IGNORE INTO systempreferences (variable,value,options,explanation,type) VALUES 
+            ('FamilyCardMemberOverdueReceiver','owner','owner|member','Select the receiver of family card member overdue notices. Can be each member seperate or collected for the family card owner.','Choice')
+    });
+    
+    print "Upgrade to $DBversion done (add parameter FamilyCardMemberOverdueReceiver to select the receiver of family card member overdue notices.)\n";
+    SetVersion ($DBversion);
+} 
+
 # DEVELOPER PROCESS, search for anything to execute in the db_update directory
 # SEE bug sss
 # if there is anything in the atomicupdate, read and execute it.

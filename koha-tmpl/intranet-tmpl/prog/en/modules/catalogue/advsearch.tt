@@ -145,8 +145,8 @@
 	<legend>Limits</legend>
 <fieldset id="pubrange">
 <!-- PUB / COPY YEAR LIMIT --><!-- FIXME: add publication,copyright,acquisition options -->
-	<p><label for="limit-yr">Year: </label>
-		<input type="text" size="15" name="limit-yr" id="limit-yr" value=""/>&nbsp;&nbsp;(format: yyyy-yyyy)</p>
+	<p><label for="limit-copydate">Year: </label>
+		<input type="text" size="15" name="limit-copydate" id="limit-copydate" value=""/>&nbsp;&nbsp;(format: yyyy-yyyy)</p>
 <!-- /PUB / COPY YEAR LIMIT -->
 </fieldset>
 <fieldset id="language">
