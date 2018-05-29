@@ -66,7 +66,7 @@ if ( $op eq 'download' ) {
     my $filename = $input->param('filename');
     my $fullname = File::Spec->catfile( $outputdir, $filename);
     
-    my $extraoptions = { filename => $filename };
+    my $extraoptions = {};
     my $charset = `file -i -b $fullname`;
     my $encoding = 'UTF-8';
     
@@ -96,9 +96,13 @@ if ( $op eq 'download' ) {
     $content_type = 'csv' if ( $filename =~ /\.csv$/i );
     $content_type = 'json' if ( $filename =~ /\.json$/i );
     $content_type = 'xml' if ( $filename =~ /\.xml$/i );
-    $content_type = 'zip' if ( $filename =~ /\.zip$/i );   
+    $content_type = 'zip' if ( $filename =~ /\.zip$/i );
+
+    if ( $content_type ne 'html' ) {                    # otherwise Firefox would open its download dialog even with content_type 'html' instead of showing the html content
+        $extraoptions = { filename => $filename };
+    }
     
-    
+
     output_with_http_headers $input, $cookie, $content, $content_type, '200 OK', $extraoptions;
     exit 0;
 }
