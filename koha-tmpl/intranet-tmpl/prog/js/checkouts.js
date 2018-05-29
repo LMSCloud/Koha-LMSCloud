@@ -546,7 +546,8 @@ $(document).ready(function() {
                     aoData.push( { "name": "borrowernumber", "value": borrowernumber } );
 
                     $.getJSON( sSource, aoData, function (json) {
-                        fnCallback(json)
+                        fnCallback(json);
+                        $("#divibib-issues-tab").text(divibibIssuesTable.dataTable().api().rows().count() + ' Onleihe(n)');
                     } );
                 },
             });
@@ -679,7 +680,8 @@ $(document).ready(function() {
                     });
 
                     $.getJSON( sSource, aoData, function (json) {
-                        fnCallback(json)
+                        fnCallback(json);
+                        $("#relatives-issues-tab").text(relativesIssuesTable.dataTable().api().rows().count() + ' Relatives\' checkout(s)');
                     } );
                 },
             });
