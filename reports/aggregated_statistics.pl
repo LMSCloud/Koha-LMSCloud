@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2017 LMSCloud
+# Copyright 2017-2018 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -93,8 +93,6 @@ our ( $template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user
 );
 
 print STDERR "aggregated_statistics::main statisticstype:$aggregatedstatistics->{'statisticstype'}: statisticstypedesignation:$aggregatedstatistics->{'statisticstypedesignation'}: id:$aggregatedstatistics->{'id'}: name:$aggregatedstatistics->{'name'}: description:$aggregatedstatistics->{'description'}: startdate:$aggregatedstatistics->{'startdate'}: enddate:$aggregatedstatistics->{'enddate'}: op:$aggregatedstatistics->{'op'}:\n" if $debug;
-#print STDERR "aggregated_statistics::main Dumper(input):", Dumper($input), ":\n" if $debug;
-#print STDERR "aggregated_statistics::main op:$op: input->param(st_gen_population):", scalar $input->param('st_gen_population'), ": input->param(st_gen_libcount):", scalar $input->param('st_gen_libcount'), ":\n" if $debug;
 
 $template->param(
 	script_name => $script_name,
@@ -109,7 +107,8 @@ $template->param(
 
 if ( $op eq 'add_validate' or $op eq 'copy_validate' ) {
     add_validate();
-    $op = q{}; # we return to the default screen for the next operation
+    # we return to the default screen for the next operation
+    $op = q{};
 }
 
 if ($op eq 'copy_form') {
@@ -127,28 +126,36 @@ elsif ( $op eq 'delete_confirm' ) {
 }
 elsif ( $op eq 'delete_confirmed' ) {
     delete_confirmed();
-    $op = q{}; # next operation is to return to default screen
+    # next operation is to return to default screen
+    $op = q{};
 }
 elsif ( $op eq 'eval_form' ) {
-    eval_form();    # show form triggered by 'edit' button - evaluate subclass functionality
+    # show form triggered by 'edit' button - evaluate subclass functionality
+    $html_output_done = eval_form();
 }
-elsif ( $op eq 'dcv_calc' ) {    # derived class values - calculate
+elsif ( $op eq 'dcv_calc' ) {
+    # derived class values - calculate
     if ( $aggregatedstatistics->supports('dcv_calc') ) {
         $aggregatedstatistics->dcv_calc($input);
     }
-    eval_form();    # handle form triggered by 'edit' button - evaluate subclass functionality
+    # handle form - evaluate subclass functionality
+    $html_output_done = eval_form();
 }
-elsif ( $op eq 'dcv_save' ) {    # derived class values - save into database
+elsif ( $op eq 'dcv_save' ) {
+    # derived class values - save into database
     if ( $aggregatedstatistics->supports('dcv_save') ) {
         $aggregatedstatistics->dcv_save($input);
     }
-    eval_form();    # handle form triggered by 'edit' button - evaluate subclass functionality
+    # handle form - evaluate subclass functionality
+    $html_output_done = eval_form();
 }
-elsif ( $op eq 'dcv_del' ) {    # derived class values - delete from database
+elsif ( $op eq 'dcv_del' ) {
+    # derived class values - delete from database
     if ( $aggregatedstatistics->supports('dcv_del') ) {
         $aggregatedstatistics->dcv_del($input);
     }
-    eval_form();    # handle form triggered by 'edit' button - evaluate subclass functionality
+    # handle form - evaluate subclass functionality
+    $html_output_done = eval_form();
 }
 else {
     default_display($aggregatedstatistics->{'statisticstype'});
@@ -169,11 +176,8 @@ if ( !$html_output_done ) {
 
 # prepare the form for adding / editing / copying an aggregated_statistics record
 sub add_form {
-print STDERR "aggregated_statistics::add_form statisticstype:$aggregatedstatistics->{'statisticstype'}:  statisticstypedesignation:$aggregatedstatistics->{'designation'}: name:$aggregatedstatistics->{'name'}:\n" if $debug;
-print STDERR "aggregated_statistics::add_form input->param('statisticstype'):scalar $input->param('statisticstype'):\n" if $debug;
 
     my $found = $aggregatedstatistics->add_form($input);
-print STDERR "aggregated_statistics::add_form found:$found:\n" if $debug;
 
     if ( $found ) {
         $template->param(
@@ -212,9 +216,7 @@ sub add_validate {
 
 # prepare the form for deleting an aggregated_statistics record
 sub delete_confirm {
-print STDERR "aggregated_statistics::delete_confirm  op:$aggregatedstatistics->{'op'}: statisticstype:$aggregatedstatistics->{'statisticstype'}: name:$aggregatedstatistics->{'name'}:\n" if $debug;
     my $found = $aggregatedstatistics->readbyname($input);
-print STDERR "aggregated_statistics::delete_confirm found:$found:\n" if $debug;
 
     if ($found) {
         my $hit = {
@@ -233,7 +235,6 @@ print STDERR "aggregated_statistics::delete_confirm found:$found:\n" if $debug;
 
 # evaluate the form for deleting an aggregated_statistics record
 sub delete_confirmed {
-print STDERR "aggregated_statistics::delete_confirmed  op:$aggregatedstatistics->{'op'}: statisticstype:$aggregatedstatistics->{'statisticstype'}: name:$aggregatedstatistics->{'name'}:\n" if $debug;
     $aggregatedstatistics->delete();
 
     # setup default display for screen
@@ -242,21 +243,22 @@ print STDERR "aggregated_statistics::delete_confirmed  op:$aggregatedstatistics-
 
 # prepare the form for evaluating / editing the specific statistics (e.g. DBS)
 sub eval_form {
+    my $ret_html_output_done = 0;
+
     # the evaluation depends on statisticstype
-print STDERR "aggregated_statistics::eval_form Start statisticstype:$aggregatedstatistics->{'statisticstype'}: id:$aggregatedstatistics->{'id'}: op:$aggregatedstatistics->{'op'}:\n" if $debug;
     if ( $aggregatedstatistics->supports('eval_form') ) {
         $aggregatedstatistics->eval_form($script_name, $input);
-        $html_output_done = 1;
+        $ret_html_output_done = 1;
     } else {
         # not implemented for remaining statistics types, so avoid HTTP error 500:
         default_display($aggregatedstatistics->{'statisticstype'});
         $op = q{}; # next operation is to return to default screen
     }
+    return $ret_html_output_done;
 }
 
 sub default_display {
     my ($preselected_statisticstype) = @_;
-print STDERR "aggregated_statistics::default_display  op:$aggregatedstatistics->{'op'}: preselected_statisticstype:$preselected_statisticstype:aggregatedstatistics->statisticstype:$aggregatedstatistics->{'statisticstype'}: name:$aggregatedstatistics->{'name'}:\n" if $debug;
 
     unless ( defined $preselected_statisticstype ) {
         my $statisticstypes = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsTypes();
