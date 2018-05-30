@@ -1121,18 +1121,12 @@ sub parse_overdues_letter {
     $substitute->{overdue_count} = $overdue_count;
     $substitute->{issue_count} = $issue_count;
     
-    if ( exists($params->{family_card_owner}) && $params->{family_card_owner} ) {
-        ($overdue_count, $issue_count, $total_fines) = C4::Members::GetFamilyCardMemberIssuesAndFines($params->{'borrowernumber'});
-        $substitute->{family_total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
-        $substitute->{family_total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{fines};
-        $substitute->{family_overdue_count} = $overdue_count;
-        $substitute->{family_issue_count} = $issue_count;
-    } else {
-        $substitute->{family_total_fines}   = $substitute->{total_fines};
-        $substitute->{family_overdue_count} = $substitute->{overdue_count};
-        $substitute->{family_issue_count}   = $substitute->{issue_count};
-    }
-
+    ($overdue_count, $issue_count, $total_fines) = C4::Members::GetFamilyCardMemberIssuesAndFines($params->{'borrowernumber'});
+    $substitute->{family_total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
+    $substitute->{family_total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{fines};
+    $substitute->{family_overdue_count} = $overdue_count;
+    $substitute->{family_issue_count} = $issue_count;
+        
     return C4::Letters::GetPreparedLetter (
         module => 'circulation',
         letter_code => $params->{'letter_code'},
