@@ -571,12 +571,18 @@ the total fine currently due by the borrower.
 =cut
 
 sub GetFamilyCardMemberIssuesAndFines {
-    my ( $borrowernumber, $branchcode ) = @_;
-    
-    my @parameter = ($borrowernumber, $borrowernumber);
-    push(@parameter,$branchcode,$branchcode) if ($branchcode);
+    my ($checkborrowernumber, $branchcode ) = @_;
     
     my $dbh = C4::Context->dbh;
+    
+    my ($borrowernumber) = $dbh->selectrow_array("SELECT IF(IFNULL(c.family_card,0)=0,o.borrowernumber,b.borrowernumber) AS borrowernumber
+                                   FROM borrowers o
+                                       LEFT JOIN borrowers b ON b.borrowernumber = o.guarantorid
+                                       LEFT JOIN categories c ON (c.categorycode = b.categorycode AND c.family_card = 1)
+                                   WHERE o.borrowernumber = ?",undef,($checkborrowernumber));
+                 
+    my @parameter = ($borrowernumber, $borrowernumber);
+    push(@parameter,$branchcode,$branchcode) if ($branchcode);
     
     my $query = "SELECT COUNT(*) FROM issues i, branches r
         WHERE i.branchcode = r.branchcode 
