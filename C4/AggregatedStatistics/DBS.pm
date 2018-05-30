@@ -1,5 +1,23 @@
 package C4::AggregatedStatistics::DBS;
 
+# Copyright 2018 LMSCloud GmbH
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+
 use strict;
 use warnings;
 use CGI qw ( -utf8 );
@@ -1534,7 +1552,13 @@ print STDERR "C4::AggregatedStatistics::DBS::eval_form branchcode:$branchcode: s
         foreach my $name (keys %{$as_values}) {
             $as_values->{$name}->{'value'} = $input->param('st_' . $name);
             if ( $as_values->{$name}->{'type'} eq 'float' ) {
-                $as_values->{$name}->{'value'} =~ tr/,/./;      # decimal separator for float is '.'
+                # The float values in $input->param('st_' . $name) have been formatted by javascript for display in the HTML page, but we need them in database form again (i.e without thousands separator, with decimal separator '.').
+                my $thousands_sep = ' ';    # default, correct if Koha.Preference("CurrencyFormat") == 'FR'  (i.e. european format like "1 234 567,89")
+                if ( substr($as_values->{$name}->{'value'},-3,1) eq '.' ) {    # american format, like "1,234,567.89"
+                    $thousands_sep = ',';
+                }
+                $as_values->{$name}->{'value'} =~ s/$thousands_sep//g;    # get rid of the thousands separator
+                $as_values->{$name}->{'value'} =~ tr/,/./;      # decimal separator in DB is '.'
             }
             $st->{$name} = $as_values->{$name}->{'value'};
         }
@@ -1546,7 +1570,7 @@ print STDERR "C4::AggregatedStatistics::DBS::eval_form ref(\$dbs_values):",ref($
             foreach my $name (keys %{$dbs_values}) {
                 if ( $dbs_values->{$name}->{'type'} eq 'bool' ) {
 print STDERR "C4::AggregatedStatistics::DBS::eval_form \$dbs_values->{", $name, "}->{'value'}:", $dbs_values->{$name}->{'value'}, ":\n" if $debug;
-                    if ( $dbs_values->{$name}->{'value'} + 0 == 0 ) {
+                    if ( !defined($dbs_values->{$name}->{'value'}) || $dbs_values->{$name}->{'value'} + 0 == 0 ) {
                         $st->{$name} = '0';
                     } else {
                         $st->{$name} = '1';

@@ -665,8 +665,6 @@ Using this account is not recommended because some parts of Koha will not functi
                                                     [% IF ( OPACMySummaryLibrary ) %]
                                                         <td class="branch">
                                                             <span class="tdlabel">Library:</span>
-                                                            [% i.item.homebranch.branchcode %]
-                                                            [% i.branchcode %]
                                                             [% issuedat.branchname_displayed %]
                                                         </td>
                                                     [% END %]

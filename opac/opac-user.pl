@@ -241,10 +241,17 @@ if ($issues){
                 my ( $total , $accts, $numaccts) = GetMemberAccountRecords( $borrowernumber );
                 foreach my $ac (@$accts) {
                     if ( ( defined($ac->{'itemnumber'}) && length($ac->{'itemnumber'}) > 0 ) && 
-                         ( $ac->{'accounttype'} eq 'F' ||
+                         ( $ac->{'accounttype'} eq 'CAN' ||
+                           $ac->{'accounttype'} eq 'CL' ||
+                           $ac->{'accounttype'} =~ /^CL[1-5]$/ ||
+                           $ac->{'accounttype'} eq 'F' ||
+                           $ac->{'accounttype'} eq 'Fernl' ||
                            $ac->{'accounttype'} eq 'FU' ||
                            $ac->{'accounttype'} eq 'L' ||
-                           $ac->{'accounttype'} eq 'Rent' ) ) {
+                           $ac->{'accounttype'} eq 'M' ||
+                           $ac->{'accounttype'} eq 'Manue' ||
+                           $ac->{'accounttype'} eq 'Rent' ||
+                           $ac->{'accounttype'} eq 'Res' ) ) {
                         $itemcharges{$ac->{'itemnumber'}} += $ac->{'amountoutstanding'};
                     }
                 }
