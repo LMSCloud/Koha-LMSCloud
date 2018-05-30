@@ -1055,7 +1055,9 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
     my $coverfound = 0;
     foreach my $tag( $record->field('856') ) {
         if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
-            push @titlecoverurls,$tag->subfield('u');
+            my $link = $tag->subfield('u');
+            $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+            push @titlecoverurls,$link;
             $coverfound = 1;
         }
         elsif ( C4::Context->preference("DivibibEnabled") 
