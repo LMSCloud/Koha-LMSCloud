@@ -50,13 +50,6 @@ BEGIN {
     @EXPORT_OK = qw(passCashRegisterCheck);
 }
 
-    
-# If logged in as a book mobile station, the cash register of the assigned book mobile has to be used;
-# cash registers for book mobile station make no sense and therefore can not be created.
-# The variable %assignedBookMobileBranchcode is constructed to make the mapping from station to mobile faster.
-my %assignedBookMobileBranchcode;
-my $bookMobileBranchcodeMappingInitialized = 0;
-
 
     
 =head1 FUNCTIONS
@@ -122,18 +115,16 @@ returns $branch otherwise.
 
 sub getEffectiveBranchcode {
     my $branch = shift;
-
-    $bookMobileBranchcodeMappingInitialized %= 16;    # repeat checking the branches every 16 times
-    if ( $bookMobileBranchcodeMappingInitialized == 0 ) {
-        %assignedBookMobileBranchcode = ();
-        my $branches = GetBranches();
-        for my $branchi (sort { $branches->{$a}->{branchcode} cmp $branches->{$b}->{branchcode} } keys %$branches) {
-            if ( $branches->{$branchi}->{'mobilebranch'} ) {
-                $assignedBookMobileBranchcode{$branchi} = $branches->{$branchi}->{'mobilebranch'};
-            }
+    
+    # If logged in as a book mobile station, the cash register of the assigned book mobile has to be used;
+    # cash registers for book mobile station make no sense and therefore can not be created.
+    my %assignedBookMobileBranchcode = ();
+    my $branches = GetBranches();
+    for my $branchi (sort { $branches->{$a}->{branchcode} cmp $branches->{$b}->{branchcode} } keys %$branches) {
+        if ( $branches->{$branchi}->{'mobilebranch'} ) {
+            $assignedBookMobileBranchcode{$branchi} = $branches->{$branchi}->{'mobilebranch'};
         }
     }
-    $bookMobileBranchcodeMappingInitialized += 1;
     
     if ( defined($branch) && exists($assignedBookMobileBranchcode{$branch}) ) {
         $branch = $assignedBookMobileBranchcode{$branch};
