@@ -309,6 +309,7 @@ alert them of items that have just become due.
 # They are initially set to default values.
 my $dbh = C4::Context->dbh();
 $dbh->{AutoCommit} = 0;
+$dbh->{RaiseError} = 1;
 
 my $help    = 0;
 my $man     = 0;
@@ -713,10 +714,13 @@ END_SQL
                 my $familyCardOwner = C4::Members::GetFamilyCardId($borrowernumber);
 
                 @emails_to_use = ();
-                my $notice_email =
+                my $notice_email = 
                     C4::Members::GetNoticeEmailAddress($borrowernumber);
+                $notice_email =~ s/^\s+// if ($notice_email);
+                $notice_email =~ s/\s+$// if ($notice_email);
+                
                 if ( !$notice_email && $familyCardOwner && GetMemberAge($borrowernumber) < 18 ) {
-                    C4::Members::GetNoticeEmailAddress($notice_email);
+                    $notice_email = C4::Members::GetNoticeEmailAddress($familyCardOwner);
                 }
                 
                 unless ($nomail) {
@@ -1061,7 +1065,7 @@ END_SQL
                             $print_sent = 1 if $effective_mtt eq 'print';
                         }
                     }
-                    
+                    $dbh->commit() unless $test_mode;
                 }
             }
             $sth->finish;
@@ -1129,6 +1133,9 @@ if ( defined $htmlfilename ) {
 } elsif ( defined $text_filename ) {
   close $fh;
 }
+
+$dbh->{AutoCommit} = 1;
+$dbh->{RaiseError} = 0;
 
 =head1 INTERNAL METHODS
 
