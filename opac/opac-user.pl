@@ -2,6 +2,7 @@
 
 # This file is part of Koha.
 # parts copyright 2010 BibLibre
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # Koha is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by

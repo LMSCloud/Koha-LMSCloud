@@ -5,6 +5,7 @@
 
 # Copyright 2008 - 2009 BibLibre SARL
 # Parts Copyright Catalyst 2010
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #

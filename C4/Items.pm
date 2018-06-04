@@ -2,6 +2,7 @@ package C4::Items;
 
 # Copyright 2007 LibLime, Inc.
 # Parts Copyright Biblibre 2010
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #

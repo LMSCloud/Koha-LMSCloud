@@ -5,6 +5,7 @@
 #by chris@katipo.co.nz
 
 # Copyright 2000-2002 Katipo Communications
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #

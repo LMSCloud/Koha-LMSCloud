@@ -1,6 +1,6 @@
 package C4::CashRegisterManagement;
 
-# Copyright LMCloud GmbH 2016
+# Copyright 2016-2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
