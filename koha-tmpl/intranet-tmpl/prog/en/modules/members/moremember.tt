@@ -477,10 +477,10 @@ function validate1(date) {
             [% SET divibib_issues_show_tab = 1 %]
         [% END %]
         [% IF ( divibib_issues_show_tab ) %]
-            <li><a href="#divibib-issues" id="divibib-issues-tab">Query Onleihen</a></li>
+            <li><a href="#divibib-issues" id="divibib-issues-tab">Onleihe(n)</a></li>
         [% END %]
         [% IF relatives_issues_count %]
-            <li><a href="#relatives-issues" id="relatives-issues-tab">Query Relatives' checkouts</a></li>
+            <li><a href="#relatives-issues" id="relatives-issues-tab">Relatives' checkout(s)</a></li>
         [% END %]
         <li><a href="#finesandcharges">Fines &amp; Charges</a></li>
         <li>

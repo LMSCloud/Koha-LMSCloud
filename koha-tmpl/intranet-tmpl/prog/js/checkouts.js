@@ -464,7 +464,7 @@ $(document).ready(function() {
         if ( ! divibibIssuesTable ) {
             divibibIssuesTable = $("#divibib-issues-table").dataTable({
                 "oLanguage": {
-                    "sEmptyTable": "Patron has nothing checked out.",
+                    "sEmptyTable": "Benutzer hat nichts ausgeliehen",
                 },
                 "bAutoWidth": false,
                 "sDom": "rt",
@@ -547,7 +547,7 @@ $(document).ready(function() {
 
                     $.getJSON( sSource, aoData, function (json) {
                         fnCallback(json);
-                        $("#divibib-issues-tab").text(divibibIssuesTable.dataTable().api().rows().count() + ' Onleihe(n)');
+                        $("#divibib-issues-tab").text(divibibIssuesTable.dataTable().api().rows().count() + ' ' + $("#divibib-issues-tab").text());
                     } );
                 },
             });
@@ -681,7 +681,7 @@ $(document).ready(function() {
 
                     $.getJSON( sSource, aoData, function (json) {
                         fnCallback(json);
-                        $("#relatives-issues-tab").text(relativesIssuesTable.dataTable().api().rows().count() + ' Relatives\' checkout(s)');
+                        $("#relatives-issues-tab").text(relativesIssuesTable.dataTable().api().rows().count() + ' ' + $("#relatives-issues-tab").text());
                     } );
                 },
             });
