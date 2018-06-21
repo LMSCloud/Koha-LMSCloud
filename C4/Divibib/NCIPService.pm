@@ -335,7 +335,7 @@ sub _fetch_divibib_data {
         }
     }
     else {
-        carp "C4::Divibib::NCIPService error calling command: " . $cmd->getXML() . "\nResult: " . $response->error_as_HTML;
+        carp "C4::Divibib::NCIPService error calling command: " . $cmd->getXML() . "\nResult: " . $response->error_as_HTML . "\nResponse-content: " . $response->content;
         $cmd->responseError($response->error_as_HTML, $response->code);
     }
     
@@ -344,7 +344,7 @@ sub _fetch_divibib_data {
     #print $fh "_fetch_divibib_data", Dumper($cmd);
     #print $fh "_fetch_divibib_data", Dumper($response);
       
-    warn "could not retrieve ".$self->{'url'} unless $response->content;
+    warn "could not retrieve ".$self->{'url'} unless ($response->content && $response->is_success && $cmd->getResponseOk());
     return $response;
 }
 
