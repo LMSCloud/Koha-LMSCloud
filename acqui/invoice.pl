@@ -127,7 +127,7 @@ foreach my $order (@$orders) {
             receiving    => 1,
         }
     );
-    my $line = get_infos( $order, $bookseller);
+    my $line = get_infos( $order, $bookseller, $template );
 
     $foot{$$line{gstrate}}{gstrate} = $$line{gstrate};
     $foot{$$line{gstrate}}{gstvalue} += $$line{gstvalue};
@@ -190,6 +190,7 @@ defined( $invoice_files ) && $template->param( files => $invoice_files->GetFiles
 sub get_infos {
     my $order = shift;
     my $bookseller = shift;
+    my $template = shift;
     my $qty = $order->{'quantity'} || 0;
     if ( !defined $order->{quantityreceived} ) {
         $order->{quantityreceived} = 0;
