@@ -3,6 +3,7 @@ package C4::Members;
 # Copyright 2000-2003 Katipo Communications
 # Copyright 2010 BibLibre
 # Parts Copyright 2010 Catalyst IT
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #

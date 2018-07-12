@@ -7,6 +7,7 @@
 
 # Copyright 2000-2002 Katipo Communications
 # Copyright 2013 BibLibre
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #

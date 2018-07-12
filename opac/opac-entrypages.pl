@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2016 LMSCloud GmbH
+# Copyright 2016-2018 LMSCloud GmbH
 #
 # This file is part of Koha.
 #

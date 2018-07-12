@@ -2,6 +2,7 @@
 
 # Copyright Katipo Communications 2002
 # Copyright Koha Development team 2012
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #

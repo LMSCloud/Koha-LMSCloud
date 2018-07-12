@@ -4,6 +4,7 @@
 #written 07/11/08 by john.soros@biblibre.com and paul.poulain@biblibre.com
 
 # Copyright 2008-2009 BibLibre SARL
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #

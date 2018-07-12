@@ -1,5 +1,23 @@
 #!/usr/bin/perl
 
+# Copyright 2018 (C) LMSCLoud GmbH
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Koha; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
 # This script inserts / updates records in DB tables authorised_values and insertinto_marc_subfield_structure
 # that are required for the aggregated statistics type 'DBS'.
 # 'DBS' evaluates the field items.coded_location_qualifier in some sql select statements.

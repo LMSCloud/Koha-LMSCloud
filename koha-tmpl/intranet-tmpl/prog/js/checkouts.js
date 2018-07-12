@@ -640,7 +640,7 @@ $(document).ready(function() {
                         },
                         "sType": "anti-the"
                     },
-                    { "mDataProp": "itemtype" },
+                    { "mDataProp": "itemtype_description" },
                     { "mDataProp": "location" },
                     { "mDataProp": "issuedate_formatted" },
                     { "mDataProp": "branchname" },

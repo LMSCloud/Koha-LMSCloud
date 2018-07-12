@@ -5,6 +5,7 @@
 
 # Copyright 2008 - 2009 BibLibre SARL
 # Parts Copyright Catalyst 2010
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -187,8 +188,8 @@ sub printbasketgrouppdf{
                     $en = $marcrecord->subfield( '345', "b" );
                     $edition = $marcrecord->subfield( '205', 'a' );
                 } elsif ( C4::Context->preference("marcflavour") eq 'MARC21' ) {
-                    $cn = $marcrecord->field("001")->data();
-                    $cna = $marcrecord->field("003")->data();
+                    if ( $marcrecord->field("001") && $marcrecord->field("001")->data() ) { $cn = $marcrecord->field("001")->data(); }
+                    if ( $marcrecord->field("003") && $marcrecord->field("003")->data() ) { $cna = $marcrecord->field("003")->data(); }
                     $en = $marcrecord->subfield( '037', "a" );
                     $edition = $marcrecord->subfield( '250', 'a' );
                 }
