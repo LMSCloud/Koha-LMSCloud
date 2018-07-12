@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: German Koha Translation\n"
 "POT-Creation-Date: 2018-06-04 14:20+0200\n"
-"PO-Revision-Date: 2018-06-04 14:21+0100\n"
+"PO-Revision-Date: 2018-06-08 11:30+0100\n"
 "Last-Translator: Marc <veron@veron.ch>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -20776,7 +20776,7 @@ msgstr "Suchfilter deaktivieren"
 #: intranet-tmpl/prog/en/includes/patron-search.inc:236
 #, c-format
 msgid "Debarred until: "
-msgstr "Benutzersperre:"
+msgstr "Benutzersperre endet:"
 
 #. SCRIPT
 #: intranet-tmpl/prog/en/includes/calendar.inc:2
