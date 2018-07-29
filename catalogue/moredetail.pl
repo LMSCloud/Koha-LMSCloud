@@ -19,26 +19,24 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use C4::Koha;
 use CGI qw ( -utf8 );
 use HTML::Entities;
 use C4::Biblio;
 use C4::Items;
-use C4::Branch;
 use C4::Acquisition;
 use C4::Output;
 use C4::Auth;
 use C4::Serials;
-use C4::Members; # to use GetMember
 use C4::Search;		# enabled_staff_search_views
-use C4::Members qw/GetHideLostItemsPreference/;
-use C4::Reserves qw(GetReservesFromBiblionumber);
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
+use Koha::AuthorisedValues;
+use Koha::Biblios;
 use Koha::DateUtils;
 use Koha::Items;
+use Koha::Patrons;
 
 my $query=new CGI;
 
@@ -53,16 +51,14 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
 );
 
 if($query->cookie("holdfor")){ 
-    my $holdfor_patron = GetMember('borrowernumber' => $query->cookie("holdfor"));
+    my $holdfor_patron = Koha::Patrons->find( $query->cookie("holdfor") );
     $template->param(
         holdfor => $query->cookie("holdfor"),
-        holdfor_surname => $holdfor_patron->{'surname'},
-        holdfor_firstname => $holdfor_patron->{'firstname'},
-        holdfor_cardnumber => $holdfor_patron->{'cardnumber'},
+        holdfor_surname => $holdfor_patron->surname,
+        holdfor_firstname => $holdfor_patron->firstname,
+        holdfor_cardnumber => $holdfor_patron->cardnumber,
     );
 }
-
-my $hidepatronname = C4::Context->preference("HidePatronName");
 
 # get variables
 
@@ -93,14 +89,15 @@ my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
 my $fw = GetFrameworkCode($biblionumber);
 my @all_items= GetItemsInfo($biblionumber);
 my @items;
+my $patron = Koha::Patrons->find( $loggedinuser );
 for my $itm (@all_items) {
     push @items, $itm unless ( $itm->{itemlost} && 
-                               GetHideLostItemsPreference($loggedinuser) &&
+                               $patron->category->hidelostitems &&
                                !$showallitems && 
                                ($itemnumber != $itm->{itemnumber}));
 }
 
-my $record=GetMarcBiblio($biblionumber);
+my $record=GetMarcBiblio({ biblionumber => $biblionumber });
 
 my $hostrecords;
 # adding items linked via host biblios
@@ -119,12 +116,16 @@ $data->{'count'}=$totalcount;
 $data->{'showncount'}=$showncount;
 $data->{'hiddencount'}=$hiddencount;  # can be zero
 
-my $ccodes= GetKohaAuthorisedValues('items.ccode',$fw);
-my $copynumbers = GetKohaAuthorisedValues('items.copynumber',$fw);
-my $itemtypes = GetItemTypes;
+my $ccodes =
+  { map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $fw, kohafield => 'items.ccode' } ) };
+my $copynumbers =
+  { map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $fw, kohafield => 'items.copynumber' } ) };
 
-$data->{'itemtypename'} = $itemtypes->{$data->{'itemtype'}}->{'translated_description'};
-$data->{'rentalcharge'} = sprintf( "%.2f", $data->{'rentalcharge'} );
+my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
+
+$data->{'itemtypename'} = $itemtypes->{ $data->{'itemtype'} }->{'translated_description'}
+  if $data->{itemtype} && exists $itemtypes->{ $data->{itemtype} };
+$data->{'rentalcharge'} = sprintf( "%.2f", $data->{'rentalcharge'} || 0); # Price formatting should be done template-side
 foreach ( keys %{$data} ) {
     $template->param( "$_" => defined $data->{$_} ? $data->{$_} : '' );
 }
@@ -132,9 +133,9 @@ foreach ( keys %{$data} ) {
 ($itemnumber) and @items = (grep {$_->{'itemnumber'} == $itemnumber} @items);
 foreach my $item (@items){
     $item->{object} = Koha::Items->find( $item->{itemnumber} );
-    $item->{'collection'}              = $ccodes->{ $item->{ccode} } if ($ccodes);
-    $item->{'itype'}                   = $itemtypes->{ $item->{'itype'} }->{'translated_description'};
-    $item->{'replacementprice'}        = sprintf( "%.2f", $item->{'replacementprice'} );
+    $item->{'collection'}              = $ccodes->{ $item->{ccode} } if $ccodes && $item->{ccode} && exists $ccodes->{ $item->{ccode} };
+    $item->{'itype'}                   = $itemtypes->{ $item->{'itype'} }->{'translated_description'} if exists $itemtypes->{ $item->{'itype'} };
+    $item->{'replacementprice'}        = sprintf( "%.2f", $item->{'replacementprice'} || 0 ); # Price formatting should be done template-side
     if ( defined $item->{'copynumber'} ) {
         $item->{'displaycopy'} = 1;
         if ( defined $copynumbers->{ $item->{'copynumber'} } ) {
@@ -157,8 +158,8 @@ foreach my $item (@items){
     $item->{'orderdate'}               = $order->{'entrydate'};
     if ($item->{'basketno'}){
 	    my $basket = GetBasket($item->{'basketno'});
-        my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $basket->{booksellerid} });
-	    $item->{'vendor'} = $bookseller->{'name'};
+        my $bookseller = Koha::Acquisition::Booksellers->find( $basket->{booksellerid} );
+        $item->{'vendor'} = $bookseller->name;
     }
     $item->{'invoiceid'}               = $order->{'invoiceid'};
     if($item->{invoiceid}) {
@@ -178,32 +179,29 @@ foreach my $item (@items){
                 $item->{'nomod'}=1;
         }
     }
-    $item->{'homebranchname'} = GetBranchName($item->{'homebranch'});
-    $item->{'holdingbranchname'} = GetBranchName($item->{'holdingbranch'});
     if ($item->{'datedue'}) {
         $item->{'issue'}= 1;
     } else {
         $item->{'issue'}= 0;
     }
 
-    unless ($hidepatronname) {
-        if ( $item->{'borrowernumber'} ) {
-            my $curr_borrower = GetMember('borrowernumber' => $item->{'borrowernumber'} );
-            $item->{borrowerfirstname} = $curr_borrower->{'firstname'};
-            $item->{borrowersurname} = $curr_borrower->{'surname'};
-        }
+    if ( $item->{'borrowernumber'} ) {
+        my $curr_borrower = Koha::Patrons->find( $item->{borrowernumber} );
+        $item->{patron} = $curr_borrower;
     }
-
 }
 
-if ( my $lost_av = GetAuthValCode('items.itemlost', $fw) ) {
-    $template->param( itemlostloop => GetAuthorisedValues( $lost_av ) );
+my $mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $fw, kohafield => 'items.itemlost', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
+if ( $mss->count ) {
+    $template->param( itemlostloop => GetAuthorisedValues( $mss->next->authorised_value ) );
 }
-if ( my $damaged_av = GetAuthValCode('items.damaged', $fw) ) {
-    $template->param( itemdamagedloop => GetAuthorisedValues( $damaged_av ) );
+$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $fw, kohafield => 'items.damaged', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
+if ( $mss->count ) {
+    $template->param( itemdamagedloop => GetAuthorisedValues( $mss->next->authorised_value ) );
 }
-if ( my $withdrawn_av = GetAuthValCode('items.withdrawn', $fw) ) {
-    $template->param( itemwithdrawnloop => GetAuthorisedValues( $withdrawn_av ) );
+$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $fw, kohafield => 'items.withdrawn', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
+if ( $mss->count ) {
+    $template->param( itemwithdrawnloop => GetAuthorisedValues( $mss->next->authorised_value) );
 }
 
 $template->param(count => $data->{'count'},
@@ -221,7 +219,6 @@ $template->param(
     itemnumber          => $itemnumber,
     z3950_search_params => C4::Search::z3950_search_args(GetBiblioData($biblionumber)),
     subtitle            => $subtitle,
-    hidepatronname      => $hidepatronname,
 );
 $template->param(ONLY_ONE => 1) if ( $itemnumber && $showncount != @items );
 $template->{'VARS'}->{'searchid'} = $query->param('searchid');
@@ -254,9 +251,9 @@ $template->param (countorders => $count_orders_using_biblio);
 my $count_deletedorders_using_biblio = scalar @deletedorders_using_biblio ;
 $template->param (countdeletedorders => $count_deletedorders_using_biblio);
 
-my $holds = GetReservesFromBiblionumber({ biblionumber => $biblionumber, all_dates => 1 });
-my $holdcount = scalar( @$holds );
-$template->param( holdcount => scalar ( @$holds ) );
+my $biblio = Koha::Biblios->find( $biblionumber );
+my $holds = $biblio->holds;
+$template->param( holdcount => $holds->count );
 
 output_html_with_http_headers $query, $cookie, $template->output;
 

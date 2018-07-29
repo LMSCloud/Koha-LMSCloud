@@ -3,16 +3,14 @@
 use Modern::Perl;
 use C4::Stats;
 
-use Test::More tests => 17;
+use Test::More tests => 19;
 
 BEGIN {
     use_ok('C4::Stats');
 }
 can_ok(
     'C4::Stats',
-    qw(UpdateStats
-    TotalPaid
-      )
+    qw(UpdateStats)
 );
 
 #Start transaction
@@ -33,6 +31,7 @@ my $params = {
               amount =>5.1,
               other => "bla",
               itemtype => "BK",
+              location => "LOC",
               accountno => 51,
               ccode => "CODE",
 };
@@ -105,6 +104,7 @@ $params = {
               amount =>5.1,
               other => "bla",
               itemtype => "BK",
+              location => "LOC",
               accountno => 51,
               ccode => "CODE",
               type => "return"
@@ -113,20 +113,55 @@ UpdateStats ($params);
 my $sth = $dbh->prepare("SELECT * FROM statistics");
 $sth->execute();
 my $line = ${ $sth->fetchall_arrayref( {} ) }[0];
-is ($params-> {branch},         $line->{branch},         "UpdateStats save branch param in branch field of statistics table");
-is ($params-> {type},           $line->{type},           "UpdateStats save type param in type field of statistics table");
-is ($params-> {borrowernumber}, $line->{borrowernumber}, "UpdateStats save borrowernumber param in borrowernumber field of statistics table");
-cmp_ok($params-> {amount},'==', $line->{value},          "UpdateStats save amount param in value field of statistics table");
-is ($params-> {other},          $line->{other},          "UpdateStats save other param in other field of statistics table");
-is ($params-> {itemtype},       $line->{itemtype},       "UpdateStats save itemtype param in itemtype field of statistics table");
-is ($params-> {accountno},      $line->{proccode},       "UpdateStats save accountno param in proccode field of statistics table");
-is ($params-> {ccode},          $line->{ccode},          "UpdateStats save ccode param in ccode field of statistics table");
+is ($params->{branch},         $line->{branch},         "UpdateStats save branch param in branch field of statistics table");
+is ($params->{type},           $line->{type},           "UpdateStats save type param in type field of statistics table");
+is ($params->{borrowernumber}, $line->{borrowernumber}, "UpdateStats save borrowernumber param in borrowernumber field of statistics table");
+cmp_ok($params->{amount},'==', $line->{value},          "UpdateStats save amount param in value field of statistics table");
+is ($params->{other},          $line->{other},          "UpdateStats save other param in other field of statistics table");
+is ($params->{itemtype},       $line->{itemtype},       "UpdateStats save itemtype param in itemtype field of statistics table");
+is ($params->{location},       $line->{location},       "UpdateStats save location param in location field of statistics table");
+is ($params->{accountno},      $line->{proccode},       "UpdateStats save accountno param in proccode field of statistics table");
+is ($params->{ccode},          $line->{ccode},          "UpdateStats save ccode param in ccode field of statistics table");
 
-#
-# Test TotalPaid
-#
+$dbh->do(q|DELETE FROM statistics|);
+$params = {
+    branch         => "BRA",
+    itemnumber     => 31,
+    borrowernumber => 5,
+    amount         => 5.1,
+    other          => "bla",
+    itemtype       => "BK",
+    accountno      => 51,
+    ccode          => "CODE",
+    type           => "return"
+};
+UpdateStats($params);
+$sth = $dbh->prepare("SELECT * FROM statistics");
+$sth->execute();
+$line = ${ $sth->fetchall_arrayref( {} ) }[0];
+is( $line->{location}, undef,
+    "UpdateStats sets location to NULL if no location is passed in." );
 
-is (TotalPaid (),undef,"TotalPaid returns undef if no params are given");
+$dbh->do(q|DELETE FROM statistics|);
+$params = {
+    branch         => "BRA",
+    itemnumber     => 31,
+    borrowernumber => 5,
+    amount         => 5.1,
+    other          => "bla",
+    itemtype       => "BK",
+    location       => undef,
+    accountno      => 51,
+    ccode          => "CODE",
+    type           => "return"
+};
+UpdateStats($params);
+$sth = $dbh->prepare("SELECT * FROM statistics");
+$sth->execute();
+$line = ${ $sth->fetchall_arrayref( {} ) }[0];
+is( $line->{location}, undef,
+    "UpdateStats sets location to NULL if undef is passed in." );
+
 # More tests to write!
 
 #End transaction

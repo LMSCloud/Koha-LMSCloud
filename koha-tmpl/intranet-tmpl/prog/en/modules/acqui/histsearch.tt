@@ -1,40 +1,13 @@
+[% USE Asset %]
 [% USE KohaDates %]
 [% USE ColumnsSettings %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; [% IF ( order_loop ) %]Orders search &rsaquo; Search results[% ELSE %]Order search[% END %]</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-[% INCLUDE 'datatables.inc' %]
-[% INCLUDE 'columns_settings.inc' %]
-
-<script type="text/javascript" src="[% interface %]/js/autocomplete/patrons.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-var MSG_REMOVE_PATRON = _("Remove");
- $(document).ready(function() {
-    var columns_settings = [% ColumnsSettings.GetColumns( 'acqui', 'histsearch', 'histsearcht', 'json' ) %];
-    KohaTable("#histsearcht", {
-        "aoColumnDefs": [
-            { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-            { "sType": "title-string", "aTargets" : [ "title-string" ] }
-        ],
-        "sPaginationType": "four_button"
-    }, columns_settings );
-
-    [% UNLESS order_loop %]
-        patron_autocomplete({
-            patron_container: $("#basket_creators"),
-            input_autocomplete: $("#find_patron"),
-            patron_input_name: 'created_by',
-            field_to_retrieve: 'borrowernumber'
-        });
-    [% END %]
-});
-
- //]]>
-</script>
 </head>
+
 <body id="acq_histsearch" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
@@ -190,7 +163,7 @@ var MSG_REMOVE_PATRON = _("Remove");
                     <td>[% order.authorisedbyname %]</td>
                     <td>
                         [% IF ( order.basketgroupid ) %]
-                            [% order.groupname %] (<a href="basketgroup.pl?booksellerid=[% order.id %]">[% order.basketgroupid %]</a>)
+                            [% order.groupname %] (<a href="basketgroup.pl?op=add&booksellerid=[% order.id %]&basketgroupid=[% order.basketgroupid %]">[% order.basketgroupid %]</a>)
                         [% ELSE %]
                             &nbsp;
                         [% END %]
@@ -233,4 +206,35 @@ var MSG_REMOVE_PATRON = _("Remove");
 [% INCLUDE 'acquisitions-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+[% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% Asset.js("js/autocomplete/patrons.js") %]
+    <script type="text/javascript">
+        var MSG_REMOVE_PATRON = _("Remove");
+        $(document).ready(function() {
+            var columns_settings = [% ColumnsSettings.GetColumns( 'acqui', 'histsearch', 'histsearcht', 'json' ) %];
+            KohaTable("histsearcht", {
+                "aoColumnDefs": [
+                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                ],
+                "sPaginationType": "four_button"
+            }, columns_settings );
+
+            [% UNLESS order_loop %]
+                patron_autocomplete({
+                    patron_container: $("#basket_creators"),
+                    input_autocomplete: $("#find_patron"),
+                    patron_input_name: 'created_by',
+                    field_to_retrieve: 'borrowernumber'
+                });
+            [% END %]
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -24,14 +24,45 @@ use autouse 'Data::Dumper' => qw(Dumper);
 use Text::Wrap qw(wrap);
 #use Font::TTFMetrics;
 
-use C4::Creators::Lib qw(get_font_types);
+use C4::Creators::Lib qw(get_font_types get_unit_values);
 use C4::Creators::PDF qw(StrWidth);
 use C4::Patroncards::Lib qw(unpack_UTF8 text_alignment leading box get_borrower_attributes);
 
+=head1 NAME
+
+C4::Patroncards::Patroncard
+
+=head1 SYNOPSIS
+
+    use C4::Patroncards::Patroncard;
+
+    # Please extend
+
+
+=head1 DESCRIPTION
+
+   This module allows you to ...
+
+=head1 FUNCTIONS
+
+=head2 new
+
+=cut
 
 sub new {
     my ($invocant, %params) = @_;
     my $type = ref($invocant) || $invocant;
+
+    my $units = get_unit_values();
+    my $unitvalue = 1;
+    my $unitdesc = '';
+    foreach my $un (@$units){
+        if ($un->{'type'} eq $params{'layout'}->{'units'}) {
+            $unitvalue = $un->{'value'};
+            $unitdesc = $un->{'desc'};
+        }
+    }
+
     my $self = {
         batch_id                => $params{'batch_id'},
         #card_number             => $params{'card_number'},
@@ -41,6 +72,8 @@ sub new {
         height                  => $params{'height'},
         width                   => $params{'width'},
         layout                  => $params{'layout'},
+        unitvalue               => $unitvalue,
+        unitdesc                => $unitdesc,
         text_wrap_cols          => $params{'text_wrap_cols'},
         barcode_height_scale    => $params{'layout'}->{'barcode'}[0]->{'height_scale'} || 0.01,
         barcode_width_scale     => $params{'layout'}->{'barcode'}[0]->{'width_scale'} || 0.8,
@@ -48,6 +81,10 @@ sub new {
     bless ($self, $type);
     return $self;
 }
+
+=head2 draw_barcode
+
+=cut
 
 sub draw_barcode {
     my ($self, $pdf) = @_;
@@ -66,9 +103,14 @@ sub draw_barcode {
     );
 }
 
+=head2 draw_guide_box
+
+=cut
+
 sub draw_guide_box {
     my ($self, $pdf) = @_;
     warn sprintf('No pdf object passed in.') and return -1 if !$pdf;
+
     my $obj_stream = "q\n";                            # save the graphic state
     $obj_stream .= "0.5 w\n";                          # border line width
     $obj_stream .= "1.0 0.0 0.0  RG\n";                # border color red
@@ -79,11 +121,100 @@ sub draw_guide_box {
     $pdf->Add($obj_stream);
 }
 
+=head2 draw_guide_grid
+
+    $patron_card->draw_guide_grid($pdf)
+
+Adds a grid to the PDF output ($pdf) to support layout design
+
+=cut
+
+sub draw_guide_grid {
+    my ($self, $pdf) = @_;
+    warn sprintf('No pdf object passed in.') and return -1 if !$pdf;
+
+    # Set up the grid in user defined units.
+    # Each 5th and 10th line get separate values
+
+    my $obj_stream = "q\n";   # save the graphic state
+    my $x = $self->{'llx'};
+    my $y = $self->{'lly'};
+
+    my $cnt = 0;
+    for ( $x = $self->{'llx'}/$self->{'unitvalue'}; $x <= ($self->{'llx'} + $self->{'width'})/$self->{'unitvalue'}; $x++) {
+        my $xx = $x*$self->{'unitvalue'};
+        my $yy = $y + $self->{'height'};
+        if ( ($cnt % 10) && ! ($cnt % 5) ) {
+            $obj_stream .= "0.0 1.0 0.0  RG\n";
+            $obj_stream .= "0 w\n";
+        } elsif ( $cnt % 5 ) {
+            $obj_stream .= "0.0 1.0 1.0  RG\n";
+            $obj_stream .= "0 w\n";
+        } else {
+            $obj_stream .= "0.0 0.0 1.0  RG\n";
+            $obj_stream .= "0 w\n";
+        }
+        $cnt ++;
+
+        $obj_stream .= "$xx $y m\n";
+        $obj_stream .= "$xx $yy l\n";
+
+        $obj_stream .= "s\n";
+    }
+
+    $x = $self->{'llx'};
+    $y = $self->{'lly'};
+    $cnt = 0;
+    for ( $y = $self->{'lly'}/$self->{'unitvalue'}; $y <= ($self->{'lly'} + $self->{'height'})/$self->{'unitvalue'}; $y++) {
+
+        my $xx = $x + $self->{'width'};
+        my $yy = $y*$self->{'unitvalue'};
+
+        if ( ($cnt % 10) && ! ($cnt % 5) ) {
+            $obj_stream .= "0.0 1.0 0.0  RG\n";
+            $obj_stream .= "0 w\n";
+        } elsif ( $cnt % 5 ) {
+            $obj_stream .= "0.0 1.0 1.0  RG\n";
+            $obj_stream .= "0 w\n";
+        } else {
+            $obj_stream .= "0.0 0.0 1.0  RG\n";
+            $obj_stream .= "0 w\n";
+        }
+        $cnt ++;
+
+        $obj_stream .= "$x $yy m\n";
+        $obj_stream .= "$xx $yy l\n";
+        $obj_stream .= "s\n";
+    }
+
+    $obj_stream .= "Q\n"; # restore the graphic state
+    $pdf->Add($obj_stream);
+
+    # Add info about units
+    my $strbottom = "0/0 $self->{'unitdesc'}";
+    my $strtop = sprintf('%.2f', $self->{'width'}/$self->{'unitvalue'}) .'/'. sprintf('%.2f', $self->{'height'}/$self->{'unitvalue'});
+    my $font_size = 6;
+    $pdf->Font( 'Courier' );
+    $pdf->FontSize( $font_size );
+    my $strtop_len = $pdf->StrWidth($strtop) * 1.5;
+    $pdf->Text( $self->{'llx'} + 2, $self->{'lly'} + 2, $strbottom );
+    $pdf->Text( $self->{'llx'} + $self->{'width'} - $strtop_len , $self->{'lly'} + $self->{'height'} - $font_size , $strtop );
+}
+
+=head2 draw_text
+
+    $patron_card->draw_text($pdf)
+
+Draws text to PDF output ($pdf)
+
+=cut
+
 sub draw_text {
     my ($self, $pdf, %params) = @_;
     warn sprintf('No pdf object passed in.') and return -1 if !$pdf;
     my @card_text = ();
     return unless (ref($self->{'layout'}->{'text'}) eq 'ARRAY'); # just in case there is not text
+
     my $text = [@{$self->{'layout'}->{'text'}}]; # make a copy of the arrayref *not* simply a pointer
     while (scalar @$text) {
         my $line = shift @$text;
@@ -105,8 +236,8 @@ sub draw_text {
             $line = join(' ',@orig_line);
         }
         my $text_attribs = shift @$text;
-        my $origin_llx = $self->{'llx'} + $text_attribs->{'llx'};
-        my $origin_lly = $self->{'lly'} + $text_attribs->{'lly'};
+        my $origin_llx = $self->{'llx'} + $text_attribs->{'llx'} * $self->{'unitvalue'};
+        my $origin_lly = $self->{'lly'} + $text_attribs->{'lly'} * $self->{'unitvalue'};
         my $Tx = 0;     # final text llx
         my $Ty = $origin_lly;   # final text lly
         my $Tw = 0;     # final text word spacing. See http://www.adobe.com/devnet/pdf/pdf_reference.html ISO 32000-1
@@ -144,8 +275,8 @@ sub draw_text {
                     $string_width = C4::Creators::PDF->StrWidth($line, $text_attribs->{'font'}, $text_attribs->{'font_size'});
                     #$font_units_width = $m->string_width($line);
                     #$string_width = ($font_units_width * $text_attribs->{'font_size'}) / $units_per_em;
-                    if (($string_width + $text_attribs->{'llx'}) < $self->{'width'}) {
-                        ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $text_attribs->{'llx'}, $string_width, $line, $text_attribs->{'text_alignment'});
+                    if ( $string_width + ( $text_attribs->{'llx'} * $self->{'unitvalue'} ) < $self->{'width'}) {
+                        ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $text_attribs->{'llx'} * $self->{'unitvalue'}, $string_width, $line, $text_attribs->{'text_alignment'});
                         $line =~ s/^\s+//g;     # strip naughty leading spaces
                         push @lines, {line=> $line, Tx => $Tx, Ty => $Ty, Tw => $Tw};
                         last WRAP_LINES;
@@ -154,7 +285,7 @@ sub draw_text {
             }
         }
         else {
-            ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $text_attribs->{'llx'}, $string_width, $line, $text_attribs->{'text_alignment'});
+            ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $text_attribs->{'llx'} * $self->{'unitvalue'}, $string_width, $line, $text_attribs->{'text_alignment'});
             $line =~ s/^\s+//g;     # strip naughty leading spaces
             push @lines, {line=> $line, Tx => $Tx, Ty => $Ty, Tw => $Tw};
         }
@@ -171,7 +302,7 @@ sub draw_text {
             else {
                 $box_height += $text_attribs->{'font_size'};
             }
-            box ($origin_llx, $box_lly, $self->{'width'} - $text_attribs->{'llx'}, $box_height, $pdf);
+            box ($origin_llx, $box_lly, $self->{'width'} - ( $text_attribs->{'llx'} * $self->{'unitvalue'} ), $box_height, $pdf);
         }
         $pdf->Font($text_attribs->{'font'});
         $pdf->FontSize($text_attribs->{'font_size'});
@@ -181,15 +312,24 @@ sub draw_text {
     }
 }
 
+=head2 draw_image
+
+    $patron_card->draw_image($pdf)
+
+Draws images to PDF output ($pdf)
+
+=cut
+
 sub draw_image {
     my ($self, $pdf) = @_;
     warn sprintf('No pdf object passed in.') and return -1 if !$pdf;
     my $images = $self->{'layout'}->{'images'};
+
     PROCESS_IMAGES:
     foreach my $image (keys %$images) {
         next PROCESS_IMAGES if $images->{$image}->{'data_source'}->[0]->{'image_source'} eq 'none';
-        my $Tx = $self->{'llx'} + $images->{$image}->{'Tx'};
-        my $Ty = $self->{'lly'} + $images->{$image}->{'Ty'};
+        my $Tx = $self->{'llx'} + $images->{$image}->{'Tx'} * $self->{'unitvalue'};
+        my $Ty = $self->{'lly'} + $images->{$image}->{'Ty'} * $self->{'unitvalue'};
         warn sprintf('No image passed in.') and next if !$images->{$image}->{'data'};
         my $intName = $pdf->AltJpeg($images->{$image}->{'data'},$images->{$image}->{'Sx'}, $images->{$image}->{'Sy'}, 1, $images->{$image}->{'alt'}->{'data'},$images->{$image}->{'alt'}->{'Sx'}, $images->{$image}->{'alt'}->{'Sy'}, 1);
         my $obj_stream = "q\n";
@@ -201,9 +341,18 @@ sub draw_image {
     }
 }
 
+=head2 draw_barcode
+
+    $patron_card->draw_barcode($pdf)
+
+Draws a barcode to PDF output ($pdf)
+
+=cut
+
 sub _draw_barcode {   # this is cut-and-paste from Label.pm because there is no common place for it atm...
     my $self = shift;
     my %params = @_;
+
     my $x_scale_factor = 1;
     my $num_of_chars = length($params{'barcode_data'});
     my $tot_bar_length = 0;
@@ -223,8 +372,8 @@ sub _draw_barcode {   # this is cut-and-paste from Label.pm because there is no 
         }
         eval {
             PDF::Reuse::Barcode::Code39(
-                x                   => $params{'llx'},
-                y                   => $params{'lly'},
+                x                   => $params{'llx'} * $self->{'unitvalue'},
+                y                   => $params{'lly'} * $self->{'unitvalue'},
                 value               => "*$params{barcode_data}*",
                 xSize               => $x_scale_factor,
                 ySize               => $params{'y_scale_factor'},
@@ -243,8 +392,8 @@ sub _draw_barcode {   # this is cut-and-paste from Label.pm because there is no 
         $x_scale_factor = ($params{'width'} / $tot_bar_length) * 0.9;
         eval {
             PDF::Reuse::Barcode::COOP2of5(
-                x                   => $params{'llx'},
-                y                   => $params{'lly'},
+                x                   => $params{'llx'}* $self->{'unitvalue'},
+                y                   => $params{'lly'}* $self->{'unitvalue'},
                 value               => "*$params{barcode_data}*",
                 xSize               => $x_scale_factor,
                 ySize               => $params{'y_scale_factor'},
@@ -261,8 +410,8 @@ sub _draw_barcode {   # this is cut-and-paste from Label.pm because there is no 
         $x_scale_factor = ($params{'width'} / $tot_bar_length) * 0.9;
         eval {
             PDF::Reuse::Barcode::Industrial2of5(
-                x                   => $params{'llx'},
-                y                   => $params{'lly'},
+                x                   => $params{'llx'}* $self->{'unitvalue'} ,
+                y                   => $params{'lly'}* $self->{'unitvalue'},
                 value               => "*$params{barcode_data}*",
                 xSize               => $x_scale_factor,
                 ySize               => $params{'y_scale_factor'},
@@ -283,6 +432,3 @@ __END__
 Chris Nighswonger <cnighswonger AT foundations DOT edu>
 
 =cut
-
-
-

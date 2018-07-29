@@ -21,6 +21,7 @@ use Modern::Perl;
 
 use Carp;
 use Data::Dumper;
+use List::MoreUtils qw( uniq );
 
 use C4::Log qw( logaction );
 use C4::Stats qw( UpdateStats );
@@ -32,7 +33,9 @@ use Koha::Account::Offsets;
 use Koha::DateUtils qw( dt_from_string );
 
 =head1 NAME
+
 Koha::Accounts - Module for managing payments and fees for patrons
+
 =cut
 
 sub new {
@@ -44,7 +47,9 @@ sub new {
 }
 
 =head2 pay
+
 This method allows payments to be made against fees/fines
+
 Koha::Account->new( { patron_id => $borrowernumber } )->pay(
     {
         amount      => $amount,
@@ -57,6 +62,7 @@ Koha::Account->new( { patron_id => $borrowernumber } )->pay(
         offset_type => $offset_type,    # offset type code
     }
 );
+
 =cut
 
 sub pay {
@@ -69,6 +75,7 @@ sub pay {
     my $library_id   = $params->{library_id};
     my $lines        = $params->{lines};
     my $type         = $params->{type} || 'payment';
+    my $payment_type = $params->{payment_type} || undef;
     my $account_type = $params->{account_type};
     my $offset_type  = $params->{offset_type} || $type eq 'writeoff' ? 'Writeoff' : $type eq 'cancelfee' ? 'Cancel Fee' : 'Payment';
 
@@ -228,6 +235,7 @@ sub pay {
             amount            => 0 - $amount,
             description       => $desc,
             accounttype       => $account_type,
+            payment_type      => $payment_type,
             amountoutstanding => 0 - $balance_remaining,
             manager_id        => $manager_id,
             note              => $note,
@@ -239,7 +247,7 @@ sub pay {
         $o->credit_id( $payment->id() );
         $o->store();
     }
-
+    
     # If it is not SIP it is a cash payment and if cash registers are activated as too,
     # the cash payment need to registered for the opened cash register as cash receipt
     if ( !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
@@ -279,8 +287,11 @@ sub pay {
 }
 
 =head3 balance
+
 my $balance = $self->balance
+
 Return the balance (sum of amountoutstanding columns)
+
 =cut
 
 sub balance {
@@ -294,13 +305,85 @@ sub balance {
             as => ['total_amountoutstanding'],
         }
     );
-    return $fines->count
-      ? $fines->next->get_column('total_amountoutstanding')
+
+    return ( $fines->count )
+      ? $fines->next->get_column('total_amountoutstanding') + 0
+      : 0;
+}
+
+=head3 outstanding_debits
+
+my $lines = Koha::Account->new({ patron_id => $patron_id })->outstanding_debits;
+
+=cut
+
+sub outstanding_debits {
+    my ($self) = @_;
+
+    my $lines = Koha::Account::Lines->search(
+        {
+            borrowernumber    => $self->{patron_id},
+            amountoutstanding => { '>' => 0 }
+        }
+    );
+
+    return $lines;
+}
+
+=head3 non_issues_charges
+
+my $non_issues_charges = $self->non_issues_charges
+
+Calculates amount immediately owing by the patron - non-issue charges.
+
+Charges exempt from non-issue are:
+* Res (holds) if HoldsInNoissuesCharge syspref is set to false
+* Rent (rental) if RentalsInNoissuesCharge syspref is set to false
+* Manual invoices if ManInvInNoissuesCharge syspref is set to false
+
+=cut
+
+sub non_issues_charges {
+    my ($self) = @_;
+
+    # FIXME REMOVE And add a warning in the about page + update DB if length(MANUAL_INV) > 5
+    my $ACCOUNT_TYPE_LENGTH = 5;    # this is plain ridiculous...
+
+    my @not_fines;
+    push @not_fines, 'Res'
+      unless C4::Context->preference('HoldsInNoissuesCharge');
+    push @not_fines, 'Rent'
+      unless C4::Context->preference('RentalsInNoissuesCharge');
+    unless ( C4::Context->preference('ManInvInNoissuesCharge') ) {
+        my $dbh = C4::Context->dbh;
+        push @not_fines,
+          @{
+            $dbh->selectcol_arrayref(q|
+                SELECT authorised_value FROM authorised_values WHERE category = 'MANUAL_INV'
+            |)
+          };
+    }
+    @not_fines = map { substr( $_, 0, $ACCOUNT_TYPE_LENGTH ) } uniq(@not_fines);
+
+    my $non_issues_charges = Koha::Account::Lines->search(
+        {
+            borrowernumber => $self->{patron_id},
+            accounttype    => { -not_in => \@not_fines }
+        },
+        {
+            select => [ { sum => 'amountoutstanding' } ],
+            as     => ['non_issues_charges'],
+        }
+    );
+    return $non_issues_charges->count
+      ? $non_issues_charges->next->get_column('non_issues_charges') + 0
       : 0;
 }
 
 1;
 
 =head1 AUTHOR
+
 Kyle M Hall <kyle.m.hall@gmail.com>
+
 =cut

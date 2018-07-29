@@ -1,74 +1,9 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Serials &rsaquo; Numbering patterns</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-
-function confirmDelete() {
-  return confirm(_("Are you sure you want to delete this numbering pattern?"));
-}
-
-[% IF (new or modify) %]
-  function testPattern() {
-      var frequencyid = $("#frequency").val();
-      var firstacquidate = $("#firstacquidate").val();
-      var error = 0;
-      var error_msg = "";
-      if(frequencyid == undefined || frequencyid == "") {
-          error_msg += _("- Frequency is not defined") + "\n";
-          error ++;
-      }
-      if(firstacquidate == undefined || firstacquidate == "") {
-          error_msg += _("- First publication date is not defined") + "\n";
-          error ++;
-      }
-
-      if(error){
-          alert(_("Cannot test prediction pattern for the following reason(s):") + "\n\n"
-              + error_msg);
-          return false;
-      }
-
-      var ajaxData = {
-          'custompattern': true,
-      };
-      var ajaxParams = [
-          'firstacquidate', 'subtype', 'sublength', 'frequency', 'numberingmethod',
-          'lastvalue1', 'lastvalue2', 'lastvalue3', 'add1', 'add2', 'add3',
-          'every1', 'every2', 'every3', 'innerloop1', 'innerloop2', 'innerloop3',
-          'setto1', 'setto2', 'setto3', 'numbering1', 'numbering2', 'numbering3',
-          'whenmorethan1', 'whenmorethan2', 'whenmorethan3', 'locale'
-      ];
-      for(i in ajaxParams) {
-          var param = ajaxParams[i];
-          var value = $("#"+param).val();
-          if(value.length > 0)
-              ajaxData[param] = value;
-      }
-
-      $.ajax({
-          url: "/cgi-bin/koha/serials/showpredictionpattern.pl",
-          data: ajaxData,
-          async: false,
-          dataType: "text",
-          success: function(data) {
-              $("#predictionpattern").html(data);
-          }
-      });
-  }
-[% END %]
-
-function show_blocking_subs() {
-    $("#blocking_subs").show();
-}
-$(document).ready(function(){
-    $(".delete_pattern").on("click",function(){
-        return confirmDelete();
-    });
-});
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="ser_subscription_numberpatterns" class="ser">
@@ -79,6 +14,11 @@ $(document).ready(function(){
     <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo;
     <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a> &rsaquo;
     <a href="/cgi-bin/koha/serials/subscription-numberpatterns.pl">Numbering patterns</a>
+    [% IF ( new ) %]
+        &rsaquo; New numbering pattern
+    [% ELSIF ( modify ) %]
+        &rsaquo; Modifying numbering pattern '[% label %]'
+    [% END %]
 </div>
 
 <div id="doc3" class="yui-t2">
@@ -180,15 +120,30 @@ $(document).ready(function(){
                         [% ELSE %]
                             <option value="dayname">Name of day</option>
                         [% END %]
+                        [% IF (value == "dayabrv") %]
+                            <option selected="selected" value="dayabrv">Name of day (abbreviated)</option>
+                        [% ELSE %]
+                            <option value="dayabrv">Name of day (abbreviated)</option>
+                        [% END %]
                         [% IF (value == "monthname") %]
                             <option selected="selected" value="monthname">Name of month</option>
                         [% ELSE %]
                             <option value="monthname">Name of month</option>
                         [% END %]
+                        [% IF (value == "monthabrv") %]
+                            <option selected="selected" value="monthabrv">Name of month (abbreviated)</option>
+                        [% ELSE %]
+                            <option value="monthabrv">Name of month (abbreviated)</option>
+                        [% END %]
                         [% IF (value == "season") %]
                             <option selected="selected" value="season">Name of season</option>
                         [% ELSE %]
                             <option value="season">Name of season</option>
+                        [% END %]
+                        [% IF (value == "seasonabrv") %]
+                            <option selected="selected" value="seasonabrv">Name of season (abbreviated)</option>
+                        [% ELSE %]
+                            <option value="seasonabrv">Name of season (abbreviated)</option>
                         [% END %]
                       </select>
                     [% END %]
@@ -201,8 +156,8 @@ $(document).ready(function(){
               </table>
             </fieldset>
             <fieldset class="action">
-              <input type="submit" value="Save" />
-              <input type="reset" value="Reset" />
+              <button type="submit" class="btn btn-default btn-sm">Save</button>
+              <button type="reset" class="btn btn-default btn-sm">Reset</button>
               <a class="cancel" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl">Cancel</a>
             </fieldset>
           </form>
@@ -269,7 +224,7 @@ $(document).ready(function(){
                 </tbody>
               </table>
               <fieldset class="action">
-              <input type="button" value="Test pattern" onclick="testPattern();" />
+                  <button type="button" id="test_pattern" class="btn btn-default btn-sm">Test pattern</button>
               </fieldset>
               <div id="predictionpattern"></div>
             </fieldset>
@@ -283,7 +238,7 @@ $(document).ready(function(){
                     This pattern is still used by [% subscriptions.size %]
                     subscription(s). Do you still want to delete it?
                 </p>
-                <p><a href="#" onclick="show_blocking_subs(); return false;">Show subscriptions</a></p>
+                <p><a href="#" id="show_blocking_subs">Show subscriptions</a></p>
                 <ul id="blocking_subs" style="display:none">
                     [% FOREACH sub IN subscriptions %]
                         <li style="list-style-type:none">
@@ -305,7 +260,7 @@ $(document).ready(function(){
         [% END %]
 
         <div id="toolbar" class="btn-toolbar">
-            <a class="btn btn-small" id="newnumberpattern" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=new"><i class="fa fa-plus"></i> New numbering pattern</a>
+            <a class="btn btn-default btn-sm" id="newnumberpattern" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=new"><i class="fa fa-plus"></i> New numbering pattern</a>
         </div>
 
         [% IF (numberpatterns_loop.size) %]
@@ -327,8 +282,8 @@ $(document).ready(function(){
                   <td>[% numberpattern.numberingmethod %]</td>
                   <td>[% numberpattern.displayorder %]</td>
                   <td class="actions">
-                    <a class="btn btn-mini" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=modify&id=[% numberpattern.id %]"><i class="fa fa-pencil"></i> Edit</a>
-                    <a class="delete_pattern btn btn-mini" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=del&id=[% numberpattern.id %]"><i class="fa fa-trash"></i> Delete</a>
+                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=modify&id=[% numberpattern.id %]"><i class="fa fa-pencil"></i> Edit</a>
+                    <a class="delete_pattern btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=del&id=[% numberpattern.id %]"><i class="fa fa-trash"></i> Delete</a>
                   </td>
                 </tr>
               [% END %]
@@ -344,4 +299,92 @@ $(document).ready(function(){
     [% INCLUDE 'serials-menu.inc' %]
   </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% IF (daily_options) %]
+        [% Asset.js("js/showpredictionpattern.js") %]
+    [% END %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        function confirmDelete() {
+            return confirm(_("Are you sure you want to delete this numbering pattern?"));
+        }
+
+        [% IF (new or modify) %]
+            function testPattern() {
+                var frequencyid = $("#frequency").val();
+                var firstacquidate = $("#firstacquidate").val();
+                var error = 0;
+                var error_msg = "";
+                if(frequencyid == undefined || frequencyid == "") {
+                    error_msg += _("- Frequency is not defined") + "\n";
+                    error ++;
+                }
+                if(firstacquidate == undefined || firstacquidate == "") {
+                    error_msg += _("- First publication date is not defined") + "\n";
+                    error ++;
+                }
+
+                if(error){
+                    alert(_("Cannot test prediction pattern for the following reason(s):") + "\n\n"
+                        + error_msg);
+                    return false;
+                }
+
+                var ajaxData = {
+                    'custompattern': true,
+                };
+                var ajaxParams = [
+                    'firstacquidate', 'subtype', 'sublength', 'frequency', 'numberingmethod',
+                    'lastvalue1', 'lastvalue2', 'lastvalue3', 'add1', 'add2', 'add3',
+                    'every1', 'every2', 'every3', 'innerloop1', 'innerloop2', 'innerloop3',
+                    'setto1', 'setto2', 'setto3', 'numbering1', 'numbering2', 'numbering3',
+                    'whenmorethan1', 'whenmorethan2', 'whenmorethan3', 'locale'
+                ];
+                for(i in ajaxParams) {
+                    var param = ajaxParams[i];
+                    var value = $("#"+param).val();
+                    if(value.length > 0)
+                        ajaxData[param] = value;
+                }
+
+                $.ajax({
+                    url: "/cgi-bin/koha/serials/showpredictionpattern.pl",
+                    data: ajaxData,
+                    async: false,
+                    dataType: "text",
+                    success: function(data) {
+                        $("#predictionpattern").html(data);
+                    }
+                });
+            }
+        [% END %]
+
+        function show_blocking_subs() {
+            $("#blocking_subs").show();
+        }
+        $(document).ready(function(){
+
+            $("#numberpatternst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                ],
+                "sPaginationType": "four_button"
+            }));
+
+            $(".delete_pattern").on("click",function(){
+                return confirmDelete();
+            });
+            $("#show_blocking_subs").on("click",function(e){
+                e.preventDefault();
+                $("#blocking_subs").show();
+            });
+            $("#test_pattern").on("click",function(){
+                 testPattern();
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

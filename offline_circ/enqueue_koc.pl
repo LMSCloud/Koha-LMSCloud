@@ -18,8 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 #
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Output;
@@ -32,7 +31,9 @@ use C4::Circulation;
 use C4::Items;
 use C4::Members;
 use C4::Stats;
-use Koha::Upload;
+use Koha::Checkouts;
+use Koha::UploadedFiles;
+use Koha::Items;
 
 use Date::Calc qw( Add_Delta_Days Date_to_Days );
 
@@ -60,9 +61,10 @@ my $sessionID = $cookies{'CGISESSID'}->value;
 our $dbh = C4::Context->dbh();
 
 if ($fileID) {
-    my $upload = Koha::Upload->new->get({ id => $fileID, filehandle => 1 });
-    my $fh = $upload->{fh};
-    my @input_lines = <$fh>;
+    my $upload = Koha::UploadedFiles->find($fileID);
+    my $fh = $upload? $upload->file_handle: undef;
+    my @input_lines = $fh? <$fh>: ();
+    $fh->close if $fh;
 
     my $header_line = shift @input_lines;
     my $file_info   = parse_header_line($header_line);
@@ -188,10 +190,10 @@ sub _get_borrowernumber_from_barcode {
 
     return unless $barcode;
 
-    my $item = GetBiblioFromItemNumber( undef, $barcode );
-    return unless $item->{'itemnumber'};
+    my $item = Koha::Items->find({ barcode => $barcode });
+    return unless $item;
 
-    my $issue = C4::Circulation::GetItemIssue( $item->{'itemnumber'} );
-    return unless $issue->{'borrowernumber'};
-    return $issue->{'borrowernumber'};
+    my $issue = Koha::Checkouts->find( { itemnumber => $item->itemnumber } );
+    return unless $issue;
+    return $issue->borrowernumber;
 }

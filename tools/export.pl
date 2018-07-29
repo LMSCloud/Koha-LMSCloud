@@ -21,8 +21,6 @@ use CGI qw ( -utf8 );
 use MARC::File::XML;
 use List::MoreUtils qw(uniq);
 use C4::Auth;
-use C4::Branch;             # GetBranches
-use C4::Koha;               # GetItemTypes
 use C4::Output;
 
 use Koha::Authority::Types;
@@ -31,6 +29,8 @@ use Koha::CsvProfiles;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Exporter::Record;
+use Koha::ItemTypes;
+use Koha::Libraries;
 
 my $query = new CGI;
 
@@ -39,7 +39,7 @@ my $record_type       = $query->param("record_type");
 my $op                = $query->param("op") || '';
 my $output_format     = $query->param("format") || $query->param("output_format") || 'iso2709';
 my $backupdir         = C4::Context->config('backupdir');
-my $filename          = $query->param("filename") || 'koha.mrc';
+my $filename          = $query->param("filename") || ( $output_format eq 'csv' ? 'koha.csv' : 'koha.mrc' );
 $filename =~ s/(\r|\n)//;
 
 my $dbh = C4::Context->dbh;
@@ -68,30 +68,13 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
 );
 
 my @branch = $query->multi_param("branch");
-my $only_my_branch;
-# Limit to local branch if IndependentBranches and not superlibrarian
-if (
-    (
-          C4::Context->preference('IndependentBranches')
-        && C4::Context->userenv
-        && !C4::Context->IsSuperLibrarian()
-        && C4::Context->userenv->{branch}
-    )
-    # Limit result to local branch strip_nonlocal_items
-    or $query->param('strip_nonlocal_items')
-) {
-    $only_my_branch = 1;
-    @branch = ( C4::Context->userenv->{'branch'} );
-}
-
-my %branchmap = map { $_ => 1 } @branch; # for quick lookups
 
 my @messages;
 if ( $op eq 'export' ) {
     my $filename = $query->param('id_list_file');
     if ( $filename ) {
         my $mimetype = $query->uploadInfo($filename)->{'Content-Type'};
-        my @valid_mimetypes = qw( application/octet-stream text/csv text/plain );
+        my @valid_mimetypes = qw( application/octet-stream text/csv text/plain application/vnd.ms-excel );
         unless ( grep { /^$mimetype$/ } @valid_mimetypes ) {
             push @messages, { type => 'alert', code => 'invalid_mimetype' };
             $op = '';
@@ -104,8 +87,18 @@ if ( $op eq "export" ) {
     my $export_remove_fields = $query->param("export_remove_fields") || q||;
     my @biblionumbers      = $query->multi_param("biblionumbers");
     my @itemnumbers        = $query->multi_param("itemnumbers");
+    my $strip_items_not_from_libraries =  $query->param('strip_items_not_from_libraries');
     my @sql_params;
     my $sql_query;
+
+    my $libraries = Koha::Libraries->search_filtered({ -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' })->unblessed;
+    my $only_export_items_for_branches = $strip_items_not_from_libraries ? \@branch : undef;
+    my @branchcodes;
+    for my $branchcode ( @branch ) {
+        if ( grep { $_->{branchcode} eq $branchcode } @$libraries ) {
+            push @branchcodes, $branchcode;
+        }
+    }
 
     if ( $record_type eq 'bibs' or $record_type eq 'auths' ) {
         # No need to retrieve the record_ids if we already get them
@@ -153,7 +146,7 @@ if ( $op eq "export" ) {
                             }
                         )
                         : (),
-                    ( @branch ? ( 'items.homebranch' => { in => \@branch } ) : () ),
+                    ( @branchcodes ? ( 'items.homebranch' => { in => \@branchcodes } ) : () ),
                     ( $itemtype
                         ?
                           C4::Context->preference('item-level_itypes')
@@ -206,12 +199,6 @@ if ( $op eq "export" ) {
         );
 
         my $csv_profile_id = $query->param('csv_profile_id');
-        unless ( $csv_profile_id ) {
-            # FIXME export_format.profile should be a unique key
-            my $default_csv_profiles = Koha::CsvProfiles->search({ profile => C4::Context->preference('ExportWithCsvProfile') });
-            $csv_profile_id = $default_csv_profiles->count ? $default_csv_profiles->next->export_format_id : undef;
-        }
-
         Koha::Exporter::Record::export(
             {   record_type        => $record_type,
                 record_ids         => \@record_ids,
@@ -221,6 +208,7 @@ if ( $op eq "export" ) {
                 dont_export_fields => $export_remove_fields,
                 csv_profile_id     => $csv_profile_id,
                 export_items       => (not $dont_export_items),
+                only_export_items_for_branches => $only_export_items_for_branches,
             }
         );
     }
@@ -278,31 +266,14 @@ if ( $op eq "export" ) {
 
 else {
 
-    my $itemtypes = GetItemTypes;
-    my @itemtypesloop;
-    foreach my $thisitemtype ( sort keys %$itemtypes ) {
-        my %row = (
-            value       => $thisitemtype,
-            description => $itemtypes->{$thisitemtype}->{translated_description},
-        );
-        push @itemtypesloop, \%row;
-    }
-    my $branches = GetBranchesWithoutMobileStations($only_my_branch);
-    my @branchloop;
-    for my $thisbranch (
-        sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} }
-        keys %{$branches}
-      )
-    {
-        push @branchloop,
-          {
-            value      => $thisbranch,
-            selected   => %branchmap ? $branchmap{$thisbranch} : 1,
-            branchname => $branches->{$thisbranch}->{'branchname'},
-          };
-    }
+    my $itemtypes = Koha::ItemTypes->search_with_localization;
 
     my $authority_types = Koha::Authority::Types->search( {}, { order_by => ['authtypecode'] } );
+
+    my $libraries = Koha::Libraries->search_filtered({ -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' })->unblessed;
+    for my $library ( @$libraries ) {
+        $library->{selected} = 1 if grep { $library->{branchcode} eq $_ } @branch;
+    }
 
     if (   $flags->{superlibrarian}
         && C4::Context->config('backup_db_via_tools')
@@ -325,11 +296,11 @@ else {
     }
 
     $template->param(
-        branchloop               => \@branchloop,
-        itemtypeloop             => \@itemtypesloop,
+        libraries                => $libraries,
+        itemtypes                => $itemtypes,
         authority_types          => $authority_types,
         export_remove_fields     => C4::Context->preference("ExportRemoveFields"),
-        csv_profiles             => [ Koha::CsvProfiles->search({ type => 'marc' }) ],
+        csv_profiles             => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ],
         messages                 => \@messages,
     );
 

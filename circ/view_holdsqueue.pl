@@ -22,19 +22,19 @@ This script displays items in the tmp_holdsqueue table
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Biblio;
 use C4::Items;
-use C4::Koha;   # GetItemTypes
-use C4::Branch; # GetBranches
 use C4::HoldsQueue qw(GetHoldsQueueItems);
+use Koha::BiblioFrameworks;
+
+use Koha::ItemTypes;
 
 my $query = new CGI;
-my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "circ/view_holdsqueue.tt",
         query           => $query,
@@ -53,6 +53,9 @@ my $itemtypeslimit = $params->{'itemtypeslimit'};
 if ( $run_report ) {
     # XXX GetHoldsQueueItems() does not support $itemtypeslimit!
     my $items = GetHoldsQueueItems($branchlimit, $itemtypeslimit);
+    for my $item ( @$items ) {
+        $item->{patron} = Koha::Patrons->find( $item->{borrowernumber} );
+    }
     $template->param(
         branchlimit     => $branchlimit,
         total      => scalar @$items,
@@ -61,20 +64,8 @@ if ( $run_report ) {
     );
 }
 
-# getting all itemtypes
-my $itemtypes = &GetItemTypes();
-my @itemtypesloop;
-foreach my $thisitemtype ( sort keys %$itemtypes ) {
-    push @itemtypesloop, {
-        value       => $thisitemtype,
-        description => $itemtypes->{$thisitemtype}->{'description'},
-    };
-}
-
-$template->param(
-     branchloop => GetBranchesLoop(C4::Context->userenv->{'branch'}),
-   itemtypeloop => \@itemtypesloop,
-);
+# Checking if there is a Fast Cataloging Framework
+$template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 
 # writing the template
 output_html_with_http_headers $query, $cookie, $template->output;

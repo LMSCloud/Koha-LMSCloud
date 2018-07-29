@@ -4,11 +4,17 @@
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Your checkout history</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
-    <style type="text/css">ul.ui-tabs-nav li a, ul.ui-tabs-nav li span.a  { padding:0.6em 1em; }</style>
+    <style>ul.ui-tabs-nav li a, ul.ui-tabs-nav li span.a  { padding:0.6em 1em; }</style>
 [% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-readingrecord' %]
 [% INCLUDE 'masthead.inc' %]
+
+[% IF Koha.Preference('AmazonAssocTag') %]
+    [% AmazonAssocTag = '?tag=' _ Koha.Preference('AmazonAssocTag') %]
+[% ELSE %]
+    [% AmazonAssocTag = '' %]
+[% END %]
 
 <div class="main">
     <ul class="breadcrumb">
@@ -38,6 +44,7 @@
                                     <select name="order" id="order">
                                         [% IF ( orderbydate ) %]<option value="" selected="selected">Order by date</option>[% ELSE %]<option value="">Order by date</option>[% END %]
                                         [% IF ( orderbytitle ) %]<option value="title" selected="selected">Order by title</option>[% ELSE %]<option value="title">Order by title</option>[% END %]
+                                        [% IF ( orderbyauthor ) %]<option value="author" selected="selected">Order by author</option>[% ELSE %]<option value="author">Order by author</option>[% END %]
                                     </select>
                                     <input type="submit" value="Go" id="sortsubmit" class="submit clearfix" />
                                 </form>
@@ -88,7 +95,7 @@
                                                 <td>
                                                     [% IF  OPACAmazonCoverImages %]
                                                         [% IF  issue.normalized_isbn %]
-                                                            <a href="http://www.amazon.com/gp/reader/[% issue.normalized_isbn %]/ref=sib_dp_pt/002-7879865-0184864#reader-link"><img border="0" src="https://images-na.ssl-images-amazon.com/images/P/[% issue.normalized_isbn %].01.THUMBZZZ.jpg" alt="" class="item-thumbnail" /></a>
+                                                            <a href="http://www.amazon.com/gp/reader/[% issue.normalized_isbn %][% AmazonAssocTag %]#reader-link"><img border="0" src="https://images-na.ssl-images-amazon.com/images/P/[% issue.normalized_isbn %].01.THUMBZZZ.jpg" alt="" class="item-thumbnail" /></a>
                                                         [% ELSE %]
                                                              <span class="no-image">No cover image available</span>
                                                         [% END %]
@@ -171,7 +178,7 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
 [% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
+<script>
 //<![CDATA[
     $(document).ready(function(){
         [% IF ( GoogleJackets ) %]KOHA.Google.GetCoverFromIsbn();[% END %]

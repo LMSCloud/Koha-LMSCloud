@@ -1,5 +1,6 @@
 DELETE FROM auth_types WHERE authtypecode='SCO';
-INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (210, 'SCO', 'Sujet (collectivité)', '[210a ][ (210c)][. 210b][ -- 210d][ ; 210e][ ; 210f][ -- 210x][ -- 210z][ -- 210y]');
+-- INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (210, 'SCO', 'Sujet (collectivité)', '[210a ][ (210c)][. 210b][ -- 210d][ ; 210e][ ; 210f][ -- 210x][ -- 210z][ -- 210y]');
+INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (210, 'SCO', 'Предметна рубрика (найменування колективу)', '[210a ][ (210c)][. 210b][ -- 210d][ ; 210e][ ; 210f][ -- 210x][ -- 210z][ -- 210y]');
 DELETE FROM auth_tag_structure WHERE authtypecode='SCO';
 DELETE FROM auth_subfield_structure WHERE authtypecode='SCO';
 
@@ -334,3 +335,6 @@ INSERT INTO  auth_subfield_structure (frameworkcode, authtypecode, tagfield, tag
  ('', 'SCO', '886', '2', 0, 0, 'Системний код', 'Системний код',        -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'SCO', '886', 'a', 0, 1, 'Тег поля початкового формату', 'Тег поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'SCO', '886', 'b', 0, 1, 'Індикатори та підполя поля початкового формату', 'Індикатори та підполя поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0);
+
+-- Replace nonzero hidden values like -5, 1 or 8 by 1
+UPDATE auth_subfield_structure SET hidden=1 WHERE hidden<>0

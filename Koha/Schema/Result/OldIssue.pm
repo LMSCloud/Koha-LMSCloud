@@ -64,12 +64,6 @@ __PACKAGE__->table("old_issues");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
-=head2 return
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 4
-
 =head2 renewals
 
   data_type: 'tinyint'
@@ -80,6 +74,12 @@ __PACKAGE__->table("old_issues");
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
+
+=head2 auto_renew_error
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 32
 
 =head2 timestamp
 
@@ -99,6 +99,17 @@ __PACKAGE__->table("old_issues");
   data_type: 'integer'
   default_value: 0
   is_nullable: 0
+
+=head2 note
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+=head2 notedate
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
 
 =cut
 
@@ -129,12 +140,12 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
-  "return",
-  { data_type => "varchar", is_nullable => 1, size => 4 },
   "renewals",
   { data_type => "tinyint", is_nullable => 1 },
   "auto_renew",
   { data_type => "tinyint", default_value => 0, is_nullable => 1 },
+  "auto_renew_error",
+  { data_type => "varchar", is_nullable => 1, size => 32 },
   "timestamp",
   {
     data_type => "timestamp",
@@ -150,6 +161,14 @@ __PACKAGE__->add_columns(
   },
   "onsite_checkout",
   { data_type => "integer", default_value => 0, is_nullable => 0 },
+  "note",
+  { data_type => "longtext", is_nullable => 1 },
+  "notedate",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -207,9 +226,11 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2015-04-23 13:04:51
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:9GdzytyInRcFZns/q0qb3Q
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:RKLeDDEz22G5BU/ZAl7QLA
 
+sub koha_objects_class {
+    'Koha::Old::Checkouts';
+}
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

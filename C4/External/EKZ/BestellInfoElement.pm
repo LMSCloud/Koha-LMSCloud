@@ -28,7 +28,6 @@ use Time::HiRes qw(gettimeofday);
 use C4::Context;
 use C4::Koha;
 use C4::Items qw(AddItem);
-use C4::Branch qw(GetBranches);
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::EkzKohaRecords;

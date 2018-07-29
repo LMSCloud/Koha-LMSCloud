@@ -19,10 +19,10 @@ function basketCount(){
 
 function writeCookie(name, val, wd) {
     if (wd) {
-        parent.opener.document.cookie = name + "=" + val;
+        parent.opener.document.cookie = name + "=" + val + ";path=/";
     }
     else {
-        parent.document.cookie = name + "=" + val;
+        parent.document.cookie = name + "=" + val + ";path=/";
     }
 }
 
@@ -57,9 +57,9 @@ function delCookie(name) {
     var exp = new Date();
     exp.setTime(exp.getTime()-1);
     if(parent.opener){
-        parent.opener.document.cookie = name + "=null; expires=" + exp.toGMTString();
+        parent.opener.document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
     } else {
-        document.cookie = name + "=null; expires=" + exp.toGMTString();
+        document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
     }
 }
 
@@ -364,11 +364,6 @@ function downloadBasket() {
     var loc = "/cgi-bin/koha/opac-downloadcart.pl?" + strCookie;
 
     open(loc,"win_form",'scrollbars=no,resizable=no,height=300,width=450,top=50,left=100');
-}
-
-function printBasket() {
-    var loc = document.location + "&print=1";
-    document.location = loc;
 }
 
 function showMore() {

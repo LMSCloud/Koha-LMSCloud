@@ -125,7 +125,7 @@ restart_indexer()
             --verbose=1 --respawn --delay=30 \
             --user=$name-koha.$name-koha"
 
-        log_daemon_msg "Stopping Koha indexing daemon for $name"
+        log_daemon_msg "Restarting Koha indexing daemon for $name"
 
         if daemon $DAEMONOPTS --restart -- $INDEXER_DAEMON $INDEXER_PARAMS; then
             log_end_msg 0
@@ -177,12 +177,19 @@ while [ $# -gt 0 ]; do
 
 done
 
+# Optionally use alternative paths for a dev install
+adjust_paths_dev_install $1
+
 # Check if an alternate indexer has been set
 if [ ! -z $ALTERNATE_INDEXER_DAEMON ]; then
     INDEXER_DAEMON="$ALTERNATE_INDEXER_DAEMON"
 else
     # We default to rebuild_zebra.pl if no alternate indexer set
-    INDEXER_DAEMON="${KOHA_HOME}/bin/migration_tools/rebuild_zebra.pl"
+    if [ "$DEV_INSTALL" = "" ]; then
+        INDEXER_DAEMON="${KOHA_HOME}/bin/migration_tools/rebuild_zebra.pl"
+    else
+        INDEXER_DAEMON="${KOHA_HOME}/misc/migration_tools/rebuild_zebra.pl"
+    fi
 fi
 
 if [ $INDEXER_TIMEOUT -lt 1 ]; then
@@ -195,10 +202,7 @@ if [ -z $INDEXER_PARAMS ]; then
     INDEXER_PARAMS="-daemon -sleep $INDEXER_TIMEOUT"
 fi
 
-if [ -z $PERL5LIB ]; then
-    PERL5LIB="/usr/share/koha/lib"
-fi
-
+# PERL5LIB has been read from etc/default
 export PERL5LIB
 
 if [ $# -gt 0 ]; then

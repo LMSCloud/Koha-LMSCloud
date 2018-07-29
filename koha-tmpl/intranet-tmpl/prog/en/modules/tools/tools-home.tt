@@ -20,6 +20,11 @@
     <dd>Manage lists of patrons.</dd>
     [% END %]
 
+    [% IF (CAN_user_clubs) %]
+    <dt><a href="/cgi-bin/koha/clubs/clubs.pl">Patron clubs</a>
+    <dd>Manage patron clubs..</dd>
+    [% END %]
+
     [% IF ( CAN_user_tools_moderate_comments ) %]
     <dt><a href="/cgi-bin/koha/reviews/reviewswaiting.pl">Comments</a> [% IF ( pendingcomments ) %]<span class="holdcount"><a href="/cgi-bin/koha/reviews/reviewswaiting.pl">[% pendingcomments %]</a></span>[% END %]</dt>
 	<dd>Moderate patron comments. </dd>
@@ -61,7 +66,7 @@
     [% END %]
 
     [% IF ( CAN_user_tools_moderate_tags ) %]
-    <dt><a href="/cgi-bin/koha/tags/review.pl">Tags</a> [% IF ( pendingtags ) %]<span class="holdcount"><a href="/cgi-bin/koha/tags/review.pl">[% pendingtags %]</a></span>[% END %]</dt>
+    <dt><a href="/cgi-bin/koha/tags/review.pl">Tags</a> [% IF ( pendingtags ) %]<span class="number_box"><a href="/cgi-bin/koha/tags/review.pl">[% pendingtags %]</a></span>[% END %]</dt>
 	<dd>Moderate patron tags</dd>
     [% END %]
 
@@ -132,6 +137,11 @@
     [% IF ( CAN_user_tools_download_batchprint_files ) %]
     <dt><a href="/cgi-bin/koha/tools/download-files.pl">Download</a></dt>
     <dd>Download batch print files</dd>
+    [% END %]
+
+    [% IF ( CAN_user_tools_access_files ) %]
+    <dt><a href="/cgi-bin/koha/tools/access_files.pl">Access files</a></dt>
+    <dd>Access files stored on the server, like log files or reports</dd>
     [% END %]
 
 </dl>

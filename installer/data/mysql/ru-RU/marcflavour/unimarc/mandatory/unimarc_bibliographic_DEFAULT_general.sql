@@ -2210,3 +2210,33 @@ INSERT INTO  marc_subfield_structure (frameworkcode, authtypecode, tagfield, tag
  ('', '', '899', 'x', 0, 1, 'Не публикуемое примечание', 'Не публикуемое примечание', 8, 0, '', '', '', 0, NULL, '', ''),
  ('', '', '899', 'y', 0, 1, 'Публикуемое примечание', 'Публикуемое примечание', 8, 0, '', '', '', 0, NULL, '', ''),
  ('', '', '899', 'z', 0, 1, 'Публикуемое примечание', 'Публикуемое примечание', 8, 0, '', '', '', 0, NULL, '', '');
+
+-- Create the ACQ framework based on the default framework, fields 995 only
+INSERT IGNORE INTO biblio_framework VALUES( 'ACQ', 'Acquisition framework' );
+INSERT INTO marc_tag_structure(tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, frameworkcode)
+SELECT tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, 'ACQ' FROM marc_tag_structure WHERE tagfield='995' AND frameworkcode='';
+
+INSERT INTO marc_subfield_structure(tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, frameworkcode, seealso, link, defaultvalue, maxlength)
+SELECT tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, 'ACQ', seealso, link, defaultvalue, maxlength FROM marc_subfield_structure WHERE tagfield='995' AND frameworkcode='';
+
+INSERT INTO marc_tag_structure(tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, frameworkcode)
+SELECT tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, 'ACQ'
+FROM marc_tag_structure
+WHERE frameworkcode="" AND tagfield IN (
+    SELECT tagfield
+    FROM marc_subfield_structure
+    WHERE (
+            kohafield="biblio.title"
+        OR  kohafield="biblio.author"
+        OR  kohafield="biblioitems.publishercode"
+        OR  kohafield="biblioitems.editionstatement"
+        OR  kohafield="biblioitems.publicationyear"
+        OR  kohafield="biblioitems.isbn"
+        OR  kohafield="biblio.seriestitle"
+    ) AND frameworkcode=""
+);
+INSERT INTO marc_subfield_structure(tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, frameworkcode, seealso, link, defaultvalue, maxlength)
+SELECT tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, 'ACQ', seealso, link, defaultvalue, maxlength
+FROM marc_subfield_structure
+WHERE frameworkcode=""
+AND kohafield IN ("biblio.title", "biblio.author", "biblioitems.publishercode", "biblioitems.editionstatement", "biblioitems.publicationyear", "biblioitems.isbn", "biblio.seriestitle" );

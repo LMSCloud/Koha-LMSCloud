@@ -213,20 +213,44 @@ sub checkin {
     if ($item) {
         $circ->do_checkin( $current_loc, $return_date, $checked_in_ok );
         
-	if ( $circ->ok ) {
-	    $circ->patron( $patron = C4::SIP::ILS::Patron->new( $item->{patron} ) );
-	    delete $item->{patron};
-	    delete $item->{due_date};
-	    $patron->{items} = [ grep { $_ ne $item_id } @{ $patron->{items} } ];
-	}
+        if ( $circ->ok ) {
+            $circ->patron( $patron = C4::SIP::ILS::Patron->new( $item->{patron} ) );
+            delete $item->{patron};
+            delete $item->{due_date};
+            $patron->{items} = [ grep { $_ ne $item_id } @{ $patron->{items} } ];
+        }
     }
     else {
         $circ->alert(1);
         $circ->alert_type(99);
+        $circ->ok( 0 );
         $circ->screen_msg('Invalid Item');
+        return $circ;
     }
 
-    # END TRANSACTION
+    if( !$circ->ok && $circ->alert_type && $circ->alert_type == 98 ) { # data corruption
+        $circ->screen_msg("Checkin failed: data problem");
+        syslog( "LOG_WARNING", "Problem with issue_id in issues and old_issues; check the about page" );
+    } elsif( !$item->{patron} ) {
+        if( $checked_in_ok ) { # Mark checkin ok although book not checked out
+            $circ->ok( 1 );
+            syslog("LOG_DEBUG", "C4::SIP::ILS::Checkin - using checked_in_ok");
+        } else {
+            $circ->screen_msg("Item not checked out");
+            syslog("LOG_DEBUG", "C4::SIP::ILS::Checkin - item not checked out");
+        }
+    } elsif( $circ->ok ) {
+        $circ->patron( $patron = C4::SIP::ILS::Patron->new( $item->{patron} ) );
+        delete $item->{patron};
+        delete $item->{due_date};
+        $patron->{items} = [ grep { $_ ne $item_id } @{ $patron->{items} } ];
+    } else {
+        # Checkin failed: Wrongbranch or withdrawn?
+        # Bug 10748 with pref BlockReturnOfLostItems adds another case to come
+        # here: returning a lost item when the pref is set.
+        $circ->screen_msg("Checkin failed");
+        syslog( "LOG_WARNING", "Checkin failed: probably for Wrongbranch or withdrawn" );
+    }
 
     return $circ;
 }

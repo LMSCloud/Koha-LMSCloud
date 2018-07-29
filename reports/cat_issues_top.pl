@@ -18,26 +18,23 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use C4::Auth;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Branch; # GetBranches
 use C4::Output;
 use C4::Koha;
 use C4::Circulation;
 use C4::Reports;
 use C4::Members;
 use Koha::DateUtils;
+use Koha::ItemTypes;
 
 =head1 NAME
 
 plugin that shows a stats on borrowers
 
 =head1 DESCRIPTION
-
-=over 2
 
 =cut
 
@@ -96,39 +93,21 @@ if ($do_it) {
             print $line->{rowtitle}.$sep;
             foreach my $cell (@$x) {
                 print $cell->{value}.$sep;
+                print $cell->{count} // '';
             }
-            print $line->{totalrow};
             print "\n";
         }
-# footer
-        print "TOTAL";
-        $cols = @$results[0]->{loopfooter};
-        foreach my $col ( @$cols ) {
-            print $sep.$col->{totalcol};
-        }
-        print $sep.@$results[0]->{total};
         exit;
     }
 # Displaying choices
 } else {
     my $dbh = C4::Context->dbh;
-    my @values;
-    my %labels;
-    my %select;
-    my $req;
     
     my $CGIextChoice = ( 'CSV' ); # FIXME translation
     my $CGIsepChoice=GetDelimiterChoices;
 
     #doctype
-    my $itemtypes = GetItemTypes;
-    my @itemtypeloop;
-    foreach my $thisitemtype ( sort {$itemtypes->{$a}->{translated_description} cmp $itemtypes->{$b}->{translated_description}} keys %$itemtypes) {
-            my %row =(value => $thisitemtype,
-                      description => $itemtypes->{$thisitemtype}->{translated_description},
-                            );
-            push @itemtypeloop, \%row;
-    }
+    my $itemtypes = Koha::ItemTypes->search_with_localization;
 
     #ccode
     my $ccodes = GetAuthorisedValues('CCODE');
@@ -154,26 +133,15 @@ if ($do_it) {
 
     @shelvinglocloop = sort {$a->{value} cmp $b->{value}} @shelvinglocloop;
 
-    #borcat
-    my ($codes,$labels) = GetborCatFromCatType(undef,undef);
-    my @borcatloop;
-    foreach my $thisborcat (sort {$labels->{$a} cmp $labels->{$b}} keys %$labels) {
-            my %row =(value => $thisborcat,
-                      description => $labels->{$thisborcat},
-                            );
-            push @borcatloop, \%row;
-    }
-    
-    #Day
-    #Month
+    my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['categorycode']});
+
     $template->param(
                     CGIextChoice => $CGIextChoice,
                     CGIsepChoice => $CGIsepChoice,
-                    branchloop => GetBranchesLoop(C4::Context->userenv->{'branch'}),
-                    itemtypeloop =>\@itemtypeloop,
+                    itemtypes => $itemtypes,
                     ccodeloop =>\@ccodeloop,
                     shelvinglocloop =>\@shelvinglocloop,
-                    borcatloop =>\@borcatloop,
+                    patron_categories => $patron_categories,
                     );
 output_html_with_http_headers $input, $cookie, $template->output;
 }
@@ -184,9 +152,7 @@ output_html_with_http_headers $input, $cookie, $template->output;
 sub calculate {
     my ($line, $column, $filters) = @_;
     my @mainloop;
-    my @loopfooter;
     my @loopcol;
-    my @loopline;
     my @looprow;
     my %globalline;
     my $grantotal =0;
@@ -386,7 +352,6 @@ sub calculate {
     
     my $dbcalc = $dbh->prepare($strcalc);
     $dbcalc->execute;
-    my $previous_col;
     my %indice;
     while (my  @data = $dbcalc->fetchrow) {
         my ($row, $rank, $id, $callnum, $ccode, $loc, $col )=@data;
@@ -436,7 +401,6 @@ sub calculate {
     $globalline{looprow} = \@looprow;
     $globalline{loopcol} = \@loopcol;
 # 	# the foot (totals by borrower type)
-    $globalline{loopfooter} = \@loopfooter;
     $globalline{total}= $grantotal;
     $globalline{line} = $line;
     $globalline{column} = $column;

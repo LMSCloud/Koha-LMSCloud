@@ -21,8 +21,9 @@ use Modern::Perl;
 
 use Carp;
 
-use Koha::Database;
+use C4::Context;
 
+use Koha::Database;
 use Koha::Library;
 
 use base qw(Koha::Objects);
@@ -37,9 +38,10 @@ Koha::Libraries - Koha Library Object set class
 
 =cut
 
-=head3 GetRealBranchIfMobileStation
 
-$branch = GetRealBranchIfMobileStation( $branch );
+=head3 get_effective_branch
+
+$branch = get_effective_branch( $branch );
 
 Returns the branch number of the mobilebook branch if $branch is a mobilebook station.
 If not it returns just the branch.
@@ -56,6 +58,31 @@ sub get_effective_branch {
         }
     }
     return $branch;
+}
+
+=head3 search_filtered
+
+=cut
+
+sub search_filtered {
+    my ( $self, $params, $attributes ) = @_;
+
+    my @branchcodes;
+    my $userenv = C4::Context->userenv;
+    if ( $userenv and $userenv->{number} ) {
+        my $only_from_group = $params->{only_from_group};
+        if ( $only_from_group ) {
+            my $logged_in_user = Koha::Patrons->find( $userenv->{number} );
+            my @branchcodes = $logged_in_user->libraries_where_can_see_patrons;
+            $params->{branchcode} = { -in => \@branchcodes } if @branchcodes;
+        } else {
+            if ( C4::Context::only_my_library ) {
+                $params->{branchcode} = C4::Context->userenv->{branch};
+            }
+        }
+    }
+    delete $params->{only_from_group};
+    return $self->SUPER::search( $params, $attributes );
 }
 
 =head3 type

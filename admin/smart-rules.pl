@@ -17,20 +17,22 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Koha;
 use C4::Debug;
-use C4::Branch; # GetBranches
 use Koha::DateUtils;
 use Koha::Database;
 use Koha::IssuingRule;
 use Koha::IssuingRules;
+use Koha::Logger;
+use Koha::RefundLostItemFeeRule;
+use Koha::RefundLostItemFeeRules;
 use Koha::Libraries;
+use Koha::Patron::Categories;
 
 my $input = CGI->new;
 my $dbh = C4::Context->dbh;
@@ -51,10 +53,10 @@ my $type=$input->param('type');
 my $branch = $input->param('branch');
 unless ( $branch ) {
     if ( C4::Context->preference('DefaultToLoggedInLibraryCircRules') ) {
-        $branch = Koha::Libraries->search->count() == 1 ? undef : C4::Branch::mybranch();
+        $branch = Koha::Libraries->search->count() == 1 ? undef : C4::Context::mybranch();
     }
     else {
-        $branch = C4::Branch::onlymine() ? ( C4::Branch::mybranch() || '*' ) : '*';
+        $branch = C4::Context::only_my_library() ? ( C4::Context::mybranch() || '*' ) : '*';
     }
 }
 $branch = '*' if $branch eq 'NO_LIBRARY_SET';
@@ -123,6 +125,7 @@ elsif ($op eq 'add') {
     my $finedays     = $input->param('finedays');
     my $maxsuspensiondays = $input->param('maxsuspensiondays');
     $maxsuspensiondays = undef if $maxsuspensiondays eq q||;
+    my $suspension_chargeperiod = $input->param('suspension_chargeperiod') || 1;
     my $firstremind  = $input->param('firstremind');
     my $chargeperiod = $input->param('chargeperiod');
     my $chargeperiod_charge_at = $input->param('chargeperiod_charge_at');
@@ -133,7 +136,13 @@ elsif ($op eq 'add') {
     my $norenewalbefore  = $input->param('norenewalbefore');
     $norenewalbefore = undef if $norenewalbefore =~ /^\s*$/;
     my $auto_renew = $input->param('auto_renew') eq 'yes' ? 1 : 0;
+    my $no_auto_renewal_after = $input->param('no_auto_renewal_after');
+    $no_auto_renewal_after = undef if $no_auto_renewal_after =~ /^\s*$/;
+    my $no_auto_renewal_after_hard_limit = $input->param('no_auto_renewal_after_hard_limit') || undef;
+    $no_auto_renewal_after_hard_limit = eval { dt_from_string( $input->param('no_auto_renewal_after_hard_limit') ) } if ( $no_auto_renewal_after_hard_limit );
+    $no_auto_renewal_after_hard_limit = output_pref( { dt => $no_auto_renewal_after_hard_limit, dateonly => 1, dateformat => 'iso' } ) if ( $no_auto_renewal_after_hard_limit );
     my $reservesallowed  = $input->param('reservesallowed');
+    my $holds_per_record  = $input->param('holds_per_record');
     my $onshelfholds     = $input->param('onshelfholds') || 0;
     $maxissueqty =~ s/\s//g;
     $maxissueqty = undef if $maxissueqty !~ /^\d+/;
@@ -148,6 +157,7 @@ elsif ($op eq 'add') {
     my $hardduedatecompare = $input->param('hardduedatecompare');
     my $rentaldiscount = $input->param('rentaldiscount');
     my $opacitemholds = $input->param('opacitemholds') || 0;
+    my $article_requests = $input->param('article_requests') || 'no';
     my $overduefinescap = $input->param('overduefinescap') || undef;
     my $cap_fine_to_replacement_price = 0;
     $cap_fine_to_replacement_price = $input->param('cap_fine_to_replacement_price') eq 'on' if ( $input->param('cap_fine_to_replacement_price') );
@@ -160,6 +170,7 @@ elsif ($op eq 'add') {
         fine                          => $fine,
         finedays                      => $finedays,
         maxsuspensiondays             => $maxsuspensiondays,
+        suspension_chargeperiod       => $suspension_chargeperiod,
         firstremind                   => $firstremind,
         chargeperiod                  => $chargeperiod,
         chargeperiod_charge_at        => $chargeperiod_charge_at,
@@ -169,7 +180,10 @@ elsif ($op eq 'add') {
         renewalperiod                 => $renewalperiod,
         norenewalbefore               => $norenewalbefore,
         auto_renew                    => $auto_renew,
+        no_auto_renewal_after         => $no_auto_renewal_after,
+        no_auto_renewal_after_hard_limit => $no_auto_renewal_after_hard_limit,
         reservesallowed               => $reservesallowed,
+        holds_per_record              => $holds_per_record,
         issuelength                   => $issuelength,
         lengthunit                    => $lengthunit,
         hardduedate                   => $hardduedate,
@@ -179,6 +193,7 @@ elsif ($op eq 'add') {
         opacitemholds                 => $opacitemholds,
         overduefinescap               => $overduefinescap,
         cap_fine_to_replacement_price => $cap_fine_to_replacement_price,
+        article_requests              => $article_requests,
     };
 
     my $issuingrule = Koha::IssuingRules->find({categorycode => $bor, itemtype => $itemtype, branchcode => $br});
@@ -284,7 +299,7 @@ elsif ($op eq "add-branch-cat") {
                     maxonsiteissueqty = ?
                 WHERE categorycode = ?
             |);
-            $sth_search->execute($branch);
+            $sth_search->execute($categorycode);
             my $res = $sth_search->fetchrow_hashref();
             if ($res->{total}) {
                 $sth_update->execute($maxissueqty, $maxonsiteissueqty, $categorycode);
@@ -424,28 +439,42 @@ elsif ($op eq "add-branch-item") {
         }
     }
 }
+elsif ( $op eq 'mod-refund-lost-item-fee-rule' ) {
 
-my $branches = GetBranches();
-my @branchloop;
-for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-    push @branchloop, {
-        value      => $thisbranch,
-        selected   => $thisbranch eq $branch,
-        branchname => $branches->{$thisbranch}->{'branchname'},
-    };
+    my $refund = $input->param('refund');
+
+    if ( $refund eq '*' ) {
+        if ( $branch ne '*' ) {
+            # only do something for $refund eq '*' if branch-specific
+            eval {
+                # Delete it so it picks the default
+                Koha::RefundLostItemFeeRules->find({
+                    branchcode => $branch
+                })->delete;
+            };
+        }
+    } else {
+        my $refundRule =
+                Koha::RefundLostItemFeeRules->find({
+                    branchcode => $branch
+                }) // Koha::RefundLostItemFeeRule->new;
+        $refundRule->set({
+            branchcode => $branch,
+                refund => $refund
+        })->store;
+    }
 }
 
-my $sth=$dbh->prepare("SELECT description,categorycode FROM categories ORDER BY description");
-$sth->execute;
-my @category_loop;
-while (my $data=$sth->fetchrow_hashref){
-    push @category_loop,$data;
-}
+my $refundLostItemFeeRule = Koha::RefundLostItemFeeRules->find({ branchcode => $branch });
+$template->param(
+    refundLostItemFeeRule => $refundLostItemFeeRule,
+    defaultRefundRule     => Koha::RefundLostItemFeeRules->_default_rule
+);
 
-$sth->finish;
+my $patron_categories = Koha::Patron::Categories->search({}, { order_by => ['description'] });
+
 my @row_loop;
-my @itemtypes = @{ GetItemTypes( style => 'array' ) };
-@itemtypes = sort { lc $a->{translated_description} cmp lc $b->{translated_description} } @itemtypes;
+my $itemtypes = Koha::ItemTypes->search_with_localization;
 
 my $sth2 = $dbh->prepare("
     SELECT  issuingrules.*,
@@ -480,9 +509,13 @@ while (my $row = $sth2->fetchrow_hashref) {
     } else {
        $row->{'hardduedate'} = 0;
     }
+    if ($row->{no_auto_renewal_after_hard_limit}) {
+       my $dt = eval { dt_from_string( $row->{no_auto_renewal_after_hard_limit} ) };
+       $row->{no_auto_renewal_after_hard_limit} = eval { output_pref( { dt => $dt, dateonly => 1 } ) } if $dt;
+    }
+
     push @row_loop, $row;
 }
-$sth->finish;
 
 my @sorted_row_loop = sort by_category_and_itemtype @row_loop;
 
@@ -591,11 +624,11 @@ if ($defaults) {
 
 $template->param(default_rules => ($defaults ? 1 : 0));
 
-$template->param(categoryloop => \@category_loop,
-                        itemtypeloop => \@itemtypes,
+$template->param(
+    patron_categories => $patron_categories,
+                        itemtypeloop => $itemtypes,
                         rules => \@sorted_row_loop,
-                        branchloop => \@branchloop,
-                        humanbranch => ($branch ne '*' ? $branches->{$branch}->{branchname} : ''),
+                        humanbranch => ($branch ne '*' ? $branch : ''),
                         current_branch => $branch,
                         definedbranch => scalar(@sorted_row_loop)>0
                         );

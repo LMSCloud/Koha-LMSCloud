@@ -8,6 +8,7 @@ use C4::AuthoritiesMarc;
 use C4::Biblio;
 use C4::Record;
 use Koha::CsvProfiles;
+use Koha::Logger;
 
 sub _get_record_for_export {
     my ($params)           = @_;
@@ -62,20 +63,21 @@ sub _get_biblio_for_export {
     my $biblionumber = $params->{biblionumber};
     my $itemnumbers  = $params->{itemnumbers};
     my $export_items = $params->{export_items} // 1;
-    my $only_export_items_for_branch = $params->{only_export_items_for_branch};
+    my $only_export_items_for_branches = $params->{only_export_items_for_branches};
 
-    my $record = eval { C4::Biblio::GetMarcBiblio($biblionumber); };
+    my $record = eval { C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber }); };
 
     return if $@ or not defined $record;
 
     if ($export_items) {
         C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber, $itemnumbers );
-        if ($only_export_items_for_branch) {
+        if ($only_export_items_for_branches && @$only_export_items_for_branches) {
+            my %export_items_for_branches = map { $_ => 1 } @$only_export_items_for_branches;
             my ( $homebranchfield, $homebranchsubfield ) = GetMarcFromKohaField( 'items.homebranch', '' );    # Should be GetFrameworkCode( $biblionumber )?
 
             for my $itemfield ( $record->field($homebranchfield) ) {
                 my $homebranch = $itemfield->subfield($homebranchsubfield);
-                if ( $only_export_items_for_branch ne $homebranch ) {
+                unless ( $export_items_for_branches{$homebranch} ) {
                     $record->delete_field($itemfield);
                 }
             }
@@ -142,12 +144,8 @@ sub export {
         print MARC::File::XML::footer();
         print "\n";
     } elsif ( $format eq 'csv' ) {
-        unless ( $csv_profile_id ) {
-            # FIXME export_format.profile should be a unique key
-            my $csv_profiles = Koha::CsvProfiles->search({ profile => C4::Context->preference('ExportWithCsvProfile') });
-            die "The ExportWithCsvProfile system preference is not defined or does not match a valid csv profile" unless $csv_profiles->count;
-            $csv_profile_id = $csv_profiles->next->export_format_id;
-        }
+        die 'There is no valid csv profile defined for this export'
+            unless Koha::CsvProfiles->find( $csv_profile_id );
         print marc2csv( $record_ids, $csv_profile_id, $itemnumbers );
     }
 
@@ -207,7 +205,7 @@ It will displays on STDOUT the generated file.
 
 =item csv_profile_id
 
-  If the format is csv, a csv_profile_id can be provide to overwrite the default value (syspref ExportWithCsvProfile).
+  If the format is csv, you have to define a csv_profile_id.
 
 =cut
 

@@ -90,10 +90,13 @@ sub get_some_shelves {
     if ( $add_allowed ) {
         push @conditions, {
             -or =>
-            {
-                "me.allow_add" => 1,
-                "me.owner" => $borrowernumber,
-            }
+            [
+                {
+                    "me.owner" => $borrowernumber,
+                    "me.allow_change_from_owner" => 1,
+                },
+                "me.allow_change_from_others" => 1,
+            ]
         };
     }
     if ( $category == 1 ) {
@@ -115,6 +118,44 @@ sub get_some_shelves {
             join => [ 'virtualshelfshares' ],
             group_by => 'shelfnumber',
             order_by => { -desc => 'lastmodified' },
+        }
+    );
+}
+
+sub get_shelves_containing_record {
+    my ( $self, $params ) = @_;
+    my $borrowernumber = $params->{borrowernumber};
+    my $biblionumber   = $params->{biblionumber};
+
+    my @conditions = ( 'virtualshelfcontents.biblionumber' => $biblionumber );
+    if ($borrowernumber) {
+        push @conditions,
+          {
+              -or => [
+                {
+                    category => 1,
+                    -or      => {
+                        'me.owner' => $borrowernumber,
+                        -or        => {
+                            'virtualshelfshares.borrowernumber' => $borrowernumber,
+                        },
+                    }
+                },
+                { category => 2 },
+            ]
+          };
+    } else {
+        push @conditions, { category => 2 };
+    }
+
+    return Koha::Virtualshelves->search(
+        {
+            -and => \@conditions
+        },
+        {
+            join     => [ 'virtualshelfcontents', 'virtualshelfshares' ],
+            distinct => 'shelfnumber',
+            order_by => { -asc => 'shelfname' },
         }
     );
 }

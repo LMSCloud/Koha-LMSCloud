@@ -1,5 +1,6 @@
 # Copyright Tamil s.a.r.l. 2008-2015
 # Copyright Biblibre 2008-2015
+# Copyright The National Library of Finland, University of Helsinki 2016
 #
 # This file is part of Koha.
 #
@@ -31,13 +32,11 @@ use Koha::OAI::Server::GetRecord;
 use Koha::OAI::Server::ListRecords;
 use Koha::OAI::Server::ListIdentifiers;
 use XML::SAX::Writer;
-use XML::LibXML;
-use XML::LibXSLT;
 use YAML::Syck qw( LoadFile );
 use CGI qw/:standard -oldstyle_urls/;
 use C4::Context;
 use C4::Biblio;
-
+use Koha::XSLT_Handler;
 
 =head1 NAME
 
@@ -77,6 +76,11 @@ mode. A configuration file koha-oai.conf can look like that:
       metadataNamespace: http://veryspecial.tamil.fr/vs/format-pivot/1.1/vs
       schema: http://veryspecial.tamil.fr/vs/format-pivot/1.1/vs.xsd
       xsl_file: /usr/local/koha/xslt/vs.xsl
+    marc21:
+      metadataPrefix: marc21
+      metadataNamespace: http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim
+      schema: http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd
+      include_items: 1
     marcxml:
       metadataPrefix: marxml
       metadataNamespace: http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim
@@ -88,7 +92,7 @@ mode. A configuration file koha-oai.conf can look like that:
       schema: http://www.openarchives.org/OAI/2.0/oai_dc.xsd
       xsl_file: /usr/local/koha/koha-tmpl/intranet-tmpl/xslt/UNIMARCslim2OAIDC.xsl
 
-Note de 'include_items' parameter which is the only mean to return item-level info.
+Note the 'include_items' parameter which is the only mean to return item-level info.
 
 =cut
 
@@ -99,8 +103,8 @@ sub new {
 
     $self->{ koha_identifier      } = C4::Context->preference("OAI-PMH:archiveID");
     $self->{ koha_max_count       } = C4::Context->preference("OAI-PMH:MaxCount");
-    $self->{ koha_metadata_format } = ['oai_dc', 'marcxml'];
-    $self->{ koha_stylesheet      } = { }; # Build when needed
+    $self->{ koha_metadata_format } = ['oai_dc', 'marc21', 'marcxml'];
+    $self->{ xslt_engine          } = Koha::XSLT_Handler->new;
 
     # Load configuration file if defined in OAI-PMH:ConfFile syspref
     if ( my $file = C4::Context->preference("OAI-PMH:ConfFile") ) {
@@ -109,10 +113,18 @@ sub new {
         $self->{ koha_metadata_format } =  \@formats;
     }
 
+    # OAI-PMH handles dates in UTC, so do that on the database level to avoid need for
+    # any conversions
+    my $sth = C4::Context->dbh->prepare('SELECT @@session.time_zone');
+    $sth->execute();
+    my ( $orig_tz ) = $sth->fetchrow();
+    $self->{ mysql_orig_tz } = $orig_tz;
+    C4::Context->dbh->prepare("SET time_zone='+00:00'")->execute();
+
     # Check for grammatical errors in the request
     my @errs = validate_request( CGI::Vars() );
 
-    # Is metadataPrefix supported by the respository?
+    # Is metadataPrefix supported by the repository?
     my $mdp = param('metadataPrefix') || '';
     if ( $mdp && !grep { $_ eq $mdp } @{$self->{ koha_metadata_format }} ) {
         push @errs, new HTTP::OAI::Error(
@@ -144,36 +156,49 @@ sub new {
 }
 
 
+sub DESTROY {
+    my ( $self ) = @_;
+
+    # Reset time zone to the original value
+    C4::Context->dbh->prepare("SET time_zone='" . $self->{ mysql_orig_tz } . "'")->execute()
+        if $self->{ mysql_orig_tz };
+}
+
+
 sub get_biblio_marcxml {
     my ($self, $biblionumber, $format) = @_;
     my $with_items = 0;
     if ( my $conf = $self->{conf} ) {
         $with_items = $conf->{format}->{$format}->{include_items};
     }
-    my $record = GetMarcBiblio($biblionumber, $with_items, 1);
+    my $record = GetMarcBiblio({
+        biblionumber => $biblionumber,
+        embed_items  => $with_items,
+        opac         => 1 });
     $record ? $record->as_xml_record() : undef;
 }
 
 
 sub stylesheet {
     my ( $self, $format ) = @_;
+    my $xsl_file = $self->{ conf }
+        ? $self->{ conf }->{ format }->{ $format }->{ xsl_file }
+        : ( C4::Context->config('intrahtdocs') .
+            '/prog/en/xslt/' .
+            C4::Context->preference('marcflavour') .
+            'slim2OAIDC.xsl'
+    );
+    return $xsl_file;
+}
 
-    my $stylesheet = $self->{ koha_stylesheet }->{ $format };
-    unless ( $stylesheet ) {
-        my $xsl_file = $self->{ conf }
-                       ? $self->{ conf }->{ format }->{ $format }->{ xsl_file }
-                       : ( C4::Context->config('intrahtdocs') .
-                         '/prog/en/xslt/' .
-                         C4::Context->preference('marcflavour') .
-                         'slim2OAIDC.xsl' );
-        my $parser = XML::LibXML->new();
-        my $xslt = XML::LibXSLT->new();
-        my $style_doc = $parser->parse_file( $xsl_file );
-        $stylesheet = $xslt->parse_stylesheet( $style_doc );
-        $self->{ koha_stylesheet }->{ $format } = $stylesheet;
+
+sub items_included {
+    my ( $self, $format ) = @_;
+
+    if ( my $conf = $self->{ conf } ) {
+        return $conf->{ format }->{ $format }->{ include_items };
     }
-
-    return $stylesheet;
+    return 0;
 }
 
 1;

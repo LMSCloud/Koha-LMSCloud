@@ -6,9 +6,9 @@ use Pod::Usage;
 use Getopt::Long;
 
 use C4::Budgets qw( GetBudget );
-use C4::Members qw( GetMember );
 use C4::Suggestions qw( GetUnprocessedSuggestions );
 use Koha::Libraries;
+use Koha::Patrons;
 
 my ( $help, $verbose, $confirm, @days );
 GetOptions(
@@ -45,31 +45,31 @@ for my $number_of_days (@days) {
         say "Suggestion $suggestion->{suggestionid} should be processed" if $verbose;
 
         my $budget = C4::Budgets::GetBudget( $suggestion->{budgetid} );
-        my $patron = C4::Members::GetMember( borrowernumber => $budget->{budget_owner_id} );
-        my $email_address =
-          C4::Members::GetNoticeEmailAddress( $budget->{budget_owner_id} );
-        my $usebranch = Koha::Libraries->get_effective_branch( $patron->{branchcode} );
-        my $library = Koha::Libraries->find( $usebranch );
+        my $patron = Koha::Patrons->find( $budget->{budget_owner_id} );
+        my $email_address = $patron->notice_email_address;
+        my $usebranch = Koha::Libraries->get_effective_branch( $patron->branchcode );
+        my $library =  Koha::Libraries->find( $usebranch );
         my $admin_email_address = $library->branchemail
           || C4::Context->preference('KohaAdminEmailAddress');
 
         if ($email_address) {
-            say "Patron $patron->{borrowernumber} is going to be notified" if $verbose;
+            say "Patron " . $patron->borrowernumber . " is going to be notified" if $verbose;
             my $letter = C4::Letters::GetPreparedLetter(
                 module      => 'suggestions',
                 letter_code => 'TO_PROCESS',
                 branchcode  => $usebranch,
+                lang        => $patron->lang,
                 tables      => {
                     suggestions => $suggestion->{suggestionid},
                     branches    => $usebranch,
-                    borrowers   => $patron->{borrowernumber},
+                    borrowers   => $patron->borrowernumber,
                 },
             );
             if ( $confirm ) {
                 C4::Letters::EnqueueLetter(
                     {
                         letter                 => $letter,
-                        borrowernumber         => $patron->{borrowernumber},
+                        borrowernumber         => $patron->borrowernumber,
                         message_transport_type => 'email',
                         from_address           => $admin_email_address,
                         branchcode             => $usebranch
@@ -77,7 +77,7 @@ for my $number_of_days (@days) {
                 );
             }
         } else {
-            say "Patron $patron->{borrowernumber} does not have an email address" if $verbose;
+            say "Patron " . $patron->borrowernumber . " does not have an email address" if $verbose;
         }
     }
 

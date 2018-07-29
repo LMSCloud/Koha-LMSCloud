@@ -1,4 +1,5 @@
 package C4::Context;
+
 # Copyright 2002 Katipo Communications
 #
 # This file is part of Koha.
@@ -16,9 +17,9 @@ package C4::Context;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
-use vars qw($AUTOLOAD $context @context_stack $servers $memcached $ismemcached);
+use Modern::Perl;
+
+use vars qw($AUTOLOAD $context @context_stack);
 BEGIN {
 	if ($ENV{'HTTP_USER_AGENT'})	{
 		require CGI::Carp;
@@ -79,6 +80,7 @@ BEGIN {
 
         # Redefine multi_param if cgi version is < 4.08
         # Remove the "CGI::param called in list context" warning in this case
+        require CGI; # Can't check version without the require.
         if (!defined($CGI::VERSION) || $CGI::VERSION < 4.08) {
             no warnings 'redefine';
             *CGI::multi_param = \&CGI::param;
@@ -86,37 +88,21 @@ BEGIN {
             $CGI::LIST_CONTEXT_WARN = 0;
         }
     }  	# else there is no browser to send fatals to!
-
-    # Check if there are memcached servers set
-    $servers = $ENV{'MEMCACHED_SERVERS'};
-    if ($servers) {
-        # Load required libraries and create the memcached object
-        require Cache::Memcached;
-        $memcached = Cache::Memcached->new({
-        servers => [ $servers ],
-        debug   => 0,
-        compress_threshold => 10_000,
-        expire_time => 600,
-        namespace => $ENV{'MEMCACHED_NAMESPACE'} || 'koha'
-    });
-        # Verify memcached available (set a variable and test the output)
-    $ismemcached = $memcached->set('ismemcached','1');
-    }
-
 }
 
 use Encode;
 use ZOOM;
-use XML::Simple;
-use Koha::Cache;
+use Koha::Caches;
 use POSIX ();
 use DateTime::TimeZone;
 use Module::Load::Conditional qw(can_load);
 use Carp;
+use DateTime::TimeZone;
 
 use C4::Boolean;
 use C4::Debug;
 use Koha;
+use Koha::Config;
 use Koha::Config::SysPref;
 use Koha::Config::SysPrefs;
 
@@ -185,94 +171,8 @@ environment variable to the pathname of a configuration file to use.
 # Zconn
 #     A connection object for the Zebra server
 
-# Koha's main configuration file koha-conf.xml
-# is searched for according to this priority list:
-#
-# 1. Path supplied via use C4::Context '/path/to/koha-conf.xml'
-# 2. Path supplied in KOHA_CONF environment variable.
-# 3. Path supplied in INSTALLED_CONFIG_FNAME, as long
-#    as value has changed from its default of 
-#    '__KOHA_CONF_DIR__/koha-conf.xml', as happens
-#    when Koha is installed in 'standard' or 'single'
-#    mode.
-# 4. Path supplied in CONFIG_FNAME.
-#
-# The first entry that refers to a readable file is used.
-
-use constant CONFIG_FNAME => "/etc/koha/koha-conf.xml";
-                # Default config file, if none is specified
-                
-my $INSTALLED_CONFIG_FNAME = '__KOHA_CONF_DIR__/koha-conf.xml';
-                # path to config file set by installer
-                # __KOHA_CONF_DIR__ is set by rewrite-confg.PL
-                # when Koha is installed in 'standard' or 'single'
-                # mode.  If Koha was installed in 'dev' mode, 
-                # __KOHA_CONF_DIR__ is *not* rewritten; instead
-                # developers should set the KOHA_CONF environment variable 
-
 $context = undef;        # Initially, no context is set
 @context_stack = ();        # Initially, no saved contexts
-
-
-=head2 read_config_file
-
-Reads the specified Koha config file. 
-
-Returns an object containing the configuration variables. The object's
-structure is a bit complex to the uninitiated ... take a look at the
-koha-conf.xml file as well as the XML::Simple documentation for details. Or,
-here are a few examples that may give you what you need:
-
-The simple elements nested within the <config> element:
-
-    my $pass = $koha->{'config'}->{'pass'};
-
-The <listen> elements:
-
-    my $listen = $koha->{'listen'}->{'biblioserver'}->{'content'};
-
-The elements nested within the <server> element:
-
-    my $ccl2rpn = $koha->{'server'}->{'biblioserver'}->{'cql2rpn'};
-
-Returns undef in case of error.
-
-=cut
-
-sub read_config_file {		# Pass argument naming config file to read
-    my $koha = XMLin(shift, keyattr => ['id'], forcearray => ['listen', 'server', 'serverinfo'], suppressempty => '');
-
-    if ($ismemcached) {
-      $memcached->set('kohaconf',$koha);
-    }
-
-    return $koha;			# Return value: ref-to-hash holding the configuration
-}
-
-=head2 ismemcached
-
-Returns the value of the $ismemcached variable (0/1)
-
-=cut
-
-sub ismemcached {
-    return $ismemcached;
-}
-
-=head2 memcached
-
-If $ismemcached is true, returns the $memcache variable.
-Returns undef otherwise
-
-=cut
-
-sub memcached {
-    if ($ismemcached) {
-      return $memcached;
-    } else {
-      return;
-    }
-}
 
 =head2 db_scheme2dbi
 
@@ -338,39 +238,31 @@ sub new {
     undef $conf_fname unless 
         (defined $conf_fname && -s $conf_fname);
     # Figure out a good config file to load if none was specified.
-    if (!defined($conf_fname))
-    {
-        # If the $KOHA_CONF environment variable is set, use
-        # that. Otherwise, use the built-in default.
-        if (exists $ENV{"KOHA_CONF"} and $ENV{'KOHA_CONF'} and -s  $ENV{"KOHA_CONF"}) {
-            $conf_fname = $ENV{"KOHA_CONF"};
-        } elsif ($INSTALLED_CONFIG_FNAME !~ /__KOHA_CONF_DIR/ and -s $INSTALLED_CONFIG_FNAME) {
-            # NOTE: be careful -- don't change __KOHA_CONF_DIR in the above
-            # regex to anything else -- don't want installer to rewrite it
-            $conf_fname = $INSTALLED_CONFIG_FNAME;
-        } elsif (-s CONFIG_FNAME) {
-            $conf_fname = CONFIG_FNAME;
-        } else {
+    unless ( defined $conf_fname ) {
+        $conf_fname = Koha::Config->guess_koha_conf;
+        unless ( $conf_fname ) {
             warn "unable to locate Koha configuration file koha-conf.xml";
             return;
         }
     }
-    
-    if ($ismemcached) {
-        # retrieve from memcached
-        $self = $memcached->get('kohaconf');
-        if (not defined $self) {
-            # not in memcached yet
-            $self = read_config_file($conf_fname);
-        }
-    } else {
-        # non-memcached env, read from file
-        $self = read_config_file($conf_fname);
-    }
 
-    $self->{"config_file"} = $conf_fname;
-    warn "read_config_file($conf_fname) returned undef" if !defined($self->{"config"});
-    return if !defined($self->{"config"});
+    my $conf_cache = Koha::Caches->get_instance('config');
+    my $config_from_cache;
+    if ( $conf_cache->cache ) {
+        $self = $conf_cache->get_from_cache('koha_conf');
+    }
+    unless ( $self and %$self ) {
+        $self = Koha::Config->read_from_file($conf_fname);
+        if ( $conf_cache->memcached_cache ) {
+            # FIXME it may be better to use the memcached servers from the config file
+            # to cache it
+            $conf_cache->set_in_cache('koha_conf', $self)
+        }
+    }
+    unless ( exists $self->{config} or defined $self->{config} ) {
+        warn "The config file ($conf_fname) has not been parsed correctly";
+        return;
+    }
 
     $self->{"Zconn"} = undef;    # Zebra Connections
     $self->{"userenv"} = undef;        # User env
@@ -511,21 +403,22 @@ with this method.
 
 =cut
 
-my $syspref_cache = Koha::Cache->get_instance();
+my $syspref_cache = Koha::Caches->get_instance('syspref');
 my $use_syspref_cache = 1;
 sub preference {
     my $self = shift;
     my $var  = shift;    # The system preference to return
 
-    $var = lc $var;
-
     return $ENV{"OVERRIDE_SYSPREF_$var"}
         if defined $ENV{"OVERRIDE_SYSPREF_$var"};
 
-    my $cached_var = $use_syspref_cache
-        ? $syspref_cache->get_from_cache("syspref_$var")
-        : undef;
-    return $cached_var if defined $cached_var;
+    $var = lc $var;
+
+    if ($use_syspref_cache) {
+        $syspref_cache = Koha::Caches->get_instance('syspref') unless $syspref_cache;
+        my $cached_var = $syspref_cache->get_from_cache("syspref_$var");
+        return $cached_var if defined $cached_var;
+    }
 
     my $syspref;
     eval { $syspref = Koha::Config::SysPrefs->find( lc $var ) };
@@ -604,6 +497,7 @@ preference.
 sub set_preference {
     my ( $self, $variable, $value, $explanation, $type, $options ) = @_;
 
+    my $variable_case = $variable;
     $variable = lc $variable;
 
     my $syspref = Koha::Config::SysPrefs->find($variable);
@@ -629,7 +523,7 @@ sub set_preference {
         )->store;
     } else {
         $syspref = Koha::Config::SysPref->new(
-            {   variable    => $variable,
+            {   variable    => $variable_case,
                 value       => $value,
                 explanation => $explanation || undef,
                 type        => $type,
@@ -956,7 +850,7 @@ sub userenv {
   C4::Context->set_userenv($usernum, $userid, $usercnum,
                            $userfirstname, $usersurname,
                            $userbranch, $branchname, $userflags,
-                           $emailaddress, $branchprinter, $persona);
+                           $emailaddress, $branchprinter, $shibboleth);
 
 Establish a hash of user environment variables.
 
@@ -967,7 +861,7 @@ set_userenv is called in Auth.pm
 #'
 sub set_userenv {
     shift @_;
-    my ($usernum, $userid, $usercnum, $userfirstname, $usersurname, $userbranch, $branchname, $userflags, $emailaddress, $branchprinter, $persona, $shibboleth, $branchcategory)=
+    my ($usernum, $userid, $usercnum, $userfirstname, $usersurname, $userbranch, $branchname, $userflags, $emailaddress, $branchprinter, $shibboleth, $branchcategory)=
     map { Encode::is_utf8( $_ ) ? $_ : Encode::decode('UTF-8', $_) } # CGI::Session doesn't handle utf-8, so we decode it here
     @_;
     my $var=$context->{"activeuser"} || '';
@@ -983,7 +877,6 @@ sub set_userenv {
         "flags"      => $userflags,
         "emailaddress"     => $emailaddress,
         "branchprinter"    => $branchprinter,
-        "persona"    => $persona,
         "shibboleth" => $shibboleth,
         "branchcategory" => $branchcategory,
     };
@@ -1078,6 +971,25 @@ sub get_versions {
     return %versions;
 }
 
+=head2 timezone
+
+  my $C4::Context->timzone
+
+  Returns a timezone code for the instance of Koha
+
+=cut
+
+sub timezone {
+    my $self = shift;
+
+    my $timezone = C4::Context->config('timezone') || $ENV{TZ} || 'local';
+    if ( !DateTime::TimeZone->is_valid_name( $timezone ) ) {
+        warn "Invalid timezone in koha-conf.xml ($timezone)";
+        $timezone = 'local';
+    }
+
+    return $timezone;
+}
 
 =head2 tz
 
@@ -1090,7 +1002,8 @@ sub get_versions {
 sub tz {
     my $self = shift;
     if (!defined $context->{tz}) {
-        $context->{tz} = DateTime::TimeZone->new(name => 'local');
+        my $timezone = $self->timezone;
+        $context->{tz} = DateTime::TimeZone->new(name => $timezone);
     }
     return $context->{tz};
 }
@@ -1141,7 +1054,31 @@ sub interface {
     return $context->{interface} // 'opac';
 }
 
+# always returns a string for OK comparison via "eq" or "ne"
+sub mybranch {
+    C4::Context->userenv           or return '';
+    return C4::Context->userenv->{branch} || '';
+}
+
+=head2 only_my_library
+
+    my $test = C4::Context->only_my_library;
+
+    Returns true if you enabled IndependentBranches and the current user
+    does not have superlibrarian permissions.
+
+=cut
+
+sub only_my_library {
+    return
+         C4::Context->preference('IndependentBranches')
+      && C4::Context->userenv
+      && !C4::Context->IsSuperLibrarian()
+      && C4::Context->userenv->{branch};
+}
+
 1;
+
 __END__
 
 =head1 ENVIRONMENT

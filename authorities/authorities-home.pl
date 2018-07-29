@@ -37,6 +37,7 @@ use Koha::Authority::Types;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
 use Koha::Token;
+use Koha::Z3950Servers;
 
 my $query = new CGI;
 my $dbh   = C4::Context->dbh;
@@ -65,7 +66,7 @@ if ( $op eq "delete" ) {
         token  => scalar $query->param('csrf_token'),
     });
 
-    &DelAuthority( $authid, 1 );
+    DelAuthority({ authid => $authid });
 
     if ( $query->param('operator') ) {
         # query contains search params so perform search
@@ -94,18 +95,9 @@ if ( $op eq "do_search" ) {
         [$marclist], [$and_or], [$excluding], [$operator],
         [$value], $authtypecode, $orderby
     );
-    my $offset = ( $startfrom - 1 ) * $resultsperpage + 1;
-    my ( $results, $total ) =
-      $searcher->search_auth_compat( $search_query, $offset,
-        $resultsperpage );
-    #my ( $results, $total ) = SearchAuthorities(
-    #    [$marclist],  [$and_or],
-    #    [$excluding], [$operator],
-    #    [$value], ( $startfrom - 1 ) * $resultsperpage,
-    #    $resultsperpage, $authtypecode,
-    #    $orderby
-    #);
-
+    my ( $results, $total ) = $searcher->search_auth_compat(
+        $search_query, $startfrom, $resultsperpage
+    );
 
     ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         {
@@ -214,7 +206,15 @@ if ( $op eq '' ) {
 
 }
 
+my $servers = Koha::Z3950Servers->search(
+    {
+        recordtype => 'authority',
+        servertype => ['zed', 'sru'],
+    },
+);
+
 $template->param(
+    servers => $servers,
     authority_types => $authority_types,
     op            => $op,
 );

@@ -1,37 +1,12 @@
+[% USE Asset %]
 [% USE KohaDates %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; Receive shipment from vendor [% name %]</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
- $(document).ready(function() {
-    var parcelst = $("#parcelst").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-          { "sType": "title-string", "aTargets" : [ "title-string" ] }
-        ],
-        'bPaginate': false,
-    } ) );
-
-    //keep a copy of all budgets before removing the inactives
-    var budgetId = $("#shipmentcost_budgetid");
-    var disabledBudgetsCopy = budgetId.html();
-    $('.b_inactive').remove();
-
-    $('#showallfunds').click(function() {
-        if ($(this).is(":checked")) {
-            budgetId.html(disabledBudgetsCopy); //Puts back all the funds
-        }
-        else {
-            $('.b_inactive').remove();
-        }
-    });
- });
- //]]>
-</script>
 </head>
+
 <body id="acq_parcels" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
@@ -107,7 +82,7 @@
             </td>
             <td>
                 [% IF ( searchresult.code ) %]
-                    <a href="/cgi-bin/koha/acqui/parcel.pl?invoiceid=[% searchresult.invoiceid %]">[% searchresult.code %]</a>
+                    <a href="/cgi-bin/koha/acqui/parcel.pl?invoiceid=[% searchresult.invoiceid %]">[% searchresult.code |html %]</a>
                 [% ELSE %]
                     <abbr title="not available">n/a</abbr>
                 [% END %]
@@ -225,4 +200,35 @@
 </form>[% END %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var parcelst = $("#parcelst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                  { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                ],
+                'bPaginate': false,
+            }));
+
+            //keep a copy of all budgets before removing the inactives
+            var budgetId = $("#shipmentcost_budgetid");
+            var disabledBudgetsCopy = budgetId.html();
+            $('.b_inactive').remove();
+
+            $('#showallfunds').click(function() {
+                if ($(this).is(":checked")) {
+                    budgetId.html(disabledBudgetsCopy); //Puts back all the funds
+                }
+                else {
+                    $('.b_inactive').remove();
+                }
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

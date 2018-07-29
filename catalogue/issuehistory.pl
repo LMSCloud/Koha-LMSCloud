@@ -16,16 +16,17 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 
-use C4::Circulation;    # GetBiblioIssues
-use C4::Biblio;    # GetBiblio GetBiblioFromItemNumber
+use C4::Biblio;    # GetBiblio
 use C4::Search;		# enabled_staff_search_views
+use Koha::Checkouts;
+
+use Koha::Biblios;
 
 my $query = new CGI;
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -38,38 +39,20 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-# getting cgi params.
-my $params = $query->Vars;
+my $biblionumber = $query->param('biblionumber');
 
-my $biblionumber = $params->{'biblionumber'};
-my $itemnumber   = $params->{'itemnumber'};
-
-if (C4::Context->preference("HidePatronName")) {
-   $template->param(HidePatronName => 1);
-}
-
-my ($issues,$biblio,$barcode);
-if ($itemnumber){
-	$issues=GetItemIssues($itemnumber);
-	$biblio=GetBiblioFromItemNumber($itemnumber);
-	$biblionumber=$biblio->{biblionumber};
-	$barcode=$issues->[0]->{barcode};
-	$template->param(
-		%$biblio,
-		barcode=> $barcode,
-	);
-} else {
-	$issues = GetBiblioIssues($biblionumber);
-        my $biblio = GetBiblio($biblionumber);
-	my $total  = scalar @$issues;
-	$template->param(
-               %{$biblio},
-	);
-} 
+my $checkouts = Koha::Checkouts->search(
+    { biblionumber => $biblionumber },
+    {
+        join       => 'item',
+        order_by   => 'timestamp',
+    }
+);
+my $biblio = Koha::Biblios->find( $biblionumber );
 
 $template->param(
-    total        => scalar @$issues,
-    issues       => $issues,
+    checkouts => $checkouts,
+    biblio    => $biblio,
 	issuehistoryview => 1,
 	C4::Search::enabled_staff_search_views,
 );

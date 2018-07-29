@@ -24,12 +24,14 @@ use strict;
 #use warnings; FIXME - Bug 2505
 
 use C4::Context;
-use C4::Branch; # Can be removed?
-use Koha::Cache;
+use Koha::Caches;
 use Koha::DateUtils qw(dt_from_string);
+use Koha::AuthorisedValues;
 use Koha::Libraries;
+use Koha::MarcSubfieldStructures;
 use DateTime::Format::MySQL;
 use Business::ISBN;
+use Business::ISSN;
 use autouse 'Data::cselectall_arrayref' => qw(Dumper);
 use DBI qw(:sql_types);
 use vars qw(@ISA @EXPORT @EXPORT_OK $DEBUG);
@@ -38,28 +40,15 @@ BEGIN {
 	require Exporter;
 	@ISA    = qw(Exporter);
 	@EXPORT = qw(
-		&GetPrinters &GetPrinter
-		&GetItemTypes &getitemtypeinfo
-                &GetItemTypesCategorized &GetItemTypesByCategory
-		&GetSupportName &GetSupportList
-		&getframeworks &getframeworkinfo
-        &GetFrameworksLoop
-		&getallthemes
-		&getFacets
-		&getnbpages
-		&get_infos_of
-		&get_notforloan_label_of
+        &GetPrinters &GetPrinter
+        &GetItemTypesCategorized
+        &getallthemes
+        &getFacets
+        &getnbpages
 		&getitemtypeimagedir
 		&getitemtypeimagesrc
 		&getitemtypeimagelocation
 		&GetAuthorisedValues
-		&GetAuthorisedValueCategories
-		&GetKohaAuthorisedValues
-		&GetKohaAuthorisedValuesFromField
-    &GetKohaAuthorisedValuesMapping
-    &GetKohaAuthorisedValueLib
-    &GetAuthorisedValueByCode
-		&GetAuthValCode
 		&GetNormalizedUPC
 		&GetNormalizedISBN
 		&GetNormalizedISBN13
@@ -70,6 +59,9 @@ BEGIN {
         &GetVariationsOfISBN
         &GetVariationsOfISBNs
         &NormalizeISBN
+        &GetVariationsOfISSN
+        &GetVariationsOfISSNs
+        &NormalizeISSN
 
 		$DEBUG
 	);
@@ -92,163 +84,6 @@ Koha.pm provides many functions for Koha scripts.
 =head1 FUNCTIONS
 
 =cut
-
-=head2 GetSupportName
-
-  $itemtypename = &GetSupportName($codestring);
-
-Returns a string with the name of the itemtype.
-
-=cut
-
-sub GetSupportName{
-	my ($codestring)=@_;
-	return if (! $codestring); 
-	my $resultstring;
-	my $advanced_search_types = C4::Context->preference("AdvancedSearchTypes");
-	if (!$advanced_search_types or $advanced_search_types eq 'itemtypes') {  
-		my $query = qq|
-			SELECT description
-			FROM   itemtypes
-			WHERE itemtype=?
-			order by description
-		|;
-		my $sth = C4::Context->dbh->prepare($query);
-		$sth->execute($codestring);
-		($resultstring)=$sth->fetchrow;
-		return $resultstring;
-	} else {
-        my $sth =
-            C4::Context->dbh->prepare(
-                    "SELECT lib FROM authorised_values WHERE category = ? AND authorised_value = ?"
-                    );
-        $sth->execute( $advanced_search_types, $codestring );
-        my $data = $sth->fetchrow_hashref;
-        return $$data{'lib'};
-	}
-
-}
-=head2 GetSupportList
-
-  $itemtypes = &GetSupportList();
-
-Returns an array ref containing informations about Support (since itemtype is rather a circulation code when item-level-itypes is used).
-
-build a HTML select with the following code :
-
-=head3 in PERL SCRIPT
-
-    my $itemtypes = GetSupportList();
-    $template->param(itemtypeloop => $itemtypes);
-
-=head3 in TEMPLATE
-
-    <select name="itemtype" id="itemtype">
-        <option value=""></option>
-        [% FOREACH itemtypeloo IN itemtypeloop %]
-             [% IF ( itemtypeloo.selected ) %]
-                <option value="[% itemtypeloo.itemtype %]" selected="selected">[% itemtypeloo.description %]</option>
-            [% ELSE %]
-                <option value="[% itemtypeloo.itemtype %]">[% itemtypeloo.description %]</option>
-            [% END %]
-       [% END %]
-    </select>
-
-=cut
-
-sub GetSupportList{
-	my $advanced_search_types = C4::Context->preference("AdvancedSearchTypes");
-    if (!$advanced_search_types or $advanced_search_types =~ /itemtypes/) {
-        return GetItemTypes( style => 'array' );
-	} else {
-		my $advsearchtypes = GetAuthorisedValues($advanced_search_types);
-		my @results= map {{itemtype=>$$_{authorised_value},description=>$$_{lib},imageurl=>$$_{imageurl}}} @$advsearchtypes;
-		return \@results;
-	}
-}
-=head2 GetItemTypes
-
-  $itemtypes = &GetItemTypes( style => $style );
-
-Returns information about existing itemtypes.
-
-Params:
-    style: either 'array' or 'hash', defaults to 'hash'.
-           'array' returns an arrayref,
-           'hash' return a hashref with the itemtype value as the key
-
-build a HTML select with the following code :
-
-=head3 in PERL SCRIPT
-
-    my $itemtypes = GetItemTypes;
-    my @itemtypesloop;
-    foreach my $thisitemtype (sort keys %$itemtypes) {
-        my $selected = 1 if $thisitemtype eq $itemtype;
-        my %row =(value => $thisitemtype,
-                    selected => $selected,
-                    description => $itemtypes->{$thisitemtype}->{'description'},
-                );
-        push @itemtypesloop, \%row;
-    }
-    $template->param(itemtypeloop => \@itemtypesloop);
-
-=head3 in TEMPLATE
-
-    <form action='<!-- TMPL_VAR name="script_name" -->' method=post>
-        <select name="itemtype">
-            <option value="">Default</option>
-        <!-- TMPL_LOOP name="itemtypeloop" -->
-            <option value="<!-- TMPL_VAR name="value" -->" <!-- TMPL_IF name="selected" -->selected<!-- /TMPL_IF -->><!-- TMPL_VAR name="description" --></option>
-        <!-- /TMPL_LOOP -->
-        </select>
-        <input type=text name=searchfield value="<!-- TMPL_VAR name="searchfield" -->">
-        <input type="submit" value="OK" class="button">
-    </form>
-
-=cut
-
-sub GetItemTypes {
-    my ( %params ) = @_;
-    my $style = defined( $params{'style'} ) ? $params{'style'} : 'hash';
-
-    require C4::Languages;
-    my $language = C4::Languages::getlanguage();
-    # returns a reference to a hash of references to itemtypes...
-    my $dbh   = C4::Context->dbh;
-    my $query = q|
-        SELECT
-               itemtypes.itemtype,
-               itemtypes.description,
-               itemtypes.rentalcharge,
-               itemtypes.notforloan,
-               itemtypes.imageurl,
-               itemtypes.summary,
-               itemtypes.checkinmsg,
-               itemtypes.checkinmsgtype,
-               itemtypes.sip_media_type,
-               itemtypes.hideinopac,
-               itemtypes.searchcategory,
-               COALESCE( localization.translation, itemtypes.description ) AS translated_description
-        FROM   itemtypes
-        LEFT JOIN localization ON itemtypes.itemtype = localization.code
-            AND localization.entity = 'itemtypes'
-            AND localization.lang = ?
-        ORDER BY itemtype
-    |;
-    my $sth = $dbh->prepare($query);
-    $sth->execute( $language );
-
-    if ( $style eq 'hash' ) {
-        my %itemtypes;
-        while ( my $IT = $sth->fetchrow_hashref ) {
-            $itemtypes{ $IT->{'itemtype'} } = $IT;
-        }
-        return ( \%itemtypes );
-    } else {
-        return [ sort { lc $a->{translated_description} cmp lc $b->{translated_description} } @{ $sth->fetchall_arrayref( {} ) } ];
-    }
-}
 
 =head2 GetItemTypesCategorized
 
@@ -284,185 +119,6 @@ sub GetItemTypesCategorized {
         WHERE searchcategory > '' and hideinopac=0
         |;
 return ($dbh->selectall_hashref($query,'itemtype'));
-}
-
-=head2 GetItemTypesByCategory
-
-    @results = GetItemTypesByCategory( $searchcategory );
-
-Returns the itemtype code of all itemtypes included in a searchcategory.
-
-=cut
-
-sub GetItemTypesByCategory {
-    my ($category) = @_;
-    my $count = 0;
-    my @results;
-    my $dbh = C4::Context->dbh;
-    my $query = qq|SELECT itemtype FROM itemtypes WHERE searchcategory=?|;
-    my $tmp=$dbh->selectcol_arrayref($query,undef,$category);
-    return @$tmp;
-}
-
-=head2 getframework
-
-  $frameworks = &getframework();
-
-Returns information about existing frameworks
-
-build a HTML select with the following code :
-
-=head3 in PERL SCRIPT
-
-  my $frameworks = getframeworks();
-  my @frameworkloop;
-  foreach my $thisframework (keys %$frameworks) {
-    my $selected = 1 if $thisframework eq $frameworkcode;
-    my %row =(
-                value       => $thisframework,
-                selected    => $selected,
-                description => $frameworks->{$thisframework}->{'frameworktext'},
-            );
-    push @frameworksloop, \%row;
-  }
-  $template->param(frameworkloop => \@frameworksloop);
-
-=head3 in TEMPLATE
-
-  <form action="[% script_name %] method=post>
-    <select name="frameworkcode">
-        <option value="">Default</option>
-        [% FOREACH framework IN frameworkloop %]
-        [% IF ( framework.selected ) %]
-        <option value="[% framework.value %]" selected="selected">[% framework.description %]</option>
-        [% ELSE %]
-        <option value="[% framework.value %]">[% framework.description %]</option>
-        [% END %]
-        [% END %]
-    </select>
-    <input type=text name=searchfield value="[% searchfield %]">
-    <input type="submit" value="OK" class="button">
-  </form>
-
-=cut
-
-sub getframeworks {
-
-    # returns a reference to a hash of references to branches...
-    my %itemtypes;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("select * from biblio_framework");
-    $sth->execute;
-    while ( my $IT = $sth->fetchrow_hashref ) {
-        $itemtypes{ $IT->{'frameworkcode'} } = $IT;
-    }
-    return ( \%itemtypes );
-}
-
-=head2 GetFrameworksLoop
-
-  $frameworks = GetFrameworksLoop( $frameworkcode );
-
-Returns the loop suggested on getframework(), but ordered by framework description.
-
-build a HTML select with the following code :
-
-=head3 in PERL SCRIPT
-
-  $template->param( frameworkloop => GetFrameworksLoop( $frameworkcode ) );
-
-=head3 in TEMPLATE
-
-  Same as getframework()
-
-  <form action="[% script_name %] method=post>
-    <select name="frameworkcode">
-        <option value="">Default</option>
-        [% FOREACH framework IN frameworkloop %]
-        [% IF ( framework.selected ) %]
-        <option value="[% framework.value %]" selected="selected">[% framework.description %]</option>
-        [% ELSE %]
-        <option value="[% framework.value %]">[% framework.description %]</option>
-        [% END %]
-        [% END %]
-    </select>
-    <input type=text name=searchfield value="[% searchfield %]">
-    <input type="submit" value="OK" class="button">
-  </form>
-
-=cut
-
-sub GetFrameworksLoop {
-    my $frameworkcode = shift;
-    my $frameworks = getframeworks();
-    my @frameworkloop;
-    foreach my $thisframework (sort { uc($frameworks->{$a}->{'frameworktext'}) cmp uc($frameworks->{$b}->{'frameworktext'}) } keys %$frameworks) {
-        my $selected = ( $thisframework eq $frameworkcode ) ? 1 : undef;
-        my %row = (
-                value       => $thisframework,
-                selected    => $selected,
-                description => $frameworks->{$thisframework}->{'frameworktext'},
-            );
-        push @frameworkloop, \%row;
-  }
-  return \@frameworkloop;
-}
-
-=head2 getframeworkinfo
-
-  $frameworkinfo = &getframeworkinfo($frameworkcode);
-
-Returns information about an frameworkcode.
-
-=cut
-
-sub getframeworkinfo {
-    my ($frameworkcode) = @_;
-    my $dbh             = C4::Context->dbh;
-    my $sth             =
-      $dbh->prepare("select * from biblio_framework where frameworkcode=?");
-    $sth->execute($frameworkcode);
-    my $res = $sth->fetchrow_hashref;
-    return $res;
-}
-
-=head2 getitemtypeinfo
-
-  $itemtype = &getitemtypeinfo($itemtype, [$interface]);
-
-Returns information about an itemtype. The optional $interface argument
-sets which interface ('opac' or 'intranet') to return the imageurl for.
-Defaults to intranet.
-
-=cut
-
-sub getitemtypeinfo {
-    my ($itemtype, $interface) = @_;
-    my $dbh      = C4::Context->dbh;
-    require C4::Languages;
-    my $language = C4::Languages::getlanguage();
-    my $it = $dbh->selectrow_hashref(q|
-        SELECT
-               itemtypes.itemtype,
-               itemtypes.description,
-               itemtypes.rentalcharge,
-               itemtypes.notforloan,
-               itemtypes.imageurl,
-               itemtypes.summary,
-               itemtypes.checkinmsg,
-               itemtypes.checkinmsgtype,
-               itemtypes.sip_media_type,
-               COALESCE( localization.translation, itemtypes.description ) AS translated_description
-        FROM   itemtypes
-        LEFT JOIN localization ON itemtypes.itemtype = localization.code
-            AND localization.entity = 'itemtypes'
-            AND localization.lang = ?
-        WHERE itemtypes.itemtype = ?
-    |, undef, $language, $itemtype );
-
-    $it->{imageurl} = getitemtypeimagelocation( ( ( defined $interface && $interface eq 'opac' ) ? 'opac' : 'intranet' ), $it->{imageurl} );
-
-    return $it;
 }
 
 =head2 getitemtypeimagedir
@@ -869,146 +525,6 @@ sub getFacets {
     return $facets;
 }
 
-=head2 get_infos_of
-
-Return a href where a key is associated to a href. You give a query,
-the name of the key among the fields returned by the query. If you
-also give as third argument the name of the value, the function
-returns a href of scalar. The optional 4th argument is an arrayref of
-items passed to the C<execute()> call. It is designed to bind
-parameters to any placeholders in your SQL.
-
-  my $query = '
-SELECT itemnumber,
-       notforloan,
-       barcode
-  FROM items
-';
-
-  # generic href of any information on the item, href of href.
-  my $iteminfos_of = get_infos_of($query, 'itemnumber');
-  print $iteminfos_of->{$itemnumber}{barcode};
-
-  # specific information, href of scalar
-  my $barcode_of_item = get_infos_of($query, 'itemnumber', 'barcode');
-  print $barcode_of_item->{$itemnumber};
-
-=cut
-
-sub get_infos_of {
-    my ( $query, $key_name, $value_name, $bind_params ) = @_;
-
-    my $dbh = C4::Context->dbh;
-
-    my $sth = $dbh->prepare($query);
-    $sth->execute( @$bind_params );
-
-    my %infos_of;
-    while ( my $row = $sth->fetchrow_hashref ) {
-        if ( defined $value_name ) {
-            $infos_of{ $row->{$key_name} } = $row->{$value_name};
-        }
-        else {
-            $infos_of{ $row->{$key_name} } = $row;
-        }
-    }
-    $sth->finish;
-
-    return \%infos_of;
-}
-
-=head2 get_notforloan_label_of
-
-  my $notforloan_label_of = get_notforloan_label_of();
-
-Each authorised value of notforloan (information available in items and
-itemtypes) is link to a single label.
-
-Returns a href where keys are authorised values and values are corresponding
-labels.
-
-  foreach my $authorised_value (keys %{$notforloan_label_of}) {
-    printf(
-        "authorised_value: %s => %s\n",
-        $authorised_value,
-        $notforloan_label_of->{$authorised_value}
-    );
-  }
-
-=cut
-
-# FIXME - why not use GetAuthorisedValues ??
-#
-sub get_notforloan_label_of {
-    my $dbh = C4::Context->dbh;
-
-    my $query = '
-SELECT authorised_value
-  FROM marc_subfield_structure
-  WHERE kohafield = \'items.notforloan\'
-  LIMIT 0, 1
-';
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-    my ($statuscode) = $sth->fetchrow_array();
-
-    $query = '
-SELECT lib,
-       authorised_value
-  FROM authorised_values
-  WHERE category = ?
-';
-    $sth = $dbh->prepare($query);
-    $sth->execute($statuscode);
-    my %notforloan_label_of;
-    while ( my $row = $sth->fetchrow_hashref ) {
-        $notforloan_label_of{ $row->{authorised_value} } = $row->{lib};
-    }
-    $sth->finish;
-
-    return \%notforloan_label_of;
-}
-
-=head2 GetAuthValCode
-
-  $authvalcode = GetAuthValCode($kohafield,$frameworkcode);
-
-=cut
-
-sub GetAuthValCode {
-	my ($kohafield,$fwcode) = @_;
-	my $dbh = C4::Context->dbh;
-	$fwcode='' unless $fwcode;
-	my $sth = $dbh->prepare('select authorised_value from marc_subfield_structure where kohafield=? and frameworkcode=?');
-	$sth->execute($kohafield,$fwcode);
-	my ($authvalcode) = $sth->fetchrow_array;
-	return $authvalcode;
-}
-
-=head2 GetAuthValCodeFromField
-
-  $authvalcode = GetAuthValCodeFromField($field,$subfield,$frameworkcode);
-
-C<$subfield> can be undefined
-
-=cut
-
-sub GetAuthValCodeFromField {
-	my ($field,$subfield,$fwcode) = @_;
-	my $dbh = C4::Context->dbh;
-	$fwcode='' unless $fwcode;
-	my $sth;
-	if (defined $subfield) {
-	    $sth = $dbh->prepare('select authorised_value from marc_subfield_structure where tagfield=? and tagsubfield=? and frameworkcode=?');
-	    $sth->execute($field,$subfield,$fwcode);
-	} else {
-	    $sth = $dbh->prepare('select authorised_value from marc_tag_structure where tagfield=? and frameworkcode=?');
-	    $sth->execute($field,$fwcode);
-	}
-	my ($authvalcode) = $sth->fetchrow_array;
-	return $authvalcode;
-}
-
 =head2 GetAuthorisedValues
 
   $authvalues = GetAuthorisedValues([$category]);
@@ -1030,7 +546,7 @@ sub GetAuthorisedValues {
       C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
     my $cache_key =
       "AuthorisedValues-$category-$opac-$branch_limit";
-    my $cache  = Koha::Cache->get_instance();
+    my $cache  = Koha::Caches->get_instance();
     my $result = $cache->get_from_cache($cache_key);
     return $result if $result;
 
@@ -1072,154 +588,8 @@ sub GetAuthorisedValues {
     }
     $sth->finish;
 
-    $cache->set_in_cache( $cache_key, \@results, { deepcopy => 1, expiry => 5 } );
+    $cache->set_in_cache( $cache_key, \@results, { expiry => 5 } );
     return \@results;
-}
-
-=head2 GetAuthorisedValueCategories
-
-  $auth_categories = GetAuthorisedValueCategories();
-
-Return an arrayref of all of the available authorised
-value categories.
-
-=cut
-
-sub GetAuthorisedValueCategories {
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT DISTINCT category FROM authorised_values ORDER BY category");
-    $sth->execute;
-    my @results;
-    while (defined (my $category  = $sth->fetchrow_array) ) {
-        push @results, $category;
-    }
-    return \@results;
-}
-
-=head2 GetAuthorisedValueByCode
-
-$authorised_value = GetAuthorisedValueByCode( $category, $authvalcode, $opac );
-
-Return the lib attribute from authorised_values from the row identified
-by the passed category and code
-
-=cut
-
-sub GetAuthorisedValueByCode {
-    my ( $category, $authvalcode, $opac ) = @_;
-
-    my $field = $opac ? 'lib_opac' : 'lib';
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT $field FROM authorised_values WHERE category=? AND authorised_value =?");
-    $sth->execute( $category, $authvalcode );
-    while ( my $data = $sth->fetchrow_hashref ) {
-        return $data->{ $field };
-    }
-}
-
-=head2 GetKohaAuthorisedValues
-
-Takes $kohafield, $fwcode as parameters.
-
-If $opac parameter is set to a true value, displays OPAC descriptions rather than normal ones when they exist.
-
-Returns hashref of Code => description
-
-Returns undef if no authorised value category is defined for the kohafield.
-
-=cut
-
-sub GetKohaAuthorisedValues {
-  my ($kohafield,$fwcode,$opac) = @_;
-  $fwcode='' unless $fwcode;
-  my %values;
-  my $dbh = C4::Context->dbh;
-  my $avcode = GetAuthValCode($kohafield,$fwcode);
-  if ($avcode) {  
-	my $sth = $dbh->prepare("select authorised_value, lib, lib_opac from authorised_values where category=? ");
-   	$sth->execute($avcode);
-	while ( my ($val, $lib, $lib_opac) = $sth->fetchrow_array ) { 
-		$values{$val} = ($opac && $lib_opac) ? $lib_opac : $lib;
-   	}
-   	return \%values;
-  } else {
-	return;
-  }
-}
-
-=head2 GetKohaAuthorisedValuesFromField
-
-Takes $field, $subfield, $fwcode as parameters.
-
-If $opac parameter is set to a true value, displays OPAC descriptions rather than normal ones when they exist.
-$subfield can be undefined
-
-Returns hashref of Code => description
-
-Returns undef if no authorised value category is defined for the given field and subfield 
-
-=cut
-
-sub GetKohaAuthorisedValuesFromField {
-  my ($field, $subfield, $fwcode,$opac) = @_;
-  $fwcode='' unless $fwcode;
-  my %values;
-  my $dbh = C4::Context->dbh;
-  my $avcode = GetAuthValCodeFromField($field, $subfield, $fwcode);
-  if ($avcode) {  
-	my $sth = $dbh->prepare("select authorised_value, lib, lib_opac from authorised_values where category=? ");
-   	$sth->execute($avcode);
-	while ( my ($val, $lib, $lib_opac) = $sth->fetchrow_array ) { 
-		$values{$val} = ($opac && $lib_opac) ? $lib_opac : $lib;
-   	}
-   	return \%values;
-  } else {
-	return;
-  }
-}
-
-=head2 GetKohaAuthorisedValuesMapping
-
-Takes a hash as a parameter. The interface key indicates the
-description to use in the mapping.
-
-Returns hashref of:
- "{kohafield},{frameworkcode},{authorised_value}" => "{description}"
-for all the kohafields, frameworkcodes, and authorised values.
-
-Returns undef if nothing is found.
-
-=cut
-
-sub GetKohaAuthorisedValuesMapping {
-    my ($parameter) = @_;
-    my $interface = $parameter->{'interface'} // '';
-
-    my $query_mapping = q{
-SELECT TA.kohafield,TA.authorised_value AS category,
-       TA.frameworkcode,TB.authorised_value,
-       IF(TB.lib_opac>'',TB.lib_opac,TB.lib) AS OPAC,
-       TB.lib AS Intranet,TB.lib_opac
-FROM marc_subfield_structure AS TA JOIN
-     authorised_values as TB ON
-     TA.authorised_value=TB.category
-WHERE TA.kohafield>'' AND TA.authorised_value>'';
-    };
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare($query_mapping);
-    $sth->execute();
-    my $avmapping;
-    if ($interface eq 'opac') {
-        while (my $row = $sth->fetchrow_hashref) {
-            $avmapping->{$row->{kohafield}.",".$row->{frameworkcode}.",".$row->{authorised_value}} = $row->{OPAC};
-        }
-    }
-    else {
-        while (my $row = $sth->fetchrow_hashref) {
-            $avmapping->{$row->{kohafield}.",".$row->{frameworkcode}.",".$row->{authorised_value}} = $row->{Intranet};
-        }
-    }
-    return $avmapping;
 }
 
 =head2 xml_escape
@@ -1239,27 +609,6 @@ sub xml_escape {
     $str =~ s/'/&apos;/g;
     $str =~ s/"/&quot;/g;
     return $str;
-}
-
-=head2 GetKohaAuthorisedValueLib
-
-Takes $category, $authorised_value as parameters.
-
-If $opac parameter is set to a true value, displays OPAC descriptions rather than normal ones when they exist.
-
-Returns authorised value description
-
-=cut
-
-sub GetKohaAuthorisedValueLib {
-  my ($category,$authorised_value,$opac) = @_;
-  my $value;
-  my $dbh = C4::Context->dbh;
-  my $sth = $dbh->prepare("select lib, lib_opac from authorised_values where category=? and authorised_value=?");
-  $sth->execute($category,$authorised_value);
-  my $data = $sth->fetchrow_hashref;
-  $value = ($opac && $$data{'lib_opac'}) ? $$data{'lib_opac'} : $$data{'lib'};
-  return $value;
 }
 
 =head2 display_marc_indicators
@@ -1406,44 +755,6 @@ sub GetNormalizedOCLCNumber {
     }
     return
 }
-
-sub GetAuthvalueDropbox {
-    my ( $authcat, $default ) = @_;
-    my $branch_limit = C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
-    my $dbh = C4::Context->dbh;
-
-    my $query = qq{
-        SELECT *
-        FROM authorised_values
-    };
-    $query .= qq{
-          LEFT JOIN authorised_values_branches ON ( id = av_id )
-    } if $branch_limit;
-    $query .= qq{
-        WHERE category = ?
-    };
-    $query .= " AND ( branchcode = ? OR branchcode IS NULL )" if $branch_limit;
-    $query .= " GROUP BY lib ORDER BY category, lib, lib_opac";
-    my $sth = $dbh->prepare($query);
-    $sth->execute( $authcat, $branch_limit ? $branch_limit : () );
-
-
-    my $option_list = [];
-    my @authorised_values = ( q{} );
-    while (my $av = $sth->fetchrow_hashref) {
-        push @{$option_list}, {
-            value => $av->{authorised_value},
-            label => $av->{lib},
-            default => ($default eq $av->{authorised_value}),
-        };
-    }
-
-    if ( @{$option_list} ) {
-        return $option_list;
-    }
-    return;
-}
-
 
 =head2 GetDailyQuote($opts)
 
@@ -1647,29 +958,92 @@ sub GetVariationsOfISBNs {
     return wantarray ? @isbns : join( " | ", @isbns );
 }
 
-=head2 IsKohaFieldLinked
+=head2 NormalizedISSN
 
-    my $is_linked = IsKohaFieldLinked({
-        kohafield => $kohafield,
-        frameworkcode => $frameworkcode,
-    });
+  my $issns = NormalizedISSN({
+          issn => $issn,
+          strip_hyphen => [0,1]
+          });
 
-    Return 1 if the field is linked
+  Returns an issn validated by Business::ISSN.
+  Optionally strips hyphen.
+
+  If the string cannot be validated as an issn,
+  it returns nothing.
 
 =cut
 
-sub IsKohaFieldLinked {
-    my ( $params ) = @_;
-    my $kohafield = $params->{kohafield};
-    my $frameworkcode = $params->{frameworkcode} || '';
-    my $dbh = C4::Context->dbh;
-    my $is_linked = $dbh->selectcol_arrayref( q|
-        SELECT COUNT(*)
-        FROM marc_subfield_structure
-        WHERE frameworkcode = ?
-        AND kohafield = ?
-    |,{}, $frameworkcode, $kohafield );
-    return $is_linked->[0];
+sub NormalizeISSN {
+    my ($params) = @_;
+
+    my $string        = $params->{issn};
+    my $strip_hyphen  = $params->{strip_hyphen};
+
+    my $issn = Business::ISSN->new($string);
+
+    if ( $issn && $issn->is_valid ){
+
+        if ($strip_hyphen) {
+            $string = $issn->_issn;
+        }
+        else {
+            $string = $issn->as_string;
+        }
+        return $string;
+    }
+
+}
+
+=head2 GetVariationsOfISSN
+
+  my @issns = GetVariationsOfISSN( $issn );
+
+  Returns a list of variations of the given issn in
+  with and without a hyphen.
+
+  In a scalar context, the issns are returned as a
+  string delimited by ' | '.
+
+=cut
+
+sub GetVariationsOfISSN {
+    my ( $issn ) = @_;
+
+    return unless $issn;
+
+    my @issns;
+    my $str = NormalizeISSN({ issn => $issn });
+    if( $str ) {
+        push @issns, $str;
+        push @issns, NormalizeISSN({ issn => $issn, strip_hyphen => 1 });
+    }  else {
+        push @issns, $issn;
+    }
+
+    # Strip out any "empty" strings from the array
+    @issns = grep { defined($_) && $_ =~ /\S/ } @issns;
+
+    return wantarray ? @issns : join( " | ", @issns );
+}
+
+=head2 GetVariationsOfISSNs
+
+  my @issns = GetVariationsOfISSNs( @issns );
+
+  Returns a list of variations of the given issns in
+  with and without a hyphen.
+
+  In a scalar context, the issns are returned as a
+  string delimited by ' | '.
+
+=cut
+
+sub GetVariationsOfISSNs {
+    my (@issns) = @_;
+
+    @issns = map { GetVariationsOfISSN( $_ ) } @issns;
+
+    return wantarray ? @issns : join( " | ", @issns );
 }
 
 1;

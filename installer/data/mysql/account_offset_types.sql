@@ -12,4 +12,5 @@ INSERT INTO account_offset_types ( type ) VALUES
 ('Fine'),
 ('Cancel Fee'),
 ('Notice Fee'),
-('Overdue Fee');
+('Overdue Fee'),
+('Void Payment');

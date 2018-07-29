@@ -25,16 +25,17 @@ This script displays lost items.
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
+use Text::CSV_XS;
 use C4::Auth;
 use C4::Output;
 use C4::Biblio;
 use C4::Items;
-use C4::Koha;                  # GetItemTypes
-use C4::Branch; # GetBranches
+
+use Koha::AuthorisedValues;
+use Koha::CsvProfiles;
 use Koha::DateUtils;
 
 my $query = new CGI;
@@ -51,56 +52,111 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $params = $query->Vars;
 my $get_items = $params->{'get_items'};
+my $op = $query->param('op') || '';
 
-if ( $get_items ) {
-    my $branchfilter     = $params->{'branchfilter'}    || undef;
-    my $barcodefilter    = $params->{'barcodefilter'}   || undef;
-    my $itemtypesfilter  = $params->{'itemtypesfilter'} || undef;
+if ( $op eq 'export' ) {
+    my @itemnumbers = $query->multi_param('itemnumber');
+    my $csv_profile_id = $query->param('csv_profile_id');
+    my @rows;
+    if ($csv_profile_id) {
+        # FIXME This following code has the same logic as GetBasketAsCSV
+        # We should refactor all the CSV export code
+        # Note: For MARC it is already done in Koha::Exporter::Record but not for SQL CSV profiles type
+        my $csv_profile = Koha::CsvProfiles->find( $csv_profile_id );
+        die "There is no valid csv profile given" unless $csv_profile;
+
+        my $csv = Text::CSV_XS->new({'quote_char'=>'"','escape_char'=>'"','sep_char'=>$csv_profile->csv_separator,'binary'=>1});
+        my $csv_profile_content = $csv_profile->content;
+        my ( @headers, @fields );
+        while ( $csv_profile_content =~ /
+            ([^=\|]+) # header
+            =?
+            ([^\|]*) # fieldname (table.row or row)
+            \|? /gxms
+        ) {
+            my $header = $1;
+            my $field = ($2 eq '') ? $1 : $2;
+
+            $header =~ s/^\s+|\s+$//g; # Trim whitespaces
+            push @headers, $header;
+
+            $field =~ s/[^\.]*\.{1}//; # Remove the table name if exists.
+            $field =~ s/^\s+|\s+$//g; # Trim whitespaces
+            push @fields, $field;
+        }
+        my $items = Koha::Items->search({ itemnumber => { -in => \@itemnumbers } });
+        while ( my $item = $items->next ) {
+            my @row;
+            my $all_fields = $item->unblessed;
+            $all_fields = { %$all_fields, %{$item->biblio->unblessed}, %{$item->biblioitem->unblessed} };
+            for my $field (@fields) {
+                push @row, $all_fields->{$field};
+            }
+            push @rows, \@row;
+        }
+        my $content = join( $csv_profile->csv_separator, @headers ) . "\n";
+        for my $row ( @rows ) {
+            $csv->combine(@$row);
+            my $string = $csv->string;
+            $content .= $string . "\n";
+        }
+        print $query->header(
+            -type       => 'text/csv',
+            -attachment => 'lost_items.csv',
+        );
+        print $content;
+        exit;
+    }
+} elsif ( $get_items ) {
+    my $branchfilter     = $params->{'branchfilter'}     || undef;
+    my $barcodefilter    = $params->{'barcodefilter'}    || undef;
+    my $itemtypesfilter  = $params->{'itemtypesfilter'}  || undef;
     my $loststatusfilter = $params->{'loststatusfilter'} || undef;
+    my $notforloanfilter = $params->{'notforloanfilter'} || undef;
 
-    my %where;
-    $where{'homebranch'}       = $branchfilter    if defined $branchfilter;
-    $where{'barcode'}          = $barcodefilter   if defined $barcodefilter;
-    $where{'authorised_value'} = $loststatusfilter if defined $loststatusfilter;
+    my $params = {
+        ( $branchfilter ? ( homebranch => $branchfilter ) : () ),
+        (
+            $loststatusfilter
+            ? ( itemlost => $loststatusfilter )
+            : ( itemlost => { '!=' => 0 } )
+        ),
+        (
+            $notforloanfilter
+            ? ( notforloan => $notforloanfilter )
+            : ()
+        ),
+        ( $barcodefilter ? ( barcode => { like => "%$barcodefilter%" } ) : () ),
+    };
 
-    my $itype = C4::Context->preference('item-level_itypes') ? "itype" : "itemtype";
-    $where{$itype}            = $itemtypesfilter if defined $itemtypesfilter;
-
-    my $items = GetLostItems( \%where );
-    foreach my $it (@$items) {
-        $it->{'datelastseen'} = eval { output_pref( { dt => dt_from_string( $it->{'datelastseen'} ), dateonly => 1 }); }
-                   if ( $it->{'datelastseen'} );
+    my $attributes;
+    if ($itemtypesfilter) {
+        if ( C4::Context->preference('item-level_itypes') ) {
+            $params->{itype} = $itemtypesfilter;
+        }
+        else {
+            # We want a join on biblioitems
+            $attributes = { join => 'biblioitem' };
+            $params->{'biblioitem.itemtype'} = $itemtypesfilter;
+        }
     }
 
-    $template->param(
-                     total       => scalar @$items,
-                     itemsloop   => $items,
-                     get_items   => $get_items,
-                     itype_level => C4::Context->preference('item-level_itypes'),
-                 );
-}
+    my $items = Koha::Items->search( $params, $attributes );
 
-# getting all branches.
-#my $branches = GetBranches;
-#my $branch   = C4::Context->userenv->{"branchname"};
+    $template->param(
+        items     => $items,
+        get_items => $get_items,
+    );
+}
 
 # getting all itemtypes
-my $itemtypes = &GetItemTypes();
-my @itemtypesloop;
-foreach my $thisitemtype ( sort {$itemtypes->{$a}->{translated_description} cmp $itemtypes->{$b}->{translated_description}} keys %$itemtypes ) {
-    my %row = (
-        value       => $thisitemtype,
-        description => $itemtypes->{$thisitemtype}->{'translated_description'},
-    );
-    push @itemtypesloop, \%row;
-}
+my $itemtypes = Koha::ItemTypes->search_with_localization;
 
-# get lost statuses
-my $lost_status_loop = C4::Koha::GetAuthorisedValues( 'LOST' );
+my $csv_profiles = Koha::CsvProfiles->search({ type => 'sql', used_for => 'export_lost_items' });
 
-$template->param( branchloop     => GetBranchesLoop(C4::Context->userenv->{'branch'}),
-                  itemtypeloop   => \@itemtypesloop,
-                  loststatusloop => $lost_status_loop,
+$template->param(
+    itemtypes => $itemtypes,
+    csv_profiles => $csv_profiles,
 );
 
 # writing the template

@@ -17,10 +17,9 @@ package C4::NoticeFees;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-use strict;
-use warnings;
-
+use Modern::Perl;
 use Carp;
+
 use Locale::Currency::Format;
 
 use Koha::NoticeFeeRule;
@@ -31,14 +30,6 @@ use Koha::Account::Offset;
 use Koha::DateUtils;
 use C4::Accounts;
 use C4::Log; # logaction
-
-use vars qw(@ISA @EXPORT);
-
-BEGIN {
-    require Exporter;
-    @ISA    = qw(Exporter);
-    @EXPORT = qw();
-}
 
 
 =head1 NAME

@@ -1,6 +1,8 @@
-[%- USE Price -%]
-[%- INCLUDE csv_headers/acqui/basketgroup.tt -%]
+[%- INCLUDE csv_headers/reports/orders_by_budget.tt -%]
 [%- INCLUDE empty_line.inc -%]
-[%- FOREACH r IN rows -%][% r.clientnumber %],"[% r.basketname %]",[% r.ordernumber %],"[% r.author %]","[% r.title %]","[% r.publishercode %]",[% r.publicationyear %],"[% r.collectiontitle %]",[% r.isbn %],[% r.quantity %],[% r.rrp_tax_included | $Price %],[% r.rrp_tax_excluded | $Price %],[% r.discount %],[% r.ecost_tax_included | $Price %],[% r.ecost_tax_excluded | $Price %],"[% r.notes %]",[% r.entrydate %],"[% r.booksellername %]","[% r.bookselleraddress %]","[% r.booksellerpostal %]",[% r.contractnumber %],"[% r.contractname %]","[% r.basketgroupdeliveryplace %]","[% r.basketgroupbillingplace %]","[% r.basketdeliveryplace %]","[% r.basketbillingplace %]"
-[%- INCLUDE empty_line.inc -%]
+[%- FOREACH row IN rows -%]
+    [%- FOREACH field IN row; field; sep IF !loop.last; END -%]
+    [%- INCLUDE empty_line.inc -%]
 [%- END -%]
+TOTAL[%- INCLUDE empty_line.inc -%]
+[%- FOREACH field IN totalrow; field; sep IF !loop.last; END -%]

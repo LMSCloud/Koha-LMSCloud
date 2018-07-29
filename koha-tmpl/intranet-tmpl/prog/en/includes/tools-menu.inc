@@ -1,18 +1,3 @@
-<script type="text/javascript">//<![CDATA[
-    $(document).ready(function() {
-        var path = location.pathname.substring(1);
-        if (path.indexOf("labels") >= 0 && path.indexOf("spine") < 0 ) {
-          $('#navmenulist a[href$="/cgi-bin/koha/labels/label-home.pl"]').css('font-weight','bold');
-        } else if (path.indexOf("patroncards") >= 0 ) {
-          $('#navmenulist a[href$="/cgi-bin/koha/patroncards/home.pl"]').css('font-weight','bold');
-       } else if (path.indexOf("patron_lists") >= 0 ) {
-          $('#navmenulist a[href$="/cgi-bin/koha/patron_lists/lists.pl"]').css('font-weight','bold');
-        } else {
-          $('#navmenulist a[href$="/' + path + '"]').css('font-weight','bold');
-        }
-    });
-//]]>
-</script>
 <div id="navmenu">
 <div id="navmenulist">
 <ul>
@@ -22,6 +7,9 @@
 <ul>
     [% IF ( CAN_user_tools_manage_patron_lists ) %]
 	<li><a href="/cgi-bin/koha/patron_lists/lists.pl">Patron lists</a></li>
+    [% END %]
+    [% IF (CAN_user_clubs) %]
+        <li><a href="/cgi-bin/koha/clubs/clubs.pl">Patron clubs</a></li>
     [% END %]
     [% IF ( CAN_user_tools_moderate_comments ) %]
 	<li><a href="/cgi-bin/koha/reviews/reviewswaiting.pl">Comments</a></li>
@@ -134,5 +122,8 @@
     [% END %]
     [% IF ( CAN_user_tools_download_batchprint_files ) %]
        <li><a href="/cgi-bin/koha/tools/download-files.pl">Download batch print files</a></li>
+    [% END %]
+    [% IF ( CAN_user_tools_access_files ) %]
+    <li><a href="/cgi-bin/koha/tools/access_files.pl">Access files</a></li>
     [% END %]
 </ul></div></div>

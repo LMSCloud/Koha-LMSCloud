@@ -21,12 +21,11 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Acquisition;
 use C4::Auth;
-use C4::Branch;
 use C4::Context;
 use C4::Output;
 use C4::Serials;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
 
 my $query        = new CGI;
 my $title        = $query->param('title_filter');
@@ -53,7 +52,7 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
 
 my $basket = GetBasket($basketno);
 $booksellerid = $basket->{booksellerid} unless $booksellerid;
-my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 
 my @subscriptions;
 if ($searched) {
@@ -76,18 +75,6 @@ foreach my $sub (@subscriptions) {
     }
 }
 
-my $branches = GetBranchesWithoutMobileStations();
-my @branches_loop;
-foreach (sort keys %$branches){
-    my $selected = 0;
-    $selected = 1 if defined $branch && $branch eq $_;
-    push @branches_loop, {
-        branchcode  => $_,
-        branchname  => $branches->{$_}->{branchname},
-        selected    => $selected,
-    };
-}
-
 $template->param(
     subs_loop        => \@subscriptions,
     title_filter     => $title,
@@ -96,12 +83,11 @@ $template->param(
     publisher_filter => $publisher,
     supplier_filter  => $supplier,
     branch_filter    => $branch,
-    branches_loop    => \@branches_loop,
     done_searched    => $searched,
     routing          => $routing,
     booksellerid     => $booksellerid,
     basketno         => $basket->{basketno},
     basketname       => $basket->{basketname},
-    booksellername   => $bookseller->{name},
+    booksellername   => $bookseller->name,
 );
 output_html_with_http_headers $query, $cookie, $template->output;

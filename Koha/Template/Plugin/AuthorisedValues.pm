@@ -22,20 +22,72 @@ use Template::Plugin;
 use base qw( Template::Plugin );
 
 use C4::Koha;
+use Koha::AuthorisedValues;
 
 sub GetByCode {
     my ( $self, $category, $code, $opac ) = @_;
-    return GetAuthorisedValueByCode( $category, $code, $opac );
+    my $av = Koha::AuthorisedValues->search({ category => $category, authorised_value => $code });
+    return $av->count
+            ? $opac
+                ? $av->next->opac_description
+                : $av->next->lib
+            : $code;
 }
 
 sub Get {
-    my ( $self, $category, $opac ) = @_;
-    return GetAuthorisedValues( $category, $opac );
+    my ( $self, $category, $selected, $opac ) = @_;
+    return GetAuthorisedValues( $category, $selected, $opac );
 }
 
 sub GetAuthValueDropbox {
-    my ( $self, $category, $default ) = @_;
-    return C4::Koha::GetAuthvalueDropbox($category, $default);
+    my ( $self, $category ) = @_;
+    my $branch_limit = C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
+    return Koha::AuthorisedValues->search(
+        {
+            branchcode => $branch_limit,
+            category => $category,
+        },
+        {
+            group_by => 'lib',
+            order_by => [ 'category', 'lib', 'lib_opac' ],
+        }
+    );
+}
+
+sub GetCategories {
+    my ( $self, $params ) = @_;
+    my $selected = $params->{selected};
+    my @categories = Koha::AuthorisedValues->new->categories;
+    return [
+        map {
+            {
+                category => $_,
+                ( ( $selected and $selected eq $_ ) ? ( selected => 1 ) : () ),
+            }
+        } @categories
+    ];
+}
+
+sub GetDescriptionsByKohaField {
+    my ( $self, $params ) = @_;
+    return Koha::AuthorisedValues->get_descriptions_by_koha_field(
+        { kohafield => $params->{kohafield} } );
+}
+
+sub GetDescriptionByKohaField {
+    my ( $self, $params ) = @_;
+    my $av = Koha::AuthorisedValues->get_description_by_koha_field(
+        {
+            kohafield        => $params->{kohafield},
+            authorised_value => $params->{authorised_value},
+        }
+    );
+    return %$av
+            ? $params->{opac}
+                ? $av->{opac_description}
+                : $av->{lib}
+            : ''; # Maybe we should return $params->{authorised_value}?
+
 }
 
 1;
@@ -59,16 +111,17 @@ Koha::Template::Plugin::AuthorisedValues - TT Plugin for authorised values
 In a template, you can get the description for an authorised value with
 the following TT code: [% AuthorisedValues.GetByCode( 'CATEGORY', 'AUTHORISED_VALUE_CODE', 'IS_OPAC' ) %]
 
-The parameters are identical to those used by the subroutine C4::Koha::GetAuthorisedValueByCode.
-
-sub GetByCode {
-    my ( $self, $category, $code, $opac ) = @_;
-    return GetAuthorisedValueByCode( $category, $code, $opac );
-}
-
 =head2 GetAuthValueDropbox
 
 The parameters are identical to those used by the subroutine C4::Koha::GetAuthValueDropbox
+
+=head2 GetDescriptionsByKohaField
+
+The parameters are identical to those used by the subroutine Koha::AuthorisedValues->get_descriptions_by_koha_field
+
+=head2 GetDescriptionByKohaField
+
+The parameters are identical to those used by the subroutine Koha::AuthorisedValues->get_description_by_koha_field
 
 =head1 AUTHOR
 

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: ru-RU-i-staff-t-prog-v-3002000.po\n"
+"Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: \n"
 "PO-Revision-Date: 2014-02-16 18:35-0300\n"
@@ -14,6 +14,8 @@ msgstr ""
 "X-Generator: Pootle 2.5.0\n"
 "X-Poedit-SourceCharset: utf-8\n"
 "X-POOTLE-MTIME: 1383125004.0\n"
+"X-Pootle-Path: /fo/18.05/fo-FO-pref.po\n"
+"X-Pootle-Revision: 1\n"
 
 # Acquisitions
 msgid "acquisitions.pref"
@@ -29,6 +31,10 @@ msgstr ""
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqCreateItem# Create an item when"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#AcqCreateItem# This is only the default behavior, and can be changed per-basket."
 msgstr ""
 
 # Acquisitions > Policy
@@ -56,7 +62,7 @@ msgid "acquisitions.pref#AcqEnableFiles# enable the ability to upload and attach
 msgstr ""
 
 # Acquisitions > Policy
-msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a=\"bar foo\"\")."
+msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a=\"bar foo\")."
 msgstr ""
 
 # Acquisitions > Policy
@@ -120,6 +126,10 @@ msgid "acquisitions.pref#CurrencyFormat# 360 000,00 (FR)"
 msgstr ""
 
 # Acquisitions > Policy
+msgid "acquisitions.pref#CurrencyFormat# 360'000.00 (CH)"
+msgstr ""
+
+# Acquisitions > Policy
 msgid "acquisitions.pref#CurrencyFormat# 360,000.00 (US)"
 msgstr ""
 
@@ -137,6 +147,18 @@ msgstr ""
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#MarcFieldsToOrder# You can use the following fields: price, quantity, budget_code, discount, sort1, sort2"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# <br/>For example:<br/>holdingbranch: 975$b<br/>itype: 975$9|975$z"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# Set the mapping values for new item records created from a MARC record in a staged file."
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# You can use the following fields: homebranch, holdingbranch, itype, nonpublic_note, public_note, loc, ccode, notforloan, uri, copyno, price, replacementprice and itemcallnumber. Special fields: quantity and budget_code"
 msgstr ""
 
 # Acquisitions > Printing
@@ -164,11 +186,43 @@ msgid "acquisitions.pref#OrderPdfFormat# layout when printing basket groups."
 msgstr ""
 
 # Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>(Used when the cronjob purge_suggestions.pl is active and called without a specific number of days)"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>Example: [30] Sets purgation of suggestions for those older than 30 days."
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>WARNING - Leave this field empty if you don't want to activate this automatic feature."
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# Keep accepted or rejected purchase suggestions for a period of"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# days."
+msgstr ""
+
+# Acquisitions > Policy
 msgid "acquisitions.pref#UniqueItemFields# (separated by a space)"
 msgstr ""
 
 # Acquisitions > Policy
-msgid "acquisitions.pref#UniqueItemFields# The following <a href='http://schema.koha-community.org/16_05/tables/items.html' target='blank'>database columns</a> should be unique in an item:"
+msgid "acquisitions.pref#UniqueItemFields# The following <a href='http://schema.koha-community.org/__VERSION__/tables/items.html' target='blank'>database columns</a> should be unique in an item:"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords#  the framework 'ACQ' for bibliographic records fields"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords# Don't use"
+msgstr ""
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords# Use"
 msgstr ""
 
 # Acquisitions > Policy
@@ -203,10 +257,6 @@ msgstr ""
 msgid "admin.pref Login options"
 msgstr ""
 
-# Administration > Mozilla Persona
-msgid "admin.pref Mozilla Persona"
-msgstr ""
-
 # Administration > SSL client certificate authentication
 msgid "admin.pref SSL client certificate authentication"
 msgstr ""
@@ -220,123 +270,107 @@ msgid "admin.pref Share anonymous usage statistics"
 msgstr ""
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# Use"
+msgid "admin.pref#AllowPKIAuth# Common Name"
 msgstr ""
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# field for SSL client certificate authentication"
+msgid "admin.pref#AllowPKIAuth# Field to use for SSL client certificate authentication: "
 msgstr ""
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# no"
+msgid "admin.pref#AllowPKIAuth# None"
 msgstr ""
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# the Common Name"
-msgstr ""
-
-# Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# the emailAddress"
+msgid "admin.pref#AllowPKIAuth# emailAddress"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# Don't require"
+msgid "admin.pref#AutoLocation# <a href=\"/cgi-bin/koha/admin/branches.pl\">Link to library administration</a>"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# Require"
+msgid "admin.pref#AutoLocation# No"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# staff to log in from a computer in the IP address range <a href=\"/cgi-bin/koha/admin/branches.pl\">specified by their library</a> (if any)."
+msgid "admin.pref#AutoLocation# Require staff to log in from a computer in the IP address range specified by their library (if any): "
+msgstr ""
+
+# Administration > Login options
+msgid "admin.pref#AutoLocation# Yes"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# Show"
+msgid "admin.pref#DebugLevel# All"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# debugging information in the browser when an internal error occurs."
+msgid "admin.pref#DebugLevel# How much debugging information to show in the browser when an internal error occurs: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# lots of"
+msgid "admin.pref#DebugLevel# None"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# no"
+msgid "admin.pref#DebugLevel# Some"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# some"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# All libraries"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# When editing circulation rules show the"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# Default view when editing circulation rules: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# all libraries"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# The logged-in library"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# logged in library's"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# All libraries"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# rules by default."
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# Default view when editing notices and slips: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# When editing notices and slips show the"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# The logged-in library"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# all libraries"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# All libraries"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# logged in library's"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# Default view when editing overdue notice/status triggers: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# notices and slips by default."
-msgstr ""
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# When editing overdue notice/status triggers show the"
-msgstr ""
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# all libraries"
-msgstr ""
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# logged in library's"
-msgstr ""
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# rules by default."
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# The logged-in library"
 msgstr ""
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID"
+msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID: "
 msgstr ""
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret"
+msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret: "
 msgstr ""
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Don't Use"
+msgid "admin.pref#GoogleOpenIDConnect# No"
 msgstr ""
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Google OpenID Connect login."
+msgid "admin.pref#GoogleOpenIDConnect# Use Google OpenID Connect login: "
 msgstr ""
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Use"
+msgid "admin.pref#GoogleOpenIDConnect# Yes"
 msgstr ""
 
 # Administration > Google OpenID Connect
@@ -344,71 +378,75 @@ msgid "admin.pref#GoogleOpenIDConnect# You will need to select OAuth2 when creat
 msgstr ""
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDomain# . Leave blank for all google domains"
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# Allow"
 msgstr ""
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (or subdomain of this domain)"
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# Don't Allow"
+msgstr ""
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# users logging in with Google Open ID to automatically register."
+msgstr ""
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDefaultBranch# Use this branch code when automatically registering a Google Open ID patron."
+msgstr ""
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDefaultCategory# Use this category code when automatically registering a Google Open ID patron."
+msgstr ""
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (or subdomain of this domain): "
+msgstr ""
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDomain# Leave blank for all google domains"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranches# Don't prevent"
+msgid "admin.pref#IndependentBranches# No"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranches# Prevent"
+msgid "admin.pref#IndependentBranches# Prevent staff (but not superlibrarians) from modifying objects (holds, items, patrons, etc.) belonging to other libraries: "
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranches# staff (but not superlibrarians) from modifying objects (holds, items, patrons, etc.) belonging to other libraries."
+msgid "admin.pref#IndependentBranches# Yes"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# Don't prevent"
+msgid "admin.pref#IndependentBranchesPatronModifications# No"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# Prevent"
+msgid "admin.pref#IndependentBranchesPatronModifications# Prevent staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries."
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries."
+msgid "admin.pref#IndependentBranchesPatronModifications# Yes"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#KohaAdminEmailAddress# Use"
+msgid "admin.pref#KohaAdminEmailAddress# (This is the default From: address for emails unless there is one for the particular library, and is referred to when an internal error occurs.)"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#KohaAdminEmailAddress# as the email address for the administrator of Koha. (This is the default From: address for emails unless there is one for the particular library, and is referred to when an internal error occurs.)"
-msgstr ""
-
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Allow"
-msgstr ""
-
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Don't Allow"
-msgstr ""
-
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Mozilla persona for login"
+msgid "admin.pref#KohaAdminEmailAddress# Email address for the administrator of Koha: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#ReplytoDefault# Use"
+msgid "admin.pref#ReplytoDefault# Email address to be set as the replyto in emails: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#ReplytoDefault# as the email address that will be set as the replyto in emails"
+msgid "admin.pref#ReturnpathDefault# If you leave this empty, the From address will be used (often defaulting to the admin address)."
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#ReturnpathDefault# Use"
-msgstr ""
-
-# Administration > Interface options
-msgid "admin.pref#ReturnpathDefault# as the return path or bounce address for undeliverable mail messages. If you leave this empty, the From address will be used (often defaulting to the admin address)."
+msgid "admin.pref#ReturnpathDefault# Return path or bounce address for undeliverable mail messages: "
 msgstr ""
 
 # Administration > Search Engine
@@ -416,55 +454,63 @@ msgid "admin.pref#SearchEngine# Elasticsearch"
 msgstr ""
 
 # Administration > Search Engine
-msgid "admin.pref#SearchEngine# Zebra"
+msgid "admin.pref#SearchEngine# Use following search engine: "
 msgstr ""
 
 # Administration > Search Engine
-msgid "admin.pref#SearchEngine# is the search engine used."
+msgid "admin.pref#SearchEngine# Zebra"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# Disable"
+msgid "admin.pref#SessionRestrictionByIP# (Disable only when remote IP address changes frequently.)"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# Enable"
+msgid "admin.pref#SessionRestrictionByIP# Enable check for change in remote IP address for session security: "
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# check for change in remote IP address for session security. Disable only when remote IP address changes frequently."
+msgid "admin.pref#SessionRestrictionByIP# No"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# Store login session information"
+msgid "admin.pref#SessionRestrictionByIP# Yes"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# as temporary files."
+msgid "admin.pref#SessionStorage# Memcached server"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in a memcached server."
+msgid "admin.pref#SessionStorage# MySQL database"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in the MySQL database."
+msgid "admin.pref#SessionStorage# PostgreSQL database (not supported)"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in the PostgreSQL database (not supported)."
+msgid "admin.pref#SessionStorage# Storage of login session information: "
+msgstr ""
+
+# Administration > Login options
+msgid "admin.pref#SessionStorage# Temporary files"
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# Don't share"
+msgid "admin.pref#UsageStats# No"
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# Share"
+msgid "admin.pref#UsageStats# Share anonymous Koha usage data with the Koha community: "
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# anonymous Koha usage data with the Koha community. You can see the data on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>. You have to run misc/cronjobs/share_usage_with_koha_community.pl in a cronjob."
+msgid "admin.pref#UsageStats# Yes"
+msgstr ""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStats# You have to run misc/cronjobs/share_usage_with_koha_community.pl in a cronjob. Note that the other \"UsageStats\" preferences have no effect if this preference is set to \"No\". Website where usage statistics are published: <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
 msgstr ""
 
 # Administration > Share anonymous usage statistics
@@ -1168,7 +1214,7 @@ msgid "admin.pref#UsageStatsCountry# Thailand"
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsCountry# The country where your library is located:"
+msgid "admin.pref#UsageStatsCountry# The country where your library is located to be shown on the Hea Community website: "
 msgstr ""
 
 # Administration > Share anonymous usage statistics
@@ -1260,6 +1306,30 @@ msgid "admin.pref#UsageStatsCountry# Zimbabwe"
 msgstr ""
 
 # Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsGeolocation# Geolocation of the main library: "
+msgstr ""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsGeolocation# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
+msgstr ""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Do not Share"
+msgstr ""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
+msgstr ""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Share"
+msgstr ""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# libraries information (name, url, country)"
+msgstr ""
+
+# Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryName# If this field is empty data will be sent anonymously."
 msgstr ""
 
@@ -1268,11 +1338,7 @@ msgid "admin.pref#UsageStatsLibraryName# Note that this value has no effect if t
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryName# The library name"
-msgstr ""
-
-# Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryName# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
+msgid "admin.pref#UsageStatsLibraryName# Use the following library name to be shown on the Hea Community website: "
 msgstr ""
 
 # Administration > Share anonymous usage statistics
@@ -1284,7 +1350,7 @@ msgid "admin.pref#UsageStatsLibraryType# Note that this value has no effect if t
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryType# The library type"
+msgid "admin.pref#UsageStatsLibraryType# The library type to be shown on the Hea Community website: "
 msgstr ""
 
 # Administration > Share anonymous usage statistics
@@ -1328,47 +1394,39 @@ msgid "admin.pref#UsageStatsLibraryType# subscription"
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryType# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
-msgstr ""
-
-# Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryUrl# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
 msgstr ""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryUrl# The library URL"
-msgstr ""
-
-# Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryUrl# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
+msgid "admin.pref#UsageStatsLibraryUrl# The library URL to be shown on the Hea Community website: "
 msgstr ""
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# CAS for login authentication."
+msgid "admin.pref#casAuthentication# No"
 msgstr ""
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# Don't use"
+msgid "admin.pref#casAuthentication# Use CAS for login authentication: "
 msgstr ""
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# Use"
+msgid "admin.pref#casAuthentication# Yes"
 msgstr ""
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# Don't Logout"
+msgid "admin.pref#casLogout# Logout of CAS when logging out of Koha: "
 msgstr ""
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# Logout"
+msgid "admin.pref#casLogout# No"
 msgstr ""
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# of CAS when logging out of Koha."
+msgid "admin.pref#casLogout# Yes"
 msgstr ""
 
 # Administration > CAS authentication
-msgid "admin.pref#casServerUrl# The CAS Authentication Server can be found at"
+msgid "admin.pref#casServerUrl# URL of the CAS Authentication Server: "
 msgstr ""
 
 # Administration > Interface options
@@ -1376,15 +1434,11 @@ msgid "admin.pref#delimiter# #'s"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#delimiter# Separate columns in an exported CSV file with"
+msgid "admin.pref#delimiter# Default separator for columns in an exported CSV file: "
 msgstr ""
 
 # Administration > Interface options
 msgid "admin.pref#delimiter# backslashes"
-msgstr ""
-
-# Administration > Interface options
-msgid "admin.pref#delimiter# by default."
 msgstr ""
 
 # Administration > Interface options
@@ -1404,35 +1458,35 @@ msgid "admin.pref#delimiter# tabs"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# Don't show"
+msgid "admin.pref#noItemTypeImages# No"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# Show"
+msgid "admin.pref#noItemTypeImages# Show itemtype icons in the catalog: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# itemtype icons in the catalog."
+msgid "admin.pref#noItemTypeImages# Yes"
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#timeout# Automatically log out users after"
+msgid "admin.pref#timeout# Adding d will specify it in days, e.g. 1d is timeout of one day."
 msgstr ""
 
 # Administration > Login options
-msgid "admin.pref#timeout# seconds of inactivity. Adding d will specify it in days, e.g. 1d is timeout of one day."
+msgid "admin.pref#timeout# Inactivity timeout in seconds to automatically log out users: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# Allow"
+msgid "admin.pref#virtualshelves# Allow staff and patrons to create and view saved lists of books: "
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# Don't allow"
+msgid "admin.pref#virtualshelves# No"
 msgstr ""
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# staff and patrons to create and view saved lists of books."
+msgid "admin.pref#virtualshelves# Yes"
 msgstr ""
 
 # Authorities
@@ -1457,6 +1511,30 @@ msgstr ""
 
 # Authorities > General
 msgid "authorities.pref#AuthDisplayHierarchy# broader term/narrower term hierarchies when viewing authorities."
+msgstr ""
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Here auth1 and auth2 refer to the indicators of the authority record, tag is a biblio field number or an asterisk (*), and some_value is a fixed value (one character).<br>"
+msgstr ""
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Lines starting with a comment symbol (#) are skipped. Each line should be of the form: (marc21|unimarc), tag, ind1:(auth1|auth2|some_value), ind2:(auth1|auth2|thesaurus|some_value).<br>"
+msgstr ""
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# The MARC21 option thesaurus refers to indicators controlled by authority field 008/11 and 040$f."
+msgstr ""
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Use the following text to edit how authority records control indicators of attached biblio fields (and possibly subfield $2).<br>"
+msgstr ""
+
+# Authorities > General
+msgid "authorities.pref#AuthorityMergeLimit# When modifying an authority record, do not update attached biblio records if the number exceeds"
+msgstr ""
+
+# Authorities > General
+msgid "authorities.pref#AuthorityMergeLimit# records. (Above this limit, the merge_authority cron job will merge them.)"
 msgstr ""
 
 # Authorities > General
@@ -1591,18 +1669,6 @@ msgstr ""
 msgid "authorities.pref#UseAuthoritiesForTracings# authority record numbers instead of text strings for searches from subject tracings."
 msgstr ""
 
-# Authorities > General
-msgid "authorities.pref#dontmerge# Do"
-msgstr ""
-
-# Authorities > General
-msgid "authorities.pref#dontmerge# Don't"
-msgstr ""
-
-# Authorities > General
-msgid "authorities.pref#dontmerge# automatically update attached biblios when changing an authority record. If this is off, please ask your administrator to enable the merge_authority.pl cronjob."
-msgstr ""
-
 # Cataloging
 msgid "cataloguing.pref"
 msgstr ""
@@ -1657,6 +1723,22 @@ msgstr ""
 
 # Cataloging > Importing
 msgid "cataloguing.pref#AggressiveMatchOnISBN# don't"
+msgstr ""
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# When matching on ISSN with the record import tool,"
+msgstr ""
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# attempt to match aggressively by trying all variations of the ISSNs in the imported record as a phrase in the ISSN fields of already cataloged records.  Note that this preference has no effect if UseQueryParser is on."
+msgstr ""
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# do"
+msgstr ""
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# don't"
 msgstr ""
 
 # Cataloging > Record Structure
@@ -1714,6 +1796,14 @@ msgid "cataloguing.pref#DefaultClassificationSource# as the default classificati
 msgstr ""
 
 # Cataloging > Record Structure
+msgid "cataloguing.pref#DefaultCountryField008#  Empty defaults to xxu for United States."
+msgstr ""
+
+# Cataloging > Record Structure
+msgid "cataloguing.pref#DefaultCountryField008# Fill in the default country code for field 008 Range 15-17 of MARC21 - Place of publication, production, or execution. See <a href=\"http://www.loc.gov/marc/countries/countries_code.html\">MARC Code List for Countries</a>"
+msgstr ""
+
+# Cataloging > Record Structure
 msgid "cataloguing.pref#DefaultLanguageField008#  Empty defaults to eng."
 msgstr ""
 
@@ -1731,6 +1821,26 @@ msgstr ""
 
 # Cataloging > Interface
 msgid "cataloguing.pref#EasyAnalyticalRecords# easy ways to create analytical record relationships"
+msgstr ""
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# <br/> NOTE:"
+msgstr ""
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Currently does not include support for UNIMARC or NORMARC fixed fields."
+msgstr ""
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Don't enable"
+msgstr ""
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Enable"
+msgstr ""
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# the advanced cataloging editor."
 msgstr ""
 
 # Cataloging > Display
@@ -1774,7 +1884,27 @@ msgid "cataloguing.pref#MARCOrgCode# Fill in the <a href=\"http://www.loc.gov/ma
 msgstr ""
 
 # Cataloging > Record Structure
-msgid "cataloguing.pref#MARCOrgCode# by default in new MARC21 records (leave blank to disable)."
+msgid "cataloguing.pref#MARCOrgCode# by default in new MARC21 records (leave blank to disable). This can be also set on libraries level."
+msgstr ""
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# For example <tt>http://fielddoc.example.com/?marc={MARC}&field={FIELD}&language={LANG}</tt>"
+msgstr ""
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# If left empty, the format documentation on http://loc.gov (MARC21) or http://archive.ifla.org (UNIMARC) is used."
+msgstr ""
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# Possible substitutions are <tt>{MARC}</tt> (marc flavour, eg. \"MARC21\" or \"UNIMARC\"), <tt>{FIELD}</tt> (field number, eg. \"000\" or \"048\"), <tt>{LANG}</tt> (user language, eg. \"en\" or \"fi-FI\")."
+msgstr ""
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# Use"
+msgstr ""
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# as the URL for MARC field documentation."
 msgstr ""
 
 # Cataloging > Display
@@ -1834,7 +1964,7 @@ msgid "cataloguing.pref#OpacSuppression# <br />Redirect the opac detail page for
 msgstr ""
 
 # Cataloging > Display
-msgid "cataloguing.pref#OpacSuppression# <br />Restrict the suppression to IP adresses outside of the IP range"
+msgid "cataloguing.pref#OpacSuppression# <br />Restrict the suppression to IP addresses outside of the IP range"
 msgstr ""
 
 # Cataloging > Display
@@ -1850,7 +1980,7 @@ msgid "cataloguing.pref#OpacSuppression# an explanatory page ('This record is bl
 msgstr ""
 
 # Cataloging > Display
-msgid "cataloguing.pref#OpacSuppression# items marked as suppressed from OPAC search results."
+msgid "cataloguing.pref#OpacSuppression# biblios marked as suppressed from OPAC search results."
 msgstr ""
 
 # Cataloging > Display
@@ -2147,6 +2277,10 @@ msgstr ""
 msgid "circulation.pref"
 msgstr ""
 
+# Circulation > Article Requests
+msgid "circulation.pref Article Requests"
+msgstr ""
+
 # Circulation > Batch checkout
 msgid "circulation.pref Batch checkout"
 msgstr ""
@@ -2171,12 +2305,24 @@ msgstr ""
 msgid "circulation.pref Holds Policy"
 msgstr ""
 
+# Circulation > Housebound module
+msgid "circulation.pref Housebound module"
+msgstr ""
+
 # Circulation > Interface
 msgid "circulation.pref Interface"
 msgstr ""
 
+# Circulation > Interlibrary Loans
+msgid "circulation.pref Interlibrary Loans"
+msgstr ""
+
 # Circulation > Self Checkout
 msgid "circulation.pref Self Checkout"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref Self check-in module"
 msgstr ""
 
 # Circulation > Checkout Policy
@@ -2221,6 +2367,18 @@ msgstr ""
 
 # Circulation > Interface
 msgid "circulation.pref#AllowAllMessageDeletion# staff to delete messages added from other libraries."
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# Allow"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# Don't allow"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# patrons to submit notes about checked out items."
 msgstr ""
 
 # Circulation > Checkout Policy
@@ -2268,7 +2426,7 @@ msgid "circulation.pref#AllowHoldPolicyOverride# Don't allow"
 msgstr ""
 
 # Circulation > Holds Policy
-msgid "circulation.pref#AllowHoldPolicyOverride# staff to override hold policies when placing holds."
+msgid "circulation.pref#AllowHoldPolicyOverride# staff to force addition of holds even if the patron already has the maximum number of holds allowed."
 msgstr ""
 
 # Circulation > Holds Policy
@@ -2308,6 +2466,18 @@ msgid "circulation.pref#AllowItemsOnHoldCheckout# checkouts of items reserved to
 msgstr ""
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# Allow"
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# Don't allow"
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items."
+msgstr ""
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#AllowMultipleIssuesOnABiblio# Allow"
 msgstr ""
 
@@ -2316,7 +2486,7 @@ msgid "circulation.pref#AllowMultipleIssuesOnABiblio# Don't allow"
 msgstr ""
 
 # Circulation > Checkout Policy
-msgid "circulation.pref#AllowMultipleIssuesOnABiblio# patrons to check out multiple items from the same record.  (NOTE: This will only effect records without a subscription attached.)"
+msgid "circulation.pref#AllowMultipleIssuesOnABiblio# patrons to check out multiple items from the same record.  (NOTE: This will only affect records without a subscription attached.)"
 msgstr ""
 
 # Circulation > Checkout Policy
@@ -2411,6 +2581,30 @@ msgstr ""
 msgid "circulation.pref#AllowTooManyOverride# staff to override and check out items when the patron has reached the maximum number of allowed checkouts."
 msgstr ""
 
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# Don't enable"
+msgstr ""
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# Enable"
+msgstr ""
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# patrons to place article requests."
+msgstr ""
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFields# For records that are record level or item level requestable, make the following fields mandatory"
+msgstr ""
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFieldsItemOnly# For records that are only item level requestable, make the following fields mandatory"
+msgstr ""
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFieldsRecordOnly# For records that are only record level requestable, make the following fields mandatory"
+msgstr ""
+
 # Circulation > Checkout Policy
 msgid "circulation.pref#AutoRemoveOverduesRestrictions# Do"
 msgstr ""
@@ -2455,6 +2649,22 @@ msgstr ""
 msgid "circulation.pref#AutoSelfCheckAllowed# the web-based self checkout system to automatically login with this staff login"
 msgstr ""
 
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# Don't enable"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# Enable"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# This should not be enabled if you have overlapping patron and book barcodes."
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# the automatic redirection to another patron when a patron barcode is scanned instead of a book."
+msgstr ""
+
 # Circulation > Checkout Policy
 msgid "circulation.pref#AutomaticItemReturn# Do"
 msgstr ""
@@ -2488,6 +2698,18 @@ msgid "circulation.pref#BatchCheckoutsValidCategories# Patron categories allowed
 msgstr ""
 
 # Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# Block"
+msgstr ""
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# Don't block"
+msgstr ""
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# returning of items that have been lost."
+msgstr ""
+
+# Circulation > Checkin Policy
 msgid "circulation.pref#BlockReturnOfWithdrawnItems# Block"
 msgstr ""
 
@@ -2513,6 +2735,22 @@ msgstr ""
 
 # Circulation > Checkin Policy
 msgid "circulation.pref#CalculateFinesOnReturn# calculate and update overdue charges when an item is returned."
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Allow to mark items as lost"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Allow to mark items as lost and notify the patron"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Do not allow to mark items as lost"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# from the 'Holds to pull' screen"
 msgstr ""
 
 # Circulation > Interface
@@ -2567,6 +2805,18 @@ msgstr ""
 msgid "circulation.pref#CircControl# the library you are logged in at."
 msgstr ""
 
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# Activate"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# Deactivate"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# the navigation sidebar on all Circulation pages."
+msgstr ""
+
 # Circulation > Holds Policy
 msgid "circulation.pref#ConfirmFutureHolds# Confirm future hold requests (starting no later than"
 msgstr ""
@@ -2593,6 +2843,18 @@ msgstr ""
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#ConsiderOnSiteCheckoutsAsNormalCheckouts# on-site checkouts as normal checkouts."
+msgstr ""
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# Cumulate"
+msgstr ""
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# Don't cumulate"
+msgstr ""
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# the restriction periods."
 msgstr ""
 
 # Circulation > Checkout Policy
@@ -2656,6 +2918,18 @@ msgid "circulation.pref#DisplayMultiPlaceHold# the ability to place holds on mul
 msgstr ""
 
 # Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Allow"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Closed days to be taken into account in reserves max pickup delay."
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Don't allow"
+msgstr ""
+
+# Circulation > Holds Policy
 msgid "circulation.pref#ExpireReservesMaxPickUpDelay# Allow"
 msgstr ""
 
@@ -2684,19 +2958,23 @@ msgid "circulation.pref#ExpireReservesOnHolidays# expired holds to be canceled o
 msgstr ""
 
 # Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# Don't show"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# Show"
+msgstr ""
+
+# Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# the export patron checkout history options."
+msgstr ""
+
+# Circulation > Interface
 msgid "circulation.pref#ExportRemoveFields# (separate fields with space, e.g. 100a 200b 300c)"
 msgstr ""
 
 # Circulation > Interface
 msgid "circulation.pref#ExportRemoveFields# The following fields should be excluded from the patron checkout history CSV or iso2709 export"
-msgstr ""
-
-# Circulation > Interface
-msgid "circulation.pref#ExportWithCsvProfile# CSV profile when exporting patron checkout history (enter CSV Profile name)"
-msgstr ""
-
-# Circulation > Interface
-msgid "circulation.pref#ExportWithCsvProfile# Use the"
 msgstr ""
 
 # Circulation > Interface
@@ -2740,6 +3018,10 @@ msgid "circulation.pref#HoldFeeMode# Charge a hold fee"
 msgstr ""
 
 # Circulation > Fines Policy
+msgid "circulation.pref#HoldFeeMode# any time a hold is collected."
+msgstr ""
+
+# Circulation > Fines Policy
 msgid "circulation.pref#HoldFeeMode# any time a hold is placed."
 msgstr ""
 
@@ -2777,6 +3059,34 @@ msgstr ""
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#HomeOrHoldingBranch# the library the item was checked out from."
+msgstr ""
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# Disable"
+msgstr ""
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# Enable"
+msgstr ""
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# housebound module"
+msgstr ""
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# Disable"
+msgstr ""
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# Enable"
+msgstr ""
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# the interlibrary loans module (master switch)."
+msgstr ""
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModuleCopyrightClearance# Adding text will enable the copyright clearance stage in request creation. The text you enter will be the text displayed."
 msgstr ""
 
 # Circulation > Checkout Policy
@@ -2865,6 +3175,14 @@ msgid "circulation.pref#ManInvInNoissuesCharge# MANUAL_INV charges when summing 
 msgstr ""
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#MarkLostItemsAsReturned# ."
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#MarkLostItemsAsReturned# Mark items as returned when flagged as lost "
+msgstr ""
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#NoIssuesChargeGuarantees# Prevent a patron from checking out if the patron has guarantees owing in total more than"
 msgstr ""
 
@@ -2886,6 +3204,10 @@ msgstr ""
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#NoRenewalBeforePrecision# exact time."
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#NoticeBcc# Send all notices as a BCC to this email address"
 msgstr ""
 
 # Circulation > Interface
@@ -2921,6 +3243,42 @@ msgid "circulation.pref#OPACAllowUserToChooseBranch# a user to choose the librar
 msgstr ""
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Allow"
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Block"
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# If a patron owes more than the value of OPACFineNoRenewals,"
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# his/her auto renewals."
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# Allow"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# Don't allow"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# to pickup up holds at libraries where the item is available."
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# (list of patron categories separated with a pipe '|')"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# Patron categories not affected by OPACHoldsIfAvailableAtPickup"
+msgstr ""
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#OnSiteCheckouts# Disable"
 msgstr ""
 
@@ -2942,10 +3300,6 @@ msgstr ""
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#OnSiteCheckoutsForce# the on-site for all cases (Even if a user is debarred, etc.)."
-msgstr ""
-
-# Circulation > Checkout Policy
-msgid "circulation.pref#OverdueNoticeBcc# Send all notices as a BCC to this email address"
 msgstr ""
 
 # Circulation > Checkout Policy
@@ -3000,6 +3354,10 @@ msgstr ""
 msgid "circulation.pref#PrintNoticesMaxLines# item lines in a printed overdue notice. If the number of items is greater than this number, the notice will end with a warning asking the borrower to check their online account for a full list of overdue items.  Set to 0 to include all overdue items in the notice, no matter how many there are."
 msgstr ""
 
+# Circulation > Fines Policy
+msgid "circulation.pref#ProcessingFeeNote# Set the text to be recorded in the column 'note', table 'accountlines' when the processing fee (defined in item type) is applied."
+msgstr ""
+
 # Circulation > Interface
 msgid "circulation.pref#RecordLocalUseOnReturn# Don't record"
 msgstr ""
@@ -3013,15 +3371,19 @@ msgid "circulation.pref#RecordLocalUseOnReturn# local use when an unissued item 
 msgstr ""
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# Don't refund"
+msgid "circulation.pref#RefundLostOnReturnControl# If a lost item is returned, apply the refunding rules defined in the"
 msgstr ""
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# Refund"
+msgid "circulation.pref#RefundLostOnReturnControl# check-in library."
 msgstr ""
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# lost item fees charged to a borrower when the lost item is returned."
+msgid "circulation.pref#RefundLostOnReturnControl# item holding branch."
+msgstr ""
+
+# Circulation > Fines Policy
+msgid "circulation.pref#RefundLostOnReturnControl# item home branch."
 msgstr ""
 
 # Circulation > Checkout Policy
@@ -3153,6 +3515,10 @@ msgid "circulation.pref#ReturnToShelvingCart# all items to the location CART whe
 msgstr ""
 
 # Circulation > Self Checkout
+msgid "circulation.pref#SCOMainUserBlock# Include the following HTML on the the web-based self checkout screen:"
+msgstr ""
+
+# Circulation > Self Checkout
 msgid "circulation.pref#SCOUserCSS# Include the following CSS on all pages in the web-based self checkout:"
 msgstr ""
 
@@ -3162,6 +3528,38 @@ msgstr ""
 
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckHelpMessage# Include the following HTML in the Help page of the web-based self checkout system:"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInMainUserBlock# Include the following HTML on the self check-in screen:"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# Don't enable"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# Enable"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# the standalone self check-in module (available at: /cgi-bin/koha/sci/sci-main.pl)"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInTimeout# Reset the current self check-in screen after"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInTimeout# seconds."
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInUserCSS# Include the following CSS on all the self check-in screens:"
+msgstr ""
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInUserJS# Include the following JavaScript on all the self check-in screens:"
 msgstr ""
 
 # Circulation > Self Checkout
@@ -3185,7 +3583,7 @@ msgid "circulation.pref#SelfCheckTimeout# seconds."
 msgstr ""
 
 # Circulation > Self Checkout
-msgid "circulation.pref#SelfCheckoutByLogin# Barcode"
+msgid "circulation.pref#SelfCheckoutByLogin# Cardnumber"
 msgstr ""
 
 # Circulation > Self Checkout
@@ -3308,6 +3706,18 @@ msgstr ""
 msgid "circulation.pref#SuspendHoldsOpac# holds to be suspended from the OPAC."
 msgstr ""
 
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# Don't switch"
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# Switch"
+msgstr ""
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# on-site checkouts to normal checkouts when checked out."
+msgstr ""
+
 # Circulation > Holds Policy
 msgid "circulation.pref#TransferWhenCancelAllWaitingHolds# Don't transfer"
 msgstr ""
@@ -3326,6 +3736,18 @@ msgstr ""
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#TransfersMaxDaysWarning# days after it was sent."
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# Example: \"itemlost: 1\" to set items.itemlost to 1 when the item is marked as lost"
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# This is a list of values to update an item when it is marked as lost from the holds to pull screen."
+msgstr ""
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# Update item's values when marked as lost from the hold to pull screen."
 msgstr ""
 
 # Circulation > Checkin Policy
@@ -3656,6 +4078,18 @@ msgstr ""
 msgid "circulation.pref#useDaysMode# the calendar to skip all days the library is closed."
 msgstr ""
 
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# Don't use"
+msgstr ""
+
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# the default replacement cost defined in item type."
+msgstr ""
+
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# use"
+msgstr ""
+
 # Enhanced Content
 msgid "enhanced_content.pref"
 msgstr ""
@@ -3969,7 +4403,7 @@ msgid "enhanced_content.pref#IDreamBooksReviews# a tab on the OPAC details with 
 msgstr ""
 
 # Enhanced Content > Library Thing
-msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"http://www.librarything.com/forlibraries/\">sign up</a>, then enter in your ID below."
+msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"https://www.librarything.com/forlibraries/\">sign up</a>, then enter in your ID below."
 msgstr ""
 
 # Enhanced Content > Library Thing
@@ -4029,7 +4463,11 @@ msgid "enhanced_content.pref#NovelistSelectEnabled# Novelist Select content to t
 msgstr ""
 
 # Enhanced Content > Novelist Select
-msgid "enhanced_content.pref#NovelistSelectProfile# ."
+msgid "enhanced_content.pref#NovelistSelectPassword# ."
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectPassword# Access Novelist Select using password"
 msgstr ""
 
 # Enhanced Content > Novelist Select
@@ -4037,7 +4475,47 @@ msgid "enhanced_content.pref#NovelistSelectProfile# Access Novelist Select using
 msgstr ""
 
 # Enhanced Content > Novelist Select
-msgid "enhanced_content.pref#NovelistSelectProfile# and password"
+msgid "enhanced_content.pref#NovelistSelectProfile# on the opac"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Add"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Don't add"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Novelist Select content to the Staff client (requires that you have entered in a user profile and password, which can be seen in image links)."
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffProfile# Access Novelist Select using user profile"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffProfile# on the staff client"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# ."
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# Display Novelist Select staff content"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# above the holdings table"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# below the holdings table"
+msgstr ""
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# in a tab"
 msgstr ""
 
 # Enhanced Content > Novelist Select
@@ -4130,6 +4608,30 @@ msgstr ""
 
 # Enhanced Content > Open Library
 msgid "enhanced_content.pref#OpenLibrarySearch# search results from Open Library on the OPAC."
+msgstr ""
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# Don't enable"
+msgstr ""
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# Enable"
+msgstr ""
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# If you enable access, you must register auth return url of"
+msgstr ""
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# http(s)://my.opac.hostname/cgi-bin/koha/external/overdrive/auth.pl"
+msgstr ""
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# users to access their OverDrive circulation history, and circulate items."
+msgstr ""
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# with OverDrive."
 msgstr ""
 
 # Enhanced Content > OverDrive
@@ -4417,6 +4919,10 @@ msgid "i18n_l10n.pref#AddressFormat# Format postal addresses using"
 msgstr ""
 
 # I18N/L10N
+msgid "i18n_l10n.pref#AddressFormat# French style ([Street number] [Address] - [ZIP/Postal Code] [City] - [Country])"
+msgstr ""
+
+# I18N/L10N
 msgid "i18n_l10n.pref#AddressFormat# German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])"
 msgstr ""
 
@@ -4477,6 +4983,22 @@ msgid "i18n_l10n.pref#TimeFormat# Format times in"
 msgstr ""
 
 # I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# Allow"
+msgstr ""
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# Don't allow"
+msgstr ""
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# If set, notices will be translatable from the \"Notices and Slips\" interface. The language used to send a notice to a patron will be the one defined for the patron."
+msgstr ""
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# notices to be translated."
+msgstr ""
+
+# I18N/L10N
 msgid "i18n_l10n.pref#alphabet# <br/> Hint: Changing collation in the database for the 'surname' column of the 'borrowers' table is helpful to make browsing by last name work in members-home.pl when using an alphabet outside of A-Z"
 msgstr ""
 
@@ -4517,7 +5039,15 @@ msgid "i18n_l10n.pref#language# Enable the following languages on the staff inte
 msgstr ""
 
 # I18N/L10N
+msgid "i18n_l10n.pref#language# This list can be sorted to modify the order of the languages on the interface."
+msgstr ""
+
+# I18N/L10N
 msgid "i18n_l10n.pref#opaclanguages# Enable the following languages on the OPAC:"
+msgstr ""
+
+# I18N/L10N
+msgid "i18n_l10n.pref#opaclanguages# This list can be sorted to modify the order of the languages on the interface."
 msgstr ""
 
 # I18N/L10N
@@ -4530,34 +5060,6 @@ msgstr ""
 
 # I18N/L10N
 msgid "i18n_l10n.pref#opaclanguagesdisplay# patrons to change the language they see on the OPAC."
-msgstr ""
-
-# Labs
-msgid "labs.pref"
-msgstr ""
-
-# Labs > All
-msgid "labs.pref All"
-msgstr ""
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# <br/> NOTE:"
-msgstr ""
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# Don't enable"
-msgstr ""
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# Enable"
-msgstr ""
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# This feature is currently experimental, and may have bugs that cause corruption of records. It also does not include any support for UNIMARC or NORMARC fixed fields. Please help us test it and report any bugs, but do so at your own risk."
-msgstr ""
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# the advanced cataloging editor."
 msgstr ""
 
 # Local Use
@@ -4665,6 +5167,18 @@ msgid "logs.pref#FinesLog# when fines are charged, paid, or forgiven."
 msgstr ""
 
 # Logging > Logging
+msgid "logs.pref#HoldsLog# Don't log"
+msgstr ""
+
+# Logging > Logging
+msgid "logs.pref#HoldsLog# Log"
+msgstr ""
+
+# Logging > Logging
+msgid "logs.pref#HoldsLog# any actions on holds (create, cancel, suspend, resume, etc)."
+msgstr ""
+
+# Logging > Logging
 msgid "logs.pref#IssueLog# Don't log"
 msgstr ""
 
@@ -4686,6 +5200,18 @@ msgstr ""
 
 # Logging > Logging
 msgid "logs.pref#LetterLog# when an automatic claim notice is sent."
+msgstr ""
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# Don't log"
+msgstr ""
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# Log"
+msgstr ""
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# when items are renewed."
 msgstr ""
 
 # Logging > Logging
@@ -4940,8 +5466,12 @@ msgstr ""
 msgid "opac.pref#LibraryName# as the name of the library on the OPAC."
 msgstr ""
 
-# OPAC > Appearance
-msgid "opac.pref#NoLoginInstructions# Show the following HTML on the OPAC login form when a patron is not logged in:"
+# OPAC > Policy
+msgid "opac.pref#MaxOpenSuggestions# Limit patrons to"
+msgstr ""
+
+# OPAC > Policy
+msgid "opac.pref#MaxOpenSuggestions# open suggestions. Leave empty for no limit. **Note: this setting does not affect anonymous suggestions"
 msgstr ""
 
 # OPAC > Features
@@ -5022,6 +5552,22 @@ msgstr ""
 
 # OPAC > Features
 msgid "opac.pref#OPACFinesTab# patrons to access the Fines tab on the My Account page on the OPAC."
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# First column of the table"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# Holding library"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# Home library"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# is the default sort field for the holdings table"
 msgstr ""
 
 # OPAC > Features
@@ -5125,18 +5671,6 @@ msgid "opac.pref#OPACShelfBrowser# a shelf browser on item details pages, allowi
 msgstr ""
 
 # OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# Don't show"
-msgstr ""
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# Show"
-msgstr ""
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# the item's barcode on the holdings tab."
-msgstr ""
-
-# OPAC > Appearance
 msgid "opac.pref#OPACShowCheckoutName# Don't show"
 msgstr ""
 
@@ -5180,6 +5714,14 @@ msgstr ""
 msgid "opac.pref#OPACShowUnusedAuthorities# unused authorities in the OPAC authority browser."
 msgstr ""
 
+# OPAC > Policy
+msgid "opac.pref#OPACSuggestionMandatoryFields# <br />Note: if none of the above options are selected, 'Title' field would be mandatory anyway, by default."
+msgstr ""
+
+# OPAC > Policy
+msgid "opac.pref#OPACSuggestionMandatoryFields# Fields that should be mandatory for patron purchase suggestions:"
+msgstr ""
+
 # OPAC > Appearance
 msgid "opac.pref#OPACURLOpenInNewWindow# When patrons click on a link to another website from your OPAC (like Amazon or OCLC),"
 msgstr ""
@@ -5204,6 +5746,18 @@ msgstr ""
 msgid "opac.pref#OPACUserJS# Include the following JavaScript on all pages in the OPAC:"
 msgstr ""
 
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# Don't show"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# Show"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
+msgstr ""
+
 # OPAC > Policy
 msgid "opac.pref#OPACViewOthersSuggestions# Don't show"
 msgstr ""
@@ -5222,6 +5776,14 @@ msgstr ""
 
 # OPAC > Appearance
 msgid "opac.pref#OPACXSLTDetailsDisplay# Display OPAC details using XSLT stylesheet at: "
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACXSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OPACXSLTListsDisplay# Display lists in the OPAC using XSLT stylesheet at: "
 msgstr ""
 
 # OPAC > Appearance
@@ -5461,23 +6023,35 @@ msgid "opac.pref#OpacLocationBranchToDisplay# home library"
 msgstr ""
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# Display the shelving location under the"
+msgid "opac.pref#OpacLocationOnDetail# <br />Note: If 'on a separate column' is selected, you still need to enable the item_shelving_location display on the <a href='/cgi-bin/koha/admin/columns_settings.pl'>configure columns</a> administration page"
 msgstr ""
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# for items on the OPAC record details page."
+msgid "opac.pref#OpacLocationOnDetail# Display the shelving location "
 msgstr ""
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# holding library"
+msgid "opac.pref#OpacLocationOnDetail# below both home and holding libraries"
 msgstr ""
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# home and holding libraries"
+msgid "opac.pref#OpacLocationOnDetail# below the holding library"
 msgstr ""
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# home library"
+msgid "opac.pref#OpacLocationOnDetail# below the home library"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLocationOnDetail# for items on the OPAC record details page."
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLocationOnDetail# on a separate column"
+msgstr ""
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLoginInstructions# Show the following HTML on the OPAC login form when a patron is not logged in:"
 msgstr ""
 
 # OPAC > Appearance
@@ -5518,6 +6092,18 @@ msgstr ""
 
 # OPAC > Appearance
 msgid "opac.pref#OpacNavRight# Show the following HTML in the right hand column of the main page under the main login form:"
+msgstr ""
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# Display"
+msgstr ""
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# Don't display"
+msgstr ""
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# a branch selection list for news items in the OPAC."
 msgstr ""
 
 # OPAC > Features
@@ -5685,7 +6271,7 @@ msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# (separate columns 
 msgstr ""
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
+msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
 msgstr ""
 
 # OPAC > Self Registration
@@ -5709,7 +6295,7 @@ msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# (separate columns
 msgstr ""
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
 msgstr ""
 
 # OPAC > Self Registration
@@ -5717,7 +6303,7 @@ msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# (separate columns 
 msgstr ""
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
+msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
 msgstr ""
 
 # OPAC > Self Registration
@@ -5729,11 +6315,47 @@ msgid "opac.pref#PatronSelfRegistrationDefaultCategory# as the default patron ca
 msgstr ""
 
 # OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Consider"
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Do not consider"
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# patron's email (borrowers.email) as unique on self registering. An email won't be accepted if it already exists in the database."
+msgstr ""
+
+# OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# Delete patrons registered via the OPAC, but not yet verified after"
 msgstr ""
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# days."
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# (separate branchcode with |)."
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# Enable the self registration for the following libraries:"
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# If empty, all libraries will be listed."
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# Display and prefill"
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# Do not display and prefill"
+msgstr ""
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# password and login form after a patron has self registered."
 msgstr ""
 
 # OPAC > Self Registration
@@ -6113,7 +6735,11 @@ msgid "patrons.pref#BorrowerMandatoryField# (separate columns with |)"
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#BorrowerMandatoryField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+msgid "patrons.pref#BorrowerMandatoryField# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#BorrowerMandatoryField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
 msgstr ""
 
 # Patrons > General
@@ -6129,11 +6755,15 @@ msgid "patrons.pref#BorrowerRenewalPeriodBase# current membership expiry date."
 msgstr ""
 
 # Patrons > General
+msgid "patrons.pref#BorrowerRenewalPeriodBase# the latter of the current and expiry date."
+msgstr ""
+
+# Patrons > General
 msgid "patrons.pref#BorrowerUnwantedField# (separate columns with |)"
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#BorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
+msgid "patrons.pref#BorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
 msgstr ""
 
 # Patrons > General
@@ -6149,11 +6779,35 @@ msgid "patrons.pref#CardnumberLength# Card numbers for patrons must be"
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#CardnumberLength# If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size."
+msgid "patrons.pref#CardnumberLength# If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size of 32."
 msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#CardnumberLength# characters long. The length can be a single number to specify an exact length, a range separated by a comma (i.e., 'Min,Max'), or a maximum with no minimum (i.e., ',Max')."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout#  check borrower checkout history to see if the current item has been checked out before."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Do"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Do not"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Unless overridden, do"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Unless overridden, do not"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#DefaultPatronSearchFields# Comma separated list defining the default fields to be used during a patron search"
 msgstr ""
 
 # Patrons > General
@@ -6202,6 +6856,14 @@ msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#ExtendedPatronAttributes# searching, editing and display of custom attributes on patrons."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#FailedLoginAttempts# Block a patron's account if it reaches"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#FailedLoginAttempts# failed login attempts."
 msgstr ""
 
 # Patrons > General
@@ -6285,11 +6947,47 @@ msgid "patrons.pref#NotifyBorrowerDeparture# days beforehand."
 msgstr ""
 
 # Patrons > General
+msgid "patrons.pref#PatronQuickAddFields# (separate columns with |)"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#PatronQuickAddFields# add these fields to the patron quick add form when entering a new patron. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
+msgstr ""
+
+# Patrons > General
 msgid "patrons.pref#PatronsPerPage# By default, show"
 msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#PatronsPerPage# results per page in the staff client."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# Allow all permitted users"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# Allow only superlibrarians"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# to access/change superlibrarian privileges. Note: A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# (Must contain at least one digit, one lowercase and one uppercase)."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# Don't require"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# Require"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# a strong password for staff and patrons"
 msgstr ""
 
 # Patrons > General
@@ -6329,11 +7027,31 @@ msgid "patrons.pref#TalkingTechItivaPhoneNotification# patron phone notification
 msgstr ""
 
 # Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Do"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Don't"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Everytime a patron will connect, the borrowers.lastseen will be updated with the current time."
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# track last patron activity."
+msgstr ""
+
+# Patrons > General
 msgid "patrons.pref#autoMemberNum# Do"
 msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#autoMemberNum# Don't"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#autoMemberNum# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
 msgstr ""
 
 # Patrons > General
@@ -6349,18 +7067,6 @@ msgid "patrons.pref#borrowerRelationship# Guarantors can be the following of tho
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#checkdigit# Do"
-msgstr ""
-
-# Patrons > General
-msgid "patrons.pref#checkdigit# Don't"
-msgstr ""
-
-# Patrons > General
-msgid "patrons.pref#checkdigit# check and construct borrower card numbers in the Katipo style. This overrides <code>autoMemberNum</code> if on."
-msgstr ""
-
-# Patrons > General
 msgid "patrons.pref#intranetreadinghistory# Allow"
 msgstr ""
 
@@ -6369,7 +7075,7 @@ msgid "patrons.pref#intranetreadinghistory# Don't allow"
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#intranetreadinghistory# staff to access a patron's checkout history (reading history is still stored, regardless of staff being allowed access or not)."
+msgid "patrons.pref#intranetreadinghistory# staff to access a patron's checkout and hold history (reading history is still stored, regardless of staff being allowed access or not)."
 msgstr ""
 
 # Patrons > General
@@ -6456,6 +7162,18 @@ msgstr ""
 msgid "searching.pref#AdvancedSearchTypes# fields (separate values with |). Tabs appear in the order listed.<br/>"
 msgstr ""
 
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# Disable"
+msgstr ""
+
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# Enable"
+msgstr ""
+
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# browsing search results fromt the bibliographic record detail page in staff client."
+msgstr ""
+
 # Searching > Results Display
 msgid "searching.pref#DisplayLibraryFacets# Show facets for"
 msgstr ""
@@ -6526,6 +7244,22 @@ msgstr ""
 
 # Searching > Search Form
 msgid "searching.pref#IntranetNumbersPreferPhrase# use"
+msgstr ""
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Don't load"
+msgstr ""
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Load"
+msgstr ""
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Load the unlogged history to the next user."
+msgstr ""
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# history to the next client."
 msgstr ""
 
 # Searching > Results Display
@@ -6949,6 +7683,18 @@ msgid "serials.pref#SubscriptionHistory# view of serial issues."
 msgstr ""
 
 # Serials
+msgid "serials.pref#makePreviousSerialAvailable# Do not make"
+msgstr ""
+
+# Serials
+msgid "serials.pref#makePreviousSerialAvailable# Make"
+msgstr ""
+
+# Serials
+msgid "serials.pref#makePreviousSerialAvailable# previous serial automatically available when receiving a new serial issue. The previous issue can also be set to another item type when receiving a new one. Please note that the item-level_itypes syspref must be set to specific item."
+msgstr ""
+
+# Serials
 msgid "serials.pref#opacSerialDefaultTab# Holdings tab"
 msgstr ""
 
@@ -7040,6 +7786,18 @@ msgstr ""
 msgid "staff_client.pref#HidePatronName# the names of patrons that have items checked out or on hold on detail pages or the \"Place Hold\" screen."
 msgstr ""
 
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# Don't show"
+msgstr ""
+
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# Show"
+msgstr ""
+
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# a search field pulldown for 'Search the catalog' boxes."
+msgstr ""
+
 # Staff Client > Appearance
 msgid "staff_client.pref#IntranetCirculationHomeHTML# Show the following HTML in its own div on the bottom of the home page of the circulation module:"
 msgstr ""
@@ -7061,7 +7819,7 @@ msgid "staff_client.pref#IntranetReportsHomeHTML# Show the following HTML in its
 msgstr ""
 
 # Staff Client > Appearance
-msgid "staff_client.pref#IntranetSlipPrinterJS# Use the following JavaScript for printing slips. Define at least function printThenClose(). For use e.g. with Firefox PlugIn jsPrintSetup, see http://jsprintsetup.mozdev.org/:"
+msgid "staff_client.pref#IntranetSlipPrinterJS# Use the following JavaScript for printing slips. See detailed description on the <a href='https://wiki.koha-community.org/wiki/Setting_up_slip_printer_to_print_silently'>Koha Wiki</a> and eventually Firefox PlugIn <a href='https://github.com/edabg/jsprintsetup/wiki'>jsPrintSetup documentation</a>:"
 msgstr ""
 
 # Staff Client > Appearance
@@ -7096,6 +7854,26 @@ msgstr ""
 msgid "staff_client.pref#StaffDetailItemSelection# item selection in record detail page."
 msgstr ""
 
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# Display language selector on "
+msgstr ""
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# both top and footer"
+msgstr ""
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# only footer"
+msgstr ""
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# top"
+msgstr ""
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLoginInstructions# Show the following HTML on the staff client login page"
+msgstr ""
+
 # Staff Client > Options
 msgid "staff_client.pref#UseWYSIWYGinSystemPreferences# Don't show"
 msgstr ""
@@ -7114,6 +7892,14 @@ msgstr ""
 
 # Staff Client > Appearance
 msgid "staff_client.pref#XSLTDetailsDisplay# Display details in the staff client using XSLT stylesheet at: "
+msgstr ""
+
+# Staff Client > Appearance
+msgid "staff_client.pref#XSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+msgstr ""
+
+# Staff Client > Appearance
+msgid "staff_client.pref#XSLTListsDisplay# Display lists in the staff client using XSLT stylesheet at: "
 msgstr ""
 
 # Staff Client > Appearance
@@ -7161,11 +7947,11 @@ msgid "staff_client.pref#intranetstylesheet# on all pages in the staff interface
 msgstr ""
 
 # Staff Client > Appearance
-msgid "staff_client.pref#staffClientBaseURL# . Do not include a trailing slash in the URL."
+msgid "staff_client.pref#staffClientBaseURL# The staff client is located at"
 msgstr ""
 
 # Staff Client > Appearance
-msgid "staff_client.pref#staffClientBaseURL# The staff client is located at http://"
+msgid "staff_client.pref#staffClientBaseURL# This should be a complete URL, starting with http:// or https://. Do not include a trailing slash in the URL. (This must be filled in correctly for CAS, svc, and load_testing to work.)"
 msgstr ""
 
 # Staff Client > Appearance
@@ -7228,6 +8014,14 @@ msgstr ""
 msgid "tools.pref Patron cards"
 msgstr ""
 
+# Tools > Reports
+msgid "tools.pref Reports"
+msgstr ""
+
+# Tools > Upload
+msgid "tools.pref Upload"
+msgstr ""
+
 # Tools > Patron cards
 msgid "tools.pref#ImageLimit# Limit the number of creator images stored in the database to"
 msgstr ""
@@ -7272,6 +8066,22 @@ msgstr ""
 msgid "tools.pref#NewsAuthorDisplay# Staff client only"
 msgstr ""
 
+# Tools > Reports
+msgid "tools.pref#NumSavedReports# By default, show"
+msgstr ""
+
+# Tools > Reports
+msgid "tools.pref#NumSavedReports# reports on the Saved Reports page."
+msgstr ""
+
+# Tools > Upload
+msgid "tools.pref#UploadPurgeTemporaryFilesDays# Automatically delete temporary uploads older than"
+msgstr ""
+
+# Tools > Upload
+msgid "tools.pref#UploadPurgeTemporaryFilesDays# days in cleanup_database cron job. NOTE: If you leave this field empty, the cron job will not delete any files. On the other hand a value of 0 means: delete all temporary files."
+msgstr ""
+
 # Web services
 msgid "web_services.pref"
 msgstr ""
@@ -7286,6 +8096,10 @@ msgstr ""
 
 # Web services > OAI-PMH
 msgid "web_services.pref OAI-PMH"
+msgstr ""
+
+# Web services > REST API
+msgid "web_services.pref REST API"
 msgstr ""
 
 # Web services > Reporting
@@ -7398,6 +8212,26 @@ msgstr ""
 
 # Web services > OAI-PMH
 msgid "web_services.pref#OAI-PMH:archiveID# Identify records at this site with the prefix"
+msgstr ""
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# Disable"
+msgstr ""
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# Enable"
+msgstr ""
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# the OAuth2 client credentials grant for the REST API. Requires Net::OAuth2::AuthorizationServer installed. [EXPERIMENTAL]"
+msgstr ""
+
+# Web services > REST API
+msgid "web_services.pref#RESTdefaultPageSize# Set the default number of results returned by the REST API endpoints to"
+msgstr ""
+
+# Web services > REST API
+msgid "web_services.pref#RESTdefaultPageSize# per page."
 msgstr ""
 
 # Web services > Reporting

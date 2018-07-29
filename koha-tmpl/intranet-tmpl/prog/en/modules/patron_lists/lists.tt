@@ -1,67 +1,11 @@
 [% USE Koha %]
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Patron lists</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% INCLUDE 'greybox.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-
-<script type="text/javascript">
-//<![CDATA[
-
-    $(document).ready(function() {
-        var patronExportModal = $("#patronExportModal");
-        var patronExportModalBody = $("#patronExportModal .modal-body")
-
-        $('#patron-lists-table').dataTable($.extend(true, {}, dataTablesDefaults, {
-            "autoWidth": false,
-            "aoColumnDefs": [
-                { "bSortable": false, "bSearchable": false, 'aTargets': [ 'NoSort' ] }
-            ],
-            "sPaginationType": "four_button"
-        } ));
-        $(".delete_patron").on("click", function(){
-            $(".dropdown").removeClass("open");
-            var list = $(this).data("list-name");
-            return confirmDelete( _("Are you sure you want to delete the list %s?").format(list) );
-        });
-
-        $(".print_cards").on("click", function(e){
-            e.preventDefault();
-            var page = $(this).attr("href");
-            patronExportModalBody.load(page + " #exportingf");
-            patronExportModal.modal("show");
-        });
-
-        patronExportModal.on("hidden", function(){
-            patronExportModalBody.html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/loading-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
-        });
-
-        patronExportModal.on("submit", "#exportingf", function(e){
-            e.preventDefault();
-            modal_body = patronExportModalBody;
-            modal_body.html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/loading-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
-            target_url = $(this).attr("action");
-            params =  $( this ).serialize();
-            modal_body.load( target_url + "?" + params + " #custom-doc");
-        });
-
-        patronExportModal.on("click",".closebtn,.gb-close",function(e){
-            e.preventDefault();
-            patronExportModal.modal("hide");
-        });
-
-    });
-
-    [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-        function startpatronlistidsearch(patron_list_id) {
-            document.getElementById('patronlistid').value = patron_list_id;
-            document.startPatronlistIdSearch.submit();
-        }
-    [% END %]
-//]]>
-</script>
-
+[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="patlist_lists" class="pat patlist">
@@ -76,7 +20,7 @@
 
         <div id="toolbar" class="btn-toolbar">
             <div class="btn-group">
-                <a class="btn btn-small" href="add-modify.pl"><i class="fa fa-plus"></i> New patron list</a>
+                <a class="btn btn-default btn-sm" href="add-modify.pl"><i class="fa fa-plus"></i> New patron list</a>
             </div>
         </div>
 
@@ -96,11 +40,11 @@
             <tbody>
                 [% FOREACH l IN lists %]
                     <tr>
-                        <td>[% l.name %]</td>
+                        <td><a href="/cgi-bin/koha/patron_lists/list.pl?patron_list_id=[% l.patron_list_id %]">[% l.name |html%]</a></td>
                         <td>[% l.patron_list_patrons_rs.count || 0 %]</td>
                         <td>
                             <div class="dropdown">
-                                <a class="btn btn-mini dropdown-toggle" id="listactions[% l.patron_list_id %]" role="button" data-toggle="dropdown" href="#">
+                                <a class="btn btn-default btn-xs dropdown-toggle" id="listactions[% l.patron_list_id %]" role="button" data-toggle="dropdown" href="#">
                                    Actions <b class="caret"></b>
                                 </a>
                                 <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="listactions[% l.patron_list_id %]">
@@ -143,13 +87,17 @@
         </table>
 
             <!-- Modal to print patron cards -->
-            <div class="modal hide" id="patronExportModal" tabindex="-1" role="dialog" aria-labelledby="patronExportModal_label" aria-hidden="true">
+            <div class="modal" id="patronExportModal" tabindex="-1" role="dialog" aria-labelledby="patronExportModal_label" aria-hidden="true">
+                <div class="modal-dialog">
+                <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>
                     <h3 id="patronExportModal_label">Print patron cards</h3>
                 </div>
                 <div class="modal-body">
-                    <div id="loading"> <img src="[% interface %]/[% theme %]/img/loading-small.gif" alt="" /> Loading </div>
+                    <div id="loading"> <img src="[% interface %]/[% theme %]/img/spinner-small.gif" alt="" /> Loading </div>
+                </div>
+                </div>
                 </div>
             </div>
 
@@ -169,4 +117,63 @@
             [% INCLUDE 'tools-menu.inc' %]
         </div>
     </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var patronExportModal = $("#patronExportModal");
+            var patronExportModalBody = $("#patronExportModal .modal-body")
+
+            $('#patron-lists-table').dataTable($.extend(true, {}, dataTablesDefaults, {
+                "autoWidth": false,
+                "aoColumnDefs": [
+                    { "bSortable": false, "bSearchable": false, 'aTargets': [ 'NoSort' ] }
+                ],
+                "sPaginationType": "four_button"
+            } ));
+            $(".delete_patron").on("click", function(){
+                $(".dropdown").removeClass("open");
+                var list = $(this).data("list-name");
+                return confirmDelete( _("Are you sure you want to delete the list %s?").format(list) );
+            });
+
+            $(".print_cards").on("click", function(e){
+                e.preventDefault();
+                var page = $(this).attr("href");
+                patronExportModalBody.load(page + " #exportingf");
+                patronExportModal.modal("show");
+            });
+
+            patronExportModal.on("hidden", function(){
+                patronExportModalBody.html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
+            });
+
+            patronExportModal.on("submit", "#exportingf", function(e){
+                e.preventDefault();
+                modal_body = patronExportModalBody;
+                modal_body.html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
+                target_url = $(this).attr("action");
+                params =  $( this ).serialize();
+                modal_body.load( target_url + "?" + params + " #custom-doc");
+            });
+
+            patronExportModal.on("click",".closebtn,.gb-close",function(e){
+                e.preventDefault();
+                patronExportModal.modal("hide");
+            });
+
+        });
+        
+        [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+            function startpatronlistidsearch(patron_list_id) {
+                document.getElementById('patronlistid').value = patron_list_id;
+                document.startPatronlistIdSearch.submit();
+            }
+        [% END %]
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -8,29 +8,29 @@ package C4::XSLT;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use C4::Context;
-use C4::Branch;
 use C4::Items;
 use C4::Koha;
 use C4::Biblio;
 use C4::Circulation;
 use C4::Reserves;
+use Koha::AuthorisedValues;
+use Koha::ItemTypes;
 use Koha::XSLT_Handler;
 use Koha::Libraries;
 
@@ -68,7 +68,7 @@ Is only used in this module currently.
 sub transformMARCXML4XSLT {
     my ($biblionumber, $record) = @_;
     my $frameworkcode = GetFrameworkCode($biblionumber) || '';
-    my $tagslib = &GetMarcStructure(1,$frameworkcode);
+    my $tagslib = &GetMarcStructure(1, $frameworkcode, { unsafe => 1 });
     my @fields;
     # FIXME: wish there was a better way to handle exceptions
     eval {
@@ -234,6 +234,18 @@ sub XSLTParse4Display {
             $theme      = C4::Context->preference("opacthemes");
             $xslfile    = C4::Context->preference('marcflavour') .
                        "slim2OPACResults.xsl";
+        } elsif ($xslsyspref eq 'XSLTListsDisplay') {
+            # Lists default to *Results.xslt
+            $htdocs  = C4::Context->config('intrahtdocs');
+            $theme   = C4::Context->preference("template");
+            $xslfile = C4::Context->preference('marcflavour') .
+                        "slim2intranetResults.xsl";
+        } elsif ($xslsyspref eq 'OPACXSLTListsDisplay') {
+            # Lists default to *Results.xslt
+            $htdocs  = C4::Context->config('opachtdocs');
+            $theme   = C4::Context->preference("opacthemes");
+            $xslfile = C4::Context->preference('marcflavour') .
+                       "slim2OPACResults.xsl";
         }
         $xslfilename = _get_best_default_xslt_filename($htdocs, $theme, $lang, $xslfile, $is_intranet, $customdocs);
     }
@@ -278,11 +290,14 @@ sub buildKohaItemsNamespace {
         @items = grep { !$hi{$_->{itemnumber}} } @items;
     }
 
-    my $shelflocations = GetKohaAuthorisedValues('items.location',GetFrameworkCode($biblionumber), 'opac');
-    my $ccodes         = GetKohaAuthorisedValues('items.ccode',GetFrameworkCode($biblionumber), 'opac');
+    my $shelflocations =
+      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => GetFrameworkCode($biblionumber), kohafield => 'items.location' } ) };
+    my $ccodes =
+      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => GetFrameworkCode($biblionumber), kohafield => 'items.ccode' } ) };
 
-    my $branches = GetBranches();
-    my $itemtypes = GetItemTypes();
+    my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' });
+
+    my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search->unblessed } };
     my $location = "";
     my $ccode = "";
     my $xml = '';
@@ -293,12 +308,12 @@ sub buildKohaItemsNamespace {
 
         my $reservestatus = C4::Reserves::GetReserveStatus( $item->{itemnumber} );
 
-        if ( $itemtypes->{ $item->{itype} }->{notforloan} || $item->{notforloan} || $item->{onloan} || $item->{withdrawn} || $item->{itemlost} || $item->{damaged} ||
+        if ( ( $item->{itype} && $itemtypes->{ $item->{itype} }->{notforloan} ) || $item->{notforloan} || $item->{onloan} || $item->{withdrawn} || $item->{itemlost} || $item->{damaged} ||
              (defined $transfertwhen && $transfertwhen ne '') || $item->{itemnotforloan} || (defined $reservestatus && $reservestatus eq "Waiting") ){ 
             if ( $item->{notforloan} < 0) {
                 $status = "On order";
             } 
-            if ( $item->{itemnotforloan} > 0 || $item->{notforloan} > 0 || $itemtypes->{ $item->{itype} }->{notforloan} == 1 ) {
+            if ( $item->{itemnotforloan} && $item->{itemnotforloan} > 0 || $item->{notforloan} && $item->{notforloan} > 0 || $item->{itype} && $itemtypes->{ $item->{itype} }->{notforloan} && $itemtypes->{ $item->{itype} }->{notforloan} == 1 ) {
                 $status = "reference";
             }
             if ($item->{onloan}) {
@@ -322,8 +337,8 @@ sub buildKohaItemsNamespace {
         } else {
             $status = "available";
         }
-        my $homebranch = $item->{homebranch}? xml_escape($branches->{$item->{homebranch}}->{'branchname'}):'';
-        my $holdingbranch = $item->{holdingbranch}? xml_escape($branches->{$item->{holdingbranch}}->{'branchname'}):'';
+        my $homebranch = $item->{homebranch}? xml_escape($branches{$item->{homebranch}}):'';
+        my $holdingbranch = $item->{holdingbranch}? xml_escape($branches{$item->{holdingbranch}}):'';
         $location = $item->{location}? xml_escape($shelflocations->{$item->{location}}||$item->{location}):'';
         $ccode = $item->{ccode}? xml_escape($ccodes->{$item->{ccode}}||$item->{ccode}):'';
         my $itemcallnumber = xml_escape($item->{itemcallnumber});
@@ -334,7 +349,7 @@ sub buildKohaItemsNamespace {
           . "<holdingbranch>$holdingbranch</holdingbranch>"
           . "<location>$location</location>"
           . "<ccode>$ccode</ccode>"
-          . "<status>$status</status>"
+          . "<status>".( $status // q{} )."</status>"
           . "<itemcallnumber>$itemcallnumber</itemcallnumber>"
           . "<stocknumber>$stocknumber</stocknumber>"
           . "</item>";

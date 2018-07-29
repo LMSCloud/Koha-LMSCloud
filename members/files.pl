@@ -17,21 +17,19 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
 use C4::Auth;
-use C4::Branch;
 use C4::Output;
 use C4::Members;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Debug;
 
 use Koha::DateUtils;
+use Koha::Patrons;
 use Koha::Patron::Files;
-use Koha::Patron::Images;
 
 my $cgi = CGI->new;
 
@@ -41,14 +39,19 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1 },
+        flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
 $template->param( 'borrower_files' => 1 );
 
 my $borrowernumber = $cgi->param('borrowernumber');
-my $bf = Koha::Patron::Files->new( borrowernumber => $borrowernumber );
+
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $patron         = Koha::Patrons->find($borrowernumber);
+output_and_exit_if_error( $cgi, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
+
+my $bf = Koha::Patron::Files->new( borrowernumber => $borrowernumber ); # FIXME Should be $patron->get_files. Koha::Patron::Files needs to be Koha::Objects based first
 
 my $op = $cgi->param('op') || '';
 
@@ -64,8 +67,9 @@ if ( $op eq 'download' ) {
     print $file->{'file_content'};
 }
 else {
-    my $data = GetMember( borrowernumber => $borrowernumber );
-    $template->param(%$data);
+
+    my $patron_category = $patron->category;
+    $template->param( patron => $patron );
 
     my %errors;
 
@@ -102,12 +106,6 @@ else {
         $bf->DelFile( id => scalar $cgi->param('file_id') );
     }
 
-    $template->param(
-        categoryname    => $data->{'description'},
-        branchname      => GetBranchName($data->{'branchcode'}),
-        RoutingSerials => C4::Context->preference('RoutingSerials'),
-    );
-
     if (C4::Context->preference('ExtendedPatronAttributes')) {
         my $attributes = GetBorrowerAttributes($borrowernumber);
         $template->param(
@@ -116,10 +114,6 @@ else {
         );
     }
 
-    my $patron_image = Koha::Patron::Images->find($data->{borrowernumber});
-    $template->param( picture => 1 ) if $patron_image;
-
-    $template->param( adultborrower => 1 ) if ( $data->{category_type} eq 'A' || $data->{category_type} eq 'I' );
     $template->param(
         files => Koha::Patron::Files->new( borrowernumber => $borrowernumber )
           ->GetFilesInfo(),

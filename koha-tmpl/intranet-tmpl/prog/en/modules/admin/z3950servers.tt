@@ -1,3 +1,5 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 
 [% BLOCK ServerType %]
@@ -15,80 +17,10 @@
 [% INCLUDE 'doc-head-close.inc' %]
 
 [% IF op == 'list' %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-    [% INCLUDE 'datatables.inc' %]
+    [% Asset.css("css/datatables.css") %]
 [% END %]
-
-<script type="text/javascript">
-//<![CDATA[
-[% IF ( add_form ) %]
-    $(document).ready(function(){
-        // Update selects for syntax, encoding and recordtype
-        [% IF server %]
-            $("#syntax").val('[% server.syntax %]');
-            $("#encoding").val('[% server.encoding %]');
-            $("#recordtype").val('[% server.recordtype %]');
-        [% END %]
-        // Disable recordtype (and default to bib) for non-Z3950 servers until auth is supported
-        [% UNLESS (server.servertype||type) == 'zed' %]
-            $("#recordtype").prop('disabled',true);
-        [% END %]
-        $( "#serverentry" ).validate({
-            rules: {
-                servername: { required: true },
-                host: { required: true },
-                port: {
-                    required: true,
-                    number: true
-                },
-                db: { required: true },
-                rank: { number: true },
-                timeout: { number: true }
-            }
-        });
-        $("#serverentry").submit(function( event ) {
-            // first test if show_sru_fields exists
-            if( $('#show_sru_fields').length && $('#show_sru_fields').val()=='' && !confirm( _("No SRU search field mappings have been defined. This means that all field searches will go through the whole record. Continue?"))) {
-                return false;
-            }
-            // copy show_sru_fields to hidden counterpart
-            $('#sru_fields').val( $('#show_sru_fields').val() );
-            // enable recordtype to include field in post
-            $('#recordtype').prop('disabled',false);
-        });
-        $("#servername").on("blur",function(){
-            toUC(this);
-        });
-        $("#modify_sru_fields").on("click",function(){
-            ModMapping();
-        });
-    });
-    function ModMapping () {
-        var map= $('#show_sru_fields').val();
-        window.open('/cgi-bin/koha/admin/sru_modmapping.pl?mapping='+map,'popup','width=800,height=400,resizable=yes,toolbar=false,scrollbars=yes,top');
-    }
-[% ELSE %]
-    $(document).ready(function() {
-        $("#serverst").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumnDefs": [
-                { "aTargets": [2,3,4,7,8,9,10,11], "bSortable": false, "bSearchable": false },
-            ],
-            "sPaginationType": "four_button"
-        }));
-        $(".delete").on("click",function(e){
-            var servername = $(this).data("servername");
-            if( confirm( _("Are you sure you want to delete server %s?").format(servername) ) ) {
-                return true;
-            } else {
-                e.preventDefault();
-            }
-        });
-    });
-[% END %]
-//]]>
-</script>
-
 </head>
+
 <body id="admin_z3950servers" class="admin">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'z3950-admin-search.inc' %]
@@ -126,8 +58,8 @@
         [% END %]
         <fieldset class="rows">
         <ol>
-        <li><label for="name">Server name: </label>
-            <input type="text" name="servername" id="servername" size="65" maxlength="100" value="[% server.servername | html %]"/>
+        <li><label for="name" class="required">Server name: </label>
+            <input type="text" name="servername" id="servername" size="65" maxlength="100" value="[% server.servername | html %]" required="required" /> <span class="required">Required</span>
         </li>
 
         <li><label for="host" class="required">Hostname: </label> <input type="text" name="host" id="host" size="30" value="[% server.host %]" required="required" /> <span class="required">Required</span>
@@ -218,14 +150,14 @@
 
 [% IF op == 'list' %]
     <div id="toolbar" class="btn-toolbar">
-        <a id="newserver" class="btn btn-small" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=zed"><i class="fa fa-plus"></i> New Z39.50 server</a>
-        <a id="newserver" class="btn btn-small" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=sru"><i class="fa fa-plus"></i> New SRU server</a>
+        <a id="newserver" class="btn btn-default btn-sm" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=zed"><i class="fa fa-plus"></i> New Z39.50 server</a>
+        <a id="newserver" class="btn btn-default btn-sm" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=sru"><i class="fa fa-plus"></i> New SRU server</a>
     </div>
     <h3>Z39.50/SRU servers administration</h3>
     [% IF id %]
         You searched for record [% id %]
     [% ELSIF searchfield %]
-        You searched for [% searchfield %]
+        You searched for [% searchfield |html %]
     [% END %]
     <table id="serverst">
         <thead><tr><th>Target</th><th>Hostname/Port</th><th>Database</th><th>Userid</th><th>Password</th><th>Preselected</th><th>Rank</th><th>Syntax</th><th>Encoding</th><th>Timeout</th><th>Record type</th><th></th>
@@ -243,7 +175,7 @@
             </td>
             <td>
                 <div class="dropdown">
-                    <a class="btn btn-mini dropdown-toggle" id="reportactions[% savedreport.id %]" role="button" data-toggle="dropdown" href="#">
+                    <a class="btn btn-default btn-xs dropdown-toggle" id="reportactions[% savedreport.id %]" role="button" data-toggle="dropdown" href="#">
                         Actions <b class="caret"></b>
                     </a>
                     <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="reportactions[% savedreport.id %]">
@@ -265,4 +197,78 @@
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    [% IF op == 'list' %]
+        [% INCLUDE 'datatables.inc' %]
+    [% END %]
+
+    <script type="text/javascript">
+        [% IF ( add_form ) %]
+            $(document).ready(function(){
+                // Update selects for syntax, encoding and recordtype
+                [% IF server %]
+                    $("#syntax").val('[% server.syntax %]');
+                    $("#encoding").val('[% server.encoding %]');
+                    $("#recordtype").val('[% server.recordtype %]');
+                [% END %]
+                // Disable recordtype (and default to bib) for non-Z3950 servers until auth is supported
+                [% UNLESS (server.servertype||type) == 'zed' %]
+                    $("#recordtype").prop('disabled',true);
+                [% END %]
+                $( "#serverentry" ).validate({
+                    rules: {
+                        servername: { required: true },
+                        host: { required: true },
+                        port: {
+                            required: true,
+                            number: true
+                        },
+                        db: { required: true },
+                        rank: { number: true },
+                        timeout: { number: true }
+                    }
+                });
+                $("#serverentry").submit(function( event ) {
+                    // first test if show_sru_fields exists
+                    if( $('#show_sru_fields').length && $('#show_sru_fields').val()=='' && !confirm( _("No SRU search field mappings have been defined. This means that all field searches will go through the whole record. Continue?"))) {
+                        return false;
+                    }
+                    // copy show_sru_fields to hidden counterpart
+                    $('#sru_fields').val( $('#show_sru_fields').val() );
+                    // enable recordtype to include field in post
+                    $('#recordtype').prop('disabled',false);
+                });
+                $("#servername").on("blur",function(){
+                    toUC(this);
+                });
+                $("#modify_sru_fields").on("click",function(){
+                    ModMapping();
+                });
+            });
+            function ModMapping () {
+                var map= $('#show_sru_fields').val();
+                window.open('/cgi-bin/koha/admin/sru_modmapping.pl?mapping='+map,'popup','width=800,height=400,resizable=yes,toolbar=false,scrollbars=yes,top');
+            }
+        [% ELSE %]
+            $(document).ready(function() {
+                $("#serverst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "aoColumnDefs": [
+                        { "aTargets": [2,3,4,7,8,9,10,11], "bSortable": false, "bSearchable": false },
+                    ],
+                    "sPaginationType": "four_button"
+                }));
+                $(".delete").on("click",function(e){
+                    var servername = $(this).data("servername");
+                    if( confirm( _("Are you sure you want to delete server %s?").format(servername) ) ) {
+                        return true;
+                    } else {
+                        e.preventDefault();
+                    }
+                });
+            });
+        [% END %]
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

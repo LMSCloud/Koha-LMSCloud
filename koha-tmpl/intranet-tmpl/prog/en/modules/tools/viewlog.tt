@@ -1,5 +1,8 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE AuthorisedValues %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>
 	Koha &rsaquo; Tools &rsaquo;
@@ -10,8 +13,8 @@
 	[% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
 </head>
+
 <body id="tools_viewlog" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -23,6 +26,7 @@
 [%        CASE 'MEMBERS'      %]Patrons
 [%        CASE 'ACQUISITIONS' %]Acquisitions
 [%        CASE 'SERIAL'       %]Serials
+[%        CASE 'HOLDS'        %]Holds
 [%        CASE 'CIRCULATION'  %]Circulation
 [%        CASE 'LETTER'       %]Letter
 [%        CASE 'FINES'        %]Fines
@@ -42,6 +46,9 @@
 [%        CASE 'ISSUE'  %]Checkout
 [%        CASE 'RETURN' %]Return
 [%        CASE 'CREATE' %]Create
+[%        CASE 'CANCEL' %]Cancel
+[%        CASE 'RESUME' %]Resume
+[%        CASE 'SUSPEND' %]Suspend
 [%        CASE 'RENEW'  %]Renew
 [%        CASE 'CHANGE PASS' %]Change password
 [%        CASE 'ADDCIRCMESSAGE' %]Add circulation message
@@ -49,6 +56,16 @@
 [%        CASE 'Run'    %]Run
 [%        CASE 'AUTHENTICATION'  %]Anmeldung
 [%        CASE %][% action %]
+[%    END %]
+[% END %]
+
+[% BLOCK translate_log_interface %]
+[%    SWITCH log_interface %]
+[%        CASE 'INTRANET'    %]Intranet
+[%        CASE 'OPAC'        %]OPAC
+[%        CASE 'SIP'         %]SIP
+[%        CASE 'COMMANDLINE' %]Command-line
+[%        CASE %][% log_interface %]
 [%    END %]
 [% END %]
 
@@ -86,7 +103,7 @@
                                     [% ELSE %]
                                         <option value="">All</option>
                                     [% END %]
-                                    [% FOREACH modx IN [ 'CATALOGUING' 'AUTHORITIES' 'MEMBERS' 'ACQUISITIONS' 'SERIAL' 'CIRCULATION' 'LETTER' 'FINES' 'SYSTEMPREFERENCE' 'CRONJOBS' 'REPORTS' 'DIVIBIB' ] %]
+                                    [% FOREACH modx IN [ 'CATALOGUING' 'AUTHORITIES' 'MEMBERS' 'ACQUISITIONS' 'SERIAL' 'HOLDS' 'CIRCULATION' 'LETTER' 'FINES' 'SYSTEMPREFERENCE' 'CRONJOBS' 'REPORTS' 'DIVIBIB' ] %]
                                         [% IF modules.grep(modx).size %]
                                             <option value="[% modx %]" selected="selected">[% PROCESS translate_log_module module=modx %]</option>
                                         [% ELSE %]
@@ -104,7 +121,7 @@
                                         <option value="">All</option>
                                     [% END %]
 
-                                    [% FOREACH actx IN [ 'ADD' 'DELETE' 'MODIFY' 'ISSUE' 'RETURN' 'RENEW' 'CREATE' 'ADDCIRCMESSAGE' 'DELCIRCMESSAGE' 'CHANGE PASS' 'Run' 'AUTHENTICATION' ] %]
+                                    [% FOREACH actx IN [ 'ADD' 'DELETE' 'MODIFY' 'ISSUE' 'RETURN' 'RENEW' 'CREATE' 'CANCEL' 'SUSPEND' 'RESUME' 'ADDCIRCMESSAGE' 'DELCIRCMESSAGE' 'CHANGE PASS' 'Run' 'AUTHENTICATION'] %]
                                         [% IF actions.grep(actx).size %]
                                             <option value="[% actx %]" selected="selected">[% PROCESS translate_log_action action=actx %]</option>
                                         [% ELSE %]
@@ -121,6 +138,24 @@
 								<label for="info">Info:</label>
                                 <input type="text" id="info" name="info" value="[% info | html %]" />
 							</li>
+                            <li>
+                                <label for="interfaces">Interface:</label>
+                                <select name="interfaces" id="interfaces" multiple="multiple">
+                                    [% UNLESS interfaces %]
+                                        <option value="" selected="selected">All</option>
+                                    [% ELSE %]
+                                        <option value="">All</option>
+                                    [% END %]
+
+                                    [% FOREACH interf IN [ 'INTRANET' 'OPAC' 'SIP' 'COMMANDLINE' ] %]
+                                        [% IF interfaces.grep(interf).size %]
+                                            <option value="[% interf %]" selected="selected">[% PROCESS translate_log_interface log_interface=interf %]</option>
+                                        [% ELSE %]
+                                            <option value="[% interf %]">[% PROCESS translate_log_interface log_interface=interf %]</option>
+                                        [% END %]
+                                    [% END %]
+                                </select>
+                            </li>
 							<li>
                                 <label for="from"> Display from: </label> <input type="text" size="10" id="from" name="from" value="[% datefrom | html %]" class="datepickerfrom" />
 				<div class="hint">[% INCLUDE 'date-format.inc' %]</div>
@@ -169,6 +204,7 @@
                                     <th>Action</th>
                                     <th>Object</th>
                                     <th>Info</th>
+                                    <th>Interface</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -176,13 +212,21 @@
                                 <tr>
                                     <td>[% loopro.timestamp %]</td>
                                     <td>
-                                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% loopro.user %]" title="display detail for this librarian."> [% IF ( loopro.userfirstname ) || ( loopro.usersurname ) %][% loopro.userfirstname %] [% loopro.usersurname %] ([% loopro.user %]) [% ELSE %][% loopro.user %][% END %]</a>
+                                        [% IF loopro.librarian %]
+                                            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% loopro.librarian.borrowernumber %]" title="display detail for this librarian."> [% IF ( loopro.librarian.firstname ) || ( loopro.librarian.surname ) %][% loopro.librarian.firstname %] [% loopro.librarian.surname %] ([% loopro.librarian.borrowernumber %]) [% ELSE %][% loopro.librarian.borrowernumber %][% END %]</a>
+                                        [% ELSE %]
+                                            [% loopro.user %]
+                                        [% END %]
                                     </td>
                                     <td>[% PROCESS translate_log_module module=loopro.module %]</td>
                                     <td>[% PROCESS translate_log_action action=loopro.action %]</td>
                                     <td>
                                         [% IF ( loopro.module == 'MEMBERS' ) || ( loopro.module == 'CIRCULATION' ) || ( loopro.module == 'FINES' ) %]
-                                             <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% loopro.object %]" title="Display member details."> [% IF ( loopro.object ) %][% IF ( loopro.borrowerfirstname ) || ( loopro.borrowersurname ) %][% loopro.borrowerfirstname %] [% loopro.borrowersurname %] ([% loopro.object %]) [% ELSE %]Member [% loopro.object %][% END %][% END %] </a>
+                                            [% IF loopro.patron %]
+                                                <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% loopro.object %]" title="Display member details."> [% IF ( loopro.object ) %][% IF ( loopro.patron.firstname ) || ( loopro.patron.surname ) %][% loopro.patron.firstname %] [% loopro.patron.surname %] ([% loopro.object %]) [% ELSE %]Member [% loopro.object %][% END %][% END %] </a>
+                                            [% ELSE %]
+                                                [% loopro.object %]
+                                            [% END %]
                                         [% ELSE %]
                                                 [% IF ( loopro.module == 'CATALOGUING' ) %]
                                                     [% IF ( loopro.info.substr(0, 4) == 'item' ) %]
@@ -212,6 +256,7 @@
                                             [% loopro.info |html %]
                                         [% END %]
                                     </td>
+                                    <td>[% PROCESS translate_log_interface log_interface=loopro.interface %]</td>
                                 </tr>
                             [% END %]
                             </tbody>
@@ -232,7 +277,7 @@
 			</div>
 		</div>
 		<div class="yui-b noprint">
-			[% IF ( menu ) %]
+        [% IF ( circulation ) %]
 				[% INCLUDE 'circ-menu.inc' %]
 			[% ELSE %]
 				[% IF ( CATALOGUING ) %]
@@ -243,4 +288,10 @@
 			[% END %]
 		</div>
 	</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("js/tools-menu.js") %]
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -25,12 +25,14 @@ use CGI qw ( -utf8 );
 use List::MoreUtils qw/uniq/;
 
 use C4::Auth;
-use C4::Branch;
 use C4::Context;
 use C4::Output;
 use C4::Koha;
-use C4::Members qw/GetBorrowercategoryList/;
 use C4::Members::AttributeTypes;
+
+use Koha::AuthorisedValues;
+use Koha::Libraries;
+use Koha::Patron::Categories;
 
 my $script_name = "/cgi-bin/koha/admin/patron-attr-types.pl";
 
@@ -38,14 +40,15 @@ our $input = new CGI;
 my $op = $input->param('op') || '';
 
 
-our ($template, $loggedinuser, $cookie)
-    = get_template_and_user({template_name => "admin/patron-attr-types.tt",
-                 query => $input,
-                 type => "intranet",
-                 authnotrequired => 0,
-                 flagsrequired => {parameters => 'parameters_remaining_permissions'},
-                 debug => 1,
-                 });
+my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+    {   template_name   => "admin/patron-attr-types.tt",
+        query           => $input,
+        type            => "intranet",
+        authnotrequired => 0,
+        flagsrequired => { parameters => 'parameters_remaining_permissions' }
+    }
+);
+
 
 $template->param(script_name => $script_name);
 
@@ -83,22 +86,22 @@ exit 0;
 sub add_attribute_type_form {
     my $template = shift;
 
-    my $branches = GetBranchesWithoutMobileStations;
+    my $branches = Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => ['branchname'] } )->unblessed;
     my @branches_loop;
-    foreach my $branch (sort keys %$branches) {
+    foreach my $branch (@$branches) {
         push @branches_loop, {
-            branchcode => $$branches{$branch}{branchcode},
-            branchname => $$branches{$branch}{branchname},
+            branchcode => $branch->{branchcode},
+            branchname => $branch->{branchname},
         };
     }
 
+    my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
     $template->param(
         attribute_type_form => 1,
         confirm_op => 'add_attribute_type_confirmed',
-        categories => GetBorrowercategoryList,
+        categories => $patron_categories,
         branches_loop => \@branches_loop,
     );
-    authorised_value_category_list($template);
     $template->param(classes_val_loop => GetAuthorisedValues( 'PA_CLASS'));
 }
 
@@ -116,6 +119,9 @@ sub error_add_attribute_type_form {
     if ($input->param('opac_display')) {
         $template->param(opac_display_checked => 1);
     }
+    if ($input->param('opac_editable')) {
+        $template->param(opac_editable_checked => 1);
+    }
     if ($input->param('staff_searchable')) {
         $template->param(staff_searchable_checked => 1);
     }
@@ -129,8 +135,8 @@ sub error_add_attribute_type_form {
     $template->param(
         attribute_type_form => 1,
         confirm_op => 'add_attribute_type_confirmed',
+        authorised_value_category => scalar $input->param('authorised_value_category'),
     );
-    authorised_value_category_list($template, $input->param('authorised_value_category'));
 }
 
 sub add_update_attribute_type {
@@ -160,6 +166,8 @@ sub add_update_attribute_type {
 
     my $opac_display = $input->param('opac_display');
     $attr_type->opac_display($opac_display);
+    my $opac_editable = $input->param('opac_editable');
+    $attr_type->opac_editable($opac_editable);
     my $staff_searchable = $input->param('staff_searchable');
     $attr_type->staff_searchable($staff_searchable);
     my $authorised_value_category = $input->param('authorised_value_category');
@@ -240,24 +248,26 @@ sub edit_attribute_type_form {
     if ($attr_type->opac_display()) {
         $template->param(opac_display_checked => 1);
     }
+    if ($attr_type->opac_editable()) {
+        $template->param(opac_editable_checked => 1);
+    }
     if ($attr_type->staff_searchable()) {
         $template->param(staff_searchable_checked => 1);
     }
     if ($attr_type->display_checkout()) {
         $template->param(display_checkout_checked => 'checked="checked"');
     }
-    authorised_value_category_list($template, $attr_type->authorised_value_category());
+    $template->param( authorised_value_category => $attr_type->authorised_value_category() );
     $template->param(classes_val_loop => GetAuthorisedValues( 'PA_CLASS' ));
 
-
-    my $branches = GetBranchesWithoutMobileStations;
+    my $branches = Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => ['branchname'] } )->unblessed;
     my @branches_loop;
     my $selected_branches = $attr_type->branches;
-    foreach my $branch (sort keys %$branches) {
-        my $selected = ( grep {$$_{branchcode} eq $branch} @$selected_branches ) ? 1 : 0;
+    foreach my $branch (@$branches) {
+        my $selected = ( grep {$_->{branchcode} eq $branch->{branchcode}} @$selected_branches ) ? 1 : 0;
         push @branches_loop, {
-            branchcode => $branches->{$branch}{branchcode},
-            branchname => $branches->{$branch}{branchname},
+            branchcode => $branch->{branchcode},
+            branchname => $branch->{branchname},
             selected => $selected,
         };
     }
@@ -269,11 +279,12 @@ sub edit_attribute_type_form {
         category_description => $attr_type->category_description,
     );
 
+    my $patron_categories = Koha::Patron::Categories->search({}, {order_by => ['description']});
     $template->param(
         attribute_type_form => 1,
         edit_attribute_type => 1,
         confirm_op => 'edit_attribute_type_confirmed',
-        categories => GetBorrowercategoryList,
+        categories => $patron_categories,
     );
 
 }
@@ -295,7 +306,8 @@ sub patron_attribute_type_list {
             $attr->{branches} = $attr_type->branches;
             push @items, $attr;
         }
-        my $lib = GetAuthorisedValueByCode( 'PA_CLASS', $class ) || $class;
+        my $av = Koha::AuthorisedValues->search({ category => 'PA_CLASS', authorised_value => $class });
+        my $lib = $av->count ? $av->next->lib : $class;
         push @attributes_loop, {
             class => $class,
             items => \@items,
@@ -305,18 +317,4 @@ sub patron_attribute_type_list {
     }
     $template->param(available_attribute_types => \@attributes_loop);
     $template->param(display_list => 1);
-}
-
-sub authorised_value_category_list {
-    my $template = shift;
-    my $selected = @_ ? shift : '';
-
-    my $categories = GetAuthorisedValueCategories();
-    my @list = ();
-    foreach my $category (@$categories) {
-        my $entry = { category => $category };
-        $entry->{selected} = 1 if $category eq $selected;
-        push @list, $entry;
-    }
-    $template->param(authorised_value_categories => \@list);
 }

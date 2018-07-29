@@ -27,7 +27,6 @@ use DateTime::Format::MySQL;
 use Exporter;
 
 use C4::Items qw(AddItem);
-use C4::Branch qw(GetBranches);
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::External::EKZ::lib::EkzWebServices;
 use Koha::AcquisitionImport::AcquisitionImports;

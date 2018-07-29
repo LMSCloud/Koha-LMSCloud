@@ -1,16 +1,22 @@
+[% USE Asset %]
+[% USE Branches %]
+[% USE KohaDates %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Patrons &rsaquo; Pending discharge requests</title>
 [% INCLUDE 'doc-head-close.inc' %]
+[% Asset.css("css/datatables.css") %]
 </head>
 <body id="pat_discharges" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
+[% PROCESS 'patron-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a> &rsaquo; Pending discharge requests</div>
 
-<div id="doc2" class="yui-t7">
-<div id="bd">
-  <div id="yui-main">
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+
     [% IF pending_discharges %]
       <h2>Pending discharge requests</h2>
       <div id="pending_updates">
@@ -18,14 +24,18 @@
           <thead>
             <tr>
               <th>Patron</th>
+              <th>Library</th>
+              <th class="title-string">Date requested</th>
               <th>Allow</th>
             </tr>
           </thead>
           <tbody>
-            [% FOR d IN pending_discharges %]
+            [% FOREACH d IN pending_discharges %]
               <tr>
                 <td><a href="/cgi-bin/koha/members/discharge.pl?borrowernumber=[% d.borrower.borrowernumber %]">[% d.borrower.surname %], [% d.borrower.firstname %]</a></td>
-                <td><a href="/cgi-bin/koha/members/discharges.pl?op=allow&borrowernumber=[% d.borrower.borrowernumber %]">Allow</a></td>
+                <td>[% d.borrower.branchcode.branchname %]</td>
+                <td><span title="[% d.needed %]">[% d.needed | $KohaDates %]</span></td>
+                <td><a class="btn btn-xs btn-default" href="/cgi-bin/koha/members/discharges.pl?op=allow&borrowernumber=[% d.borrower.borrowernumber %]"><i class="fa fa-check"></i> Allow</a></td>
               </tr>
             [% END %]
           </tbody>
@@ -36,6 +46,28 @@
         <p>There are no pending discharge requests.</p>
       </div>
     [% END %]
-  </div>
+
+    </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/members-menu.js") %]
+
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        $(document).ready(function() {
+            $('#pending_updates table').DataTable($.extend(true, {}, dataTablesDefaults, {
+                paging: false,
+                info: true,
+                searching: true,
+                order: [[2, "asc"]],
+                columnDefs: [
+                    { targets: -1, orderable: false },
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                ],
+            }));
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

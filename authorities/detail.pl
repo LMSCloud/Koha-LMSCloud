@@ -51,6 +51,7 @@ use Koha::Authorities;
 
 use Koha::Authority::Types;
 use Koha::Token;
+use Koha::Z3950Servers;
 
 our ($tagslib);
 
@@ -178,7 +179,8 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
 
 my $authid = $query->param('authid');
 
-my $authtypecode = Koha::Authorities->find($authid)->authtypecode;
+my $authobj = Koha::Authorities->find($authid);
+my $authtypecode = $authobj ? $authobj->authtypecode : q{};
 $tagslib = &GetTagsLabels(1,$authtypecode);
 
 # Build list of authtypes for showing them
@@ -200,7 +202,7 @@ if (C4::Context->preference("AuthDisplayHierarchy")){
     $template->{VARS}->{'loophierarchies'} = GenerateHierarchy($authid);
 }
 
-my $count = CountUsage($authid);
+my $count = $authobj ? $authobj->get_usage_count : 0;
 
 # find the marc field/subfield used in biblio by this authority
 my $sth = $dbh->prepare("select distinct tagfield from marc_subfield_structure where authtypecode=?");
@@ -209,18 +211,27 @@ my $biblio_fields;
 while (my ($tagfield) = $sth->fetchrow) {
 	$biblio_fields.= $tagfield."9,";
 }
-chop $biblio_fields;
+chop $biblio_fields if $biblio_fields;
 
 build_tabs ($template, $record, $dbh,"",$query);
 
+my $servers = Koha::Z3950Servers->search(
+    {
+        recordtype => 'authority',
+        servertype => ['zed', 'sru'],
+    },
+);
+
+my $type = $authority_types->find($authtypecode);
 $template->param(
     authid          => $authid,
     count           => $count,
     biblio_fields   => $biblio_fields,
-    authtypetext    => $authority_types->find($authtypecode)->authtypetext,
+    authtypetext    => $type ? $type->authtypetext: "",
     authtypecode    => $authtypecode,
     authority_types => $authority_types,
     csrf_token      => Koha::Token->new->generate_csrf({ session_id => scalar $query->cookie('CGISESSID') }),
+    servers => $servers,
 );
 
 $template->{VARS}->{marcflavour} = C4::Context->preference("marcflavour");

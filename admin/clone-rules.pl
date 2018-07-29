@@ -25,15 +25,13 @@
 #
 # The script can be called with one of the parameters, both or none
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Koha;
 use C4::Debug;
-use C4::Branch; # GetBranches
 
 my $input = new CGI;
 my $dbh = C4::Context->dbh;
@@ -49,14 +47,9 @@ my ($template, $loggedinuser, $cookie)
 
 my $frombranch = $input->param("frombranch");
 my $tobranch   = $input->param("tobranch");
-my $branchloop = GetBranchesLoop;
 
 $template->param(frombranch     => $frombranch)                if ($frombranch);
-$template->param(frombranchname => GetBranchName($frombranch)) if ($frombranch);
 $template->param(tobranch       => $tobranch)                  if ($tobranch);
-$template->param(tobranchname   => GetBranchName($tobranch))   if ($tobranch);
-
-$template->param(branchloop => $branchloop);
 
 if ($frombranch && $tobranch) {
 

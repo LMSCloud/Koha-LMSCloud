@@ -1,19 +1,11 @@
+[% USE Asset %]
 [% USE Koha %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Catalog &rsaquo; Item details for [% title | html %] [% FOREACH subtitl IN subtitle %] [% subtitl.subfield | html %][% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style type="text/css">h3{padding-top: 1em; border-top: 2px solid #CCCCCC;}#exportLabelexportModal_{border-top: 0px;}</style>
-[% INCLUDE 'browser-strings.inc' %]
-<!--[if lt IE 9]>
-<script type="text/javascript" src="[% interface %]/lib/shims/json2.min.js"></script>
-<![endif]-->
-<script type="text/javascript" src="[% interface %]/js/browser.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-    var browser = KOHA.browser('[% searchid %]', parseInt('[% biblionumber %]', 10));
-    browser.show();
-//]]>
-</script>
 </head>
 <body id="catalog_moredetail" class="catalog">
 [% USE KohaDates %]
@@ -62,7 +54,7 @@
          [% END %]
          [% END %][% END %]</h4>
             <ol class="bibliodetails">
-            <li><span class="label">Home library:</span> [% ITEM_DAT.homebranchname %]&nbsp;</li>
+            <li><span class="label">Home library:</span> [% Branches.GetName( ITEM_DAT.homebranch ) %]&nbsp;</li>
 	    [% IF ( item_level_itypes ) %]
             <li><span class="label">Item type:</span> [% ITEM_DAT.itype %]&nbsp;</li>
 	    [% END %]
@@ -80,14 +72,10 @@
             )[% END %]</h4>
 
             <ol class="bibliodetails">
-            <li><span class="label">Current location:</span> [% ITEM_DAT.holdingbranchname %]&nbsp;</li>
+            <li><span class="label">Current location:</span> [% Branches.GetName( ITEM_DAT.holdingbranch ) %]&nbsp;</li>
             <li><span class="label">Checkout status:</span>
             [% IF ( ITEM_DAT.issue ) %]Checked out to
-                [% IF ( hidepatronname ) %]
-                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% ITEM_DAT.borrowernumber %]">[% ITEM_DAT.cardnumber %]</a>,
-                    [% ELSE %]
-                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% ITEM_DAT.borrowernumber %]">[% ITEM_DAT.borrowerfirstname %] [% ITEM_DAT.borrowersurname %]</a>,
-                [% END %]
+                [% INCLUDE 'patron-title.inc' patron => ITEM_DAT.patron hide_patron_infos_if_needed=1 %]
                 [% IF ( ITEM_DAT.lastreneweddate ) %]
                     Last renewed [% ITEM_DAT.lastreneweddate | $KohaDates %],
                 [% END %]
@@ -161,6 +149,9 @@
                     &nbsp;
                 [% END %]
             </li>
+            [% IF ITEM_DAT.damaged != "" && ITEM_DAT.damaged_on %]
+                <li><span class="label">Damaged on:</span>[% ITEM_DAT.damaged_on | $KohaDates %] &nbsp;</li>
+            [% END %]
             [% END %]
 
             [% IF itemwithdrawnloop %]
@@ -229,7 +220,7 @@
                 </li>
             [% END %]
 
-                <li><span class="label">Total checkouts:</span>[% IF ( ITEM_DAT.issues ) %][% ITEM_DAT.issues %][% ELSE %]0[% END %]  (<a href="/cgi-bin/koha/circ/bookcount.pl?&amp;biblionumber=[% ITEM_DAT.biblionumber %]&amp;bi=[% ITEM_DAT.biblioitemnumber %]&amp;itm=[% ITEM_DAT.itemnumber %]">View item's checkout history</a>)</li>
+                <li><span class="label">Total checkouts:</span>[% IF ( ITEM_DAT.issues ) %][% ITEM_DAT.issues %][% ELSE %]0[% END %]  (<a href="/cgi-bin/koha/circ/bookcount.pl?&amp;biblionumber=[% ITEM_DAT.biblionumber %]&amp;itm=[% ITEM_DAT.itemnumber %]">View item's checkout history</a>)</li>
 
                 <li><span class="label">Last seen:</span>[% IF ( ITEM_DAT.datelastseen ) %][% ITEM_DAT.datelastseen | $KohaDates %] [%END %]&nbsp;</li>
                 <li><span class="label">Last borrowed:</span>[% IF (ITEM_DAT.datelastborrowed ) %][% ITEM_DAT.datelastborrowed | $KohaDates %][% END %]&nbsp;</li>
@@ -281,4 +272,14 @@
 [% INCLUDE 'biblio-view-menu.inc' %]
 </div>
 </div>
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'catalog-strings.inc' %]
+    [% Asset.js("js/catalog.js") %]
+    [% INCLUDE 'browser-strings.inc' %]
+    [% Asset.js("js/browser.js") %]
+    <script type="text/javascript">
+        var browser = KOHA.browser('[% searchid %]', parseInt('[% biblionumber %]', 10));
+        browser.show();
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

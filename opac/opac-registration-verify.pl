@@ -23,6 +23,7 @@ use C4::Auth;
 use C4::Output;
 use C4::Members;
 use C4::Form::MessagingPreferences;
+use Koha::Patrons;
 use Koha::Patron::Modifications;
 
 my $cgi = new CGI;
@@ -34,10 +35,18 @@ unless ( C4::Context->preference('PatronSelfRegistration') ) {
 }
 
 my $token = $cgi->param('token');
-my $m = Koha::Patron::Modifications->new( verification_token => $token );
+my $m = Koha::Patron::Modifications->find( { verification_token => $token } );
 
 my ( $template, $borrowernumber, $cookie );
-if ( $m->Verify() ) {
+
+if (
+    $m # The token exists and the email is unique if requested
+    and not(
+            C4::Context->preference('PatronSelfRegistrationEmailMustBeUnique')
+        and Koha::Patrons->search( { email => $m->email } )->count
+    )
+  )
+{
     ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {
             template_name   => "opac-registration-confirmation.tt",
@@ -50,18 +59,18 @@ if ( $m->Verify() ) {
     $template->param(
         OpacPasswordChange => C4::Context->preference('OpacPasswordChange') );
 
-    my $borrower = Koha::Patron::Modifications->GetModifications({ verification_token => $token });
+    my $borrower = $m->unblessed();
 
     my $password;
     ( $borrowernumber, $password ) = AddMember_Opac(%$borrower);
 
     if ($borrowernumber) {
-        Koha::Patron::Modifications->DelModifications({ verification_token => $token });
+        $m->delete();
         C4::Form::MessagingPreferences::handle_form_action($cgi, { borrowernumber => $borrowernumber }, $template, 1, C4::Context->preference('PatronSelfRegistrationDefaultCategory') ) if C4::Context->preference('EnhancedMessagingPreferences');
 
         $template->param( password_cleartext => $password );
-        $template->param(
-            borrower => GetMember( borrowernumber => $borrowernumber ) );
+        my $patron = Koha::Patrons->find( $borrowernumber );
+        $template->param( borrower => $patron->unblessed );
         $template->param(
             PatronSelfRegistrationAdditionalInstructions =>
               C4::Context->preference(

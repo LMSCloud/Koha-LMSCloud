@@ -24,8 +24,6 @@ use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output;
 use C4::Auth qw/:DEFAULT get_session/;
-use C4::Koha;
-use C4::Branch;
 use Koha::DateUtils;
 use DateTime;
 use C4::CashRegisterManagement;
@@ -59,17 +57,6 @@ my $status = '';
 my $debug = '';
 
 
-#########################################################
-#
-# Read branches
-#
-########################################
-my $branches = GetBranches();
-my @branchloop;
-for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-    push @branchloop, $branches->{$thisbranch};
-}
-
 ##########################################################
 #
 # Read fines overview parameter
@@ -100,7 +87,6 @@ $template->param( reportbranch => $reportbranch );
 
 
 $template->param(
-    branchloop => \@branchloop,
     sessionbranch => $branch,
     journalfrom => $journalfrom,
     journalto => $journalto,
@@ -108,7 +94,6 @@ $template->param(
     debug => $debug,
     currency_format => $cash_management->getCurrencyFormatterData(),
     printview => $printview,
-    branchname => GetBranchName($branch),
     datetimenow => output_pref({dt => DateTime->now, dateonly => 0}),
 );
 

@@ -32,10 +32,12 @@ BEGIN {
 }
 
 use Getopt::Long;
-
+use Pod::Usage;
 use C4::Biblio;
 use C4::Items;
 use Koha::Database;
+use Koha::Biblios;
+use Koha::Biblio::Metadatas;
 
 my $delete_items;
 my $confirm;
@@ -51,7 +53,14 @@ GetOptions(
     'h|help'            => \$help,
 );
 
-if ( $help || !$confirm ) {
+pod2usage(q|--test and --confirm cannot be specified together|) if $test and $confirm;
+
+unless ( $confirm or $test ) {
+    warn "Running in test mode as --confirm is not passed\n";
+    $test = 1;
+}
+
+if ( $help ) {
     say qq{
 delete_records_via_leader.pl - Attempt to delete any MARC records where the leader character 5 equals 'd'
 usage: delete_records_via_leader.pl --confirm --verbose [--test]
@@ -68,26 +77,28 @@ This script has the following parameters :
     exit();
 }
 
-my $schema = Koha::Database->new()->schema();
-my @biblioitems =
-  $schema->resultset('Biblioitem')->search( { marc => { LIKE => '_____d%' } } );
+my @metadatas =    # Should be replaced by a call to C4::Search on zebra index
+                   # Record-status when bug 15537 will be pushed
+  Koha::Biblio::Metadatas->search( { format => 'marcxml', marcflavour => C4::Context->preference('marcflavour'), metadata => { LIKE => '%<leader>_____d%' } } );
 
-my $total_records_count   = @biblioitems;
+my $total_records_count   = @metadatas;
 my $deleted_records_count = 0;
 my $total_items_count     = 0;
 my $deleted_items_count   = 0;
 
-foreach my $biblioitem (@biblioitems) {
-    my $biblionumber = $biblioitem->get_column('biblionumber');
+foreach my $m (@metadatas) {
+    my $biblionumber = $m->get_column('biblionumber');
 
     say "RECORD: $biblionumber" if $verbose;
 
     if ($delete_items) {
         my $deleted_count = 0;
-        foreach my $item ( $biblioitem->items() ) {
+        my $biblio = Koha::Biblios->find( $biblionumber );
+        my @items = $biblio ? $biblio->items : ();
+        foreach my $item ( @items ) {
             my $itemnumber = $item->itemnumber();
 
-            my $error = $test ? "Test mode enabled" : DelItemCheck( undef, $biblionumber, $itemnumber );
+            my $error = $test ? "Test mode enabled" : DelItemCheck( $biblionumber, $itemnumber );
             $error = undef if $error eq '1';
 
             if ($error) {

@@ -1,49 +1,27 @@
+[% USE Asset %]
 [% USE Branches %]
 [% USE KohaDates %]
 [% USE Price %]
-[% IF ( export_remove_fields OR export_with_csv_profile ) %]
-   [% SET exports_enabled = 1 %]
-[% END %]
 [% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% SET destination = "circ" %]
 <title>Koha &rsaquo; Circulation
-[% IF borrowernumber and borrower %]
-  &rsaquo; Batch check out &rsaquo; Issuing items to [% INCLUDE 'patron-title.inc' invert_name = 1 %]
+[% IF patron %]
+  &rsaquo; Batch check out &rsaquo; Issuing items to [% INCLUDE 'patron-title.inc' invert_name = 1 no_html = 1 %]
 [% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function() {
-        if($('#barcodelist').length) {
-            $('#barcodelist').focus();
-        } else if ($('#checkoutrenew').length) {
-            $('#checkoutrenew').focus();
-        }
-        $("#checkout_infos").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "sDom": 't',
-            "aaSorting": [],
-            "aoColumnDefs": [
-                { "bSortable": false, "bSearchable": false, 'aTargets': [ 'NoSort' ] },
-                { "sType": "anti-the", "aTargets" : [ "anti-the" ] }
-            ],
-            "bPaginate": false
-        }));
- });
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="circ_circulation_batch_checkouts" class="circ">
 
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a> &rsaquo;
-    [% IF borrower and borrowernumber %]
+    [% IF patron %]
         <a href="/cgi-bin/koha/circ/circulation.pl">Batch check out</a> &rsaquo; [% INCLUDE 'patron-title.inc' %]
     [% ELSE %]
         Batch check out
@@ -57,19 +35,19 @@ $(document).ready(function() {
 
 <div class="yui-g">
 
-[% IF borrowernumber and borrower %]
+[% IF patron %]
 [% INCLUDE 'members-toolbar.inc' %]
 [% END %]
 
-[% IF borrower and not batch_allowed %]
+[% IF patron and not batch_allowed %]
   <div class="dialog alert">You are not allowed to use batch checkout for this patron</div>
-[% ELSIF borrower and noissues and not checkout_infos %]
+[% ELSIF patron and noissues and not checkout_infos %]
   <div class="dialog alert">
     Cannot check out!
-    [% IF charges_is_blocker %]
+    [% IF charges %]
       <span class="circ-hlt">Checkouts are BLOCKED because fine balance is OVER THE LIMIT.</span>
     [% END %]
-    [% IF charges_guarantees_is_blocker %]
+    [% IF charges_guarantees %]
         <li>
             <span class="circ-hlt">Fees &amp; Charges:</span> Patron's guarantees collectively owe [% chargesamount_guarantees | $Price %].
         </li>
@@ -78,7 +56,7 @@ $(document).ready(function() {
         </li>
     [% END %]
   </div>
-[% ELSIF borrower and not checkout_infos %]
+[% ELSIF patron and not checkout_infos %]
   <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/circ/circulation.pl">
     <fieldset id="circ_circulation_issue">
       <label for="barcode">Checking out to [% INCLUDE 'patron-title.inc' %]</label>
@@ -99,7 +77,7 @@ $(document).ready(function() {
       </fieldset>
       <input type="hidden" name="op" value="show" />
       <fieldset class="action">
-        <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrowernumber %]" />
+        <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
         <input type="hidden" name="branch" value="[% branch %]" />
         <input type="hidden" name="batch" value="1" />
         <input type="submit" value="Check out" class="button" />
@@ -107,12 +85,12 @@ $(document).ready(function() {
     </fieldset>
   </form>
 
-[% ELSIF borrower %]
+[% ELSIF patron %]
   [% IF confirmation_needed && CAN_user_circulate_force_checkout %]
-    <h3>Batch checkout confirmation [% IF borrowernumber %] for [% INCLUDE 'patron-title.inc' invert_name = 1 %] [% END %]</h3>
+    <h3>Batch checkout confirmation [% IF patron %] for [% INCLUDE 'patron-title.inc' invert_name = 1 %] [% END %]</h3>
     <form method="post" action="/cgi-bin/koha/circ/circulation.pl" id="mainform" name="mainform" autocomplete="off">
   [% ELSE %]
-    <h3>Batch checkout information [% IF borrowernumber %] for [% INCLUDE 'patron-title.inc' invert_name = 1 %] [% END %]</h3>
+    <h3>Batch checkout information [% IF patron.borrowernumber %] for [% INCLUDE 'patron-title.inc' invert_name = 1 %] |[% batch %]|[% END %]</h3>
   [% END %]
     <table id="checkout_infos">
       <thead>
@@ -137,7 +115,7 @@ $(document).ready(function() {
             [% END %]
             <td>[% checkout_info.barcode %]</td>
             <td>
-              <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% checkout_info.item.biblionumber %]&amp;type=intra"><strong>[% checkout_info.item.title |html %][% FOREACH subtitl IN checkout_info.item.subtitle %] [% subtitl.subfield %][% END %]</strong></a>[% IF checkout_info.item.author %], by [% checkout_info.item.author %][% END %][% IF ( checkout_info.itme.itemnotes ) %]- <span class="circ-hlt">[% checkout_info.item.itemnotes %]</span>[% END %] <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% checkout_info.item.biblionumber %]&amp;itemnumber=[% checkout_info.item.itemnumber %]#item[% checkout_info.item.itemnumber %]">[% checkout_info.item.barcode %]</a>
+              <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% checkout_info.biblio.biblionumber %]&amp;type=intra"><strong>[% checkout_info.biblio.title |html %][% FOREACH subtitle IN checkout_info.biblio.subtitles %] [% subtitle.subfield %][% END %]</strong></a>[% IF checkout_info.biblio.author %], by [% checkout_info.biblio.author %][% END %][% IF ( checkout_info.item.itemnotes ) %]- <span class="circ-hlt">[% checkout_info.item.itemnotes %]</span>[% END %] <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% checkout_info.biblio.biblionumber %]&amp;itemnumber=[% checkout_info.item.itemnumber %]#item[% checkout_info.item.itemnumber %]">[% checkout_info.item.barcode %]</a>
             </td>
             <td>
               [% IF checkout_info.NEEDSCONFIRMATION %]
@@ -164,7 +142,7 @@ $(document).ready(function() {
                       <li><i class="fa fa-li fa-warning"></i>Too many checked out.</li>
                   [% END %]
                   [% IF checkout_info.BORRNOTSAMEBRANCH %]
-                      <li><i class="fa fa-li fa-warning"></i>This patron is from a different library ([% checkout_info.BORRNOTSAMEBRANCH %]).</li>
+                      <li><i class="fa fa-li fa-warning"></i>This patron is from a different library ([% Branches.GetName( checkout_info.BORRNOTSAMEBRANCH ) %]).</li>
                   [% END %]
                   [% IF checkout_ino.PATRON_CANT %]
                       <li><i class="fa fa-li fa-warning"></i>This patron can't check out this item per library circulation policy.</li>
@@ -198,6 +176,10 @@ $(document).ready(function() {
                       [% IF checkout_info.RESERVED || checkout_info.RESERVE_WAITING %] <!-- arbitrary choice, revert the reserve is not possible-->
                         <li><i class="fa fa-li fa-warning"></i>This item is on hold for another patron. The hold will be overridden, but not cancelled.</li>
                       [% END %]
+                  [% END %]
+
+                  [% IF checkout_info.PREVISSUE %]
+                      <li>This item has previously been checked out to this patron.</li>
                   [% END %]
                 </ul>
               [% END %]
@@ -266,7 +248,7 @@ $(document).ready(function() {
                       <li><i class="fa fa-li fa-exclamation"></i>The barcode was not found [% checkout_info.barcode |html %].</li>
                   [% END %]
                   [% IF checkout_info.DEBT %]
-                      <li><i class="fa fa-li fa-exclamation"></i>The patron has a debt of [% checkout_info.DEBT %].</li> <!-- Need debt_confirmed -->
+                      <li><i class="fa fa-li fa-exclamation"></i>The patron has a debt of [% checkout_info.DEBT | $Price %].</li> <!-- Need debt_confirmed -->
                   [% END %]
                 </p>
               [% END %]
@@ -283,7 +265,7 @@ $(document).ready(function() {
     [% IF confirmation_needed && CAN_user_circulate_force_checkout %]
         <fieldset>
             <legend>Please confirm checkout</legend>
-      <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
+      <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber %]" />
       <input type="hidden" name="issueconfirmed" value="1" />
       <input type="hidden" name="debt_confirmed" value="1" />
       <input type="hidden" name="branch" value="[% branch %]" />
@@ -300,10 +282,34 @@ $(document).ready(function() {
 </div>
 </div>
 </div>
-[% IF borrower %]
+[% IF patron %]
     <div class="yui-b">
         [% INCLUDE 'circ-menu.inc' %]
     </div>
 [% END %]
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            if($('#barcodelist').length) {
+                $('#barcodelist').focus();
+            } else if ($('#checkoutrenew').length) {
+                $('#checkoutrenew').focus();
+            }
+            $("#checkout_infos").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "sDom": 't',
+                "aaSorting": [],
+                "aoColumnDefs": [
+                    { "bSortable": false, "bSearchable": false, 'aTargets': [ 'NoSort' ] },
+                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] }
+                ],
+                "bPaginate": false
+            }));
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

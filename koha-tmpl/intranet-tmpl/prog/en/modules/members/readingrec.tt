@@ -1,43 +1,18 @@
+[% USE Asset %]
 [% USE KohaDates %]
 [% USE Koha %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Circulation History for [% INCLUDE 'patron-title.inc' %]</title>
+<title>Circulation History for [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript" id="js">
-//<![CDATA[
-
- $(document).ready(function() {
-    var table = $("#table_readingrec").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "sPaginationType": "four_button",
-        "aaSorting": [],
-        "aoColumnDefs": [
-            { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-            { "sType": "title-string", "aTargets" : [ "title-string" ] }
-        ]
-    }));
-    var tabs = $("#tabs").tabs({
-        activate: function(e, ui) {
-            var active = tabs.tabs("option", "active" );
-            if ( active == 1 ) {
-                table.fnFilter("standard_checkout", 0);
-            } else if ( active == 2 ) {
-                table.fnFilter("onsite_checkout", 0);
-            } else { // all
-                table.fnFilter('', 0);
-            }
-        }
-    });
- });
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="pat_readingrec" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
+[% PROCESS 'patron-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Circulation history for [% INCLUDE 'patron-title.inc' %]</div>
 
@@ -53,12 +28,12 @@
     <div class="dialog alert">Staff members are not allowed to access patron's checkout history</div>
 [% ELSIF is_anonymous %]
     <div class="dialog alert">This is the anonymous patron, so no circulation history is displayed. To get a list of anonymized loans, please run a report.</div>
-[% ELSIF ( privacy == 2)  %]
+[% ELSIF ( patron.privacy == 2)  %]
     <div class="dialog message">This patron has set the privacy rules to never keeping a circulation history.</div>
 [% ELSIF ( !loop_reading ) %]
     <div class="dialog message">This patron has no circulation history.</div>
 [% ELSE %]
-<form action="/cgi-bin/koha/members/readingrec.pl" method="get"><input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrowernumber %]" /></form>
+<form action="/cgi-bin/koha/members/readingrec.pl" method="get"><input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" /></form>
 
 
 <div id="tabs" class="toptabs">
@@ -142,4 +117,34 @@
 [% INCLUDE 'circ-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/members-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript" id="js">
+        $(document).ready(function() {
+            var table = $("#table_readingrec").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "sPaginationType": "four_button",
+                "aaSorting": [],
+                "aoColumnDefs": [
+                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                ]
+            }));
+            var tabs = $("#tabs").tabs({
+                activate: function(e, ui) {
+                    var active = tabs.tabs("option", "active" );
+                    if ( active == 1 ) {
+                        table.fnFilter("standard_checkout", 0);
+                    } else if ( active == 2 ) {
+                        table.fnFilter("onsite_checkout", 0);
+                    } else { // all
+                        table.fnFilter('', 0);
+                    }
+                }
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

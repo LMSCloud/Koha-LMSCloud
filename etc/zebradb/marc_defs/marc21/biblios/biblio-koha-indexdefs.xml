@@ -1476,6 +1476,9 @@
     <target_index>zkshid:p</target_index>
     <target_index>zkshid:n</target_index>
   </index_subfields>
+  <index_subfields tag="999" subfields="x">
+    <target_index>not-onloan-count:n</target_index>
+  </index_subfields>
   <facet tag="072" subfields="a">
     <target_index>sbg:0</target_index>
   </facet>

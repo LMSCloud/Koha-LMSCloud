@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use Test::More;
 use Test::MockModule;
@@ -67,7 +66,7 @@ foreach (sort @keys) {
 ok($config = $koha->{config}, 'Getting $koha->{config} ');
 
 # Testing syspref caching
-t::lib::Mocks::mock_dbh;
+use Test::DBIx::Class;
 
 my $history;
 
@@ -79,6 +78,7 @@ $schema->storage->debugfh( $trace );
 
 C4::Context->set_preference('SillyPreference', 'thing1');
 my $silly_preference = Koha::Config::SysPrefs->find('SillyPreference');
+is( $silly_preference->variable, 'SillyPreference', 'set_preference should have kept the case sensitivity' );
 
 my $pref = C4::Context->preference("SillyPreference");
 is(C4::Context->preference("SillyPreference"), 'thing1', "Retrieved syspref (value='thing1') successfully with default behavior");
@@ -149,4 +149,3 @@ sub TransformVersionToNum {
     $version =~ s/XXX$/999/;
     return $version;
 }
-1;

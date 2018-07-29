@@ -1,3 +1,4 @@
+[% USE Koha %]
 <select class="advsearch" name="idx">
     <option value="kw">Keyword</option>
     <option value="kw,phr">&nbsp;&nbsp;&nbsp;&nbsp; Keyword as phrase</option>
@@ -22,14 +23,14 @@
     [% END %]
     <option value="bc">Barcode</option>
     <option value="location">Shelving location</option>
-    [% IF (numbersphr) %]
+    [% IF ( Koha.Preference('IntranetNumbersPreferPhrase') ) %]
     <option value="sn,phr">Standard number</option>
     [% ELSE %]
     <option value="sn">Standard number</option>
     [% END %]
     <option value="nb">&nbsp;&nbsp;&nbsp;&nbsp; ISBN</option>
     <option value="ns">&nbsp;&nbsp;&nbsp;&nbsp; ISSN</option>
-    [% IF (numbersphr) %]
+    [% IF ( Koha.Preference('IntranetNumbersPreferPhrase') ) %]
     <option value="callnum,phr">&nbsp;&nbsp;&nbsp;&nbsp; Call number</option>
     [% ELSE %]
     <option value="callnum">&nbsp;&nbsp;&nbsp;&nbsp; Call number</option>
@@ -41,15 +42,13 @@
     [% END %]
     <option value="pb">Publisher</option>
     <option value="pl">Publisher location</option>
-    [%#
-        Use non-normalized st-year instead of st-numeric,
-        since pubdate can include 'u' to signify unkown
-        dates. See "Legal Characters" at:
-        http://www.loc.gov/marc/bibliographic/bd008a.html
 
-        This search is also for date ranges due to the
-        special Zebra r=r CCL mapping for 'yr'
-    %]
+    [%# Use non-normalized st-year instead of st-numeric, %]
+    [%# since pubdate can include 'u' to signify unknown %]
+    [%# dates. See "Legal Characters" at: %]
+    [%# http://www.loc.gov/marc/bibliographic/bd008a.html %]
+    [%# This search is also for date ranges due to the %]
+    [%# special Zebra r=r CCL mapping for 'yr' %]
     <option value="yr,st-year">Publication date (yyyy-yyyy)</option>
     <option value="acqdate,st-date-normalized">Acquisition date (yyyy-mm-dd)</option>
     <option value="datelastborrowed,st-date-normalized,le">Last checkout to (yyyy-mm-dd)</option>

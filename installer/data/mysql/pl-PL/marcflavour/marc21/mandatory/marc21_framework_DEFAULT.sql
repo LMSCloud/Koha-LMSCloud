@@ -2063,7 +2063,7 @@ INSERT INTO `marc_subfield_structure` (`tagfield`, `tagsubfield`, `liblibrarian`
 		('700', '6', 'Linkage', 'Linkage', 0, 0, '', 7, '', '', '', NULL, -6, '', '', '', NULL),
 		('700', '8', 'Field link and sequence number', 'Field link and sequence number', 1, 0, '', 7, '', '', '', NULL, -6, '', '', '', NULL),
 		('700', '9', '9 (RLIN)', '9 (RLIN)', 0, 0, '', 7, '', '', '', 0, -5, '', '', '', NULL),
-		('700', 'a', 'Personal name', 'Personal name', 0, 0, 'additionalauthors.author', 7, '', 'PERSO_NAME', '', NULL, 0, '', '', '', NULL),
+		('700', 'a', 'Personal name', 'Personal name', 0, 0, '', 7, '', 'PERSO_NAME', '', NULL, 0, '', '', '', NULL),
 		('700', 'b', 'Numeration', 'Numeration', 0, 0, '', 7, '', '', '', NULL, -1, '', '', '', NULL),
 		('700', 'c', 'Titles and other words associated with a name', 'Titles and other words associated with a name', 1, 0, '', 7, '', '', '', NULL, -1, '', '', '', NULL),
 		('700', 'd', 'Dates associated with a name', 'Dates associated with a name', 0, 0, '', 7, '', '', '', NULL, 0, '', '', '', NULL),
@@ -3998,3 +3998,33 @@ INSERT INTO `marc_subfield_structure` (`tagfield`, `tagsubfield`, `liblibrarian`
 
 UPDATE `marc_subfield_structure` SET maxlength=24 WHERE tagfield='000';
 UPDATE `marc_subfield_structure` SET maxlength=40 WHERE tagfield='008';
+
+-- Create the ACQ framework based on the default framework, fields 952 only
+INSERT IGNORE INTO biblio_framework VALUES( 'ACQ', 'Acquisition framework' );
+INSERT INTO marc_tag_structure(tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, frameworkcode)
+SELECT tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, 'ACQ' FROM marc_tag_structure WHERE tagfield='952' AND frameworkcode='';
+
+INSERT INTO marc_subfield_structure(tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, frameworkcode, seealso, link, defaultvalue, maxlength)
+SELECT tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, 'ACQ', seealso, link, defaultvalue, maxlength FROM marc_subfield_structure WHERE tagfield='952' AND frameworkcode='';
+
+INSERT INTO marc_tag_structure(tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, frameworkcode)
+SELECT tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, 'ACQ'
+FROM marc_tag_structure
+WHERE frameworkcode="" AND tagfield IN (
+    SELECT tagfield
+    FROM marc_subfield_structure
+    WHERE (
+            kohafield="biblio.title"
+        OR  kohafield="biblio.author"
+        OR  kohafield="biblioitems.publishercode"
+        OR  kohafield="biblioitems.editionstatement"
+        OR  kohafield="biblio.copyrightdate"
+        OR  kohafield="biblioitems.isbn"
+        OR  kohafield="biblio.seriestitle"
+    ) AND frameworkcode=""
+);
+INSERT INTO marc_subfield_structure(tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, frameworkcode, seealso, link, defaultvalue, maxlength)
+SELECT tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, 'ACQ', seealso, link, defaultvalue, maxlength
+FROM marc_subfield_structure
+WHERE frameworkcode=""
+AND kohafield IN ("biblio.title", "biblio.author", "biblioitems.publishercode", "biblioitems.editionstatement", "biblio.copyrightdate", "biblioitems.isbn", "biblio.seriestitle" );

@@ -1,84 +1,54 @@
+[% USE Asset %]
 [% PROCESS 'merge-record.inc' %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Cataloging &rsaquo; Merging records</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/merge-record.js"></script>
-[% INCLUDE 'merge-record-strings.inc' %]
 <style type="text/css">
 div.record ul, div.record li { float:none; display:block; }
 div#result { margin-top: 1em; }
 /* We use this style "against" the li ui-tabs-nav style automatically applied */
 </style>
-<script type="text/javascript">
-//<![CDATA[
-
-    // When submiting the form
-    function mergeformsubmit() {
-        $('#tabs').remove();
-    }
-
-$(document).ready(function(){
-    // Getting marc structure via ajax
-    tagslib = [];
-    $.getJSON("/cgi-bin/koha/authorities/merge_ajax.pl", {frameworkcode : "[% framework %]" }, function(json) {
-        tagslib = json;
-        rebuild_target($("#tabs"), $("#resultul"));
-    });
-
-    $('.preview-merge-reference').click(function (ev) {
-        ev.preventDefault();
-        newin=window.open($(this).attr('href'),'merge_reference', 'width=1000,height=600,toolbar=false,scrollbars=yes');
-    });
-
-    // Creating tabs
-    $("#tabs").tabs();
-});
-
-
-function changeFramework(fw) {
-    $("#Frameworks").val(fw);
-}
-
-//]]>
-</script>
 </head>
+
 <body id="auth_merge" class="cat">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'authorities-search.inc' %]
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/authorities/authorities-home.pl">Authorities</a>  &rsaquo; Merging records</div>
 
-<div id="doc" class="yui-t7">
-
-<div id="bd">
-        <div id="yui-main">
-
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
 
 <h1>Merging records</h1>
-[% IF ( result ) %]
-    [% IF ( errors ) %]
+
+[% IF ( errors ) %]
 
     [% FOREACH error IN errors %]
         <div class="dialog alert">
-
-                [% IF error.code == 'CANNOT_MOVE' %]
-                    The following items could not be moved from the old record to the new one: [% error.value %]
-                [% ELSIF error.code == 'FRAMEWORK_NOT_SELECTED' %]
-                    No framework has been selected. Please select a framework for merging.
-                [% ELSE %]
-                    [% error %]
-                [% END %]
-
-            <br />Therefore, the record to be merged has not been deleted.</div>
+            [% IF error.code == 'WRONG_COUNT' %]
+                Number of records provided for merging: [% error.value %]. Currently only 2 records can be merged at a time.
+            [% ELSIF error.code == 'DESTRUCTIVE_MERGE' %]
+                You cannot merge a record with itself. Please select two different authorities.
+            [% ELSIF error.code == 'WRONG_FRAMEWORK' %]
+                The Default framework cannot be used, or the framework does not exist. Please select another framework for merging.
+            [% ELSIF error.code == 'EMPTY_MARC' %]
+                Sorry, but we did not find any MARC tags in the reference record.
+            [% ELSIF error.code == 'MISSING_RECORD' %]
+                Sorry, but we did not find a record for number: [% error.value %].
+            [% ELSE %]
+                [% error %]
+            [% END %]
+        </div>
     [% END %]
 
-    [% ELSE %]
+[% ELSIF ( result ) %]
+
         <script type="text/javascript">window.location.href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid1 %]"</script>
         <p>The merging was successful. <a href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid1 %]">Click here to see the merged record.</a></p>
-    [% END %]
 
-[% ELSE %]
+[% ELSIF ( choosereference ) %]
 
-[% IF ( choosereference ) %]
 <p>Please choose which record will be the reference for the merge. The record chosen as reference will be kept, and the other will be deleted.</p>
 <form id="mergeform" action="/cgi-bin/koha/authorities/merge.pl" method="post">
     <fieldset class="rows">
@@ -90,14 +60,13 @@ function changeFramework(fw) {
     [% IF frameworkselect %]
           <li><label for="frameworkcode">Using framework:</label>
                       <select name="frameworkcode" id="frameworkcode">
-                                      <option value="Default">Default</option>
                                       [% FOREACH frameworkcodeloo IN frameworkselect %]
                                           [% IF frameworkcodeloo.authtypecode == frameworkcode1 %]
-                                              <option value="[% frameworkcodeloo.value %]" selected="selected">
+                                              <option value="[% frameworkcodeloo.authtypecode %]" selected="selected">
                                           [% ELSE %]
-                                              <option value="[% frameworkcodeloo.value %]">
+                                              <option value="[% frameworkcodeloo.authtypecode %]">
                                           [% END %]
-                                           [% frameworkcodeloo.frameworktext %]
+                                           [% frameworkcodeloo.authtypetext %]
                                            </option>
                                       [% END %]
                       </select></li>
@@ -109,21 +78,9 @@ function changeFramework(fw) {
     <fieldset class="action"><input type="submit" value="Next" /></fieldset>
     </fieldset>
 </form>
-[% ELSE %]
-[% IF ( errors ) %]
-    <div class="dialog alert">
-    [% FOREACH error IN errors %]
-        <p>
-                [% IF error.code == 'WRONG_COUNT' %]
-                    Number of records provided for merging: [% error.value %]. Currently only 2 records can be merged at a time.
-                [% ELSE %]
-                    [% error %]
-                [% END %]
 
-            </p>
-    [% END %]
-    </div>
 [% ELSE %]
+
 <form id="mergeform" action="/cgi-bin/koha/authorities/merge.pl" method="post" onsubmit="return mergeformsubmit()">
 
 <div class="yui-g">
@@ -142,12 +99,48 @@ function changeFramework(fw) {
 <fieldset class="action"><input type="submit" name="merge" value="Merge" /></fieldset>
 </div>
 </form>
-[% END %]
-[% END %]
+
 [% END %]
 
 </div>
-</div>
-</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'merge-record-strings.inc' %]
+    [% INCLUDE 'authorities_js.inc' %]
+    [% Asset.js("js/merge-record.js") %]
+    [% INCLUDE 'merge-record-strings.inc' %]
+    <script type="text/javascript">
+    //<![CDATA[
+
+        // When submiting the form
+        function mergeformsubmit() {
+            $('#tabs').remove();
+        }
+
+    $(document).ready(function(){
+        // Getting marc structure via ajax
+        tagslib = [];
+        $.getJSON("/cgi-bin/koha/authorities/merge_ajax.pl", {frameworkcode : "[% framework %]" }, function(json) {
+            tagslib = json;
+            rebuild_target($("#tabs"), $("#resultul"));
+        });
+
+        $('.preview-merge-reference').click(function (ev) {
+            ev.preventDefault();
+            newin=window.open($(this).attr('href'),'merge_reference', 'width=1000,height=600,toolbar=false,scrollbars=yes');
+        });
+
+        // Creating tabs
+        $("#tabs").tabs();
+    });
+
+
+    function changeFramework(fw) {
+        $("#Frameworks").val(fw);
+    }
+
+    //]]>
+    </script>
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

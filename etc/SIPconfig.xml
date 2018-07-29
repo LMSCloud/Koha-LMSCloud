@@ -44,16 +44,19 @@
   </listeners>
 
   <accounts>
-      <login id="term1"  password="term1" delimiter="|" error-detect="enabled" institution="CPL" encoding="ascii" checked_in_ok="1" />
+      <login id="staff"  password="staff" delimiter="|" error-detect="enabled" institution="CPL" encoding="ascii" checked_in_ok="1" payment_type_writeoff="06" disallow_overpayment="1" />
       <login id="koha"   password="koha"  delimiter="|" error-detect="enabled" institution="kohalibrary" encoding="utf8" />
       <login id="koha2"  password="koha" institution="kohalibrary2" terminator="CR" />
       <login id="lpl-sc" password="1234" institution="LPL" />
       <login id="lpl-sc-beacock" password="xyzzy"
              delimiter="|" error-detect="enabled" institution="LPL"
              send_patron_home_library_in_af="1"
+             ae_field_template="[% patron.surname %][% IF patron.firstname %], [% patron.firstname %][% END %]"
+             da_field_template="[% patron.surname %][% IF patron.firstname %], [% patron.firstname %][% END %]"
              av_field_template="[% accountline.description %] [% accountline.amountoutstanding | format('%.2f') %]" >
           <screen_msg_regex find="Greetings from Koha." replace="Welcome to your library!" />
           <screen_msg_regex find="Invalid patron barcode." replace="Barcode not found, are you sure this is your library card?" />
+          <patron_attribute field="XY" code="CODE" />
       </login>
   </accounts>
 

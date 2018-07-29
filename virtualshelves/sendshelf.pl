@@ -17,8 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Encode qw( encode );
@@ -77,10 +76,12 @@ if ($email) {
     my @results;
 
     while ( my $content = $contents->next ) {
-        my $biblionumber     = $content->biblionumber->biblionumber;
+        my $biblionumber     = $content->biblionumber;
         my $fw               = GetFrameworkCode($biblionumber);
         my $dat              = GetBiblioData($biblionumber);
-        my $record           = GetMarcBiblio($biblionumber, 1);
+        my $record           = GetMarcBiblio({
+            biblionumber => $biblionumber,
+            embed_items  => 1 });
         my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
         my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
         my $subtitle         = GetRecordValue( 'subtitle', $record, $fw );

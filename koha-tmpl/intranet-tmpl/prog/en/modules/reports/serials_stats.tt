@@ -1,27 +1,16 @@
+[% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Reports &rsaquo; Serials subscriptions stats</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style type="text/css">
 	.sql {display: none;}
 </style>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-	//<![CDATA[
-		$(document).ready(function() {
-            $("#resulttable").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "sDom": 't',
-                "bPaginate": false,
-                "aoColumns": [
-                    null,{ "sType": "anti-the" },null,null,null,{ "sType": "title-string" },{ "sType": "title-string" },null
-                ],
-            }));
-    	});
-	//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="rep_serials_stats" class="rep">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -93,13 +82,7 @@
 		    	</label>
 		    	<select name="branchcode"  id="branchcode">
 				<option value="">Any library</option>
-                    [% FOREACH branche IN branches %]
-                        [% IF ( branche.selected ) %]
-                            <option value="[% branche.value %]" selected="selected">[% branche.branchname %]</option>
-                        [% ELSE %]
-                            <option value="[% branche.value %]">[% branche.branchname %]</option>
-                        [% END %]
-					[% END %]
+                [% PROCESS options_for_libraries libraries => Branches.all() %]
 		    	</select>
 
 		    </li>
@@ -152,4 +135,20 @@
 [% INCLUDE 'reports-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+[% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#resulttable").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "sDom": 't',
+                "bPaginate": false,
+                "aoColumns": [
+                    null,{ "sType": "anti-the" },null,null,null,{ "sType": "title-string" },{ "sType": "title-string" },null
+                ],
+            }));
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

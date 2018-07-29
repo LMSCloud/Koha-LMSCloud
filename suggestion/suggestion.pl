@@ -17,22 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 require Exporter;
 use CGI qw ( -utf8 );
 use C4::Auth;    # get_template_and_user
 use C4::Output;
 use C4::Suggestions;
-use C4::Koha; #GetItemTypes
-use C4::Branch;
+use C4::Koha;
 use C4::Budgets;
 use C4::Search;
 use C4::Members;
 use C4::Debug;
 
 use Koha::DateUtils qw( dt_from_string );
+use Koha::AuthorisedValues;
 use Koha::Acquisition::Currencies;
+use Koha::Libraries;
+use Koha::Patrons;
 
 use URI::Escape;
 
@@ -56,16 +57,21 @@ sub GetCriteriumDesc{
     my ($criteriumvalue,$displayby)=@_;
     if ($displayby =~ /status/i) {
         unless ( grep { /$criteriumvalue/ } qw(ASKED ACCEPTED REJECTED CHECKED ORDERED AVAILABLE) ) {
-            return GetAuthorisedValueByCode('SUGGEST_STATUS', $criteriumvalue ) || "Unknown";
+            my $av = Koha::AuthorisedValues->search({ category => 'SUGGEST_STATUS', authorised_value => $criteriumvalue });
+            return $av->count ? $av->next->lib : 'Unknown';
         }
         return ($criteriumvalue eq 'ASKED'?"Pending":ucfirst(lc( $criteriumvalue))) if ($displayby =~/status/i);
     }
-    return (GetBranchName($criteriumvalue)) if ($displayby =~/branchcode/);
-    return GetAuthorisedValueByCode('SUGGEST_FORMAT', $criteriumvalue) || "Unknown" if ($displayby =~/itemtype/);
+    return Koha::Libraries->find($criteriumvalue)->branchname
+        if $displayby =~ /branchcode/;
+    if ( $displayby =~ /itemtype/ ) {
+        my $av = Koha::AuthorisedValues->search({ category => 'SUGGEST_FORMAT', authorised_value => $criteriumvalue });
+        return $av->count ? $av->next->lib : 'Unknown';
+    }
     if ($displayby =~/suggestedby/||$displayby =~/managedby/||$displayby =~/acceptedby/){
-        my $borr=C4::Members::GetMember(borrowernumber=>$criteriumvalue);
-        return "" unless $borr;
-        return $$borr{surname} . ", " . $$borr{firstname};
+        my $patron = Koha::Patrons->find( $criteriumvalue );
+        return "" unless $patron;
+        return $patron->surname . ", " . $patron->firstname;
     }
     if ( $displayby =~ /budgetid/) {
         my $budget = GetBudget($criteriumvalue);
@@ -85,6 +91,7 @@ my $returnsuggested = $input->param('returnsuggested');
 my $managedby       = $input->param('managedby');
 my $displayby       = $input->param('displayby') || '';
 my $tabcode         = $input->param('tabcode');
+my $reasonsloop     = GetAuthorisedValues("SUGGEST");
 
 # filter informations which are not suggestion related.
 my $suggestion_ref  = $input->Vars;
@@ -126,6 +133,12 @@ if ( $op =~ /save/i ) {
         $suggestion_only->{manageddate} = dt_from_string;
         $suggestion_only->{"managedby"}   = C4::Context->userenv->{number};
     }
+
+    my $otherreason = $input->param('other_reason');
+    if ($suggestion_only->{reason} eq 'other' && $otherreason) {
+        $suggestion_only->{reason} = $otherreason;
+    }
+
     if ( $suggestion_only->{'suggestionid'} > 0 ) {
         &ModSuggestion($suggestion_only);
     } else {
@@ -162,6 +175,15 @@ elsif ($op=~/add/) {
 elsif ($op=~/edit/) {
     #Edit suggestion  
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
+    $suggestion_ref->{reasonsloop} = $reasonsloop;
+    my $other_reason = 1;
+    foreach my $reason ( @{ $reasonsloop } ) {
+        if ($suggestion_ref->{reason} eq $reason->{lib}) {
+            $other_reason = 0;
+        }
+    }
+    $other_reason = 0 unless $suggestion_ref->{reason};
+    $template->param(other_reason => $other_reason);
     Init($suggestion_ref);
     $op ='save';
 }  
@@ -213,7 +235,6 @@ elsif ($op eq "change" ) {
 }
 elsif ( $op eq 'show' ) {
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
-    $$suggestion_ref{branchname} = GetBranchName $$suggestion_ref{branchcode};
     my $budget = GetBudget $$suggestion_ref{budgetid};
     $$suggestion_ref{budgetname} = $$budget{budget_name};
     Init($suggestion_ref);
@@ -237,7 +258,6 @@ if ($op=~/else/) {
     push @criteria_dv, '' if $criteria_has_empty;
 
     my @allsuggestions;
-    my $reasonsloop = GetAuthorisedValues("SUGGEST");
     foreach my $criteriumvalue ( @criteria_dv ) {
         # By default, display suggestions from current working branch
         unless ( exists $$suggestion_ref{'branchcode'} ) {
@@ -276,14 +296,16 @@ if ($op=~/else/) {
 foreach my $element ( qw(managedby suggestedby acceptedby) ) {
 #    $debug || warn $$suggestion_ref{$element};
     if ($$suggestion_ref{$element}){
-        my $member=GetMember(borrowernumber=>$$suggestion_ref{$element});
+        my $patron = Koha::Patrons->find( $$suggestion_ref{$element} );
+        my $category = $patron->category;
         $template->param(
-            $element."_borrowernumber"=>$$member{borrowernumber},
-            $element."_firstname"=>$$member{firstname},
-            $element."_surname"=>$$member{surname},
-            $element."_branchcode"=>$$member{branchcode},
-            $element."_description"=>$$member{description},
-            $element."_category_type"=>$$member{category_type}
+            $element."_borrowernumber"=>$patron->borrowernumber,
+            $element."_firstname"=>$patron->firstname,
+            $element."_surname"=>$patron->surname,
+            $element."_cardnumber"=>$patron->cardnumber,
+            $element."_branchcode"=>$patron->branchcode,
+            $element."_description"=>$category->description,
+            $element."_category_type"=>$category->category_type,
         );
     }
 }
@@ -298,31 +320,11 @@ if(defined($returnsuggested) and $returnsuggested ne "noone")
     print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=".$returnsuggested."#suggestions");
 }
 
-####################
-## Initializing selection lists
+my $branchfilter = ($displayby ne "branchcode") ? $input->param('branchcode') : C4::Context->userenv->{'branch'};
 
-#branch display management
-my $branchfilter = ($displayby ne "branchcode") ? $input->param('branchcode') : '';
-my $onlymine =
-     C4::Context->preference('IndependentBranches')
-  && C4::Context->userenv
-  && !C4::Context->IsSuperLibrarian()
-  && C4::Context->userenv->{branch};
-my $branches = GetBranches($onlymine);
-my @branchloop;
-
-foreach my $thisbranch ( sort {$branches->{$a}->{'branchname'} cmp $branches->{$b}->{'branchname'}} keys %$branches ) {
-    my %row = (
-        value      => $thisbranch,
-        branchname => $branches->{$thisbranch}->{'branchname'},
-        selected   => ($branchfilter and $branches->{$thisbranch}->{'branchcode'} eq $branchfilter ) || ( $$suggestion_ref{'branchcode'} and $branches->{$thisbranch}->{'branchcode'} eq $$suggestion_ref{'branchcode'} )
-    );
-    push @branchloop, \%row;
-}
-$branchfilter=C4::Context->userenv->{'branch'} if ($onlymine && !$branchfilter);
-
-$template->param( branchloop => \@branchloop,
-                branchfilter => $branchfilter);
+$template->param(
+    branchfilter => $branchfilter,
+);
 
 $template->param( returnsuggestedby => $returnsuggestedby );
 

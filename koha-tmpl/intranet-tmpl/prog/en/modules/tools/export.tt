@@ -1,39 +1,16 @@
+[% USE Asset %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Export data</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function() {
-    $('#exporttype').tabs();
-
-    $("li.csv_profiles").hide();
-
-    $("#bibs select[name='output_format']").on('change', function(){
-        var format = $(this).val();
-        if ( format == 'csv' ) {
-            $("#bibs li.csv_profiles").show();
-        } else {
-            $("#bibs li.csv_profiles").hide();
-        }
-    });
-    $("#checkall").on("click",function(e){
-        e.preventDefault();
-        $(".branch_select").prop("checked",1);
-    });
-    $("#checknone").on("click",function(e){
-        e.preventDefault();
-        $(".branch_select").prop("checked",0);
-    });
-});
-//]]>
-</script>
 <style type="text/css">
     fieldset.rows fieldset.rows {
         width: 90%;
     }
 </style>
 </head>
+
 <body id="tools_export" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -88,20 +65,15 @@ $(document).ready(function() {
             <label for="itemtype">Item type: </label>
             <select name="itemtype" id="itemtype">
                 <option value="">-- All --</option>
-                [% FOREACH itemtypeloo IN itemtypeloop %]
-				[% IF ( itemtypeloo.selected ) %]
-                <option value="[% itemtypeloo.value %]" selected="selected">[% itemtypeloo.description %]</option>
-[% ELSE %]
-                <option value="[% itemtypeloo.value %]">[% itemtypeloo.description %]</option>
-[% END %]
+                [% FOREACH itemtype IN itemtypes %]
+                    <option value="[% itemtype.itemtype %]">[% itemtype.translated_description %]</option>
                 [% END %]
             </select>
         </li>
         
         <li>
-            <label>Library: </label>
-            [% INCLUDE 'branch-selector.inc'
-                branches = branchloop %]
+            <label>With items owned by the following libraries: </label>
+            [% INCLUDE 'branch-selector.inc' branches = libraries %]
         </li>
     </ol>
 
@@ -150,8 +122,8 @@ $(document).ready(function() {
         <input id="dont_export_item" type="checkbox" name="dont_export_item" />
         </li>
         <li>
-        <label for="strip_nonlocal_items">Remove non-local items:</label>
-        <input id="strip_nonlocal_items" type="checkbox" name="strip_nonlocal_items" />
+        <label for="strip_items_not_from_libraries">Remove items not owned by selected libraries:</label>
+        <input id="strip_items_not_from_libraries" type="checkbox" name="strip_items_not_from_libraries" />
         </li>
         <li>
         <label for="export_remove_fields">Don't export fields:</label>
@@ -168,7 +140,11 @@ $(document).ready(function() {
             <select id="output_format" name="output_format">
                 <option value="iso2709">marc</option>
                 <option value="xml">xml</option>
-                <option value="csv">csv</option>
+                [% IF csv_profiles %]
+                    <option value="csv">csv</option>
+                [% ELSE %]
+                    <option value="csv" disabled data-toggle="tooltip" data-placement="left" title="You must create a CSV profile for MARC exports to use this option.">csv</option>
+                [% END %]
             </select>
         </li>
         <li class="csv_profiles">
@@ -207,7 +183,7 @@ $(document).ready(function() {
             <select name="authtype" id="authtype">
                 <option value="">-- All --</option>
                 [% FOREACH authority_type IN authority_types %]
-                    <option value="[% authtypeloo.value %]">[% authtypeloo.description %]</option>
+                    <option value="[% authority_type.authtypecode %]">[% authority_type.authtypetext %]</option>
                 [% END %]
             </select>
         </li>
@@ -311,4 +287,34 @@ $(document).ready(function() {
 [% INCLUDE 'tools-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    [% INCLUDE 'calendar.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#exporttype').tabs();
+
+            $("li.csv_profiles").hide();
+
+            $("#bibs select[name='output_format']").on('change', function(){
+                var format = $(this).val();
+                if ( format == 'csv' ) {
+                    $("#bibs li.csv_profiles").show();
+                } else {
+                    $("#bibs li.csv_profiles").hide();
+                }
+            });
+            $("#checkall").on("click",function(e){
+                e.preventDefault();
+                $(".branch_select").prop("checked",1);
+            });
+            $("#checknone").on("click",function(e){
+                e.preventDefault();
+                $(".branch_select").prop("checked",0);
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

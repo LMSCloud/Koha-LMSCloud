@@ -29,11 +29,15 @@ use open ':std', ':encoding(utf8)';
 
 use Test::More tests => 4;
 use Test::MockModule;
+use Test::Warn;
+
+use Koha::Caches;
+
 use MARC::Record;
 use File::Spec;
 use File::Basename;
 use File::Find;
-use Test::Warn;
+
 use File::Temp qw/ tempdir /;
 use File::Path;
 
@@ -47,21 +51,21 @@ sub index_sample_records_and_launch_zebra {
     unlink("$datadir/zebra.log");
     if (-f "$sourcedir/${marc_type}/zebraexport/biblio/exported_records") {
         my $zebra_bib_cfg = ($indexing_mode eq 'dom') ? 'zebra-biblios-dom.cfg' : 'zebra-biblios.cfg';
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal,warn  -g iso2709 -d biblios init");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal,warn   -g iso2709 -d biblios update $sourcedir/${marc_type}/zebraexport/biblio");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal,warn  -g iso2709 -d biblios commit");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g iso2709 -d biblios init");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g iso2709 -d biblios update $sourcedir/${marc_type}/zebraexport/biblio");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g iso2709 -d biblios commit");
     }
     # ... and add large bib records, if present
     if (-f "$sourcedir/${marc_type}/zebraexport/large_biblio_${indexing_mode}/exported_records.xml") {
         my $zebra_bib_cfg = ($indexing_mode eq 'dom') ? 'zebra-biblios-dom.cfg' : 'zebra-biblios.cfg';
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal,warn   -g marcxml -d biblios update $sourcedir/${marc_type}/zebraexport/large_biblio_${indexing_mode}");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal,warn  -g marcxml -d biblios commit");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g marcxml -d biblios update $sourcedir/${marc_type}/zebraexport/large_biblio_${indexing_mode}");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g marcxml -d biblios commit");
     }
     if (-f "$sourcedir/${marc_type}/zebraexport/authority/exported_records") {
         my $zebra_auth_cfg = ($indexing_mode eq 'dom') ? 'zebra-authorities-dom.cfg' : 'zebra-authorities.cfg';
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal,warn  -g iso2709 -d authorities init");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal,warn   -g iso2709 -d authorities update $sourcedir/${marc_type}/zebraexport/authority");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal,warn  -g iso2709 -d authorities commit");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal -g iso2709 -d authorities init");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal -g iso2709 -d authorities update $sourcedir/${marc_type}/zebraexport/authority");
+        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal -g iso2709 -d authorities commit");
     }
 
     $child = fork();
@@ -132,6 +136,10 @@ $contextmodule->mock('preference', sub {
         return 'holding';
     } elsif ($pref eq 'UNIMARCAuthorsFacetsSeparator') {
         return '--';
+    } elsif ($pref eq 'casAuthentication' or $pref eq 'casLogout' or $pref eq 'casServerUrl' ) {
+        return '';
+    } elsif ($pref eq 'template') {
+        return 'prog';
     } else {
         warn "The syspref $pref was requested but I don't know what to say; this indicates that the test requires updating"
             unless $pref =~ m/(XSLT|item|branch|holding|image)/i;
@@ -151,44 +159,44 @@ sub mock_GetMarcSubfieldStructure {
     if ($marc_type eq 'marc21') {
         $bibliomodule->mock('GetMarcSubfieldStructure', sub {
             return {
-                    'biblio.biblionumber' => { tagfield =>  '999', tagsubfield => 'c' },
-                    'biblio.isbn' => { tagfield => '020', tagsubfield => 'a' },
-                    'biblio.title' => { tagfield => '245', tagsubfield => 'a' },
-                    'biblio.notes' => { tagfield => '500', tagsubfield => 'a' },
-                    'items.barcode' => { tagfield => '952', tagsubfield => 'p' },
-                    'items.booksellerid' => { tagfield => '952', tagsubfield => 'e' },
-                    'items.ccode' => { tagfield => '952', tagsubfield => '8' },
-                    'items.cn_sort' => { tagfield => '952', tagsubfield => '6' },
-                    'items.cn_source' => { tagfield => '952', tagsubfield => '2' },
-                    'items.coded_location_qualifier' => { tagfield => '952', tagsubfield => 'f' },
-                    'items.copynumber' => { tagfield => '952', tagsubfield => 't' },
-                    'items.damaged' => { tagfield => '952', tagsubfield => '4' },
-                    'items.dateaccessioned' => { tagfield => '952', tagsubfield => 'd' },
-                    'items.datelastborrowed' => { tagfield => '952', tagsubfield => 's' },
-                    'items.datelastseen' => { tagfield => '952', tagsubfield => 'r' },
-                    'items.enumchron' => { tagfield => '952', tagsubfield => 'h' },
-                    'items.holdingbranch' => { tagfield => '952', tagsubfield => 'b' },
-                    'items.homebranch' => { tagfield => '952', tagsubfield => 'a' },
-                    'items.issues' => { tagfield => '952', tagsubfield => 'l' },
-                    'items.itemcallnumber' => { tagfield => '952', tagsubfield => 'o' },
-                    'items.itemlost' => { tagfield => '952', tagsubfield => '1' },
-                    'items.itemnotes' => { tagfield => '952', tagsubfield => 'z' },
-                    'items.itemnumber' => { tagfield => '952', tagsubfield => '9' },
-                    'items.itype' => { tagfield => '952', tagsubfield => 'y' },
-                    'items.location' => { tagfield => '952', tagsubfield => 'c' },
-                    'items.materials' => { tagfield => '952', tagsubfield => '3' },
-                    'items.nonpublicnote' => { tagfield => '952', tagsubfield => 'x' },
-                    'items.notforloan' => { tagfield => '952', tagsubfield => '7' },
-                    'items.onloan' => { tagfield => '952', tagsubfield => 'q' },
-                    'items.price' => { tagfield => '952', tagsubfield => 'g' },
-                    'items.renewals' => { tagfield => '952', tagsubfield => 'm' },
-                    'items.replacementprice' => { tagfield => '952', tagsubfield => 'v' },
-                    'items.replacementpricedate' => { tagfield => '952', tagsubfield => 'w' },
-                    'items.reserves' => { tagfield => '952', tagsubfield => 'n' },
-                    'items.restricted' => { tagfield => '952', tagsubfield => '5' },
-                    'items.stack' => { tagfield => '952', tagsubfield => 'j' },
-                    'items.uri' => { tagfield => '952', tagsubfield => 'u' },
-                    'items.withdrawn' => { tagfield => '952', tagsubfield => '0' },
+                    'biblio.biblionumber' => [{ tagfield =>  '999', tagsubfield => 'c' }],
+                    'biblio.isbn' => [{ tagfield => '020', tagsubfield => 'a' }],
+                    'biblio.title' => [{ tagfield => '245', tagsubfield => 'a' }],
+                    'biblio.notes' => [{ tagfield => '500', tagsubfield => 'a' }],
+                    'items.barcode' => [{ tagfield => '952', tagsubfield => 'p' }],
+                    'items.booksellerid' => [{ tagfield => '952', tagsubfield => 'e' }],
+                    'items.ccode' => [{ tagfield => '952', tagsubfield => '8' }],
+                    'items.cn_sort' => [{ tagfield => '952', tagsubfield => '6' }],
+                    'items.cn_source' => [{ tagfield => '952', tagsubfield => '2' }],
+                    'items.coded_location_qualifier' => [{ tagfield => '952', tagsubfield => 'f' }],
+                    'items.copynumber' => [{ tagfield => '952', tagsubfield => 't' }],
+                    'items.damaged' => [{ tagfield => '952', tagsubfield => '4' }],
+                    'items.dateaccessioned' => [{ tagfield => '952', tagsubfield => 'd' }],
+                    'items.datelastborrowed' => [{ tagfield => '952', tagsubfield => 's' }],
+                    'items.datelastseen' => [{ tagfield => '952', tagsubfield => 'r' }],
+                    'items.enumchron' => [{ tagfield => '952', tagsubfield => 'h' }],
+                    'items.holdingbranch' => [{ tagfield => '952', tagsubfield => 'b' }],
+                    'items.homebranch' => [{ tagfield => '952', tagsubfield => 'a' }],
+                    'items.issues' => [{ tagfield => '952', tagsubfield => 'l' }],
+                    'items.itemcallnumber' => [{ tagfield => '952', tagsubfield => 'o' }],
+                    'items.itemlost' => [{ tagfield => '952', tagsubfield => '1' }],
+                    'items.itemnotes' => [{ tagfield => '952', tagsubfield => 'z' }],
+                    'items.itemnumber' => [{ tagfield => '952', tagsubfield => '9' }],
+                    'items.itype' => [{ tagfield => '952', tagsubfield => 'y' }],
+                    'items.location' => [{ tagfield => '952', tagsubfield => 'c' }],
+                    'items.materials' => [{ tagfield => '952', tagsubfield => '3' }],
+                    'items.nonpublicnote' => [{ tagfield => '952', tagsubfield => 'x' }],
+                    'items.notforloan' => [{ tagfield => '952', tagsubfield => '7' }],
+                    'items.onloan' => [{ tagfield => '952', tagsubfield => 'q' }],
+                    'items.price' => [{ tagfield => '952', tagsubfield => 'g' }],
+                    'items.renewals' => [{ tagfield => '952', tagsubfield => 'm' }],
+                    'items.replacementprice' => [{ tagfield => '952', tagsubfield => 'v' }],
+                    'items.replacementpricedate' => [{ tagfield => '952', tagsubfield => 'w' }],
+                    'items.reserves' => [{ tagfield => '952', tagsubfield => 'n' }],
+                    'items.restricted' => [{ tagfield => '952', tagsubfield => '5' }],
+                    'items.stack' => [{ tagfield => '952', tagsubfield => 'j' }],
+                    'items.uri' => [{ tagfield => '952', tagsubfield => 'u' }],
+                    'items.withdrawn' => [{ tagfield => '952', tagsubfield => '0' }],
                 };
         });
     }
@@ -198,6 +206,8 @@ sub run_marc21_search_tests {
     my $indexing_mode = shift;
     $datadir = tempdir();
     system(dirname(__FILE__) . "/zebra_config.pl $datadir marc21 $indexing_mode");
+
+    Koha::Caches->get_instance('config')->flush_all;
 
     mock_GetMarcSubfieldStructure('marc21');
     my $context = new C4::Context("$datadir/etc/koha-conf.xml");
@@ -603,6 +613,17 @@ if ( $indexing_mode eq 'dom' ) {
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,undef,\%branches,\%itemtypes,$query_type,0);
     is($results_hashref->{biblioserver}->{hits}, undef, "Search for 'pressed' returns no matches when stemming is off");
 
+    ( $error, $query, $simple_query, $query_cgi,
+    $query_desc, $limit, $limit_cgi, $limit_desc,
+    $query_type ) = buildQuery([], [ 'ccl=an:42' ], [], ['available'], [], 0, 'en');
+    is( $query, "an:42 and ( ( allrecords,AlwaysMatches:'' not onloan,AlwaysMatches:'') and (lost,st-numeric=0) )", 'buildQuery should add the available part to the query if requested with ccl' );
+    is( $query_desc, 'an:42', 'buildQuery should remove the available part from the query' );
+
+    ( $error, $query, $simple_query, $query_cgi,
+    $query_desc, $limit, $limit_cgi, $limit_desc,
+    $query_type ) = buildQuery([], [ 0 ], [ 'su,phr' ], [], [], 0, 'en');
+    is($query, 'su,phr=0 ', 'buildQuery should keep 0 value');
+
     # Let's see what happens when we pass bad data into these routines.
     # We have to catch warnings since we're not very good about returning errors.
 
@@ -849,6 +870,8 @@ if ( $indexing_mode eq 'dom' ) {
                 'su-ut' => { 'expanded'    => undef,
                              'label_value' => "Titles" }
     };
+    delete $expected_facets_info_marc21->{holdingbranch}
+        if Koha::Libraries->count == 1;
     is_deeply( $facets_info, $expected_facets_info_marc21,
         "_get_facets_info returns the correct data");
 
@@ -859,6 +882,8 @@ sub run_unimarc_search_tests {
     my $indexing_mode = shift;
     $datadir = tempdir();
     system(dirname(__FILE__) . "/zebra_config.pl $datadir unimarc $indexing_mode");
+
+    Koha::Caches->get_instance('config')->flush_all;
 
     mock_GetMarcSubfieldStructure('unimarc');
     my $context = new C4::Context("$datadir/etc/koha-conf.xml");
@@ -941,6 +966,8 @@ sub run_unimarc_search_tests {
                 'su-ut' => { 'expanded'    => undef,
                              'label_value' => "Titles" }
     };
+    delete $expected_facets_info_unimarc->{holdingbranch}
+        if Koha::Libraries->count == 1;
     is_deeply( $facets_info, $expected_facets_info_unimarc,
         "_get_facets_info returns the correct data");
 
@@ -948,12 +975,12 @@ sub run_unimarc_search_tests {
 }
 
 subtest 'MARC21 + GRS-1' => sub {
-    plan tests => 107;
+    plan tests => 110;
     run_marc21_search_tests('grs1');
 };
 
 subtest 'MARC21 + DOM' => sub {
-    plan tests => 107;
+    plan tests => 110;
     run_marc21_search_tests('dom');
 };
 
@@ -967,4 +994,6 @@ subtest 'UNIMARC + DOM' => sub {
     run_unimarc_search_tests('dom');
 };
 
-1;
+# Make sure that following tests are not using our config settings
+Koha::Caches->get_instance('config')->flush_all;
+

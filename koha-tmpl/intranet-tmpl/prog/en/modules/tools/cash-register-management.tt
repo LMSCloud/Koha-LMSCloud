@@ -1,81 +1,13 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Cash register management</title>
 [% INCLUDE 'doc-head-close.inc' %]
-
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script>
-
-<script type="text/javascript">
-//<![CDATA[
-
-$("#cashregt:has(tbody tr)").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "sDom": 't',
-        "aoColumnDefs": [
-            { "aTargets": [ -1, -2, -3 ], "bSortable": false, "bSearchable": false }
-        ],
-        "bPaginate": false
-}));
-var permittedStaff = new Array;
-[% FOREACH staffmember IN permitted_staff %]
-permittedStaff.push({ borrowernumber: "[% staffmember.borrowernumber %]", name: "[% staffmember.firstname | html %] [% staffmember.surname | html %]"});
-[% END %]
-var enabledStaff = new Array;
-[% FOREACH staffmember IN enabled_staff %]
-enabledStaff.push({ borrowernumber: "[% staffmember.borrowernumber %]", name: "[% staffmember.firstname | html %] [% staffmember.surname | html %]"});
-[% END %]
-
-$(document).ready(function(){
-        $.each( permittedStaff, function( i, l ) {
-                $('#cash_register_staffselect').append( '<option value=' + l.borrowernumber + '>' + l.name + '</option>' );
-        });
-        $.each( enabledStaff, function( i, l ) {
-                $('#cash_register_manager').append( '<option value=' + l.borrowernumber + '>' + l.name + '</option>' );
-        });
-        
-        if ( permittedStaff.length > 0 ) {
-            $("#cash_register_staffselect").val($("#cash_register_staffselect option:first").val());
-        }
-        if ( enabledStaff.length > 0 ) {
-	    $("#cash_register_manager").val($("#cash_register_manager option:first").val());
-	}
-        
-        $('#authorize').click( function(event) {
-                        event.preventDefault();
-                        if ($('#cash_register_staffselect option:selected').length > 0) {
-                            var value= $('#cash_register_staffselect option:selected').val();
-                             $('#cash_register_manager').append( '<option value=' + value
-                                    + '>' + $('#cash_register_staffselect option:selected').text() + '</option>' );
-                            $('#cash_register_staffselect option:selected').remove();
-                            $("#cash_register_staffselect").val($("#cash_register_staffselect option:first").val());
-                            $("#cash_register_manager").val(value);
-                        }
-                });
-        $('#unauthorize').click( function(event) {
-                        event.preventDefault();
-                        if ($('#cash_register_manager option:selected').length > 0) {
-                            var value= $('#cash_register_manager option:selected').val();
-                            $('#cash_register_staffselect').append( '<option value=' + value
-                                    + '>' + $('#cash_register_manager option:selected').text() + '</option>' );
-                            $('#cash_register_manager option:selected').remove();
-                            $("#cash_register_manager").val($("#cash_register_manager option:first").val());
-                            $("#cash_register_staffselect").val(value);
-                        }
-                });
-        $('#savedata').click( function(event) {
-            var arr = $('#cash_register_manager').find("option").map(function() { return this.value; }).get();
-            $("#cash_register_manager_list").val(arr.join());
-        });
-        
-        
-});
-
-//]]>
-</script>
-
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="tools_cash_register_management" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -117,11 +49,7 @@ $(document).ready(function(){
                                     [% IF (cashreg.no_branch_restriction == 1) %]
                                         All libraries
                                     [% ELSE %]
-                                        [% FOREACH mybranch IN branchloop %]
-                                            [% IF (cashreg.branchcode == mybranch.branchcode) %]
-                                                [% mybranch.branchname %]
-                                            [% END %]
-                                        [% END %]
+                                        [% Branches.GetName(cashreg.branchcode) %]
                                     [% END %]
                                    </td>
                                    <td>
@@ -135,7 +63,7 @@ $(document).ready(function(){
                                        <form method="post" action="/cgi-bin/koha/tools/cash-register-management.pl">
                                            <input type="hidden" name="cash_register_id" value="[% cashreg.id %]" />
                                            <input type="hidden" name="op" value="edit" />
-                                           <button class="btn btn-mini"><i class="fa fa-clone"></i> Edit</button>
+                                           <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
                                        </form>
                                    </td>
                                </tr>
@@ -147,7 +75,7 @@ $(document).ready(function(){
                         <div>
                             <form id="new" name="new" action="/cgi-bin/koha/tools/cash-register-management.pl">
                                 <input type="hidden" name="op" value="new" />
-                                <button class="btn btn-small" submit=""><i class="fa fa-plus"></i> New cash register</button>
+                                <button class="btn btn-default btn-xs" submit=""><i class="fa fa-plus"></i> New cash register</button>
                             </form>
                         </div>
                         </p>
@@ -168,13 +96,7 @@ $(document).ready(function(){
                                     <li>
                                         <label for="cash_register_branchcode">Library: </label>
                                         <select name="cash_register_branchcode" id="cash_register_branchcode">
-                                            [% FOREACH branchloo IN branchloop %]
-                                                [% IF (cash_register_branchcode == branchloo.branchcode) %]
-                                                <option value="[% branchloo.branchcode %]" selected="selected">[% branchloo.branchname %]</option>
-                                                [% ELSE %]
-                                                <option value="[% branchloo.branchcode %]">[% branchloo.branchname %]</option>
-                                                [% END %]
-                                            [% END %]
+                                            [% PROCESS options_for_libraries libraries => Branches.all( selected => cash_register_branchcode, restrict => 'NoMobileStations' ) %]
                                         </select>
                                     </li>
                                     
@@ -224,8 +146,8 @@ $(document).ready(function(){
                                     <!-- name -->
                                     <li>
                                         <label>&nbsp;</label>
-                                        <button class="btn btn-small" name="op" value="save" id="savedata" type="submit"> Save</button>
-                                        <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl">Cancel</a>
+                                        <button class="btn btn-default btn-xs" name="op" value="save" id="savedata" type="submit"> Save</button>
+                                        <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl" class="clear_edit btn btn-default btn-xs">Cancel</a>
                                     </li>
                                 </ol>
                             </fieldset>
@@ -241,4 +163,73 @@ $(document).ready(function(){
         [% INCLUDE 'tools-menu.inc' %]
     </div>
 </div><!-- bd -->
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery.jeditable.mini.js") %]
+    [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") %]
+    <script type="text/javascript">
+        $("#cashregt:has(tbody tr)").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "sDom": 't',
+                "aoColumnDefs": [
+                    { "aTargets": [ -1, -2, -3 ], "bSortable": false, "bSearchable": false }
+                ],
+                "bPaginate": false
+        }));
+        var permittedStaff = new Array;
+        [% FOREACH staffmember IN permitted_staff %]
+        permittedStaff.push({ borrowernumber: "[% staffmember.borrowernumber %]", name: "[% staffmember.firstname | html %] [% staffmember.surname | html %]"});
+        [% END %]
+        var enabledStaff = new Array;
+        [% FOREACH staffmember IN enabled_staff %]
+        enabledStaff.push({ borrowernumber: "[% staffmember.borrowernumber %]", name: "[% staffmember.firstname | html %] [% staffmember.surname | html %]"});
+        [% END %]
+
+        $(document).ready(function(){
+                $.each( permittedStaff, function( i, l ) {
+                        $('#cash_register_staffselect').append( '<option value=' + l.borrowernumber + '>' + l.name + '</option>' );
+                });
+                $.each( enabledStaff, function( i, l ) {
+                        $('#cash_register_manager').append( '<option value=' + l.borrowernumber + '>' + l.name + '</option>' );
+                });
+                
+                if ( permittedStaff.length > 0 ) {
+                    $("#cash_register_staffselect").val($("#cash_register_staffselect option:first").val());
+                }
+                if ( enabledStaff.length > 0 ) {
+                $("#cash_register_manager").val($("#cash_register_manager option:first").val());
+            }
+                
+                $('#authorize').click( function(event) {
+                                event.preventDefault();
+                                if ($('#cash_register_staffselect option:selected').length > 0) {
+                                    var value= $('#cash_register_staffselect option:selected').val();
+                                     $('#cash_register_manager').append( '<option value=' + value
+                                            + '>' + $('#cash_register_staffselect option:selected').text() + '</option>' );
+                                    $('#cash_register_staffselect option:selected').remove();
+                                    $("#cash_register_staffselect").val($("#cash_register_staffselect option:first").val());
+                                    $("#cash_register_manager").val(value);
+                                }
+                        });
+                $('#unauthorize').click( function(event) {
+                                event.preventDefault();
+                                if ($('#cash_register_manager option:selected').length > 0) {
+                                    var value= $('#cash_register_manager option:selected').val();
+                                    $('#cash_register_staffselect').append( '<option value=' + value
+                                            + '>' + $('#cash_register_manager option:selected').text() + '</option>' );
+                                    $('#cash_register_manager option:selected').remove();
+                                    $("#cash_register_manager").val($("#cash_register_manager option:first").val());
+                                    $("#cash_register_staffselect").val(value);
+                                }
+                        });
+                $('#savedata').click( function(event) {
+                    var arr = $('#cash_register_manager').find("option").map(function() { return this.value; }).get();
+                    $("#cash_register_manager_list").val(arr.join());
+                });
+                
+                
+        });
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

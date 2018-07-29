@@ -83,6 +83,18 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [28,6]
 
+=head2 unitprice_tax_excluded
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 unitprice_tax_included
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
 =head2 quantityreceived
 
   data_type: 'smallint'
@@ -97,22 +109,22 @@ __PACKAGE__->table("aqorders");
 
 =head2 cancellationreason
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 order_internalnote
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 order_vendornote
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 purchaseordernumber
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 basketno
@@ -134,17 +146,71 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [13,2]
 
+=head2 rrp_tax_excluded
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 rrp_tax_included
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
 =head2 ecost
 
   data_type: 'decimal'
   is_nullable: 1
   size: [13,2]
 
-=head2 gstrate
+=head2 ecost_tax_excluded
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 ecost_tax_included
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 tax_rate_bak
 
   data_type: 'decimal'
   is_nullable: 1
   size: [6,4]
+
+=head2 tax_rate_on_ordering
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [6,4]
+
+=head2 tax_rate_on_receiving
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [6,4]
+
+=head2 tax_value_bak
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 tax_value_on_ordering
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+=head2 tax_value_on_receiving
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
 
 =head2 discount
 
@@ -243,7 +309,7 @@ __PACKAGE__->table("aqorders");
 
 =head2 suppliers_report
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =cut
@@ -269,18 +335,22 @@ __PACKAGE__->add_columns(
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "unitprice",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "unitprice_tax_excluded",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "unitprice_tax_included",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "quantityreceived",
   { data_type => "smallint", default_value => 0, is_nullable => 0 },
   "datecancellationprinted",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "cancellationreason",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "order_internalnote",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "order_vendornote",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "purchaseordernumber",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "basketno",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "timestamp",
@@ -292,10 +362,28 @@ __PACKAGE__->add_columns(
   },
   "rrp",
   { data_type => "decimal", is_nullable => 1, size => [13, 2] },
+  "rrp_tax_excluded",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "rrp_tax_included",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "ecost",
   { data_type => "decimal", is_nullable => 1, size => [13, 2] },
-  "gstrate",
+  "ecost_tax_excluded",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "ecost_tax_included",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "tax_rate_bak",
   { data_type => "decimal", is_nullable => 1, size => [6, 4] },
+  "tax_rate_on_ordering",
+  { data_type => "decimal", is_nullable => 1, size => [6, 4] },
+  "tax_rate_on_receiving",
+  { data_type => "decimal", is_nullable => 1, size => [6, 4] },
+  "tax_value_bak",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "tax_value_on_ordering",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "tax_value_on_receiving",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "discount",
   { data_type => "float", is_nullable => 1, size => [6, 4] },
   "budget_id",
@@ -334,7 +422,7 @@ __PACKAGE__->add_columns(
   "suppliers_reference_qualifier",
   { data_type => "varchar", is_nullable => 1, size => 3 },
   "suppliers_report",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -537,8 +625,8 @@ Composing rels: L</aqorder_users> -> borrowernumber
 __PACKAGE__->many_to_many("borrowernumbers", "aqorder_users", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-05-06 18:07:43
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:SQC7q+ZeARRBGvdzzWgSkw
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:K0GnMGYtZUQ1WCesHKIxHw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

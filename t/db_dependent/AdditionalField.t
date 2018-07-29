@@ -3,7 +3,6 @@
 use Modern::Perl;
 use Test::More tests => 40;
 
-use C4::Bookseller qw( AddBookseller );
 use C4::Context;
 use Koha::AdditionalField;
 
@@ -108,20 +107,11 @@ use C4::Serials;
 use C4::Serials::Frequency;
 use C4::Serials::Numberpattern;
 
-my $booksellerid = C4::Bookseller::AddBookseller(
-    {
-        name => "my vendor",
-        address1 => "bookseller's address",
-        phone => "0123456",
-        active => 1
-    }
-);
-
 my ($biblionumber, $biblioitemnumber) = AddBiblio(MARC::Record->new, '');
 my $budgetid;
 my $bpid = AddBudgetPeriod({
-    budget_period_startdate => '01-01-2015',
-    budget_period_enddate   => '01-01-2016',
+    budget_period_startdate => '2015-01-01',
+    budget_period_enddate   => '2016-01-01',
 });
 
 my $budget_id = AddBudget({
@@ -135,6 +125,7 @@ my $budget_id = AddBudget({
 my $frequency_id = AddSubscriptionFrequency({ description => "Test frequency 1" });
 my $pattern_id = AddSubscriptionNumberpattern({
     label => 'Test numberpattern 1',
+    description => 'Description for numberpattern 1',
     numberingmethod => '{X}'
 });
 

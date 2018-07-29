@@ -26,17 +26,16 @@ Search for invoices
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 
 use C4::Acquisition qw/GetInvoices/;
-use C4::Branch qw/GetBranchesWithoutMobileStations/;
 use C4::Budgets;
 use Koha::DateUtils;
+use Koha::Acquisition::Booksellers;
 
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
@@ -90,38 +89,20 @@ if ( $op and $op eq 'do_search' ) {
 }
 
 # Build suppliers list
-my @suppliers      = Koha::Acquisition::Bookseller->search;
+my @suppliers      = Koha::Acquisition::Booksellers->search( undef, { order_by => { -asc => 'name' } } );
 my $suppliers_loop = [];
 my $suppliername;
 foreach (@suppliers) {
     my $selected = 0;
-    if ($supplierid && $supplierid == $_->{id} ) {
+    if ($supplierid && $supplierid == $_->id ) {
         $selected = 1;
-        $suppliername = $_->{name};
+        $suppliername = $_->name;
     }
     push @{$suppliers_loop},
       {
-        suppliername => $_->{name},
-        booksellerid   => $_->{id},
+        suppliername => $_->name,
+        booksellerid   => $_->id,
         selected     => $selected,
-      };
-}
-
-# Build branches list
-my $branches      = GetBranchesWithoutMobileStations();
-my $branches_loop = [];
-my $branchname;
-foreach ( sort keys %$branches ) {
-    my $selected = 0;
-    if ( $branch && $branch eq $_ ) {
-        $selected   = 1;
-        $branchname = $branches->{$_}->{'branchname'};
-    }
-    push @{$branches_loop},
-      {
-        branchcode => $_,
-        branchname => $branches->{$_}->{branchname},
-        selected   => $selected,
       };
 }
 
@@ -149,9 +130,7 @@ $template->param(
     publisher       => $publisher,
     publicationyear => $publicationyear,
     branch          => $branch,
-    branchname      => $branchname,
     suppliers_loop  => $suppliers_loop,
-    branches_loop   => $branches_loop,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

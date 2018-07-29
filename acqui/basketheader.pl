@@ -45,17 +45,15 @@ If it exists, C<$basketno> is the basket we edit
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Auth;
-use C4::Branch;
 use C4::Output;
 use C4::Acquisition qw/GetBasket NewBasket ModBasketHeader/;
 use C4::Contract qw/GetContracts/;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
 
 my $input = new CGI;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -72,10 +70,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 #parameters:
 my $booksellerid = $input->param('booksellerid');
 my $basketno = $input->param('basketno');
-my $branches = GetBranches;
 my $basket;
-my $op = $input ->param('op');
-my $is_an_edit= $input ->param('is_an_edit');
+my $op = $input->param('op');
+my $is_an_edit = $input->param('is_an_edit');
 
 if ( $op eq 'add_form' ) {
     my @contractloop;
@@ -106,35 +103,32 @@ if ( $op eq 'add_form' ) {
         });
         push(@contractloop, @$contracts);
     }
-    my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+    my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
     my $count = scalar @contractloop;
     if ( $count > 0) {
         $template->param(contractloop => \@contractloop,
                          basketcontractnumber => $basket->{'contractnumber'});
     }
-    my @booksellers = Koha::Acquisition::Bookseller->search;
+    my @booksellers = Koha::Acquisition::Booksellers->search(
+                        undef,
+                        { order_by => { -asc => 'name' } } );
+
     $template->param( add_form => 1,
                     basketname => $basket->{'basketname'},
                     basketnote => $basket->{'note'},
                     basketbooksellernote => $basket->{'booksellernote'},
-                    booksellername => $bookseller->{'name'},
+                    booksellername => $bookseller->name,
                     booksellerid => $booksellerid,
                     basketno => $basketno,
                     booksellers => \@booksellers,
-                    deliveryplace => $basket->{deliveryplace},
-                    billingplace => $basket->{billingplace},
                     is_standing => $basket->{is_standing},
     );
 
     my $billingplace = $basket->{'billingplace'} || C4::Context->userenv->{"branch"};
     my $deliveryplace = $basket->{'deliveryplace'} || C4::Context->userenv->{"branch"};
 
-    # Build the combobox to select the billing place
-
-    my $branches = C4::Branch::GetBranchesLoop( $billingplace );
-    $template->param( billingplaceloop => $branches );
-    $branches = C4::Branch::GetBranchesLoop( $deliveryplace );
-    $template->param( deliveryplaceloop => $branches );
+    $template->param( billingplace => $billingplace );
+    $template->param( deliveryplace => $deliveryplace );
 
 #End Edit
 } elsif ( $op eq 'add_validate' ) {
@@ -142,26 +136,28 @@ if ( $op eq 'add_form' ) {
     if ( $is_an_edit ) {
         ModBasketHeader(
             $basketno,
-            $input->param('basketname'),
-            $input->param('basketnote'),
-            $input->param('basketbooksellernote'),
-            $input->param('basketcontractnumber') || undef,
-            $input->param('basketbooksellerid'),
-            $input->param('deliveryplace'),
-            $input->param('billingplace'),
-            $input->param('is_standing') ? 1 : undef,
+            scalar $input->param('basketname'),
+            scalar $input->param('basketnote'),
+            scalar $input->param('basketbooksellernote'),
+            scalar $input->param('basketcontractnumber') || undef,
+            scalar $input->param('basketbooksellerid'),
+            scalar $input->param('deliveryplace'),
+            scalar $input->param('billingplace'),
+            scalar $input->param('is_standing') ? 1 : undef,
+            scalar $input->param('create_items')
         );
     } else { #New basket
         $basketno = NewBasket(
             $booksellerid,
             $loggedinuser,
-            $input->param('basketname'),
-            $input->param('basketnote'),
-            $input->param('basketbooksellernote'),
-            $input->param('basketcontractnumber') || undef,
-            $input->param('deliveryplace'),
-            $input->param('billingplace'),
-            $input->param('is_standing') ? 1 : undef,
+            scalar $input->param('basketname'),
+            scalar $input->param('basketnote'),
+            scalar $input->param('basketbooksellernote'),
+            scalar $input->param('basketcontractnumber') || undef,
+            scalar $input->param('deliveryplace'),
+            scalar $input->param('billingplace'),
+            scalar $input->param('is_standing') ? 1 : undef,
+            scalar $input->param('create_items')
         );
     }
     print $input->redirect('basket.pl?basketno='.$basketno);

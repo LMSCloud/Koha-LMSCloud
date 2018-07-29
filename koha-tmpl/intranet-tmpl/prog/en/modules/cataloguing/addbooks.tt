@@ -1,85 +1,10 @@
 [% USE Koha %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Cataloging</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-    //<![CDATA[
-
-     $(document).ready(function() {
-        //Set focus to cataloging search
-        $("input[name=q]:eq(0)").focus();
-
-        $("#z3950search").click(function(){
-            PopupZ3950("");
-            return false;
-        });
-
-        $(".z3950searchFw").click(function(){
-            PopupZ3950($(this).prop('id'));
-            return false;
-        });
-        $(".merge-items").on("click",function(e){
-            e.preventDefault();
-            MergeItems();
-        });
-
-        $("#useadvanced").click(function(){
-            $.cookie( 'catalogue_editor_[% USER_INFO.borrowernumber %]', 'advanced', { expires: 365, path: '/' } );
-            return true;
-        });
-
-        $(".previewData").on("click", function(e){
-            e.preventDefault();
-            var ltitle = $(this).text();
-            var page = $(this).attr("href");
-            $("#dataPreviewLabel").text(ltitle);
-            $("#dataPreview .modal-body").load(page + " div");
-            $('#dataPreview').modal({show:true});
-        });
-        $("#dataPreview").on("hidden", function(){
-            $("#dataPreviewLabel").html("");
-            $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/loading-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
-        });
-
-     });
-
-    /* this function open a popup to search on z3950 server.  */
-    function PopupZ3950(fw) {
-        var strQuery = GetZ3950Terms(fw);
-        if(strQuery){
-            window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?biblionumber=[% biblionumber %]"+strQuery,"z3950search",'width=800,height=500,location=yes,toolbar=no,scrollbars=yes,resize=yes');
-        }
-    }
-    /* provide Z3950 search points */
-    function GetZ3950Terms(fw){
-        var strQuery="&frameworkcode=" + fw;
-        [% FOREACH z3950_search_param IN z3950_search_params %]
-            strQuery += "&" + "[% z3950_search_param.name | uri %]" + "=" + "[% z3950_search_param.value | uri %]";
-        [% END %]
-        return strQuery;
-    }
-
-    /**
-     * This function checks if the adequate number of records are checked for merging
-     */
-    function MergeItems() {
-     var checkboxes = $("input:checkbox:checked");
-     if (checkboxes.length < 2) {
-         alert(_("At least two records must be selected for merging."));
-     } else {
-         var params = [];
-         $(checkboxes).each(function() {
-             params.push('biblionumber=' + $(this).val());
-         });
-         var url = '/cgi-bin/koha/cataloguing/merge.pl?' + params.join('&');
-         location.href = url;
-     }
-     return false;
-    }
-
-    //]]>
-</script>
 </head>
+
 <body id="cat_addbooks" class="cat">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cataloging-search.inc' %]
@@ -94,31 +19,33 @@
 [% IF ( CAN_user_editcatalogue_edit_catalogue ) %]
   <div id="toolbar" class="btn-toolbar">
         [% IF Koha.Preference( 'EnableAdvancedCatalogingEditor' ) == 1 %]
-            <a id="useadvanced" href="/cgi-bin/koha/cataloguing/editor.pl" class="btn btn-small"><i class="fa fa-pencil"></i> Advanced editor</a>
+            <a id="useadvanced" href="/cgi-bin/koha/cataloguing/editor.pl" class="btn btn-default btn-sm"><i class="fa fa-pencil"></i> Advanced editor</a>
         [% END %]
         <div class="btn-group">
-            <button class="btn btn-small dropdown-toggle" data-toggle="dropdown"><i class="fa fa-plus"></i> New record <span class="caret"></span></button>
+            <button class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown"><i class="fa fa-plus"></i> New record <span class="caret"></span></button>
             <ul class="dropdown-menu">
                 <li><a href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=">Default framework</a></li>
-                [% FOREACH frameworkcodeloo IN frameworkcodeloop %]
-                <li><a href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=[% frameworkcodeloo.value %]">[% frameworkcodeloo.frameworktext %]</a></li>
+                [% FOREACH framework IN frameworks %]
+                    <li><a href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=[% framework.frameworkcode %]">[% framework.frameworktext %]</a></li>
                 [% END %]
             </ul>
         </div>
+        [% IF servers.count > 0 %]
         <div class="btn-group">
-            <button class="btn btn-small" id="z3950search"><i class="fa fa-search"></i> New from Z39.50/SRU</button>
-            <button class="btn btn-small dropdown-toggle" data-toggle="dropdown">
+            <button class="btn btn-default btn-sm" id="z3950search"><i class="fa fa-search"></i> New from Z39.50/SRU</button>
+            <button class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
                 <li id="" class="z3950searchFw"><a href="#">Default framework</a></li>
-                [% FOREACH frameworkcodeloo IN frameworkcodeloop %]
-                <li id="[% frameworkcodeloo.value %]" class="z3950searchFw"><a href="#">[% frameworkcodeloo.frameworktext %]</a></li>
+                [% FOREACH framework IN frameworks %]
+                <li id="[% framework.frameworkcode %]" class="z3950searchFw"><a href="#">[% framework.frameworktext %]</a></li>
                 [% END %]
             </ul>
         </div>
+        [% END %]
     [% IF ( total ) %]
-        <div class="btn-group"><button type="submit" class="btn btn-small merge-items"><i class="fa fa-compress"></i> Merge selected</button></div>
+        <div class="btn-group"><button type="submit" class="btn btn-default btn-sm merge-items"><i class="fa fa-compress"></i> Merge selected</button></div>
     [% END %]
   </div>
 [% END %]
@@ -199,7 +126,7 @@
                 </td>
                 <td>
                   <div class="dropup">
-                    <a class="btn btn-mini dropdown-toggle" id="cataloguesearchactions[% resultsloo.biblionumber %]" role="button" data-toggle="dropdown" href="#">
+                    <a class="btn btn-default btn-xs dropdown-toggle" id="cataloguesearchactions[% resultsloo.biblionumber %]" role="button" data-toggle="dropdown" href="#">
                       Actions <b class="caret"></b>
                     </a>
                     <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="cataloguesearchactions[% resultsloo.biblionumber %]">
@@ -246,7 +173,7 @@
                 <td>[% breeding_loo.file %]</td>
                 <td>
                   <div class="dropup">
-                    <a class="btn btn-mini dropdown-toggle" id="reservoirsearchactions[% breeding_loo.id %]" role="button" data-toggle="dropdown" href="#">
+                    <a class="btn btn-default btn-xs dropdown-toggle" id="reservoirsearchactions[% breeding_loo.id %]" role="button" data-toggle="dropdown" href="#">
                       Actions <b class="caret"></b>
                     </a>
                     <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="reservoirsearchactions[% breeding_loo.id %]">
@@ -267,19 +194,102 @@
 </div>
 [% END %]
 
-<div id="dataPreview" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+<div id="dataPreview" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
     <div class="modal-header">
         <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
         <h3 id="dataPreviewLabel">Preview</h3>
     </div>
     <div class="modal-body">
-        <div id="loading"> <img src="[% interface %]/[% theme %]/img/loading-small.gif" alt="" /> Loading </div>
+        <div id="loading"> <img src="[% interface %]/[% theme %]/img/spinner-small.gif" alt="" /> Loading </div>
     </div>
     <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+    </div>
+    </div>
     </div>
 </div>
 
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    <script type="text/javascript">
+
+         $(document).ready(function() {
+            //Set focus to cataloging search
+            $("input[name=q]:eq(0)").focus();
+
+            $("#z3950search").click(function(){
+                PopupZ3950("");
+                return false;
+            });
+
+            $(".z3950searchFw").click(function(){
+                PopupZ3950($(this).prop('id'));
+                return false;
+            });
+            $(".merge-items").on("click",function(e){
+                e.preventDefault();
+                MergeItems();
+            });
+
+            $("#useadvanced").click(function(){
+                $.cookie( 'catalogue_editor_[% USER_INFO.borrowernumber %]', 'advanced', { expires: 365, path: '/' } );
+                return true;
+            });
+
+            $(".previewData").on("click", function(e){
+                e.preventDefault();
+                var ltitle = $(this).text();
+                var page = $(this).attr("href");
+                $("#dataPreviewLabel").text(ltitle);
+                $("#dataPreview .modal-body").load(page + " div");
+                $('#dataPreview').modal({show:true});
+            });
+            $("#dataPreview").on("hidden", function(){
+                $("#dataPreviewLabel").html("");
+                $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
+            });
+
+         });
+
+        /* this function open a popup to search on z3950 server.  */
+        function PopupZ3950(fw) {
+            var strQuery = GetZ3950Terms(fw);
+            if(strQuery){
+                window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?biblionumber=[% biblionumber %]"+strQuery,"z3950search",'width=800,height=500,location=yes,toolbar=no,scrollbars=yes,resize=yes');
+            }
+        }
+        /* provide Z3950 search points */
+        function GetZ3950Terms(fw){
+            var strQuery="&frameworkcode=" + fw;
+            [% FOREACH z3950_search_param IN z3950_search_params %]
+                strQuery += "&" + "[% z3950_search_param.name | uri %]" + "=" + "[% z3950_search_param.value | uri %]";
+            [% END %]
+            return strQuery;
+        }
+
+        /**
+         * This function checks if the adequate number of records are checked for merging
+         */
+        function MergeItems() {
+         var checkboxes = $("input:checkbox:checked");
+         if (checkboxes.length < 2) {
+             alert(_("At least two records must be selected for merging."));
+         } else {
+             var params = [];
+             $(checkboxes).each(function() {
+                 params.push('biblionumber=' + $(this).val());
+             });
+             var url = '/cgi-bin/koha/cataloguing/merge.pl?' + params.join('&');
+             location.href = url;
+         }
+         return false;
+        }
+
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

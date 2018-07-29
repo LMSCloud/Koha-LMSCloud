@@ -23,10 +23,15 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
+use DateTime::TimeZone;
+use File::Spec;
 use List::MoreUtils qw/ any /;
 use LWP::Simple;
+use Module::Load::Conditional qw(can_load);
 use XML::Simple;
 use Config;
+use Search::Elasticsearch;
+use Try::Tiny;
 
 use C4::Output;
 use C4::Auth;
@@ -34,10 +39,18 @@ use C4::Context;
 use C4::Installer;
 
 use Koha;
+use Koha::DateUtils qw(dt_from_string output_pref);
 use Koha::Acquisition::Currencies;
+use Koha::Patron::Categories;
 use Koha::Patrons;
+use Koha::Caches;
 use Koha::Config::SysPrefs;
+use Koha::Illrequest::Config;
+use Koha::SearchEngine::Elasticsearch;
+use Koha::UploadedFiles;
+
 use C4::Members::Statistics;
+
 
 #use Smart::Comments '####';
 
@@ -51,6 +64,38 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         flagsrequired   => { catalogue => 1 },
         debug           => 1,
     }
+);
+
+my $config_timezone = C4::Context->config('timezone') // '';
+my $config_invalid  = !DateTime::TimeZone->is_valid_name( $config_timezone );
+my $env_timezone    = $ENV{TZ} // '';
+my $env_invalid     = !DateTime::TimeZone->is_valid_name( $env_timezone );
+my $actual_bad_tz_fallback = 0;
+
+if ( $config_timezone ne '' &&
+     $config_invalid ) {
+    # Bad config
+    $actual_bad_tz_fallback = 1;
+}
+elsif ( $config_timezone eq '' &&
+        $env_timezone    ne '' &&
+        $env_invalid ) {
+    # No config, but bad ENV{TZ}
+    $actual_bad_tz_fallback = 1;
+}
+
+my $time_zone = {
+    actual                 => C4::Context->tz->name,
+    actual_bad_tz_fallback => $actual_bad_tz_fallback,
+    config                 => $config_timezone,
+    config_invalid         => $config_invalid,
+    environment            => $env_timezone,
+    environment_invalid    => $env_invalid
+};
+
+$template->param(
+    time_zone              => $time_zone,
+    current_date_and_time  => output_pref({ dt => dt_from_string(), dateformat => 'iso' })
 );
 
 my $perl_path = $^X;
@@ -69,6 +114,34 @@ if ( any { /(^psgi\.|^plack\.)/i } keys %ENV ) {
                                              'Unknown'
     );
 }
+
+# Memcached configuration
+my $memcached_servers   = $ENV{MEMCACHED_SERVERS} || C4::Context->config('memcached_servers');
+my $memcached_namespace = $ENV{MEMCACHED_NAMESPACE} || C4::Context->config('memcached_namespace') // 'koha';
+
+my $cache = Koha::Caches->get_instance;
+my $effective_caching_method = ref($cache->cache);
+# Memcached may have been running when plack has been initialized but could have been stopped since
+# FIXME What are the consequences of that??
+my $is_memcached_still_active = $cache->set_in_cache('test_for_about_page', "just a simple value");
+
+my $where_is_memcached_config = 'nowhere';
+if ( $ENV{MEMCACHED_SERVERS} and C4::Context->config('memcached_servers') ) {
+    $where_is_memcached_config = 'both';
+} elsif ( $ENV{MEMCACHED_SERVERS} and not C4::Context->config('memcached_servers') ) {
+    $where_is_memcached_config = 'ENV_only';
+} elsif ( C4::Context->config('memcached_servers') ) {
+    $where_is_memcached_config = 'config_only';
+}
+
+$template->param(
+    effective_caching_method => $effective_caching_method,
+    memcached_servers   => $memcached_servers,
+    memcached_namespace => $memcached_namespace,
+    is_memcached_still_active => $is_memcached_still_active,
+    where_is_memcached_config => $where_is_memcached_config,
+    memcached_running   => Koha::Caches->get_instance->memcached_cache,
+);
 
 # Additional system information for warnings
 
@@ -189,6 +262,14 @@ if ( ! defined C4::Context->config('upload_path') ) {
     }
 }
 
+if ( ! C4::Context->config('tmp_path') ) {
+    my $temporary_directory = Koha::UploadedFile->temporary_directory;
+    push @xml_config_warnings, {
+        error             => 'tmp_path_missing',
+        effective_tmp_dir => $temporary_directory,
+    }
+}
+
 # Test QueryParser configuration sanity
 if ( C4::Context->preference( 'UseQueryParser' ) ) {
     # Get the QueryParser configuration file name
@@ -231,6 +312,103 @@ if ( !defined C4::Context->config('use_zebra_facets') ) {
     }
 }
 
+# ILL module checks
+if ( C4::Context->preference('ILLModule') ) {
+    my $warnILLConfiguration = 0;
+    my $ill_config_from_file = C4::Context->config("interlibrary_loans");
+    my $ill_config = Koha::Illrequest::Config->new;
+
+    my $available_ill_backends =
+      ( scalar @{ $ill_config->available_backends } > 0 );
+
+    # Check backends
+    if ( !$available_ill_backends ) {
+        $template->param( no_ill_backends => 1 );
+        $warnILLConfiguration = 1;
+    }
+
+    # Check partner_code
+    if ( !Koha::Patron::Categories->find($ill_config->partner_code) ) {
+        $template->param( ill_partner_code_doesnt_exist => $ill_config->partner_code );
+        $warnILLConfiguration = 1;
+    }
+
+    if ( !$ill_config_from_file->{partner_code} ) {
+        # partner code not defined
+        $template->param( ill_partner_code_not_defined => 1 );
+        $warnILLConfiguration = 1;
+    }
+
+    $template->param( warnILLConfiguration => $warnILLConfiguration );
+}
+
+if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' ) {
+    # Check ES configuration health and runtime status
+
+    my $es_status;
+    my $es_config_error;
+    my $es_running = 1;
+
+    my $es_conf;
+    try {
+        $es_conf = Koha::SearchEngine::Elasticsearch::_read_configuration();
+    }
+    catch {
+        if ( ref($_) eq 'Koha::Exceptions::Config::MissingEntry' ) {
+            $template->param( elasticsearch_fatal_config_error => $_->message );
+            $es_config_error = 1;
+        }
+    };
+    if ( !$es_config_error ) {
+
+        my $biblios_index_name     = $es_conf->{index_name} . "_" . $Koha::SearchEngine::BIBLIOS_INDEX;
+        my $authorities_index_name = $es_conf->{index_name} . "_" . $Koha::SearchEngine::AUTHORITIES_INDEX;
+
+        my @indexes = ($biblios_index_name, $authorities_index_name);
+        # TODO: When new indexes get added, we could have other ways to
+        #       fetch the list of available indexes (e.g. plugins, etc)
+        $es_status->{nodes} = $es_conf->{nodes};
+        my $es = Search::Elasticsearch->new({ nodes => $es_conf->{nodes} });
+
+        foreach my $index ( @indexes ) {
+            my $count;
+            try {
+                $count = $es->indices->stats( index => $index )
+                      ->{_all}{primaries}{docs}{count};
+            }
+            catch {
+                if ( ref($_) eq 'Search::Elasticsearch::Error::Missing' ) {
+                    push @{ $es_status->{errors} }, "Index not found ($index)";
+                    $count = -1;
+                }
+                elsif ( ref($_) eq 'Search::Elasticsearch::Error::NoNodes' ) {
+                    $es_running = 0;
+                }
+                else {
+                    # TODO: when time comes, we will cover more use cases
+                    die $_;
+                }
+            };
+
+            push @{ $es_status->{indexes} },
+              {
+                index_name => $index,
+                count      => $count
+              };
+        }
+        $es_status->{running} = $es_running;
+
+        $template->param( elasticsearch_status => $es_status );
+    }
+}
+
+if ( C4::Context->preference('RESTOAuth2ClientCredentials') ) {
+    # Do we have the required deps?
+    unless ( can_load( modules => { 'Net::OAuth2::AuthorizationServer' => undef }) ) {
+        $template->param( oauth2_missing_deps => 1 );
+    }
+}
+
 # Sco Patron should not contain any other perms than circulate => self_checkout
 if (  C4::Context->preference('WebBasedSelfCheck')
       and C4::Context->preference('AutoSelfCheckAllowed')
@@ -239,9 +417,9 @@ if (  C4::Context->preference('WebBasedSelfCheck')
     my $all_permissions = C4::Auth::get_user_subpermissions( $userid );
     my ( $has_self_checkout_perm, $has_other_permissions );
     while ( my ( $module, $permissions ) = each %$all_permissions ) {
-        if ( $module eq 'circulate' ) {
+        if ( $module eq 'self_check' ) {
             while ( my ( $permission, $flag ) = each %$permissions ) {
-                if ( $permission eq 'self_checkout' ) {
+                if ( $permission eq 'self_checkout_module' ) {
                     $has_self_checkout_perm = 1;
                 } else {
                     $has_other_permissions = 1;
@@ -255,10 +433,41 @@ if (  C4::Context->preference('WebBasedSelfCheck')
         AutoSelfCheckPatronDoesNotHaveSelfCheckPerm => not ( $has_self_checkout_perm ),
         AutoSelfCheckPatronHasTooManyPerm => $has_other_permissions,
     );
-
-
 }
 
+{
+    my $dbh       = C4::Context->dbh;
+    my $patrons = $dbh->selectall_arrayref(
+        q|select b.borrowernumber from borrowers b join deletedborrowers db on b.borrowernumber=db.borrowernumber|,
+        { Slice => {} }
+    );
+    my $biblios = $dbh->selectall_arrayref(
+        q|select b.biblionumber from biblio b join deletedbiblio db on b.biblionumber=db.biblionumber|,
+        { Slice => {} }
+    );
+    my $items = $dbh->selectall_arrayref(
+        q|select i.itemnumber from items i join deleteditems di on i.itemnumber=di.itemnumber|,
+        { Slice => {} }
+    );
+    my $checkouts = $dbh->selectall_arrayref(
+        q|select i.issue_id from issues i join old_issues oi on i.issue_id=oi.issue_id|,
+        { Slice => {} }
+    );
+    my $holds = $dbh->selectall_arrayref(
+        q|select r.reserve_id from reserves r join old_reserves o on r.reserve_id=o.reserve_id|,
+        { Slice => {} }
+    );
+    if ( @$patrons or @$biblios or @$items or @$checkouts or @$holds ) {
+        $template->param(
+            has_ai_issues => 1,
+            ai_patrons    => $patrons,
+            ai_biblios    => $biblios,
+            ai_items      => $items,
+            ai_checkouts  => $checkouts,
+            ai_holds      => $holds,
+        );
+    }
+}
 my %versions = C4::Context::get_versions();
 
 $template->param(
@@ -360,7 +569,7 @@ if ( open( my $file, "<:encoding(UTF-8)", "$docdir" . "/history.txt" ) ) {
     shift @lines; #remove header row
 
     foreach (@lines) {
-        my ( $date, $desc, $tag ) = split(/\t/);
+        my ( $epoch, $date, $desc, $tag ) = split(/\t/);
         if(!$desc && $date=~ /(?<=\d{4})\s+/) {
             ($date, $desc)= ($`, $');
         }

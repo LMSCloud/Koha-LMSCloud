@@ -1,4 +1,5 @@
 # Copyright 2007 MJ Ray
+# Copyright 2016 PTFS Europe
 #
 # This file is part of Koha.
 #
@@ -23,7 +24,7 @@ use warnings;
 use ExtUtils::MakeMaker;
 use POSIX;
 use File::Spec;
-use Getopt::Long;
+use Getopt::Long qw/HelpMessage/;
 use FindBin; # we need to enforce which C4::Installer::PerlModule is used in case more than one is installed
 
 use lib $FindBin::Bin;
@@ -71,6 +72,37 @@ Makefile.PL - Koha packager and installer
 =head2 CLEANING UP
 
 	make clean
+
+=head2 CLI PARAMETERS
+
+    --prev-install-log           Read configuration from previous installation
+    --install_mode               Installation mode (dev, standard, single)
+    --db_type                    Database (mysql, Pg)
+    --db_host                    Database host (e.g. localhost)
+    --db_port                    Database port (e.g. 3306)
+    --db_name                    Database name (e.g. koha)
+    --db_user                    Database user (e.g. kohaadmin)
+    --db_pass                    Database password (e.g. katikoan)
+    --zebra_marc_format          Zebra MARC format (marc21, normarc, unimarc)
+    --zebra_language             Zebra language (e.g. en)
+    --zebra_tokenizer            Zebra tokenizer (chr, icu)
+    --zebra_user                 Zebra user (e.g. kohauser)
+    --zebra_pass                 Zebra password (e.g. zebrastripes)
+    --zebra_sru_host             Zebra SRU servername (e.g. localhost)
+    --zebra_sru_biblios_port     Zebra SRU biblios port (e.g. 9998)
+    --zebra_sru_authorities_port Zebra SRU biblios port (e.g. 9999)
+    --auth_index_mode            Authority index mode (grs1, dom)
+    --bib_index_mode             Bibliographic index mode (grs1, dom)
+    --koha_user                  Koha Unix user (e.g. koha)
+    --koha_group                 Koha Unix group (e.g. koha)
+    --install_sru                Install the SRU server (yes, no)
+    --install_pazpar2            Install PazPar2 (yes, no)
+    --use_memcached              Use Memcached (yes, no)
+    --font_dir                   Location of fonts (e.g. /usr/share/fonts/truetype/ttf-dejavu)
+    --run_database_tests         Run database dependent tests (yes, no)
+    --install_base               Base directory of installation (e.g. /usr/share/koha)
+    --template-cache-dir         Specify a template cache directory (e.g. /var/cache/koha)
+    --help                       Display this help message
 
 =head1 DESCRIPTION
 
@@ -272,6 +304,7 @@ my $target_map = {
   './changelanguage.pl'         => 'INTRANET_CGI_DIR',
   './check_sysprefs.pl'         => 'NONE',
   './circ'                      => 'INTRANET_CGI_DIR',
+  './clubs'                     => 'INTRANET_CGI_DIR',
   './course_reserves'           => 'INTRANET_CGI_DIR',
   './docs/history.txt'          => { target => 'DOC_DIR', trimdir => -1 },
   './offline_circ'              => 'INTRANET_CGI_DIR',
@@ -280,6 +313,7 @@ my $target_map = {
   './etc/zebradb'               => { target => 'ZEBRA_CONF_DIR', trimdir => -1 },
   './etc/pazpar2'               => { target => 'PAZPAR2_CONF_DIR', trimdir => -1 },
   './help.pl'                   => 'INTRANET_CGI_DIR',
+  './ill'                       => 'INTRANET_CGI_DIR',
   './installer-CPAN.pl'         => 'NONE',
   './installer'                 => 'INTRANET_CGI_DIR',
   './errors'                    => {target => 'INTRANET_CGI_DIR'},
@@ -426,6 +460,10 @@ my %config_defaults = (
   'DB_NAME'           => 'koha',
   'DB_USER'           => 'kohaadmin',
   'DB_PASS'           => 'katikoan',
+  'DB_USE_TLS'	      => 'no',
+  'DB_TLS_CA_CERTIFICATE'  => '/etc/mysql-ssl/server-ca.pem',
+  'DB_TLS_CLIENT_CERTIFICATE'  => '/etc/mysql-ssl/client-cert.pem',
+  'DB_TLS_CLIENT_KEY' => '/etc/mysql-ssl/client-key.pem',
   'INSTALL_SRU'       => 'yes',
   'INSTALL_PAZPAR2'   => 'no',
   'AUTH_INDEX_MODE'   => 'dom',
@@ -446,9 +484,10 @@ my %config_defaults = (
   'PAZPAR2_PORT' => '11002',
   'RUN_DATABASE_TESTS' => 'no',
   'PATH_TO_ZEBRA' => '',
-  'USE_MEMCACHED'     => 'no',
+  'USE_MEMCACHED'     => 'yes',
   'MEMCACHED_SERVERS' => '127.0.0.1:11211',
   'MEMCACHED_NAMESPACE' => 'KOHA',
+  'TEMPLATE_CACHE_DIR' => '/tmp/koha',
   'FONT_DIR'          => '/usr/share/fonts/truetype/ttf-dejavu'
 );
 
@@ -472,6 +511,7 @@ else {
 my %valid_config_values = (
   'INSTALL_MODE'  => { 'standard' => 1, 'single' => 1, 'dev' => 1 },
   'DB_TYPE' => { 'mysql' => 1, 'Pg' => 1 },
+  'DB_USE_TLS' => {'yes', 'no'},
   'INSTALL_SRU' => { 'yes' => 1, 'no' => 1 },
   'AUTH_INDEX_MODE' => { 'grs1' => 1, 'dom' => 1 },
   'BIB_INDEX_MODE'  => { 'grs1' => 1, 'dom' => 1 },
@@ -484,14 +524,70 @@ my %valid_config_values = (
 
 # get settings from command-line
 my $koha_install_log = "";
+my $cli_koha_install_mode = "";
+my $cli_koha_db_type = "";
+my $cli_koha_db_host = "";
+my $cli_koha_db_port = "";
+my $cli_koha_db_name = "";
+my $cli_koha_db_user = "";
+my $cli_koha_db_pass = "";
+my $cli_zebra_marc_format = "";
+my $cli_zebra_language = "",
+my $cli_zebra_tokenizer = "";
+my $cli_zebra_user = "";
+my $cli_zebra_pass = "";
+my $cli_zebra_sru_host = "";
+my $cli_zebra_sru_bib_port = "";
+my $cli_zebra_sru_auth_port = "";
+my $cli_koha_auth_index_mode = "";
+my $cli_koha_bib_index_mode = "";
+my $cli_koha_user = "";
+my $cli_koha_group = "";
+my $cli_koha_install_sru = "";
+my $cli_koha_install_pazpar2 = "";
+my $cli_koha_use_memcached = "";
+my $cli_koha_font_dir = "";
+my $cli_koha_run_database_tests = "";
+my $cli_koha_install_base = "";
+my $cli_koha_template_cache_dir = "";
 Getopt::Long::Configure('pass_through');
 my $results = GetOptions(
-    "prev-install-log=s" => \$koha_install_log
-);
+    "prev-install-log=s"           => \$koha_install_log,
+    "install_mode=s"               => \$cli_koha_install_mode,
+    "db_type=s"                    => \$cli_koha_db_type,
+    "db_host=s"                    => \$cli_koha_db_host,
+    "db_port=s"                    => \$cli_koha_db_port,
+    "db_name=s"                    => \$cli_koha_db_name,
+    "db_user=s"                    => \$cli_koha_db_user,
+    "db_pass=s"                    => \$cli_koha_db_pass,
+    "zebra_marc_format=s"          => \$cli_zebra_marc_format,
+    "zebra_language=s"             => \$cli_zebra_language,
+    "zebra_tokenizer=s"            => \$cli_zebra_tokenizer,
+    "zebra_user=s"                 => \$cli_zebra_user,
+    "zebra_pass=s"                 => \$cli_zebra_pass,
+    "zebra_sru_host=s"             => \$cli_zebra_sru_host,
+    "zebra_sru_biblios_port=s"     => \$cli_zebra_sru_bib_port,
+    "zebra_sru_authorities_port=s" => \$cli_zebra_sru_auth_port,
+    "auth_index_mode=s"            => \$cli_koha_auth_index_mode,
+    "bib_index_mode=s"             => \$cli_koha_bib_index_mode,
+    "koha_user=s"                  => \$cli_koha_user,
+    "koha_group=s"                 => \$cli_koha_group,
+    "install_sru=s"                => \$cli_koha_install_sru,
+    "install_pazpar2=s"            => \$cli_koha_install_pazpar2,
+    "use_memcached=s"              => \$cli_koha_use_memcached,
+    "font_dir=s"                   => \$cli_koha_font_dir,
+    "run_database_tests=s"         => \$cli_koha_run_database_tests,
+    "install_base=s"               => \$cli_koha_install_base,
+    "template-cache-dir=s"         => \$cli_koha_template_cache_dir,
+    "help"                         => sub { HelpMessage(0) },
+) or HelpMessage(1);
 
 my %install_log_values = ();
 if ($koha_install_log ne "") {
     get_install_log_values($koha_install_log, \%install_log_values);
+} else {
+    # Try to set install_log_values for provided values;
+    get_cli_values(\%install_log_values);
 }
 
 my %config = get_configuration(\%config_defaults, \%valid_config_values, \%install_log_values);
@@ -737,6 +833,47 @@ sub _add_to_file_map {
     }
 }
 
+=head2 get_cli_values
+
+Reads values provided on cli for configuration values
+
+=cut
+
+sub get_cli_values {
+    my $values = shift;
+    my $map = {
+        INSTALL_MODE               => $cli_koha_install_mode,
+        DB_TYPE                    => $cli_koha_db_type,
+        DB_HOST                    => $cli_koha_db_host,
+        DB_PORT                    => $cli_koha_db_port,
+        DB_NAME                    => $cli_koha_db_name,
+        DB_USER                    => $cli_koha_db_user,
+        DB_PASS                    => $cli_koha_db_pass,
+        ZEBRA_MARC_FORMAT          => $cli_zebra_marc_format,
+        ZEBRA_LANGUAGE             => $cli_zebra_language,
+        ZEBRA_TOKENIZER            => $cli_zebra_tokenizer,
+        ZEBRA_USER                 => $cli_zebra_user,
+        ZEBRA_PASS                 => $cli_zebra_pass,
+        ZEBRA_SRU_HOST             => $cli_zebra_sru_host,
+        ZEBRA_SRU_BIBLIOS_PORT     => $cli_zebra_sru_bib_port,
+        ZEBRA_SRU_AUTHORITIES_PORT => $cli_zebra_sru_auth_port,
+        AUTH_INDEX_MODE            => $cli_koha_auth_index_mode,
+        BIB_INDEX_MODE             => $cli_koha_bib_index_mode,
+        KOHA_USER                  => $cli_koha_user,
+        KOHA_GROUP                 => $cli_koha_group,
+        INSTALL_SRU                => $cli_koha_install_sru,
+        INSTALL_PAZPAR2            => $cli_koha_install_pazpar2,
+        USE_MEMCACHED              => $cli_koha_use_memcached,
+        FONT_DIR                   => $cli_koha_font_dir,
+        RUN_DATABASE_TESTS         => $cli_koha_run_database_tests,
+        INSTALL_BASE               => $cli_koha_install_base,
+        TEMPLATE_CACHE_DIR         => $cli_koha_template_cache_dir
+    };
+    foreach my $key (keys %{$map}) {
+        $values->{$key} = $map->{$key} if ($map->{$key});
+    }
+}
+
 =head2 get_install_log_values
 
 Reads value from the Koha install log specified by
@@ -908,6 +1045,27 @@ DMBS);
 Please specify the name of the database to be
 used by Koha);
     $config{'DB_NAME'} = _get_value('DB_NAME', $msg, $defaults->{'DB_NAME'}, $valid_values, $install_log_values);
+    if ($config{'DB_TYPE'} eq 'mysql'){
+        $msg = q(
+Please specify whether the connection to MySQL will use TLS
+        );
+        $config{'DB_USE_TLS'} = _get_value('DB_USE_TLS', $msg, $defaults->{'DB_USE_TLS'}, $valid_values, $install_log_values);
+    }
+    if ($config{'DB_USE_TLS'} eq 'yes'){
+        $msg = q(
+Please enter the path to the CA certificate for TLS
+        );
+        $config{'DB_TLS_CA_CERTIFICATE'} = _get_value('DB_TLS_CA_CERTIFICATE', $msg, $defaults->{'DB_TLS_CA_CERTIFICATE'}, $valid_values, $install_log_values);
+
+        $msg = q(
+Please enter the path to the client certificate for TLS
+        );
+        $config{'DB_TLS_CLIENT_CERTIFICATE'} = _get_value('DB_TLS_CLIENT_CERTIFICATE', $msg, $defaults->{'DB_TLS_CLIENT_CERTIFICATE'}, $valid_values, $install_log_values);
+        $msg = q(
+Please enter the path to the client key for TLS
+        );
+        $config{'DB_TLS_CLIENT_KEY'} = _get_value('DB_TLS_CLIENT_KEY', $msg, $defaults->{'DB_TLS_CLIENT_KEY'}, $valid_values, $install_log_values);
+    }
 
     $msg = q(
 Please specify the user that owns the database to be
@@ -1088,6 +1246,10 @@ Memcached server address?);
 Memcached namespace?);
       $config{'MEMCACHED_NAMESPACE'} = _get_value('MEMCACHED_NAMESPACE', $msg, $defaults->{'MEMCACHED_NAMESPACE'}, $valid_values, $install_log_values);
   }
+
+  $msg = q(
+Template cache directory?);
+  $config{'TEMPLATE_CACHE_DIR'} = _get_value('TEMPLATE_CACHE_DIR', $msg, $defaults->{'TEMPLATE_CACHE_DIR'}, $valid_values, $install_log_values);
 
   $msg = q(
 Path to DejaVu fonts?);

@@ -1,3 +1,5 @@
+[%- USE KohaPlugins -%]
+[% USE Asset %]
 [% UNLESS ( is_popup ) %]
     [% SET OpacLangSelectorMode = Koha.Preference('OpacLangSelectorMode') %]
     [% IF ( opaccredits ) %]
@@ -38,7 +40,7 @@
                     <div class="navbar-inner">
                         <ul id="i18nMenu" class="nav">
                             <li><p class="lang navbar-text"><strong>Languages:&nbsp;</strong></p></li>
-                            [% FOREACH languages_loo IN languages_loop.sort('rfc4646_subtag') %]
+                            [% FOREACH languages_loo IN languages_loop %]
                                 [% IF ( languages_loo.group_enabled ) %]
                                     [% IF ( languages_loo.plural ) %]
                                         <li class="dropdown">
@@ -77,38 +79,43 @@
 
 
 <!-- JavaScript includes -->
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/jquery.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/jquery-ui.js"></script>
-<script type="text/javascript">
+[% Asset.js("lib/jquery/jquery.js") %]
+[% Asset.js("lib/jquery/jquery-ui.js") %]
+<script>
 // Resolve name collision between jQuery UI and Twitter Bootstrap
 $.widget.bridge('uitooltip', $.ui.tooltip);
 </script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/bootstrap/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/global.js"></script>
-<script type="text/javascript">
+[% Asset.js("lib/bootstrap/js/bootstrap.min.js") %]
+[% Asset.js("js/global.js") %]
+<script>
     Modernizr.load([
         // Test need for polyfill
         {
             test: window.matchMedia,
-            nope: "[% interface %]/[% theme %]/lib/media.match.min.js"
+            nope: "[% Asset.url('lib/media.match.min.js') %]"
         },
         // and then load enquire
-        "[% interface %]/[% theme %]/lib/enquire.min.js",
-        "[% interface %]/[% theme %]/js/script.js"
+        "[% Asset.url('lib/enquire.min.js') %]",
+        "[% Asset.url('js/script.js') %]",
     ]);
 
     // Fix for datepicker in a modal
     $.fn.modal.Constructor.prototype.enforceFocus = function () {};
 </script>
 [% IF ( OPACAmazonCoverImages || SyndeticsCoverImages ) %]
-<script type="text/javascript">//<![CDATA[
+<script>//<![CDATA[
         var NO_AMAZON_IMAGE = _("No cover image available");
     //]]>
 </script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/amazonimages.js"></script>
+[% Asset.js("js/amazonimages.js") %]
 [% END %]
 
-<script type="text/javascript">
+[% Asset.js("lib/emoji-picker/js/config.js") %]
+[% Asset.js("lib/emoji-picker/js/util.js") %]
+[% Asset.js("lib/emoji-picker/js/jquery.emojiarea.js") %]
+[% Asset.js("lib/emoji-picker/js/emoji-picker.js") %]
+
+<script>
     //<![CDATA[
     var MSG_CONFIRM_AGAIN = _("Warning: Cannot be undone. Please confirm once again")
     var MSG_DELETE_SEARCH_HISTORY = _("Are you sure you want to delete your search history?");
@@ -149,46 +156,48 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
             verify_images();
          });
     [% END %]
-
     $(".print-large").on("click",function(){
         window.print();
         return false;
     });
     $("#ulactioncontainer > ul > li > a.addtoshelf").on("click",function(){
-        Dopop('opac-addbybiblionumber.pl?biblionumber=[% biblionumber %]');
+        Dopop('opac-addbybiblionumber.pl?biblionumber=[% biblionumber | html %]');
         return false;
     });
     $(".addrecord").on("click",function(){
-        addRecord('[% biblionumber %]');
+        addRecord('[% biblionumber | html %]');
         return false;
     });
     $(".cartRemove").on("click",function(){
-        delSingleRecord('[% biblionumber %]');
+        delSingleRecord('[% biblionumber | html %]');
         return false;
+    });
+    $(".clearsh").on("click", function(){
+        return confirmDelete(MSG_DELETE_SEARCH_HISTORY);
     });
     //]]>
 </script>
 
 [% IF Koha.Preference( 'opacbookbag' ) == 1 %]
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/basket.js"></script>
+    [% Asset.js("js/basket.js") %]
 [% ELSIF ( Koha.Preference( 'virtualshelves' ) == 1 ) %]
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/basket.js"></script>
+    [% Asset.js("js/basket.js") %]
 [% ELSE %]
-    <script type="text/javascript">var readCookie;</script>
+    <script>var readCookie;</script>
 [% END %]
 
-[% IF Koha.Preference( 'opacuserlogin' ) == 1 %][% IF Koha.Preference( 'TagsEnabled' ) == 1 %]<script type="text/javascript" src="[% interface %]/[% theme %]/js/tags.js"></script>[% END %][% ELSE %][% END %]
+[% IF Koha.Preference( 'opacuserlogin' ) == 1 %][% IF Koha.Preference( 'TagsEnabled' ) == 1 %][% Asset.js("js/tags.js") %][% END %][% ELSE %][% END %]
 [% IF ( GoogleJackets ) %]
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/google-jackets.js"></script>
-    <script type="text/javascript">
+    [% Asset.js("js/google-jackets.js") %]
+    <script>
         //<![CDATA[
         var NO_GOOGLE_JACKET = _("No cover image available");
         //]]>
     </script>
 [% END %]
 [% IF ( Koha.Preference('Coce') && Koha.Preference('CoceProviders') ) %]
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/coce.js"></script>
-    <script type="text/javascript">
+    [% Asset.js("js/coce.js") %]
+    <script>
         //<![CDATA[
         var NO_COCE_JACKET = _("No cover image available");
         //]]>
@@ -196,8 +205,8 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
 [% END %]
 
 [% IF OpenLibraryCovers || OpenLibrarySearch %]
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/openlibrary.js"></script>
-    <script type="text/javascript">
+    [% Asset.js("js/openlibrary.js") %]
+    <script>
     //<![CDATA[
     var NO_OL_JACKET = _("No cover image available");
     var OL_PREVIEW = _("Preview");
@@ -206,8 +215,8 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
 [% END %]
 
 [% IF OPACLocalCoverImages %]
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/localcovers.js"></script>
-    <script type="text/javascript">
+    [% Asset.js("js/localcovers.js") %]
+    <script>
     //<![CDATA[
     var NO_LOCAL_JACKET = _("No cover image available");
     //]]>
@@ -215,8 +224,8 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
 [% END %]
 
 [% IF ( BakerTaylorEnabled ) %]
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/bakertaylorimages.js"></script>
-    <script type="text/javascript">
+    [% Asset.js("js/bakertaylorimages.js") %]
+    <script>
         //<![CDATA[
         var NO_BAKERTAYLOR_IMAGE = _("No cover image available");
         $(window).load(function(){
@@ -226,64 +235,41 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
     </script>
 [% END %]
 [% IF ( GoogleIndicTransliteration ) %]
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-    <script type="text/javascript" src="[% interface %]/[% theme %]/js/googleindictransliteration.js"></script>
+    <script src="https://www.google.com/jsapi"></script>
+    [% Asset.js("js/googleindictransliteration.js") %]
 [% END %]
-[% IF persona %]
-    <script src="https://login.persona.org/include.js"></script>
-    <script type="text/javascript">
 
-    navigator.id.watch({
-        loggedInUser: [% IF emailaddress && loggedinpersona %]'[% emailaddress %]'[% ELSE %]null[% END %],
-        onlogin: function (assertion) {
-            $.post('/cgi-bin/koha/svc/login',
-                { assertion: assertion },
-                function (data) {
-                    window.location = '/cgi-bin/koha/opac-user.pl';
-                }
-            )
-            .fail(function() { var errstr = _("Could not login, perhaps your Persona email does not match your Koha one");
-                alert(errstr);
-            });
-        },
-        onlogout: function () {
-            window.location = '/cgi-bin/koha/opac-main.pl?logout.x=1';
-        }
+[% IF Koha.Preference( 'OpacNewsLibrarySelect' ) %]
+<script>
+    $("#news-branch-select").change(function() {
+        $( "#news-branch-select" ).submit();
     });
+</script>
+[% END %]
 
-    var signinLink = document.getElementById('browserid');
-
-    if (signinLink) {
-        signinLink.onclick = function(evt) {
-            // Requests a signed identity assertion from the user.
-            navigator.id.request({
-                siteName: "[% LibraryName | html %]",
-                returnTo: '/cgi-bin/koha/opac-user.pl',
-                oncancel: function() { alert('user refuses to share identity.'); }
-                });
-            };
-    }
-
-    </script>
-[% END #  / IF persona %]
-
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.cookie.min.js"></script>
-<script type="text/javascript">
+[% Asset.js("lib/jquery/plugins/jquery.cookie.min.js") %]
+<script>
 $(document).ready(function() {
     if($('#searchsubmit').length) {
         $(document).on("click", '#searchsubmit', function(e) {
             jQuery.removeCookie("form_serialized", { path: '/'});
-            jQuery.removeCookie("form_serialized_itype", { path: '/'});
             jQuery.removeCookie("form_serialized_limits", { path: '/'});
             jQuery.removeCookie("num_paragraph", { path: '/'});
             jQuery.removeCookie("search_path_code", { path: '/'});
         });
     }
+
+    window.emojiPicker = new EmojiPicker({
+      emojiable_selector: '[data-emojiable=true]',
+      assetsPath: '[% interface %]/lib/emoji-picker/img/',
+      popupButtonClasses: 'fa fa-smile-o'
+    });
+    window.emojiPicker.discover();
 });
 </script>
 [% PROCESS jsinclude %]
 [% IF ( OPACUserJS ) %]
-    <script type="text/javascript">
+    <script>
         //<![CDATA[
         [% OPACUserJS %]
         //]]>
@@ -292,12 +278,13 @@ $(document).ready(function() {
 [% IF SCO_login %]
     [% SET SCOUserJS = Koha.Preference('SCOUserJS') %]
     [% IF ( SCOUserJS ) %]
-        <script type="text/javascript">
+        <script>
             //<![CDATA[
             [% SCOUserJS %]
             //]]>
         </script>
     [% END %]
 [% END %]
+[% KohaPlugins.get_plugins_opac_js %]
 </body>
 </html>

@@ -1,3 +1,4 @@
+[% USE Asset %]
 [% USE Koha %]
 [% SET TagsShowEnabled = ( ( Koha.Preference( 'TagsEnabled' ) == 1 ) && TagsShowOnList ) %]
 [% SET TagsInputEnabled = ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'TagsEnabled' ) == 1 ) && TagsInputOnList ) %]
@@ -12,7 +13,7 @@
 [% INCLUDE 'doc-head-close.inc' %]
 [% IF ( OpacStarRatings == 'all' || Koha.Preference('Babeltheque') ) %]
     [% BLOCK cssinclude %]
-        <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/jquery.rating.css" />
+        [% Asset.css("css/jquery.rating.css") %]
     [% END %]
 [% END %]
 
@@ -234,7 +235,7 @@
 
                                             [% # Cell 4: Search result details and controls %]
                                             <td class="bibliocol">
-                                                <div class="coverimages">
+                                                <div class="coverimages itemtype_[% SEARCH_RESULT.itemtype %]">
                                                     <a class="p1" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]">
                                                         [% IF ( OPACLocalCoverImages ) %]
                                                             <span title="[% SEARCH_RESULT.biblionumber |url %]" class="[% SEARCH_RESULT.biblionumber %]" id="local-thumbnail[% loop.count %]"></span>
@@ -261,7 +262,7 @@
 
                                                         [% IF ( GoogleJackets ) %]
                                                             [% IF ( SEARCH_RESULT.normalized_isbn ) %]
-                                                                <span style="block" title="[% SEARCH_RESULT.biblionumber |url %]" class="[% SEARCH_RESULT.normalized_isbn %]" id="gbs-thumbnail[% loop.count %]"></span>
+                                                                <span title="[% SEARCH_RESULT.biblionumber |url %]" class="[% SEARCH_RESULT.normalized_isbn %]" id="gbs-thumbnail[% loop.count %]"></span>
                                                             [% ELSE %]
                                                                 <span class="no-image">No cover image available</span>
                                                             [% END %]
@@ -270,7 +271,7 @@
                                                         [% IF ( Koha.Preference('Coce') && Koha.Preference('CoceProviders') ) %]
                                                           [% coce_id = SEARCH_RESULT.normalized_ean || SEARCH_RESULT.normalized_isbn %]
                                                           [% IF ( coce_id ) %]
-                                                            <span style="block" title="[% SEARCH_RESULT.biblionumber |url %]" class="[% coce_id %]" id="coce-thumbnail[% loop.count %]"></span>
+                                                            <span title="[% SEARCH_RESULT.biblionumber |url %]" class="[% coce_id %]" id="coce-thumbnail[% loop.count %]"></span>
                                                           [% ELSE %]
                                                             <span class="no-image">No cover image available</span>
                                                           [% END %]
@@ -278,7 +279,7 @@
 
                                                         [% IF OpenLibraryCovers %]
                                                             [% IF SEARCH_RESULT.normalized_isbn %]
-                                                                <span style="block" title="[% SEARCH_RESULT.biblionumber %]" class="[% SEARCH_RESULT.normalized_isbn %]" id="openlibrary-thumbnail[% loop.count %]"></span>
+                                                                <span title="[% SEARCH_RESULT.biblionumber %]" class="[% SEARCH_RESULT.normalized_isbn %]" id="openlibrary-thumbnail[% loop.count %]"></span>
                                                             [% ELSE %]
                                                                 <span class="no-image">No cover image available</span>
                                                             [% END %]
@@ -471,6 +472,19 @@
                                                     </div>
                                                 [% END %]
 
+                                                [% IF Koha.Preference('virtualshelves') AND SEARCH_RESULT.shelves.count %]
+                                                    <div class="results_summary shelves">
+                                                        <span class="label">Lists:</span>
+                                                            <ul>
+                                                                [% FOREACH shelf IN SEARCH_RESULT.shelves %]
+                                                                    <li><a href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% shelf.shelfnumber %]">[% shelf.shelfname %]</a></li>
+                                                                    [%~ UNLESS loop.last %], [% ELSE %].[% END ~%]
+                                                                [% END %]
+                                                            </ul>
+                                                        </span>
+                                                    </div>
+                                                [% END %]
+
                                                 [% IF ( SEARCH_RESULT.searchhighlightblob ) %]
                                                     <span class="results_summary">
                                                         <span class="label">Match:</span>
@@ -480,19 +494,18 @@
 
                                                 [% IF ( OpacStarRatings == 'all' ) %]
                                                     <div class="results_summary ratings">
+                                                      [% SET rating_avg = SEARCH_RESULT.ratings.get_avg_rating() %]
+                                                      [% rating_avg_int = BLOCK %][% rating_avg | format("%.0f") %][% END %]
                                                         [% FOREACH i  IN [ 1 2 3 4 5  ] %]
-                                                            [% IF ( SEARCH_RESULT.rating_avg == i ) %]
+                                                            [% IF rating_avg_int == i %]
                                                                 <input class="star" type="radio"  name="rating-[% SEARCH_RESULT.biblionumber %]" value="[% i %]" checked="checked" disabled="disabled"   />
-                                                            [% ELSE   %]
+                                                            [% ELSE %]
                                                                 <input class="star" type="radio"  name="rating-[% SEARCH_RESULT.biblionumber %]" value="[% i %]" disabled="disabled"   />
                                                             [% END %]
                                                         [% END %]
 
-                                                        <input type="hidden" name="biblionumber"  value="[% SEARCH_RESULT.biblionumber %]" />
-                                                        <input type="hidden" name="loggedinuser"  value="[% loggedinuser %]" />
-
-                                                        [% IF SEARCH_RESULT.rating_total && SEARCH_RESULT.rating_total > 0  %]
-                                                            <span id="rating_total_[% SEARCH_RESULT.biblionumber %]">&nbsp;&nbsp;([% SEARCH_RESULT.rating_total %] votes)</span>
+                                                        [% IF SEARCH_RESULT.ratings.count > 0  %]
+                                                            <span id="rating_total_[% SEARCH_RESULT.biblionumber %]">&nbsp;&nbsp;([% SEARCH_RESULT.ratings.count %] votes)</span>
                                                         [% ELSE %]
                                                             <br />
                                                         [% END %]
@@ -507,6 +520,12 @@
                                                                 [% END # / IF opacuserlogin && holdable %]
                                                             [% END # UNLESS SEARCH_RESULT.norequests %]
                                                         [% END # IF RequestOnOpac %]
+
+                                                        [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) %]
+                                                            [% IF Koha.Preference('ArticleRequests') %]
+                                                                <span class="actions"><a class="article_request" href="/cgi-bin/koha/opac-request-article.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]">Request article</a></span>
+                                                            [% END %]
+                                                        [% END %]
 
                                                         [% IF ( TagsInputEnabled ) %]
                                                             [% IF ( loggedinusername ) %]
@@ -556,16 +575,22 @@
 
                     [% END # / IF total %]
 
-                    [% IF Koha.Preference( 'suggestion' ) == 1 %]
-                        [% IF Koha.Preference( 'AnonSuggestions' ) == 1 %]
-                            <div class="suggestion">Not finding what you're looking for?<br />  Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add">purchase suggestion</a></div>
-                        [% ELSE %]
-                            [% IF ( loggedinusername ) %]
-                                <div class="suggestion">
-                                    Not finding what you're looking for?<br />  Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add">purchase suggestion</a>
-                                </div>
-                            [% END %]
-                        [% END %]
+                    [% IF Koha.Preference( 'suggestion' ) == 1 && ( Koha.Preference( 'AnonSuggestions' ) == 1 || loggedinusername || Koha.Preference( 'ILLModule' ) == 1 )   %]
+                        <div class="suggestion">
+                            Not finding what you're looking for?
+                            <ul>
+                                [% IF Koha.Preference( 'AnonSuggestions' ) == 1 %]
+                                    <li>Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add">purchase suggestion</a></li>
+                                [% ELSE %]
+                                    [% IF ( loggedinusername ) %]
+                                        <li>Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add">purchase suggestion</a></li>
+                                    [% END %]
+                                [% END %]
+                                [% IF Koha.Preference( 'ILLModule' ) == 1 && loggedinusername %]
+                                    <li>Make an <a href="/cgi-bin/koha/opac-illrequests.pl?op=create">Interlibrary loan request</a></li>
+                                [% END %]
+                            </ul>
+                        </div>
                     [% END %]
                     </div> <!-- / #userresults -->
                 </div> <!-- /.span10/12 -->
@@ -576,18 +601,14 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
 [% IF ( LibraryThingForLibrariesID ) %]
-    [% IF ( using_https ) %]
-        <script src="https://ltfl.librarything.com/forlibraries/widget.js?id=[% LibraryThingForLibrariesID %]&amp;systype=koha" type="text/javascript"></script>
-    [% ELSE %]
-        <script src="http://ltfl.librarything.com/forlibraries/widget.js?id=[% LibraryThingForLibrariesID %]&amp;systype=koha" type="text/javascript"></script>
-    [% END %]
+    <script src="https://ltfl.librarything.com/forlibraries/widget.js?id=[% LibraryThingForLibrariesID %]&amp;systype=koha"></script>
 [% END %]
-[% IF ( OpacStarRatings == 'all' || Koha.Preference('Babeltheque') ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.rating.js"></script>[% END %]
-[% IF ( OverDriveEnabled ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/js/overdrive.js"></script>[% END %]
-[% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/js/munzinger.js"></script>[% END %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.checkboxes.min.js"></script>
-[% IF ( OpacHighlightedWords ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.highlight-3.js"></script>
-[% END %]<script type="text/javascript">
+[% IF ( OpacStarRatings == 'all' || Koha.Preference('Babeltheque') ) %][% Asset.js("lib/jquery/plugins/jquery.rating.js") %][% END %]
+[% IF ( OverDriveEnabled ) %][% Asset.js("js/overdrive.js") %][% END %]
+[% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %][% Asset.js("js/munzinger.js") %][% END %]
+[% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
+[% IF ( OpacHighlightedWords ) %][% Asset.js("lib/jquery/plugins/jquery.highlight-3.js") %]
+[% END %]<script>
 //<![CDATA[
 [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'RequestOnOpac' ) == 1 ) %]
 function holdMultiple() {
@@ -775,7 +796,7 @@ $(document).ready(function(){
             [% END %]
             param1 += "<\/optgroup>";
         [% END %]
-        [% IF add_to_some_private_shelves.count > 10 or add_to_some_public_shelves.count > 10 %]
+        [% IF ( add_to_some_private_shelves and add_to_some_private_shelves.count > 10 ) or ( add_to_some_public_shelves and add_to_some_public_shelves.count > 10 ) %]
             param1 += "<option value=\"morelists\">[ "+_("More lists")+" ]<\/option>";
         [% END %]
         param1 +="<option value=\"newlist\">"+_("[ New list ]")+"<\/option>"
@@ -972,10 +993,7 @@ $(document).ready(function(){
 [% IF ( DidYouMean ) %]
     $("#didyoumean").load("/cgi-bin/koha/svc/suggestion?render=stub&q=[% querystring |uri %]",
         function() {
-            $(".searchsuggestion").parent().parent().css({
-                "border-color": "#F4ECBE",
-                "background-color": "#FFFBEA"
-            });
+            $(this).addClass("dym-loaded");
         });
 [% END %]
 

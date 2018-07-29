@@ -24,7 +24,6 @@ use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Koha;
-use C4::Branch;
 use Koha::Libraries;
 use C4::CashRegisterManagement;
 
@@ -112,26 +111,9 @@ my @permitted_staff = $cashmanagement->readPermittedStaff($cash_register_id);
 my @cash_registers = $cashmanagement->getAllCashRegisters();
 
 ########################################
-#  Read branches
-########################################
-my $branches = GetBranchesWithoutMobileStations();
-my @branchloop;
-for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-    push @branchloop, {
-        value      => $thisbranch,
-        selected   => $thisbranch eq $branch,
-        branchname => $branches->{$thisbranch}->{'branchname'},
-        branchcode => $branches->{$thisbranch}->{'branchcode'},
-    };
-}
-
-########################################
 #  Set template paramater
 ########################################
 $template->param(
-                        humanbranch => ($branch ne '*' ? $branches->{$branch}->{branchname} : ''),
-                        current_branch => $branch,
-                        branchloop => \@branchloop,
                         branch => $branch,
                         cash_registers => \@cash_registers,
                         permitted_staff => \@permitted_staff,

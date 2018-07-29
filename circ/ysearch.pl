@@ -39,7 +39,7 @@ my $query = $input->param('term');
 binmode STDOUT, ":encoding(UTF-8)";
 print $input->header( -type => 'text/plain', -charset => 'UTF-8' );
 
-my ( $auth_status, $sessionID ) = check_cookie_auth( $input->cookie('CGISESSID'), { circulate => '*' } );
+my ( $auth_status, $sessionID ) = check_cookie_auth( $input->cookie('CGISESSID'), { catalogue => '1' } );
 if ( $auth_status ne "ok" ) {
     exit 0;
 }
@@ -67,7 +67,7 @@ foreach my $p (@parts) {
 
 push( @params, { branchcode => C4::Context->userenv->{branch} } ) if $limit_on_branch;
 
-my $borrowers_rs = Koha::Patrons->search(
+my $borrowers_rs = Koha::Patrons->search_limited(
     { -and => \@params },
     {
         # Get the first 10 results

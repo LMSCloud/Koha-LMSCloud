@@ -28,6 +28,9 @@ use C4::Output;
 use C4::AuthoritiesMarc;
 use C4::Biblio;
 
+use Koha::Authorities;
+use Koha::Biblios;
+
 my $input = new CGI;
 my $op = $input->param('op') // q|form|;
 my $recordtype = $input->param('recordtype') // 'biblio';
@@ -67,7 +70,7 @@ if ( $op eq 'form' ) {
     for my $record_id ( uniq @record_ids ) {
         if ( $recordtype eq 'biblio' ) {
             # Retrieve biblio information
-            my $biblio = C4::Biblio::GetBiblio( $record_id );
+            my $biblio = Koha::Biblios->find( $record_id );
             unless ( $biblio ) {
                 push @messages, {
                     type => 'warning',
@@ -76,10 +79,12 @@ if ( $op eq 'form' ) {
                 };
                 next;
             }
-            my $record = &GetMarcBiblio( $record_id );
+            my $holds_count = $biblio->holds->count;
+            $biblio = $biblio->unblessed;
+            my $record = &GetMarcBiblio({ biblionumber => $record_id });
             $biblio->{subtitle} = GetRecordValue( 'subtitle', $record, GetFrameworkCode( $record_id ) );
             $biblio->{itemnumbers} = C4::Items::GetItemnumbersForBiblio( $record_id );
-            $biblio->{reserves} = C4::Reserves::GetReservesFromBiblionumber({ biblionumber => $record_id });
+            $biblio->{holds_count} = $holds_count;
             $biblio->{issues_count} = C4::Biblio::CountItemsIssued( $record_id );
             push @records, $biblio;
         } else {
@@ -97,7 +102,7 @@ if ( $op eq 'form' ) {
             $authority = {
                 authid => $record_id,
                 summary => C4::AuthoritiesMarc::BuildSummary( $authority, $record_id ),
-                count_usage => C4::AuthoritiesMarc::CountUsage( $record_id ),
+                count_usage => Koha::Authorities->get_usage_count({ authid => $record_id }),
             };
             push @records, $authority;
         }
@@ -126,6 +131,9 @@ if ( $op eq 'form' ) {
             my $biblionumber = $record_id;
             # First, checking if issues exist.
             # If yes, nothing to do
+            my $biblio = Koha::Biblios->find( $biblionumber );
+
+            # TODO Replace with $biblio->get_issues->count
             if ( C4::Biblio::CountItemsIssued( $biblionumber ) ) {
                 push @messages, {
                     type => 'warning',
@@ -137,17 +145,17 @@ if ( $op eq 'form' ) {
             }
 
             # Cancel reserves
-            my $reserves = C4::Reserves::GetReservesFromBiblionumber({ biblionumber => $biblionumber });
-            for my $reserve ( @$reserves ) {
+            my $holds = $biblio->holds;
+            while ( my $hold = $holds->next ) {
                 eval{
-                    C4::Reserves::CancelReserve( { reserve_id => $reserve->{reserve_id} } );
+                    $hold->cancel;
                 };
                 if ( $@ ) {
                     push @messages, {
                         type => 'error',
                         code => 'reserve_not_cancelled',
                         biblionumber => $biblionumber,
-                        reserve_id => $reserve->{reserve_id},
+                        reserve_id => $hold->reserve_id,
                         error => $@,
                     };
                     $schema->storage->txn_rollback;
@@ -197,8 +205,8 @@ if ( $op eq 'form' ) {
         } else {
             # Authorities
             my $authid = $record_id;
-            my $r = eval { C4::AuthoritiesMarc::DelAuthority( $authid ) };
-            if ( $r eq '0E0' or $@ ) {
+            eval { C4::AuthoritiesMarc::DelAuthority({ authid => $authid }) };
+            if ( $@ ) {
                 push @messages, {
                     type => 'error',
                     code => 'authority_not_deleted',

@@ -4,10 +4,10 @@
 # Based on Kartouche http://www.dotmon.com/kartouche/ 
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2017-04-16 12:40-0300\n"
-"PO-Revision-Date: 2016-12-01 07:23+0000\n"
-"Last-Translator: przehak <przehak@muko.cz>\n"
+"Project-Id-Version: Koha 18.05\n"
+"POT-Creation-Date: 2018-06-15 07:24-0300\n"
+"PO-Revision-Date: 2018-05-11 05:43+0000\n"
+"Last-Translator: Josef Moravec <josef.moravec@knihovna-uo.cz>\n"
 "Language-Team: Czech <http://hosted.weblate.org/projects/koha/staff-prog/cs/"
 ">\n"
 "Language: cs\n"
@@ -15,8 +15,10 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Pootle 2.5.1.1\n"
-"X-POOTLE-MTIME: 1480576983.000000\n"
+"X-Generator: Pootle 2.8\n"
+"X-POOTLE-MTIME: 1526017402.953774\n"
+"X-Pootle-Path: /cs/18.05/cs-CZ-staff-help.po\n"
+"X-Pootle-Revision: 1\n"
 
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:82
 #, c-format
@@ -162,8 +164,8 @@ msgstr ""
 "vybírá hodnoty pro podpole. Pro úpravu podpolí propojených s polem, klikněte "
 "na 'Podpole' napravo od tagu v seznamu 'Struktura MARC'."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:68
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:14
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:68
 #, c-format
 msgid ""
 "'Authorized value' is where you define an authorized value that your "
@@ -755,57 +757,186 @@ msgstr ""
 msgid "(! means 'not visible' or in the case of collapsed 'not collapsed')"
 msgstr "(! znamená 'neviditelný' nebo v případě zhrouceno 'nezhrouceno')"
 
-#: intranet-tmpl/prog/en/modules/help/serials/serials-collection.tt:13
-#: intranet-tmpl/prog/en/modules/help/serials/checkexpiration.tt:11
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-frequencies.tt:9
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-numberpatterns.tt:11
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-detail.tt:9
-#: intranet-tmpl/prog/en/modules/help/serials/serials-edit.tt:27
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:105
-#: intranet-tmpl/prog/en/modules/help/serials/serials-home.tt:9
-#: intranet-tmpl/prog/en/modules/help/serials/claims.tt:15
+#: intranet-tmpl/prog/en/modules/help/tags/list.tt:9
+#: intranet-tmpl/prog/en/modules/help/tags/review.tt:23
+#: intranet-tmpl/prog/en/modules/help/course_reserves/add_items.tt:13
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course.tt:17
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course-reserves.tt:19
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:9
+#: intranet-tmpl/prog/en/modules/help/rotating_collections/rotatingCollections.tt:35
+#: intranet-tmpl/prog/en/modules/help/tools/batch_delete_records.tt:13
+#: intranet-tmpl/prog/en/modules/help/tools/import_borrowers.tt:58
+#: intranet-tmpl/prog/en/modules/help/tools/scheduler.tt:26
+#: intranet-tmpl/prog/en/modules/help/tools/quotes.tt:41
+#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:68
+#: intranet-tmpl/prog/en/modules/help/tools/manage-marc-import.tt:44
+#: intranet-tmpl/prog/en/modules/help/tools/viewlog.tt:9
+#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:43
+#: intranet-tmpl/prog/en/modules/help/tools/koha-news.tt:27
+#: intranet-tmpl/prog/en/modules/help/tools/upload-cover-image.tt:43
+#: intranet-tmpl/prog/en/modules/help/tools/tools-home.tt:7
+#: intranet-tmpl/prog/en/modules/help/tools/picture-upload.tt:23
+#: intranet-tmpl/prog/en/modules/help/tools/stage-marc-import.tt:38
+#: intranet-tmpl/prog/en/modules/help/tools/export.tt:64
+#: intranet-tmpl/prog/en/modules/help/tools/overduerules.tt:48
+#: intranet-tmpl/prog/en/modules/help/tools/inventory.tt:19
+#: intranet-tmpl/prog/en/modules/help/tools/batch_record_modification.tt:28
+#: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:141
+#: intranet-tmpl/prog/en/modules/help/tools/cleanborrowers.tt:24
+#: intranet-tmpl/prog/en/modules/help/tools/modborrowers.tt:17
+#: intranet-tmpl/prog/en/modules/help/tools/letter.tt:295
+#: intranet-tmpl/prog/en/modules/help/tools/marc_modification_templates.tt:61
+#: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:17
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:17
+#: intranet-tmpl/prog/en/modules/help/authorities/authorities.tt:29
+#: intranet-tmpl/prog/en/modules/help/authorities/merge.tt:13
+#: intranet-tmpl/prog/en/modules/help/patroncards/home.tt:20
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:11
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:28
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:34
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:23
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:20
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:31
+#: intranet-tmpl/prog/en/modules/help/patron_lists/lists.tt:17
+#: intranet-tmpl/prog/en/modules/help/catalogue/search-history.tt:9
+#: intranet-tmpl/prog/en/modules/help/catalogue/search.tt:81
+#: intranet-tmpl/prog/en/modules/help/catalogue/moredetail.tt:21
+#: intranet-tmpl/prog/en/modules/help/catalogue/itemsearch.tt:13
+#: intranet-tmpl/prog/en/modules/help/catalogue/issuehistory.tt:9
+#: intranet-tmpl/prog/en/modules/help/catalogue/detail.tt:7
+#: intranet-tmpl/prog/en/modules/help/cataloguing/linkitem.tt:30
+#: intranet-tmpl/prog/en/modules/help/cataloguing/additem.tt:77
+#: intranet-tmpl/prog/en/modules/help/cataloguing/addbiblio.tt:93
+#: intranet-tmpl/prog/en/modules/help/cataloguing/addbooks.tt:33
+#: intranet-tmpl/prog/en/modules/help/cataloguing/merge.tt:22
+#: intranet-tmpl/prog/en/modules/help/cataloguing/moveitem.tt:13
 #: intranet-tmpl/prog/en/modules/help/serials/routing.tt:21
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:200
-#: intranet-tmpl/prog/en/modules/help/admin/aqcontract.tt:19
-#: intranet-tmpl/prog/en/modules/help/admin/branch_transfer_limits.tt:19
-#: intranet-tmpl/prog/en/modules/help/admin/items_search_fields.tt:23
-#: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:91
-#: intranet-tmpl/prog/en/modules/help/admin/oai_set_mappings.tt:21
-#: intranet-tmpl/prog/en/modules/help/admin/item_circulation_alerts.tt:22
+#: intranet-tmpl/prog/en/modules/help/serials/checkexpiration.tt:11
+#: intranet-tmpl/prog/en/modules/help/serials/serials-edit.tt:27
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-frequencies.tt:9
+#: intranet-tmpl/prog/en/modules/help/serials/claims.tt:15
+#: intranet-tmpl/prog/en/modules/help/serials/serials-home.tt:9
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-numberpatterns.tt:11
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:105
+#: intranet-tmpl/prog/en/modules/help/serials/serials-collection.tt:13
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-detail.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/readingrec.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/statistics.tt:7
+#: intranet-tmpl/prog/en/modules/help/members/boraccount.tt:22
+#: intranet-tmpl/prog/en/modules/help/members/purchase-suggestions.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/files.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/members-update.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/members-home.tt:65
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:63
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:534
+#: intranet-tmpl/prog/en/modules/help/members/maninvoice.tt:17
+#: intranet-tmpl/prog/en/modules/help/members/notices.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/moremember.tt:142
+#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/memberentry.tt:89
+#: intranet-tmpl/prog/en/modules/help/members/mancredit.tt:14
+#: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:60
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:60
+#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:14
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:19
+#: intranet-tmpl/prog/en/modules/help/nohelp.tt:5
+#: intranet-tmpl/prog/en/modules/help/reserve/request.tt:63
+#: intranet-tmpl/prog/en/modules/help/mainpage.tt:28
+#: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/invoice.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/z3950_search.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/parcel.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/basketheader.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/orderreceive.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/basketgroup.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:122
+#: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/neworderempty.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/supplier.tt:54
+#: intranet-tmpl/prog/en/modules/help/acqui/uncertainprice.tt:7
+#: intranet-tmpl/prog/en/modules/help/acqui/invoices.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/lateorders.tt:19
+#: intranet-tmpl/prog/en/modules/help/acqui/newordersubscription.tt:15
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/parcels.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/addorderiso2709.tt:22
+#: intranet-tmpl/prog/en/modules/help/acqui/acqui-home.tt:13
+#: intranet-tmpl/prog/en/modules/help/acqui/neworderbiblio.tt:12
+#: intranet-tmpl/prog/en/modules/help/acqui/edifactmsgs.tt:7
+#: intranet-tmpl/prog/en/modules/help/reviews/reviewswaiting.tt:13
+#: intranet-tmpl/prog/en/modules/help/circ/selectbranchprinter.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
+#: intranet-tmpl/prog/en/modules/help/circ/circulation.tt:165
+#: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
+#: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
+#: intranet-tmpl/prog/en/modules/help/circ/reserveratios.tt:7
+#: intranet-tmpl/prog/en/modules/help/circ/waitingreserves.tt:9
+#: intranet-tmpl/prog/en/modules/help/circ/offline.tt:35
+#: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
+#: intranet-tmpl/prog/en/modules/help/circ/view_holdsqueue.tt:21
+#: intranet-tmpl/prog/en/modules/help/circ/returns.tt:77
+#: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/on-site_checkouts.tt:9
+#: intranet-tmpl/prog/en/modules/help/plugins/plugins-home.tt:9
+#: intranet-tmpl/prog/en/modules/help/plugins/plugins-upload.tt:9
 #: intranet-tmpl/prog/en/modules/help/admin/z3950servers.tt:102
-#: intranet-tmpl/prog/en/modules/help/admin/matching-rules.tt:49
-#: intranet-tmpl/prog/en/modules/help/admin/edi_accounts.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:92
-#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:74
-#: intranet-tmpl/prog/en/modules/help/admin/marctagstructure.tt:23
-#: intranet-tmpl/prog/en/modules/help/admin/aqbudgetperiods.tt:86
-#: intranet-tmpl/prog/en/modules/help/admin/edi_ean_accounts.tt:11
-#: intranet-tmpl/prog/en/modules/help/admin/fieldmapping.tt:23
-#: intranet-tmpl/prog/en/modules/help/admin/columns_settings.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/authtypes.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/oai_set_mappings.tt:21
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:120
 #: intranet-tmpl/prog/en/modules/help/admin/currency.tt:13
-#: intranet-tmpl/prog/en/modules/help/admin/aqplan.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/auth_subfields_structure.tt:66
-#: intranet-tmpl/prog/en/modules/help/admin/aqbudgets.tt:40
-#: intranet-tmpl/prog/en/modules/help/admin/didyoumean.tt:20
+#: intranet-tmpl/prog/en/modules/help/admin/authtypes.tt:9
 #: intranet-tmpl/prog/en/modules/help/admin/systempreferences.tt:11
-#: intranet-tmpl/prog/en/modules/help/admin/preferences.tt:35
-#: intranet-tmpl/prog/en/modules/help/admin/transport-cost-matrix.tt:13
-#: intranet-tmpl/prog/en/modules/help/admin/branches.tt:80
-#: intranet-tmpl/prog/en/modules/help/admin/checkmarc.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/fieldmapping.tt:23
 #: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/cities.tt:21
-#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:22
-#: intranet-tmpl/prog/en/modules/help/admin/itemtypes.tt:60
-#: intranet-tmpl/prog/en/modules/help/admin/oai_sets.tt:32
-#: intranet-tmpl/prog/en/modules/help/admin/admin-home.tt:33
-#: intranet-tmpl/prog/en/modules/help/admin/classsources.tt:56
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:162
-#: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:23
-#: intranet-tmpl/prog/en/modules/help/offline_circ/process_koc.tt:19
+#: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:91
+#: intranet-tmpl/prog/en/modules/help/admin/aqcontract.tt:19
+#: intranet-tmpl/prog/en/modules/help/admin/items_search_fields.tt:23
+#: intranet-tmpl/prog/en/modules/help/admin/edi_ean_accounts.tt:11
+#: intranet-tmpl/prog/en/modules/help/admin/branch_transfer_limits.tt:19
+#: intranet-tmpl/prog/en/modules/help/admin/branches.tt:80
+#: intranet-tmpl/prog/en/modules/help/admin/classsources.tt:56
+#: intranet-tmpl/prog/en/modules/help/admin/matching-rules.tt:49
+#: intranet-tmpl/prog/en/modules/help/admin/edi_accounts.tt:15
+#: intranet-tmpl/prog/en/modules/help/admin/aqplan.tt:15
+#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:22
+#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:74
+#: intranet-tmpl/prog/en/modules/help/admin/oai_sets.tt:32
+#: intranet-tmpl/prog/en/modules/help/admin/auth_subfields_structure.tt:66
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:200
+#: intranet-tmpl/prog/en/modules/help/admin/columns_settings.tt:15
+#: intranet-tmpl/prog/en/modules/help/admin/didyoumean.tt:20
+#: intranet-tmpl/prog/en/modules/help/admin/marctagstructure.tt:23
+#: intranet-tmpl/prog/en/modules/help/admin/preferences.tt:35
+#: intranet-tmpl/prog/en/modules/help/admin/aqbudgets.tt:40
+#: intranet-tmpl/prog/en/modules/help/admin/transport-cost-matrix.tt:13
+#: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:92
+#: intranet-tmpl/prog/en/modules/help/admin/admin-home.tt:33
+#: intranet-tmpl/prog/en/modules/help/admin/cities.tt:21
+#: intranet-tmpl/prog/en/modules/help/admin/itemtypes.tt:60
+#: intranet-tmpl/prog/en/modules/help/admin/checkmarc.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/item_circulation_alerts.tt:22
+#: intranet-tmpl/prog/en/modules/help/admin/aqbudgetperiods.tt:86
+#: intranet-tmpl/prog/en/modules/help/reports/reports-home.tt:22
+#: intranet-tmpl/prog/en/modules/help/reports/cat_issues_top.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/guided_reports.tt:198
+#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/manager.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:13
+#: intranet-tmpl/prog/en/modules/help/reports/serials_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:22
+#: intranet-tmpl/prog/en/modules/help/reports/bor_issues_top.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/itemslost.tt:19
+#: intranet-tmpl/prog/en/modules/help/reports/catalogue_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/acquisitions_stats.tt:15
+#: intranet-tmpl/prog/en/modules/help/reports/dictionary.tt:21
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/about.tt:38
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:65
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-batch.tt:25
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:33
 #: intranet-tmpl/prog/en/modules/help/labels/spinelabel-home.tt:14
 #: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:44
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:17
@@ -814,139 +945,10 @@ msgstr "(! znamená 'neviditelný' nebo v případě zhrouceno 'nezhrouceno')"
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:103
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-layout.tt:15
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:31
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:9
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course-reserves.tt:19
-#: intranet-tmpl/prog/en/modules/help/course_reserves/add_items.tt:13
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course.tt:17
-#: intranet-tmpl/prog/en/modules/help/cataloguing/linkitem.tt:30
-#: intranet-tmpl/prog/en/modules/help/cataloguing/addbiblio.tt:93
-#: intranet-tmpl/prog/en/modules/help/cataloguing/addbooks.tt:33
-#: intranet-tmpl/prog/en/modules/help/cataloguing/moveitem.tt:13
-#: intranet-tmpl/prog/en/modules/help/cataloguing/merge.tt:22
-#: intranet-tmpl/prog/en/modules/help/cataloguing/additem.tt:77
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:33
+#: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:23
+#: intranet-tmpl/prog/en/modules/help/offline_circ/process_koc.tt:19
 #: intranet-tmpl/prog/en/modules/help/suggestion/suggestion.tt:41
-#: intranet-tmpl/prog/en/modules/help/patron_lists/lists.tt:17
-#: intranet-tmpl/prog/en/modules/help/plugins/plugins-upload.tt:9
-#: intranet-tmpl/prog/en/modules/help/plugins/plugins-home.tt:9
-#: intranet-tmpl/prog/en/modules/help/nohelp.tt:5
-#: intranet-tmpl/prog/en/modules/help/mainpage.tt:28
-#: intranet-tmpl/prog/en/modules/help/circ/view_holdsqueue.tt:21
-#: intranet-tmpl/prog/en/modules/help/circ/circulation.tt:165
-#: intranet-tmpl/prog/en/modules/help/circ/offline.tt:35
-#: intranet-tmpl/prog/en/modules/help/circ/on-site_checkouts.tt:9
-#: intranet-tmpl/prog/en/modules/help/circ/reserveratios.tt:7
-#: intranet-tmpl/prog/en/modules/help/circ/selectbranchprinter.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/waitingreserves.tt:9
-#: intranet-tmpl/prog/en/modules/help/circ/returns.tt:77
-#: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
-#: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
-#: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
-#: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
-#: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11
-#: intranet-tmpl/prog/en/modules/help/catalogue/moredetail.tt:21
-#: intranet-tmpl/prog/en/modules/help/catalogue/issuehistory.tt:9
-#: intranet-tmpl/prog/en/modules/help/catalogue/search-history.tt:9
-#: intranet-tmpl/prog/en/modules/help/catalogue/detail.tt:7
-#: intranet-tmpl/prog/en/modules/help/catalogue/search.tt:81
-#: intranet-tmpl/prog/en/modules/help/catalogue/itemsearch.tt:13
-#: intranet-tmpl/prog/en/modules/help/reserve/request.tt:63
-#: intranet-tmpl/prog/en/modules/help/authorities/authorities.tt:29
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:17
-#: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:17
-#: intranet-tmpl/prog/en/modules/help/authorities/merge.tt:13
-#: intranet-tmpl/prog/en/modules/help/tags/review.tt:23
-#: intranet-tmpl/prog/en/modules/help/tags/list.tt:9
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:11
-#: intranet-tmpl/prog/en/modules/help/patroncards/home.tt:20
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:31
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:19
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:34
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:28
-#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:19
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:60
-#: intranet-tmpl/prog/en/modules/help/members/statistics.tt:7
-#: intranet-tmpl/prog/en/modules/help/members/mancredit.tt:14
-#: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:60
-#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:14
-#: intranet-tmpl/prog/en/modules/help/members/files.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:19
-#: intranet-tmpl/prog/en/modules/help/members/notices.tt:9
-#: intranet-tmpl/prog/en/modules/help/members/boraccount.tt:22
-#: intranet-tmpl/prog/en/modules/help/members/maninvoice.tt:17
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:528
-#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:9
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:63
-#: intranet-tmpl/prog/en/modules/help/members/memberentry.tt:89
-#: intranet-tmpl/prog/en/modules/help/members/purchase-suggestions.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/moremember.tt:142
-#: intranet-tmpl/prog/en/modules/help/members/readingrec.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/members-update.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/members-home.tt:65
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:68
-#: intranet-tmpl/prog/en/modules/help/acqui/lateorders.tt:19
-#: intranet-tmpl/prog/en/modules/help/acqui/uncertainprice.tt:7
-#: intranet-tmpl/prog/en/modules/help/acqui/neworderbiblio.tt:12
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:122
-#: intranet-tmpl/prog/en/modules/help/acqui/invoice.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/z3950_search.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/parcel.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/supplier.tt:54
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/basketheader.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/neworderempty.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/orderreceive.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/basketgroup.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/newordersubscription.tt:15
-#: intranet-tmpl/prog/en/modules/help/acqui/acqui-home.tt:13
-#: intranet-tmpl/prog/en/modules/help/acqui/edifactmsgs.tt:7
-#: intranet-tmpl/prog/en/modules/help/acqui/parcels.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/invoices.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/addorderiso2709.tt:22
-#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/cat_issues_top.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/dictionary.tt:21
-#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:22
-#: intranet-tmpl/prog/en/modules/help/reports/manager.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:13
-#: intranet-tmpl/prog/en/modules/help/reports/guided_reports.tt:198
-#: intranet-tmpl/prog/en/modules/help/reports/serials_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/itemslost.tt:19
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/bor_issues_top.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/reports-home.tt:22
-#: intranet-tmpl/prog/en/modules/help/reports/catalogue_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/acquisitions_stats.tt:15
-#: intranet-tmpl/prog/en/modules/help/tools/viewlog.tt:9
-#: intranet-tmpl/prog/en/modules/help/tools/marc_modification_templates.tt:61
-#: intranet-tmpl/prog/en/modules/help/tools/import_borrowers.tt:58
-#: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:141
-#: intranet-tmpl/prog/en/modules/help/tools/tools-home.tt:7
-#: intranet-tmpl/prog/en/modules/help/tools/koha-news.tt:27
-#: intranet-tmpl/prog/en/modules/help/tools/quotes.tt:41
-#: intranet-tmpl/prog/en/modules/help/tools/picture-upload.tt:23
-#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:43
-#: intranet-tmpl/prog/en/modules/help/tools/overduerules.tt:48
-#: intranet-tmpl/prog/en/modules/help/tools/inventory.tt:19
-#: intranet-tmpl/prog/en/modules/help/tools/batch_record_modification.tt:28
-#: intranet-tmpl/prog/en/modules/help/tools/export.tt:64
-#: intranet-tmpl/prog/en/modules/help/tools/batch_delete_records.tt:13
-#: intranet-tmpl/prog/en/modules/help/tools/stage-marc-import.tt:38
-#: intranet-tmpl/prog/en/modules/help/tools/letter.tt:295
-#: intranet-tmpl/prog/en/modules/help/tools/modborrowers.tt:17
-#: intranet-tmpl/prog/en/modules/help/tools/scheduler.tt:26
-#: intranet-tmpl/prog/en/modules/help/tools/upload-cover-image.tt:43
-#: intranet-tmpl/prog/en/modules/help/tools/cleanborrowers.tt:24
-#: intranet-tmpl/prog/en/modules/help/tools/manage-marc-import.tt:44
-#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:68
-#: intranet-tmpl/prog/en/modules/help/about.tt:38
-#: intranet-tmpl/prog/en/modules/help/reviews/reviewswaiting.tt:13
-#: intranet-tmpl/prog/en/modules/help/rotating_collections/rotatingCollections.tt:35
 #, c-format
 msgid "(online)."
 msgstr "(on-line)."
@@ -959,8 +961,8 @@ msgid ""
 "function properly."
 msgstr ""
 "(systémové nastavení) musí být nastaveno na \"Nevracej automaticky jednotky "
-"do jejich domovské knihovny při návratu\" aby cirkulace sbírek fungovala "
-"správně."
+"do jejich domovské knihovny při návratu\" pro správné fungování Výměnných "
+"souborů."
 
 #: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:5
 #, c-format
@@ -1013,15 +1015,15 @@ msgid "-9 =&gt; Future use"
 msgstr "-9 =&gt; Budoucí použití"
 
 #: intranet-tmpl/prog/en/modules/help/admin/audio_alerts.tt:16
-#, fuzzy, c-format
+#, c-format
 msgid ""
 ". For example, if you use the selector \"#circ_impossible\" your selected "
 "sound will be triggered when a checkout for a patron is not possible (such "
 "as the barcode not being found). "
 msgstr ""
 ". Na příklad, pokud vyberete selektor \"#circ_impossible\" vámi vybraný zvuk "
-"bude spuštěn pokud výpůjčka pro čtenáře není možná (stejně jako když čárový "
-"kód jednotky nebyl nalezen).  "
+"bude přehrán pokud výpůjčku pro čtenáře nelze provést (stejně to zafunguje v "
+"případě, pokud čárový kód jednotky nebyl nalezen).  "
 
 #: intranet-tmpl/prog/en/modules/help/reports/guided_reports.tt:35
 #, c-format
@@ -1328,7 +1330,7 @@ msgid "A basket with at least one uncertain price can't be closed."
 msgstr "Koš i s jen jednou nejistou cenou nemůže být uzavřen."
 
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:5
-#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:17
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:18
 #, c-format
 msgid "A batch is a collection of patrons for whom you want to generate cards."
 msgstr "Dávka je skupina čtenářů, pro které chcete vyrobit čtenářské karty."
@@ -1367,17 +1369,17 @@ msgstr ""
 "Zobrazí se potvrzení s otázkou zda-li jste si jistý/á, že chcete toho "
 "dosáhnout"
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:5
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:75
-#, fuzzy, c-format
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:5
+#, c-format
 msgid ""
 "A discharge is a certificate that says the patron has no current checkouts, "
 "no holds and owe no money. To enable this option on the patron record you "
 "need to set the useDischarge system preference to 'Allow'."
 msgstr ""
 "Propuštění je certifikát který  říká že čtenář nemá žádné aktuální výpůjčky, "
-"rezervace a nedluží žádné peníze. Abyste tuto možnost v záznamu čtenáře, "
-"musíte nastavit  useDischarge nastavení systému na 'Povoleno'."
+"rezervace a nedluží žádné peníze. Abyste tuto možnost pro čtenáře "
+"aktivovali, musíte systémové nastavení useDischarge přepnout na 'Povoleno'."
 
 #: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:184
 #, c-format
@@ -1415,17 +1417,17 @@ msgstr ""
 "vašich štítcích."
 
 #: intranet-tmpl/prog/en/modules/help/admin/edi_ean_accounts.tt:5
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "A library EAN is the identifier the vendor gives the library to send back to "
 "them so they know which account to use when billing. One EDI account can "
 "have multiple EANs."
-msgstr ""
+msgstr "Jeden EDI účet může mít několik EANs. "
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:20
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:21
 #, c-format
-msgid "A list can also be created from the catalog search results"
-msgstr "Seznam je možné vytvořit také z výsledků hledání v katalogu"
+msgid "A list can also be created from the catalog search results:"
+msgstr "Seznam je možné vytvořit také z výsledků hledání v katalogu:"
 
 #: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:5
 #, c-format
@@ -1434,8 +1436,8 @@ msgid ""
 msgstr ""
 "Seznam je možné vytvořit v modulu Seznamy pomocí tlačítka 'Nový seznam'"
 
-#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:5
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:30
+#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:5
 #, c-format
 msgid ""
 "A list of all of the serial routing lists the patron belongs to will be "
@@ -1445,13 +1447,13 @@ msgstr ""
 "pomocí záložky 'Kolovací seznamy' v záznamu čtenáře."
 
 #: intranet-tmpl/prog/en/modules/help/acqui/edifactmsgs.tt:5
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "A log of all messages sent and received via EDIFACT can be found under "
 "EDIFACT Messages."
 msgstr ""
-"Log všech zpráv poslaných a příjmutých pomocí EDIFACT můžete nalezt pod "
-"EDIFACT Zprávy."
+"Záznamy všech zpráv poslaných a příjmutých pomocí EDIFACT můžete nalezt pod "
+"volbou EDIFACT Zprávy."
 
 #: intranet-tmpl/prog/en/modules/help/tools/import_borrowers.tt:52
 #, c-format
@@ -1482,9 +1484,9 @@ msgstr ""
 "Fotografii čtenáře můžete přidat vybráním souboru z vašeho počítače pomocí "
 "menu \"Správa profilových fotek čtenářů\" "
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:23
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:39
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:19
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:39
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:23
 #, c-format
 msgid ""
 "A profile is a set of \"adjustments\" applied to a given template just prior "
@@ -1495,8 +1497,8 @@ msgstr ""
 "který kompenzuje anomálie unikátní a charakteristické pro danou tiskárnu (ke "
 "které je profil přiřazen). "
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:5
 #: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:9
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:5
 #, c-format
 msgid ""
 "A profile is a set of \"adjustments\" applied to a given template just prior "
@@ -1565,9 +1567,9 @@ msgid ""
 msgstr ""
 "Přehled vašeho importu se zobrazí vedle voleb změny pravidel na vyhledání."
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:5
 #: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:28
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:21
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:5
 #, c-format
 msgid ""
 "A template is based on the label/card stock you are using. This might be "
@@ -1602,7 +1604,7 @@ msgstr ""
 "mohou být na obalu, a pokud ne, lze obvykle nalézt na webových stránkách "
 "dodavatele."
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:44
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:41
 #, c-format
 msgid ""
 "A title can also be added to a list by selecting titles on the search "
@@ -1792,8 +1794,8 @@ msgstr "Správa akvizice a návrhů na nákup"
 msgid "Acquisitions"
 msgstr "Akvizice"
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:3
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:3
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:3
 #, c-format
 msgid "Acquisitions Searching"
 msgstr "Vyhledávání v akvizici"
@@ -1849,9 +1851,9 @@ msgstr "Přidat novou šablonu"
 msgid "Add Quote"
 msgstr "Přidat citát"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:7
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-batch.tt:7
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:85
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:7
 #, c-format
 msgid "Add a Batch"
 msgstr "Přidat dávku"
@@ -1866,16 +1868,16 @@ msgstr "Přidat smlouvu"
 msgid "Add a Fund"
 msgstr "Přidat fond"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:7
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:9
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-layout.tt:7
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:7
 #, c-format
 msgid "Add a Layout"
 msgstr "Přidat rozložení"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:9
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:57
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:9
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:9
 #, c-format
 msgid "Add a Profile"
 msgstr "Přidat profil"
@@ -1885,9 +1887,9 @@ msgstr "Přidat profil"
 msgid "Add a Staff Patron"
 msgstr "Přidat zaměstnance"
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:7
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:23
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:7
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:23
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:7
 #, c-format
 msgid "Add a Template"
 msgstr "Přidat šablonu"
@@ -1937,7 +1939,7 @@ msgstr "Přidat čtenáře"
 msgid "Add subfields to Frameworks"
 msgstr "Přidat podpole do katalogizační šablony"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:38
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:35
 #, c-format
 msgid "Add to a list"
 msgstr "Vložit do seznamu"
@@ -2047,6 +2049,11 @@ msgstr "Doplňující nápověda"
 msgid "Additional Parameters"
 msgstr "Další parametry"
 
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:12
+#, c-format
+msgid "Additionally, there are two categories you can choose from: "
+msgstr "Máte na výběr dva typy seznamu: "
+
 #: intranet-tmpl/prog/en/modules/help/admin/admin-home.tt:3
 #, c-format
 msgid "Administration Help"
@@ -2102,16 +2109,6 @@ msgstr ""
 "Po katalogizaci Vašeho analytického záznamu (více viz \"Přidávání záznamů\") "
 "klikněte na \"Upravit\" v normálním zobrazení a zvolte \"Propojit s "
 "hostitelskou jednotkou\""
-
-#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:9
-#, c-format
-msgid ""
-"After choosing the table you would like to view, click 'OK.' To edit any "
-"mapping click on the 'Koha Filed' or the 'Edit' link."
-msgstr ""
-"Tabulku, se kterou chcete pracovat vyberte kliknutím na \"OK\". Pro úpravu "
-"kteréhokoliv přiřazení klikněte na název pole nebo na odkaz \"Upravit\" u "
-"příslušného pole."
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:93
 #, c-format
@@ -2184,12 +2181,12 @@ msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:26
 #: intranet-tmpl/prog/en/modules/help/acqui/newordersubscription.tt:10
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "After clicking the order link you will be brought to a search page that will "
 "help you find your subscription"
 msgstr ""
-"Po kliknutí na odkaz objednávky přejdete na vyhledávací stránku  která vám "
+"Po kliknutí na odkaz objednávky přejdete na stránku vyhledávání, která vám "
 "pomůže s najít vaše předplatné"
 
 #: intranet-tmpl/prog/en/modules/help/tools/quotes.tt:32
@@ -2235,15 +2232,18 @@ msgid "After filling in all of the fields, click 'Submit'"
 msgstr "Po vyplnění veškerých polí klikněte na 'Odeslat'."
 
 #: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:98
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "After filling in this data click the 'Test prediction pattern' button to see "
 "what issues the system will generate, if there are irregularities you can "
 "choose which issues don't exist from the list presented."
 msgstr ""
+"Po doplnění tohoto údaje klikněte na ´Test prediction pattern´ a uvidíte, co "
+"systém vygeneruje. Pokud něco nesedí, můžete vybrat, které věci neexistují z "
+"aktuálního seznamu. "
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:26
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:42
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:26
 #, c-format
 msgid ""
 "After finding any anomalies in the printed document, create a profile and "
@@ -2300,22 +2300,22 @@ msgid ""
 "what preferences were saved"
 msgstr "Po uložení nastavení obdržíte potvrzující zprávu."
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:32
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:15
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-layout.tt:13
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:32
 #, c-format
 msgid "After saving, your layouts will appear on the 'Manage Layouts' page."
 msgstr "Po uložení se schémata objeví na stránce \"Správa schémat\"."
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:27
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:75
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:27
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:27
 #, c-format
 msgid "After saving, your profiles will appear on the 'Manage Profiles' page."
 msgstr "Po uložení se profily objeví na stránce \"Správa profilů\"."
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:31
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:47
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:31
 #, c-format
 msgid ""
 "After saving, your templates will appear on the 'Manage Templates' page."
@@ -2410,8 +2410,8 @@ msgstr ""
 "Všechny soubory, které se načítají, se zobrazí nad formulářem, ze kterého se "
 "dají načíst další soubory."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:50
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:50
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:50
 #, c-format
 msgid ""
 "All fines will be removed from outstanding fines, and displayed as written "
@@ -2474,7 +2474,7 @@ msgstr ""
 "'Profesionál' se dodatečné informace o jejich ručiteli objeví v jejich "
 "záznamu."
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:518
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:524
 #, c-format
 msgid ""
 "All staff members have permission to access lists. This section only needs "
@@ -2502,6 +2502,11 @@ msgstr ""
 #, c-format
 msgid "All three of these options will open up the issue receive form:"
 msgstr "Všechny tyto tři možnosti otevřou formulář přijetí čísla:"
+
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:17
+#, fuzzy, c-format
+msgid "All uploaded images will be listed on the right hand side of this page."
+msgstr "Obrázek se objeví spolu s ostatními obrázky v seznamu napravo."
 
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:117
 #, c-format
@@ -2635,7 +2640,7 @@ msgstr "Příklad použití těchto štítků v šabloně oznámení:"
 #: intranet-tmpl/prog/en/modules/help/cataloguing/linkitem.tt:3
 #, c-format
 msgid "Analytics"
-msgstr "Analytika"
+msgstr "Analytický popis"
 
 #: intranet-tmpl/prog/en/modules/help/admin/oai_set_mappings.tt:19
 #, c-format
@@ -2655,13 +2660,6 @@ msgstr ""
 "Synchronizujte vaše data na každém počítači, který používáte pro půjčování a "
 "vracení. To provedete kliknutím na odkaz \"Synchronizovat\" na pravé straně "
 "stránky."
-
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:15
-#, c-format
-msgid ""
-"And the image will be listed with all of your others on the right hand side "
-"of the page."
-msgstr "Obrázek se objeví spolu s ostatními obrázky v seznamu napravo."
 
 #: intranet-tmpl/prog/en/modules/help/suggestion/suggestion.tt:23
 #, c-format
@@ -2822,8 +2820,8 @@ msgstr ""
 "bibliografické záznamy, s informacemi o rezervacích nebo bez nich, klikněte "
 "na záložku 'Exportovat bibliografické záznamy'."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:5
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:5
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:5
 #, c-format
 msgid ""
 "At the top of the various Acquisition pages there is a quick search box "
@@ -2879,8 +2877,8 @@ msgstr ""
 " Pro to, aby se toto vyhledávací pole změnilo v rozevírací seznam místo "
 "volného textového pole, mohou být použity schválené hodnoty."
 
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:3
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:3
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:3
 #, c-format
 msgid "Authorities"
 msgstr "Autority"
@@ -2918,8 +2916,8 @@ msgstr ""
 "Typy autorit jsou šablony MARC pro záznamy autorit. Proto níže se uvedená "
 "pravidla odvolávají na bibliografické šablony."
 
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:5
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:5
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:5
 #, c-format
 msgid ""
 "Authority records are a way of controlling fields in your MARC records. "
@@ -2946,8 +2944,8 @@ msgstr ""
 "pro přidání kategorie ověřené hodnoty by mohla být kontrola hodnot, které "
 "mohou být pracovníky katalogizace vloženy do polí MARC."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:148
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:94
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:148
 #, c-format
 msgid "Authorized value "
 msgstr "Ověřená hodnota "
@@ -3042,11 +3040,11 @@ msgstr "Dávkové mazání záznamů"
 msgid "Batch record modification"
 msgstr "Dávková úprava záznamů"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:3
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:16
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-batch.tt:3
 #: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:40
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:81
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:3
-#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:15
 #, c-format
 msgid "Batches"
 msgstr "Dávky"
@@ -3122,8 +3120,8 @@ msgstr ""
 "zkoušku, abyste se mohli rozhodnout, který profil je nejvhodnější pro vaši "
 "tiskárnu a vybranou šablonu."
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:25
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:41
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:25
 #, c-format
 msgid ""
 "Before picking a profile try printing some sample labels so that you can "
@@ -3255,8 +3253,8 @@ msgstr ""
 msgid "Below the task scheduler form, there is a list of scheduled reports"
 msgstr "Pod formulářem plánovače úloh se nachází seznam naplánovaných výstupů"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:42
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:44
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:42
 #, c-format
 msgid ""
 "Birthdates should be entered using the format set forth in the dateformat "
@@ -3270,8 +3268,8 @@ msgstr ""
 msgid "Borrow books"
 msgstr "Půjčovat knihy"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:24
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:26
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:24
 #, c-format
 msgid "Borrower number: "
 msgstr "Číslo čtenáře: "
@@ -3351,11 +3349,11 @@ msgid "Build sets"
 msgstr "Vytváření sad"
 
 #: intranet-tmpl/prog/en/modules/help/admin/item_circulation_alerts.tt:19
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "By default all item types and all patrons are notified of check ins and "
-"check outs. To change this, click on the item/patron type combination that "
-"you would like to stop notices for."
+"check outs. To change this, click on the item type/patron category "
+"combination that you would like to stop notices for."
 msgstr ""
 "Ve výchozím nastavení jsou všem čtenářům zasílána upozornění o půjčování a "
 "vracení všech druhů dokumentu. Toto chování můžete změnit kliknutím na "
@@ -3392,12 +3390,12 @@ msgid ""
 "the libraries are placed in the StaticHoldsQueueWeight system preference."
 msgstr ""
 "Ve výchozím nastavení je fronta rezervací generována tak, že systém nejprve "
-"zkusí splnit požadavek jednotkami, které jsou k dispozici v knihovně, ve "
+"pokusí vykrýt požadavek jednotkami, které jsou k dispozici v knihovně, ve "
 "které má být rezervace vyzvednuta. Pokud zde žádné volné jednotky nejsou, "
-"potom skript build_holds_queue.pl vyzkouší knihovny podle seznamu "
-"definovaného v nastavení StaticHoldsQueueWeight. Pokud je nastavení "
-"RandomizeHoldsQueueWeight zakázáno (což je výchozí nastavení), skript "
-"použije knihovny v tom pořadí v jakém jsou vypsány v StaticHoldsQueueWeight."
+"potom skript build_holds_queue.pl vyzkouší najít volné jednotky v knihovnách "
+"uvedených na seznamu v nastavení StaticHoldsQueueWeight. Můžete rozhodnout "
+"jestli se využije pořadí knihoven, jak je zapsáno nebo se knihovna vybere "
+"náhodně."
 
 #: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:11
 #, c-format
@@ -3455,7 +3453,7 @@ msgstr "CUYAHOGA COUNTY PUBLIC webcat.cuyahoga.lib.oh.us:210 INNOPAC"
 msgid "Can I edit the online help?"
 msgstr "Mohu upravit on-line nápovědu?"
 
-#: intranet-tmpl/prog/en/modules/help/edithelp.tt:36
+#: intranet-tmpl/prog/en/modules/help/edithelp.tt:38
 #, c-format
 msgid "Cancel"
 msgstr "Zrušit"
@@ -3664,9 +3662,10 @@ msgstr ""
 "Zatrhněte políčko vedle \"Opakovatelný\", aby čtenářův záznam měl více "
 "hodnot pro tento atribut. "
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:23
-#, c-format
-msgid "Check the box to the left of the titles you want to add to the new list"
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:24
+#, fuzzy, c-format
+msgid ""
+"Check the box to the left of the titles you want to add to the new list."
 msgstr ""
 "Zaškrtněte políčko vlevo od titulů, které chcete přidat do nového seznamu"
 
@@ -3693,8 +3692,8 @@ msgstr ""
 "Označte záznamy, které chcete odstranit a klikněte na tlačítko \"Smazat "
 "vybrané záznamy\"."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:35
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:35
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:35
 #, c-format
 msgid ""
 "Check the selection boxes next to the fines you wish to pay, click \"Pay "
@@ -3840,9 +3839,9 @@ msgstr "Vyberte 'Soubor zip' v oddílu 'Typ souboru'"
 msgid "Choose 'if'"
 msgstr "Zvolte 'pokud'"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:24
-#, c-format
-msgid "Choose [New list] from the 'Add to:' pull down menu "
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:25
+#, fuzzy, c-format
+msgid "Choose [New list] from the 'Add to:' pull down menu. "
 msgstr "Z menu 'Přidat do:' vyberte [Nový seznam] "
 
 #: intranet-tmpl/prog/en/modules/help/reports/itemslost.tt:12
@@ -3907,9 +3906,9 @@ msgstr ""
 "klikněte na Další namísto předchozí volby."
 
 #: intranet-tmpl/prog/en/modules/help/reports/itemslost.tt:10
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"Choose category to 'Order by' (the 'order by' field effects what ordering "
+"Choose category to 'Order by' (the 'order by' field affects what ordering "
 "method is used when displaying the lost items)"
 msgstr ""
 "Vyberte kategorii pro 'Seřadit podle' (pole 'Seřadit podle' určuje, jaký "
@@ -4049,17 +4048,6 @@ msgstr "Vyberte, zda přijmout text, nebo odkaz k výsledkům"
 #, c-format
 msgid "Choose whether you're editing bibliographic or authority records"
 msgstr "Vyberte, zda chcete upravovat bibliografické nebo autoritní záznamy."
-
-#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:11
-#, c-format
-msgid ""
-"Choose which MARC field you would like to map to this Koha Field and click "
-"the 'OK' button. If you would like to clear all mappings, click the 'Click "
-"to \"Unmap\"' button."
-msgstr ""
-"Vyberte si, které MARC pole chcete mapovat na toto pole Koha a klikněte na "
-"tlačítko \"OK\". Pokud chcete vymazat všechna mapování, klikněte na tlačítko "
-"\"Přemapovat \"."
 
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:17
 #, c-format
@@ -4281,26 +4269,26 @@ msgstr "Zdroje klasifikace"
 msgid "Clear Patron Information"
 msgstr "Vymazat informace o uživateli"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:13
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:21
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:29
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:37
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:13
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:21
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:29
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:37
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:13
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:21
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:29
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:37
 #, c-format
 msgid "Click \"Confirm\""
 msgstr "Klikněte na \"Potvrdit\""
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:19
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:19
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:19
 #, c-format
 msgid "Click \"Pay\" next to the fine you want to partially pay"
 msgstr "Klikněte na \"Zaplatit\" vedle pokuty, kterou chcete zčásti zaplatit"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:11
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:11
 #, c-format
 msgid "Click \"Pay\" next to the fine you want to pay in full"
 msgstr ""
@@ -4311,8 +4299,8 @@ msgstr ""
 msgid "Click \"Save alert\" and your done!"
 msgstr "Klikněte na \"Uložit upozornění\" a máte hotovo!"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:43
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:43
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:43
 #, c-format
 msgid "Click \"Writeoff\" next to the fine you wish to writeoff."
 msgstr "Klikněte na \"Prominout\" vedle poplatku, který si přejete prominout."
@@ -4444,8 +4432,8 @@ msgstr ""
 msgid "Click 'Stage for import'"
 msgstr "Klikněte na tlačítko 'Připravit pro import'"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:22
 #: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:14
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:22
 #: intranet-tmpl/prog/en/modules/help/reports/itemslost.tt:15
 #, c-format
 msgid "Click 'Submit'"
@@ -4516,14 +4504,14 @@ msgstr "Klikněte na odkaz 'Přidat novou sadu'"
 msgid "Click on the title of the course you would like to add materials to."
 msgstr "Klikněte na název kurzu, ke kterému chcete přidávat dokumenty."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:27
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:27
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:27
 #, c-format
 msgid "Click the \"Pay Amount\" button"
 msgstr "Klikněte na tlačítko \"Zaplatit částku\""
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:49
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:49
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:49
 #, c-format
 msgid "Click the \"Writeoff All\" button"
 msgstr "Klikněte na tlačítko \"Prominout vše\""
@@ -4637,12 +4625,15 @@ msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:28
 #: intranet-tmpl/prog/en/modules/help/acqui/newordersubscription.tt:12
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Clicking 'Order' will bring the subscription info in to the order form "
 "without an 'Add item' section since you are just ordering a subscription and "
 "an item isn't needed"
 msgstr ""
+"Kliknutím na ´Objednat´ dostanete informaci o předplatném do objednávkového "
+"formuláře bez použití ´přidat jednotku´, protože právě objednáváte "
+"předplatné a jednotka není potřeba. "
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:120
 #, c-format
@@ -4664,8 +4655,8 @@ msgstr ""
 "Kliknutím na tlačítko 'Editace' vpravo od navrhovaného titulu se otevře "
 "editační stránka návrhu."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:15
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:15
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:15
 #, c-format
 msgid ""
 "Clicking Advanced Search to the right of the search button will give you all "
@@ -4688,13 +4679,13 @@ msgstr ""
 msgid "Clicking on repeatable events will offer slightly different options "
 msgstr "Kliknutí na opakovanou událost nabídne mírně odlišné možnosti "
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:50
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:47
 #, c-format
 msgid "Clicking on the 'List name' will show the contents of the list"
 msgstr "Kliknutím na název seznamu zobrazíte jeho obsah"
 
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:13
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:13
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:13
 #, c-format
 msgid ""
 "Clicking on the authority record summary will open the full record and the "
@@ -4712,8 +4703,8 @@ msgstr ""
 "Kliknutím na modré záhlaví se rozšíří možnosti filtrování a kliknutím na "
 "'[vymazat]' se vymažou všechny filtry a zobrazí všechny návrhy."
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:5
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:7
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:5
 #, c-format
 msgid ""
 "Clicking on the link to the Patron module will bring you to a search/browse "
@@ -4831,8 +4822,8 @@ msgstr ""
 "Klepnutím na šipku dolů napravo od rezervací podrží rezervaci v dolní části "
 "seznamu, i když je dáno více pořadavků."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:13
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:13
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:13
 #, c-format
 msgid ""
 "Clicking the plus sign to the right of the Vendor search box will expand the "
@@ -4841,8 +4832,8 @@ msgstr ""
 "Kliknutím na znaménko plus, napravo do pole hledání dodavatele, se rzozšíří "
 "toto hledání a budeme moci přidat další vyhledávací pole."
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:7
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:7
 #, c-format
 msgid ""
 "Clicking the small plus sign [+] to the right of the search box will open up "
@@ -4972,7 +4963,7 @@ msgstr "Podrobností kurzu"
 msgid "Course reserves"
 msgstr "Kurzy"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:504
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:510
 #, c-format
 msgid "Create SQL Reports"
 msgstr "Nový výstup pomocí SQL"
@@ -5084,8 +5075,8 @@ msgstr "DUEDGST "
 msgid "Database"
 msgstr "Databáze"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:40
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:42
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:40
 #, c-format
 msgid "Date of birth "
 msgstr "Datum narození "
@@ -5119,8 +5110,8 @@ msgstr "Základní podmínky výpůjček a rezervací"
 msgid "Default Circulation Rules"
 msgstr "Výchozí pravidla výpůjček"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:113
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:59
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:113
 #, c-format
 msgid "Default value "
 msgstr "Výchozí hodnota "
@@ -5220,6 +5211,11 @@ msgstr "Zpoždění je počet dní po termínu vrácení než je akce je spušt�
 msgid "Delete Quote(s)"
 msgstr "Smazat označené citáty"
 
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:504
+#, fuzzy, c-format
+msgid "Delete SQL Reports"
+msgstr "Nový výstup pomocí SQL"
+
 #: intranet-tmpl/prog/en/modules/help/admin/oai_sets.tt:20
 #, c-format
 msgid "Delete a set"
@@ -5242,7 +5238,7 @@ msgid ""
 "borrower reading history)"
 msgstr "Mazání neaktivních čtenářů a anonymizace/smazání historie výpůjček"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:523
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:529
 #, c-format
 msgid "Delete public lists"
 msgstr "Odstraňovat veřejné seznamy"
@@ -5293,8 +5289,8 @@ msgstr ""
 "V závislosti na hodnotě nastavení IssueLostItem, uvidíte buď pouze varování, "
 "nebo také potvrzovací dialog"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:11
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:13
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:11
 #, c-format
 msgid ""
 "Depending on what you have chosen for the 'Search fields' you can search for "
@@ -5471,8 +5467,8 @@ msgstr ""
 msgid "Each field has a tag (the MARC tag). "
 msgstr "Každé pole obsahuje tag (MARC tag). "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:62
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:8
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:62
 #, c-format
 msgid "Each field has a tag (which is the MARC tag) that is uneditable "
 msgstr "Každé pole má číselné označení, které není možné upravit "
@@ -5504,8 +5500,8 @@ msgstr ""
 "Každá knihovna bude mít odkaz \"Upravit\" napravo. Klepnutím na tento odkaz "
 "editujete/změníte detaily příslušné knihovny."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:5
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:5
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:5
 #, c-format
 msgid ""
 "Each line item can be paid in full (or written off) using the 'Pay Fines' "
@@ -5514,8 +5510,8 @@ msgstr ""
 "Každá položka na řádku může být plně placená (nebo odepsaná) použitím "
 "záložky \"Platba pokut\"."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:8
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:8
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:8
 #, c-format
 msgid "Each line item can be paid in full, partially paid, or written off."
 msgstr ""
@@ -5673,8 +5669,8 @@ msgstr "Úprava/Smazání atributů čtenáře"
 msgid "Editing/Deleting a Library"
 msgstr "Úprava/Smazání knihovny"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:19
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:21
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:19
 #, c-format
 msgid "Email: "
 msgstr "E-mail: "
@@ -5768,8 +5764,8 @@ msgstr ""
 "použitím rozbalovacího menu nebo zadat kompletní URL ke zvukovému souboru na "
 "jiném serveru."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:36
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:36
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:36
 #, c-format
 msgid "Enter an amount to pay towards the fines."
 msgstr "Vložte částku na zaplacení pokut."
@@ -5779,8 +5775,8 @@ msgstr "Vložte částku na zaplacení pokut."
 msgid "Enter any notes that might apply to this hold"
 msgstr "Zadejte poznámky, které platí pro tuto rezervaci"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:37
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:39
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:37
 #, c-format
 msgid ""
 "Enter any part of the patron's address (includes all address fields) and "
@@ -5790,8 +5786,8 @@ msgstr ""
 "Vložte jakoukoliv část čtenářovy adresy (včetně všech polí adresy) a vyberte "
 "'Obsahuje' namísto 'Začíná na' pro vyhledání řetězce kdekoliv v adrese"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:21
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:23
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:21
 #, c-format
 msgid ""
 "Enter any part of their email address and choose 'Contains' instead of "
@@ -5800,8 +5796,8 @@ msgstr ""
 "Vložte jakoukoliv část e-mailové adresy a vyberte \"Obsahuje\" místo "
 "\"Začíná na\""
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:16
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:18
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:16
 #, c-format
 msgid "Enter any part of their name, username, email address or barcode"
 msgstr ""
@@ -5851,8 +5847,8 @@ msgstr "Zadejte pole 952 a podpole o"
 msgid "Enter the 952 field and o subfield to copy to"
 msgstr "Zadejte pole 952 a podpole o pro kopírování do"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:26
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:28
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:26
 #, c-format
 msgid "Enter the Koha borrower number"
 msgstr "Zadejte číslo čtenáře v systému Koha"
@@ -5868,8 +5864,8 @@ msgstr "Zadejte tag podpole MARCu, které chcete vyhledat, do políčka 'Podpole
 msgid "Enter the MARC tag you want to match on in the 'Tag' field"
 msgstr "Zadejte MARC tag, který chcete vyhledat, do políčka 'Tag'"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:28
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:28
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:28
 #, c-format
 msgid ""
 "Enter the amount you are collecting from the patron in \"Collect from Patron."
@@ -5878,8 +5874,8 @@ msgstr ""
 "Zadejte částku, kterou od čtenáře vybíráte, do 'Vybrat od čtenáře'. Součet "
 "všech poplatků se zobrazuje jako 'Celková neuhrazená částka'"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:20
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:20
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:20
 #, c-format
 msgid ""
 "Enter the amount you are collecting from the patron in the \"Collect From "
@@ -5921,9 +5917,9 @@ msgstr ""
 msgid "Enter the field 942 and subfield c"
 msgstr "Zadejte pole 942 a podpole c"
 
+#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:7
 #: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:43
 #: intranet-tmpl/prog/en/modules/help/admin/marctagstructure.tt:9
-#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:7
 #, c-format
 msgid "Enter the information about your new tag:"
 msgstr "Zadejte informace o novém tagu:"
@@ -5956,8 +5952,8 @@ msgstr ""
 "Zadejte v procentech slevu, kterou máte na tuto objednávku. Poté stiskněte "
 "tab a Koha automaticky vyplní zbývající cenová pole."
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:31
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:33
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:31
 #, c-format
 msgid ""
 "Enter the phone number exactly as it is in the system or by using spaces "
@@ -6048,8 +6044,8 @@ msgstr ""
 "výši rozpočtu o 2.6%% (1024.974) a zaokrouhlení na 0.5, výsledek bude 1024.5 "
 "(výše je zaokrouhlena dolů).  "
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:32
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:34
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:32
 #, c-format
 msgid ""
 "Example: To find (212) 555-1212 you can search for it exactly as it was "
@@ -6072,9 +6068,9 @@ msgstr ""
 "Příklad: Můžete mít několik polí 650 a tento znak se objeví v každém z nich "
 "se sloupci"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:22
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:70
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:22
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:22
 #, c-format
 msgid ""
 "Example: the text is .25\" from the left edge of the first label, .28\" from "
@@ -6091,14 +6087,14 @@ msgstr ""
 msgid "Examples"
 msgstr "Příklady"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:161
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:107
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:161
 #: intranet-tmpl/prog/en/modules/help/reports/guided_reports.tt:67
 #, c-format
 msgid "Examples: "
 msgstr "Příklady: "
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:510
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:516
 #, c-format
 msgid "Execute SQL Reports"
 msgstr "Spouštět SQL výstupy"
@@ -6153,8 +6149,8 @@ msgstr ""
 msgid "Export label data in one of three formats: "
 msgstr "Exportovat údaje z popisků v jednom ze tří formátů: "
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:11
 #: intranet-tmpl/prog/en/modules/help/patroncards/home.tt:11
+#: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:11
 #, c-format
 msgid "Export single or multiple batches"
 msgstr "Exportovat jednu nebo více dávek"
@@ -6294,11 +6290,6 @@ msgid "Finally format your CSV file using the 'Profile MARC fields' fields "
 msgstr ""
 "Nakonec naformátujte váš soubor CSV s použitím pole 'MARC pole profilu' "
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:12
-#, c-format
-msgid "Finally there are three types of lists you can choose from "
-msgstr "Máte na výběr tři typy seznamu "
-
 #: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:83
 #, c-format
 msgid ""
@@ -6329,11 +6320,11 @@ msgstr ""
 "výskytu duplikátů. "
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:86
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Finally, if you charge a rental fee for the item type and want to give a "
-"specific patron type a discount on that fee, enter the percentage discount "
-"(without the %% symbol) in the 'Rental Discount' field"
+"specific patron category a discount on that fee, enter the percentage "
+"discount (without the %% symbol) in the 'Rental Discount' field"
 msgstr ""
 "Pokud účtujete poplatek při půjčování určitého typu jednotky a chcete dát "
 "některému typu čtenářů slevu z tohoto poplatku, zadejte výši slevy v "
@@ -6356,6 +6347,19 @@ msgid ""
 msgstr ""
 "Nakonec můžete doplnit libovolnou poznámku, ta se nebude zobrazovat v on-"
 "line katalogu."
+
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:18
+#, c-format
+msgid ""
+"Finally, in 'Allow changes to contents from', you can make the list readonly "
+"(by selecting Nobody), or you can allow only changes from yourself (Owner "
+"only). In case of a shared list or a public list, you can also allow changes "
+"from other people (Anyone seeing this list)."
+msgstr ""
+"V části ´povolit změny v obsahu´ můžete vytvořit seznam pouze pro čtení "
+"(výběrem Nikdo) nebo můžete povolit pouze své změny (pouze majitel). V "
+"případě sdíleného nebo veřejného seznamu můžete také povolit změny od "
+"dalších lidí (Každý). "
 
 #: intranet-tmpl/prog/en/modules/help/tools/upload-cover-image.tt:15
 #, c-format
@@ -6387,6 +6391,11 @@ msgstr "Poplatky"
 #, c-format
 msgid "Fines will be charged based on your Circulation &amp; Fines Rules"
 msgstr "Poplatky se vybírají podle nastavených pravidel výpůjček a upomínek"
+
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:10
+#, fuzzy, c-format
+msgid "First choose the name of your list."
+msgstr "První výběr typu kreditní karty, kterou chcete používat"
 
 #: intranet-tmpl/prog/en/modules/help/members/mancredit.tt:8
 #, c-format
@@ -6506,14 +6515,17 @@ msgstr "Příklad rozsahu pro celý měsíc: od 11/01/2009 do 12/01/2009"
 msgid "For a whole year, an example range would be: 01/01/2009 to 01/01/2010"
 msgstr "Příklad rozsahu pro celý rok: od 01/01/2009 do 01/01/2010"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:163
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:109
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:163
 #, c-format
 msgid ""
 "For call numbers there is an option to add a call number browser next to the "
 "the call number subfield. Simply choose the cn_browser.pl plugin. Learn more "
 "in the cataloging section of the manual."
 msgstr ""
+"Pro telefonní čísla je možné přidat prohlížeč telefonních čísel vedle "
+"podpole čísel. Jednoduše vyberte cn_browser.pl plugin. Více v sekci "
+"katalogizace. "
 
 #: intranet-tmpl/prog/en/modules/help/members/memberentry.tt:34
 #, c-format
@@ -6537,24 +6549,24 @@ msgstr ""
 "Pro každý řádek textu můžete zvolit písmo, velikost písma a umístění textu "
 "na průkazu s použitím souřadnic X a Y"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:111
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:57
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:111
 #, c-format
 msgid "For each subfield you can set the following Advanced constraint values "
 msgstr ""
 "Pro každé podpole můžete nastavit následující hodnoty v sekci Pokročilých "
 "omezení "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:78
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:24
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:78
 #, c-format
 msgid "For each subfield you can set the following Basic constraint values "
 msgstr ""
 "Pro každé podpole můžete nastavit následující hodnoty v sekci Základních "
 "omezení "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:146
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:92
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:146
 #, c-format
 msgid "For each subfield you can set the following Other option values "
 msgstr ""
@@ -6574,9 +6586,10 @@ msgid ""
 "larger libraries before smaller libraries, you would want "
 "StaticHoldsQueueWeight to look something like \"LRG,MED,SML\"."
 msgstr ""
-"Například, pokud máte v systému tři knihovny rozdílných velikostí (malou, "
-"střední a velkou) a chcete, aby velké knihovny plnily rezervace přednostně, "
-"natavte předvolbu StaticHoldsQueueWeight zhruba takto: \"VEL,STR,MAL\"."
+"Například, pokud máte v systému tři knihovny/pobočky rozdílných velikostí "
+"(malou, střední a velkou) a chcete, aby velká knihovna plnila rezervace "
+"přednostně. Pak nastavte předvolbu StaticHoldsQueueWeight zhruba takto: "
+"\"VEL,STR,MAL\"."
 
 #: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:61
 #, c-format
@@ -6663,9 +6676,9 @@ msgstr ""
 "Pokud chcete vložit více souborů najednou, zvolte možnost načíst "
 "komprimovaného souboru"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:21
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:69
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:21
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:21
 #, c-format
 msgid ""
 "For these values, negative numbers move the error up and to the left and "
@@ -6693,10 +6706,10 @@ msgstr ""
 "čtenáře dané kategorie bez ohledu na typ jednotky."
 
 #: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:39
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"For this option to appear you need to make sure that you have a Routing List "
-"notice set up in the Notices Tool"
+"For this option to appear you need to make sure that you have a New serial "
+"issue notice set up in the Notices Tool"
 msgstr ""
 "Pro tuto volbu se zobrazí Poznámkách, co potřebujete, abyste se ujistili, že "
 "máte nastavenou poznámku v kolovacím seznamu."
@@ -6721,8 +6734,8 @@ msgstr ""
 "Formát tisku etiket můžete nastavit editací souboru spinelabel.css, který "
 "najdete v adresáři %s/%s/css/"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:59
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:5
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:59
 #, c-format
 msgid ""
 "Frameworks are made up of MARC fields and subfields. To make edits to most "
@@ -6886,7 +6899,7 @@ msgstr ""
 msgid "From here, you can edit or remove the items that you have added."
 msgstr "Zde můžete upravovat nebo odstraňovat již přidané jednotky."
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:42
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:39
 #, c-format
 msgid ""
 "From the List page you can add titles by scanning barcodes into the box at "
@@ -6895,8 +6908,8 @@ msgstr ""
 "Ze stránky seznamu můžete další tituly přidávat pomocí čárových kódů "
 "načítaných do políčka ve spodní části stránky"
 
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:9
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:9
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:9
 #, c-format
 msgid ""
 "From the authorities page you can search for existing terms and the "
@@ -6969,8 +6982,8 @@ msgstr ""
 "V seznamu připravených záznamů klikněte na název souboru, který budete chtít "
 "importovat "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:76
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:22
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:76
 #, c-format
 msgid ""
 "From the list of subfields you can click 'Delete' to the right of each to "
@@ -6988,7 +7001,7 @@ msgstr ""
 "V seznamu podpolí můžete vpravo u každého podpole kliknout na 'Odstranit' a "
 "tím jej odstraníte"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:56
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:53
 #, c-format
 msgid ""
 "From the list, check the two items you want to merge. If you choose more "
@@ -7099,8 +7112,8 @@ msgstr ""
 "Ve výsledcích můžete záznamy prohlížet ve formátu MARC, nebo jako kartu. "
 "Libovolné záznamy vybrat a importovat je do systému Koha "
 
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:11
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:11
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:11
 #, c-format
 msgid ""
 "From the results you will see the authority record, how many bibliographic "
@@ -7111,8 +7124,8 @@ msgstr ""
 "bibliografickým záznamům je přiřazena a s odkazem na odstranění (pokud není "
 "přiřazena k žádnému bibliografickému záznamu)."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:18
 #: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:8
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:18
 #, c-format
 msgid ""
 "From the results, click 'Order' next to the item you want to order and you "
@@ -7121,8 +7134,8 @@ msgstr ""
 "Ve výsledcích klikněte na 'Objednat' u jednotky, kterou chcete objednat. "
 "Objeví se objednávkový formulář s odkazem na návrh "
 
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:37
 #: intranet-tmpl/prog/en/modules/help/acqui/z3950_search.tt:8
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:37
 #, c-format
 msgid ""
 "From the results, click the Order link next to the item you want to purchase."
@@ -7187,8 +7200,8 @@ msgstr ""
 "Jakmile jsou všechny soubory nahrané nebo načtené čárové kódy, klikněte na "
 "'Pokračovat'."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:40
 #: intranet-tmpl/prog/en/modules/help/acqui/z3950_search.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:40
 #, c-format
 msgid ""
 "From the warning, you can choose to order another copy on the existing bib "
@@ -7231,8 +7244,8 @@ msgstr ""
 "doplní v záznamu jednotky do podpole v (Výdaje, zástupná cena) a podpole g "
 "(Výdaje, běžná nákupní cena)."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:20
 #: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:10
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:20
 #, c-format
 msgid ""
 "From this form you can make changes to the Catalog Details if necessary."
@@ -7352,15 +7365,15 @@ msgstr "GREATER SUDBURY PUBLIC 216.223.90.51:210 INNOPAC"
 msgid "Generic"
 msgstr "Generický"
 
-#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:8
+#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:13
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:97
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:245
-#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:13
+#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:8
 #, c-format
 msgid "Get there:"
 msgstr "Přejděte na:"
 
-#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:44
+#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:8
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:108
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:109
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:124
@@ -7377,7 +7390,7 @@ msgstr "Přejděte na:"
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:217
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:233
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:234
-#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:8
+#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:44
 #, c-format
 msgid "Get there: "
 msgstr "Přejděte na: "
@@ -7436,7 +7449,7 @@ msgstr "Podrobná přístupová práva k výpůjčkám"
 msgid "Granular Holds Permissions"
 msgstr "Podrobná přístupová práva k rezervacím"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:516
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:522
 #, c-format
 msgid "Granular Lists Permissions"
 msgstr "Podrobné nastavení práv k seznamům"
@@ -7509,11 +7522,22 @@ msgstr ""
 "sady) definováním mapování. Mapování je seznam podmínek na obsah záznamu. "
 "Záznam potřebuje splnit jednu podmínku, aby patřil do sady."
 
-#: intranet-tmpl/prog/en/modules/help/members/boraccount.tt:13
+#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:7
 #, c-format
 msgid ""
-"Hold fees will be charged based on the rules you set in the Patron Types "
-"&amp; Categories administration area"
+"Historically, the Koha to MARC mappings have been the same throughout all "
+"frameworks. But note that it was possible (before) to add or remove a "
+"mapping in an individual framework via Administration/MARC bibliographic "
+"framework. Since we now consider the Default framework as authoritative for "
+"these mappings, this form shows the mappings in Default and applies changes "
+"to all other frameworks."
+msgstr ""
+
+#: intranet-tmpl/prog/en/modules/help/members/boraccount.tt:13
+#, fuzzy, c-format
+msgid ""
+"Hold fees will be charged based on the rules you set for the patron category "
+"in administration"
 msgstr ""
 "Rezervační poplatky budou účtovány na základě pravidel, která jsou nastavena "
 "v Kategoriích čtenářů v administraci"
@@ -7742,13 +7766,16 @@ msgid "If a record you want to delete can't be deleted it will be highlighted."
 msgstr "Pokud je záznam, který chcete smazat nesmazatelný, bude zvýrazněn."
 
 #: intranet-tmpl/prog/en/modules/help/rotating_collections/rotatingCollections.tt:33
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "If an item in a rotating collection is checked in at a library other than "
 "the one it is supposed to be transferred to, a notification will appear "
 "notifying library staff that the item is part of a rotating collection, also "
 "letting them know where the item needs to be sent."
 msgstr ""
+"Pokud je položka v rotating collection vrácená v jiné knihovně, než v té, do "
+"které má být převedena, objeví se oznámení, že položka je součástí rotating "
+"collection. Nahlaste, kam má být položka odeslána."
 
 #: intranet-tmpl/prog/en/modules/help/admin/columns_settings.tt:11
 #, c-format
@@ -7777,8 +7804,8 @@ msgstr ""
 "Pokud se všechno zdá být správně, klikněte na \"OK\" a neobdržené objednávky "
 "a pokud jsou vybrány, tak i neutracené zdroje budou přesunuty."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:89
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:35
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:89
 #, c-format
 msgid "If left empty, the text for librarian is used instead"
 msgstr "Zůstane-li pole prázdné, je namísto použit text pro knihovníka"
@@ -7814,8 +7841,8 @@ msgstr ""
 "nastavení parametrů OPACSerialIssueDisplayCount a "
 "StaffSerialIssueDisplayCount"
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:15
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:85
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:15
 #, c-format
 msgid ""
 "If not then you'll see an error explaining why you can't discharge the "
@@ -7850,8 +7877,8 @@ msgstr ""
 "Pokud je vyplněna URL adresa, použije se k vytvoření odkazu na názvu "
 "knihovny v přehledu jednotek v on-line katalogu"
 
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:15
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:15
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:15
 #, c-format
 msgid ""
 "If the authority has See Alsos in it you will see those broken out on the "
@@ -7970,8 +7997,8 @@ msgstr ""
 "klepněte na tlačítko \"Uložit a zobrazit náhled kolovacího seznamu.\" Tím se "
 "otevře verze pro tisk seznamu."
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:13
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:83
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:13
 #, c-format
 msgid ""
 "If the patron can have a discharge generated then it will have a button that "
@@ -8315,8 +8342,8 @@ msgstr ""
 "Pokud omylem zvolili nesprávnou kategorii čtenáře na začátku můžete to "
 "opravit tak, že zde"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:53
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:53
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:53
 #, c-format
 msgid ""
 "If you accidentally mark and item as paid, you can reverse that line item by "
@@ -8404,8 +8431,8 @@ msgstr ""
 "pod seznamem modulů (spolu s jinými čekajícími položkami)."
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:84
-#, c-format
-msgid "If you are charged sales tax, choose that from the gstrate field"
+#, fuzzy, c-format
+msgid "If you are charged sales tax, choose that from the tax_rate field"
 msgstr ""
 "Pokud počítáte prodejní daň, vyberte ji z pole \"Daň ze zboží a služeb\""
 
@@ -8438,8 +8465,8 @@ msgid ""
 msgstr ""
 "Pokud chcete provádět vracení jednotek, které byly vloženy do biblioboxu, "
 "zatímco knihovna byla uzavřena, můžete zaškrtnout políčko \"Vracení knih z "
-"biblioboxu\". Tím se zapíše datum vrácení zpět na poslední den, kdy knihovna "
-"byla otevřena."
+"biblioboxu\". Systém pak nastaví jako datum vrácení předchozí otevírací den "
+"knihovny."
 
 #: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:5
 #, c-format
@@ -8500,12 +8527,14 @@ msgstr ""
 "sešitů."
 
 #: intranet-tmpl/prog/en/modules/help/circ/on-site_checkouts.tt:5
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "If you are using the on site checkouts functionality (OnSiteCheckouts) then "
 "you'll have a report to view all items that are currently checked out on "
 "site."
 msgstr ""
+"Pokud používáte on site půjčování (OnSiteCheckouts), všechny položky se "
+"zobrazí ve zprávě, že nyní půjčujete on site. "
 
 #: intranet-tmpl/prog/en/modules/help/tools/overduerules.tt:38
 #, c-format
@@ -8543,8 +8572,8 @@ msgstr ""
 "Pokud účtujete poplatek za rezervace na výtisky, zapište částku v poli "
 "\"Rezervační poplatek\". "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:67
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:13
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:67
 #, c-format
 msgid ""
 "If you check 'Mandatory' the record will not be allowed to save unless you "
@@ -8562,8 +8591,8 @@ msgstr ""
 "Pokud zaškrtnete \"Povinné\", záznam nebude povoleno ukložit, pokud nemáte "
 "hodnotu přiřazenou k tomuto tagu"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:66
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:12
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:66
 #, c-format
 msgid ""
 "If you check 'Repeatable' then the field will have a plus sign next to it "
@@ -8652,18 +8681,18 @@ msgstr ""
 "Pokud si zvolíte vytvářet zcela nový záznam, objeví se čistý formulář, který "
 "vám umožní zadat všechny potřebné údaje."
 
-#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:7
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:7
-#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:7
 #: intranet-tmpl/prog/en/modules/help/reports/cat_issues_top.tt:7
-#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:7
+#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:7
 #: intranet-tmpl/prog/en/modules/help/reports/manager.tt:7
 #: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:9
 #: intranet-tmpl/prog/en/modules/help/reports/serials_stats.tt:7
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:7
+#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:7
 #: intranet-tmpl/prog/en/modules/help/reports/bor_issues_top.tt:7
 #: intranet-tmpl/prog/en/modules/help/reports/catalogue_stats.tt:7
 #: intranet-tmpl/prog/en/modules/help/reports/acquisitions_stats.tt:7
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:7
+#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:7
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:7
 #, c-format
 msgid ""
 "If you choose to output to the browser your results will print to the screen."
@@ -8775,8 +8804,8 @@ msgstr ""
 "Pokud nemáte reklamační oznámení dosud definované, uvidíte varovnou zprávu, "
 "že je musíte nejprve předem definovat."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:130
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:76
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:130
 #, c-format
 msgid ""
 "If you enter a field/subfield here (200b), a link appears after the subfield "
@@ -9020,9 +9049,9 @@ msgstr ""
 "provedené v záznamu čtenáře."
 
 #: intranet-tmpl/prog/en/modules/help/circ/circulation.tt:35
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"If you have set your ExportWithCsvProfile preference, you will also see the "
+"If you have set your ExportCircHistory preference, you will also see the "
 "option to export the patron's current checkout information using a CSV "
 "Profile or ISO2709 (MARC21) format."
 msgstr ""
@@ -9271,9 +9300,8 @@ msgid ""
 "use the following information. The full URL http://lx2.loc.gov:210/LCDB must "
 "be entered as follows:"
 msgstr ""
-"Pokud chcete vložit SRU server Library of Congressr, měli byste zadat "
-"alespoň tyto informace. Úplná URL ( http://lx2.loc.gov:210/LCDB)  musí být "
-"zadána takto:"
+"Pokud chcete vložit SRU server Kongresové knihovny, měli byste zadat alespoň "
+"tyto informace. Úplná URL http://lx2.loc.gov:210/LCDB musí být zadána takto:"
 
 #: intranet-tmpl/prog/en/modules/help/cataloguing/moveitem.tt:11
 #, c-format
@@ -9746,12 +9774,12 @@ msgstr ""
 "Ignorování rezervace ponechá rezervaci na výtisku, ale ponechá jeho status "
 "\"Dostupný\" (což ale neruší rezervaci)"
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:7
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:9
 #, c-format
 msgid "Images must be under 500k in size."
 msgstr "Obrázky musejí být menší než 500kB."
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:5
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:7
 #, c-format
 msgid ""
 "Images uploaded using this tool will appear on the menu when creating patron "
@@ -9844,16 +9872,16 @@ msgstr ""
 "zadali v systémové preferenci TransfersMaxDaysWarning."
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:31
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Important: At the very least you will need to set a default circulation "
 "rule. This rule should be set for all item types, all libraries and all "
 "patron categories. That will catch all instances that do not match a "
 "specific rule. When checking out if you do not have a rule for all "
-"libraries, all item types and all patron types then you may see patrons "
+"libraries, all item types and all patron categories then you may see patrons "
 "getting blocked from placing holds. You will also want a rule for your "
-"specific library set for all item types and all patron types to avoid this "
-"holds issue. Koha needs to know what rule to fall back on."
+"specific library set for all item types and all patron categories to avoid "
+"this holds issue. Koha needs to know what rule to fall back on."
 msgstr ""
 "Důležité: Přinejmenším budete muset nastavit výchozí výpůjční pravidlo. Toto "
 "pravidlo by mělo být pro všechny typy dokumentů, všech knihoven a všech "
@@ -9864,17 +9892,6 @@ msgstr ""
 "knihovny určené pro všechny typy položek a všechny druhy čtenářů a tak se "
 "vyhnout tomuto problému s rezervacemi. Koha musí vědět ke kterým pravidlům "
 "se vrátit."
-
-#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:13
-#, c-format
-msgid ""
-"Important: At this time you can map only 1 MARC field to 1 Koha field. This "
-"means that you won't be able to map both the 100a and the 700a to the author "
-"field, you need to choose one or the other."
-msgstr ""
-"Důležité: V tomto okamžiku můžete mapovat pouze 1 MARC pole na 1 pole Koha. "
-"To znamená, že nebudete moci mapovat jak 100a a 700a na pole Autor, musíte "
-"vybrat jedno, nebo druhé."
 
 #: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:61
 #: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:82
@@ -9993,8 +10010,8 @@ msgstr ""
 "Důležité: Pokud nechcete účtovat pokuty a/nebo nemají pokuty periodické "
 "spuštění, neuvidíte žádné údaje v této zprávě."
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:20
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:36
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:20
 #, c-format
 msgid ""
 "Important: If you do not supply a left text margin in the template, a "
@@ -10046,7 +10063,7 @@ msgstr ""
 "Důležité: Aby se zprávy o upomínce odeslaly vašim čtenářům je nutné u "
 "kategorie čtenářů nastavit, aby vyžadovala zprávu o upomínce."
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:66
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:63
 #, c-format
 msgid ""
 "Important: It is important to rebuild your zebra index immediately after "
@@ -10399,8 +10416,8 @@ msgstr ""
 "uloženy ve formátu MARC (u nějž Koha podporuje různé verze). K uloženým "
 "informacím je možné přiřazovat jednotky nebo fondy."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:164
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:110
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:164
 #, c-format
 msgid ""
 "In UNIMARC there are plugins for every 1xx fields that are coded fields. The "
@@ -10454,6 +10471,16 @@ msgid ""
 msgstr ""
 "V obou případech bude zobrazen formulář, kde stačí jednoduše zadat nové "
 "počáteční a koncové datum a rozpočet uložit."
+
+#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:11
+#, c-format
+msgid ""
+"In order to add a mapping for a specific Koha field, click the Add button on "
+"the corresponding line in the table. You will be asked to enter a field "
+"number and a subfield code. In order to remove a specific mapping, click the "
+"Remove button on the corresponding line. Both changes (add, delete) are "
+"applied immediately."
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:14
 #, c-format
@@ -10591,8 +10618,8 @@ msgstr ""
 "Náhledy obálek se v OPACu budou zobrazovat v záložce obrázky, u názvu "
 "jednotky a ve výsledcích vyhledávání."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:7
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:7
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:7
 #, c-format
 msgid ""
 "In the Vendor Search you can enter any part of the vendor name to get "
@@ -10620,14 +10647,14 @@ msgstr ""
 "Při vyplňování pole s částkou nepoužívejte žádné symboly, výši rozpočtu "
 "zadejte pouze pomocí čísel."
 
-#: intranet-tmpl/prog/en/modules/help/members/mancredit.tt:11
 #: intranet-tmpl/prog/en/modules/help/members/maninvoice.tt:14
+#: intranet-tmpl/prog/en/modules/help/members/mancredit.tt:11
 #, c-format
 msgid ""
 "In the amount field, do not enter currency symbols, only numbers and decimals"
 msgstr "Do pole s částkou nepište symbol měny, pouze čísla."
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:11
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:13
 #, c-format
 msgid ""
 "In the center of the screen is a simple upload form, simply browse for the "
@@ -10738,9 +10765,9 @@ msgid ""
 msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/tools/inventory.tt:3
-#, fuzzy, c-format
+#, c-format
 msgid "Inventory"
-msgstr "inventář "
+msgstr "Revize"
 
 #: intranet-tmpl/prog/en/modules/help/acqui/invoice.tt:3
 #: intranet-tmpl/prog/en/modules/help/acqui/invoices.tt:3
@@ -10759,8 +10786,8 @@ msgstr ""
 "Například vždy vychází v lednu, v říjnu a v prosinci, což je nepravidelné, "
 "ale víte, kdy má přijít příští číslo."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:123
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:69
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:123
 #, c-format
 msgid "Is a URL "
 msgstr "Je to URL "
@@ -10867,8 +10894,8 @@ msgid ""
 "Item being checked out meets the decreaseLoanHighHolds system preference "
 "criteria"
 msgstr ""
-"Půjčovaná jednotka splňuje kritéria decreaseLoanHighHolds - výpůjční lhůta "
-"bude zkrácena."
+"Půjčovaná jednotka splňuje kritéria pro zkrácení výpůjční doby na základě "
+"počtu čekajících rezervací (decreaseLoanHighHolds)"
 
 #: intranet-tmpl/prog/en/modules/help/circ/circulation.tt:110
 #, c-format
@@ -11049,8 +11076,8 @@ msgstr ""
 "Koha umožňuje posílat e-maily vašim prodejcům periodik v případě opožděných "
 "čísel. Nalevo od hlavní strany se nachází odkaz 'Reklamace'"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:8
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:97
+#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:8
 #, c-format
 msgid ""
 "Koha cannot display existing passwords. Leave the field blank to leave "
@@ -11140,7 +11167,6 @@ msgstr ""
 "rozhodnete) pod jakoukoliv novější verzí."
 
 #: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:141
-#: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:87
 #, c-format
 msgid ""
 "Koha is multi-MARC compliant. So, it does not know what the 245$a means, "
@@ -11165,8 +11191,8 @@ msgid ""
 msgstr ""
 "Koha si zaznamenává frekvence vydávání pro jednoduchou správu a duplikaci"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:139
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:85
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:139
 #, c-format
 msgid "Koha link "
 msgstr "Pole v systému Koha "
@@ -11193,8 +11219,8 @@ msgid "Koha team"
 msgstr "Tým Koha"
 
 #: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:3
-#, c-format
-msgid "Koha to MARC Mapping"
+#, fuzzy, c-format
+msgid "Koha to MARC mapping"
 msgstr "Mapování polí Koha na MARC"
 
 #: intranet-tmpl/prog/en/modules/help/tools/inventory.tt:5
@@ -11336,11 +11362,11 @@ msgstr "Název, který se objeví na přehledu seznamů"
 msgid "Language=%s "
 msgstr "Jazyk=%s "
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:3
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:3
 #: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:36
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:5
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-layout.tt:3
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:3
-#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:3
 #, c-format
 msgid "Layouts"
 msgstr "Rozložení"
@@ -11368,10 +11394,10 @@ msgid ""
 "RandomizeHoldsQueueWeight, causing the script to request hold fulfillment "
 "not randomly, but by alphabetical order."
 msgstr ""
-"Ponechání prázdného parametru StaticHoldsQueueWeight v tomto okamžiku je "
+"Ponechání parametru StaticHoldsQueueWeight nevyplněného je v tomto okamžiku "
 "nežádoucí. Mohlo by dojít k tomu, že skript build_holds_queue bude ignorovat "
-"RandomizeHoldsQueueWeight, což by vedlo k tomu, že skript nebude přiřazovat "
-"rezervace náhodně, ale podle abecedy."
+"RandomizeHoldsQueueWeight, což by vedlo k tomu, že rezervace nebudou "
+"přiřazeny náhodně, ale podle abecedy."
 
 #: intranet-tmpl/prog/en/modules/help/admin/matching-rules.tt:44
 #, c-format
@@ -11422,19 +11448,19 @@ msgid ""
 "not physically separated from the host item. Learn more about Analytics in "
 "Chapter 13 of AACR2."
 msgstr ""
-"Knihovny někdy zpřístupňují novinové články a články v rámci monografií a "
-"časopisů svým čtenářům prostřednictvím analytické katalogizace. Analytická "
-"katalogizace vytváří samostatné bibliografické záznamy o těchto článcích, "
-"kapitolách a sekcích, nacházejících se uvnitř většího zdroje, jako jsou "
-"knihy, články v časopisech, novinách nebo periodikách. V analytické "
+"Některé knihovny zpřístupňují také novinové články a články v rámci "
+"monografií a časopisů svým čtenářům prostřednictvím analytického popisu. "
+"Analytická katalogizace vytváří samostatné bibliografické záznamy o těchto "
+"článcích, kapitolách a sekcích, nacházejících se uvnitř většího zdroje, jako "
+"jsou knihy, články v časopisech, novinách nebo periodikách. V analytické "
 "katalogizaci, ačkoli samostatný bibliografický záznam je vytvořen pro název, "
 "není fyzicky oddělen od hostitelského výtisku. Další informace Analytice viz "
 "v kapitole 13 AACR2."
 
 #: intranet-tmpl/prog/en/modules/help/admin/edi_ean_accounts.tt:3
-#, fuzzy, c-format
+#, c-format
 msgid "Library EANs"
-msgstr "Čárový kód EAN knihovny"
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/admin/branches.tt:74
 #, c-format
@@ -11530,8 +11556,8 @@ msgstr ""
 "Omezte kategorii na 10 znaků (něco zkraťte, aby zůstalo jasné, jaká je "
 "kategorie pro) "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:128
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:74
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:128
 #, c-format
 msgid "Link "
 msgstr "Odkaz: "
@@ -11760,8 +11786,8 @@ msgstr ""
 msgid "Manage vendors"
 msgstr "Sopráva dodavatelů"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:104
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:50
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:104
 #, c-format
 msgid "Managed in tab "
 msgstr "Spravováno v záložce "
@@ -11776,8 +11802,8 @@ msgstr "Správa připravených MARC záznamů, včetně importu a rušení impor
 msgid "Managing Holds"
 msgstr "Správa rezervací"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:99
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:45
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:99
 #, c-format
 msgid "Mandatory "
 msgstr "Povinné "
@@ -11843,9 +11869,9 @@ msgstr "Selekční body (právě jeden):"
 msgid "Merge authorities"
 msgstr "Slučování autorit"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:52
-#, c-format
-msgid "Merging Bibliographic Records Via Lists"
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:49
+#, fuzzy, c-format
+msgid "Merging bibliographic records via Lists"
 msgstr "Slučování bibliografických záznamu za pomoci seznamů"
 
 #: intranet-tmpl/prog/en/modules/help/cataloguing/merge.tt:3
@@ -11946,8 +11972,9 @@ msgid "Most circulated items"
 msgstr "Nejčastěji půjčované jednotky"
 
 #: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:12
-#, c-format
-msgid "Most common patron type, usually used for a general 'Patron' category."
+#, fuzzy, c-format
+msgid ""
+"Most common patron category, usually used for a general 'Patron' category."
 msgstr ""
 "Nejběžnější typ uživatele, obvykle používaný pro obecnou kategorii 'Uživatel'"
 
@@ -11989,9 +12016,9 @@ msgstr ""
 msgid "Name is a field for you to identify the search term"
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:26
-#, c-format
-msgid "Name the list and choose what type of list this is "
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:27
+#, fuzzy, c-format
+msgid "Name the list and choose the list category. "
 msgstr "Seznam pojmenujte a vyberte typ seznamu "
 
 #: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:75
@@ -12264,12 +12291,12 @@ msgstr ""
 "Číslo verze uvedené v závorkách vedle názvu modulu je minimální požadovaná "
 "verze. Aktuálně nainstalovaná verze je zobrazena ve vedlejším sloupci."
 
+#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:17
+#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:38
 #: intranet-tmpl/prog/en/modules/help/members/memberentry.tt:57
 #: intranet-tmpl/prog/en/modules/help/acqui/lateorders.tt:9
 #: intranet-tmpl/prog/en/modules/help/acqui/lateorders.tt:15
 #: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:5
-#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:17
-#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:38
 #, c-format
 msgid "Note:"
 msgstr "Poznámka:"
@@ -12279,8 +12306,8 @@ msgstr "Poznámka:"
 msgid "Note: "
 msgstr "Poznámka: "
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:9
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:79
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:9
 #, c-format
 msgid ""
 "Note: Academic libraries often require that you have a clear record at the "
@@ -12325,8 +12352,8 @@ msgid ""
 "together."
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:7
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:77
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:7
 #, c-format
 msgid ""
 "Note: In France a \"quitus\" (\"discharge\") is needed if you want to "
@@ -12440,9 +12467,9 @@ msgstr "Offline výpůjčky"
 msgid "Offline circulation"
 msgstr "Offline výpůjčky"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:19
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:67
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:19
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:19
 #, c-format
 msgid ""
 "Offset describes what happens when the entire image is off center either "
@@ -12540,8 +12567,8 @@ msgstr ""
 msgid "On this page you can create, modify and delete OAI-PMH sets"
 msgstr "Na této stránce můžete vytvořit, měnit nebo odstranit sady OAI-PMH"
 
-#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:7
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:32
+#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:7
 #, c-format
 msgid ""
 "On this tab you will be able to see and edit all of the routing lists that "
@@ -12591,8 +12618,8 @@ msgid ""
 msgstr ""
 "Pokud je položka přidána do košíku budete seznámeni se Souhrnem košíku."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:55
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:55
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:55
 #, c-format
 msgid ""
 "Once clicked a new line item will be added to the account, showing the "
@@ -12683,7 +12710,7 @@ msgstr ""
 "Pokud je aktuální citace nahrána do editační tabulky, můžete upravovat zdroj "
 "citace a text."
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:13
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:15
 #, c-format
 msgid ""
 "Once the file is uploaded you will be presented with a confirmation message."
@@ -12713,17 +12740,17 @@ msgstr ""
 msgid "Once the item is checked out it will appear below the patron's info."
 msgstr "Jakmile je jednotka vypůjčena, objeví se pod informacemi o čtenáři."
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:17
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:87
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:17
 #, c-format
 msgid "Once the letter is generated you will have a PDF to download"
 msgstr "Jakmile je dopis vygenerován, můžete jej stáhnout ve formátu PDF"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:36
-#, c-format
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:33
+#, fuzzy, c-format
 msgid ""
-"Once the list is saved it will accessible from the Lists page and from the "
-"'Add to' menu at the top of the search results."
+"Once the list is saved, it will be accessible from the Lists page and from "
+"the 'Add to' menu at the top of the search results."
 msgstr ""
 "Po uložení je Seznam přístupný na stránce Seznamů a z menu 'Přidat do' v "
 "horní části výsledků vyhledávání."
@@ -12827,7 +12854,7 @@ msgstr ""
 "Po skončení výběru klikněte na tlačítko 'Sloučit'. Primární záznam nyní bude "
 "obsahovat data, která jste určili a druhý záznam bude odstraněn."
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:64
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:61
 #, c-format
 msgid ""
 "Once you have completed your selections click the 'merge' button. The "
@@ -12953,9 +12980,9 @@ msgid ""
 "right."
 msgstr "Hned po uložení vašich změn se nahoře vpravo objeví nová Knihovna."
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:29
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:77
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:29
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:29
 #, c-format
 msgid ""
 "Once you have saved your new profile, you can return to the list of "
@@ -12964,7 +12991,7 @@ msgstr ""
 "Pokud jste uložili váš nový profil, můžete se vrátit do seznamu šablon a "
 "vybrat úpravu šablony pro kterou je tento profil."
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:58
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:55
 #, c-format
 msgid ""
 "Once you have selected the records you want to merge, click the 'Merge "
@@ -13240,13 +13267,13 @@ msgstr ""
 "Pokud kliknete na 'Odeslat', vaše město bude uloženo a objeví se na stránce "
 "Města a obce."
 
-#: intranet-tmpl/prog/en/modules/help/edithelp.tt:28
+#: intranet-tmpl/prog/en/modules/help/edithelp.tt:30
 #, c-format
 msgid "Online Help"
 msgstr "Online nápověda"
 
 #: intranet-tmpl/prog/en/modules/help/nohelp.tt:3
-#: intranet-tmpl/prog/en/modules/help/edithelp.tt:2
+#: intranet-tmpl/prog/en/modules/help/edithelp.tt:3
 #, c-format
 msgid "Online help"
 msgstr "Online nápověda"
@@ -13448,10 +13475,10 @@ msgstr ""
 "systémových nastaveních."
 
 #: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:5
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Patron categories allow you to organize your patrons into different roles, "
-"age groups, and patron types."
+"age groups, and patron categories."
 msgstr ""
 "Kategorie čtenářů vám dovolují organizovat čtenáře do rozdílných úloh, "
 "věkových skupin a čtenářských typů."
@@ -13481,8 +13508,8 @@ msgstr "Historie výpujček čtenáře"
 msgid "Patron details"
 msgstr "Podrobnosti o čtenáři"
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:3
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:73
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:3
 #, fuzzy, c-format
 msgid "Patron discharges"
 msgstr "Oznámení čtenářům"
@@ -13659,32 +13686,32 @@ msgstr "Čtenáři v kategorii zaměstnanců budou mít přístup do intranetu."
 msgid "Patrons:"
 msgstr "Čtenáři:"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:33
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:33
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:33
 #, c-format
 msgid "Pay Selected fines "
 msgstr "Zaplatit vybrané pokuty "
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:9
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:9
 #, c-format
 msgid "Pay a fine in full "
 msgstr "Zaplatit pokuty v plné výši "
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:17
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:17
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:17
 #, c-format
 msgid "Pay a partial fine "
 msgstr "Zaplatit jen část pokuty "
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:25
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:25
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:25
 #, c-format
 msgid "Pay an amount towards all fines "
 msgstr "Zaplatit "
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:3
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:3
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:3
 #, c-format
 msgid "Pay and Writeoff Fines"
 msgstr "Zaplatit a prominout pokuty"
@@ -13734,13 +13761,13 @@ msgstr "Moduly jazyka Perl"
 msgid "Philadelphia, PA 19107"
 msgstr "Philadelphia, PA 19107"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:29
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:31
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:29
 #, c-format
 msgid "Phone number: "
 msgstr "Telefonní číslo: "
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:9
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:11
 #, c-format
 msgid ""
 "Pictures uploaded with this tool should be at least 300dpi which is the "
@@ -13790,8 +13817,8 @@ msgstr ""
 "parametrů. Například, jestli neplánujete používat modul akvizice, pak "
 "'Fondy', 'Rozpočty' a 'Měny a směnné kurzy' můžete ignorovat."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:158
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:104
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:158
 #, c-format
 msgid "Plugin "
 msgstr "Zásuvný modul "
@@ -13827,9 +13854,10 @@ msgid "Printing Receipts"
 msgstr "Tisk potvrzení"
 
 #: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:14
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:28
-#, c-format
-msgid "Private list: Is managed by you and can be seen only by you"
+#, fuzzy, c-format
+msgid ""
+"Private list: Is managed by you and can be seen only by you or the people "
+"you choose to share the list with."
 msgstr "Soukromý seznam může být zobrazován i upravován pouze Vámi"
 
 #: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:30
@@ -13847,11 +13875,11 @@ msgstr "Profesionál = uživatel, který může patřit do organizace"
 msgid "Professional patrons can be linked to Organizational patrons"
 msgstr "Profesionální uživatelé mohou být propojeni s organizačními uživateli"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:7
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:3
 #: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:30
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:51
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:3
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:3
-#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:7
 #, c-format
 msgid "Profiles"
 msgstr "Profily"
@@ -13872,9 +13900,8 @@ msgid "Provide a description so you can identify this action later"
 msgstr "Zadejte popis abyste mohli identifikovat tuto akci později"
 
 #: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:15
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:29
-#, c-format
-msgid "Public list: Can be seen by everybody, but managed only by you"
+#, fuzzy, c-format
+msgid "Public list: Can be seen by everybody, but managed only by you."
 msgstr "Veřejný seznam může vidět kdokoli, ale upravovat ho můžete pouze vy."
 
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:65
@@ -13932,11 +13959,6 @@ msgstr "Načtení denních citátů"
 #, c-format
 msgid "RENEWAL "
 msgstr "RENEWAL "
-
-#: intranet-tmpl/prog/en/modules/help/tools/letter.tt:241
-#, c-format
-msgid "RLIST (Routing List) "
-msgstr "RLIST (Distribuční seznam) "
 
 #: intranet-tmpl/prog/en/modules/help/mainpage.tt:12
 #, c-format
@@ -14072,8 +14094,8 @@ msgstr ""
 msgid "Repeatable"
 msgstr "Opakovatelný"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:94
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:40
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:94
 #, c-format
 msgid "Repeatable "
 msgstr "Opakovatelný "
@@ -14128,7 +14150,7 @@ msgstr "Povinná pole sa definují v nastavení systému BorrowerMandatoryField"
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:38
 #, c-format
 msgid "Required for staff login."
-msgstr "Vyžadováno při přihlášení zaměstnance."
+msgstr "Vyžadováno pro přihlášení knihovníka."
 
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:157
 #, c-format
@@ -14211,6 +14233,11 @@ msgstr ""
 "SELECT surname,firstname FROM borrowers WHERE branchcode=&lt;&lt;Uveď "
 "čtenářovu knihovnu|pobočku&gt;&gt; AND surname like &lt;&lt;Vlož filtr pro "
 "čtenářovo příjmení (%% není-li)&gt;&gt;"
+
+#: intranet-tmpl/prog/en/modules/help/tools/letter.tt:241
+#, c-format
+msgid "SERIAL_ALERT (New serial issue) "
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:252
 #, c-format
@@ -14317,8 +14344,8 @@ msgstr ""
 msgid "Searching"
 msgstr "Hledání"
 
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:7
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:7
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:7
 #, c-format
 msgid "Searching Authorities"
 msgstr "Hledání Autorit"
@@ -14343,8 +14370,8 @@ msgstr "Viz vzor upomínky"
 msgid "See the full documentation for "
 msgstr "Viz úplnou dokumentaci pro "
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:17
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:17
 #, c-format
 msgid "See the full documentation for Acquisitions Searching in the "
 msgstr "Viz úplnou dokumentaci pro akviziční vyhledávání v "
@@ -14384,12 +14411,12 @@ msgstr "Viz úplnou dokumentaci pro Analytický popis v "
 msgid "See the full documentation for Anonymizing Patrons in the "
 msgstr "Viz úplnou dokumentaci pro Anonymizaci čtenářů v "
 
-#: intranet-tmpl/prog/en/modules/help/admin/authtypes.tt:9
-#: intranet-tmpl/prog/en/modules/help/admin/auth_subfields_structure.tt:66
-#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:22
-#: intranet-tmpl/prog/en/modules/help/authorities/authorities.tt:29
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:17
 #: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:17
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:17
+#: intranet-tmpl/prog/en/modules/help/authorities/authorities.tt:29
+#: intranet-tmpl/prog/en/modules/help/admin/authtypes.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:22
+#: intranet-tmpl/prog/en/modules/help/admin/auth_subfields_structure.tt:66
 #, c-format
 msgid "See the full documentation for Authorities in the "
 msgstr "Viz úplnou dokumentaci pro Autority v "
@@ -14439,9 +14466,9 @@ msgstr "Viz úplnou dokumentaci pro CSV profily v "
 msgid "See the full documentation for Catalog Statistics in the "
 msgstr "Prohlédněte si kompletní dokumentaci pro statistiky katalogu v "
 
+#: intranet-tmpl/prog/en/modules/help/catalogue/detail.tt:7
 #: intranet-tmpl/prog/en/modules/help/cataloguing/addbiblio.tt:93
 #: intranet-tmpl/prog/en/modules/help/cataloguing/addbooks.tt:33
-#: intranet-tmpl/prog/en/modules/help/catalogue/detail.tt:7
 #, c-format
 msgid "See the full documentation for Cataloging in the "
 msgstr "Prohlédněte si kompletní dokumentaci pro katalogizaci v "
@@ -14506,8 +14533,8 @@ msgstr "Úplnou dokumentaci pro nastavování sloupců v "
 msgid "See the full documentation for Comments in the "
 msgstr "Úplnou dokumentaci ke schvalování komentářů naleznete v "
 
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:9
 #: intranet-tmpl/prog/en/modules/help/course_reserves/course-reserves.tt:19
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:9
 #, c-format
 msgid "See the full documentation for Course reserves in the "
 msgstr "Viz úplnou dokumentaci pro modul Kurzy v "
@@ -14656,8 +14683,8 @@ msgstr "Viz úplnou dokumentaci pro Vzhled štítků v "
 msgid "See the full documentation for Label Profiles in the "
 msgstr "Viz úplnou dokumentaci pro profily štítků v "
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:33
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:49
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:33
 #, c-format
 msgid "See the full documentation for Label Templates in the "
 msgstr "Viz úplnou dokumentaci pro šablony popisek v "
@@ -14677,13 +14704,13 @@ msgstr "Viz úplnou dokumentaci pro seznamy v "
 msgid "See the full documentation for Library Transfer Limits in the "
 msgstr "Viz úplnou dokumentaci pro limity knihovních převozů v "
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:68
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:65
 #, c-format
 msgid "See the full documentation for Lists in the "
 msgstr "Viz úplnou dokumentaci pro seznamy v "
 
-#: intranet-tmpl/prog/en/modules/help/admin/marctagstructure.tt:23
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:120
+#: intranet-tmpl/prog/en/modules/help/admin/marctagstructure.tt:23
 #, c-format
 msgid "See the full documentation for MARC Frameworks in the "
 msgstr "Viz úplná dokumentace pro šablony MARC v "
@@ -14693,7 +14720,7 @@ msgstr "Viz úplná dokumentace pro šablony MARC v "
 msgid "See the full documentation for MARC Modification Templates in the "
 msgstr "Viz úplnou dokumentaci pro MARC šablony v "
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:19
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:23
 #, c-format
 msgid "See the full documentation for Managing Images in the "
 msgstr "Viz úplnou dokumentaci pro správu obrázků v "
@@ -14729,20 +14756,20 @@ msgstr "Více viz kapitola Oznámení v "
 msgid "See the full documentation for OAI Sets in the "
 msgstr "Viz úplnou dokumentaci pro OAI sady v "
 
-#: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:23
 #: intranet-tmpl/prog/en/modules/help/circ/offline.tt:35
+#: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:23
 #, c-format
 msgid "See the full documentation for Offline Circulation in the "
 msgstr "Viz úplnou dokumentaci pro Offline výpůjčky v "
 
-#: intranet-tmpl/prog/en/modules/help/acqui/neworderbiblio.tt:12
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:122
 #: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:17
 #: intranet-tmpl/prog/en/modules/help/acqui/z3950_search.tt:17
 #: intranet-tmpl/prog/en/modules/help/acqui/basketheader.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:122
 #: intranet-tmpl/prog/en/modules/help/acqui/neworderempty.tt:11
 #: intranet-tmpl/prog/en/modules/help/acqui/newordersubscription.tt:15
 #: intranet-tmpl/prog/en/modules/help/acqui/addorderiso2709.tt:22
+#: intranet-tmpl/prog/en/modules/help/acqui/neworderbiblio.tt:12
 #, c-format
 msgid "See the full documentation for Ordering in the "
 msgstr "Viz úplnou dokumentaci pro Objednávky v "
@@ -14792,7 +14819,7 @@ msgstr "Viz úplnou dokumentaci pro seznamy čtenářů v "
 msgid "See the full documentation for Patron Notices in the "
 msgstr "Viz úplnou dokumentaci pro čtenářské poznámky v "
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:528
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:534
 #, c-format
 msgid "See the full documentation for Patron Permissions in the "
 msgstr "Viz úplnou dokumentaci pro čtenářská oprávnění v "
@@ -14813,8 +14840,8 @@ msgstr "Viz úplnou dokumentaci pro statistiku čtenáře v "
 msgid "See the full documentation for Patron routing lists in the "
 msgstr "Viz úplnou dokumentaci pro kolovací seznamy čtenářů v "
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:60
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:60
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:60
 #, c-format
 msgid "See the full documentation for Paying Fines in the "
 msgstr "Viz úplná dokumentace pro platby pokut v "
@@ -14903,9 +14930,9 @@ msgstr "Viz úplnou dokumentaci pro Sériové vzorce číslování v "
 msgid "See the full documentation for Serials Statistics in the "
 msgstr "Viz úplnou dokumentaci pro statistiky periodik v "
 
+#: intranet-tmpl/prog/en/modules/help/serials/serials-home.tt:9
 #: intranet-tmpl/prog/en/modules/help/serials/serials-collection.tt:13
 #: intranet-tmpl/prog/en/modules/help/serials/subscription-detail.tt:9
-#: intranet-tmpl/prog/en/modules/help/serials/serials-home.tt:9
 #, c-format
 msgid "See the full documentation for Serials in the "
 msgstr "Viz úplnou dokumentaci pro periodika v "
@@ -14921,8 +14948,8 @@ msgstr "Viz úplnou dokumentaci pro nastavení vaší knihovny v "
 msgid "See the full documentation for System Preferences in the "
 msgstr "Viz úplnou dokumentaci pro systémová nastavení v "
 
-#: intranet-tmpl/prog/en/modules/help/tags/review.tt:23
 #: intranet-tmpl/prog/en/modules/help/tags/list.tt:9
+#: intranet-tmpl/prog/en/modules/help/tags/review.tt:23
 #, c-format
 msgid "See the full documentation for Tag Moderation in the "
 msgstr "Viz úplnou dokumentaci pro moderování štítků v "
@@ -15078,7 +15105,7 @@ msgid "See the full documentation for the Patron Card Batches in the "
 msgstr "Viz úplnou dokumentaci pro Dávky čtenářských karet v "
 
 #: intranet-tmpl/prog/en/modules/help/patroncards/home.tt:20
-#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:19
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:20
 #, c-format
 msgid "See the full documentation for the Patron Card Creator in the "
 msgstr "Viz úplnou dokumentaci pro Tvůrce čtenářských karet v "
@@ -15269,7 +15296,7 @@ msgstr "Nastavení zpráv"
 msgid "Setup"
 msgstr "Nastavení"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:62
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:59
 #, c-format
 msgid ""
 "Should you try to add a field that is not repeatable two times (like "
@@ -15424,14 +15451,14 @@ msgstr "Bohužel, není dostupná žádná nápověda pro toto téma, zkuste odk
 msgid "Sort 1 and 2 are used for statistical purposes within your library"
 msgstr "Řazení 1 a 2 je možné použít pro statistické účely"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:45
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:47
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:45
 #, c-format
 msgid "Sort field 1 "
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:50
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:52
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:50
 #, c-format
 msgid "Sort field 2 "
 msgstr ""
@@ -15506,8 +15533,8 @@ msgstr "Příprava MARC záznamů do zásobníku."
 msgid "Standard ID"
 msgstr "Standard ID"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:14
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:16
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:14
 #, c-format
 msgid "Standard: "
 msgstr "Standard: "
@@ -15617,8 +15644,8 @@ msgstr "Krok 5:"
 msgid "Step 6:"
 msgstr "Krok 6:"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:35
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:37
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:35
 #, c-format
 msgid "Street address: "
 msgstr "Adresa ulice: "
@@ -15649,7 +15676,7 @@ msgid "Subject=%s%s%s%s%s "
 msgstr "Předmětové heslo=%s%s%s%s%s "
 
 #. INPUT type=submit name=submit
-#: intranet-tmpl/prog/en/modules/help/edithelp.tt:36
+#: intranet-tmpl/prog/en/modules/help/edithelp.tt:38
 msgid "Submit"
 msgstr "Potvrdit"
 
@@ -15810,9 +15837,9 @@ msgid "Tell Koha which type of file this is, bibliographic or authority"
 msgstr ""
 "Sdělte systému Koha jakého typu soubor je, bibliografický nebo autoritní"
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:15
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:31
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:15
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:31
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:15
 #, c-format
 msgid ""
 "Template Code should be something you can use to identify your template on a "
@@ -15821,9 +15848,9 @@ msgstr ""
 "Kód šablony musí být něco, co můžete použít k identifikaci vaší šablony na "
 "seznamu šablon"
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:14
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:30
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:14
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:30
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:14
 #, c-format
 msgid ""
 "Template ID will be automatically generated after saving your template, this "
@@ -15837,9 +15864,9 @@ msgstr ""
 msgid "Template Toolkit tags"
 msgstr "Značky nástrojů šablon"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:17
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:65
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:17
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:17
 #, c-format
 msgid ""
 "Template will be filled in once you have chosen which template to apply the "
@@ -15848,23 +15875,23 @@ msgstr ""
 "Šablona bude doplněna, jakmile jste si vybrali, jakou šablonu použít na "
 "profil na editačním formuláři šablony"
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:3
-#: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:26
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:19
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:3
 #: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:11
+#: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:26
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:19
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:3
 #, c-format
 msgid "Templates"
 msgstr "Šablony"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:85
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:31
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:85
 #, c-format
 msgid "Text for OPAC "
 msgstr "Text pro OPAC "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:80
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:26
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:80
 #, c-format
 msgid "Text for librarian "
 msgstr "Text pro knihovníka "
@@ -15964,8 +15991,8 @@ msgstr ""
 "\"Návěští pro OPAC\" je text, který se zobrazí v OPACu při pohledu na MARC "
 "záznam."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:65
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:11
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:65
 #, c-format
 msgid "The 'Label for OPAC' is what will show on the MARC view in the OPAC"
 msgstr ""
@@ -15990,8 +16017,8 @@ msgstr ""
 "\"Návěští pro lib\" je text, který se zobrazí na zaměstnaneckém intranetu v "
 "modulu Katalogizace."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:64
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:10
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:64
 #, c-format
 msgid ""
 "The 'Label for lib' is what will show in the staff client if you have "
@@ -16230,15 +16257,6 @@ msgstr ""
 "Modul Akvizice umožňuje vést záznamy o objednávkách a udržovat si přehled o "
 "čerpání rozpočtu."
 
-#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:7
-#, c-format
-msgid ""
-"The Koha to MARC Mapping page offers you the option of choosing from one of "
-"three tables in the database to assign values to."
-msgstr ""
-"Stránka mapování Koha na MARC vám nabízí možnost zvolit si jednu ze tří "
-"tabulek v databázi pro přiřazení hodnot."
-
 #: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:5
 #, c-format
 msgid ""
@@ -16321,9 +16339,9 @@ msgstr ""
 msgid "The Patrons module stores the information you add about your patrons."
 msgstr "Modul Čtenáři ukládá informace, které přidáváte o vašich čtenářích."
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:16
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:64
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:16
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:16
 #, c-format
 msgid ""
 "The Printer Name and Paper Bin do not have to match your printer exactly, "
@@ -16416,8 +16434,8 @@ msgstr ""
 "šablonu. To bude pravděpodobně měrná jednotka používaná na popisu šablony "
 "poskytnuté dodavatelem produktu."
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:17
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:33
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:17
 #, c-format
 msgid ""
 "The Units pull down is used to define what measurement scale you're going to "
@@ -16492,12 +16510,17 @@ msgstr ""
 "Možnost katalogizace jen pomocí \"Rychlé katalogizace\" nacházející se na "
 "stránce výpůjček"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:505
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:511
 #, c-format
 msgid "The ability to create and edit but not run SQL reports"
 msgstr "Možnost tvorby a editace (nikoliv spouštění) SQL výstupů"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:511
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:505
+#, fuzzy, c-format
+msgid "The ability to delete but not run SQL reports"
+msgstr "Možnost tvorby a editace (nikoliv spouštění) SQL výstupů"
+
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:517
 #, c-format
 msgid "The ability to run but not create or edit SQL reports"
 msgstr "Možnost spouštění (nikoliv tvorby a editace) SQL výstupů"
@@ -16615,8 +16638,8 @@ msgstr ""
 msgid "The check in option on the quick search bar on the Circulation page"
 msgstr "Možnost vrácení na liště rychlého vyhledání na stránce výpůjček"
 
-#: intranet-tmpl/prog/en/modules/help/members/moremember.tt:36
 #: intranet-tmpl/prog/en/modules/help/members/readingrec.tt:5
+#: intranet-tmpl/prog/en/modules/help/members/moremember.tt:36
 #, c-format
 msgid ""
 "The circulation history tab will appear if you have set the "
@@ -16642,8 +16665,8 @@ msgid ""
 "contract."
 msgstr "Formulář pro smlouvu se bude ptát jen na základní informace o smlouvě."
 
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:5
 #: intranet-tmpl/prog/en/modules/help/course_reserves/course-reserves.tt:5
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:5
 #, c-format
 msgid ""
 "The course reserves module in Koha allows you to temporarily move items to "
@@ -16659,7 +16682,6 @@ msgstr ""
 msgid ""
 "The cronjob script is misc/cronjobs/automatic_item_modification_by_age.pl."
 msgstr ""
-"Skript úlohy cronu je misc/cronjobs/automatic_item_modification_by_age.pl."
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:77
 #, c-format
@@ -16752,7 +16774,7 @@ msgstr ""
 msgid "The duration"
 msgstr "Konfigurace XSLT"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:54
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:51
 #, c-format
 msgid ""
 "The easiest way to merge together duplicate bibliographic records is to add "
@@ -16799,8 +16821,8 @@ msgstr ""
 "Konečný způsob, jak získat periodika je ze stránky \"Fond periodik\". V levé "
 "části stránky Souhrn odběrů je menu s odkazem na \"Fond periodik\""
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:30
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:30
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:30
 #, c-format
 msgid ""
 "The fine totals will be updated with the payment applied to oldest fines "
@@ -16808,8 +16830,8 @@ msgid ""
 msgstr ""
 "Souhrny pokut budou aktualizovány po připsání platby za nejstarší pokutu."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:38
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:38
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:38
 #, c-format
 msgid ""
 "The fine totals will be updated with the payment applied to the oldest "
@@ -16818,16 +16840,16 @@ msgstr ""
 "Souhrny pokut budou aktualizovány s platbou použitou na nejstarší vybranou "
 "pokutu jako první."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:14
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:14
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:14
 #, c-format
 msgid ""
 "The fine will be removed from outstanding fines, and displayed as fully paid."
 msgstr ""
 "Pokuta bude odstraněna z nezaplacených pokut a zobrazí se jako plně splacená."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:44
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:44
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:44
 #, c-format
 msgid ""
 "The fine will be removed from outstanding fines, and displayed as written "
@@ -16835,8 +16857,8 @@ msgid ""
 msgstr ""
 "Pokuta bude odstraněna z nezaplacených pokut a zobrazí se jako odepsaná."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:22
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:22
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:22
 #, c-format
 msgid ""
 "The fine will be updated to show the original Amount, and the current Amount "
@@ -16882,8 +16904,8 @@ msgstr ""
 msgid "The form to edit the report will appear."
 msgstr "Objeví se formulář pro úpravu výstupu."
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:12
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:12
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:12
 #, c-format
 msgid ""
 "The full amount of the fine will be populated for you in the \"Collect From "
@@ -17011,6 +17033,11 @@ msgstr "Tento seznam bude aktualizován, změny uloženy a zobrazeny."
 msgid "The list will update and the new quote should now be visible."
 msgstr "Tento seznam se aktualizuje a nové citace by měly být nyní viditelné."
 
+#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:9
+#, c-format
+msgid "The mappings are found in three tables: biblio, biblioitems and items."
+msgstr ""
+
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:18
 #, c-format
 msgid ""
@@ -17018,8 +17045,8 @@ msgid ""
 msgstr ""
 "Míry lze nalézt na obalu výrobků dodavatele nebo na jeho webových stránkách."
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:18
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:34
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:18
 #, c-format
 msgid ""
 "The measurements, number of columns and number of rows can be found on the "
@@ -17036,11 +17063,6 @@ msgid ""
 msgstr ""
 "Nejběžnější volbou je tu čárka, protože většina tabulkových aplikací ví, jak "
 "otevřít soubory oddělované čárkami."
-
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:10
-#, c-format
-msgid "The name is what will appear on the list of Lists"
-msgstr "Název, který se objeví na přehledu seznamů"
 
 #: intranet-tmpl/prog/en/modules/help/admin/branches.tt:18
 #, c-format
@@ -17313,7 +17335,7 @@ msgid ""
 "The rules are applied from most specific to less specific, using the first "
 "found in this order:"
 msgstr ""
-"Pravidla se aplikují z nejvíce specifických po méně konkrétní, s použitím "
+"Pravidla se aplikují od nejvíce specifických po méně konkrétní, s použitím "
 "prvního nalezeného v tomto pořadí:"
 
 #: intranet-tmpl/prog/en/modules/help/admin/matching-rules.tt:7
@@ -17385,6 +17407,18 @@ msgstr ""
 #, c-format
 msgid "The three first fields are required, the rest are optional"
 msgstr "První tři pole jsou povinná. Ostatní jsou volitená."
+
+#: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:13
+#, c-format
+msgid ""
+"The tool now supports multiple mappings too for one Koha field. As an "
+"example, you can connect copyrightdate to 260$c as well as 264$c (the RDA "
+"equivalent). Since a record normally only contains only one of them, this "
+"one value will be found in copyrightdate. (Multiple values would be saved, "
+"separated by vertical bars.) Note that you cannot add/remove mappings for "
+"biblionumber, biblioitemnumber or itemnumber. You are not recommended to "
+"change them."
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/admin/branches.tt:15
 #, c-format
@@ -17473,9 +17507,9 @@ msgstr ""
 "popisů, kolik chcete."
 
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:15
-#, fuzzy, c-format
+#, c-format
 msgid "There are 3 values to define:"
-msgstr "Je třeba definovat tři hodnoty:"
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/tools/letter.tt:266
 #, c-format
@@ -17570,8 +17604,8 @@ msgstr ""
 "jiný, můžete ho vytvořit tak, že ho v modulu \"Oznámení\" vybrete z nabídky "
 "nad seznamem opožděných výtisků."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:153
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:99
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:153
 #, c-format
 msgid "Thesaurus "
 msgstr "Tezaurus "
@@ -17586,8 +17620,8 @@ msgstr ""
 "pravidel. Před procházením této sekce je vhodné nastavit základní parametry."
 
 #: intranet-tmpl/prog/en/modules/help/admin/item_circulation_alerts.tt:7
-#, c-format
-msgid "These preferences are set based on patron types and item types."
+#, fuzzy, c-format
+msgid "These preferences are set based on patron categories and item types."
 msgstr "Následující nastavení se zakládá na typech čtenářů a položek."
 
 #: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:5
@@ -17707,8 +17741,8 @@ msgid ""
 "This can be set by the librarian editing a patron record and adding a "
 "restriction or by the Overdue/Notice Status Triggers"
 msgstr ""
-"Toto lze nastavit knihovníkem přidáním příznaku omezení služeb při úpravě "
-"záznamu čtenáře nebo automaticky pomocí spouštěčů upomínek v nástrojích"
+"Toto lze nastavit knihovníkem přidáním příznaku omezení sluýžeb při úpravě "
+"záznamu čtenáře nebo automaticky pomocí spouštěčů upomínek v nástrojích."
 
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:4
 #, c-format
@@ -17717,10 +17751,18 @@ msgid ""
 "modifications by age cronjob script."
 msgstr ""
 
+#: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:87
+#, c-format
+msgid ""
+"This field has been disabled on this form. The Koha to MARC mapping is "
+"maintained on the corresponding form in the Administration module. For more "
+"information on this field, consult the online help page of that form."
+msgstr ""
+
 #: intranet-tmpl/prog/en/modules/help/tools/import_borrowers.tt:28
 #, c-format
 msgid "This field must be wrapped in quotes if multiple values are defined."
-msgstr "Pole musí být uzavřeno uvozovkami, pokud je nastaveno více hodnot."
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:113
 #, c-format
@@ -17728,8 +17770,8 @@ msgid ""
 "This flag can automatically be set with the Overdue/Notice StatusTriggers"
 msgstr "Tento příznak se může automaticky nastavit po událostu Upomínka"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:9
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:98
+#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:9
 #, c-format
 msgid ""
 "This form can automatically generate a random password if you click the link "
@@ -17756,10 +17798,10 @@ msgid ""
 "quotes."
 msgstr "Tato funkce Vám umožní načíst CSV soubor s citáty určenými k importu."
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:47
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:52
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:49
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:54
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:47
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:52
 #, c-format
 msgid ""
 "This is a custom field that libraries can use for any type of data about the "
@@ -17983,10 +18025,10 @@ msgstr ""
 "pár základních."
 
 #: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:37
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"This patron type is used strictly for statistical purposes, such as in house "
-"use of items."
+"This patron category is used strictly for statistical purposes, such as in "
+"house use of items."
 msgstr ""
 "Tento typ čtenáře je užíván pouze pro statistické účely, jako je vnitřní "
 "využití výtisků."
@@ -18448,11 +18490,11 @@ msgstr ""
 "Tip: Jestliže načítáte atributy čtenáře, pole 'patron_attributes' by mělo "
 "obsahovat čárkami oddělný seznam typů atributů a hodnot."
 
-#: intranet-tmpl/prog/en/modules/help/suggestion/suggestion.tt:19
-#: intranet-tmpl/prog/en/modules/help/tools/marc_modification_templates.tt:51
+#: intranet-tmpl/prog/en/modules/help/tools/batchMod.tt:15
 #: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:17
 #: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:32
-#: intranet-tmpl/prog/en/modules/help/tools/batchMod.tt:15
+#: intranet-tmpl/prog/en/modules/help/tools/marc_modification_templates.tt:51
+#: intranet-tmpl/prog/en/modules/help/suggestion/suggestion.tt:19
 #, c-format
 msgid "Tip:"
 msgstr "Tip:"
@@ -18560,8 +18602,8 @@ msgid ""
 "Tip: It is also possible to create analytic records from this screen by "
 "clicking on \"Create Analytics\""
 msgstr ""
-"Tip: Je možno také vytvářet analytické záznamy z této obrazovky kliknutím na "
-"\"Vytvořit Analytiku\""
+"Tip: Je možno také vytvářet analytický popis záznamů kliknutím na \"Přidat "
+"analytický popis\""
 
 #: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:11
 #, c-format
@@ -18793,9 +18835,9 @@ msgstr ""
 "Chcete-li přidat nový typ výtisku, klikněte na tlačítko \"New Item Type\" v "
 "horní části stránky \"Typy výtisků\"."
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:9
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:11
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-layout.tt:9
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:9
 #, c-format
 msgid ""
 "To add a new layout, you want to click on the 'Layouts' button at the top of "
@@ -18822,9 +18864,9 @@ msgstr ""
 "Chcete-li přidat novou kategorii čtenářů klikněte na \"Nová kategorie\" v "
 "horní části stránky"
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:11
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:59
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:11
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:11
 #, c-format
 msgid ""
 "To add a new profile, you want to click on the 'Profiles' button at the top "
@@ -18838,9 +18880,9 @@ msgstr ""
 msgid "To add a new search term simply fill in the 'Add a new field' area:"
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:9
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:25
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:9
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:25
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:9
 #, c-format
 msgid ""
 "To add a new template, you want to click on the 'Templates' button at the "
@@ -18923,7 +18965,7 @@ msgstr ""
 "Pro přidávání čtenářů do seznamu klikněte na tlačítko \"Přidat čtenáře\" "
 "vpravo od názvu seznamu."
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:40
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:37
 #, c-format
 msgid ""
 "To add titles to an existing list click on the list name from the page of "
@@ -19086,7 +19128,7 @@ msgid ""
 "want to delete those alerts. %s "
 msgstr ""
 
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:17
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:19
 #, c-format
 msgid ""
 "To delete one or multiple of these images, click the checkbox to the right "
@@ -19175,8 +19217,8 @@ msgstr ""
 "Chcete-li upravit celý záznam čtenáře jednoduše klikněte na tlačítko "
 "\"Upravit\" v horní části patrona záznamu."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:73
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:19
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:73
 #, fuzzy, c-format
 msgid ""
 "To edit the subfields associated with the tag, click 'Subfields' to the "
@@ -19186,8 +19228,8 @@ msgstr ""
 "vybírá hodnoty pro podpole. Pro úpravu podpolí propojených s polem, klikněte "
 "na 'Podpole' napravo od tagu v seznamu 'Struktura MARC'."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:77
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:23
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:77
 #, c-format
 msgid "To edit the subfields click 'Edit Subfields'"
 msgstr "Chcete-li upravit podpole klikněte na tlačítko \"Upravit podpole\"."
@@ -19277,8 +19319,8 @@ msgstr ""
 "SRU polí. Otevřete úpravu SRU servery a na řádku \"Mapování vyhledávacích "
 "polí SRU\" stiskněte tlačítko \"Změnit\"."
 
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:11
 #: intranet-tmpl/prog/en/modules/help/members/moremember.tt:81
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:11
 #, fuzzy, c-format
 msgid ""
 "To generate a discharge for a patron click the 'Discharge' tab on the left "
@@ -19458,6 +19500,13 @@ msgstr ""
 "Chcete-li objednat ze záznamu, který nelze nikde najít, zvolte \"Od nového "
 "(prázdného) záznamu.\" "
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:14
+#, c-format
+msgid ""
+"To print to a duplex card printer you need a '1 up template' (1 row / 1 "
+"column) and for both card sides a separate layout."
+msgstr ""
+
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-batch.tt:19
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:97
 #, c-format
@@ -19543,6 +19592,13 @@ msgstr ""
 "Abyste prodloužili jednotku z této stránky, oskenujte čárové kódy dokumentů, "
 "které chcete prodloužit."
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:21
+#, c-format
+msgid ""
+"To replace an image, delete it, upload a new file and give it the same image "
+"name."
+msgstr ""
+
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:91
 #, c-format
 msgid ""
@@ -19552,8 +19608,8 @@ msgstr ""
 "Chcete-li ušetřit čas, můžete naklonovat pravidla z jedné knihovny do druhé "
 "výběrem volby \"Klon\" nad maticí pravidel."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:171
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:117
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:171
 #, c-format
 msgid ""
 "To save your changes simply click the 'Save Changes' button at the top of "
@@ -19602,7 +19658,7 @@ msgstr ""
 "Chcete-li zobrazit všechny tituly, ke kterým tento hodnotící štítek byl "
 "přidán, klikněte na výraz"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:48
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:45
 #, c-format
 msgid "To see the contents of a list, visit the Lists page on the staff client"
 msgstr "Pro zobrazení obsahu seznamu běžte na stránku \"Seznamy\" v intranetu"
@@ -19770,8 +19826,8 @@ msgid ""
 msgstr ""
 "Chcete-li zobrazit všechny položky vázané na záznam hostitelského "
 "(zdrojového) dokumentu, proveďte vyhledání záznamu, klepněte na kartu "
-"Analytika na levé straně a analytika navázaná na každý čárový kód se zobrazí "
-"ve sloupci pod \"Používáno v\"."
+"Analytický popis na levé straně a popis navázaný na každý čárový kód se "
+"zobrazí ve sloupci pod \"Používáno v\"."
 
 #: intranet-tmpl/prog/en/modules/help/tools/tools-home.tt:3
 #, c-format
@@ -19887,6 +19943,13 @@ msgstr "Aktualizovat záznam o čtenáři"
 #, c-format
 msgid "Upload Koha plugin"
 msgstr "Načíst zásuvný modul Koha"
+
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:5
+#, c-format
+msgid ""
+"Upload additional images to use as logo, decoration or background on a "
+"patron card layout."
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/tools/upload-cover-image.tt:3
 #, c-format
@@ -20063,8 +20126,8 @@ msgstr ""
 "Použitím roletky pro šablony, vyberte šablonu, pro kterou chcete toto "
 "pravidlo použít. Například, podnázvy pro knihy se nachází v 245$b poli."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:9
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:9
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:9
 #, c-format
 msgid ""
 "Using the Orders Search you can search for items that have been ordered with "
@@ -20120,9 +20183,9 @@ msgstr ""
 "systému."
 
 #: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:5
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:5
 #: intranet-tmpl/prog/en/modules/help/reports/catalogue_stats.tt:5
 #: intranet-tmpl/prog/en/modules/help/reports/acquisitions_stats.tt:5
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:5
 #, c-format
 msgid ""
 "Using the form provided, choose which value you would like to appear in the "
@@ -20131,12 +20194,12 @@ msgstr ""
 "Na předloženém formuláři vyberte hodnotu, kterou chcete zobrazit ve sloupci "
 "a které v řádce."
 
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:11
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:13
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:13
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:61
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-layout.tt:11
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:13
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:13
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:11
 #, c-format
 msgid ""
 "Using the form that appears you can create a profile to fix any problems "
@@ -20145,9 +20208,9 @@ msgstr ""
 "Pomocí formuláře, který se zobrazí, můžete vytvořit profil a opravit "
 "problémy se šablonou."
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:11
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:27
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:11
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:27
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:11
 #, c-format
 msgid ""
 "Using the form that appears you can define the template for your sheet of "
@@ -20262,13 +20325,13 @@ msgstr "Zobrazit města na formuláři pro přidání čtenáře"
 msgid "Viewing Messages"
 msgstr "Prohlížení zpráv"
 
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:46
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:43
 #, c-format
 msgid "Viewing lists"
 msgstr "Zobrazení seznamů"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:118
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:64
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:118
 #, c-format
 msgid "Visibility "
 msgstr "Viditelnost "
@@ -20345,8 +20408,8 @@ msgstr ""
 "nastavení upozornění před utracením daného procenta nebo částky vašeho "
 "rozpočtu. Toto vám zabrání v utrácením příliš."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:136
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:82
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:136
 #, fuzzy, c-format
 msgid ""
 "Warning: This value should not change after data has been added to your "
@@ -20478,11 +20541,11 @@ msgstr ""
 "abyste uložili nový citát."
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:89
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "When finished, click 'Add' to save your changes. To modify a rule, create a "
-"new one with the same patron type and item type. If you would like to delete "
-"your rule, simply click the 'Delete' link to the right of the rule."
+"new one with the same patron category and item type. If you would like to "
+"delete your rule, simply click the 'Delete' link to the right of the rule."
 msgstr ""
 "Po dokončení klikněte na tlačítko \"Přidat\" pro uložení změn. Chcete-li "
 "změnit pravidlo, vytvořte nové se stejným typem čtenáře a typem výtisku. "
@@ -20599,8 +20662,8 @@ msgstr ""
 "knihovně, která bude sdílet váš systém. Tato data jsou využívána v několika "
 "oblastech Koha."
 
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:21
 #: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:21
 #, c-format
 msgid ""
 "When the item appears in your basket it will include a link to the "
@@ -20859,14 +20922,15 @@ msgstr ""
 "následek oznámení jako:"
 
 #: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:5
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "While Koha stores the entire MARC record, it also stores common fields for "
-"easy access in various tables in the database. Koha to MARC Mapping is used "
+"easy access in various tables in the database. Koha to MARC mapping is used "
 "to tell Koha where to find these values in the MARC record. In many cases "
-"you will not have to change the default values set by in this tool on "
-"installation, but it is important to know that the tool is here and can be "
-"used at any time."
+"you will not have to change the default values set during installation. If "
+"you decide to change mappings here, make sure that you know what you are "
+"doing! We would recommend to test such changes first in a non-production "
+"environment."
 msgstr ""
 "Zatímco Koha ukládá celý MARC záznam, také ale ukládá častá pole pro snadný "
 "přístup do různých tabulek v databázi. Koha mapování na MARC říká Koha, kde "
@@ -20913,12 +20977,12 @@ msgid ""
 msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:59
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"Without periodicy: some very specific (usually high level science journals) "
-"don't have a true periodicity. When you subscribe to the title, you "
-"subscribe for 6 issues, which can arrive in 1 year... or 2... There is no "
-"regularity or known schedule."
+"Without periodicity: some very specific (usually high level science "
+"journals) don't have a true periodicity. When you subscribe to the title, "
+"you subscribe for 6 issues, which can arrive in 1 year... or 2... There is "
+"no regularity or known schedule."
 msgstr ""
 "Bez periodicy: některé velmi specifické (většinou vědecké časopisy vysoké "
 "úrovně ) nemají skutečnou periodicitu. Když si předplácíte titul, se "
@@ -20930,14 +20994,14 @@ msgstr ""
 msgid "Write news for the OPAC and staff interfaces"
 msgstr "Novinky pro on-line katalog a intranet"
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:47
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:47
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:47
 #, c-format
 msgid "Writeoff All fines "
 msgstr "Prominout všechny poplatky "
 
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:41
 #: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:41
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:41
 #, c-format
 msgid "Writeoff a single fine "
 msgstr "Prominout jednotlivý poplatek "
@@ -20961,8 +21025,8 @@ msgstr ""
 "Můžete přidat svůj vlastní zdroj klasifikace pomocí tlačítka \"Nový "
 "klasifikační zdroj\". Chcete-li upravit použijte odkaz Upravit."
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:61
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:63
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:61
 #, c-format
 msgid ""
 "You can also browse through the patron records by clicking on the linked "
@@ -20970,12 +21034,12 @@ msgid ""
 msgstr "Můžete také procházet záznamy čtenářů kliknutím na písmena nahoře."
 
 #: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:11
-#, c-format
-msgid "You can also choose how to sort the list"
+#, fuzzy, c-format
+msgid "You can also choose how to sort the list."
 msgstr "Můžete si vybrat, jakým způsobem chcete mít seznam seřazený"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:59
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:61
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:59
 #, c-format
 msgid ""
 "You can also choose how your results will be sorted by using the 'Order by' "
@@ -20984,8 +21048,8 @@ msgstr ""
 "Můžete si vybrat, jak budou výsledky seřazeny použitím menu \"řadit podle\" "
 "na konci formuláře."
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:57
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:59
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:57
 #, c-format
 msgid ""
 "You can also choose to either search for fields that start with the string "
@@ -20995,17 +21059,17 @@ msgstr ""
 "Můžete zvolit, zdali se bude vyhledávat vztahem \"začíná na\" nebo \"obsahuje"
 "\"."
 
-#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:9
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:9
-#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:9
 #: intranet-tmpl/prog/en/modules/help/reports/cat_issues_top.tt:9
-#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:9
+#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:9
 #: intranet-tmpl/prog/en/modules/help/reports/manager.tt:9
 #: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:11
 #: intranet-tmpl/prog/en/modules/help/reports/serials_stats.tt:9
+#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:9
 #: intranet-tmpl/prog/en/modules/help/reports/bor_issues_top.tt:9
 #: intranet-tmpl/prog/en/modules/help/reports/catalogue_stats.tt:9
 #: intranet-tmpl/prog/en/modules/help/reports/acquisitions_stats.tt:9
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:9
+#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:9
 #, c-format
 msgid ""
 "You can also choose to export to a file that you can manipulate to your "
@@ -21101,8 +21165,8 @@ msgstr ""
 "Můžete také upravit jednotky v jednom bibliografickém záznamu dávkově, "
 "kliknutím na Úpravy> Upravit jednotky v dávce"
 
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:9
 #: intranet-tmpl/prog/en/modules/help/members/members-home.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:9
 #, fuzzy, c-format
 msgid ""
 "You can also filter your patron results using the search options on the left "
@@ -21156,13 +21220,14 @@ msgstr ""
 "kliknutím na odkaz \"Naplánovat\""
 
 #: intranet-tmpl/prog/en/modules/help/cataloguing/linkitem.tt:28
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "You can also see the analytics attached to this record by clicking the 'Show "
 "Analytic' link towards the top of the record in the normal view."
 msgstr ""
-"Můžete se také podívat na analytiku napojenou na tento záznamu kliknutím na "
-"odkaz \"Ukázat analytiku\" na horní části záznamu v normálním zobrazení."
+"Můžete se také podívat na analytický popis spojený s tímto záznamem "
+"kliknutím na odkaz \"Zobrazit analytický popis\" na horní části záznamu v "
+"normálním zobrazení."
 
 #: intranet-tmpl/prog/en/modules/help/offline_circ/process_koc.tt:17
 #, c-format
@@ -21297,8 +21362,8 @@ msgstr ""
 "To se bude obnovovat automaticky podle vašich výpůjčních pravidel, pokud "
 "není objekt rezervován "
 
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:11
 #: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:11
 #, c-format
 msgid ""
 "You can enter info in one or both fields and you can enter any part of the "
@@ -21412,9 +21477,9 @@ msgstr ""
 "kategorii REPORT_GROUP v ověřených hodnotách, nebo mohou být přidány při "
 "vytváření výstupu výběrem možnosti \"nebo vytvořit novou\". "
 
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:16
-#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:32
 #: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:16
+#: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:32
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:16
 #, c-format
 msgid ""
 "You can use the Template Description to add additional information about the "
@@ -21667,7 +21732,7 @@ msgstr ""
 "záznamu."
 
 #: intranet-tmpl/prog/en/modules/help/cataloguing/merge.tt:11
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:60
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:57
 #, c-format
 msgid ""
 "You will be presented with the MARC for both of the records (each accessible "
@@ -21947,27 +22012,27 @@ msgid "acquisition "
 msgstr "acquisition (akvizice) "
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:17
-#, c-format
-msgid "all libraries, all patron types, all item types"
+#, fuzzy, c-format
+msgid "all libraries, all patron categories, all item types"
 msgstr "všechny knihovny, všechny typy čtenářů, všechny typy jednotek"
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:16
-#, c-format
-msgid "all libraries, all patron types, same item type"
+#, fuzzy, c-format
+msgid "all libraries, all patron categories, same item type"
 msgstr "všechny knihovny, všechny typy čtenářů, stejné typy jednotek"
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:15
-#, c-format
-msgid "all libraries, same patron type, all item types"
+#, fuzzy, c-format
+msgid "all libraries, same patron category, all item types"
 msgstr "všechny knihovny, stejné typy čtenářů, všechny typy jednotek"
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:14
-#, c-format
-msgid "all libraries, same patron type, same item type"
+#, fuzzy, c-format
+msgid "all libraries, same patron category, same item type"
 msgstr "všechny knihovny, stejný typ čtenáře, stejný typ jednotky"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:120
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:66
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:120
 #, c-format
 msgid ""
 "allows you to select from where this subfield is visible/hidden, simply "
@@ -22150,7 +22215,7 @@ msgstr "zpracovat_smlouvy "
 msgid "cql.anywhere"
 msgstr "cql.anywhere"
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:502
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:508
 #, c-format
 msgid "create_reports "
 msgstr "vytvořte_výkazy "
@@ -22303,8 +22368,8 @@ msgstr "dc.title"
 msgid "ddc - Dewey Decimal Classification"
 msgstr "ddc - Dewey Decimal Classification (Deweyho desetinné třídění)"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:106
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:52
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:106
 #, c-format
 msgid ""
 "defines the tab where the subfield is shown. All subfields of a given field "
@@ -22315,8 +22380,8 @@ msgstr ""
 "musí být ve stejné záložce nebo ignorována. Ignorována znamená, že toto "
 "podpole není spravováno."
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:115
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:61
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:115
 #, c-format
 msgid ""
 "defines what you want to appear in the field by default, this will be "
@@ -22337,10 +22402,15 @@ msgstr "delete_all_items "
 msgid "delete_anonymize_patrons "
 msgstr "delete_anonymize_patrons "
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:521
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:527
 #, c-format
 msgid "delete_public_lists "
 msgstr "delete_public_lists "
+
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:502
+#, fuzzy, c-format
+msgid "delete_reports "
+msgstr "execute_reports "
 
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:323
 #, c-format
@@ -22350,7 +22420,7 @@ msgstr "delete_subscription "
 #: intranet-tmpl/prog/en/modules/help/tools/automatic_item_modification_by_age.tt:9
 #, c-format
 msgid "display an icon in the search results for new items."
-msgstr "zobrazit ikonu u nových jednotek ve výsledcích hledání."
+msgstr ""
 
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:375
 #, c-format
@@ -22417,7 +22487,7 @@ msgstr ""
 "ex. Pokud importujete čtenáře jedné knihovny můžete použít pole na formuláři "
 "importu a použít kód pobočky pro všechny ty, kteří se importují."
 
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:508
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:514
 #, c-format
 msgid "execute_reports "
 msgstr "execute_reports "
@@ -22568,8 +22638,8 @@ msgstr "http://wiki.koha-community.org/wiki/SQL_Reports_Library"
 msgid "https://addons.mozilla.org/en/firefox/addon/koct/"
 msgstr "https://addons.mozilla.org/cs/firefox/addon/koct/"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:125
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:71
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:125
 #, fuzzy, c-format
 msgid "if checked, it means that the subfield is a URL and can be clicked"
 msgstr "pokud je zatrženo, znamená to, že podpole je URL a lze kliknout"
@@ -22592,7 +22662,7 @@ msgstr "včetně nastavení potřebných ke službám jako je OAI-PMH"
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:411
 #, c-format
 msgid "inventory "
-msgstr "inventář "
+msgstr "Revize "
 
 #: intranet-tmpl/prog/en/modules/help/reports/guided_reports.tt:139
 #, c-format
@@ -22734,57 +22804,185 @@ msgstr "manage_staged_marc "
 msgid "management "
 msgstr "management (správa) "
 
-#: intranet-tmpl/prog/en/modules/help/serials/serials-collection.tt:13
-#: intranet-tmpl/prog/en/modules/help/serials/checkexpiration.tt:11
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-frequencies.tt:9
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-numberpatterns.tt:11
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-detail.tt:9
-#: intranet-tmpl/prog/en/modules/help/serials/serials-edit.tt:27
-#: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:105
-#: intranet-tmpl/prog/en/modules/help/serials/serials-home.tt:9
-#: intranet-tmpl/prog/en/modules/help/serials/claims.tt:15
+#: intranet-tmpl/prog/en/modules/help/tags/list.tt:9
+#: intranet-tmpl/prog/en/modules/help/tags/review.tt:23
+#: intranet-tmpl/prog/en/modules/help/course_reserves/add_items.tt:13
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course.tt:17
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course-reserves.tt:19
+#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:9
+#: intranet-tmpl/prog/en/modules/help/rotating_collections/rotatingCollections.tt:35
+#: intranet-tmpl/prog/en/modules/help/tools/batch_delete_records.tt:13
+#: intranet-tmpl/prog/en/modules/help/tools/import_borrowers.tt:58
+#: intranet-tmpl/prog/en/modules/help/tools/scheduler.tt:26
+#: intranet-tmpl/prog/en/modules/help/tools/quotes.tt:41
+#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:68
+#: intranet-tmpl/prog/en/modules/help/tools/manage-marc-import.tt:44
+#: intranet-tmpl/prog/en/modules/help/tools/viewlog.tt:9
+#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:43
+#: intranet-tmpl/prog/en/modules/help/tools/koha-news.tt:27
+#: intranet-tmpl/prog/en/modules/help/tools/upload-cover-image.tt:43
+#: intranet-tmpl/prog/en/modules/help/tools/tools-home.tt:7
+#: intranet-tmpl/prog/en/modules/help/tools/picture-upload.tt:23
+#: intranet-tmpl/prog/en/modules/help/tools/stage-marc-import.tt:38
+#: intranet-tmpl/prog/en/modules/help/tools/export.tt:64
+#: intranet-tmpl/prog/en/modules/help/tools/overduerules.tt:48
+#: intranet-tmpl/prog/en/modules/help/tools/inventory.tt:19
+#: intranet-tmpl/prog/en/modules/help/tools/batch_record_modification.tt:28
+#: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:141
+#: intranet-tmpl/prog/en/modules/help/tools/cleanborrowers.tt:24
+#: intranet-tmpl/prog/en/modules/help/tools/modborrowers.tt:17
+#: intranet-tmpl/prog/en/modules/help/tools/letter.tt:295
+#: intranet-tmpl/prog/en/modules/help/tools/marc_modification_templates.tt:61
+#: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:17
+#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:17
+#: intranet-tmpl/prog/en/modules/help/authorities/authorities.tt:29
+#: intranet-tmpl/prog/en/modules/help/authorities/merge.tt:13
+#: intranet-tmpl/prog/en/modules/help/patroncards/home.tt:20
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:11
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:28
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:34
+#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:23
+#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:20
+#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:31
+#: intranet-tmpl/prog/en/modules/help/patron_lists/lists.tt:17
+#: intranet-tmpl/prog/en/modules/help/catalogue/search-history.tt:9
+#: intranet-tmpl/prog/en/modules/help/catalogue/search.tt:81
+#: intranet-tmpl/prog/en/modules/help/catalogue/moredetail.tt:21
+#: intranet-tmpl/prog/en/modules/help/catalogue/itemsearch.tt:13
+#: intranet-tmpl/prog/en/modules/help/catalogue/issuehistory.tt:9
+#: intranet-tmpl/prog/en/modules/help/catalogue/detail.tt:7
+#: intranet-tmpl/prog/en/modules/help/cataloguing/linkitem.tt:30
+#: intranet-tmpl/prog/en/modules/help/cataloguing/additem.tt:77
+#: intranet-tmpl/prog/en/modules/help/cataloguing/addbiblio.tt:93
+#: intranet-tmpl/prog/en/modules/help/cataloguing/addbooks.tt:33
+#: intranet-tmpl/prog/en/modules/help/cataloguing/merge.tt:22
+#: intranet-tmpl/prog/en/modules/help/cataloguing/moveitem.tt:13
 #: intranet-tmpl/prog/en/modules/help/serials/routing.tt:21
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:200
-#: intranet-tmpl/prog/en/modules/help/admin/aqcontract.tt:19
-#: intranet-tmpl/prog/en/modules/help/admin/branch_transfer_limits.tt:19
-#: intranet-tmpl/prog/en/modules/help/admin/items_search_fields.tt:23
-#: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:91
-#: intranet-tmpl/prog/en/modules/help/admin/oai_set_mappings.tt:21
-#: intranet-tmpl/prog/en/modules/help/admin/item_circulation_alerts.tt:22
+#: intranet-tmpl/prog/en/modules/help/serials/checkexpiration.tt:11
+#: intranet-tmpl/prog/en/modules/help/serials/serials-edit.tt:27
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-frequencies.tt:9
+#: intranet-tmpl/prog/en/modules/help/serials/claims.tt:15
+#: intranet-tmpl/prog/en/modules/help/serials/serials-home.tt:9
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-numberpatterns.tt:11
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-add.tt:105
+#: intranet-tmpl/prog/en/modules/help/serials/serials-collection.tt:13
+#: intranet-tmpl/prog/en/modules/help/serials/subscription-detail.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/readingrec.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/statistics.tt:7
+#: intranet-tmpl/prog/en/modules/help/members/boraccount.tt:22
+#: intranet-tmpl/prog/en/modules/help/members/purchase-suggestions.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/files.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/members-update.tt:11
+#: intranet-tmpl/prog/en/modules/help/members/members-home.tt:65
+#: intranet-tmpl/prog/en/modules/help/members/member.tt:63
+#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:534
+#: intranet-tmpl/prog/en/modules/help/members/maninvoice.tt:17
+#: intranet-tmpl/prog/en/modules/help/members/notices.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/moremember.tt:142
+#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:9
+#: intranet-tmpl/prog/en/modules/help/members/memberentry.tt:89
+#: intranet-tmpl/prog/en/modules/help/members/mancredit.tt:14
+#: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:60
+#: intranet-tmpl/prog/en/modules/help/members/pay.tt:60
+#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:14
+#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:19
+#: intranet-tmpl/prog/en/modules/help/reserve/request.tt:63
+#: intranet-tmpl/prog/en/modules/help/mainpage.tt:28
+#: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/invoice.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/z3950_search.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/parcel.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/basketheader.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/orderreceive.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/basketgroup.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:122
+#: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/neworderempty.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/supplier.tt:54
+#: intranet-tmpl/prog/en/modules/help/acqui/uncertainprice.tt:7
+#: intranet-tmpl/prog/en/modules/help/acqui/invoices.tt:11
+#: intranet-tmpl/prog/en/modules/help/acqui/lateorders.tt:19
+#: intranet-tmpl/prog/en/modules/help/acqui/newordersubscription.tt:15
+#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:17
+#: intranet-tmpl/prog/en/modules/help/acqui/parcels.tt:21
+#: intranet-tmpl/prog/en/modules/help/acqui/addorderiso2709.tt:22
+#: intranet-tmpl/prog/en/modules/help/acqui/acqui-home.tt:13
+#: intranet-tmpl/prog/en/modules/help/acqui/neworderbiblio.tt:12
+#: intranet-tmpl/prog/en/modules/help/acqui/edifactmsgs.tt:7
+#: intranet-tmpl/prog/en/modules/help/reviews/reviewswaiting.tt:13
+#: intranet-tmpl/prog/en/modules/help/circ/selectbranchprinter.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
+#: intranet-tmpl/prog/en/modules/help/circ/circulation.tt:165
+#: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
+#: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
+#: intranet-tmpl/prog/en/modules/help/circ/reserveratios.tt:7
+#: intranet-tmpl/prog/en/modules/help/circ/waitingreserves.tt:9
+#: intranet-tmpl/prog/en/modules/help/circ/offline.tt:35
+#: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
+#: intranet-tmpl/prog/en/modules/help/circ/view_holdsqueue.tt:21
+#: intranet-tmpl/prog/en/modules/help/circ/returns.tt:77
+#: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
+#: intranet-tmpl/prog/en/modules/help/circ/on-site_checkouts.tt:9
+#: intranet-tmpl/prog/en/modules/help/plugins/plugins-home.tt:9
+#: intranet-tmpl/prog/en/modules/help/plugins/plugins-upload.tt:9
 #: intranet-tmpl/prog/en/modules/help/admin/z3950servers.tt:102
-#: intranet-tmpl/prog/en/modules/help/admin/matching-rules.tt:49
-#: intranet-tmpl/prog/en/modules/help/admin/edi_accounts.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:92
-#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:74
-#: intranet-tmpl/prog/en/modules/help/admin/marctagstructure.tt:23
-#: intranet-tmpl/prog/en/modules/help/admin/aqbudgetperiods.tt:86
-#: intranet-tmpl/prog/en/modules/help/admin/edi_ean_accounts.tt:11
-#: intranet-tmpl/prog/en/modules/help/admin/fieldmapping.tt:23
-#: intranet-tmpl/prog/en/modules/help/admin/columns_settings.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/authtypes.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/oai_set_mappings.tt:21
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:120
 #: intranet-tmpl/prog/en/modules/help/admin/currency.tt:13
-#: intranet-tmpl/prog/en/modules/help/admin/aqplan.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/auth_subfields_structure.tt:66
-#: intranet-tmpl/prog/en/modules/help/admin/aqbudgets.tt:40
-#: intranet-tmpl/prog/en/modules/help/admin/didyoumean.tt:20
+#: intranet-tmpl/prog/en/modules/help/admin/authtypes.tt:9
 #: intranet-tmpl/prog/en/modules/help/admin/systempreferences.tt:11
-#: intranet-tmpl/prog/en/modules/help/admin/preferences.tt:35
-#: intranet-tmpl/prog/en/modules/help/admin/transport-cost-matrix.tt:13
-#: intranet-tmpl/prog/en/modules/help/admin/branches.tt:80
-#: intranet-tmpl/prog/en/modules/help/admin/checkmarc.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/fieldmapping.tt:23
 #: intranet-tmpl/prog/en/modules/help/admin/koha2marclinks.tt:15
-#: intranet-tmpl/prog/en/modules/help/admin/cities.tt:21
-#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:22
-#: intranet-tmpl/prog/en/modules/help/admin/itemtypes.tt:60
-#: intranet-tmpl/prog/en/modules/help/admin/oai_sets.tt:32
-#: intranet-tmpl/prog/en/modules/help/admin/admin-home.tt:33
-#: intranet-tmpl/prog/en/modules/help/admin/classsources.tt:56
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:162
-#: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:23
-#: intranet-tmpl/prog/en/modules/help/offline_circ/process_koc.tt:19
+#: intranet-tmpl/prog/en/modules/help/admin/categorie.tt:91
+#: intranet-tmpl/prog/en/modules/help/admin/aqcontract.tt:19
+#: intranet-tmpl/prog/en/modules/help/admin/items_search_fields.tt:23
+#: intranet-tmpl/prog/en/modules/help/admin/edi_ean_accounts.tt:11
+#: intranet-tmpl/prog/en/modules/help/admin/branch_transfer_limits.tt:19
+#: intranet-tmpl/prog/en/modules/help/admin/branches.tt:80
+#: intranet-tmpl/prog/en/modules/help/admin/classsources.tt:56
+#: intranet-tmpl/prog/en/modules/help/admin/matching-rules.tt:49
+#: intranet-tmpl/prog/en/modules/help/admin/edi_accounts.tt:15
+#: intranet-tmpl/prog/en/modules/help/admin/aqplan.tt:15
+#: intranet-tmpl/prog/en/modules/help/admin/auth_tag_structure.tt:22
+#: intranet-tmpl/prog/en/modules/help/admin/patron-attr-types.tt:74
+#: intranet-tmpl/prog/en/modules/help/admin/oai_sets.tt:32
+#: intranet-tmpl/prog/en/modules/help/admin/auth_subfields_structure.tt:66
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:200
+#: intranet-tmpl/prog/en/modules/help/admin/columns_settings.tt:15
+#: intranet-tmpl/prog/en/modules/help/admin/didyoumean.tt:20
+#: intranet-tmpl/prog/en/modules/help/admin/marctagstructure.tt:23
+#: intranet-tmpl/prog/en/modules/help/admin/preferences.tt:35
+#: intranet-tmpl/prog/en/modules/help/admin/aqbudgets.tt:40
+#: intranet-tmpl/prog/en/modules/help/admin/transport-cost-matrix.tt:13
+#: intranet-tmpl/prog/en/modules/help/admin/authorised_values.tt:92
+#: intranet-tmpl/prog/en/modules/help/admin/admin-home.tt:33
+#: intranet-tmpl/prog/en/modules/help/admin/cities.tt:21
+#: intranet-tmpl/prog/en/modules/help/admin/itemtypes.tt:60
+#: intranet-tmpl/prog/en/modules/help/admin/checkmarc.tt:9
+#: intranet-tmpl/prog/en/modules/help/admin/item_circulation_alerts.tt:22
+#: intranet-tmpl/prog/en/modules/help/admin/aqbudgetperiods.tt:86
+#: intranet-tmpl/prog/en/modules/help/reports/reports-home.tt:22
+#: intranet-tmpl/prog/en/modules/help/reports/cat_issues_top.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/guided_reports.tt:198
+#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/manager.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:13
+#: intranet-tmpl/prog/en/modules/help/reports/serials_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:22
+#: intranet-tmpl/prog/en/modules/help/reports/bor_issues_top.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/itemslost.tt:19
+#: intranet-tmpl/prog/en/modules/help/reports/catalogue_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/acquisitions_stats.tt:15
+#: intranet-tmpl/prog/en/modules/help/reports/dictionary.tt:21
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:11
+#: intranet-tmpl/prog/en/modules/help/about.tt:38
+#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:65
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-batch.tt:25
-#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:33
 #: intranet-tmpl/prog/en/modules/help/labels/spinelabel-home.tt:14
 #: intranet-tmpl/prog/en/modules/help/labels/label-home.tt:44
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:17
@@ -22793,144 +22991,16 @@ msgstr "management (správa) "
 #: intranet-tmpl/prog/en/modules/help/labels/label-manage.tt:103
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-layout.tt:15
 #: intranet-tmpl/prog/en/modules/help/labels/label-edit-profile.tt:31
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course-details.tt:9
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course-reserves.tt:19
-#: intranet-tmpl/prog/en/modules/help/course_reserves/add_items.tt:13
-#: intranet-tmpl/prog/en/modules/help/course_reserves/course.tt:17
-#: intranet-tmpl/prog/en/modules/help/cataloguing/linkitem.tt:30
-#: intranet-tmpl/prog/en/modules/help/cataloguing/addbiblio.tt:93
-#: intranet-tmpl/prog/en/modules/help/cataloguing/addbooks.tt:33
-#: intranet-tmpl/prog/en/modules/help/cataloguing/moveitem.tt:13
-#: intranet-tmpl/prog/en/modules/help/cataloguing/merge.tt:22
-#: intranet-tmpl/prog/en/modules/help/cataloguing/additem.tt:77
+#: intranet-tmpl/prog/en/modules/help/labels/label-edit-template.tt:33
+#: intranet-tmpl/prog/en/modules/help/offline_circ/list.tt:23
+#: intranet-tmpl/prog/en/modules/help/offline_circ/process_koc.tt:19
 #: intranet-tmpl/prog/en/modules/help/suggestion/suggestion.tt:41
-#: intranet-tmpl/prog/en/modules/help/patron_lists/lists.tt:17
-#: intranet-tmpl/prog/en/modules/help/plugins/plugins-upload.tt:9
-#: intranet-tmpl/prog/en/modules/help/plugins/plugins-home.tt:9
-#: intranet-tmpl/prog/en/modules/help/mainpage.tt:28
-#: intranet-tmpl/prog/en/modules/help/circ/view_holdsqueue.tt:21
-#: intranet-tmpl/prog/en/modules/help/circ/circulation.tt:165
-#: intranet-tmpl/prog/en/modules/help/circ/offline.tt:35
-#: intranet-tmpl/prog/en/modules/help/circ/on-site_checkouts.tt:9
-#: intranet-tmpl/prog/en/modules/help/circ/reserveratios.tt:7
-#: intranet-tmpl/prog/en/modules/help/circ/selectbranchprinter.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/waitingreserves.tt:9
-#: intranet-tmpl/prog/en/modules/help/circ/returns.tt:77
-#: intranet-tmpl/prog/en/modules/help/circ/pendingreserves.tt:9
-#: intranet-tmpl/prog/en/modules/help/circ/transferstoreceive.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/branchoverdues.tt:11
-#: intranet-tmpl/prog/en/modules/help/circ/circulation-home.tt:24
-#: intranet-tmpl/prog/en/modules/help/circ/overdue.tt:14
-#: intranet-tmpl/prog/en/modules/help/circ/branchtransfers.tt:24
-#: intranet-tmpl/prog/en/modules/help/circ/renew.tt:11
-#: intranet-tmpl/prog/en/modules/help/catalogue/moredetail.tt:21
-#: intranet-tmpl/prog/en/modules/help/catalogue/issuehistory.tt:9
-#: intranet-tmpl/prog/en/modules/help/catalogue/search-history.tt:9
-#: intranet-tmpl/prog/en/modules/help/catalogue/detail.tt:7
-#: intranet-tmpl/prog/en/modules/help/catalogue/search.tt:81
-#: intranet-tmpl/prog/en/modules/help/catalogue/itemsearch.tt:13
-#: intranet-tmpl/prog/en/modules/help/reserve/request.tt:63
-#: intranet-tmpl/prog/en/modules/help/authorities/authorities.tt:29
-#: intranet-tmpl/prog/en/modules/help/authorities/detail.tt:17
-#: intranet-tmpl/prog/en/modules/help/authorities/authorities-home.tt:17
-#: intranet-tmpl/prog/en/modules/help/authorities/merge.tt:13
-#: intranet-tmpl/prog/en/modules/help/tags/review.tt:23
-#: intranet-tmpl/prog/en/modules/help/tags/list.tt:9
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-batch.tt:11
-#: intranet-tmpl/prog/en/modules/help/patroncards/home.tt:20
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-profile.tt:31
-#: intranet-tmpl/prog/en/modules/help/patroncards/image-manage.tt:19
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-layout.tt:34
-#: intranet-tmpl/prog/en/modules/help/patroncards/edit-template.tt:28
-#: intranet-tmpl/prog/en/modules/help/patroncards/manage.tt:19
-#: intranet-tmpl/prog/en/modules/help/members/pay.tt:60
-#: intranet-tmpl/prog/en/modules/help/members/statistics.tt:7
-#: intranet-tmpl/prog/en/modules/help/members/mancredit.tt:14
-#: intranet-tmpl/prog/en/modules/help/members/paycollect.tt:60
-#: intranet-tmpl/prog/en/modules/help/members/member-password.tt:14
-#: intranet-tmpl/prog/en/modules/help/members/files.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/discharge.tt:19
-#: intranet-tmpl/prog/en/modules/help/members/notices.tt:9
-#: intranet-tmpl/prog/en/modules/help/members/boraccount.tt:22
-#: intranet-tmpl/prog/en/modules/help/members/maninvoice.tt:17
-#: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:528
-#: intranet-tmpl/prog/en/modules/help/members/routing-lists.tt:9
-#: intranet-tmpl/prog/en/modules/help/members/member.tt:63
-#: intranet-tmpl/prog/en/modules/help/members/memberentry.tt:89
-#: intranet-tmpl/prog/en/modules/help/members/purchase-suggestions.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/moremember.tt:142
-#: intranet-tmpl/prog/en/modules/help/members/readingrec.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/members-update.tt:11
-#: intranet-tmpl/prog/en/modules/help/members/members-home.tt:65
-#: intranet-tmpl/prog/en/modules/help/virtualshelves/shelves.tt:68
-#: intranet-tmpl/prog/en/modules/help/acqui/lateorders.tt:19
-#: intranet-tmpl/prog/en/modules/help/acqui/uncertainprice.tt:7
-#: intranet-tmpl/prog/en/modules/help/acqui/neworderbiblio.tt:12
-#: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:122
-#: intranet-tmpl/prog/en/modules/help/acqui/invoice.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/newordersuggestion.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/z3950_search.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/parcel.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/supplier.tt:54
-#: intranet-tmpl/prog/en/modules/help/acqui/histsearch.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/basketheader.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/neworderempty.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/orderreceive.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/basketgroup.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/newordersubscription.tt:15
-#: intranet-tmpl/prog/en/modules/help/acqui/acqui-home.tt:13
-#: intranet-tmpl/prog/en/modules/help/acqui/edifactmsgs.tt:7
-#: intranet-tmpl/prog/en/modules/help/acqui/parcels.tt:21
-#: intranet-tmpl/prog/en/modules/help/acqui/invoices.tt:11
-#: intranet-tmpl/prog/en/modules/help/acqui/booksellers.tt:17
-#: intranet-tmpl/prog/en/modules/help/acqui/addorderiso2709.tt:22
-#: intranet-tmpl/prog/en/modules/help/reports/issues_avg_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_out.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/catalogue_out.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/cat_issues_top.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/dictionary.tt:21
-#: intranet-tmpl/prog/en/modules/help/reports/issues_stats.tt:22
-#: intranet-tmpl/prog/en/modules/help/reports/manager.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/reserves_stats.tt:13
-#: intranet-tmpl/prog/en/modules/help/reports/guided_reports.tt:198
-#: intranet-tmpl/prog/en/modules/help/reports/serials_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/itemslost.tt:19
-#: intranet-tmpl/prog/en/modules/help/reports/borrowers_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/bor_issues_top.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/reports-home.tt:22
-#: intranet-tmpl/prog/en/modules/help/reports/catalogue_stats.tt:11
-#: intranet-tmpl/prog/en/modules/help/reports/acquisitions_stats.tt:15
-#: intranet-tmpl/prog/en/modules/help/tools/viewlog.tt:9
-#: intranet-tmpl/prog/en/modules/help/tools/marc_modification_templates.tt:61
-#: intranet-tmpl/prog/en/modules/help/tools/import_borrowers.tt:58
-#: intranet-tmpl/prog/en/modules/help/tools/csv-profiles.tt:141
-#: intranet-tmpl/prog/en/modules/help/tools/tools-home.tt:7
-#: intranet-tmpl/prog/en/modules/help/tools/koha-news.tt:27
-#: intranet-tmpl/prog/en/modules/help/tools/quotes.tt:41
-#: intranet-tmpl/prog/en/modules/help/tools/picture-upload.tt:23
-#: intranet-tmpl/prog/en/modules/help/tools/quotes-upload.tt:43
-#: intranet-tmpl/prog/en/modules/help/tools/overduerules.tt:48
-#: intranet-tmpl/prog/en/modules/help/tools/inventory.tt:19
-#: intranet-tmpl/prog/en/modules/help/tools/batch_record_modification.tt:28
-#: intranet-tmpl/prog/en/modules/help/tools/export.tt:64
-#: intranet-tmpl/prog/en/modules/help/tools/batch_delete_records.tt:13
-#: intranet-tmpl/prog/en/modules/help/tools/stage-marc-import.tt:38
-#: intranet-tmpl/prog/en/modules/help/tools/letter.tt:295
-#: intranet-tmpl/prog/en/modules/help/tools/modborrowers.tt:17
-#: intranet-tmpl/prog/en/modules/help/tools/scheduler.tt:26
-#: intranet-tmpl/prog/en/modules/help/tools/upload-cover-image.tt:43
-#: intranet-tmpl/prog/en/modules/help/tools/cleanborrowers.tt:24
-#: intranet-tmpl/prog/en/modules/help/tools/manage-marc-import.tt:44
-#: intranet-tmpl/prog/en/modules/help/tools/holidays.tt:68
-#: intranet-tmpl/prog/en/modules/help/about.tt:38
-#: intranet-tmpl/prog/en/modules/help/reviews/reviewswaiting.tt:13
-#: intranet-tmpl/prog/en/modules/help/rotating_collections/rotatingCollections.tt:35
 #, c-format
 msgid "manual"
 msgstr "manuálu"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:155
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:101
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:155
 #, c-format
 msgid ""
 "means that the value is not free text, but must be searched in the authority/"
@@ -22939,8 +23009,8 @@ msgstr ""
 "znamená, že hodnota není volný text, ale musí být vyhledána v autoritách/"
 "tezauru dané kategorie"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:150
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:96
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:150
 #, c-format
 msgid ""
 "means the value cannot by typed by the librarian, but must be chosen from a "
@@ -22949,8 +23019,8 @@ msgstr ""
 "se rozumí hodnota, která nemůže být napsána od knihovníka, ale musí být "
 "vybrána z rozbalovací roletky se seznamem autorizovaných hodnot"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:160
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:106
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:160
 #, c-format
 msgid ""
 "means the value is calculated or managed by a plugin. Plugins can do almost "
@@ -22989,8 +23059,8 @@ msgstr "mus:j Hudební záznam"
 msgid "o - Full call number"
 msgstr "o - Plná signatura"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:132
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:78
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:132
 #, c-format
 msgid ""
 "on a field like author (200f in UNIMARC), put 200f here, you will be able to "
@@ -22999,8 +23069,8 @@ msgstr ""
 "pokud u polí jako autor (200f v UNIMARC) vložíte 200f, uvidíte všechny "
 "bibliografické záznamy se stejným autorem"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:133
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:79
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:133
 #, c-format
 msgid ""
 "on a field that is a link (4xx) to reach another bib record. For example, "
@@ -23130,23 +23200,23 @@ msgid "routing "
 msgstr "směrování "
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:13
-#, c-format
-msgid "same library, all patron types, all item types"
+#, fuzzy, c-format
+msgid "same library, all patron categories, all item types"
 msgstr "stejná knihovna, všechny typy čtenářů, všechny typy jednotek"
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:12
-#, c-format
-msgid "same library, all patron types, same item type"
+#, fuzzy, c-format
+msgid "same library, all patron categories, same item type"
 msgstr "stejná knihovna, všechny typy čtenářů, stejný typ jednotek"
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:11
-#, c-format
-msgid "same library, same patron type, all item type"
+#, fuzzy, c-format
+msgid "same library, same patron category, all item type"
 msgstr "stejná knihovna, stejný typ čtenářů, všechny typy jednotek"
 
 #: intranet-tmpl/prog/en/modules/help/admin/smart-rules.tt:10
-#, c-format
-msgid "same library, same patron type, same item type"
+#, fuzzy, c-format
+msgid "same library, same patron category, same item type"
 msgstr "stejná knihovna, stejný typ čtenářů, stejný typ jednotek"
 
 #: intranet-tmpl/prog/en/modules/help/members/member-flags.tt:471
@@ -23188,8 +23258,8 @@ msgstr "superlibrarian (superknihovník) "
 msgid "superserials "
 msgstr "superserials "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:96
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:42
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:96
 #, c-format
 msgid ""
 "the field will have a plus sign next to it allowing you to add multiples of "
@@ -23197,8 +23267,8 @@ msgid ""
 msgstr ""
 "pole bude mít vedle sebe znaménko plus, aby bylo možné přidat více tagů"
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:101
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:47
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:101
 #, c-format
 msgid ""
 "the record will not be allowed to save unless you have a value assigned to "
@@ -23268,14 +23338,14 @@ msgstr "vendors_manage "
 msgid "view_system_logs "
 msgstr "zobrazit_systémové_záznamy "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:87
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:33
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:87
 #, c-format
 msgid "what appears before the field in the OPAC. "
 msgstr "co se objeví před polem v OPACu. "
 
-#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:82
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:28
+#: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:82
 #, c-format
 msgid "what appears before the subfield in the librarian interface"
 msgstr "co se objeví před podpolem v knihovnickém interface"
@@ -23304,6 +23374,5 @@ msgid ""
 "[ \"My third title\" ] } ] } } "
 msgstr ""
 "{ fields =&gt; { 008 =&gt; [ \"140211b xxu||||| |||| 00| 0 eng d\" ], 100 "
-"=&gt; [ { a =&gt; [ \"Můj autor\" ] } ] 245 =&gt; [ { a =&gt; [ \"Můj první "
-"titul\", \"Můj druhý titul\" ], b =&gt; [ \"Můj zbytek ] }, { a =&gt; "
-"[ \"Můj třetí titul\" ] } ] } } "
+"=&gt; [ { a =&gt; [ \"Autor\" ] } ] 245 =&gt; [ { a =&gt; [ \"Název 1\", "
+"\"Název 2\" ], b =&gt; [ \"Podnázev\" ] }, { a =&gt; [ \"Název 3\" ] } ] } } "

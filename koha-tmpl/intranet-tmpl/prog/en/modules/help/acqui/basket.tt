@@ -81,7 +81,7 @@
     <li>A basket with at least one uncertain price can't be closed.</li>
 </ul>
 </li>
-    <li>If you are charged sales tax, choose that from the gstrate field</li>
+    <li>If you are charged sales tax, choose that from the tax_rate field</li>
     <li>Enter the percentage discount you're receiving on this order, once you enter this, hit tab and Koha will populate the rest of the cost fields below.</li>
     <li>If you added Planning Values when creating the Fund, those values will appear in the two Planning Value fields.</li>
 </ul>
@@ -119,6 +119,6 @@
 
 <p>Clicking 'Print' below your order will generate a PDF for printing, which will have all of your library information followed by the items in your order.</p>
 
-<p><strong>See the full documentation for Ordering in the <a href="http://manual.koha-community.org/[% helpVersion %]/en/placingacqorder.html#createacqbasket">manual</a> (online).</strong></p>
+<p><strong>See the full documentation for Ordering in the <a href="http://koha-community.org/manual/[% helpVersion %]/en/html/acquisitions.html#create-a-basket">manual</a> (online).</strong></p>
 
 [% INCLUDE 'help-bottom.inc' %]

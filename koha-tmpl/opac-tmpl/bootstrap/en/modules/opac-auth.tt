@@ -31,6 +31,8 @@
                                 <p>Sorry, the system doesn't think you have permission to access this page. </p>
                                 [% IF SCO_login %]
                                     <p><a href="/cgi-bin/koha/sco/sco-main.pl?logout.x=1">Log out and try again with a different user.</a></p>
+                                [% ELSIF SCI_login %]
+                                    <p><a href="/cgi-bin/koha/sci/sci-main.pl?logout.x=1">Log out and try again with a different user.</a></p>
                                 [% END %]
                             </div>
                         [% END %]
@@ -53,7 +55,17 @@
                                 </div>
                             [% END %]
 
-                            [% IF ( invalid_username_or_password ) %]
+
+                            [% IF too_many_login_attempts %]
+                                <div class="alert alert-info">
+                                This account has been locked!
+                                [% IF Koha.Preference('OpacResetPassword') %]
+                                    <a href="/cgi-bin/koha/opac-password-recovery.pl">You must reset your password</a>.
+                                [% ELSE %]
+                                    Please contact a library staff member.
+                                [% END %]
+                                </div>
+                            [% ELSIF invalid_username_or_password %]
                                 <!-- This is what is displayed if user doesnt have permission -->
                                 <div class="alert alert-info">
                                     <p>You entered an incorrect username or password. Please try again! And remember, passwords are case sensitive.</p>
@@ -147,9 +159,11 @@
                         [% END %]
 
                         [% IF SCO_login %]
-                            <form action="/cgi-bin/koha/sco/sco-main.pl" name="auth" id="auth" method="post">
+                            <form action="/cgi-bin/koha/sco/sco-main.pl" name="auth" id="auth" method="post" autocomplete="off">
+                        [% ELSIF SCI_login %]
+                            <form action="/cgi-bin/koha/sci/sci-main.pl" name="auth" id="auth" method="post" autocomplete="off">
                         [% ELSE %]
-                            <form action="[% script_name %]" name="auth" id="auth" method="post">
+                            <form action="[% script_name %]" name="auth" id="auth" method="post" autocomplete="off">
                         [% END %]
                             <input type="hidden" name="koha_login_context" value="opac" />
                             <fieldset class="brief">
@@ -168,14 +182,14 @@
                                 </div>
                             [% END %]
                             <div id="nologininstructions">
-                            [% IF Koha.Preference('NoLoginInstructions') %]
-                                [% Koha.Preference('NoLoginInstructions') %]
+                            [% IF Koha.Preference('OpacLoginInstructions') %]
+                                [% Koha.Preference('OpacLoginInstructions') %]
                             [% ELSE %]
                                 <h5>Don't have a password yet?</h5>
                                 <p>If you don't have a password yet, stop by the circulation desk the next time you're in the library. We'll happily set one up for you.</p>
                                 <h5>Don't have a library card?</h5>
                                 <p>If you don't have a library card, stop by your local library to sign up.</p>
-                            [% END # / IF Koha.Preference('NoLoginInstructions') %]
+                            [% END # / IF Koha.Preference('OpacLoginInstructions') %]
 
                             [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]<span id="registrationinstructions"><a href="/cgi-bin/koha/opac-memberentry.pl">You may register here.</a></span>
                             [% END %]
@@ -191,10 +205,6 @@
                         </ul>
                     [% END # / IF opacuserlogin %]
 
-                    [% IF persona %]
-                        <p><a href="#" class="persona-button" id="browserid" ><span>Sign in with your Email</span></a></p>
-                    [% END %]
-
                 </div> <!-- /.opac-auth -->
             </div> <!-- /.span12 -->
         </div> <!-- /.row-fluid -->
@@ -203,7 +213,7 @@
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
-<script type="text/javascript">
+<script>
 //<![CDATA[
     // Hide circular 'Log in to Your Account' link in opac-auth.pl
     $(document).ready(function() {

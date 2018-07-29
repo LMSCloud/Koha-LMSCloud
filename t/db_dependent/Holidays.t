@@ -24,7 +24,6 @@ use DateTime::TimeZone;
 
 use t::lib::TestBuilder;
 use C4::Context;
-use C4::Branch;
 use Koha::Database;
 use Koha::DateUtils;
 
@@ -45,6 +44,8 @@ subtest 'exception_holidays() tests' => sub {
     $schema->storage->txn_begin;
 
     $dbh->do("DELETE FROM special_holidays");
+    # Clear cache
+    Koha::Caches->get_instance->flush_all;
 
     # Artificially set timezone
     my $timezone = 'America/Santiago';
@@ -202,4 +203,3 @@ sub _add_exception {
 
 $schema->storage->txn_rollback;
 
-1;

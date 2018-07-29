@@ -4,24 +4,31 @@
 # It requires a working Koha database with the sample data
 
 use Modern::Perl;
+use DateTime::Format::MySQL;
+use Test::More tests => 6;
+
+use t::lib::TestBuilder;
+
 use C4::Context;
+use Koha::Database;
 use Koha::DateUtils qw(dt_from_string);
 use Koha::AuthorisedValue;
-
-use Test::More tests => 9;
-use DateTime::Format::MySQL;
+use Koha::AuthorisedValueCategories;
 
 BEGIN {
-    use_ok('C4::Koha', qw( :DEFAULT GetDailyQuote GetItemTypesByCategory GetItemTypesCategorized));
+    use_ok('C4::Koha', qw( :DEFAULT GetDailyQuote GetItemTypesCategorized));
     use_ok('C4::Members');
 }
 
+my $schema  = Koha::Database->new->schema;
+$schema->storage->txn_begin;
+my $builder = t::lib::TestBuilder->new;
 my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
+
+our $itype_1 = $builder->build({ source => 'Itemtype' });
 
 subtest 'Authorized Values Tests' => sub {
-    plan tests => 7;
+    plan tests => 3;
 
     my $data = {
         category            => 'CATEGORY',
@@ -31,7 +38,8 @@ subtest 'Authorized Values Tests' => sub {
         imageurl            => 'IMAGEURL'
     };
 
-
+    my $avc = Koha::AuthorisedValueCategories->find($data->{category});
+    Koha::AuthorisedValueCategory->new({ category_name => $data->{category} })->store unless $avc;
 # Insert an entry into authorised_value table
     my $insert_success = Koha::AuthorisedValue->new(
         {   category         => $data->{category},
@@ -44,22 +52,6 @@ subtest 'Authorized Values Tests' => sub {
     ok( $insert_success, "Insert data in database" );
 
 
-# Tests
-    SKIP: {
-        skip "INSERT failed", 4 unless $insert_success;
-
-        is ( GetAuthorisedValueByCode($data->{category}, $data->{authorised_value}), $data->{lib}, "GetAuthorisedValueByCode" );
-
-        my $sortdet=C4::Members::GetSortDetails("lost", "3");
-        is ($sortdet, "Lost and Paid For", "lost and paid works");
-
-        my $sortdet2=C4::Members::GetSortDetails("loc", "child");
-        is ($sortdet2, "Children's Area", "Child area works");
-
-        my $sortdet3=C4::Members::GetSortDetails("withdrawn", "1");
-        is ($sortdet3, "Withdrawn", "Withdrawn works");
-    }
-
 # Clean up
     if($insert_success){
         my $query = "DELETE FROM authorised_values WHERE category=? AND authorised_value=? AND lib=? AND lib_opac=? AND imageurl=?;";
@@ -70,6 +62,7 @@ subtest 'Authorized Values Tests' => sub {
     SKIP: {
         eval { require Test::Deep; import Test::Deep; };
         skip "Test::Deep required to run the GetAuthorisedValues() tests.", 2 if $@;
+        Koha::AuthorisedValueCategory->new({ category_name => 'BUG10656' })->store;
         Koha::AuthorisedValue->new(
             {   category         => 'BUG10656',
                 authorised_value => 'ZZZ',
@@ -164,12 +157,6 @@ subtest 'Authorized Values Tests' => sub {
 
 };
 
-subtest 'Itemtype info Tests' => sub {
-    like ( getitemtypeinfo('BK')->{'imageurl'}, qr/intranet-tmpl/, 'getitemtypeinfo on unspecified interface returns intranet imageurl (legacy behavior)' );
-    like ( getitemtypeinfo('BK', 'intranet')->{'imageurl'}, qr/intranet-tmpl/, 'getitemtypeinfo on "intranet" interface returns intranet imageurl' );
-    like ( getitemtypeinfo('BK', 'opac')->{'imageurl'}, qr/opac-tmpl/, 'getitemtypeinfo on "opac" interface returns opac imageurl' );
-};
-
 ### test for C4::Koha->GetDailyQuote()
 SKIP:
     {
@@ -186,15 +173,15 @@ SKIP:
 # Fill the quote table with the default needed and a spare
 $dbh->do("DELETE FROM quotes WHERE id=3 OR id=25;");
 my $sql = "INSERT INTO quotes (id,source,text,timestamp) VALUES
-(25,'Richard Nixon','When the President does it, that means that it is not illegal.','0000-00-00 00:00:00'),
-(3,'Abraham Lincoln','Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.','0000-00-00 00:00:00');";
+(25,'Richard Nixon','When the President does it, that means that it is not illegal.',NOW()),
+(3,'Abraham Lincoln','Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.',NOW());";
 $dbh->do($sql);
 
                 my $expected_quote = {
                     id          => 3,
                     source      => 'Abraham Lincoln',
                     text        => 'Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.',
-                    timestamp   => re('\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'),   #'0000-00-00 00:00:00',
+                    timestamp   => re('\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'),   #'YYYY-MM-DD HH:MM:SS'
                 };
 
 # test quote retrieval based on id
@@ -252,52 +239,11 @@ subtest 'ISBN tests' => sub {
 
 };
 
-subtest 'GetFrameworksLoop() tests' => sub {
-    plan tests => 6;
-
-    $dbh->do("DELETE FROM biblio_framework");
-
-    my $frameworksloop = GetFrameworksLoop();
-    is ( scalar(@$frameworksloop), 0, 'No frameworks' );
-
-    $dbh->do("INSERT INTO biblio_framework ( frameworkcode, frameworktext ) VALUES ( 'A', 'Third framework'  )");
-    $dbh->do("INSERT INTO biblio_framework ( frameworkcode, frameworktext ) VALUES ( 'B', 'Second framework' )");
-    $dbh->do("INSERT INTO biblio_framework ( frameworkcode, frameworktext ) VALUES ( 'C', 'First framework'  )");
-
-    $frameworksloop = GetFrameworksLoop();
-    is ( scalar(@$frameworksloop), 3, 'All frameworks' );
-    is ( scalar ( grep { defined $_->{'selected'} } @$frameworksloop ), 0, 'None selected' );
-
-    $frameworksloop = GetFrameworksLoop( 'B' );
-    is ( scalar ( grep { defined $_->{'selected'} } @$frameworksloop ), 1, 'One selected' );
-    my @descriptions = map { $_->{'description'} } @$frameworksloop;
-    is ( $descriptions[0], 'First framework', 'Ordered result' );
-    cmp_deeply(
-        $frameworksloop,
-        [
-            {
-                'value' => 'C',
-                'description' => 'First framework',
-                'selected' => undef,
-            },
-            {
-                'value' => 'B',
-                'description' => 'Second framework',
-                'selected' => 1,                # selected
-            },
-            {
-                'value' => 'A',
-                'description' => 'Third framework',
-                'selected' => undef,
-            }
-        ],
-        'Full check, sorted by description with selected val (Bug 12675)'
-    );
-};
-
-subtest 'GetItemTypesByCategory GetItemTypesCategorized test' => sub{
+subtest 'GetItemTypesCategorized test' => sub{
     plan tests => 7;
 
+    my $avc = Koha::AuthorisedValueCategories->find('ITEMTYPECAT');
+    Koha::AuthorisedValueCategory->new({ category_name => 'ITEMTYPECAT' })->store unless $avc;
     my $insertGroup = Koha::AuthorisedValue->new(
         {   category         => 'ITEMTYPECAT',
             authorised_value => 'Quertyware',
@@ -313,12 +259,13 @@ subtest 'GetItemTypesByCategory GetItemTypesCategorized test' => sub{
     $insertSth->execute('BKghjklo3', 'Yet another type of book', 'Qwertyware', 0);
 
     # Azertyware should not exist.
-    my @results = GetItemTypesByCategory('Azertyware');
-    is(scalar @results, 0, 'GetItemTypesByCategory: Invalid category returns nothing');
+    my @itemtypes = Koha::ItemTypes->search({ searchcategory => 'Azertyware' });
+    is( @itemtypes, 0, 'Search item types by searchcategory: Invalid category returns nothing');
 
-    @results = GetItemTypesByCategory('Qwertyware');
+    @itemtypes = Koha::ItemTypes->search({ searchcategory => 'Qwertyware' });
+    my @got = map { $_->itemtype } @itemtypes;
     my @expected = ( 'BKghjklo2', 'BKghjklo3' );
-    is_deeply(\@results,\@expected,'GetItemTypesByCategory: valid category returns itemtypes');
+    is_deeply(\@got,\@expected,'Search item types by searchcategory: valid category returns itemtypes');
 
     # add more data since GetItemTypesCategorized's search is more subtle
     $insertGroup = Koha::AuthorisedValue->new(
@@ -339,7 +286,7 @@ subtest 'GetItemTypesByCategory GetItemTypesCategorized test' => sub{
     ok(exists $hrCat->{Qwertyware}, 'GetItemTypesCategorized: partially visible category exists');
 
     my @only = ( 'BKghjklo1', 'BKghjklo2', 'BKghjklo3', 'BKghjklo4', 'BKghjklo5', 'Qwertyware', 'Veryheavybook' );
-    @results = ();
+    my @results = ();
     foreach my $key (@only) {
         push @results, $key if exists $hrCat->{$key};
     }
@@ -347,13 +294,4 @@ subtest 'GetItemTypesByCategory GetItemTypesCategorized test' => sub{
     is_deeply(\@results,\@expected, 'GetItemTypesCategorized: grouped and ungrouped items returned as expected.');
 };
 
-subtest 'GetItemTypes test' => sub {
-    plan tests => 1;
-    $dbh->do(q|DELETE FROM itemtypes|);
-    $dbh->do(q|INSERT INTO itemtypes(itemtype, description) VALUES ('a', 'aa desc'), ('b', 'zz desc'), ('d', 'dd desc'), ('c', 'yy desc')|);
-    my $itemtypes = C4::Koha::GetItemTypes( style => 'array' );
-    $itemtypes = [ map { $_->{itemtype} } @$itemtypes ];
-    is_deeply( $itemtypes, [ 'a', 'd', 'c', 'b' ], 'GetItemTypes(array) should return itemtypes ordered by description');
-};
-
-$dbh->rollback();
+$schema->storage->txn_rollback;

@@ -1,3 +1,4 @@
+[% USE Asset %]
 [% USE KohaDates %]
 [% BLOCK edit_contact %]
     <ol id="contact-form">
@@ -30,6 +31,13 @@
                 <input type="checkbox" id="contact_serialsprimary[% contact.id %]" class="contact_serialsprimary"></input>
             [% END %]
             <input type="hidden" class="contact_serialsprimary_hidden" name="contact_serialsprimary" value="[% contact.serialsprimary %]"></input>
+        <li><label for="contact_orderacquisition[% contact.id %]">Contact when ordering?</label>
+            [% IF contact.orderacquisition %]
+                <input type="checkbox" id="contact_orderacquisition[% contact.id %]" class="contact_orderacquisition" checked="checked"></input>
+            [% ELSE %]
+                <input type="checkbox" id="contact_orderacquisition[% contact.id %]" class="contact_orderacquisition"></input>
+            [% END %]
+            <input type="hidden" class="contact_orderacquisition_hidden" name="contact_orderacquisition" value="[% contact.orderacquisition %]"></input>
         <li><label for="contact_claimacquisition[% contact.id %]">Contact about late orders?</label>
             [% IF contact.claimacquisition %]
                 <input type="checkbox" id="contact_claimacquisition[% contact.id %]" class="contact_claimacquisition" checked="checked"></input>
@@ -45,27 +53,30 @@
             [% END %]
             <input type="hidden" class="contact_claimissues_hidden" name="contact_claimissues" value="[% contact.claimissues %]"></input>
         </li>
-        [% IF contact.id %]<li><button class="btn delete-contact"><i class="fa fa-trash"></i> Delete contact</li>[% END %]
+        [% IF contact.id %]<li><button class="btn btn-default delete-contact"><i class="fa fa-trash"></i> Delete contact</li>[% END %]
     </ol>
 [% END %]
 
 [% BLOCK show_contact %]
-    <h3>[% contact.name %]</h3>
-    <p><span class="label">Position: </span>[% contact.position %]</p>
-    <p><span class="label">Phone: </span>[% contact.phone %]</p>
-    <p><span class="label">Alternative phone: </span>[% contact.altphone %]</p>
-    <p><span class="label">Fax: </span>[% contact.fax %]</p>
+    <h3>[% contact.name |html %]</h3>
+    <p><span class="label">Position: </span>[% contact.position |html %]</p>
+    <p><span class="label">Phone: </span>[% contact.phone |html %]</p>
+    <p><span class="label">Alternative phone: </span>[% contact.altphone |html %]</p>
+    <p><span class="label">Fax: </span>[% contact.fax |html %]</p>
     [% IF ( contact.email ) %]
         <p><span class="label">Email: </span><a href="mailto:[% contact.email %]">[% contact.email %]</a></p>
     [% END %]
     [% IF ( contact.notes ) %]
-        <p><span class="label">Notes: </span>[% contact.notes %]</p>
+        <p><span class="label">Notes: </span>[% contact.notes |html %]</p>
     [% END %]
     [% IF ( contact.acqprimary ) %]
         <p><span class="label">Primary acquisitions contact</span></p>
     [% END %]
     [% IF ( contact.serialsprimary ) %]
         <p><span class="label">Primary serials contact</span></p>
+    [% END %]
+    [% IF ( contact.orderacquisition ) %]
+        <p><span class="label">Receives orders</span></p>
     [% END %]
     [% IF ( contact.claimacquisition ) %]
         <p><span class="label">Receives claims for late orders</span></p>
@@ -75,88 +86,18 @@
     [% END %]
 [% END %]
 
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Vendor [% bookselname %]</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+<title>Koha &rsaquo; Vendor [% name %]</title>
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'datatables.inc' %]
-
-<script type="text/javascript">
-//<![CDATA[
-function confirm_deletion() {
-    if (confirm(_("Confirm deletion of this vendor ?"))) {
-        window.location="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]&op=delete";
-    }
-}
-
-function add_contact() {
-    var new_contact = $('#contact-template').clone();
-    var timestamp = new Date().getTime();
-    $(new_contact).removeAttr('id');
-    $('input, textarea', new_contact).each(function () {
-        $(this).attr('id', $(this).attr('id') + '_' + timestamp);
-    });
-    $('label', new_contact).each(function () {
-        $(this).attr('for', $(this).attr('for') + '_' + timestamp);
-    });
-    $(new_contact).insertBefore(this);
-    if ($('.supplier-contact').length === 2) { // First contact
-        $.each(['.contact_acqprimary', '.contact_serialsprimary', '.contact_claimacquisition', '.contact_claimissues'], function (idx, checkbox) {
-            $(checkbox, new_contact).click();
-        });
-    }
-    $('input[name="contact_name"]', new_contact).focus();
-    return false;
-}
-
-function delete_contact(ev) {
-    $(this).parents('.supplier-contact').remove();
-    ev.preventDefault();
-}
-
- $(document).ready(function() {
-    var contractst = $("#contractst").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-          { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-          { "sType": "title-string", "aTargets" : [ "title-string" ] }
-        ],
-        'sDom': 't'
-    } ) );
-    $('body').on('click', '.delete-contact', null, delete_contact);
-    $('#add-contact').click(add_contact);
-    $('body').on('click', '.contact_acqprimary', null, function () {
-        if ($(this).is(':checked')) {
-            $('.contact_acqprimary').filter(':checked').not(this).prop('checked', false);
-            $('.contact_acqprimary_hidden').each(function () {
-                $(this).val('0');
-            });
-        }
-        $(this).next('.contact_acqprimary_hidden').val('1');
-    });
-    $('body').on('click', '.contact_serialsprimary', null, function () {
-        if ($(this).is(':checked')) {
-            $('.contact_serialsprimary').filter(':checked').not(this).prop('checked', false);
-            $('.contact_serialsprimary_hidden').each(function () {
-                $(this).val('0');
-            });
-        }
-        $(this).next('.contact_serialsprimary_hidden').val($(this).is(':checked') ? '1' : '0');
-    });
-    $('body').on('click', '.contact_claimacquisition', null, function () {
-        $(this).next('.contact_claimacquisition_hidden').val($(this).is(':checked') ? '1' : '0');
-    });
-    $('body').on('click', '.contact_claimissues', null, function () {
-        $(this).next('.contact_claimissues_hidden').val($(this).is(':checked') ? '1' : '0');
-    });
- });
-//]]>
-</script>
 </head>
+
 <body id="acq_supplier" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; [% IF ( enter ) %][% IF ( booksellerid ) %] <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% name %]</a> &rsaquo; Update: [% name %][% ELSE %]Add vendor[% END %] [% ELSE %][% name %][% END %]</div>
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; [% IF ( enter ) %][% IF ( booksellerid ) %] <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% name |html %]</a> &rsaquo; Update: [% name |html %][% ELSE %]Add vendor[% END %] [% ELSE %][% name |html %][% END %]</div>
 
 <div id="doc3" class="yui-t2">
 
@@ -165,7 +106,7 @@ function delete_contact(ev) {
     <div class="yui-b">
     [% IF ( enter ) %]
         [% IF ( booksellerid ) %]
-        <h1>Update: [% name %]</h1>
+        <h1>Update: [% name |html %]</h1>
     [% ELSE %]
         <h1>Add vendor</h1>
     [% END %]
@@ -204,7 +145,7 @@ function delete_contact(ev) {
                     [% INCLUDE edit_contact %]
                 </fieldset>
             [% END %]
-            <button id="add-contact" class="btn"><i class="fa fa-plus"></i> Add another contact</button>
+            <button id="add-contact" class="btn btn-default"><i class="fa fa-plus"></i> Add another contact</button>
         </fieldset>
     </div>
         <div class="yui-g">
@@ -274,10 +215,10 @@ function delete_contact(ev) {
             [% IF gst_values %]
                 <ol>
                   <li>
-                    <label for="gstrate">Tax rate: </label>
-                    <select name="gstrate" id="gstrate">
+                    <label for="tax_rate">Tax rate: </label>
+                    <select name="tax_rate" id="tax_rate">
                     [% FOREACH gst IN gst_values %]
-                      [% IF ( gstrate == gst.option ) %]
+                      [% IF ( tax_rate == gst.option ) %]
                         <option value="[% gst.option %]" selected="selected">[% gst.option * 100 %] %</option>
                       [% ELSE %]
                         <option value="[% gst.option %]">[% gst.option * 100 %] %</option>
@@ -287,7 +228,7 @@ function delete_contact(ev) {
                   </li>
                 </ol>
             [% ELSE %]
-                <input type="hidden" name="gstrate" value="0" />
+                <input type="hidden" name="tax_rate" value="0" />
             [% END %]
             <ol>
             <li><label for="discount">Discount: </label>
@@ -305,20 +246,20 @@ function delete_contact(ev) {
         </div>
     </form>
 [% ELSE %]
-    <h1>[% name %]</h1>
+    <h1>[% name |html %]</h1>
         <div class="yui-g">
             <div id="supplier-company-details" class="yui-u first">
                 <h2>Vendor details</h2>
-                <p><span class="label">Company name: </span>[% name %]</p>
-                <p><span class="label">Postal address: </span>[% postal %]</p>
-                <p><span class="label">Physical address: </span>[% address1 %][% address2 %][% address3 %][% address4 %]</p>
-                <p><span class="label">Phone: </span>[% phone %]</p>
-                <p><span class="label">Fax: </span>[% fax %]</p>
+                <p><span class="label">Company name: </span>[% name |html %]</p>
+                <p><span class="label">Postal address: </span>[% postal |html %]</p>
+                <p><span class="label">Physical address: </span>[% address1 |html %][% address2 |html %][% address3 |html %][% address4 |html %]</p>
+                <p><span class="label">Phone: </span>[% phone |html %]</p>
+                <p><span class="label">Fax: </span>[% fax |html %]</p>
                 [% IF ( url ) %]
                     <p><span class="label">Website: </span><a href="[% url %]">[% url %]</a></p>
                 [% END %]
                 [% IF ( accountnumber ) %]
-                    <p><span class="label">Account number: </span>[% accountnumber %]</p>
+                    <p><span class="label">Account number: </span>[% accountnumber |html %]</p>
                 [% END %]
 
             <div id="supplier-ordering-information">
@@ -331,7 +272,7 @@ function delete_contact(ev) {
                         [% END %]</p>
                 <p><strong>List prices are: </strong>[% listprice %]</p>
                 <p><strong>Invoice prices are: </strong>[% invoiceprice %]</p>
-                [% IF ( gstrate ) %]<p><strong>Tax number registered: </strong>
+                [% IF ( tax_rate ) %]<p><strong>Tax number registered: </strong>
                         [% IF ( gstreg ) %]Yes[% ELSE %]No[% END %]</p>
                 <p><strong>List item price includes tax: </strong>
                         [% IF ( listincgst ) %]Yes[% ELSE %]No[% END %]</p>
@@ -340,13 +281,13 @@ function delete_contact(ev) {
                 <p><strong>Discount: </strong>
                     [% discount | format("%.1f") %] %</p>
                 <p><strong>Tax rate: </strong>
-                    [% 0 + gstrate * 100 %] %</p>
+                    [% ( tax_rate || 0 ) * 100 %] %</p>
                 [% IF deliverytime.defined %]
                     <p><strong>Delivery time: </strong>
                         [% deliverytime %] days</p>
                 [% END %]
                 [% IF ( notes ) %]<p><strong>Notes: </strong>
-                    [% notes %]</p>[% END %]
+                    [% notes |html %]</p>[% END %]
             </div>
             </div>
 
@@ -355,6 +296,15 @@ function delete_contact(ev) {
                 [% FOREACH contact IN contacts %]
                     [% INCLUDE show_contact %]
                 [% END %]
+            </div>
+
+            <div>
+
+                <div class="subscription-details">
+                    <h2>Subscription details</h2>
+                    <p><strong>Number of subscriptions: </strong>[% subscriptioncount %]</p>
+                </div>
+
             </div>
 
         </div>
@@ -382,8 +332,8 @@ function delete_contact(ev) {
                         <td><span title="[% contract.contractstartdate %]">[% contract.contractstartdate | $KohaDates %]</span></td>
                         <td><span title="[% contract.contractenddate %]">[% contract.contractenddate | $KohaDates %]</span></td>
                         <td class="actions">
-                            <a class="btn btn-mini" href="/cgi-bin/koha/admin/aqcontract.pl?op=add_form&amp;contractnumber=[% contract.contractnumber %]&amp;booksellerid=[% contract.booksellerid %]"><i class="fa fa-pencil"></i> Edit</a>
-                            <a class="btn btn-mini" href="/cgi-bin/koha/admin/aqcontract.pl?op=delete_confirm&amp;contractnumber=[% contract.contractnumber %]&amp;booksellerid=[% contract.booksellerid %]"><i class="fa fa-trash"></i> Delete</a>
+                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/aqcontract.pl?op=add_form&amp;contractnumber=[% contract.contractnumber %]&amp;booksellerid=[% contract.booksellerid %]"><i class="fa fa-pencil"></i> Edit</a>
+                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/aqcontract.pl?op=delete_confirm&amp;contractnumber=[% contract.contractnumber %]&amp;booksellerid=[% contract.booksellerid %]"><i class="fa fa-trash"></i> Delete</a>
                         </td>
                         </tr>
                     [% END %]
@@ -400,4 +350,81 @@ function delete_contact(ev) {
 [% INCLUDE 'vendor-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        function confirm_deletion() {
+            if (confirm(_("Confirm deletion of this vendor ?"))) {
+                window.location="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]&op=delete";
+            }
+        }
+
+        function add_contact() {
+            var new_contact = $('#contact-template').clone();
+            var timestamp = new Date().getTime();
+            $(new_contact).removeAttr('id');
+            $('input, textarea', new_contact).each(function () {
+                $(this).attr('id', $(this).attr('id') + '_' + timestamp);
+            });
+            $('label', new_contact).each(function () {
+                $(this).attr('for', $(this).attr('for') + '_' + timestamp);
+            });
+            $(new_contact).insertBefore(this);
+            if ($('.supplier-contact').length === 2) { // First contact
+                $.each(['.contact_acqprimary', '.contact_serialsprimary', '.contact_orderacquisition', '.contact_claimacquisition', '.contact_claimissues'], function (idx, checkbox) {
+                    $(checkbox, new_contact).click();
+                });
+            }
+            $('input[name="contact_name"]', new_contact).focus();
+            return false;
+        }
+
+        function delete_contact(ev) {
+            $(this).parents('.supplier-contact').remove();
+            ev.preventDefault();
+        }
+
+         $(document).ready(function() {
+            var contractst = $("#contractst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                ],
+                'sDom': 't'
+            } ) );
+            $('body').on('click', '.delete-contact', null, delete_contact);
+            $('#add-contact').click(add_contact);
+            $('body').on('click', '.contact_acqprimary', null, function () {
+                if ($(this).is(':checked')) {
+                    $('.contact_acqprimary').filter(':checked').not(this).prop('checked', false);
+                    $('.contact_acqprimary_hidden').each(function () {
+                        $(this).val('0');
+                    });
+                }
+                $(this).next('.contact_acqprimary_hidden').val('1');
+            });
+            $('body').on('click', '.contact_serialsprimary', null, function () {
+                if ($(this).is(':checked')) {
+                    $('.contact_serialsprimary').filter(':checked').not(this).prop('checked', false);
+                    $('.contact_serialsprimary_hidden').each(function () {
+                        $(this).val('0');
+                    });
+                }
+                $(this).next('.contact_serialsprimary_hidden').val($(this).is(':checked') ? '1' : '0');
+            });
+            $('body').on('click', '.contact_orderacquisition', null, function () {
+                $(this).next('.contact_orderacquisition_hidden').val($(this).is(':checked') ? '1' : '0');
+            });
+            $('body').on('click', '.contact_claimacquisition', null, function () {
+                $(this).next('.contact_claimacquisition_hidden').val($(this).is(':checked') ? '1' : '0');
+            });
+            $('body').on('click', '.contact_claimissues', null, function () {
+                $(this).next('.contact_claimissues_hidden').val($(this).is(':checked') ? '1' : '0');
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

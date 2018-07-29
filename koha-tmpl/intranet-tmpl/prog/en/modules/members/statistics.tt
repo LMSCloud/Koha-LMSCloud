@@ -1,35 +1,26 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE AuthorisedValues %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Patrons &rsaquo;
-[% IF ( unknowuser ) %]
-    Patron does not exist
-[% ELSE %]
-    Statistics for [% INCLUDE 'patron-title.inc' %]
+[% UNLESS blocking_error %]
+    Statistics for [% INCLUDE 'patron-title.inc' no_html = 1 %]
 [% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<script type="text/javascript">
-    $(document).ready(function() {
-        $("#statistics").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "sDom": 't',
-            "bPaginate": false
-        }));
-    });
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="pat_statistics" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
+[% PROCESS 'patron-search.inc' %]
 
 <div id="breadcrumbs">
          <a href="/cgi-bin/koha/mainpage.pl">Home</a>
 &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-&rsaquo; [% IF ( unknowuser ) %]Patron does not exist[% ELSE %]Statistics for [% firstname %] [% surname %] ([% cardnumber %])[% END %]
+&rsaquo; [% UNLESS blocking_error %]Statistics for [% INCLUDE 'patron-title.inc' invert_name = 1 %][% END %]
 </div>
 
 <div id="doc3" class="yui-t1">
@@ -39,7 +30,7 @@
         <div class="yui-b">
         [% INCLUDE 'members-toolbar.inc' %]
 
-            <h3>Statistics for [% UNLESS ( I ) %][% title %] [% firstname %] [% END %] [% surname %] ([% cardnumber %])</h3>
+            <h3>Statistics for [% INCLUDE 'patron-title.inc' %]</h3>
             [% IF ( datas.size ) %]
                 <table id="statistics">
                 <thead>
@@ -97,4 +88,18 @@
 [% INCLUDE 'circ-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/members-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#statistics").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "sDom": 't',
+                "bPaginate": false
+            }));
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -7,7 +7,7 @@ use DateTime;
 use DateTime::Set;
 use DateTime::Duration;
 use C4::Context;
-use Koha::Cache;
+use Koha::Caches;
 use Carp;
 
 sub new {
@@ -47,7 +47,7 @@ sub _init {
           1;
     }
 
-    $self->{days_mode}       = C4::Context->preference('useDaysMode');
+    $self->{days_mode}       ||= C4::Context->preference('useDaysMode');
     $self->{test}            = 0;
     return;
 }
@@ -56,7 +56,7 @@ sub exception_holidays {
     my ( $self ) = @_;
 
     my $cachename = $self->{branchcode} . '_' . 'exception_holidays';
-    my $cache  = Koha::Cache->get_instance();
+    my $cache  = Koha::Caches->get_instance();
     my $cached = $cache->get_from_cache($cachename);
     return $cached if $cached;
 
@@ -85,7 +85,7 @@ sub exception_holidays {
 sub single_holidays {
     my ( $self, $date ) = @_;
     my $branchcode = $self->{branchcode};
-    my $cache           = Koha::Cache->get_instance();
+    my $cache           = Koha::Caches->get_instance();
 
     my $cachename = $self->{branchcode} . '_' . 'single_holidays';
     my $single_holidays = $cache->get_from_cache($cachename);
@@ -128,7 +128,7 @@ sub single_holidays {
             $single_holidays->{$br} = \@ymd_arr;
         }    # br
         $cache->set_in_cache($cachename, $single_holidays,
-            76800 )    #24 hrs ;
+            { expiry => 76800 } )    #24 hrs ;
     }
     my $holidays  = ( $single_holidays->{$branchcode} );
     for my $hols  (@$holidays ) {
@@ -307,37 +307,47 @@ sub prev_open_day {
     return $base_date;
 }
 
+sub days_forward {
+    my $self     = shift;
+    my $start_dt = shift;
+    my $num_days = shift;
+
+    return $start_dt unless $num_days > 0;
+
+    my $base_dt = $start_dt->clone();
+
+    while ($num_days--) {
+        $base_dt = $self->next_open_day($base_dt);
+    }
+
+    return $base_dt;
+}
+
 sub days_between {
     my $self     = shift;
     my $start_dt = shift;
     my $end_dt   = shift;
 
-    if ( $start_dt->compare($end_dt) > 0 ) {
-        # swap dates
-        my $int_dt = $end_dt;
-        $end_dt = $start_dt;
-        $start_dt = $int_dt;
+    # Change time zone for date math and swap if needed
+    $start_dt = $start_dt->clone->set_time_zone('floating');
+    $end_dt = $end_dt->clone->set_time_zone('floating');
+    if( $start_dt->compare($end_dt) > 0 ) {
+        ( $start_dt, $end_dt ) = ( $end_dt, $start_dt );
     }
-
 
     # start and end should not be closed days
     my $days = $start_dt->delta_days($end_dt)->delta_days;
-    for (my $dt = $start_dt->clone();
-        $dt <= $end_dt;
-        $dt->add(days => 1)
-    ) {
-        if ($self->is_holiday($dt)) {
-            $days--;
-        }
+    while( $start_dt->compare($end_dt) < 1 ) {
+        $days-- if $self->is_holiday($start_dt);
+        $start_dt->add( days => 1 );
     }
     return DateTime::Duration->new( days => $days );
-
 }
 
 sub hours_between {
     my ($self, $start_date, $end_date) = @_;
-    my $start_dt = $start_date->clone();
-    my $end_dt = $end_date->clone();
+    my $start_dt = $start_date->clone()->set_time_zone('floating');
+    my $end_dt = $end_date->clone()->set_time_zone('floating');
     my $duration = $end_dt->delta_ms($start_dt);
     $start_dt->truncate( to => 'day' );
     $end_dt->truncate( to => 'day' );

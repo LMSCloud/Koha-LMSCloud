@@ -3,7 +3,7 @@
     [% IF ( issuecount ) %]
         <div id="issues-table-loading-message">
             <p>
-                <a id="issues-table-load-now-button" href="#" class="btn"><i class="fa fa-book"></i> Show checkouts</a>
+                <a id="issues-table-load-now-button" href="#" class="btn btn-default"><i class="fa fa-book"></i> Show checkouts</a>
             </p>
         </div>
         <form name="issues" action="/cgi-bin/koha/tools/export.pl" method="post" class="checkboxed">
@@ -17,6 +17,7 @@
                         <th scope="col">Title</th>
                         <th scope="col">Item type</th>
                         <th scope="col">Location</th>
+                        <th scope="col">Home library</th>
                         <th scope="col">Checked out on</th>
                         <th scope="col">Checked out from</th>
                         <th scope="col">Call no</th>
@@ -43,28 +44,35 @@
                         [% END %]
                     [% END %]
                     [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-                        <button class="btn" id="RenewCheckinChecked"><i class="fa fa-check"></i> Renew or check in selected items</button>
-                        <button class="btn" id="RenewAll"><i class="fa fa-book"></i> Renew all</button>
+                        <button class="btn btn-default" id="RenewCheckinChecked"><i class="fa fa-check"></i> Renew or check in selected items</button>
+                        <button class="btn btn-default" id="RenewAll"><i class="fa fa-book"></i> Renew all</button>
                     [% END %]
                 </fieldset>
 
-                [% IF ( exports_enabled ) %]
+                [% IF Koha.Preference('ExportCircHistory') %]
                     <fieldset>
                         <label for="issues-table-output-format"><b>Export checkouts using format:</b></label>
                         <select name="issues-table-output-format" id="issues-table-output-format">
                             <option value="iso2709_995">ISO2709 with items</option>
                             <option value="iso2709">ISO2709 without items</option>
-                            [% IF Koha.Preference('ExportWithCsvProfile') %]
+                            [% IF csv_profiles.size %]
                                 <option value="csv">CSV</option>
                             [% END %]
                         </select>
 
+                        [% IF csv_profiles.size %]
+                            <select name="csv_profile_id">
+                                [% FOREACH csv_profile IN csv_profiles %]
+                                    <option value="[% csv_profile.export_format_id %]">[% csv_profile.profile %]</option>
+                                [% END %]
+                            </select>
+                        [% END %]
                        <label for="export_remove_fields">Don't export fields:</label> <input type="text" id="export_remove_fields" name="export_remove_fields" value="[% Koha.Preference('ExportRemoveFields') %]" title="Use for iso2709 exports" />
                         <input type="hidden" name="op" value="export" />
                         <input type="hidden" id="output_format" name="output_format" value="iso2709" />
                         <input type="hidden" id="dont_export_item" name="dont_export_item" value="0" />
                         <input type="hidden" id="record_type" name="record_type" value="bibs" />
-                        <button class="btn btn-small" id="export_submit"><i class="fa fa-download"></i> Export</button>
+                        <button class="btn btn-default btn-sm" id="export_submit"><i class="fa fa-download"></i> Export</button>
                     </fieldset>
                 [% END %]
             </div>

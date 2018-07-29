@@ -22,7 +22,11 @@ use Modern::Perl;
 use Carp;
 
 use Koha::Database;
+use Koha::DateUtils qw( dt_from_string );
 
+use C4::Context;
+use Koha::Checkouts;
+use Koha::IssuingRules;
 use Koha::Item::Transfer;
 use Koha::Patrons;
 use Koha::Libraries;
@@ -103,6 +107,20 @@ sub biblioitem {
     return Koha::Biblioitem->_new_from_dbic( $biblioitem_rs );
 }
 
+=head3 checkout
+
+my $checkout = $item->checkout;
+
+Return the checkout for this item
+
+=cut
+
+sub checkout {
+    my ( $self ) = @_;
+    my $checkout_rs = $self->_result->issue;
+    return unless $checkout_rs;
+    return Koha::Checkout->_new_from_dbic( $checkout_rs );
+}
 
 =head3 get_transfer
 
@@ -150,6 +168,71 @@ sub last_returned_by {
 
         return $self->{_last_returned_by};
     }
+}
+
+=head3 can_article_request
+
+my $bool = $item->can_article_request( $borrower )
+
+Returns true if item can be specifically requested
+
+$borrower must be a Koha::Patron object
+
+=cut
+
+sub can_article_request {
+    my ( $self, $borrower ) = @_;
+
+    my $rule = $self->article_request_type($borrower);
+
+    return 1 if $rule && $rule ne 'no' && $rule ne 'bib_only';
+    return q{};
+}
+
+=head3 article_request_type
+
+my $type = $item->article_request_type( $borrower )
+
+returns 'yes', 'no', 'bib_only', or 'item_only'
+
+$borrower must be a Koha::Patron object
+
+=cut
+
+sub article_request_type {
+    my ( $self, $borrower ) = @_;
+
+    my $branch_control = C4::Context->preference('HomeOrHoldingBranch');
+    my $branchcode =
+        $branch_control eq 'homebranch'    ? $self->homebranch
+      : $branch_control eq 'holdingbranch' ? $self->holdingbranch
+      :                                      undef;
+    my $borrowertype = $borrower->categorycode;
+    my $itemtype = $self->effective_itemtype();
+    my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule({ categorycode => $borrowertype, itemtype => $itemtype, branchcode => $branchcode });
+
+    return q{} unless $issuing_rule;
+    return $issuing_rule->article_requests || q{}
+}
+
+=head3 current_holds
+
+=cut
+
+sub current_holds {
+    my ( $self ) = @_;
+    my $attributes = { order_by => 'priority' };
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+    my $params = {
+        itemnumber => $self->itemnumber,
+        suspend => 0,
+        -or => [
+            reservedate => { '<=' => $dtf->format_date(dt_from_string) },
+            waitingdate => { '!=' => undef },
+        ],
+    };
+    my $hold_rs = $self->_result->reserves->search( $params, $attributes );
+    return Koha::Holds->_new_from_dbic($hold_rs);
 }
 
 =head3 type

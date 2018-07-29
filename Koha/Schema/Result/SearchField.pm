@@ -114,8 +114,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-07-03 11:08:47
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:5saoPY2tVSQo/ZwKrwlkFg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-03-23 13:30:43
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:1IenQWmCO16tJ/nIFTFYug
 
 __PACKAGE__->many_to_many("search_marc_maps", "search_marc_to_fields", "search_marc_map");
 

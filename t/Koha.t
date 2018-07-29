@@ -25,7 +25,7 @@ use Module::Load::Conditional qw/check_install/;
 
 BEGIN {
     if ( check_install( module => 'Test::DBIx::Class' ) ) {
-        plan tests => 31;
+        plan tests => 38;
     } else {
         plan skip_all => "Need Test::DBIx::Class"
     }
@@ -33,12 +33,7 @@ BEGIN {
 
 use_ok('C4::Koha');
 
-use Test::DBIx::Class {
-    schema_class => 'Koha::Schema',
-    connect_info => ['dbi:SQLite:dbname=:memory:','',''],
-    connect_opts => { name_sep => '.', quote_char => '`', },
-    fixture_class => '::Populate',
-}, 'Branch' ;
+use Test::DBIx::Class;
 
 sub fixtures {
     my ( $libraries ) = @_;
@@ -52,6 +47,7 @@ sub fixtures {
 
 my $db = Test::MockModule->new('Koha::Database');
 $db->mock( _new_schema => sub { return Schema(); } );
+Koha::Database::flush_schema_cache();
 
 my $libraries = [
     ['XXX_test', 'my branchname XXX'],
@@ -138,4 +134,20 @@ subtest 'getFacets() tests' => sub {
     );
 };
 
-1;
+is(C4::Koha::NormalizeISSN({ issn => '0024-9319', strip_hyphen => 1 }), '00249319', 'Test NormalizeISSN with all features enabled' );
+is(C4::Koha::NormalizeISSN({ issn => '0024-9319', strip_hyphen => 0 }), '0024-9319', 'Test NormalizeISSN with all features enabled' );
+
+my @issns = qw/ 0024-9319 00249319 /;
+is( join('|', @issns), join('|', GetVariationsOfISSN('0024-9319')), 'GetVariationsOfISSN returns all variations' );
+is( join('|', @issns), join('|', GetVariationsOfISSNs('0024-9319')), 'GetVariationsOfISSNs returns all variations' );
+
+my $issn;
+eval {
+    $issn = C4::Koha::NormalizeISSN({ issn => '1234-5678', strip_hyphen => 1 });
+};
+ok($@ eq '', 'NormalizeISSN does not throw exception when parsing invalid ISSN');
+
+@issns = GetVariationsOfISSNs('abc');
+is($issns[0], 'abc', 'Original ISSN passed through even if invalid');
+is(scalar(@issns), 1, 'zero additional variations returned of invalid ISSN');
+

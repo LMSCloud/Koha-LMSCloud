@@ -1,47 +1,13 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; OAI sets &rsaquo; OAI set mappings</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function() {
-    $("#mappingform").submit(function(){
-      hideDialogBox();
-    });
-    $("body").on("click","#ORbutton", function(e){
-        e.preventDefault();
-        newCondition();
-    });
-    $("body").on("click",".clear-field",function(e){
-        e.preventDefault();
-        clearRow(e.target);
-    });
-});
-
-function newCondition() {
-    var tr = $('#ORbutton').parents('tr');
-    var clone = $(tr).clone();
-    $("#ORbutton").parent('td').replaceWith('<td style="text-align:center">OR</td>');
-    $(tr).parent('tbody').append(clone);
-}
-function clearRow(link){
-    var tr = $(link).parent().parent();
-    var found = tr.find('#ORbutton');
-    if( found.length ){
-      tr.find('input[type="text"]').attr("value","");
-    } else {
-      tr.find('input[type="text"]').attr("value","").end().hide();
-    }
-}
-function hideDialogBox() {
-    $('div.dialog').remove();
-}
-//]]>
-</script>
 </head>
 
 <body id="admin_oai_set_mappings" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; <a href="/cgi-bin/koha/admin/oai_sets.pl">OAI sets configuration</a> &rsaquo; <a href="/cgi-bin/koha/admin/oai_set_mappings.pl?id=[% id %]">OAI set mappings</a></div>
 
@@ -56,7 +22,7 @@ function hideDialogBox() {
           <p><a href="/cgi-bin/koha/admin/oai_sets.pl">Return to sets management</a></p>
         </div>
       [% END %]
-      <h1>Mappings for set '[% setName %]' ([% setSpec %])</h1>
+      <h1>Mappings for set '[% setName |html %]' ([% setSpec |html %])</h1>
       [% UNLESS ( mappings ) %]
         <div class="dialog alert"><p><strong>Warning:</strong> No mappings have been defined for this set</p></div>
       [% END %]
@@ -95,7 +61,7 @@ function hideDialogBox() {
                       OR
                     [% END %]
                   </td>
-                  <td><button class="btn btn-mini clear-field" type="button"><i class="fa fa-trash"></i> Delete</button></td>
+                  <td><button class="btn btn-default btn-xs clear-field" type="button"><i class="fa fa-trash"></i> Delete</button></td>
                 </tr>
               [% END %]
             [% ELSE %]
@@ -108,7 +74,7 @@ function hideDialogBox() {
                     </select></td>
                 <td><input type="text" name="marcvalue" /></td>
                 <td><input type="button" id="ORbutton" value="OR" /></td>
-                <td><button class="btn btn-mini clear-field" type="button"><i class="fa fa-trash"></i> Delete</button></td>
+                <td><button class="btn btn-default btn-xs clear-field" type="button"><i class="fa fa-trash"></i> Delete</button></td>
               </tr>
             [% END %]
           </tbody>
@@ -126,4 +92,42 @@ function hideDialogBox() {
     [% INCLUDE 'admin-menu.inc' %]
   </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#mappingform").submit(function(){
+              hideDialogBox();
+            });
+            $("body").on("click","#ORbutton", function(e){
+                e.preventDefault();
+                newCondition();
+            });
+            $("body").on("click",".clear-field",function(e){
+                e.preventDefault();
+                clearRow(e.target);
+            });
+        });
+
+        function newCondition() {
+            var tr = $('#ORbutton').parents('tr');
+            var clone = $(tr).clone();
+            $("#ORbutton").parent('td').replaceWith('<td style="text-align:center">OR</td>');
+            $(tr).parent('tbody').append(clone);
+        }
+        function clearRow(link){
+            var tr = $(link).parent().parent();
+            var found = tr.find('#ORbutton');
+            if( found.length ){
+              tr.find('input[type="text"]').attr("value","");
+            } else {
+              tr.find('input[type="text"]').attr("value","").end().hide();
+            }
+        }
+        function hideDialogBox() {
+            $('div.dialog').remove();
+        }
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

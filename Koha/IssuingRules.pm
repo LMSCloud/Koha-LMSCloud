@@ -1,6 +1,7 @@
 package Koha::IssuingRules;
 
 # Copyright Vaara-kirjastot 2015
+# Copyright Koha Development Team 2016
 #
 # This file is part of Koha.
 #
@@ -29,7 +30,7 @@ use base qw(Koha::Objects);
 
 =head1 NAME
 
-Koha::IssuingRules - Koha IssuingRules object set class
+Koha::IssuingRules - Koha IssuingRule Object set class
 
 =head1 API
 
@@ -105,6 +106,56 @@ sub get_effective_issuing_rule {
     return $rule;
 }
 
+=head3 get_opacitemholds_policy
+
+my $can_place_a_hold_at_item_level = Koha::IssuingRules->get_opacitemholds_policy( { patron => $patron, item => $item } );
+
+Return 'Y' or 'F' if the patron can place a hold on this item according to the issuing rules
+and the "Item level holds" (opacitemholds).
+Can be 'N' - Don't allow, 'Y' - Allow, and 'F' - Force
+
+=cut
+
+sub get_opacitemholds_policy {
+    my ( $class, $params ) = @_;
+
+    my $item   = $params->{item};
+    my $patron = $params->{patron};
+
+    return unless $item or $patron;
+
+    my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule(
+        {
+            categorycode => $patron->categorycode,
+            itemtype     => $item->effective_itemtype,
+            branchcode   => $item->homebranch,
+        }
+    );
+
+    return $issuing_rule ? $issuing_rule->opacitemholds : undef;
+}
+
+=head3 get_onshelfholds_policy
+
+    my $on_shelf_holds = Koha::IssuingRules->get_onshelfholds_policy({ item => $item, patron => $patron });
+
+=cut
+
+sub get_onshelfholds_policy {
+    my ( $class, $params ) = @_;
+    my $item = $params->{item};
+    my $itemtype = $item->effective_itemtype;
+    my $patron = $params->{patron};
+    my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule(
+        {
+            ( $patron ? ( categorycode => $patron->categorycode ) : () ),
+            itemtype   => $itemtype,
+            branchcode => $item->holdingbranch
+        }
+    );
+    return $issuing_rule ? $issuing_rule->onshelfholds : undef;
+}
+
 =head3 type
 
 =cut
@@ -112,10 +163,6 @@ sub get_effective_issuing_rule {
 sub _type {
     return 'Issuingrule';
 }
-
-=head3 object_class
-
-=cut
 
 sub object_class {
     return 'Koha::IssuingRule';

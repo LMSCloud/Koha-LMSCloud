@@ -65,7 +65,7 @@ __PACKAGE__->table("letter");
 
 =head2 content
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 message_transport_type
@@ -75,6 +75,13 @@ __PACKAGE__->table("letter");
   is_foreign_key: 1
   is_nullable: 0
   size: 20
+
+=head2 lang
+
+  data_type: 'varchar'
+  default_value: 'default'
+  is_nullable: 0
+  size: 25
 
 =cut
 
@@ -92,7 +99,7 @@ __PACKAGE__->add_columns(
   "title",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 200 },
   "content",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "message_transport_type",
   {
     data_type => "varchar",
@@ -100,6 +107,13 @@ __PACKAGE__->add_columns(
     is_foreign_key => 1,
     is_nullable => 0,
     size => 20,
+  },
+  "lang",
+  {
+    data_type => "varchar",
+    default_value => "default",
+    is_nullable => 0,
+    size => 25,
   },
 );
 
@@ -115,11 +129,13 @@ __PACKAGE__->add_columns(
 
 =item * L</message_transport_type>
 
+=item * L</lang>
+
 =back
 
 =cut
 
-__PACKAGE__->set_primary_key("module", "code", "branchcode", "message_transport_type");
+__PACKAGE__->set_primary_key("module", "code", "branchcode", "message_transport_type", "lang");
 
 =head1 RELATIONS
 
@@ -138,28 +154,9 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
-=head2 message_transports
 
-Type: has_many
-
-Related object: L<Koha::Schema::Result::MessageTransport>
-
-=cut
-
-__PACKAGE__->has_many(
-  "message_transports",
-  "Koha::Schema::Result::MessageTransport",
-  {
-    "foreign.branchcode"    => "self.branchcode",
-    "foreign.letter_code"   => "self.code",
-    "foreign.letter_module" => "self.module",
-  },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
-
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-01-24 10:27:58
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:3BAqYDyuOZrwWLh9DAEwYw
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:fOuu1Fj8Uo3114QKS2qLkQ
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

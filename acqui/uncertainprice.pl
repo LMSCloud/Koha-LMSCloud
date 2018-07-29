@@ -43,18 +43,17 @@ The bookseller who we want to display the orders of.
 =cut
 
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use C4::Auth;
 use C4::Output;
 use CGI qw ( -utf8 );
 
-use C4::Bookseller::Contact;
 use C4::Acquisition qw/SearchOrders GetOrder ModOrder/;
 use C4::Biblio qw/GetBiblioData/;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Baskets;
 
 my $input=new CGI;
 
@@ -71,7 +70,9 @@ my $booksellerid = $input->param('booksellerid');
 my $basketno     = $input->param('basketno');
 my $op = $input->param('op');
 my $owner = $input->param('owner') || 0 ; # flag to see only "my" orders, or everyone orders
-my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
+
+$template->param( basket => scalar Koha::Acquisition::Baskets->find($basketno) );
 
 #show all orders that have uncertain price for the bookseller
 my $pendingorders = SearchOrders({
@@ -80,24 +81,8 @@ my $pendingorders = SearchOrders({
     basketno => $basketno,
     pending => 1,
 });
-my @orders;
+my @orders = grep { $_->{'uncertainprice'} } @$pendingorders;
 
-foreach my $order (@{$pendingorders}) {
-    if ( $order->{'uncertainprice'} ) {
-        my $bibdata = &GetBiblioData($order->{'biblionumber'});
-        $order->{'bibisbn'} = $bibdata->{'isbn'};
-        $order->{'bibpublishercode'} = $bibdata->{'publishercode'};
-        $order->{'bibpublicationyear'} = $bibdata->{'publicationyear'};
-        $order->{'bibtitle'} = $bibdata->{'title'};
-        $order->{'bibauthor'} = $bibdata->{'author'};
-        $order->{'surname'} = $order->{'surname'};
-        $order->{'firstname'} = $order->{'firstname'};
-        my $order_as_from_db=GetOrder($order->{ordernumber});
-        $order->{'quantity'} = $order_as_from_db->{'quantity'};
-        $order->{'listprice'} = $order_as_from_db->{'listprice'};
-        push(@orders, $order);
-    }
-}
 if ( $op eq 'validate' ) {
     $template->param( validate => 1);
     my $count = scalar(@orders);
@@ -106,7 +91,7 @@ if ( $op eq 'validate' ) {
         my $ordernumber = $order->{ordernumber};
         my $order_as_from_db=GetOrder($order->{ordernumber});
         $order->{'listprice'} = $input->param('price'.$ordernumber);
-        $order->{'ecost'}= $input->param('price'.$ordernumber) - (($input->param('price'.$ordernumber) /100) * $bookseller->{'discount'});
+        $order->{'ecost'}= $input->param('price'.$ordernumber) - (($input->param('price'.$ordernumber) /100) * $bookseller->discount);
         $order->{'rrp'} = $input->param('price'.$ordernumber);
         $order->{'quantity'}=$input->param('qty'.$ordernumber);
         $order->{'uncertainprice'}=$input->param('uncertainprice'.$ordernumber);
@@ -115,21 +100,21 @@ if ( $op eq 'validate' ) {
 }
 
 $template->param( uncertainpriceorders => \@orders,
-                                   booksellername => "".$bookseller->{'name'},
-                                   booksellerid => $bookseller->{'id'},
-                                   booksellerpostal =>$bookseller->{'postal'},
-                                   bookselleraddress1 => $bookseller->{'address1'},
-                                   bookselleraddress2 => $bookseller->{'address2'},
-                                   bookselleraddress3 => $bookseller->{'address3'},
-                                   bookselleraddress4 => $bookseller->{'address4'},
-                                   booksellerphone =>$bookseller->{'phone'},
-                                   booksellerfax => $bookseller->{'fax'},
-                                   booksellerurl => $bookseller->{'url'},
-                                   booksellernotes => $bookseller->{'notes'},
-                                   basketcount   => $bookseller->{'basketcount'},
-                                   subscriptioncount   => $bookseller->{'subscriptioncount'},
-                                   active => $bookseller->{active},
+                                   booksellername => "".$bookseller->name,
+                                   booksellerid => $bookseller->id,
+                                   booksellerpostal =>$bookseller->postal,
+                                   bookselleraddress1 => $bookseller->address1,
+                                   bookselleraddress2 => $bookseller->address2,
+                                   bookselleraddress3 => $bookseller->address3,
+                                   bookselleraddress4 => $bookseller->address4,
+                                   booksellerphone =>$bookseller->phone,
+                                   booksellerfax => $bookseller->fax,
+                                   booksellerurl => $bookseller->url,
+                                   booksellernotes => $bookseller->notes,
+                                   basketcount   => $bookseller->baskets->count,
+                                   subscriptioncount   => $bookseller->subscriptions->count,
+                                   active => $bookseller->active,
                                    owner => $owner,
                                    scriptname => "/cgi-bin/koha/acqui/uncertainprice.pl");
-$template->{'VARS'}->{'contacts'} = $bookseller->{'contacts'};
+$template->{'VARS'}->{'contacts'} = $bookseller->contacts;
 output_html_with_http_headers $input, $cookie, $template->output;

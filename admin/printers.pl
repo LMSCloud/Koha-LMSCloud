@@ -37,8 +37,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output;
@@ -60,10 +59,8 @@ sub StringSearch  {
 my $input = new CGI;
 my $searchfield=$input->param('searchfield');
 #my $branchcode=$input->param('branchcode');
-my $offset=$input->param('offset') || 0;
 my $script_name="/cgi-bin/koha/admin/printers.pl";
 
-my $pagesize=20;
 my $op = $input->param('op');
 $searchfield=~ s/\,//g;
 
@@ -132,19 +129,7 @@ if ($op eq 'add_form') {
 } else { # DEFAULT
 	$template->param(else => 1);
 	my ($count,$results)=StringSearch($searchfield,'web');
-	my $max = ($offset+$pagesize < $count) ? $offset+$pagesize : $count;
-	my @loop = (@$results)[$offset..$max];
-	
-	$template->param(loop => \@loop);
-	
-	if ($offset>0) {
-		$template->param(offsetgtzero => 1,
-				 prevpage => $offset-$pagesize);
-	}
-	if ($offset+$pagesize<$count) {
-		$template->param(ltcount => 1,
-				 nextpage => $offset+$pagesize);
-	}
+    $template->param(loop => $results);
 
 } #---- END $OP eq DEFAULT
 

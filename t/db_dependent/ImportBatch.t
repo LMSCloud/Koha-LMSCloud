@@ -1,19 +1,28 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
+use Test::More tests => 14;
+use File::Basename;
+use File::Temp qw/tempfile/;
 
-use C4::Context;
+use t::lib::Mocks;
+use t::lib::TestBuilder;
 
-use Test::More tests => 9;
+use Koha::Database;
+use Koha::Plugins;
 
 BEGIN {
-        use_ok('C4::ImportBatch');
+    # Mock pluginsdir before loading Plugins module
+    my $path = dirname(__FILE__) . '/../lib';
+    t::lib::Mocks::mock_config( 'pluginsdir', $path );
+    use_ok('C4::ImportBatch');
 }
 
 # Start transaction
+my $schema  = Koha::Database->new->schema;
+$schema->storage->txn_begin;
+my $builder = t::lib::TestBuilder->new;
 my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 # clear
 $dbh->do('DELETE FROM import_batches');
@@ -118,6 +127,22 @@ my $record_from_import_biblio_without_items = C4::ImportBatch::GetRecordFromImpo
 $original_record->leader($record_from_import_biblio_without_items->leader());
 is_deeply( $record_from_import_biblio_without_items, $original_record, 'GetRecordFromImportBiblio should return the record without items by default' );
 
+# Add a few tests for GetItemNumbersFromImportBatch
+my @a = GetItemNumbersFromImportBatch( $id_import_batch1 );
+is( @a, 0, 'No item numbers expected since we did not commit' );
+my $itemno = $builder->build({ source => 'Item' })->{itemnumber};
+# Link this item to the import item to fool GetItemNumbersFromImportBatch
+my $sql = "UPDATE import_items SET itemnumber=? WHERE import_record_id=?";
+$dbh->do( $sql, undef, $itemno, $import_record_id );
+@a = GetItemNumbersFromImportBatch( $id_import_batch1 );
+is( @a, 2, 'Expecting two items now' );
+is( $a[0], $itemno, 'Check the first returned itemnumber' );
+# Now delete the item and check again
+$dbh->do( "DELETE FROM items WHERE itemnumber=?", undef, $itemno );
+@a = GetItemNumbersFromImportBatch( $id_import_batch1 );
+is( @a, 0, 'No item numbers expected since we deleted the item' );
+$dbh->do( $sql, undef, undef, $import_record_id ); # remove link again
+
 # fresh data
 my $sample_import_batch3 = {
     matcher_id => 3,
@@ -144,3 +169,33 @@ is( $batch3_clean, "0E0", "Batch 3 has been cleaned" );
 C4::ImportBatch::DeleteBatch( $id_import_batch3 );
 my $batch3_results = $dbh->do('SELECT * FROM import_batches WHERE import_batch_id = "$id_import_batch3"');
 is( $batch3_results, "0E0", "Batch 3 has been deleted");
+
+subtest "RecordsFromMarcPlugin" => sub {
+    plan tests => 5;
+
+    # Create a test file
+    my ( $fh, $name ) = tempfile();
+    print $fh q|
+003 = NLAmRIJ
+100,a = Author
+245,ind2 = 0
+245,a = Silence in the library
+500 , a= Some note
+
+100,a = Another
+245,a = Noise in the library|;
+    close $fh;
+
+    t::lib::Mocks::mock_config( 'enable_plugins', 1 );
+    my ( $plugin ) = Koha::Plugins->new->GetPlugins({ metadata => { name => 'MarcFieldValues' } });
+    isnt( $plugin, undef, "Plugin found" );
+    my $records = C4::ImportBatch::RecordsFromMarcPlugin( $name, ref $plugin, 'UTF-8' );
+    is( @$records, 2, 'Two results returned' );
+    is( ref $records->[0], 'MARC::Record', 'Returned MARC::Record object' );
+    is( $records->[0]->subfield('245', 'a'), 'Silence in the library',
+        'Checked one field in first record' );
+    is( $records->[1]->subfield('100', 'a'), 'Another',
+        'Checked one field in second record' );
+};
+
+$schema->storage->txn_rollback;

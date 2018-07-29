@@ -1,17 +1,17 @@
 #!/usr/bin/perl
 use Modern::Perl;
-use Test::More tests => 137;
+use Test::More tests => 144;
 
 BEGIN {
     use_ok('C4::Budgets')
 }
 use C4::Context;
 use C4::Biblio;
-use C4::Bookseller;
 use C4::Acquisition;
 use C4::Members qw( AddMember );
 
-use Koha::Acquisition::Order;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 
 use t::lib::TestBuilder;
 
@@ -117,7 +117,8 @@ is( AddBudget(), undef, 'AddBuget without argument returns undef' );
 my $budgets = GetBudgets();
 is( @$budgets, 0, 'GetBudgets returns the correct number of budgets' );
 
-$bpid = AddBudgetPeriod($my_budgetperiod);
+$bpid = AddBudgetPeriod($my_budgetperiod); #this is an active budget
+
 my $my_budget = {
     budget_code      => 'ABCD',
     budget_amount    => '123.132000',
@@ -176,9 +177,26 @@ is( @$budgets, 1, 'GetBudgets With Order Getting Active budgetPeriod OK');
 my $budget_name = GetBudgetName( $budget_id );
 is($budget_name, $my_budget->{budget_name}, "Test the GetBudgetName routine");
 
+my $my_inactive_budgetperiod = { #let's add an inactive
+    budget_period_startdate   => '2010-01-01',
+    budget_period_enddate     => '2010-12-31',
+    budget_period_description => 'MODIF_MAPERI',
+    budget_period_active      => 0,
+};
+my $bpid_i = AddBudgetPeriod($my_inactive_budgetperiod); #this is an inactive budget
+
+my $my_budget_inactive = {
+    budget_code      => 'EFG',
+    budget_amount    => '123.132000',
+    budget_name      => 'Periodiques',
+    budget_notes     => 'This is a note',
+    budget_period_id => $bpid_i,
+};
+my $budget_id_inactive = AddBudget($my_budget_inactive);
+
 my $budget_code = $my_budget->{budget_code};
 my $budget_by_code = GetBudgetByCode( $budget_code );
-is($budget_by_code->{budget_id}, $budget_id, "GetBudgetByCode, check id");
+is($budget_by_code->{budget_id}, $budget_id, "GetBudgetByCode, check id"); #this should match the active budget, not the inactive
 is($budget_by_code->{budget_notes}, $my_budget->{budget_notes}, "GetBudgetByCode, check notes");
 
 my $second_budget_id = AddBudget({
@@ -195,7 +213,7 @@ ok( $budgets->[0]->{budget_name} lt $budgets->[1]->{budget_name}, 'default sort 
 
 is( DelBudget($budget_id), 1, 'DelBudget returns true' );
 $budgets = GetBudgets();
-is( @$budgets, 1, 'GetBudgets returns the correct number of budget periods' );
+is( @$budgets, 2, 'GetBudgets returns the correct number of budget periods' );
 
 
 # GetBudgetHierarchySpent and GetBudgetHierarchyOrdered
@@ -270,7 +288,7 @@ my $budget_id21 = AddBudget(
     }
 );
 
-my $booksellerid = C4::Bookseller::AddBookseller(
+my $bookseller = Koha::Acquisition::Bookseller->new(
     {
         name         => "my vendor",
         address1     => "bookseller's address",
@@ -278,7 +296,8 @@ my $booksellerid = C4::Bookseller::AddBookseller(
         active       => 1,
         deliverytime => 5,
     }
-);
+)->store;
+my $booksellerid = $bookseller->id;
 
 my $basketno = C4::Acquisition::NewBasket( $booksellerid, 1 );
 my ( $biblionumber, $biblioitemnumber ) =
@@ -317,6 +336,7 @@ my @order_infos = (
 
 my %budgets;
 my $invoiceid = AddInvoice(invoicenumber => 'invoice_test_clone', booksellerid => $booksellerid, unknown => "unknown");
+my $invoice = GetInvoice( $invoiceid );
 my $item_price = 10;
 my $item_quantity = 2;
 my $number_of_orders_to_move = 0;
@@ -330,17 +350,15 @@ for my $infos (@order_infos) {
                 order_internalnote => "internal note",
                 order_vendornote   => "vendor note",
                 quantity           => 2,
-                cost               => $item_price,
-                rrp                => $item_price,
+                cost_tax_included  => $item_price,
+                rrp_tax_included   => $item_price,
                 listprice          => $item_price,
-                ecost              => $item_price,
-                rrp                => $item_price,
+                ecost_tax_include  => $item_price,
                 discount           => 0,
                 uncertainprice     => 0,
-                gstrate            => 0,
             }
-        )->insert;
-        my $ordernumber = $order->{ordernumber};
+        )->store;
+        my $ordernumber = $order->ordernumber;
         push @{ $budgets{$infos->{budget_id}} }, $ordernumber;
         $number_of_orders_to_move++;
     }
@@ -354,25 +372,20 @@ for my $infos (@order_infos) {
                 order_vendornote   => "vendor note",
                 quantity           => $item_quantity,
                 cost               => $item_price,
-                rrp                => $item_price,
+                rrp_tax_included   => $item_price,
                 listprice          => $item_price,
-                ecost              => $item_price,
-                rrp                => $item_price,
+                ecost_tax_included => $item_price,
                 discount           => 0,
                 uncertainprice     => 0,
-                gstrate            => 0,
             }
-        )->insert;
-        my $ordernumber = $order->{ordernumber};
+        )->store;
+        my $ordernumber = $order->ordernumber;
         ModReceiveOrder({
               biblionumber     => $biblionumber,
-              ordernumber      => $ordernumber,
+              order            => $order->unblessed,
               budget_id        => $infos->{budget_id},
               quantityreceived => $item_quantity,
-              cost             => $item_price,
-              ecost            => $item_price,
-              invoiceid        => $invoiceid,
-              rrp              => $item_price,
+              invoice          => $invoice,
               received_items   => [],
         } );
     }
@@ -380,6 +393,87 @@ for my $infos (@order_infos) {
 is( GetBudgetHierarchySpent( $budget_id1 ), 160, "total spent for budget1 is 160" );
 is( GetBudgetHierarchySpent( $budget_id11 ), 100, "total spent for budget11 is 100" );
 is( GetBudgetHierarchySpent( $budget_id111 ), 20, "total spent for budget111 is 20" );
+
+# GetBudgetSpent and GetBudgetOrdered
+my $budget_period_amount = 100;
+my $budget_amount = 50;
+
+$budget = AddBudgetPeriod(
+    {
+        budget_period_startdate   => '2017-08-22',
+        budget_period_enddate     => '2018-08-22',
+        budget_period_description => 'Test budget',
+        budget_period_active      => 1,
+        budget_period_total       => $budget_period_amount,
+    }
+);
+
+my $fund = AddBudget(
+    {
+        budget_code       => 'Test fund',
+        budget_name       => 'Test fund',
+        budget_period_id  => $budget,
+        budget_parent_id  => undef,
+        budget_amount     => $budget_amount,
+    }
+);
+
+my $vendor = Koha::Acquisition::Bookseller->new(
+    {
+        name         => "test vendor",
+        address1     => "test address",
+        phone        => "0123456",
+        active       => 1,
+        deliverytime => 5,
+    }
+)->store;
+
+my $vendorid = $vendor->id;
+
+my $basketnumber = C4::Acquisition::NewBasket( $vendorid, 1 );
+my ( $biblio, $biblioitem ) = C4::Biblio::AddBiblio( MARC::Record->new, '' );
+
+my @orders = (
+    {
+        budget_id  => $fund,
+        pending_quantity => 1,
+        spent_quantity => 0,
+    },
+);
+
+my $invoiceident = AddInvoice( invoicenumber => 'invoice_test_clone', booksellerid => $vendorid, shipmentdate => '2017-08-22', shipmentcost => 6, shipmentcost_budgetid => $fund );
+my $test_invoice = GetInvoice( $invoiceident );
+my $individual_item_price = 10;
+
+my $order = Koha::Acquisition::Order->new(
+   {
+      basketno           => $basketnumber,
+      biblionumber       => $biblio,
+      budget_id          => $fund,
+      order_internalnote => "internalnote",
+      order_vendornote   => "vendor note",
+      quantity           => 2,
+      cost_tax_included  => $individual_item_price,
+      rrp_tax_included   => $individual_item_price,
+      listprice          => $individual_item_price,
+      ecost_tax_included => $individual_item_price,
+      discount           => 0,
+      uncertainprice     => 0,
+   }
+)->store;
+
+ModReceiveOrder({
+   bibionumber       => $biblio,
+   order             => $order->unblessed,
+   budget_id         => $fund,
+   quantityreceived  => 2,
+   invoice           => $test_invoice,
+   received_items    => [],
+} );
+
+is ( GetBudgetSpent( $fund ), 6, "total shipping cost is 6");
+is ( GetBudgetOrdered( $fund ), '20.000000', "total ordered price is 20");
+
 
 # CloneBudgetPeriod
 my $budget_period_id_cloned = C4::Budgets::CloneBudgetPeriod(
@@ -434,7 +528,11 @@ $budget_period_id_cloned = C4::Budgets::CloneBudgetPeriod(
 $budget_hierarchy        = GetBudgetHierarchy($budget_period_id);
 is( $budget_hierarchy->[0]->{children}->[0]->{budget_name}, 'budget_11', 'GetBudgetHierarchy should return budgets ordered by name, first child is budget_11' );
 is( $budget_hierarchy->[0]->{children}->[1]->{budget_name}, 'budget_12', 'GetBudgetHierarchy should return budgets ordered by name, second child is budget_12' );
-
+is($budget_hierarchy->[0]->{budget_name},'budget_1','GetBudgetHierarchy should return budgets ordered by name, first budget is budget_1');
+is($budget_hierarchy->[0]->{budget_level},'0','budget_level of budget (budget_1)  should be 0');
+is($budget_hierarchy->[0]->{children}->[0]->{budget_level},'1','budget_level of first fund(budget_11)  should be 1');
+is($budget_hierarchy->[0]->{children}->[1]->{budget_level},'1','budget_level of second fund(budget_12)  should be 1');
+is($budget_hierarchy->[0]->{children}->[0]->{children}->[0]->{budget_level},'2','budget_level of  child fund budget_11 should be 2');
 $budget_hierarchy        = GetBudgetHierarchy($budget_period_id);
 $budget_hierarchy_cloned = GetBudgetHierarchy($budget_period_id_cloned);
 
@@ -581,13 +679,13 @@ for my $new_budget ( @new_budgets ) {
 
 # Test SetOwnerToFundHierarchy
 
-my $categorycode = 'S';
+my $patron_category = $builder->build({ source => 'Category' });
 my $branchcode = $library->{branchcode};
 my $john_doe = C4::Members::AddMember(
     cardnumber   => '123456',
     firstname    => 'John',
     surname      => 'Doe',
-    categorycode => $categorycode,
+    categorycode => $patron_category->{categorycode},
     branchcode   => $branchcode,
     dateofbirth  => '',
     dateexpiry   => '9999-12-31',
@@ -612,7 +710,7 @@ my $jane_doe = C4::Members::AddMember(
     cardnumber   => '789012',
     firstname    => 'Jane',
     surname      => 'Doe',
-    categorycode => $categorycode,
+    categorycode => $patron_category->{categorycode},
     branchcode   => $branchcode,
     dateofbirth  => '',
     dateexpiry   => '9999-12-31',

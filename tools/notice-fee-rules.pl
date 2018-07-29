@@ -24,7 +24,6 @@ use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Koha;
-use C4::Branch;
 use C4::Letters;
 use Koha::NoticeFeeRule;
 use Koha::NoticeFeeRules;
@@ -123,19 +122,6 @@ my @categories = @{$dbh->selectall_arrayref(
     { Slice => {} }
 )};
 
-########################################
-#  Read branches
-########################################
-my $branches = GetBranchesWithoutMobileStations();
-my @branchloop;
-for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-    push @branchloop, {
-        value      => $thisbranch,
-        selected   => $thisbranch eq $branch,
-        branchname => $branches->{$thisbranch}->{'branchname'},
-        branchcode => $branches->{$thisbranch}->{'branchcode'},
-    };
-}
 
 ########################################
 #  Read avaliable letters
@@ -183,10 +169,7 @@ my $message_transport_types = C4::Letters::GetMessageTransportTypes();
 $template->param(
                         categoryloop => \@categories,
                         rules => \@noticeFeeRules,
-                        humanbranch => ($branch ne '*' ? $branches->{$branch}->{branchname} : ''),
-                        current_branch => $branch,
                         definedbranch => scalar(@noticeFeeRules)>0,
-                        branchloop => \@branchloop,
                         branch => $branch,
                         message_transport_types => $message_transport_types,
                         letters => $letters

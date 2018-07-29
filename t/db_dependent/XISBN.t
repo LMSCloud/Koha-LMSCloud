@@ -5,7 +5,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 4;
 use MARC::Record;
 use C4::Biblio;
 use C4::XISBN;
@@ -25,7 +25,7 @@ $dbh->{AutoCommit} = 0;
 my $search_module = new Test::MockModule('C4::Search');
 
 $search_module->mock('SimpleSearch', \&Mock_SimpleSearch );
-
+my $errors;
 my $context = C4::Context->new;
 
 my ( $biblionumber_tag, $biblionumber_subfield ) =
@@ -45,12 +45,7 @@ my $biblionumber1 = _add_biblio_with_isbn($isbn1);
 my $biblionumber2 = _add_biblio_with_isbn($isbn2);
 my $biblionumber3 = _add_biblio_with_isbn($isbn3);
 
-my $trial = C4::XISBN::get_biblionumber_from_isbn($isbn1);
-is( $trial->[0]->{biblionumber},
-    $biblionumber1,
-    "It gets the correct biblionumber from the only isbn we have added." );
-
-$trial = C4::XISBN::_get_biblio_from_xisbn($isbn1);
+my $trial = C4::XISBN::_get_biblio_from_xisbn($isbn1);
 is( $trial->{biblionumber},
     $biblionumber1, "Gets biblionumber like the previous test." );
 
@@ -73,10 +68,10 @@ t::lib::Mocks::mock_preference( 'ThingISBN', 0 );
 t::lib::Mocks::mock_preference( 'XISBN', 1 );
 
 my $results_xisbn;
-eval { $results_xisbn = C4::XISBN::get_xisbns($isbn1); };
+eval { ($results_xisbn, $errors) = C4::XISBN::get_xisbns($isbn1); };
 SKIP: {
-    skip "Problem retrieving XISBN", 1
-        unless $@ eq '';
+    skip "Problem retrieving XISBN (" . $errors->{xisbn} . ")", 1
+        if $errors->{xisbn};
     is( $results_xisbn->[0]->{biblionumber},
         $biblionumber3,
         "Gets correct biblionumber from a book with a similar isbn using XISBN." );

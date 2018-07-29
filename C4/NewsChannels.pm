@@ -182,7 +182,7 @@ sub get_opac_news {
 =head2 GetNewsToDisplay
 
     $news = &GetNewsToDisplay($lang,$branch);
-    C<$news> is a ref to an array which containts
+    C<$news> is a ref to an array which contains
     all news with expirationdate > today or expirationdate is null
     that is applicable for a given branch.
 
@@ -205,7 +205,7 @@ sub GetNewsToDisplay {
         OR    expirationdate = '00-00-0000'
      )
      AND   DATE(timestamp) < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-     AND   (lang = '' OR lang = ?)
+     AND   (opac_news.lang = '' OR opac_news.lang = ?)
      AND   (opac_news.branchcode IS NULL OR opac_news.branchcode = ?)
      ORDER BY number
     }; # expirationdate field is NOT in ISO format?

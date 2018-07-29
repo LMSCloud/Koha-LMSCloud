@@ -1,3 +1,4 @@
+[% USE Asset %]
 [% BLOCK translate_label_element %]
 [%-  SWITCH element -%]
 [%-  CASE 'layout'    -%]layout
@@ -37,7 +38,7 @@
                     alert(_("Please select at least one batch to export."));
                     return;     // no batch selected
                 }
-                return GB_showCenter('Export Labels', "/cgi-bin/koha/labels/label-print.pl?" + getstr, 400, 800);
+                return GB_showCenter(_("Export Labels"), "/cgi-bin/koha/labels/label-print.pl?" + getstr, 400, 800);
             };
             function selected_layout(op) {
                 var selected = new Array;
@@ -75,7 +76,7 @@
         //]]>
     </script>
 
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'datatables.inc' %]
 <script type="text/javascript" id="js">
  $(document).ready(function() {
@@ -125,20 +126,21 @@
                                         <tr>
                                             [% FOREACH header_field IN table_loo.header_fields %]
                                                 [% SWITCH header_field.field_label %]
-                                                    [% CASE 'Layout ID'     %]<th>Layout ID</th>
-                                                    [% CASE 'Layout'        %]<th>Layout</th>
-                                                    [% CASE 'Barcode Type'  %]<th>Barcode type</th>
-                                                    [% CASE 'Print Type'    %]<th>Print type</th>
-                                                    [% CASE 'Template ID'   %]<th>Template ID</th>
-                                                    [% CASE 'Template Name' %]<th>Template name</th>
-                                                    [% CASE 'Description'   %]<th>Description</th>
-                                                    [% CASE 'Actions'       %]<th>Actions</th>
-                                                    [% CASE 'Profile ID'    %]<th>Profile ID</th>
-                                                    [% CASE 'Printer Name'  %]<th>Printer name</th>
-                                                    [% CASE 'Paper Bin'     %]<th>Paper bin</th>
-                                                    [% CASE 'Batch ID'      %]<th>Batch ID</th>
-                                                    [% CASE 'Item Count'    %]<th>Item count</th>
-                                                    [% CASE                 %]<th>[% header_field.field_label %]</th>
+                                                    [% CASE 'Layout ID'       %]<th>Layout ID</th>
+                                                    [% CASE 'Layout'          %]<th>Layout</th>
+                                                    [% CASE 'Barcode Type'    %]<th>Barcode type</th>
+                                                    [% CASE 'Print Type'      %]<th>Print type</th>
+                                                    [% CASE 'Template ID'     %]<th>Template ID</th>
+                                                    [% CASE 'Template Name'   %]<th>Template name</th>
+                                                    [% CASE 'Description'     %]<th>Description</th>
+                                                    [% CASE 'Actions'         %]<th>Actions</th>
+                                                    [% CASE 'Profile ID'      %]<th>Profile ID</th>
+                                                    [% CASE 'Printer Name'    %]<th>Printer name</th>
+                                                    [% CASE 'Paper Bin'       %]<th>Paper bin</th>
+                                                    [% CASE 'Batch ID'        %]<th>Batch ID</th>
+                                                    [% CASE 'Item Count'      %]<th>Item count</th>
+                                                    [% CASE 'Fields to Print' %]<th>Fields to print</th>
+                                                    [% CASE                   %]<th>[% header_field.field_label %]</th>
                                                 [% END %]
                                             [% END %]
                                         </tr>
@@ -148,8 +150,8 @@
                                         [% FOREACH text_field IN table_loo.text_fields %]
                                             [% IF ( text_field.select_field ) %]
                                                 <td class="actions">
-                                                    <a class="btn btn-mini" href="/cgi-bin/koha/labels/label-edit-[% label_element |url %].pl?op=edit&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-edit"></i> Edit</a>
-                                                    <a class="btn btn-mini delete" href="/cgi-bin/koha/labels/label-manage.pl?op=delete&amp;label_element=[% label_element %]&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
+                                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/labels/label-edit-[% label_element |url %].pl?op=edit&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-edit"></i> Edit</a>
+                                                    <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/labels/label-manage.pl?op=delete&amp;label_element=[% label_element %]&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
                                                 </td>
                                                 [% IF label_element == 'batch' %] <td><input type="checkbox" name="action" value="[% text_field.field_value %]" /></td>[% END %]
                                             [% ELSIF ( text_field.field_value ) %]
@@ -162,13 +164,16 @@
                                     [% END %]
                                 [% END %]
                             </table>
-                            [% IF ( print ) %]<button type="button" class="btn btn-sm" id="print">Export selected</button>[% END %]
+                            [% IF ( print ) %]<button type="button" class="btn btn-default btn-sm" id="print">Export selected</button>[% END %]
                             </fieldset>
                             </form>
                             [% ELSE %]
 							<div class="dialog message">
-                            <h4>There are no [% label_element_title %] currently available.</h4>
-                            <p>Use the toolbar above to create a new [% label_element %].</p></div>
+                            <h4>There are no
+                            [% PROCESS translate_label_element element=label_element_title %]
+                            currently available.</h4>
+                            <p>Use the toolbar above to create a new
+                            [% PROCESS translate_label_element element=label_element %].</p></div>
                             [% END %]
                         </div>
                         [% IF ( error ) %]

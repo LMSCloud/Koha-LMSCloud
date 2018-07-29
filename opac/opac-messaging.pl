@@ -29,7 +29,6 @@ use C4::Circulation;
 use C4::Output;
 use C4::Members;
 use C4::Members::Messaging;
-use C4::Branch;
 use C4::Form::MessagingPreferences;
 use Koha::SMS::Providers;
 
@@ -51,7 +50,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-my $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber );
+my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
 
 if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
@@ -64,7 +63,8 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
             smsalertnumber  => $sms,
             sms_provider_id => $sms_provider_id,
         );
-        $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber );
+        # FIXME will not be needed when ModMember will be replaced
+        $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
     }
 
     C4::Form::MessagingPreferences::handle_form_action($query, { borrowernumber => $borrowernumber }, $template);

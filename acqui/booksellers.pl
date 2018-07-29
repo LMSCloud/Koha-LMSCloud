@@ -51,8 +51,7 @@ The id of the supplier whose baskets we will display
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use C4::Auth;
 use C4::Biblio;
 use C4::Budgets;
@@ -60,10 +59,10 @@ use C4::Output;
 use CGI qw ( -utf8 );
 
 use C4::Acquisition qw/ GetBasketsInfosByBookseller CanUserManageBasket /;
-use C4::Members qw/GetMember/;
 use C4::Context;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
+use Koha::Patrons;
 
 my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
@@ -83,24 +82,28 @@ my $allbaskets= $query->param('allbaskets')||0;
 my @suppliers;
 
 if ($booksellerid) {
-    push @suppliers, Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+    push @suppliers, scalar Koha::Acquisition::Booksellers->find( $booksellerid );
 } else {
-    @suppliers = Koha::Acquisition::Bookseller->search({ name => $supplier });
+    @suppliers = Koha::Acquisition::Booksellers->search(
+                        { name => { -like => "%$supplier%" } },
+                        { order_by => { -asc => 'name' } } );
 }
 
 my $supplier_count = @suppliers;
 if ( $supplier_count == 1 ) {
     $template->param(
-        supplier_name => $suppliers[0]->{'name'},
-        booksellerid  => $suppliers[0]->{'id'},
-        basketcount   => $suppliers[0]->{'basketcount'},
-        active        => $suppliers[0]->{active},
+        supplier_name => $suppliers[0]->name,
+        booksellerid  => $suppliers[0]->id,
+        basketcount   => $suppliers[0]->baskets->count,
+        active        => $suppliers[0]->active,
     );
 }
 
 my $uid;
+# FIXME This script should only be accessed by a valid logged in patron
 if ($loggedinuser) {
-    $uid = GetMember( borrowernumber => $loggedinuser )->{userid};
+    # FIXME Should not be needed, logged in patron should be cached
+    $uid = Koha::Patrons->find( $loggedinuser )->userid;
 }
 
 my $userenv = C4::Context::userenv;
@@ -124,19 +127,18 @@ foreach my $r (@{$budgets}) {
 my $loop_suppliers = [];
 
 for my $vendor (@suppliers) {
-    my $baskets = GetBasketsInfosByBookseller( $vendor->{id}, $allbaskets );
+    my $baskets = GetBasketsInfosByBookseller( $vendor->id, $allbaskets );
 
     my $loop_basket = [];
 
     for my $basket ( @{$baskets} ) {
         if (CanUserManageBasket($loggedinuser, $basket, $userflags)) {
-            my $member = GetMember( borrowernumber => $basket->{authorisedby} );
+            my $patron = Koha::Patrons->find( $basket->{authorisedby} );
             foreach (qw(total_items total_biblios expected_items)) {
                 $basket->{$_} ||= 0;
             }
-            if($member) {
-                $basket->{authorisedby_firstname} = $member->{firstname};
-                $basket->{authorisedby_surname} = $member->{surname};
+            if ( $patron ) {
+                $basket->{authorisedby} = $patron;
             }
             if ($basket->{basketgroupid}) {
                 my $basketgroup = C4::Acquisition::GetBasketgroup($basket->{basketgroupid});
@@ -150,9 +152,9 @@ for my $vendor (@suppliers) {
 
     push @{$loop_suppliers},
       { loop_basket => $loop_basket,
-        booksellerid  => $vendor->{id},
-        name        => $vendor->{name},
-        active      => $vendor->{active},
+        booksellerid  => $vendor->id,
+        name        => $vendor->name,
+        active      => $vendor->active,
       };
 
 }

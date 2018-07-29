@@ -1,22 +1,25 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
+[% USE AuthorisedValues %]
 [% INCLUDE 'doc-head-open.inc' %]
   <title>Koha &rsaquo; Administration &rsaquo; Item search fields</title>
   [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="admin_itemssearchfields" class="admin">
   [% INCLUDE 'header.inc' %]
-  [% INCLUDE 'cat-search.inc' %]
+  [% INCLUDE 'prefs-admin-search.inc' %]
   <div id="breadcrumbs">
     <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo;
     <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo;
     <a href="/cgi-bin/koha/admin/items_search_fields.pl">Item search fields</a> &rsaquo;
-    [% field.name %]
+    [% field.name |html %]
   </div>
 
   <div id="doc3" class="yui-t2">
     <div id="bd">
       <div id="yui-main">
         <div class="yui-b">
-          <h1>Item search field: [% field.label %]</h1>
+          <h1>Item search field: [% field.label |html %]</h1>
 
           <form action="/cgi-bin/koha/admin/items_search_field.pl" method="POST" class="validated">
             <fieldset class="rows">
@@ -38,4 +41,8 @@
       </div>
     </div>
 
-    [% INCLUDE 'intranet-bottom.inc' %]
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

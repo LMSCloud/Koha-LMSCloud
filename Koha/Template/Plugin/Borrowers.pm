@@ -23,7 +23,7 @@ use Modern::Perl;
 use base qw( Template::Plugin );
 
 use Koha::Patron::Debarments qw();
-use C4::Members qw();
+use Koha::Patrons;
 
 =pod
 
@@ -46,7 +46,7 @@ sub IsDebarred {
 
     return unless $borrower;
 
-    return Koha::Patron::Debarments::IsDebarred($borrower->{borrowernumber});
+    return Koha::Patrons->find( $borrower->{borrowernumber} )->is_debarred;
 }
 
 sub HasOverdues {
@@ -54,7 +54,7 @@ sub HasOverdues {
 
     return unless $borrowernumber;
 
-    return C4::Members::HasOverdues($borrowernumber);
+    return Koha::Patrons->find( $borrowernumber )->has_overdues;
 }
 
 sub IsFamilyCard {
@@ -62,7 +62,7 @@ sub IsFamilyCard {
 
     return unless $borrowernumber;
 
-    return C4::Members::IsFamilyCard($borrowernumber);
+    return Koha::Patrons->find( $borrowernumber )->is_family_card;
 }
 
 sub GetGuarantor {
@@ -70,7 +70,7 @@ sub GetGuarantor {
 
     return unless $borrowernumber;
 
-    return C4::Members::GetMember( borrowernumber => $borrowernumber);
+    return Koha::Patrons->find( $borrowernumber )->get_family_card_id;
 }
 
 1;

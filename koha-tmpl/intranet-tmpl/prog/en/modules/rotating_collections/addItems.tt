@@ -1,14 +1,10 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Rotating collections &rsaquo; Collection [% colTitle %] &rsquo; Add or remove items</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-    //<![CDATA[
-        $( document ).ready(function() {
-            $("#barcode").focus();
-        });
-    //]]>
-</script>
 </head>
+
 <body id="rcoll_addItems" class="tools rcoll">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -124,4 +120,10 @@
             [% INCLUDE 'tools-menu.inc' %]
         </div>
     </div> <!-- /#bd -->
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("js/rotating-collections.js") %]
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

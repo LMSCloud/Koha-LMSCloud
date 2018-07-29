@@ -25,8 +25,7 @@
 package pdfformat::layout2pagesde;
 use vars qw(@ISA @EXPORT);
 use MIME::Base64;
-use strict;
-use warnings;
+use Modern::Perl;
 use utf8;
 
 use Koha::Number::Price;
@@ -99,11 +98,11 @@ sub printorders {
                 $titleinfo. ($line->{order_vendornote} ? "\n----------------\nLieferantennotiz : ". $line->{order_vendornote} : '' ),
                 # $line->{quantity},
                 $line->{quantity},
-                Koha::Number::Price->new( $line->{rrpgsti} )->format,
+                Koha::Number::Price->new( $line->{rrp_tax_included} )->format,
                 Koha::Number::Price->new( $line->{discount} )->format . '%',
-                Koha::Number::Price->new( $line->{gstrate} * 100 )->format . '%',
-                Koha::Number::Price->new( $line->{totalgste} )->format,
-                Koha::Number::Price->new( $line->{totalgsti} )->format,
+                Koha::Number::Price->new( $line->{tax_rate} * 100 )->format . '%',
+                Koha::Number::Price->new( $line->{total_tax_excluded} )->format,
+                Koha::Number::Price->new( $line->{total_tax_included} )->format,
             );
             push(@$abaskets, $arrbasket);
         }
@@ -203,17 +202,17 @@ sub printhead {
     
     # print bookseller infos
     $text->translate(100/mm, ($height-180)/mm);
-    $text->text($bookseller->{name});
+    $text->text($bookseller->name);
     $text->translate(100/mm, ($height-185)/mm);
-    $text->text($bookseller->{postal});
+    $text->text($bookseller->postal);
     $text->translate(100/mm, ($height-190)/mm);
-    $text->text($bookseller->{address1});
+    $text->text($bookseller->address1);
     $text->translate(100/mm, ($height-195)/mm);
-    $text->text($bookseller->{address2});
+    $text->text($bookseller->address2);
     $text->translate(100/mm, ($height-200)/mm);
-    $text->text($bookseller->{address3});
+    $text->text($bookseller->address3);
     $text->translate(100/mm, ($height-205)/mm);
-    $text->text($bookseller->{accountnumber});
+    $text->text($bookseller->accountnumber);
     
     # print delivery infos
     $text->font( $pdf->corefont("Times-Bold", -encoding => "utf8"), 4/mm );

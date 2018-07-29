@@ -1,34 +1,42 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Koha 3.14\n"
+"Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-10 19:14+0200\n"
-"PO-Revision-Date: 2016-12-27 09:01+0000\n"
-"Last-Translator: KnowledgeWare <massoudalshareef@kwareict.com>\n"
+"PO-Revision-Date: 2018-06-20 11:20+0000\n"
+"Last-Translator: KnowledgeWare Technologies Est. "
+"<massoudalshareef@kwareict.com>\n"
 "Language-Team: za\n"
 "Language: ar\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
-"X-Generator: Pootle 2.5.1.1\n"
-"X-POOTLE-MTIME: 1482829317.000000\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+"X-Generator: Pootle 2.8\n"
+"X-POOTLE-MTIME: 1529493602.739549\n"
+"X-Pootle-Path: /ar/18.05/ar-Arab-pref.po\n"
+"X-Pootle-Revision: 1\n"
 
 # Acquisitions
 msgid "acquisitions.pref"
-msgstr "acquisitions.pref"
+msgstr "سياسات التزويد - "
 
 # Acquisitions > Policy
 msgid "acquisitions.pref Policy"
-msgstr "السياسة"
+msgstr "سياسة"
 
 # Acquisitions > Printing
 msgid "acquisitions.pref Printing"
-msgstr "الطباعة"
+msgstr "طباعة"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqCreateItem# Create an item when"
 msgstr "إنشاء مادة عند"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#AcqCreateItem# This is only the default behavior, and can be changed per-basket."
+msgstr "هذا هو الافتراضي فقط، ويمكن تغييره لكل سلة."
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqCreateItem# cataloging the record."
@@ -36,7 +44,7 @@ msgstr "فهرسة التسجيلة"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqCreateItem# placing an order."
-msgstr "وضع طلبية"
+msgstr "وضع طلبية."
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqCreateItem# receiving an order."
@@ -55,8 +63,8 @@ msgid "acquisitions.pref#AcqEnableFiles# enable the ability to upload and attach
 msgstr "تفعيل إمكانية تحميل وإرفاق الملفات التعسفية إلى الفواتير"
 
 # Acquisitions > Policy
-msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a=\"bar foo\"\")."
-msgstr "فور إلغاء إيصال، قم بتحديث الحقول الفرعية للمادة إذا تم إنشائها عند وضع طلبية (مثال: o=5|a=\"bar foo\"\")."
+msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a=\"bar foo\")."
+msgstr "عند إلغاء الإيصال، قم بتحديث الحقول الفرعية للمادة إذا تم إنشائها أثناء وضع طلبية (مثال: o=5|a=\"bar foo\")."
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceived# Upon receiving items, update their subfields if they were created when placing an order (e.g. o=5|a=\"foo bar\")."
@@ -119,6 +127,10 @@ msgid "acquisitions.pref#CurrencyFormat# 360 000,00 (FR)"
 msgstr "360 000,00 (فرنسا)"
 
 # Acquisitions > Policy
+msgid "acquisitions.pref#CurrencyFormat# 360'000.00 (CH)"
+msgstr "صيغةالعملة# 360'000.00 (CH)"
+
+# Acquisitions > Policy
 msgid "acquisitions.pref#CurrencyFormat# 360,000.00 (US)"
 msgstr "360,000.00 (الولايات المتحدة)"
 
@@ -128,7 +140,7 @@ msgstr "عرض العملات باستخدام التنسيق التالي"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#MarcFieldsToOrder# <br/>For example:<br/>price: 947$a|947$c<br/>quantity: 969$h<br/>budget_code: 922$a"
-msgstr "acquisitions.pref#MarcFieldsToOrder# <br/>على سبيل المثال:<br/>السعر: 947$a|947$c<br/>الكمية: 969$h<br/>budget_code: 922$a"
+msgstr "<br/>على سبيل المثال:<br/>السعر: 947$a|947$c<br/>الكمية: 969$h<br/>budget_code: 922$a"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#MarcFieldsToOrder# Set the mapping values for a new order line created from a MARC record in a staged file."
@@ -137,6 +149,18 @@ msgstr "قم بضبط قيم التخطيط لسطر الطلبية الجديد
 # Acquisitions > Policy
 msgid "acquisitions.pref#MarcFieldsToOrder# You can use the following fields: price, quantity, budget_code, discount, sort1, sort2"
 msgstr "يمكنك استخدام الحقول التالية: السعر، الكمية، رمز_الميزانية، الخصم، فرز1، فرز 2"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# <br/>For example:<br/>holdingbranch: 975$b<br/>itype: 975$9|975$z"
+msgstr "<br/> على سبيل المثال: <br/> الفرع المقتني: 975$b <br/> النوع: 975$9|975$z"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# Set the mapping values for new item records created from a MARC record in a staged file."
+msgstr "ضبط قيم التخطيط لتسجيلات المواد الجديدة المنشأة من تسجيلة مارك في ملف مخطط."
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# You can use the following fields: homebranch, holdingbranch, itype, nonpublic_note, public_note, loc, ccode, notforloan, uri, copyno, price, replacementprice and itemcallnumber. Special fields: quantity and budget_code"
+msgstr "يمكنك استخدام الحقول التالية: homebranch, holdingbranch, itype, nonpublic_note, public_note, loc, ccode, notforloan, uri, copyno, price, replacementprice and itemcallnumber. الحقول الخاصة: quantity and budget_code"
 
 # Acquisitions > Printing
 msgid "acquisitions.pref#OrderPdfFormat# English 2-page"
@@ -163,12 +187,48 @@ msgid "acquisitions.pref#OrderPdfFormat# layout when printing basket groups."
 msgstr "مخطط عند طباعة مجموعات السلة"
 
 # Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>(Used when the cronjob purge_suggestions.pl is active and called without a specific number of days)"
+msgstr ""
+"<br>(يستخدم عندما يكون الكرون purge_suggestions.pl نشطًا ويتم استدعائه بدون "
+"عدد محدد من الأيام)"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>Example: [30] Sets purgation of suggestions for those older than 30 days."
+msgstr "<br>مثال: [30] يقوم بضبط تطهير المقترحات الأقدم من 30 يومًا."
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>WARNING - Leave this field empty if you don't want to activate this automatic feature."
+msgstr ""
+"<br>تحذير - اترك هذا الحقل خاليًا إذا كنت لا ترغب في تفعيل هذه الخاصية "
+"التلقائية."
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# Keep accepted or rejected purchase suggestions for a period of"
+msgstr "احتفظ بمقترحات الشراء المقبولة أو المرفوضة لمدة"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# days."
+msgstr "يومًا."
+
+# Acquisitions > Policy
 msgid "acquisitions.pref#UniqueItemFields# (separated by a space)"
 msgstr "(مفصولة بواسطة فاصلة)"
 
 # Acquisitions > Policy
-msgid "acquisitions.pref#UniqueItemFields# The following <a href='http://schema.koha-community.org/16_05/tables/items.html' target='blank'>database columns</a> should be unique in an item:"
-msgstr ""
+msgid "acquisitions.pref#UniqueItemFields# The following <a href='http://schema.koha-community.org/__VERSION__/tables/items.html' target='blank'>database columns</a> should be unique in an item:"
+msgstr "أعمدة قاعدة البيانات <a href='http://schema.koha-community.org/__VERSION__/tables/items.html' target='blank'> التالية </a> يجب أن تكون فريدة في المادة:"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords#  the framework 'ACQ' for bibliographic records fields"
+msgstr "  الإطار 'ACQ' لحقول التسجيلات البيبلوغرافية"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords# Don't use"
+msgstr "عدم استخدام"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords# Use"
+msgstr "استخدام"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#gist# . Enter in numeric form, 0.12 for 12%. The first item in the list will be selected by default. For more than one value, separate with | (pipe)."
@@ -176,7 +236,7 @@ msgstr "قم بإدخال الصيغة العددية 0.12 ل 12%. سيتم تح
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#gist# Please note: The database will only accept values up to 4 decimals precision, further values will be rounded."
-msgstr ""
+msgstr "يرجى ملاحظة: ستقوم قاعدة البيانات فقط بقبول القيم حتى 4 قيم عشرية، القيم الأكبر من ذلك سيتم تقريبها."
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#gist# Tax rates are"
@@ -184,11 +244,11 @@ msgstr "معدلات الضرائب هي"
 
 # Administration
 msgid "admin.pref"
-msgstr "admin.pref"
+msgstr "سياسات الادارة - "
 
 # Administration > CAS authentication
 msgid "admin.pref CAS authentication"
-msgstr "التحقق المفضل admin.pref CAS"
+msgstr "التحقق المفضل CAS"
 
 # Administration > Google OpenID Connect
 msgid "admin.pref Google OpenID Connect"
@@ -202,13 +262,9 @@ msgstr "خيارات الواجهة"
 msgid "admin.pref Login options"
 msgstr "خيارات الدخول"
 
-# Administration > Mozilla Persona
-msgid "admin.pref Mozilla Persona"
-msgstr "موزيلا بيرسونا"
-
 # Administration > SSL client certificate authentication
 msgid "admin.pref SSL client certificate authentication"
-msgstr "شهادة العميل للتحقق هي admin.pref SSL"
+msgstr "شهادة العميل للتحقق من نوع SSL"
 
 # Administration > Search Engine
 msgid "admin.pref Search Engine"
@@ -219,776 +275,772 @@ msgid "admin.pref Share anonymous usage statistics"
 msgstr "مشاركة احصائيات الاستخدام المجهولة"
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# Use"
-msgstr "admin.pref#AllowPKIAuth# استخدم "
+msgid "admin.pref#AllowPKIAuth# Common Name"
+msgstr "اسم عام"
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# field for SSL client certificate authentication"
-msgstr "حقل admin.pref#AllowPKIAuth# لشهادة تحقق العميل SSL "
+msgid "admin.pref#AllowPKIAuth# Field to use for SSL client certificate authentication: "
+msgstr "حقل لاستخدامه من أجل التحقق من شهادة عميل SSL"
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# no"
-msgstr "رقم admin.pref#AllowPKIAuth#"
+msgid "admin.pref#AllowPKIAuth# None"
+msgstr "بدون"
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# the Common Name"
-msgstr "الاسم المتداول admin.pref#AllowPKIAuth#"
-
-# Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# the emailAddress"
-msgstr "عنوان البريد الإلكنروني admin.pref#AllowPKIAuth#"
+msgid "admin.pref#AllowPKIAuth# emailAddress"
+msgstr "عوان-بريد-إلكتروني"
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# Don't require"
-msgstr "لايتطلب"
+msgid "admin.pref#AutoLocation# <a href=\"/cgi-bin/koha/admin/branches.pl\">Link to library administration</a>"
+msgstr "<a href=\"/cgi-bin/koha/admin/branches.pl\">رابط لادارة المكتبة</a>"
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# Require"
-msgstr "يتطلب"
+msgid "admin.pref#AutoLocation# No"
+msgstr "لا"
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# staff to log in from a computer in the IP address range <a href=\"/cgi-bin/koha/admin/branches.pl\">specified by their library</a> (if any)."
-msgstr "للموظف يمكنهم تسجيل الدخول من نطاق معرف (IP) محدد <a href=\"/cgi-bin/koha/admin/branches.pl\"> محددة من قبل المكتبة التي يتبعون لها </a> (إذا كان أي منها)"
+msgid "admin.pref#AutoLocation# Require staff to log in from a computer in the IP address range specified by their library (if any): "
+msgstr "يتطلب دخول الموظفين عبر جهاز كمبيوتر في نطاف ال IP المحدد من قبل مكتبتهم (ان وجد)."
+
+# Administration > Login options
+msgid "admin.pref#AutoLocation# Yes"
+msgstr "نعم"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# Show"
-msgstr "عرض"
+msgid "admin.pref#DebugLevel# All"
+msgstr "الكل"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# debugging information in the browser when an internal error occurs."
-msgstr "معلومات التصحيح في المستعرض عند حدوث خطأ داخلي."
+msgid "admin.pref#DebugLevel# How much debugging information to show in the browser when an internal error occurs: "
+msgstr "كمية المعلومات المطلوب عرضها في المتصفح عن الفحص عندما يحصل خطأ داخلي:"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# lots of"
-msgstr "الكثير من"
+msgid "admin.pref#DebugLevel# None"
+msgstr "بدون"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# no"
-msgstr "عدم"
-
-# Administration > Interface options
-msgid "admin.pref#DebugLevel# some"
+msgid "admin.pref#DebugLevel# Some"
 msgstr "بعض"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# When editing circulation rules show the"
-msgstr "عند تحرير قواعد الإعارة اعرض ال"
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# all libraries"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# All libraries"
 msgstr "كل المكتبات"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# logged in library's"
-msgstr "المكتبة المسجل بها الدخول"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# Default view when editing circulation rules: "
+msgstr "المشاهدة الافتراضية عند تحرير سياسات الاعارة:"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# rules by default."
-msgstr "القواعد افتراضيا"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# The logged-in library"
+msgstr "المكتبة المسجل الدخول عليها"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# When editing notices and slips show the"
-msgstr "عند تحرير الإخطارات والكعوب قم بعرض"
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# all libraries"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# All libraries"
 msgstr "كل المكتبات"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# logged in library's"
-msgstr "المكتبة المسجل منها الدخول"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# Default view when editing notices and slips: "
+msgstr "المشاهدة الافتراضية عن تحرير الملاحظات والايصالات"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# notices and slips by default."
-msgstr "الإخطارات والكعوب بالافتراضي"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# The logged-in library"
+msgstr "مكتبة الدخول"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# When editing overdue notice/status triggers show the"
-msgstr "عند تحرير إخطار التأخير / الحالة مرسلة قم بعرض ال"
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# all libraries"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# All libraries"
 msgstr "كل المكتبات"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# logged in library's"
-msgstr "المكتبة المسجل منها الدخول"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# Default view when editing overdue notice/status triggers: "
+msgstr "المظهر الافتراضي عند تحرير إخطار التأخير/ محفزات الحالة"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# rules by default."
-msgstr "القواعد افتراضيا"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# The logged-in library"
+msgstr "مكتبة الدخول"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID"
-msgstr "معرف عميل Google OAuth2"
+msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID: "
+msgstr "معرف عميل OAuth2 من قوقل"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret"
-msgstr "عميل Google OAuth2 السري"
+msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret: "
+msgstr "سر عميل OAuth2 من قوقل"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Don't Use"
-msgstr "عدم استخدام"
+msgid "admin.pref#GoogleOpenIDConnect# No"
+msgstr "لا"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Google OpenID Connect login."
-msgstr "تسجيل دخول اتصال Google OpenID "
+msgid "admin.pref#GoogleOpenIDConnect# Use Google OpenID Connect login: "
+msgstr "استخدم بيانات الدخول الخاصة بـ Google OpenID"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Use"
-msgstr "استخدام"
+msgid "admin.pref#GoogleOpenIDConnect# Yes"
+msgstr "نعم"
 
 # Administration > Google OpenID Connect
 msgid "admin.pref#GoogleOpenIDConnect# You will need to select OAuth2 when creating an app in the google cloud console, and set the web origin to your_opac_url and the redirect url to your_opac_url/cgi-bin/koha/svc/auth/googleopenidconnect ."
 msgstr "يجب عليك تحديد OAuth2  عند انشاء تطبيق في جهاز سحابة جوجل، وضبط أصل الويب إلى your_opac_url وإعادة توجيه الurl إلى your_opac_url/cgi-bin/koha/svc/auth/googleopenidconnect ."
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDomain# . Leave blank for all google domains"
-msgstr "اتركه خاليا لكل نطاقات جوجل"
-
-# Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (or subdomain of this domain)"
-msgstr "قيد اتصال Google OpenID  بالنطاق (أو النطاف الفرعي لهذا النطاق)"
-
-# Administration > Login options
-msgid "admin.pref#IndependentBranches# Don't prevent"
-msgstr "عدم منع"
-
-# Administration > Login options
-msgid "admin.pref#IndependentBranches# Prevent"
-msgstr "منع"
-
-# Administration > Login options
-msgid "admin.pref#IndependentBranches# staff (but not superlibrarians) from modifying objects (holds, items, patrons, etc.) belonging to other libraries."
-msgstr "الموظفين (لكن ليس المكتبي المميز) من تعديل المواد (الحجوزات، المواد، المستفيدين، إلخ) التي تنتمي لمكتبات أخرى"
-
-# Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# Don't prevent"
-msgstr "عدم منع"
-
-# Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# Prevent"
-msgstr "منع"
-
-# Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries."
-msgstr "الموظفين (باستثناء المكتبي المميز) من عرض والموافقة على / رفض طلبات تعديل المستفيدين التي تنتمي إلى مكتبات أخرى"
-
-# Administration > Interface options
-msgid "admin.pref#KohaAdminEmailAddress# Use"
-msgstr "استخدام"
-
-# Administration > Interface options
-msgid "admin.pref#KohaAdminEmailAddress# as the email address for the administrator of Koha. (This is the default From: address for emails unless there is one for the particular library, and is referred to when an internal error occurs.)"
-msgstr "على عنوان البريد الالكتروني لمدير كوها (هذا هو الافتراضي من: عنوان رسائل البريد الإلكتروني ما لم يكن هناك احد لمكتبة خاصة، ويشار إليه عندما يحدث خطأ داخلي.)"
-
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Allow"
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# Allow"
 msgstr "السماح"
 
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Don't Allow"
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# Don't Allow"
 msgstr "عدم السماح"
 
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Mozilla persona for login"
-msgstr "لتسجيل الدخول عبر موزيلا بيرسونا"
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# users logging in with Google Open ID to automatically register."
+msgstr "المستخدمين الذين يقومون بتسجيل الدخول بمعرف Google Open بالتسجيل التلقائي."
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDefaultBranch# Use this branch code when automatically registering a Google Open ID patron."
+msgstr "استخدم كود هذا الفرع عند تسجيل مستفيد بمعرف Google Open تلقائيا"
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDefaultCategory# Use this category code when automatically registering a Google Open ID patron."
+msgstr "اسنخدم رمز هذه الفئة عند تسجيل مستفيد بمعرف Google Open تلقائيا"
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (or subdomain of this domain): "
+msgstr "قيود الاتصال في Google OpenID بهذا الدومين (او دومين فرعي من هذا الدومين):"
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDomain# Leave blank for all google domains"
+msgstr "اترك فراغ لكل دومينات قوقل"
+
+# Administration > Login options
+msgid "admin.pref#IndependentBranches# No"
+msgstr "لا"
+
+# Administration > Login options
+msgid "admin.pref#IndependentBranches# Prevent staff (but not superlibrarians) from modifying objects (holds, items, patrons, etc.) belonging to other libraries: "
+msgstr "منع الموظفين (باستثناء الـ superlibrarians) من تعديل سياسات (الحجوزات، المواد، الرواد، وهكذا) تخص المكتبات الأخرى:"
+
+# Administration > Login options
+msgid "admin.pref#IndependentBranches# Yes"
+msgstr "نعم"
+
+# Administration > Login options
+msgid "admin.pref#IndependentBranchesPatronModifications# No"
+msgstr "لا"
+
+# Administration > Login options
+msgid "admin.pref#IndependentBranchesPatronModifications# Prevent staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries."
+msgstr "منع  الموظفين (باستثناء الـ superlibrarians) من الاطلاع على أو اعتماد/رفض طلبات التعديل من الرواد في حال انتمائهم الى مكتبات أخرى."
+
+# Administration > Login options
+msgid "admin.pref#IndependentBranchesPatronModifications# Yes"
+msgstr "نعم"
 
 # Administration > Interface options
-msgid "admin.pref#ReplytoDefault# Use"
-msgstr "استخدام"
+msgid "admin.pref#KohaAdminEmailAddress# (This is the default From: address for emails unless there is one for the particular library, and is referred to when an internal error occurs.)"
+msgstr "(هذا هو اامصدر الافتراضي للعناوين الإلكترونية الا في حالة وجود عنوان محدد لمكتبة معينة، وتم الرجوع اليه عند حدوث خطأ داخلي. "
 
 # Administration > Interface options
-msgid "admin.pref#ReplytoDefault# as the email address that will be set as the replyto in emails"
-msgstr "كعنوان البريد الالكترون الذي سيتم ضبطه كعنوان الرد في رسائل البريد الالكتروني"
+msgid "admin.pref#KohaAdminEmailAddress# Email address for the administrator of Koha: "
+msgstr "البريد الالكتروني الخاص بمدير كوها:"
 
 # Administration > Interface options
-msgid "admin.pref#ReturnpathDefault# Use"
-msgstr "استخدام"
+msgid "admin.pref#ReplytoDefault# Email address to be set as the replyto in emails: "
+msgstr "البريد الإلكتروني المُفترض استقبال الردود عليه:"
 
 # Administration > Interface options
-msgid "admin.pref#ReturnpathDefault# as the return path or bounce address for undeliverable mail messages. If you leave this empty, the From address will be used (often defaulting to the admin address)."
-msgstr "كعنوان البريد الالكتروني التي تم ضبطه كمسار الرد، إذا تركته خاليا سيتم استخدام عنوان المشرف."
+msgid "admin.pref#ReturnpathDefault# If you leave this empty, the From address will be used (often defaulting to the admin address)."
+msgstr "اذا تركت هذه فارغة، سوف ستم استخدام عنوان النموذج (في الغالب يكون عنوان المدير)."
+
+# Administration > Interface options
+msgid "admin.pref#ReturnpathDefault# Return path or bounce address for undeliverable mail messages: "
+msgstr "مسار العودة المفترض استلام الرسائل البريدية الراجعة عليه: "
 
 # Administration > Search Engine
 msgid "admin.pref#SearchEngine# Elasticsearch"
-msgstr "Elasticsearch"
+msgstr "Elasticsearch البحث المرن"
+
+# Administration > Search Engine
+msgid "admin.pref#SearchEngine# Use following search engine: "
+msgstr "استخدم محرك البحث التالي:"
 
 # Administration > Search Engine
 msgid "admin.pref#SearchEngine# Zebra"
 msgstr "Zebra"
 
-# Administration > Search Engine
-msgid "admin.pref#SearchEngine# is the search engine used."
-msgstr "هو محرك البحث المستخدم"
+# Administration > Login options
+msgid "admin.pref#SessionRestrictionByIP# (Disable only when remote IP address changes frequently.)"
+msgstr "(تعطّل فقط في حالة لاحظت تغير عنوان ال IP عن بعد بشكل متكرر.)"
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# Disable"
-msgstr "إيقاف"
+msgid "admin.pref#SessionRestrictionByIP# Enable check for change in remote IP address for session security: "
+msgstr "تفعيل التأكد من تyير ال IP عن بعد لضمان أمن الجلسة:"
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# Enable"
-msgstr "تفعيل"
+msgid "admin.pref#SessionRestrictionByIP# No"
+msgstr "لا"
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# check for change in remote IP address for session security. Disable only when remote IP address changes frequently."
-msgstr "تحقق من التغيير في عنوان ال IP البعيد لسلامة الجلسة. قم بإيقافه فقط عند تغير عنوان ال IP  البعيد بشكل متكرر."
+msgid "admin.pref#SessionRestrictionByIP# Yes"
+msgstr "نعم"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# Store login session information"
-msgstr "حفظ معلومات جلسة الدخول"
+msgid "admin.pref#SessionStorage# Memcached server"
+msgstr "خادم Memcached"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# as temporary files."
-msgstr "كملفات مؤقتة."
+msgid "admin.pref#SessionStorage# MySQL database"
+msgstr "قاعدة MySQL"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in a memcached server."
-msgstr "في خادم ذاكرة مخبأة"
+msgid "admin.pref#SessionStorage# PostgreSQL database (not supported)"
+msgstr "قاعدة PostgreSQL (غير مدعومة)"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in the MySQL database."
-msgstr " في قاعدة بيانات MySQL."
+msgid "admin.pref#SessionStorage# Storage of login session information: "
+msgstr "مستودع بيانات الجلسة القائمة"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in the PostgreSQL database (not supported)."
-msgstr "في قاعدة البيانات PostgreSQL (غير معتمدة)."
+msgid "admin.pref#SessionStorage# Temporary files"
+msgstr "ملفات مؤقتة"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# Don't share"
-msgstr "عدم مشاركة"
+msgid "admin.pref#UsageStats# No"
+msgstr "لا"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# Share"
-msgstr "مشاركة"
+msgid "admin.pref#UsageStats# Share anonymous Koha usage data with the Koha community: "
+msgstr "شارك احصائيات استخدام كوها مع مجتمع كوها"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# anonymous Koha usage data with the Koha community. You can see the data on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>. You have to run misc/cronjobs/share_usage_with_koha_community.pl in a cronjob."
-msgstr "بيانات استخدام مجهولة لكوها مع مجتمع كوها. يمكنك رؤية البيانات في الموقع الالكتروني لمجتمع كوها  <a href=\"http://hea.koha-community.org\">. يجب عليك تشغيل misc/cronjobs/share_usage_with_koha_community.pl في cronjob"
+msgid "admin.pref#UsageStats# Yes"
+msgstr "نعم"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStats# You have to run misc/cronjobs/share_usage_with_koha_community.pl in a cronjob. Note that the other \"UsageStats\" preferences have no effect if this preference is set to \"No\". Website where usage statistics are published: <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
+msgstr "يجب عليك تشغيل misc/cronjobs/share_usage_with_koha_community.pl في  cronjob. لاحظ أن تفضيلات \"UsageStats\" الأخرى لن يكون لها أي تأثير إذا تم ضبط هذا التفضيل إلى \"لا\". الموقع الذي يتم فيه نشر إحصائيات الاستخدام:  <a href=\"http://hea.koha-community.org\"> موقع مجتمع كوها </a>."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# "
-msgstr "admin.pref#UsageStatsCountry#"
+msgstr ".."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Afghanistan"
-msgstr "admin.pref#UsageStatsCountry# أفغلنستان"
+msgstr "أفغلنستان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Albania"
-msgstr "admin.pref#UsageStatsCountry# ألبانيا"
+msgstr "ألبانيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Algeria"
-msgstr "admin.pref#UsageStatsCountry# الجزائر"
+msgstr "الجزائر"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Andorra"
-msgstr "admin.pref#UsageStatsCountry# أندرورا"
+msgstr "أندرورا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Angola"
-msgstr "admin.pref#UsageStatsCountry# أنقولا"
+msgstr "أنقولا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Antigua & Deps"
-msgstr "admin.pref#UsageStatsCountry# Antigua & Deps"
+msgstr "Antigua & Deps"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Argentina"
-msgstr "admin.pref#UsageStatsCountry# أرجنتين"
+msgstr "أرجنتين"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Armenia"
-msgstr "admin.pref#UsageStatsCountry#"
+msgstr "Armenia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Australia"
-msgstr "admin.pref#UsageStatsCountry# Australia"
+msgstr "أستراليا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Austria"
-msgstr "admin.pref#UsageStatsCountry# أرمينيا"
+msgstr "أرمينيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Azerbaijan"
-msgstr "admin.pref#UsageStatsCountry# أزربيجان"
+msgstr "أزربيجان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bahamas"
-msgstr "admin.pref#UsageStatsCountry# بهاماز"
+msgstr "بهاماز"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bahrain"
-msgstr "admin.pref#UsageStatsCountry# بحرين"
+msgstr "بحرين"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bangladesh"
-msgstr "admin.pref#UsageStatsCountry# بنجلادش"
+msgstr "بنجلادش"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Barbados"
-msgstr "admin.pref#UsageStatsCountry# باربادوس"
+msgstr " باربادوس"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Belarus"
-msgstr "admin.pref#UsageStatsCountry# بلاروس"
+msgstr "بلاروس"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Belgium"
-msgstr "admin.pref#UsageStatsCountry# بلجيكا"
+msgstr "بلجيكا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Belize"
-msgstr "admin.pref#UsageStatsCountry# Belize"
+msgstr "Belize"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Benin"
-msgstr "admin.pref#UsageStatsCountry# Benin"
+msgstr "Benin"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bhutan"
-msgstr "admin.pref#UsageStatsCountry# Bhutan"
+msgstr "Bhutan"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bolivia"
-msgstr "admin.pref#UsageStatsCountry# Bolivia"
+msgstr "Bolivia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bosnia Herz."
-msgstr "admin.pref#UsageStatsCountry# Bosnia Herz."
+msgstr "Bosnia Herz."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Botswana"
-msgstr "admin.pref#UsageStatsCountry# Botswana"
+msgstr "Botswana"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Brazil"
-msgstr "admin.pref#UsageStatsCountry# Brazil"
+msgstr "البرازيل"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Brunei"
-msgstr "admin.pref#UsageStatsCountry# Brunei"
+msgstr "Brunei"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bulgaria"
-msgstr "admin.pref#UsageStatsCountry# Bulgaria"
+msgstr "بلغاريا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Burkina"
-msgstr "admin.pref#UsageStatsCountry# بوركينا"
+msgstr "بوركينا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Burundi"
-msgstr "admin.pref#UsageStatsCountry#بوروندي"
+msgstr "بوروندي"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cambodia"
-msgstr "admin.pref#UsageStatsCountry# كولومبيا"
+msgstr "كولومبيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cameroon"
-msgstr "admin.pref#UsageStatsCountry# كاميرون"
+msgstr "كاميرون"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Canada"
-msgstr "admin.pref#UsageStatsCountry# كندا"
+msgstr "كندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cape Verde"
-msgstr "admin.pref#UsageStatsCountry# Cape Verde"
+msgstr "Cape Verde"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Centr. Afr. Rep"
-msgstr "admin.pref#UsageStatsCountry# Centr. Afr. Rep"
+msgstr "Centr. Afr. Rep"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Chad"
-msgstr "admin.pref#UsageStatsCountry# تشاد"
+msgstr "تشاد"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Chile"
-msgstr "admin.pref#UsageStatsCountry# تشيلي"
+msgstr "تشيلي"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# China"
-msgstr "admin.pref#UsageStatsCountry# China"
+msgstr "الصين"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Colombia"
-msgstr "admin.pref#UsageStatsCountry# Colombia"
+msgstr "كولومبيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Comoros"
-msgstr "admin.pref#UsageStatsCountry# Comoros"
+msgstr "Comoros"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Congo"
-msgstr "admin.pref#UsageStatsCountry# Congo"
+msgstr "الكونغو"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Costa Rica"
-msgstr "admin.pref#UsageStatsCountry# Costa Rica"
+msgstr "كوستا ريكا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Croatia"
-msgstr "admin.pref#UsageStatsCountry# Croatia"
+msgstr "كورواتيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cuba"
-msgstr "admin.pref#UsageStatsCountry# Cuba"
+msgstr "كيوبا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cyprus"
-msgstr "admin.pref#UsageStatsCountry# Cyprus"
+msgstr "قبرص"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Czech Republic"
-msgstr "admin.pref#UsageStatsCountry# Czech Republic"
+msgstr "Czech Republic"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Denmark"
-msgstr "admin.pref#UsageStatsCountry# الدانمارك"
+msgstr "الدانمارك"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Djibouti"
-msgstr "admin.pref#UsageStatsCountry# Djibouti"
+msgstr "Djibouti"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Dominica"
-msgstr "admin.pref#UsageStatsCountry# Dominica"
+msgstr "Dominica"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Dominican Rep."
-msgstr "admin.pref#UsageStatsCountry# Dominican Rep."
+msgstr "Dominican Rep."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# East Timor"
-msgstr "admin.pref#UsageStatsCountry# East Timor"
+msgstr "East Timor"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ecuador"
-msgstr "admin.pref#UsageStatsCountry# أكوادور"
+msgstr "أكوادور"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Egypt"
-msgstr "admin.pref#UsageStatsCountry# مصر"
+msgstr "مصر"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# El Salvador"
-msgstr "admin.pref#UsageStatsCountry# El Salvador"
+msgstr "El Salvador"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Equator. Guinea"
-msgstr "admin.pref#UsageStatsCountry# Equator. Guinea"
+msgstr "Equator. Guinea"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Eritrea"
-msgstr "admin.pref#UsageStatsCountry# Eritrea"
+msgstr "Eritrea"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Estonia"
-msgstr "admin.pref#UsageStatsCountry# Estonia"
+msgstr "أستونيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ethiopia"
-msgstr "admin.pref#UsageStatsCountry# أثيوبيا"
+msgstr "أثيوبا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Fiji"
-msgstr "admin.pref#UsageStatsCountry# Fiji"
+msgstr "Fiji"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Finland"
-msgstr "admin.pref#UsageStatsCountry# Finland"
+msgstr "فنلندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# France"
-msgstr "admin.pref#UsageStatsCountry# France"
+msgstr "فرنسا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Gabon"
-msgstr "admin.pref#UsageStatsCountry# Gabon"
+msgstr "غابون"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Gambia"
-msgstr "admin.pref#UsageStatsCountry# Gambia"
+msgstr "غامبيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Georgia"
-msgstr "admin.pref#UsageStatsCountry# Georgia"
+msgstr "جورجيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Germany"
-msgstr "admin.pref#UsageStatsCountry# ألمانيا"
+msgstr "ألمانيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ghana"
-msgstr "admin.pref#UsageStatsCountry# غانا"
+msgstr "غانا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Greece"
-msgstr "admin.pref#UsageStatsCountry# اليونان"
+msgstr "اليونان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Grenada"
-msgstr "admin.pref#UsageStatsCountry# Grenada"
+msgstr "Grenada"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guatemala"
-msgstr "admin.pref#UsageStatsCountry# Guatemala"
+msgstr "Guatemala"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guinea"
-msgstr "admin.pref#UsageStatsCountry# Guinea"
+msgstr "Guinea"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guinea-Bissau"
-msgstr "admin.pref#UsageStatsCountry# Guinea-Bissau"
+msgstr "Guinea-Bissau"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guyana"
-msgstr "admin.pref#UsageStatsCountry# Guyana"
+msgstr "Guyana"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Haiti"
-msgstr "admin.pref#UsageStatsCountry# هاييتي"
+msgstr "هاييتي"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Honduras"
-msgstr "admin.pref#UsageStatsCountry# Honduras"
+msgstr "هوندورس"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Hungary"
-msgstr "admin.pref#UsageStatsCountry# Hungary"
+msgstr "هنغاريا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Iceland"
-msgstr "admin.pref#UsageStatsCountry# Iceland"
+msgstr "آيرلاندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# India"
-msgstr "admin.pref#UsageStatsCountry# الهند "
+msgstr "الهند"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Indonesia"
-msgstr "admin.pref#UsageStatsCountry# أندونيسيا"
+msgstr "أندونيسيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Iran"
-msgstr "admin.pref#UsageStatsCountry# ايران"
+msgstr "ايران"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Iraq"
-msgstr "admin.pref#UsageStatsCountry# العراق"
+msgstr "العراق"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ireland"
-msgstr "admin.pref#UsageStatsCountry# Ireland"
+msgstr "ايرلاندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Israel"
-msgstr "admin.pref#UsageStatsCountry# فلسطين"
+msgstr "فلسطين"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Italy"
-msgstr "admin.pref#UsageStatsCountry# ايطاليا"
+msgstr "ايطاليا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ivory Coast"
-msgstr "admin.pref#UsageStatsCountry# Ivory Coast"
+msgstr "Ivory Coast"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Jamaica"
-msgstr "admin.pref#UsageStatsCountry# Jamaica"
+msgstr "Jamaica"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Japan"
-msgstr "admin.pref#UsageStatsCountry# اليابان"
+msgstr "اليابان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Jordan"
-msgstr "admin.pref#UsageStatsCountry# الأردن"
+msgstr "الأردن"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kazakhstan"
-msgstr "admin.pref#UsageStatsCountry# Kazakhstan"
+msgstr "كازخستان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kenya"
-msgstr "admin.pref#UsageStatsCountry# Kenya"
+msgstr "كينيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kiribati"
-msgstr "admin.pref#UsageStatsCountry# Kiribati"
+msgstr "Kiribati"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Korea North"
-msgstr "admin.pref#UsageStatsCountry# Korea North"
+msgstr "كوريا الشمالية"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Korea South"
-msgstr "admin.pref#UsageStatsCountry# Korea South"
+msgstr "كوريا الجنوبية"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kosovo"
-msgstr "admin.pref#UsageStatsCountry# Kosovo"
+msgstr "كوسوفو"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kuwait"
-msgstr "admin.pref#UsageStatsCountry# الكويت"
+msgstr "الكويت"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kyrgyzstan"
-msgstr "admin.pref#UsageStatsCountry# Kyrgyzstan"
+msgstr "Kyrgyzstan"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Laos"
-msgstr "admin.pref#UsageStatsCountry# Laos"
+msgstr "Laos"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Latvia"
-msgstr "admin.pref#UsageStatsCountry# Latvia"
+msgstr "لاتيفيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Lebanon"
-msgstr "admin.pref#UsageStatsCountry# لبنان"
+msgstr "لبنان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Lesotho"
-msgstr "admin.pref#UsageStatsCountry# Lesotho"
+msgstr "Lesotho"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Liberia"
-msgstr "admin.pref#UsageStatsCountry# Liberia"
+msgstr "ليبريا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Libya"
-msgstr "admin.pref#UsageStatsCountry# ليبيا"
+msgstr "ليبيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Liechtenstein"
-msgstr "admin.pref#UsageStatsCountry# Liechtenstein"
+msgstr "Liechtenstein"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Lithuania"
-msgstr "admin.pref#UsageStatsCountry# Lithuania"
+msgstr "Lithuania"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Luxembourg"
-msgstr "admin.pref#UsageStatsCountry# Luxembourg"
+msgstr "Luxembourg"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Macedonia"
-msgstr "admin.pref#UsageStatsCountry# Macedonia"
+msgstr "مكدونيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Madagascar"
-msgstr "admin.pref#UsageStatsCountry# Madagascar"
+msgstr "Madagascar"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Malawi"
-msgstr "admin.pref#UsageStatsCountry# Malawi"
+msgstr "ملاوي"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Malaysia"
-msgstr "admin.pref#UsageStatsCountry# مليزيا"
+msgstr "ماليزيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Maldives"
-msgstr "admin.pref#UsageStatsCountry# المالديف"
+msgstr "جزر المالديف"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mali"
-msgstr "admin.pref#UsageStatsCountry# Mali"
+msgstr "مالي"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Malta"
-msgstr "admin.pref#UsageStatsCountry# Malta"
+msgstr "مالطا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Marshall Isl."
-msgstr "admin.pref#UsageStatsCountry# Marshall Isl."
+msgstr "Marshall Isl."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mauritania"
-msgstr "admin.pref#UsageStatsCountry# Mauritania"
+msgstr "موريتانيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mauritius"
-msgstr "admin.pref#UsageStatsCountry# Mauritius"
+msgstr "Mauritius"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mexico"
-msgstr "admin.pref#UsageStatsCountry# Mexico"
+msgstr "المكسيك"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Micronesia"
-msgstr "admin.pref#UsageStatsCountry# Micronesia"
+msgstr "Micronesia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Moldova"
-msgstr "admin.pref#UsageStatsCountry# Moldova"
+msgstr "مولدوفا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Monaco"
-msgstr "admin.pref#UsageStatsCountry# Monaco"
+msgstr "موناكو"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mongolia"
-msgstr "admin.pref#UsageStatsCountry# Mongolia"
+msgstr "مونقوليا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Montenegro"
-msgstr "admin.pref#UsageStatsCountry# Montenegro"
+msgstr "Montenegro"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Morocco"
-msgstr "admin.pref#UsageStatsCountry# المغرب"
+msgstr "المغرب"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mozambique"
-msgstr "admin.pref#UsageStatsCountry# Mozambique"
+msgstr "Mozambique"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Myanmar"
-msgstr "admin.pref#UsageStatsCountry# Myanmar"
+msgstr "Myanmar"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Namibia"
-msgstr "admin.pref#UsageStatsCountry# Namibia"
+msgstr "Namibia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nauru"
-msgstr "admin.pref#UsageStatsCountry# Nauru"
+msgstr "Nauru"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nepal"
-msgstr "admin.pref#UsageStatsCountry# Nepal"
+msgstr "Nepal"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Netherlands"
-msgstr "admin.pref#UsageStatsCountry# Netherlands"
+msgstr "هولاندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# New Zealand"
-msgstr "admin.pref#UsageStatsCountry# نيوزلاندا"
+msgstr "نيوزلاندا "
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nicaragua"
-msgstr "admin.pref#UsageStatsCountry# Nicaragua"
+msgstr "Nicaragua"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Niger"
-msgstr "admin.pref#UsageStatsCountry# Niger"
+msgstr "النيجر"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nigeria"
-msgstr "admin.pref#UsageStatsCountry# Nigeria"
+msgstr "نيجيريا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Norway"
-msgstr "admin.pref#UsageStatsCountry# Norway"
+msgstr "النرويج"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
@@ -996,179 +1048,179 @@ msgstr "لاحظ أن هذه القيمة ليس لها تأثيرإذا تم ض
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Oman"
-msgstr "admin.pref#UsageStatsCountry# عمان"
+msgstr "عمان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Pakistan"
-msgstr "admin.pref#UsageStatsCountry# باكستان"
+msgstr "باكستان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Palau"
-msgstr "admin.pref#UsageStatsCountry# Palau"
+msgstr "Palau"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Panama"
-msgstr "admin.pref#UsageStatsCountry# Panama"
+msgstr "بنما"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Papua N. Guinea"
-msgstr "admin.pref#UsageStatsCountry# Papua N. Guinea"
+msgstr "Papua N. Guinea"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Paraguay"
-msgstr "admin.pref#UsageStatsCountry# Paraguay"
+msgstr "البرغواي"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Peru"
-msgstr "admin.pref#UsageStatsCountry# Peru"
+msgstr "بيرو"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Philippines"
-msgstr "admin.pref#UsageStatsCountry# Philippines"
+msgstr "الفلبين"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Poland"
-msgstr "admin.pref#UsageStatsCountry# Poland"
+msgstr "بولندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Portugal"
-msgstr "admin.pref#UsageStatsCountry# Portugal"
+msgstr "البرتقال"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Qatar"
-msgstr "admin.pref#UsageStatsCountry# قطر"
+msgstr "قطر"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Romania"
-msgstr "admin.pref#UsageStatsCountry# Romania"
+msgstr "رومانيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Russian Fed."
-msgstr "admin.pref#UsageStatsCountry# Russian Fed."
+msgstr "روسيا الاتحادية"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Rwanda"
-msgstr "admin.pref#UsageStatsCountry# Rwanda"
+msgstr "رواندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Saint Vincent"
-msgstr "admin.pref#UsageStatsCountry# Saint Vincent"
+msgstr "Saint Vincent"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Samoa"
-msgstr "admin.pref#UsageStatsCountry# Samoa"
+msgstr "Samoa"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# San Marino"
-msgstr "admin.pref#UsageStatsCountry# San Marino"
+msgstr "San Marino"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sao Tome"
-msgstr "admin.pref#UsageStatsCountry# Sao Tome"
+msgstr "Sao Tome"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Saudi Arabia"
-msgstr "admin.pref#UsageStatsCountry# المملكة العربية السعودية"
+msgstr "المملكة العربية السعودية"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Senegal"
-msgstr "admin.pref#UsageStatsCountry# Senegal"
+msgstr "Senegal"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Serbia"
-msgstr "admin.pref#UsageStatsCountry# Serbia"
+msgstr "صربيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Seychelles"
-msgstr "admin.pref#UsageStatsCountry# Seychelles"
+msgstr "Seychelles"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sierra Leone"
-msgstr "admin.pref#UsageStatsCountry# Sierra Leone"
+msgstr "Sierra Leone"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Singapore"
-msgstr "admin.pref#UsageStatsCountry# Singapore"
+msgstr "سنغفوريا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Slovakia"
-msgstr "admin.pref#UsageStatsCountry# Slovakia"
+msgstr "Slovakia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Slovenia"
-msgstr "admin.pref#UsageStatsCountry# Slovenia"
+msgstr "Slovenia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Solomon Islands"
-msgstr "admin.pref#UsageStatsCountry# Solomon Islands"
+msgstr "Solomon Islands"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Somalia"
-msgstr "admin.pref#UsageStatsCountry# الصومال"
+msgstr "صوماليا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# South Africa"
-msgstr "admin.pref#UsageStatsCountry# South Africa"
+msgstr "أفريقيا الجنوبية"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Spain"
-msgstr "admin.pref#UsageStatsCountry# Spain"
+msgstr "أسيانيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sri Lanka"
-msgstr "admin.pref#UsageStatsCountry# Sri Lanka"
+msgstr "سيريلانكا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# St Kitts & Nev."
-msgstr "admin.pref#UsageStatsCountry# St Kitts & Nev."
+msgstr "St Kitts & Nev."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# St Lucia"
-msgstr "admin.pref#UsageStatsCountry# St Lucia"
+msgstr "St Lucia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sudan"
-msgstr "admin.pref#UsageStatsCountry# السودان"
+msgstr "السودان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Suriname"
-msgstr "admin.pref#UsageStatsCountry# Suriname"
+msgstr "Suriname"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Swaziland"
-msgstr "admin.pref#UsageStatsCountry# Swaziland"
+msgstr "سويسرا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sweden"
-msgstr "admin.pref#UsageStatsCountry# Sweden"
+msgstr "السويد"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Switzerland"
-msgstr "admin.pref#UsageStatsCountry# Switzerland"
+msgstr "النمسا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Syria"
-msgstr "admin.pref#UsageStatsCountry# سوريا"
+msgstr "سوريا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Taiwan"
-msgstr "admin.pref#UsageStatsCountry# Taiwan"
+msgstr "تايوان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tajikistan"
-msgstr "admin.pref#UsageStatsCountry# Tajikistan"
+msgstr "طاجيسكان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tanzania"
-msgstr "admin.pref#UsageStatsCountry# تنزانيا"
+msgstr "تانزانيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Thailand"
-msgstr "admin.pref#UsageStatsCountry# Thailand"
+msgstr "تايلندا"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsCountry# The country where your library is located:"
-msgstr "البلد التي تقع بها المكتبة:"
+msgid "admin.pref#UsageStatsCountry# The country where your library is located to be shown on the Hea Community website: "
+msgstr "البلد التي تقع فيها مكتبتك وترغب ان تظهر في موقع Hea  الاجتماعي: "
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# This will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
@@ -1176,115 +1228,135 @@ msgstr "سيتم عرض ذلك في <a href=\"http://hea.koha-community.org\">He
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Togo"
-msgstr "admin.pref#UsageStatsCountry# Togo"
+msgstr "توغو"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tonga"
-msgstr "admin.pref#UsageStatsCountry# Tonga"
+msgstr "تونغو"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Trinidad & Tob."
-msgstr "admin.pref#UsageStatsCountry# Trinidad & Tob."
+msgstr "Trinidad & Tob."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tunisia"
-msgstr "admin.pref#UsageStatsCountry# تونس"
+msgstr "تونس"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Turkey"
-msgstr "admin.pref#UsageStatsCountry# تركيا"
+msgstr "تركيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Turkmenistan"
-msgstr "admin.pref#UsageStatsCountry# Turkmenistan"
+msgstr "تركمنستان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tuvalu"
-msgstr "admin.pref#UsageStatsCountry# Tuvalu"
+msgstr "Tuvalu"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# UAE"
-msgstr "admin.pref#UsageStatsCountry# الامارات العربية المتحدة"
+msgstr "الامارات العربية المتحدة"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# USA"
-msgstr "admin.pref#UsageStatsCountry# أمريكا الشمالية"
+msgstr "الولايات الأمركية المتحدة"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Uganda"
-msgstr "admin.pref#UsageStatsCountry# Uganda"
+msgstr "أوغندا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ukraine"
-msgstr "admin.pref#UsageStatsCountry# Ukraine"
+msgstr "أوكرانيا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# United Kingdom"
-msgstr "admin.pref#UsageStatsCountry# بريطانيا"
+msgstr "المملكة المتحدة"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Uruguay"
-msgstr "admin.pref#UsageStatsCountry# Uruguay"
+msgstr "أوروغواي"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Uzbekistan"
-msgstr "admin.pref#UsageStatsCountry# Uzbekistan"
+msgstr "أوزباكستان"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Vanuatu"
-msgstr "admin.pref#UsageStatsCountry# Vanuatu"
+msgstr "Vanuatu"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Vatican City"
-msgstr "admin.pref#UsageStatsCountry# Vatican City"
+msgstr "Vatican City"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Venezuela"
-msgstr "admin.pref#UsageStatsCountry# Venezuela"
+msgstr "فنزويلا"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Vietnam"
-msgstr "admin.pref#UsageStatsCountry# Vietnam"
+msgstr "Vietnam"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Yemen"
-msgstr "admin.pref#UsageStatsCountry# اليمن"
+msgstr "اليمن"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Zambia"
-msgstr "admin.pref#UsageStatsCountry# Zambia"
+msgstr "Zambia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Zimbabwe"
-msgstr "admin.pref#UsageStatsCountry# Zimbabwe"
+msgstr "زمباويه"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsGeolocation# Geolocation of the main library: "
+msgstr "الموقع الجغرافي للمكتبة الرئيسية:"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsGeolocation# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
+msgstr "لاحظ أن هذه القيمة تصبح بلا تأثير عند ضبط التفضيل UsageStats  إلى \"عدم مشاركة\""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Do not Share"
+msgstr "عدم مشاركة"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
+msgstr "لاحظ أن هذه القيمة تصبح بلا تاثير عند ضبط التفضيل UsageStats  إلى \"عدم مشاركة\""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Share"
+msgstr "مشاركة"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# libraries information (name, url, country)"
+msgstr "معلومات المكتبة (الاسم، رابط url، البلد)"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryName# If this field is empty data will be sent anonymously."
-msgstr "إذا كان هذا الحقل خاليا سيتم إرسال البيانات بدون تعريف"
+msgstr "إذا كان هذا الحقل خاليا سيتم إرسال البيانات بدون تعريف."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryName# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
 msgstr "لاحظ أن هذه القيمة ليس لها تأثيرإذا تم ضبط التفضيل UsageStats إلى \"عدم مشاركة\""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryName# The library name"
-msgstr "اسم المكتبة"
-
-# Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryName# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
-msgstr "سيظهر في<a href=\"http://hea.koha-community.org\">Hea موقع مجتمع كوها</a>."
+msgid "admin.pref#UsageStatsLibraryName# Use the following library name to be shown on the Hea Community website: "
+msgstr "استخدم اسم المكتبة التالي ليتم عرضه في موقع مجتمع Hea:"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryType# "
-msgstr "admin.pref#UsageStatsLibraryType#"
+msgstr ".."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryType# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
 msgstr "لاحظ أن هذه القيمة ليس لها تأثير في حال ضبط التفضيل UsageStats إلى \"عدم مشاركة\""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryType# The library type"
-msgstr "نوع المكتبة"
+msgid "admin.pref#UsageStatsLibraryType# The library type to be shown on the Hea Community website: "
+msgstr "ٍسيظهر نوع المكتبة في موقع مجتمع Hea:"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryType# academic"
@@ -1327,64 +1399,52 @@ msgid "admin.pref#UsageStatsLibraryType# subscription"
 msgstr "اشتراك"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryType# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
-msgstr "سيظهر في <a href=\"http://hea.koha-community.org\">Hea موقع مجتمع كوها </a>."
-
-# Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryUrl# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
 msgstr "لاحظ أن هذه القيمة ليس لها أي تأثير في حال ضبط التفضيل UsageStats  إلى \"عدم مشاركة\""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryUrl# The library URL"
-msgstr "URL المكتبة"
-
-# Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryUrl# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
-msgstr "سيظهر في href=\"http://hea.koha-community.org\">Hea موقع مجتمع كوها</a>."
+msgid "admin.pref#UsageStatsLibraryUrl# The library URL to be shown on the Hea Community website: "
+msgstr "URL المكتبة ليظهر في موقع مجتمع Hea:"
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# CAS for login authentication."
-msgstr " (CAS) لمصادقة تسجيل الدخول."
+msgid "admin.pref#casAuthentication# No"
+msgstr "لا"
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# Don't use"
-msgstr "عدم استخدام"
+msgid "admin.pref#casAuthentication# Use CAS for login authentication: "
+msgstr "استخدم CAS  للتحقق من الدخول"
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# Use"
-msgstr "استخدام"
+msgid "admin.pref#casAuthentication# Yes"
+msgstr "نعم"
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# Don't Logout"
-msgstr "عدم تسجيل الخروج"
+msgid "admin.pref#casLogout# Logout of CAS when logging out of Koha: "
+msgstr "سجل الخروج من CAS  عندما تخرج من كوها:"
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# Logout"
-msgstr " تسجيل الخروج"
+msgid "admin.pref#casLogout# No"
+msgstr "dmin.pref#casLogout# لا"
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# of CAS when logging out of Koha."
-msgstr "من CAS عند تسجيل الخروج من كوها"
+msgid "admin.pref#casLogout# Yes"
+msgstr "dmin.pref#casLogout# لا"
 
 # Administration > CAS authentication
-msgid "admin.pref#casServerUrl# The CAS Authentication Server can be found at"
-msgstr " يمكن العثور على خادم تأكيد الثقة بـِ CAS في"
+msgid "admin.pref#casServerUrl# URL of the CAS Authentication Server: "
+msgstr "رابط خادم التحقق CAS"
 
 # Administration > Interface options
 msgid "admin.pref#delimiter# #'s"
 msgstr "s"
 
 # Administration > Interface options
-msgid "admin.pref#delimiter# Separate columns in an exported CSV file with"
-msgstr "قم بفصل الأعمدة في ملف CSV متصدر بـ"
+msgid "admin.pref#delimiter# Default separator for columns in an exported CSV file: "
+msgstr "الفاصل الافتراضي للصفوف في ملف CSV مصدر:"
 
 # Administration > Interface options
 msgid "admin.pref#delimiter# backslashes"
 msgstr "خطوط مائلة"
-
-# Administration > Interface options
-msgid "admin.pref#delimiter# by default."
-msgstr "إفتراضيا"
 
 # Administration > Interface options
 msgid "admin.pref#delimiter# commas"
@@ -1403,40 +1463,40 @@ msgid "admin.pref#delimiter# tabs"
 msgstr " علامات التبويب"
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# Don't show"
-msgstr " عدم عرض"
+msgid "admin.pref#noItemTypeImages# No"
+msgstr "لا"
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# Show"
-msgstr "عرض"
+msgid "admin.pref#noItemTypeImages# Show itemtype icons in the catalog: "
+msgstr "أعرض ايقونات نوع المادة في الفهرس:"
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# itemtype icons in the catalog."
-msgstr "أيقونات نوع المادة في الفهرس"
+msgid "admin.pref#noItemTypeImages# Yes"
+msgstr "نعم"
 
 # Administration > Login options
-msgid "admin.pref#timeout# Automatically log out users after"
-msgstr "تسجيل خروج المستخدمين تلقائياً بعد"
+msgid "admin.pref#timeout# Adding d will specify it in days, e.g. 1d is timeout of one day."
+msgstr "اضافة d سوف يحدد عدد الأيام، على سبيل المثال 1d تعني مهلة يوم واحد."
 
 # Administration > Login options
-msgid "admin.pref#timeout# seconds of inactivity. Adding d will specify it in days, e.g. 1d is timeout of one day."
-msgstr "ثوانٍ من الخمول. إضافة d ستحددها بالأيام، مثال 1d هي مهلة من يوم واحد"
+msgid "admin.pref#timeout# Inactivity timeout in seconds to automatically log out users: "
+msgstr "المهلة يالثواني عند البقاء بدون أي نشاط قبل خروج المستخدمين من النظام تلقائيا: "
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# Allow"
-msgstr " السماح"
+msgid "admin.pref#virtualshelves# Allow staff and patrons to create and view saved lists of books: "
+msgstr "اسمح للموظفين والرواد بإنشاء وحفظ قوائم الكتب: "
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# Don't allow"
-msgstr "عدم السماح"
+msgid "admin.pref#virtualshelves# No"
+msgstr "لا"
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# staff and patrons to create and view saved lists of books."
-msgstr "الموظفين والمستفيدين بإنشاء وعرض القوائم المحفوظة للكتب"
+msgid "admin.pref#virtualshelves# Yes"
+msgstr "نعم"
 
 # Authorities
 msgid "authorities.pref"
-msgstr "authorities.pref"
+msgstr "سياسات الاستناد - "
 
 # Authorities > General
 msgid "authorities.pref General"
@@ -1459,20 +1519,53 @@ msgid "authorities.pref#AuthDisplayHierarchy# broader term/narrower term hierarc
 msgstr "التسلسلات الهرمية لمصطلح أشمل/ مصطلح أضيق عند عرض الاستنادات."
 
 # Authorities > General
-msgid "authorities.pref#AuthorityMergeMode# When updating biblio records from an attached authority record (\"merging\"), handle subfields of relevant biblio record fields in"
+msgid "authorities.pref#AuthorityControlledIndicators# Here auth1 and auth2 refer to the indicators of the authority record, tag is a biblio field number or an asterisk (*), and some_value is a fixed value (one character).<br>"
 msgstr ""
+"يشير auth1 و auth2 هنا إلى مؤشرات تسجيلة الاستناد، الوسم هو رقم الحقل "
+"البيبلوغرافي أو علامة النجمة (*)، و some_value هي قيمة ثابتة (حرف واحد).<br>"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Lines starting with a comment symbol (#) are skipped. Each line should be of the form: (marc21|unimarc), tag, ind1:(auth1|auth2|some_value), ind2:(auth1|auth2|thesaurus|some_value).<br>"
+msgstr ""
+"يتم تخطي السطور التي تبدأ بعلامة التعليق (#). يجب أن يكون كل سطر بالشكل: "
+"(marc21|unimarc), tag, ind1:(auth1|auth2|some_value), "
+"ind2:(auth1|auth2|thesaurus|some_value).<br>"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# The MARC21 option thesaurus refers to indicators controlled by authority field 008/11 and 040$f."
+msgstr ""
+"يشير مكنز خيار مارك21 إلى المؤشرات اليتي يتحكم بها حقل الاستناد 008/11 و "
+"040$f"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Use the following text to edit how authority records control indicators of attached biblio fields (and possibly subfield $2).<br>"
+msgstr ""
+"استخدم النص التالي لتحرير كيفية تحكم تسجيلات الاستناد في الحقول "
+"البيبلوغرافية المرفقة (ومن الممكن أيضا الحقل الفرعي $2).<br>"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityMergeLimit# When modifying an authority record, do not update attached biblio records if the number exceeds"
+msgstr "عند تعديل تسجيلة استناد، لا تقم بتحديث التسجيلات البيبلوغرافية المرفقة بها إذا تجاوز الرقم "
+
+# Authorities > General
+msgid "authorities.pref#AuthorityMergeLimit# records. (Above this limit, the merge_authority cron job will merge them.)"
+msgstr "تسجيلات. (أعلى هذا الحد، سيقوم كرون merge_authority بدمجها)"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityMergeMode# When updating biblio records from an attached authority record (\"merging\"), handle subfields of relevant biblio record fields in"
+msgstr "عند تحديث تسجيلات بيبوغرافية من تسجيلة استناد مرفقة  (\"دمج\")، قم بالتعامل مع الحقول الفرعية لحقول التسجيلة البيبلوغرافية ذات الصلة في"
 
 # Authorities > General
 msgid "authorities.pref#AuthorityMergeMode# loose"
-msgstr ""
+msgstr "سائب"
 
 # Authorities > General
 msgid "authorities.pref#AuthorityMergeMode# mode. In strict mode subfields that are not found in the authority record, are deleted. Loose mode will keep them. Loose mode is the historical behavior and still the default."
-msgstr ""
+msgstr "في وضع التقييد يتم حذف الحقول الفرعية التي لا يتم العثور عليها في تسجيلة الاستناد. الوضع السائب سوف يحتفظ بها. الوضع السائب هو ما يتم اختياره غالبا ولا يزال هو الافتراضي. "
 
 # Authorities > General
 msgid "authorities.pref#AuthorityMergeMode# strict"
-msgstr ""
+msgstr "مقيد"
 
 # Authorities > General
 msgid "authorities.pref#AutoCreateAuthorities# When editing records,"
@@ -1492,7 +1585,7 @@ msgstr "توليد"
 
 # Authorities > General
 msgid "authorities.pref#BiblioAddsAuthorities# When editing records,"
-msgstr "عند تحرير التسجيلات ،"
+msgstr "عند تحرير التسجيلات،"
 
 # Authorities > General
 msgid "authorities.pref#BiblioAddsAuthorities# allow"
@@ -1516,7 +1609,7 @@ msgstr "عدم القيام"
 
 # Authorities > Linker
 msgid "authorities.pref#CatalogModuleRelink# automatically relink headings that have previously been linked when saving records in the cataloging module."
-msgstr "إعادة ربط الرؤوسالتي سبق وتم ربطها عند حفظ التسجيلات في نظام الفهرسة الفرعي تلقائياً"
+msgstr "بإعادة ربط الرؤوس التي سبق وتم ربطها عند حفظ التسجيلات في نظام الفهرسة الفرعي تلقائياً."
 
 # Authorities > Linker
 msgid "authorities.pref#LinkerKeepStale# Do"
@@ -1548,7 +1641,7 @@ msgstr "إستخدم ال"
 
 # Authorities > Linker
 msgid "authorities.pref#LinkerModule# linker module for matching headings to authority records."
-msgstr "نظام الرابط الفرعي لمطابقة الرؤوس للتسجيلات الإستنادية"
+msgstr "نظام الرابط الفرعي لمطابقة الرؤوس للتسجيلات الإستنادية."
 
 # Authorities > Linker
 msgid "authorities.pref#LinkerOptions# (separate options with |)"
@@ -1590,29 +1683,17 @@ msgstr " استخدام"
 msgid "authorities.pref#UseAuthoritiesForTracings# authority record numbers instead of text strings for searches from subject tracings."
 msgstr "أرقام نسجيلة الاستناد بدلا من من المقاطع النصية للبحث من تعقب الموضوع."
 
-# Authorities > General
-msgid "authorities.pref#dontmerge# Do"
-msgstr "القيام"
-
-# Authorities > General
-msgid "authorities.pref#dontmerge# Don't"
-msgstr "عدم القيام"
-
-# Authorities > General
-msgid "authorities.pref#dontmerge# automatically update attached biblios when changing an authority record. If this is off, please ask your administrator to enable the merge_authority.pl cronjob."
-msgstr "تحديث التسجيلات البيبلوغرافية المرفقة تلقائياً عند تغيير تسجيلة الاستناد. عند الإيقاف، رجاءً اطلب من الإدارة تفعيل  merge_authority.pl cronjob."
-
 # Cataloging
 msgid "cataloguing.pref"
-msgstr "cataloguing.pref"
+msgstr "سياسات الفهرسة - "
 
 # Cataloging > Display
 msgid "cataloguing.pref Display"
-msgstr " عرض"
+msgstr "عرض"
 
 # Cataloging > Exporting
 msgid "cataloguing.pref Exporting"
-msgstr "تصدير cataloguing.pref "
+msgstr "تصدير "
 
 # Cataloging > Importing
 msgid "cataloguing.pref Importing"
@@ -1620,15 +1701,15 @@ msgstr "استيراد"
 
 # Cataloging > Interface
 msgid "cataloguing.pref Interface"
-msgstr " الواجهة"
+msgstr "الواجهة"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref Record Structure"
-msgstr " بنية التسجيلة"
+msgstr "بنية التسجيلة"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref Spine Labels"
-msgstr " ملصقات الكعب"
+msgstr "ملصقات الكعب"
 
 # Cataloging > Display
 msgid "cataloguing.pref#AcquisitionDetails# Display"
@@ -1657,6 +1738,22 @@ msgstr "القيام بـ"
 # Cataloging > Importing
 msgid "cataloguing.pref#AggressiveMatchOnISBN# don't"
 msgstr "عدم القيام بـ"
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# When matching on ISSN with the record import tool,"
+msgstr "عند المطابقة على ISSN باسخدام اداة استيراد التسجيلة،  "
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# attempt to match aggressively by trying all variations of the ISSNs in the imported record as a phrase in the ISSN fields of already cataloged records.  Note that this preference has no effect if UseQueryParser is on."
+msgstr "محاولة شديدة للمطابقة عن طريق محاولة جميع متغيرات التدمد في التسجيلات التي تم استيرادها كعبارة في حقول تدمد للتسجيلات المفهرسة بالفعل. لاحظ أن هذا التفضيل لن يكون له أي تأثير عند تفعيل UseQueryParser"
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# do"
+msgstr "أعمل"
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# don't"
+msgstr "لا تعمل"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#AlternateHoldingsField# ."
@@ -1710,7 +1807,15 @@ msgstr " استخدام"
 
 # Cataloging > Interface
 msgid "cataloguing.pref#DefaultClassificationSource# as the default classification source."
-msgstr " كمصدر التصنيف الافتراضي"
+msgstr "كمصدر التصنيف الافتراضي"
+
+# Cataloging > Record Structure
+msgid "cataloguing.pref#DefaultCountryField008#  Empty defaults to xxu for United States."
+msgstr "الافتراضي الفارغ إلى xxu للولايات المتحدة"
+
+# Cataloging > Record Structure
+msgid "cataloguing.pref#DefaultCountryField008# Fill in the default country code for field 008 Range 15-17 of MARC21 - Place of publication, production, or execution. See <a href=\"http://www.loc.gov/marc/countries/countries_code.html\">MARC Code List for Countries</a>"
+msgstr "قم بإدخال رمز البلد للحقل 008 النطاق 15-17 من مارك21 - مكان النشر، الإنتاج، أو التنفيذ. انظر <a href=\"http://www.loc.gov/marc/countries/countries_code.html\">قائمة رموز دول مارك</a>"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#DefaultLanguageField008#  Empty defaults to eng."
@@ -1730,7 +1835,27 @@ msgstr " عدم عرض"
 
 # Cataloging > Interface
 msgid "cataloguing.pref#EasyAnalyticalRecords# easy ways to create analytical record relationships"
-msgstr " طرق سهلة لإنشاء علاقات التسجيلة التحليلية"
+msgstr "طرق سهلة لإنشاء علاقات التسجيلة التحليلية"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# <br/> NOTE:"
+msgstr "<br/>ملاحظة:"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Currently does not include support for UNIMARC or NORMARC fixed fields."
+msgstr "لا يحتوي حاليا على دعم لحقول يونيمارك أو نورمارك الثابتة."
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Don't enable"
+msgstr "عدم تفعيل"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Enable"
+msgstr "تفعيل"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# the advanced cataloging editor."
+msgstr "محرر الفهرسة المتقدم"
 
 # Cataloging > Display
 msgid "cataloguing.pref#ISBD# Use the following as the staff ISBD template:"
@@ -1738,19 +1863,19 @@ msgstr "استخدم التالي كقالب تدمك للموظفين"
 
 # Cataloging > Display
 msgid "cataloguing.pref#IntranetBiblioDefaultView# By default, display biblio records in"
-msgstr " افتراضيا، اعرض التسجيلات البيبلوجرافية في"
+msgstr "افتراضيا، اعرض التسجيلات البيبلوجرافية في"
 
 # Cataloging > Display
 msgid "cataloguing.pref#IntranetBiblioDefaultView# ISBD form (see below)."
-msgstr " شكل ISBD (انظر أدناه)."
+msgstr "شكل ISBD (انظر أدناه)."
 
 # Cataloging > Display
 msgid "cataloguing.pref#IntranetBiblioDefaultView# Labelled MARC form"
-msgstr " شكل ملصق مارك"
+msgstr "شكل ملصق مارك"
 
 # Cataloging > Display
 msgid "cataloguing.pref#IntranetBiblioDefaultView# MARC form."
-msgstr " شكل مارك"
+msgstr "شكل مارك"
 
 # Cataloging > Display
 msgid "cataloguing.pref#IntranetBiblioDefaultView# normal form."
@@ -1762,23 +1887,50 @@ msgstr " القيام بـ"
 
 # Cataloging > Display
 msgid "cataloguing.pref#LabelMARCView# Don't"
-msgstr " عدم القيام"
+msgstr "عدم القيام"
 
 # Cataloging > Display
 msgid "cataloguing.pref#LabelMARCView# collapse repeated tags of the same type into one tag entry on the display."
-msgstr " تجميع الوسيمات المتكررة لنفس النوع في مدخل وسيمة واحدة في العرض ."
+msgstr "تجميع الوسيمات المتكررة لنفس النوع في مدخل وسيمة واحدة في العرض ."
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#MARCOrgCode# Fill in the <a href=\"http://www.loc.gov/marc/organizations/orgshome.html\">MARC organization code</a>"
 msgstr "إملئ هنا <a href=\"http://www.loc.gov/marc/organizations/orgshome.html\">رمز منظمة مارك</a>"
 
 # Cataloging > Record Structure
-msgid "cataloguing.pref#MARCOrgCode# by default in new MARC21 records (leave blank to disable)."
-msgstr "افتراضياً في تسجيلات مارك 21 الجديدة (اتركه خالياً للإيقاف)"
+msgid "cataloguing.pref#MARCOrgCode# by default in new MARC21 records (leave blank to disable). This can be also set on libraries level."
+msgstr "افتراضياً في تسجيلات مارك21 الجديدة (اتركه خاليا للإيقاف). كما يمكن ضبط ذلك أيضاً على مستوى المكتبات."
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# For example <tt>http://fielddoc.example.com/?marc={MARC}&field={FIELD}&language={LANG}</tt>"
+msgstr ""
+"على سبيل المثال <tt>http://fielddoc.example.com/?marc={MARC}&field={FIELD}&la"
+"nguage={LANG}</tt>"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# If left empty, the format documentation on http://loc.gov (MARC21) or http://archive.ifla.org (UNIMARC) is used."
+msgstr ""
+"إذا ترك خاليًا، يتم استخدام توثيق التنسيق الموجود في http://loc.gov (مارك21) "
+"أو http://archive.ifla.org (يونيمارك)"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# Possible substitutions are <tt>{MARC}</tt> (marc flavour, eg. \"MARC21\" or \"UNIMARC\"), <tt>{FIELD}</tt> (field number, eg. \"000\" or \"048\"), <tt>{LANG}</tt> (user language, eg. \"en\" or \"fi-FI\")."
+msgstr ""
+"البدائل الممكنة هي <tt>{MARC}</tt> (marc flavour, eg. \"MARC21\" or \""
+"UNIMARC\"), <tt>{FIELD}</tt> (field number, eg. \"000\" or \"048\"), "
+"<tt>{LANG}</tt> (user language, eg. \"en\" or \"fi-FI\")."
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# Use"
+msgstr "استخدام"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# as the URL for MARC field documentation."
+msgstr "كعنوان URL لتوثيق حقل مارك"
 
 # Cataloging > Display
 msgid "cataloguing.pref#MergeReportFields# <br />example: '001,245ab,600'"
-msgstr "مثال: '001,245ab,600'"
+msgstr "<br />مثال: '001,245ab,600'"
 
 # Cataloging > Display
 msgid "cataloguing.pref#MergeReportFields# <li>all subfields of fields 600</li>"
@@ -1810,7 +1962,7 @@ msgstr "(يجب أن يكون رمز موقع، أو خاليا للإيقاف).
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#NewItemsDefaultLocation# When items are created, give them the temporary location of"
-msgstr " عند إنشاء المواد، امنحها موقعا مؤقتا في"
+msgstr "عند إنشاء المواد، امنحها موقعا مؤقتا في"
 
 # Cataloging > Display
 msgid "cataloguing.pref#NotesBlacklist# Don't show these"
@@ -1833,8 +1985,8 @@ msgid "cataloguing.pref#OpacSuppression# <br />Redirect the opac detail page for
 msgstr "<br />إعادة توجيه صفحة تفاصيل الأوباك للتسجيلات المطموسة إلى"
 
 # Cataloging > Display
-msgid "cataloguing.pref#OpacSuppression# <br />Restrict the suppression to IP adresses outside of the IP range"
-msgstr "<br />حظر الطمس إلى عناوين ال IP خارج نطاق ال IP"
+msgid "cataloguing.pref#OpacSuppression# <br />Restrict the suppression to IP addresses outside of the IP range"
+msgstr "<br />قصر الكبح على عناوين الIP خارج نطاق ال IP"
 
 # Cataloging > Display
 msgid "cataloguing.pref#OpacSuppression# Don't hide"
@@ -1842,15 +1994,15 @@ msgstr " عدم إخفاء"
 
 # Cataloging > Display
 msgid "cataloguing.pref#OpacSuppression# Hide"
-msgstr " إخفاء"
+msgstr "إخفاء"
 
 # Cataloging > Display
 msgid "cataloguing.pref#OpacSuppression# an explanatory page ('This record is blocked')."
 msgstr "صفحة تفسيرية (\"هذه التسجيلة محظورة\")"
 
 # Cataloging > Display
-msgid "cataloguing.pref#OpacSuppression# items marked as suppressed from OPAC search results."
-msgstr "المواد ذات علامة باطلة من نتائج بحث الأوباك"
+msgid "cataloguing.pref#OpacSuppression# biblios marked as suppressed from OPAC search results."
+msgstr "التسجيلات البيبلوغرافية المكبوحة من نتائج بحث الأوباك."
 
 # Cataloging > Display
 msgid "cataloguing.pref#OpacSuppression# the 404 error page ('Not found')."
@@ -1924,23 +2076,23 @@ msgstr "عند استخدام طابعة ملصق الكعب السريع،"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelAutoPrint# automatically pop up a print dialog."
-msgstr " يطلق تلقائيا نافذة حوار طباعة منبثقة."
+msgstr "يطلق تلقائيا نافذة حوار طباعة منبثقة."
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelAutoPrint# do"
-msgstr " القيام بـ"
+msgstr "القيام بـ"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelAutoPrint# don't"
-msgstr " عدم"
+msgstr "عدم"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelFormat# (Enter in columns from the <code>biblio</code>, <code>biblioitems</code> or <code>items</code> tables, surrounded by &lt; and &gt;.)"
-msgstr " (الإدخال في الأعمدة من  <code>biblio</code>, <code>biblioitems</code> or <code>items</code> tables, surrounded by &lt; and &gt;.)"
+msgstr "(الإدخال في الأعمدة من  <code>biblio</code>, <code>biblioitems</code> or <code>items</code> tables, surrounded by &lt; and &gt;.)"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelFormat# Include the following fields on a quick-printed spine label:"
-msgstr " إدراج الحقول التالية في ملصق كعب طباعة سريعة:"
+msgstr "إدراج الحقول التالية في ملصق كعب طباعة سريعة:"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelShowPrintOnBibDetails# Display"
@@ -1948,7 +2100,7 @@ msgstr "عرض"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelShowPrintOnBibDetails# Don't display"
-msgstr " عدم عرض"
+msgstr "عدم عرض"
 
 # Cataloging > Spine Labels
 msgid "cataloguing.pref#SpineLabelShowPrintOnBibDetails# buttons on the bib details page to print item spine labels."
@@ -1968,7 +2120,7 @@ msgstr "إذا كان التفضيل خاليا، لا يتم قيد أي حقو
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#SubfieldsToAllowForRestrictedBatchmod# MARC21: \"952$a 952$b 952$c\""
-msgstr " MARC21: \"952$a 952$b 952$c\""
+msgstr "MARC21: \"952$a 952$b 952$c\""
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#SubfieldsToAllowForRestrictedBatchmod# Note that the FA framework is excluded from the permission."
@@ -2036,7 +2188,7 @@ msgstr "رقم التحكم في التسجيلة ($w حقول فرعية) ور�
 
 # Cataloging > Interface
 msgid "cataloguing.pref#advancedMARCeditor# Display"
-msgstr " عرض"
+msgstr "عرض"
 
 # Cataloging > Interface
 msgid "cataloguing.pref#advancedMARCeditor# Don't display"
@@ -2044,23 +2196,23 @@ msgstr " عدم عرض"
 
 # Cataloging > Interface
 msgid "cataloguing.pref#advancedMARCeditor# descriptions of fields and subfields in the MARC editor."
-msgstr " وصف الحقول والحقول الفرعية في محرر مارك."
+msgstr "وصف الحقول والحقول الفرعية في محرر مارك."
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#autoBarcode# Barcodes are"
-msgstr " الباركود هو"
+msgstr "الباركود هو"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#autoBarcode# generated in the form &lt;branchcode&gt;yymm0001."
-msgstr " موّلد بصيغة &lt;branchcode&gt;yymm0001."
+msgstr "موّلد بصيغة &lt;branchcode&gt;yymm0001."
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#autoBarcode# generated in the form &lt;year&gt;-0001, &lt;year&gt;-0002."
-msgstr " موّلد بصيغة &lt;year&gt;-0001, &lt;year&gt;-0002."
+msgstr "موّلد بصيغة &lt;year&gt;-0001, &lt;year&gt;-0002."
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#autoBarcode# generated in the form 1, 2, 3."
-msgstr " موّلد بصيغة 1, 2, 3."
+msgstr "موّلد بصيغة 1, 2, 3."
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#autoBarcode# incremental EAN-13 barcodes"
@@ -2068,11 +2220,11 @@ msgstr "الباركود المتزايد"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#autoBarcode# not generated automatically."
-msgstr " غير موّلد تلقائيا."
+msgstr "غير موّلد تلقائيا."
 
 # Cataloging > Display
 msgid "cataloguing.pref#hide_marc# Display"
-msgstr " عرض"
+msgstr "عرض"
 
 # Cataloging > Display
 msgid "cataloguing.pref#hide_marc# Don't display"
@@ -2080,11 +2232,11 @@ msgstr "عدم عرض"
 
 # Cataloging > Display
 msgid "cataloguing.pref#hide_marc# MARC tag numbers, subfield codes and indicators in MARC views."
-msgstr " وسيمة مارك للأرقام، رموز الحقول الفرعية والمؤشرات في عروض مارك"
+msgstr "وسيمة مارك للأرقام، رموز الحقول الفرعية والمؤشرات في عروض مارك"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#item-level_itypes# Use the item type of the"
-msgstr " استخدام نوع المادة للـ"
+msgstr "استخدام نوع المادة للـ"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#item-level_itypes# as the authoritative item type (for determining circulation and fines rules, for displaying an item type icon on either opac detail or results page, etc)."
@@ -2096,11 +2248,11 @@ msgstr "تسجيلة بيبلوجرافية"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#item-level_itypes# specific item"
-msgstr " مادة محددة"
+msgstr "مادة محددة"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#itemcallnumber# Map the MARC subfield"
-msgstr " تخطيط حقل مارك الفرعي"
+msgstr "تخطيط حقل مارك الفرعي"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#itemcallnumber# to an item's callnumber. (This can contain multiple subfields to look in; for instance <code>082ab</code> would look in 082 subfields a and b.)<br />Examples (for MARC21 records): <strong>Dewey</strong>: <code>082ab</code> or <code>092ab</code>; <strong>LOC</strong>: <code>050ab</code> or <code>090ab</code>; <strong>from the item record</strong>: <code>852hi</code>"
@@ -2108,7 +2260,7 @@ msgstr "=إلى رقم استدعاء مادة. يمكن أن يحتوي على 
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#marcflavour# Interpret and store MARC records in the"
-msgstr " ترجمة وتخزين تسجيلات مارك في الـ"
+msgstr "ترجمة وتخزين تسجيلات مارك في الـ"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#marcflavour# MARC21"
@@ -2124,15 +2276,15 @@ msgstr "يونيمارك"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#marcflavour# format."
-msgstr " تنسيق."
+msgstr "تنسيق."
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#z3950NormalizeAuthor# Copy"
-msgstr " نسخ"
+msgstr "نسخ"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#z3950NormalizeAuthor# Don't copy"
-msgstr " عدم نسخ"
+msgstr "عدم نسخ"
 
 # Cataloging > Record Structure
 msgid "cataloguing.pref#z3950NormalizeAuthor# authors from the UNIMARC"
@@ -2144,7 +2296,11 @@ msgstr "وسيمات (منفصلة بفاصلات) إلى وسيمات المؤ�
 
 # Circulation
 msgid "circulation.pref"
-msgstr "circulation.pref"
+msgstr "سياسات الإعارة - "
+
+# Circulation > Article Requests
+msgid "circulation.pref Article Requests"
+msgstr "طلبات المقال"
 
 # Circulation > Batch checkout
 msgid "circulation.pref Batch checkout"
@@ -2170,13 +2326,25 @@ msgstr "سياسة الغرامات"
 msgid "circulation.pref Holds Policy"
 msgstr "سياسة الحجوزات"
 
+# Circulation > Housebound module
+msgid "circulation.pref Housebound module"
+msgstr "وحدة الرباط"
+
 # Circulation > Interface
 msgid "circulation.pref Interface"
 msgstr "الواجهة"
 
+# Circulation > Interlibrary Loans
+msgid "circulation.pref Interlibrary Loans"
+msgstr "الإعارة بين المكتبات"
+
 # Circulation > Self Checkout
 msgid "circulation.pref Self Checkout"
 msgstr "الإعارة الذاتية"
+
+# Circulation > Self check-in module
+msgid "circulation.pref Self check-in module"
+msgstr "نظام الرد الذاتي الفرعي"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AgeRestrictionMarker# E.g. enter target audience keyword(s) split by | (bar) FSK|PEGI|Age| (No white space near |). Be sure to map agerestriction in Koha to MARC mapping (e.g. 521$a). A MARC field value of FSK 12 or PEGI 12 would mean: Borrower must be 12 years old. Leave empty to not apply an age restriction."
@@ -2221,6 +2389,18 @@ msgstr "عدم السماح"
 # Circulation > Interface
 msgid "circulation.pref#AllowAllMessageDeletion# staff to delete messages added from other libraries."
 msgstr "الموظفين بحذف الرسائل المضافة من المكتبات الأخرى"
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# Allow"
+msgstr "السماح"
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# Don't allow"
+msgstr "عدم السماح"
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# patrons to submit notes about checked out items."
+msgstr "للمستفيدين بتقديم ملاحظات حول المواد المعارة"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowFineOverride# Allow"
@@ -2267,8 +2447,10 @@ msgid "circulation.pref#AllowHoldPolicyOverride# Don't allow"
 msgstr "عدم السماح"
 
 # Circulation > Holds Policy
-msgid "circulation.pref#AllowHoldPolicyOverride# staff to override hold policies when placing holds."
-msgstr " للموظفين بتخطي سياسات الحجز عند وضع الحجوزات."
+msgid "circulation.pref#AllowHoldPolicyOverride# staff to force addition of holds even if the patron already has the maximum number of holds allowed."
+msgstr ""
+"الموظفين بفرض إضافة الحجوزات حتى إذا كان المستفيد بالفعل يمتلك الحد الأقصى "
+"المسموح به للحجوزات."
 
 # Circulation > Holds Policy
 msgid "circulation.pref#AllowHoldsOnDamagedItems# Allow"
@@ -2307,6 +2489,18 @@ msgid "circulation.pref#AllowItemsOnHoldCheckout# checkouts of items reserved to
 msgstr "الإعارات للمواد المحجوزة من شخص آخر. إذا ماتم السماح بذلك فلا تولِّد تحذيرات RESERVE_WAITING و  RESERVED.هذا سيسمح للإعارة الذاتية لتلك المواد."
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# Allow"
+msgstr "irculation.pref#AllowItemsOnHoldCheckoutSCO# اسمح"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# Don't allow"
+msgstr "irculation.pref#AllowItemsOnHoldCheckoutSCO# لا تسمح"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items."
+msgstr "استعارة المواد محجوزة لشخص آخر في وحدة SCO. اذا تم المساح فلا تقم بتوليد تحذيرات RESERVE_WAITING  و RESERVED . سوف يسمح هذا بالاستعارة الذاتي لتلك المواد."
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#AllowMultipleIssuesOnABiblio# Allow"
 msgstr "السماح"
 
@@ -2315,8 +2509,8 @@ msgid "circulation.pref#AllowMultipleIssuesOnABiblio# Don't allow"
 msgstr "عدم السماح"
 
 # Circulation > Checkout Policy
-msgid "circulation.pref#AllowMultipleIssuesOnABiblio# patrons to check out multiple items from the same record.  (NOTE: This will only effect records without a subscription attached.)"
-msgstr "المستفيدين بإعارة عدة مواد من نفس التسجيلة. (ملاحظة: سيؤثر ذلك فقط على التسجيلات بدون اشتراكات مرفقة)"
+msgid "circulation.pref#AllowMultipleIssuesOnABiblio# patrons to check out multiple items from the same record.  (NOTE: This will only affect records without a subscription attached.)"
+msgstr "المستفيدين لإعارة عدة مواد من نفس التسجيلة. (ملاحظة: سيؤثر ذلك فقط على التسجيلات بدون اشتراك مرفق بها)"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowNotForLoanOverride# Allow"
@@ -2396,7 +2590,7 @@ msgstr "لا تسمح"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#AllowSelfCheckReturns# patrons to return items through web-based self checkout system."
-msgstr " للمستفيدين بإعادة المواد من خلال نظام إعارة على الويب."
+msgstr "للمستفيدين بإعادة المواد من خلال نظام إعارة على الويب."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowTooManyOverride# Allow"
@@ -2409,6 +2603,30 @@ msgstr "عدم السماح"
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowTooManyOverride# staff to override and check out items when the patron has reached the maximum number of allowed checkouts."
 msgstr "الموظفين بالتخطي وإعارة المواد حين يصل المستفيد إلى العدد الأقصى المسموح به للإعارات"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# Don't enable"
+msgstr "لا تقم بتمكين"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# Enable"
+msgstr "قم بتمكين"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# patrons to place article requests."
+msgstr "مستفيدون لوضع طلبات المقالة"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFields# For records that are record level or item level requestable, make the following fields mandatory"
+msgstr "بالنسبة للتسجيلات المطلوبة على مستوى التسجيلة أو مستوى المادة، قم بجعل الحقول التالية إلزامية"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFieldsItemOnly# For records that are only item level requestable, make the following fields mandatory"
+msgstr "بالنسبة للتسجيلات المطلوبة على مستوى المادة فقط، اجعل الحقول التالية إلزامية"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFieldsRecordOnly# For records that are only record level requestable, make the following fields mandatory"
+msgstr "بالنسبة للتسجيلات المطلوبة على مستوى التسجيلة فقط، اجعل الحقول التالية إلزامية"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AutoRemoveOverduesRestrictions# Do"
@@ -2452,7 +2670,25 @@ msgstr " وكلمة المرور هذه"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#AutoSelfCheckAllowed# the web-based self checkout system to automatically login with this staff login"
-msgstr " لنظام الإعارة الذاتية على الويب بتسجيل الدخول تلقائيا بتسجيل دخول هذا الموظف"
+msgstr "لنظام الإعارة الذاتية على الويب بتسجيل الدخول تلقائيا بتسجيل دخول هذا الموظف"
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# Don't enable"
+msgstr "عدم تفعيل"
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# Enable"
+msgstr "تفعيل"
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# This should not be enabled if you have overlapping patron and book barcodes."
+msgstr "لا يجب تفعيل ذلك إذا كنت تقوم بمداخلة باركودات الكتب والمستفيدين."
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# the automatic redirection to another patron when a patron barcode is scanned instead of a book."
+msgstr ""
+"إعادة التوجيه التلقائي إلى مستفيد آخر عند مسح باركود المستفيد ضوئيًا بدلاً "
+"من باركود الكتاب."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AutomaticItemReturn# Do"
@@ -2487,6 +2723,18 @@ msgid "circulation.pref#BatchCheckoutsValidCategories# Patron categories allowed
 msgstr "فئات المستفيد المسموح لها بالإعارة بالدفعة"
 
 # Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# Block"
+msgstr "حظر"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# Don't block"
+msgstr "عدم حظر"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# returning of items that have been lost."
+msgstr "إعادة المواد التي فُقدت"
+
+# Circulation > Checkin Policy
 msgid "circulation.pref#BlockReturnOfWithdrawnItems# Block"
 msgstr "منع"
 
@@ -2500,7 +2748,7 @@ msgstr "العودة من المواد التي تم إستعارتها"
 
 # Circulation > Checkin Policy
 msgid "circulation.pref#CalculateFinesOnReturn# <br /><b>NOTE If you are doing hourly loans then you should have this on.</b>"
-msgstr "ملاحظة: إذا كنت تقوم بالإعارات بالساعة يجب عليك تفعيل هذا"
+msgstr "<br/><b>ملاحظة: إذا كنت تقوم بالإعارات بالساعة يجب عليك تفعيل هذا.</b>"
 
 # Circulation > Checkin Policy
 msgid "circulation.pref#CalculateFinesOnReturn# Do"
@@ -2513,6 +2761,22 @@ msgstr "عدم القيام بـ"
 # Circulation > Checkin Policy
 msgid "circulation.pref#CalculateFinesOnReturn# calculate and update overdue charges when an item is returned."
 msgstr "حساب وتحديث رسوم التأخير عند إعادة مادة"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Allow to mark items as lost"
+msgstr "السماح بوضع علامة مفقود على المواد"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Allow to mark items as lost and notify the patron"
+msgstr "السماح بوضع علامة مفقود على المواد وإخطار المستفيد"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Do not allow to mark items as lost"
+msgstr "عدم السماح بوضع علامة مفقود على المواد"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# from the 'Holds to pull' screen"
+msgstr "من شاشة \"حجوزات للسحب\""
 
 # Circulation > Interface
 msgid "circulation.pref#CircAutoPrintQuickSlip# ."
@@ -2566,6 +2830,18 @@ msgstr "  المكتبة التي ينتمي إليها المستفيد."
 msgid "circulation.pref#CircControl# the library you are logged in at."
 msgstr " المكتبة المسّجل دخولك منها"
 
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# Activate"
+msgstr "تنشيط"
+
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# Deactivate"
+msgstr "إيقاف"
+
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# the navigation sidebar on all Circulation pages."
+msgstr "شريط التصفح الجانبي في جميع صفحات الإعارة"
+
 # Circulation > Holds Policy
 msgid "circulation.pref#ConfirmFutureHolds# Confirm future hold requests (starting no later than"
 msgstr "تأكيد طلبات الحجز المستقبلية ( في موعد أقصاه"
@@ -2593,6 +2869,18 @@ msgstr "عند التفعيل، سيكون عدد الإعارات المسمو�
 # Circulation > Checkout Policy
 msgid "circulation.pref#ConsiderOnSiteCheckoutsAsNormalCheckouts# on-site checkouts as normal checkouts."
 msgstr "الإعارات في الموقع كإعارات عادية"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# Cumulate"
+msgstr "تراكم "
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# Don't cumulate"
+msgstr "عدم تراكم"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# the restriction periods."
+msgstr "فترة القيد"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#DefaultLongOverdueChargeValue# <br>(Used when the longoverdue.pl script is called without the --charge parameter)"
@@ -2655,6 +2943,18 @@ msgid "circulation.pref#DisplayMultiPlaceHold# the ability to place holds on mul
 msgstr " القدرة على وضع الحجوزات على عدة تسجيلات بيبلوجرافية من نتائج البحث"
 
 # Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Allow"
+msgstr "السماح"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Closed days to be taken into account in reserves max pickup delay."
+msgstr "يجب وضع أيام الإغلاق في الاعتبار عند حساب الحد الأقصى لتأخر التقاط الحجز الأكاديمي"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Don't allow"
+msgstr "عدم السماح"
+
+# Circulation > Holds Policy
 msgid "circulation.pref#ExpireReservesMaxPickUpDelay# Allow"
 msgstr "السماح"
 
@@ -2683,20 +2983,24 @@ msgid "circulation.pref#ExpireReservesOnHolidays# expired holds to be canceled o
 msgstr "ليتم إلغاء الحجوزات المنتهية في أيام غلق المكتبة."
 
 # Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# Don't show"
+msgstr "عدم إظهار"
+
+# Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# Show"
+msgstr "إظهار"
+
+# Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# the export patron checkout history options."
+msgstr "تصدير خيارات سجل إعارة المستفيد "
+
+# Circulation > Interface
 msgid "circulation.pref#ExportRemoveFields# (separate fields with space, e.g. 100a 200b 300c)"
 msgstr "(حقول منفصلة مع مسافة، وعلى سبيل المثال 100A 200B 300C)"
 
 # Circulation > Interface
 msgid "circulation.pref#ExportRemoveFields# The following fields should be excluded from the patron checkout history CSV or iso2709 export"
 msgstr "يجب أن تستبعد المجالات التالية من تصدير CSV أو ISO2709 قارئ التاريخ الإستعارة"
-
-# Circulation > Interface
-msgid "circulation.pref#ExportWithCsvProfile# CSV profile when exporting patron checkout history (enter CSV Profile name)"
-msgstr "لتصدير تاريخ إستعارة المستفيد (أدخل اسم ملف CSV )"
-
-# Circulation > Interface
-msgid "circulation.pref#ExportWithCsvProfile# Use the"
-msgstr "استخدام ال"
 
 # Circulation > Interface
 msgid "circulation.pref#FilterBeforeOverdueReport# Don't require"
@@ -2739,6 +3043,10 @@ msgid "circulation.pref#HoldFeeMode# Charge a hold fee"
 msgstr "فرض رسم حجز"
 
 # Circulation > Fines Policy
+msgid "circulation.pref#HoldFeeMode# any time a hold is collected."
+msgstr "أي وقت يتم التقاط الحجز به"
+
+# Circulation > Fines Policy
 msgid "circulation.pref#HoldFeeMode# any time a hold is placed."
 msgstr "أي وقت تم وضع الحجز به"
 
@@ -2777,6 +3085,34 @@ msgstr " المكتبة التي تنتمي لها المادة."
 # Circulation > Checkout Policy
 msgid "circulation.pref#HomeOrHoldingBranch# the library the item was checked out from."
 msgstr " المكتبة التي تمت إعارة المادة منها"
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# Disable"
+msgstr "قم بتعطيل"
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# Enable"
+msgstr "قم بتفعيل"
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# housebound module"
+msgstr "وحدة المرابطين"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# Disable"
+msgstr "إيقاف"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# Enable"
+msgstr "تفعيل"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# the interlibrary loans module (master switch)."
+msgstr "نظام الإعاة بين المكتبات الفرعي (التبديل الرئيسي)"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModuleCopyrightClearance# Adding text will enable the copyright clearance stage in request creation. The text you enter will be the text displayed."
+msgstr "ستؤدي إضافة النص إلى تفعيل مرحلة التصريح بحقوق النشر في إنشاء الطلب. سيتم عرض النص الذي ستقوم بإدخاله."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#InProcessingToShelvingCart# Don't move"
@@ -2864,6 +3200,14 @@ msgid "circulation.pref#ManInvInNoissuesCharge# MANUAL_INV charges when summing 
 msgstr "رسوم MANUAL_INV عند تجميع الرسوم لـ noissuescharge"
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#MarkLostItemsAsReturned# ."
+msgstr "."
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#MarkLostItemsAsReturned# Mark items as returned when flagged as lost "
+msgstr "تحديد المواد بأنها عادت عند وضع علامة مفقود عليها"
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#NoIssuesChargeGuarantees# Prevent a patron from checking out if the patron has guarantees owing in total more than"
 msgstr "منع المستفيد من الإعارة إذا كان له ضامنين يدينون في الإجمالي بأكثر من"
 
@@ -2886,6 +3230,10 @@ msgstr "تاريخ"
 # Circulation > Checkout Policy
 msgid "circulation.pref#NoRenewalBeforePrecision# exact time."
 msgstr "وقت محدد"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#NoticeBcc# Send all notices as a BCC to this email address"
+msgstr "إرسال جميع الإخطارات كنسخة مخفية إلى عنوان هذا البريد الالكتروني"
 
 # Circulation > Interface
 msgid "circulation.pref#NoticeCSS# Include the stylesheet at"
@@ -2920,6 +3268,42 @@ msgid "circulation.pref#OPACAllowUserToChooseBranch# a user to choose the librar
 msgstr "مستخدم لاختيار المكتبة لأخذ على حجز من."
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Allow"
+msgstr "السماح"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Block"
+msgstr "حظر"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# If a patron owes more than the value of OPACFineNoRenewals,"
+msgstr "إذا كان المستفيد مدين بأكثر من قيمة OPACFineNoRenewals،"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# his/her auto renewals."
+msgstr "تجديداته/تجديداتها التلقائية."
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# Allow"
+msgstr "السماح"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# Don't allow"
+msgstr "عدم السماح"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# to pickup up holds at libraries where the item is available."
+msgstr "بالتقاط الحجوزات من المكتبات المتاح بها المواد"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# (list of patron categories separated with a pipe '|')"
+msgstr "(قائمة بفئات المستفيد المفصولة بعلامة العمود  '|')"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# Patron categories not affected by OPACHoldsIfAvailableAtPickup"
+msgstr "فئات المستفيد لا تتأثر بـالتفضيل OPACHoldsIfAvailableAtPickup"
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#OnSiteCheckouts# Disable"
 msgstr "إيقاف"
 
@@ -2942,10 +3326,6 @@ msgstr "تفعيل"
 # Circulation > Checkout Policy
 msgid "circulation.pref#OnSiteCheckoutsForce# the on-site for all cases (Even if a user is debarred, etc.)."
 msgstr "على الموقع لكل الحالات (حتى إذا كان المستخدم محظورا، الخ)."
-
-# Circulation > Checkout Policy
-msgid "circulation.pref#OverdueNoticeBcc# Send all notices as a BCC to this email address"
-msgstr " إرسال جميع الإخطارات BCC إلى عنوان البريد الالكتروني"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#OverdueNoticeCalendar# Ignore Calendar"
@@ -2999,6 +3379,10 @@ msgstr " يشمل حتى"
 msgid "circulation.pref#PrintNoticesMaxLines# item lines in a printed overdue notice. If the number of items is greater than this number, the notice will end with a warning asking the borrower to check their online account for a full list of overdue items.  Set to 0 to include all overdue items in the notice, no matter how many there are."
 msgstr " أسطر المادة في إخطار تأخير مطبوع. إذا كان عدد المواد أكبر من هذا العدد, سوف ينتهي الإخطار بتحذير يطلب من المستعير تفقد حسابه على الخط المباشر للحصول على قائمة كاملة بالمواد المتأخرة.  قم بضبطه إلى 0 لإدراج كافة المواد المتأخرة في الإخطار,بغض النظر عن عددها."
 
+# Circulation > Fines Policy
+msgid "circulation.pref#ProcessingFeeNote# Set the text to be recorded in the column 'note', table 'accountlines' when the processing fee (defined in item type) is applied."
+msgstr "قم بضبط النص ليتم تسجيله في عمود \"ملاحظة\"، في جدول \"تخطيط الحساب\" عند تطبيق رسم المعالجة (المعرف في نوع المادة)."
+
 # Circulation > Interface
 msgid "circulation.pref#RecordLocalUseOnReturn# Don't record"
 msgstr "عدم التسجيل"
@@ -3012,16 +3396,20 @@ msgid "circulation.pref#RecordLocalUseOnReturn# local use when an unissued item 
 msgstr "استخدام محلي عندما تم إعارة مادة  غير المصدر فيها."
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# Don't refund"
-msgstr "عدم تسديد"
+msgid "circulation.pref#RefundLostOnReturnControl# If a lost item is returned, apply the refunding rules defined in the"
+msgstr "عند إعادة مادة مفقودة، قم بتطبيق قواعد الاسترداد المعرفة في "
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# Refund"
-msgstr "تسديد"
+msgid "circulation.pref#RefundLostOnReturnControl# check-in library."
+msgstr "مكتبة الرد"
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# lost item fees charged to a borrower when the lost item is returned."
-msgstr "رسوم ضياع المادة المفروضة على مستعير عند إعادة المادة"
+msgid "circulation.pref#RefundLostOnReturnControl# item holding branch."
+msgstr "فرع المكتبة حيث المادة محجوزة "
+
+# Circulation > Fines Policy
+msgid "circulation.pref#RefundLostOnReturnControl# item home branch."
+msgstr "فرع المكتبة حيث مكان المادة الأصلي"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#RenewalPeriodBase# When renewing checkouts, base the new due date on"
@@ -3152,6 +3540,10 @@ msgid "circulation.pref#ReturnToShelvingCart# all items to the location CART whe
 msgstr " كافة المواد إلى الموقع السلة عند إرجاعها إلى المكتبة."
 
 # Circulation > Self Checkout
+msgid "circulation.pref#SCOMainUserBlock# Include the following HTML on the the web-based self checkout screen:"
+msgstr "قم بإدراج الHTML التالي في شاشة الإعارة الذاتية على الويب:"
+
+# Circulation > Self Checkout
 msgid "circulation.pref#SCOUserCSS# Include the following CSS on all pages in the web-based self checkout:"
 msgstr "إدراج ال CSS  التالي في كل الصفحات في الإعارة الذاتية القائمة على الويب:"
 
@@ -3162,6 +3554,39 @@ msgstr "إدارج الجافاسكريبت التالي في كل الصفحا�
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckHelpMessage# Include the following HTML in the Help page of the web-based self checkout system:"
 msgstr "قم بإدراج ال HTML  التالي في صفحة المساعدة لنظام الإعارة الذاتية على الويب:"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInMainUserBlock# Include the following HTML on the self check-in screen:"
+msgstr "إدراج ال HTML التالي في شاشة الرد الذاتي:"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# Don't enable"
+msgstr "عدم تفعيل"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# Enable"
+msgstr "تفعيل"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# the standalone self check-in module (available at: /cgi-bin/koha/sci/sci-main.pl)"
+msgstr ""
+"نظام الرد الذاتي الفرعي المستقل (متاح في: /cgi-bin/koha/sci/sci-main.pl)"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInTimeout# Reset the current self check-in screen after"
+msgstr "إعادة ضبط شاشة الرد الذاتي الحالية بعد"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInTimeout# seconds."
+msgstr "ثوانٍ."
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInUserCSS# Include the following CSS on all the self check-in screens:"
+msgstr "إدارج ال CSS التالي في جميع شاشات الرد الذاتي:"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInUserJS# Include the following JavaScript on all the self check-in screens:"
+msgstr "إدارج الجافاسكريبت التالي في جميع شاشات الرد الذاتي:"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckReceiptPrompt# Don't show"
@@ -3177,15 +3602,15 @@ msgstr "حوار طباعة الإيصال المنبثق عند انتهاء ا
 
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckTimeout# Time out the current patron's web-based self checkout system login after"
-msgstr " قم بإنهاء جلسة تسجيل دخول المستفيد الحالية في نظام اإعارة الذاتي على الويب بعد"
+msgstr "قم بإنهاء جلسة تسجيل دخول المستفيد الحالية في نظام اإعارة الذاتي على الويب بعد"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckTimeout# seconds."
 msgstr " ثواني."
 
 # Circulation > Self Checkout
-msgid "circulation.pref#SelfCheckoutByLogin# Barcode"
-msgstr "باركود"
+msgid "circulation.pref#SelfCheckoutByLogin# Cardnumber"
+msgstr "رقم البطاقة"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckoutByLogin# Have patrons login into the web-based self checkout system with their"
@@ -3307,6 +3732,18 @@ msgstr "عدم السماح"
 msgid "circulation.pref#SuspendHoldsOpac# holds to be suspended from the OPAC."
 msgstr "الحجوزات التي ستعلَّق من الأوباك."
 
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# Don't switch"
+msgstr "لا تقم بالتحول"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# Switch"
+msgstr "قم بالتحول"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# on-site checkouts to normal checkouts when checked out."
+msgstr "irculation.pref#SwitchOnSiteCheckouts# تحول استعارات في الموقع الى استعارات عادية عند حصول استعارة. "
+
 # Circulation > Holds Policy
 msgid "circulation.pref#TransferWhenCancelAllWaitingHolds# Don't transfer"
 msgstr "عدم نقل"
@@ -3326,6 +3763,21 @@ msgstr " عرض تحذير في شاشة \"انتقالات للاستلام\" �
 # Circulation > Checkout Policy
 msgid "circulation.pref#TransfersMaxDaysWarning# days after it was sent."
 msgstr "بعد أيام قد تم إرسالها."
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# Example: \"itemlost: 1\" to set items.itemlost to 1 when the item is marked as lost"
+msgstr ""
+"مثال: \"itemlost: 1\" لضبط items.itemlost إلى 1 عند وضع علامة مفقودة على "
+"المادة "
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# This is a list of values to update an item when it is marked as lost from the holds to pull screen."
+msgstr ""
+"هذه قائمة بالقيم لتحديث مادة عند وضع علامة مفقود عليها من شاشة حجوزات للسحب."
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# Update item's values when marked as lost from the hold to pull screen."
+msgstr "تحديث قيم المادة عند وضع علامة مفقودة عليها من شاشة حجوزات للسحب."
 
 # Circulation > Checkin Policy
 msgid "circulation.pref#UpdateNotForLoanStatusOnCheckin# Each pair of values should be on a separate line."
@@ -3421,7 +3873,7 @@ msgstr " تفعيل"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#WebBasedSelfCheck# the web-based self checkout system. (available at: /cgi-bin/koha/sco/sco-main.pl)"
-msgstr " نظام الإعارة الذاتية على الويب. (متاح في: /cgi-bin/koha/sco/sco-main.pl)"
+msgstr "نظام الإعارة الذاتية على الويب. (متاح في: /cgi-bin/koha/sco/sco-main.pl)"
 
 # Circulation > Fines Policy
 msgid "circulation.pref#WhenLostChargeReplacementFee# Charge"
@@ -3581,7 +4033,7 @@ msgstr " منع المستفيدين من الحجز في الأوباك إذا 
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#maxoutstanding# [% local_currency %] in fines."
-msgstr "circulation.pref#maxoutstanding# [% local_currency %] في الغرامات."
+msgstr "[% local_currency %] في الغرامات."
 
 # Circulation > Holds Policy
 msgid "circulation.pref#maxreserves# Patrons can only have"
@@ -3655,9 +4107,21 @@ msgstr " النتيجة لدفع تاريخ الاستحقاق إلى اليوم
 msgid "circulation.pref#useDaysMode# the calendar to skip all days the library is closed."
 msgstr "النتيجة لتخطي جميع أيام إغلاق المكتبة."
 
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# Don't use"
+msgstr "عدم استخدام"
+
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# the default replacement cost defined in item type."
+msgstr "التكلفة البديلة الافتراضية المعرفة في نوع المادة."
+
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# use"
+msgstr "استخدام"
+
 # Enhanced Content
 msgid "enhanced_content.pref"
-msgstr "enhanced_content.pref"
+msgstr "سياسات المحتوى المُحسّن - "
 
 # Enhanced Content > All
 msgid "enhanced_content.pref All"
@@ -3861,7 +4325,7 @@ msgstr "صور الغلاف المحلية"
 
 # Enhanced Content > Coce Cover images cache
 msgid "enhanced_content.pref#CoceHost# Coce server URL"
-msgstr "صور الغلاف المحلية"
+msgstr "رابط خادم ال Coce"
 
 # Enhanced Content > Coce Cover images cache
 msgid "enhanced_content.pref#CoceProviders# Use the following providers to fetch the covers"
@@ -3968,8 +4432,10 @@ msgid "enhanced_content.pref#IDreamBooksReviews# a tab on the OPAC details with 
 msgstr "تبويب في تفاصيل الأوباك بمراجعات الكتاب من النقاد مجمعة بواسطة  <a href='https://idreambooks.com/'>IDreamBooks.com</a>"
 
 # Enhanced Content > Library Thing
-msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"http://www.librarything.com/forlibraries/\">sign up</a>, then enter in your ID below."
-msgstr "<a href=\"http://www.librarything.com/forlibraries/\">sign up</a>,  ثم قم بإدخال معرّفك أدناه.."
+msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"https://www.librarything.com/forlibraries/\">sign up</a>, then enter in your ID below."
+msgstr ""
+"<a href=\"https://www.librarything.com/forlibraries/\">تسجيل</a>، ثم إدخال "
+"معرفك أدناه."
 
 # Enhanced Content > Library Thing
 msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# Don't show"
@@ -4013,7 +4479,7 @@ msgstr "عدم عرض"
 
 # Enhanced Content > Local Cover Images
 msgid "enhanced_content.pref#LocalCoverImages# local cover images on intranet search and details pages."
-msgstr "صور الغلاف المحلية في واجهة البحث وصفحات التفاصيل"
+msgstr "صور الغلاف المحلية في واجهة البحث وصفحات التفاصيل."
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectEnabled# Add"
@@ -4028,16 +4494,60 @@ msgid "enhanced_content.pref#NovelistSelectEnabled# Novelist Select content to t
 msgstr "محتوى  Novelist Select إلى الأوباك (يتطلب الدخول إلى ملف المستخدم الشخصي وكلمة المرور، والذي يمكن رؤيته في روابط الصورة)"
 
 # Enhanced Content > Novelist Select
-msgid "enhanced_content.pref#NovelistSelectProfile# ."
-msgstr " ."
+msgid "enhanced_content.pref#NovelistSelectPassword# ."
+msgstr "."
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectPassword# Access Novelist Select using password"
+msgstr "الوصول إلى Novelist Select باستخدام كلمة مرور"
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectProfile# Access Novelist Select using user profile"
 msgstr "الوصول إلى  Novelist Select باستخدام ملف المستخدم الشخصي"
 
 # Enhanced Content > Novelist Select
-msgid "enhanced_content.pref#NovelistSelectProfile# and password"
-msgstr "وكلمة المرور"
+msgid "enhanced_content.pref#NovelistSelectProfile# on the opac"
+msgstr "في الأوباك"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Add"
+msgstr "أضف"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Don't add"
+msgstr "لا تضف"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Novelist Select content to the Staff client (requires that you have entered in a user profile and password, which can be seen in image links)."
+msgstr "محتوى Novelist Select الى عميل الموظفين (يتطلب منك ادخال بروفايل مستخدم مع كلمة مرور، بحيث يمكن رؤيتها في روابط الصورة)."
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffProfile# Access Novelist Select using user profile"
+msgstr "الوصول إلى Novelist Select باستخدام ملف المستخدم"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffProfile# on the staff client"
+msgstr "في برنامج العميل"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# ."
+msgstr "."
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# Display Novelist Select staff content"
+msgstr "أعرض محتوى الموظف من Novelist Select  "
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# above the holdings table"
+msgstr "فوق جدول المقتنيات"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# below the holdings table"
+msgstr "أسفل جدول المقتنيات"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# in a tab"
+msgstr "في تبويب"
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectView# ."
@@ -4105,7 +4615,7 @@ msgstr "عدم عرض"
 
 # Enhanced Content > Local Cover Images
 msgid "enhanced_content.pref#OPACLocalCoverImages# local cover images on OPAC search and details pages."
-msgstr "صور الغلاف المحلية على أوباك وصفحات التفاصيل"
+msgstr "صور الغلاف المحلية على أوباك وصفحات التفاصيل."
 
 # Enhanced Content > Open Library
 msgid "enhanced_content.pref#OpenLibraryCovers# Add"
@@ -4132,8 +4642,32 @@ msgid "enhanced_content.pref#OpenLibrarySearch# search results from Open Library
 msgstr "نتائج البحث من المكتبة المفتوحة في الأوباك"
 
 # Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# Don't enable"
+msgstr "عدم تفعيل"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# Enable"
+msgstr "تفعيل"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# If you enable access, you must register auth return url of"
+msgstr "إذا قمت بتفعيل الوصول، يجب عليك تسجيل رابط إعادة استناد لـ"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# http(s)://my.opac.hostname/cgi-bin/koha/external/overdrive/auth.pl"
+msgstr "http(s)://my.opac.hostname/cgi-bin/koha/external/overdrive/auth.pl"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# users to access their OverDrive circulation history, and circulate items."
+msgstr "للمستخدمين للوصول سجل إعارة OverDrive  الحاص بهم، وإعارة المواد"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# with OverDrive."
+msgstr "بـ OverDrive"
+
+# Enhanced Content > OverDrive
 msgid "enhanced_content.pref#OverDriveClientKey# ."
-msgstr "enhanced_content.pref#OverDriveClientKey# ."
+msgstr "."
 
 # Enhanced Content > OverDrive
 msgid "enhanced_content.pref#OverDriveClientKey# Include OverDrive availability information with the client key"
@@ -4145,7 +4679,7 @@ msgstr "وسر العميل"
 
 # Enhanced Content > OverDrive
 msgid "enhanced_content.pref#OverDriveLibraryID# ."
-msgstr "enhanced_content.pref#OverDriveLibraryID# ."
+msgstr "."
 
 # Enhanced Content > OverDrive
 msgid "enhanced_content.pref#OverDriveLibraryID# Show items from the OverDrive catalog of library #"
@@ -4409,19 +4943,23 @@ msgstr "مرات في اليوم. إلا إذا كنت تدفع لخدمة xISBN
 
 # I18N/L10N
 msgid "i18n_l10n.pref"
-msgstr "i18n_l10n.pref"
+msgstr "سياسات اللغات - "
 
 # I18N/L10N
 msgid "i18n_l10n.pref#AddressFormat# Format postal addresses using"
 msgstr "تنسيق الأوقات بـ"
 
 # I18N/L10N
+msgid "i18n_l10n.pref#AddressFormat# French style ([Street number] [Address] - [ZIP/Postal Code] [City] - [Country])"
+msgstr "النمط الفرنسي ([رقم الشارع] [العنوان] - [الرمز البريدي] [المدينة] - [البلد])"
+
+# I18N/L10N
 msgid "i18n_l10n.pref#AddressFormat# German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])"
-msgstr "i18n_l10n.pref#AddressFormat# German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])"
+msgstr "German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])"
 
 # I18N/L10N
 msgid "i18n_l10n.pref#AddressFormat# US style ([Street number], [Address] - [City], [ZIP/Postal Code], [Country])"
-msgstr "i18n_l10n.pref#AddressFormat# US style ([Street number], [Address] - [City], [ZIP/Postal Code], [Country])"
+msgstr "US style ([Street number], [Address] - [City], [ZIP/Postal Code], [Country])"
 
 # I18N/L10N
 msgid "i18n_l10n.pref#CalendarFirstDayOfWeek# Friday"
@@ -4476,6 +5014,22 @@ msgid "i18n_l10n.pref#TimeFormat# Format times in"
 msgstr "تنسيق الأوقات بـ"
 
 # I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# Allow"
+msgstr "السماح"
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# Don't allow"
+msgstr "عدم السماح"
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# If set, notices will be translatable from the \"Notices and Slips\" interface. The language used to send a notice to a patron will be the one defined for the patron."
+msgstr "عند الضبط، ستكون الإخطارات قابلة للترجمة من واجهة \"الإخطارات والقسائم\". اللغة المستخدمة لإرسال الإخطارات إلى المستفيد ستكون اللغة المعرفة للمستفيد."
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# notices to be translated."
+msgstr "إخطارات للترجمة"
+
+# I18N/L10N
 msgid "i18n_l10n.pref#alphabet# <br/> Hint: Changing collation in the database for the 'surname' column of the 'borrowers' table is helpful to make browsing by last name work in members-home.pl when using an alphabet outside of A-Z"
 msgstr "تلميح: إن تغيير الترتيب في قاعدة البيانات لعمود \"اللقب\" لجدول \"المستعيرين\" مفيد لعمل الاستعراض بالاسم الأخير في members-home.pl عند استخدام الأبجدية من الألف إلى الياء"
 
@@ -4516,8 +5070,16 @@ msgid "i18n_l10n.pref#language# Enable the following languages on the staff inte
 msgstr "تمكين اللغات التالية على واجهة الموظفين:"
 
 # I18N/L10N
+msgid "i18n_l10n.pref#language# This list can be sorted to modify the order of the languages on the interface."
+msgstr "يمكن فرز هذه القائمة لتعديل ترتيب اللغات في الواجهة."
+
+# I18N/L10N
 msgid "i18n_l10n.pref#opaclanguages# Enable the following languages on the OPAC:"
 msgstr "تفعيل اللغات التالية في الأوباك:"
+
+# I18N/L10N
+msgid "i18n_l10n.pref#opaclanguages# This list can be sorted to modify the order of the languages on the interface."
+msgstr "يمكن فرز هذه القائمة لتعديل ترتيب اللغات في الواجهة."
 
 # I18N/L10N
 msgid "i18n_l10n.pref#opaclanguagesdisplay# Allow"
@@ -4531,37 +5093,9 @@ msgstr "عدم السماح"
 msgid "i18n_l10n.pref#opaclanguagesdisplay# patrons to change the language they see on the OPAC."
 msgstr "للمستفيدين بتغيير لغة العرض في الأوباك"
 
-# Labs
-msgid "labs.pref"
-msgstr "labs.pref"
-
-# Labs > All
-msgid "labs.pref All"
-msgstr "الكل"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# <br/> NOTE:"
-msgstr "<br/> ملاحظة:"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# Don't enable"
-msgstr "عدم تفعيل"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# Enable"
-msgstr "تفعيل"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# This feature is currently experimental, and may have bugs that cause corruption of records. It also does not include any support for UNIMARC or NORMARC fixed fields. Please help us test it and report any bugs, but do so at your own risk."
-msgstr "هذه الخاصية تجريبية في الوقت الحالي، وربما يكون بها مشكلات قد تسبب فساد التسجيلات. كما أنها لا تشمل أي دعم لحقول يونيمارك أو نورمارك الثابتة. يرجى مساعدتنا في تجربتها والتبليغ عن أي مشكلات، لكنك ستقوم بذلك على مسؤوليتك الخاصة"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# the advanced cataloging editor."
-msgstr "محرر الفهرسة المتقدم"
-
 # Local Use
 msgid "local_use.pref"
-msgstr "الاستخدام المحلي"
+msgstr "سياسات الاستخدام المحلي - "
 
 # Local Use
 msgid "local_use.pref## Nothing defined yet."
@@ -4569,7 +5103,7 @@ msgstr "لم يتم تعريف شيء بعد."
 
 # Logging
 msgid "logs.pref"
-msgstr "logs.pref"
+msgstr "سياسات السجلات - "
 
 # Logging > Debugging
 msgid "logs.pref Debugging"
@@ -4664,6 +5198,18 @@ msgid "logs.pref#FinesLog# when fines are charged, paid, or forgiven."
 msgstr "عند فرض الغرامات، دفعها، أو السماح عنها"
 
 # Logging > Logging
+msgid "logs.pref#HoldsLog# Don't log"
+msgstr "ogs.pref#HoldsLog# لا تسجل"
+
+# Logging > Logging
+msgid "logs.pref#HoldsLog# Log"
+msgstr "سجّل"
+
+# Logging > Logging
+msgid "logs.pref#HoldsLog# any actions on holds (create, cancel, suspend, resume, etc)."
+msgstr "أي اجراء على الحجوزات (إنشاء، إلغاء، تعليق، متابعة، وهكذا)."
+
+# Logging > Logging
 msgid "logs.pref#IssueLog# Don't log"
 msgstr "عدم تسجيل"
 
@@ -4686,6 +5232,18 @@ msgstr "تسجيل"
 # Logging > Logging
 msgid "logs.pref#LetterLog# when an automatic claim notice is sent."
 msgstr "عند إرسال إخطار مطالبة تلقائي."
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# Don't log"
+msgstr "عدم تسجيل"
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# Log"
+msgstr "تسجيل"
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# when items are renewed."
+msgstr "عند تجديد المواد"
 
 # Logging > Logging
 msgid "logs.pref#ReportsLog# Don't log"
@@ -4725,7 +5283,7 @@ msgstr "عندما تكون السلاسل  مضافة ومحذوفة أو تم 
 
 # OPAC
 msgid "opac.pref"
-msgstr "opac.pref"
+msgstr "سياسات الأوباك -  "
 
 # OPAC > Advanced Search Options
 msgid "opac.pref Advanced Search Options"
@@ -4939,9 +5497,13 @@ msgstr "عرض"
 msgid "opac.pref#LibraryName# as the name of the library on the OPAC."
 msgstr "كاسم المكتبة في الأوباك"
 
-# OPAC > Appearance
-msgid "opac.pref#NoLoginInstructions# Show the following HTML on the OPAC login form when a patron is not logged in:"
-msgstr "عرض ال HTML التالي في تسجيل دخول الأوباك عندما يكون المستفيد غير مسجل الدخول:"
+# OPAC > Policy
+msgid "opac.pref#MaxOpenSuggestions# Limit patrons to"
+msgstr "أقصر المستفيدين على"
+
+# OPAC > Policy
+msgid "opac.pref#MaxOpenSuggestions# open suggestions. Leave empty for no limit. **Note: this setting does not affect anonymous suggestions"
+msgstr "افتح المقترحات. اتركها فارغة في حالة لا حدود. **تنبيه: لا تؤثر هذه الاعدادات المقترحات المجهولة  "
 
 # OPAC > Features
 msgid "opac.pref#OPACAcquisitionDetails# Display"
@@ -5023,6 +5585,22 @@ msgstr "عدم السماح"
 msgid "opac.pref#OPACFinesTab# patrons to access the Fines tab on the My Account page on the OPAC."
 msgstr "للمستفيدين بالوصول إلى تبويب الغرامات على  صفحة حسابي في واجهة المستفيد (OPAC)."
 
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# First column of the table"
+msgstr "أول عمود في الجدول"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# Holding library"
+msgstr "مكتبة الحجز"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# Home library"
+msgstr "المكتبة الأصل"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# is the default sort field for the holdings table"
+msgstr "هذا هو الحقل الافتراضي للفرز في جدول الحجوزات"
+
 # OPAC > Features
 msgid "opac.pref#OPACISBD# Use the following as the OPAC ISBD template:"
 msgstr "استخدم التالي كقالب تدمك للأوباك"
@@ -5041,7 +5619,7 @@ msgstr "ملاحظة للعرض في صفحة مالخص المستفيد. ست�
 
 # OPAC > Appearance
 msgid "opac.pref#OPACNoResultsFound# <br />Note: You can insert placeholders {QUERY_KW} that will be replaced with the keywords of the query."
-msgstr "ملاحظة: يمكنك إدخال المتغيرات {QUERY_KW} والتي ستم استبدالها بالكلمات المفتاحية للاستعلام"
+msgstr "<br/> ملاحظة: يمكنك إدخال المتغيرات {QUERY_KW} والتي ستم استبدالها بالكلمات المفتاحية للاستعلام."
 
 # OPAC > Appearance
 msgid "opac.pref#OPACNoResultsFound# Display this HTML when no results are found for a search in the OPAC:"
@@ -5085,19 +5663,19 @@ msgstr " للمستفيدين باختيار إعدادات الخصوصية ا�
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# . Please note that this feature is currently available for MARC21 and UNIMARC."
-msgstr "opac.pref#OPACResultsLibrary# نرجو الانتباه بأن هذه الميزة متوفرة حالياً ل مارك21 و اليونيمارك"
+msgstr "الرجاء الانتباه بأن هذه الميزة متوفرة حالياً لـ MARC21 و مارك UNIMARC"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# For search results in the OPAC, show the item's"
-msgstr "opac.pref#OPACResultsLibrary# في حالة نتائج البحث في الأوباك، اعرض المادة بصفة"
+msgstr "في نتائج البحث في الأوباك، أعرض الجزء التالي من عناصر المادة: "
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# current location"
-msgstr "opac.pref#OPACResultsLibrary# المكان الحالي"
+msgstr "الموقع الحالي"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# home library"
-msgstr "opac.pref#OPACResultsLibrary# المكان الأصل"
+msgstr "المكتبة الأصل"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsSidebar# Include the following HTML under the facets in OPAC search results:"
@@ -5122,18 +5700,6 @@ msgstr "عرض"
 # OPAC > Shelf Browser
 msgid "opac.pref#OPACShelfBrowser# a shelf browser on item details pages, allowing patrons to see what's near that item on the shelf. Note that this uses up a fairly large amount of resources on your server, and should be avoided if your collection has a large number of items."
 msgstr "متصفح رف في صفحات تفاصيل المادة, مما يسمح للمستفيدين برؤية مدى قرب هذه المادة على الرف.لاحظ أن هذا التفضيل يستخدم كما كبيرا من موارد خادمك,ويجب تجنبه إذا كانت مجموعتك تحتوي عددا كبيرا من المواد."
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# Don't show"
-msgstr "عدم عرض"
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# Show"
-msgstr "عرض"
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# the item's barcode on the holdings tab."
-msgstr "باركود المواد على ملصق الحجوزات"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACShowCheckoutName# Don't show"
@@ -5179,6 +5745,14 @@ msgstr "عرض"
 msgid "opac.pref#OPACShowUnusedAuthorities# unused authorities in the OPAC authority browser."
 msgstr "الملفات الإستنادية الغير مستخدمة في متصفح الإستنادات في أوباك."
 
+# OPAC > Policy
+msgid "opac.pref#OPACSuggestionMandatoryFields# <br />Note: if none of the above options are selected, 'Title' field would be mandatory anyway, by default."
+msgstr "<br/>ملاحظة: في حال لم يتم اختيار اي من الخيارات عاليه، حقل \"العنوان\" سوف يكون الزامي على كل حال، افتراضياً."
+
+# OPAC > Policy
+msgid "opac.pref#OPACSuggestionMandatoryFields# Fields that should be mandatory for patron purchase suggestions:"
+msgstr "الحقول التي يجب أن تكون إلزامية لمقترحات شراء المستفيد:"
+
 # OPAC > Appearance
 msgid "opac.pref#OPACURLOpenInNewWindow# When patrons click on a link to another website from your OPAC (like Amazon or OCLC),"
 msgstr "حين يقوم المستفيد بالنقر على رابط لموقع الكتروني آخر من واجهة أوباك (مثل أمازون أو  OCLC),"
@@ -5203,6 +5777,18 @@ msgstr "ضمن كود CSS التالي في كل صفحات واجهة المس�
 msgid "opac.pref#OPACUserJS# Include the following JavaScript on all pages in the OPAC:"
 msgstr "قم بإدراج الجافاسكريبت التالي في جميع الصفحات في الأوباك:"
 
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# Don't show"
+msgstr "عدم إظهار"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# Show"
+msgstr "إظهار"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
+msgstr "ملخص لإعارات المستفيد مسجل الدخول، ومتأخراته، وحجوزاته، وغراماته في الصفحة الرئيسية"
+
 # OPAC > Policy
 msgid "opac.pref#OPACViewOthersSuggestions# Don't show"
 msgstr "عدم عرض"
@@ -5222,6 +5808,14 @@ msgstr "<br />الخيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-
 # OPAC > Appearance
 msgid "opac.pref#OPACXSLTDetailsDisplay# Display OPAC details using XSLT stylesheet at: "
 msgstr "عرض تفاصيل أوباك بإستخدام أنماط XSLTعلى : "
+
+# OPAC > Appearance
+msgid "opac.pref#OPACXSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+msgstr "<br />خيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">اتركه خاليا</a> لـ \"no xslt\"</li><li>إدخال\"<a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"default\">الافتراضي</a>\" للافتراضي</li><li> ضع مسار لتعريف ملف xslt </li><li>ضع URL لنمط خارجي محدد.</li></ul>{langcode} سيتم استبداله بلغة الواجهة الحالية  "
+
+# OPAC > Appearance
+msgid "opac.pref#OPACXSLTListsDisplay# Display lists in the OPAC using XSLT stylesheet at: "
+msgstr "عرض القوائم في الأوباك باستخدام نمط XSLT  في:"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACXSLTResultsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
@@ -5460,24 +6054,38 @@ msgid "opac.pref#OpacLocationBranchToDisplay# home library"
 msgstr "المكتبة الرئيسية"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# Display the shelving location under the"
-msgstr "عرض موقع الترفيف أدنى ال"
+msgid "opac.pref#OpacLocationOnDetail# <br />Note: If 'on a separate column' is selected, you still need to enable the item_shelving_location display on the <a href='/cgi-bin/koha/admin/columns_settings.pl'>configure columns</a> administration page"
+msgstr "<br />ملاحظة: إذا تم تحديد \"في عمود منفصل\"، سيظل عليك تفعيل عرض موقع_ترفيف_المادة في <a href='/cgi-bin/koha/admin/columns_settings.pl'>تهيئة الأعمدة</a>صفحة الإدارة  "
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# for items on the OPAC record details page."
-msgstr "للمواد في صفحة تفاصيل تسجيلة الأوباك."
+msgid "opac.pref#OpacLocationOnDetail# Display the shelving location "
+msgstr "عرض موقع الترفيف"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# holding library"
-msgstr "المكتبة المقتنية"
+msgid "opac.pref#OpacLocationOnDetail# below both home and holding libraries"
+msgstr "أدنى كل من المكتبة الرئيسية والمكتبة المقتنية"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# home and holding libraries"
-msgstr "المكتبات الرئيسية والمقتنية"
+msgid "opac.pref#OpacLocationOnDetail# below the holding library"
+msgstr "أدنى المكتبة المقتنية"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# home library"
-msgstr "المكتبة الرئيسية"
+msgid "opac.pref#OpacLocationOnDetail# below the home library"
+msgstr "أدنى المكتبة الرئيسية"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLocationOnDetail# for items on the OPAC record details page."
+msgstr "للمواد في صفحة تفاصيل التسجيلة في الأوباك"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLocationOnDetail# on a separate column"
+msgstr "في عمود منفصل"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLoginInstructions# Show the following HTML on the OPAC login form when a patron is not logged in:"
+msgstr ""
+"عرض ال HTML التالي في نموذج تسجيل الدخول إلى الأوباك عند عدم تسجيل دخول "
+"المستفيد:"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacMainUserBlock# Show the following HTML in its own column on the main page of the OPAC:"
@@ -5518,6 +6126,18 @@ msgstr "عرض HTML التالية على العمود الأيمن من الص�
 # OPAC > Appearance
 msgid "opac.pref#OpacNavRight# Show the following HTML in the right hand column of the main page under the main login form:"
 msgstr "عرض HTML التالي على العمود الأيسر من الصفحة الرئيسية أسفل نموذج تسجيل الدخول الرئيسي:"
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# Display"
+msgstr "عرض"
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# Don't display"
+msgstr "عدم عرض"
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# a branch selection list for news items in the OPAC."
+msgstr "قائمة تحديد خاصة بالفرع لمواد الأخبار في الأوباك"
 
 # OPAC > Features
 msgid "opac.pref#OpacPasswordChange# Allow"
@@ -5684,8 +6304,8 @@ msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# (separate columns 
 msgstr "(فصل الأعمدة بعلامة  |)"
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
-msgstr ""
+msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
+msgstr "أعمدة قاعدة البيانات <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'> التالية </a> لن تظهر في شاشة التعديل الذاتي للمستفيد:"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistration# Allow"
@@ -5708,16 +6328,16 @@ msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# (separate columns
 msgstr " (فصل الأعمدة بـ |)"
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
-msgstr ""
+msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+msgstr "أعمدة قاعدة البيانات <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'> التالية</a> يجب ملؤها في شاشة إدخال المستفيد: "
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# (separate columns with |)"
 msgstr "(فصل ألأعمدة بـ |)"
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
-msgstr ""
+msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
+msgstr "أعمدة قاعدة البيانات <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>التالية </a> لن تظهر في شاشة التسجيل الذاتي للمستفيد:"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationDefaultCategory# Use the patron category code"
@@ -5728,12 +6348,48 @@ msgid "opac.pref#PatronSelfRegistrationDefaultCategory# as the default patron ca
 msgstr "كفئة المستفيد الافتراضية للمستفيدين المسجلين عبر الأوباك"
 
 # OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Consider"
+msgstr "ضع في الاعتبار"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Do not consider"
+msgstr "لا تضع في الاعتبار"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# patron's email (borrowers.email) as unique on self registering. An email won't be accepted if it already exists in the database."
+msgstr "البريد الالكتروني للمستفيد (borrowers.email) فريد عند التسجيل الذاتي. لن يتم قبول البريد الالكتروني إذا كان موجودا بالفعل في قاعدة البيانات."
+
+# OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# Delete patrons registered via the OPAC, but not yet verified after"
 msgstr "حذف المستفيدين المسجلين عبر الأوباك، لكن لم يقوموا بالتأكيد بعد"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# days."
 msgstr "أيام"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# (separate branchcode with |)."
+msgstr "(افصل رمز الفرع بواسطة |)."
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# Enable the self registration for the following libraries:"
+msgstr "نفعيل التسجيل الذاتي للمكتبات التالية:"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# If empty, all libraries will be listed."
+msgstr "اذا تُرك فارغ، سوف يتم سرد كل المكتبات."
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# Display and prefill"
+msgstr "أعرض وقم بالتعبئة المسبقة"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# Do not display and prefill"
+msgstr "لا تقم بالعرض والتعبئة المسبقة"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# password and login form after a patron has self registered."
+msgstr "نموذج كلمة المرور والدخول بعد تسجيل ذاتي من قبل رائد المكتبة"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationVerifyByEmail# Don't require"
@@ -6045,7 +6701,7 @@ msgstr "للمستفيدين بإجراء مقترحات للشراء في ال�
 
 # Patrons
 msgid "patrons.pref"
-msgstr "patrons.pref"
+msgstr "سياسات المستفيدين - "
 
 # Patrons > General
 msgid "patrons.pref General"
@@ -6112,8 +6768,12 @@ msgid "patrons.pref#BorrowerMandatoryField# (separate columns with |)"
 msgstr "(قم بفصل الأعمدة بواسطة |)"
 
 # Patrons > General
-msgid "patrons.pref#BorrowerMandatoryField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
-msgstr ""
+msgid "patrons.pref#BorrowerMandatoryField# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
+msgstr "ملاحظة: إذا تم تفعيل autoMemberNum ، يجب ألا يحتوي تفضيل النظام BorrowerMandatoryField  على حقل رقم البطاقة."
+
+# Patrons > General
+msgid "patrons.pref#BorrowerMandatoryField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+msgstr "أعمدة قاعدة البيانات <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>التالية </a> يجب ملؤها في شاشة إدخال المستفيد:"
 
 # Patrons > General
 msgid "patrons.pref#BorrowerRenewalPeriodBase# When renewing borrowers, base the new expiry date on"
@@ -6128,12 +6788,16 @@ msgid "patrons.pref#BorrowerRenewalPeriodBase# current membership expiry date."
 msgstr "التاريخ الحالي لإنتهاء صلاحية العضو"
 
 # Patrons > General
+msgid "patrons.pref#BorrowerRenewalPeriodBase# the latter of the current and expiry date."
+msgstr "أخر تاريخ حالي ومنتهي."
+
+# Patrons > General
 msgid "patrons.pref#BorrowerUnwantedField# (separate columns with |)"
 msgstr "(أعمدة منفصلة مع |)"
 
 # Patrons > General
-msgid "patrons.pref#BorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
-msgstr ""
+msgid "patrons.pref#BorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
+msgstr "أعمدة قاعدة البيانات <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>التالية </a> لن تظهر في شاشة إدخال المستفيد:"
 
 # Patrons > General
 msgid "patrons.pref#BorrowersTitles# (separate multiple choices with |)"
@@ -6148,12 +6812,36 @@ msgid "patrons.pref#CardnumberLength# Card numbers for patrons must be"
 msgstr "أرقام البطاقات للمستفيدين يجب أن تكون"
 
 # Patrons > General
-msgid "patrons.pref#CardnumberLength# If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size."
-msgstr "إذا تم إدراج 'cardnumber' في قائمة BorrowerMandatoryField، فإن افتراضس الحد الأدنى للطول يكون واحد، إذا لم يتم تحديده هنا. لا يمكن أن يكون الحد الأقصى أكبر من حجم حقل قاعدة البيانات."
+msgid "patrons.pref#CardnumberLength# If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size of 32."
+msgstr "إذا تم إدارج \"رقم البطاقة\" في قائمة BorrowerMandatoryField ، يصبح الحد الأدنى لطول الرقم افتراضياً هو واحد، في حالة عدم تحديد الطول هنا. ولا يمكن أن يكون الحد الأقصى أكبر من حجم حقل قاعدة البيانات وهو 32."
 
 # Patrons > General
 msgid "patrons.pref#CardnumberLength# characters long. The length can be a single number to specify an exact length, a range separated by a comma (i.e., 'Min,Max'), or a maximum with no minimum (i.e., ',Max')."
 msgstr "حرفا. يمكن أن يكون الطول رقما مفرداً لتحديد طولا بالضبط، نطاق مفصول بفاصلة (أي \"حد أدنى،حد أقصى\"، أو الحد الأقصى بدون حد أدنى (أي \"حد لأقصى\")x')."
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout#  check borrower checkout history to see if the current item has been checked out before."
+msgstr "قم بفحص سجل المستعير لمعرفة فيما أنه سبق أن استعار هذه المادة من قبل."
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Do"
+msgstr "قم ب"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Do not"
+msgstr "لا تقم ب"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Unless overridden, do"
+msgstr "الا في حال تجاوزه، قم ب"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Unless overridden, do not"
+msgstr "باستناء حالة تم تجاوزه، لا تفعل"
+
+# Patrons > General
+msgid "patrons.pref#DefaultPatronSearchFields# Comma separated list defining the default fields to be used during a patron search"
+msgstr "قائمة مقسمة بالفواصل للتعريف بالحقول الافتراضية التي يمكن استخدامها خلال البحث عن مستفيد"
 
 # Patrons > General
 msgid "patrons.pref#EnableBorrowerFiles# Do"
@@ -6202,6 +6890,14 @@ msgstr "تفعيل"
 # Patrons > General
 msgid "patrons.pref#ExtendedPatronAttributes# searching, editing and display of custom attributes on patrons."
 msgstr "من البحث وتحرير وعرض سمات مستفيدين مخصصة."
+
+# Patrons > General
+msgid "patrons.pref#FailedLoginAttempts# Block a patron's account if it reaches"
+msgstr "حظر حساب مستفيد إذا وصل إلى"
+
+# Patrons > General
+msgid "patrons.pref#FailedLoginAttempts# failed login attempts."
+msgstr "محاولات تسجيل دخول فاشلة"
 
 # Patrons > General
 msgid "patrons.pref#FeeOnChangePatronCategory# Do"
@@ -6284,12 +6980,50 @@ msgid "patrons.pref#NotifyBorrowerDeparture# days beforehand."
 msgstr " يوما سلفاً."
 
 # Patrons > General
+msgid "patrons.pref#PatronQuickAddFields# (separate columns with |)"
+msgstr "(صفوف مقسمة بحرف |)"
+
+# Patrons > General
+msgid "patrons.pref#PatronQuickAddFields# add these fields to the patron quick add form when entering a new patron. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
+msgstr "قم بإضافة هذه الحقول إلى نموذج الإضافة السريعة للمستفيد عند إدخال مستفيد جديد. الذي يعرض الحقول الإلزامية فقط والحقول المحددة هنا. وسيتم عرض نموذج الضامن أيضا إذا كان قيد التطبيق، سيتم تجاهل الحقول الفردية في هذا النموذج."
+
+# Patrons > General
 msgid "patrons.pref#PatronsPerPage# By default, show"
 msgstr " افتراضيا، عرض"
 
 # Patrons > General
 msgid "patrons.pref#PatronsPerPage# results per page in the staff client."
 msgstr "نتيجة لكل صفحة في برنامج العميل."
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# Allow all permitted users"
+msgstr "السماح لكل المستخدمين المصرح لهم"
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# Allow only superlibrarians"
+msgstr "السماح للمكتبيين المميزين فقط"
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# to access/change superlibrarian privileges. Note: A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
+msgstr ""
+"بالوصول إلى امتيازات المكتبي المميز أو تغييرها. ملاحظة: يجب أن يمتلك "
+"المستخدم المصرح له إشارة \"صلاحيات\" (إذا لم يكن مكتبيًا مميزًا)."
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# (Must contain at least one digit, one lowercase and one uppercase)."
+msgstr "(يجب على الأقل أن يحتوي على رقم واحد، وحرف صغير، وحرف كبير)."
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# Don't require"
+msgstr "عدم المطالبة بـ"
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# Require"
+msgstr "المطالبة بـ"
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# a strong password for staff and patrons"
+msgstr "كلمة مرور قوية للموظفين والمستفيدين"
 
 # Patrons > General
 msgid "patrons.pref#SMSSendDriver# Define a username/login"
@@ -6328,12 +7062,32 @@ msgid "patrons.pref#TalkingTechItivaPhoneNotification# patron phone notification
 msgstr "تنبيه المستفيد عبر الهاتف باستخدام تقنية الحديث  i-tiva ( المدعوم حالياً إشعارات المواد المتأخرة ، قبل التأخر والحجوزات)."
 
 # Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Do"
+msgstr "أعمل"
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Don't"
+msgstr "لا تفعل"
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Everytime a patron will connect, the borrowers.lastseen will be updated with the current time."
+msgstr "في كل مرة سيقوم بها المستفيد بالاتصال، سيتم تحديث borrowers.lastseen بالوقت الحالي."
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# track last patron activity."
+msgstr "تابع نشاط آخر مستفيد."
+
+# Patrons > General
 msgid "patrons.pref#autoMemberNum# Do"
 msgstr " القيام بـ"
 
 # Patrons > General
 msgid "patrons.pref#autoMemberNum# Don't"
 msgstr "عدم القيام"
+
+# Patrons > General
+msgid "patrons.pref#autoMemberNum# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
+msgstr "ملاحظة: عند تفعيل autoMemberNum، يجب ألا يحتوي التفضيل BorrowerMandatoryField  على رقم بطاقة الحقل"
 
 # Patrons > General
 msgid "patrons.pref#autoMemberNum# default the card number field on the patron addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942)."
@@ -6348,18 +7102,6 @@ msgid "patrons.pref#borrowerRelationship# Guarantors can be the following of tho
 msgstr " يمكن أن يكون الكفيل أحد التاليين للذين يقوم بكفالتهم:"
 
 # Patrons > General
-msgid "patrons.pref#checkdigit# Do"
-msgstr " القيام بـ"
-
-# Patrons > General
-msgid "patrons.pref#checkdigit# Don't"
-msgstr " عدم القيام"
-
-# Patrons > General
-msgid "patrons.pref#checkdigit# check and construct borrower card numbers in the Katipo style. This overrides <code>autoMemberNum</code> if on."
-msgstr " تحديد وإنشاء أرقام بطاقة المستعيرين بنمط Katipo . يتخطي ذلك <code>autoMemberNum</code> في حالة التشغيل."
-
-# Patrons > General
 msgid "patrons.pref#intranetreadinghistory# Allow"
 msgstr " السماح"
 
@@ -6368,8 +7110,8 @@ msgid "patrons.pref#intranetreadinghistory# Don't allow"
 msgstr " عدم السماح"
 
 # Patrons > General
-msgid "patrons.pref#intranetreadinghistory# staff to access a patron's checkout history (reading history is still stored, regardless of staff being allowed access or not)."
-msgstr "الموظفين بالوصول إلى سجل إعارة المسنفيد (يتم تخزين سجل القراءة، بغض النظر عن السماح للموظفين بالوصول من عدمه)"
+msgid "patrons.pref#intranetreadinghistory# staff to access a patron's checkout and hold history (reading history is still stored, regardless of staff being allowed access or not)."
+msgstr "الموظفين بالوصول لسجل إعارة وحجوزات المستفيد (لا يزال يتم تخزين سجل القراءة، بغض النظر على السماح للموظفين بالوصول إليه من عدمه)."
 
 # Patrons > General
 msgid "patrons.pref#minPasswordLength# Login passwords for staff and patrons must be at least"
@@ -6417,7 +7159,7 @@ msgstr "موظفي المكتبة لإخلاء طرف المستعيرين وا�
 
 # Searching
 msgid "searching.pref"
-msgstr "searching.pref"
+msgstr "سياسات البحث - "
 
 # Searching > Features
 msgid "searching.pref Features"
@@ -6454,6 +7196,19 @@ msgstr "إظهار التبويبات في أوباك والموظفين في ج
 # Searching > Search Form
 msgid "searching.pref#AdvancedSearchTypes# fields (separate values with |). Tabs appear in the order listed.<br/>"
 msgstr "الحقول (افصل بين الحقول باستخدام | ). التبويبات التي تظهر في الطلب المدرج.<br/>"
+
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# Disable"
+msgstr "إيقاف"
+
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# Enable"
+msgstr "تفعيل"
+
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# browsing search results fromt the bibliographic record detail page in staff client."
+msgstr ""
+"استعراض نتائج البحث من صفحة تفاصيل التسجيلة البيبلوغرافية في برنامج العميل."
 
 # Searching > Results Display
 msgid "searching.pref#DisplayLibraryFacets# Show facets for"
@@ -6527,6 +7282,22 @@ msgstr "المشغل \"PHR\" في رقم الطلب ومستوى عدد عملي
 msgid "searching.pref#IntranetNumbersPreferPhrase# use"
 msgstr "استخدام"
 
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Don't load"
+msgstr "عدم تحميل"
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Load"
+msgstr "تحميل"
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Load the unlogged history to the next user."
+msgstr "تحميل السجل غير المسجل للمستخدم التالي"
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# history to the next client."
+msgstr "السجل للعميل التالي"
+
 # Searching > Results Display
 msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Availability statuses may show incorrectly in search results if a record has more items than the limit set. Statuses will display correctly in the record details."
 msgstr "<br/>قد تظهر حالات الإتاحة بشكل غير صحيح في نتائج البحث إذا كان في التسجيلة عدد من المواد أكثر من الحد الأقصى. الحالات ستعرض بشكل صحيح في تفاصيل التسجيلة."
@@ -6537,11 +7308,11 @@ msgstr "<br/> اترك خاليا لكي لا يكون هناك حد"
 
 # Searching > Results Display
 msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# For records with many items, only check the availability status for the first"
-msgstr "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# للتسجيلات التي فيها مواد عديدة، افحص حالة التوفر للمادة الأولى منهم فقط"
+msgstr "للتسجيلات التي فيها مواد عديدة، افحص حالة التوفر للمادة الأولى منهم فقط"
 
 # Searching > Results Display
 msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# items."
-msgstr "مواد searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# "
+msgstr "مواد."
 
 # Searching > Results Display
 msgid "searching.pref#OPACItemsResultsDisplay# Don't show"
@@ -6869,7 +7640,7 @@ msgstr " نتيجة لكل صفحة في برنامج العميل."
 
 # Serials
 msgid "serials.pref"
-msgstr "serials.pref"
+msgstr "سياسات الدوريات - "
 
 # Serials
 msgid "serials.pref#OPACSerialIssueDisplayCount# Show the"
@@ -6948,6 +7719,18 @@ msgid "serials.pref#SubscriptionHistory# view of serial issues."
 msgstr "عرض أعداد الدورية"
 
 # Serials
+msgid "serials.pref#makePreviousSerialAvailable# Do not make"
+msgstr "لا تفعل"
+
+# Serials
+msgid "serials.pref#makePreviousSerialAvailable# Make"
+msgstr "أعمل"
+
+# Serials
+msgid "serials.pref#makePreviousSerialAvailable# previous serial automatically available when receiving a new serial issue. The previous issue can also be set to another item type when receiving a new one. Please note that the item-level_itypes syspref must be set to specific item."
+msgstr "erials.pref#makePreviousSerialAvailable# السلسلة السابقة سوف تتوفر تلقائياً عند استلام عدد جديد من الدورية. ايضاً يمكن تعيين العددالسابق لنوع مادة آخر عند استلام عدد جديد. الرجاء ملاحظة انه يجب تعيين نوع معين من المواد للمفضل tem-level_itypes syspref."
+
+# Serials
 msgid "serials.pref#opacSerialDefaultTab# Holdings tab"
 msgstr " تبويب المقتنيات"
 
@@ -6969,7 +7752,7 @@ msgstr " كتبويب افتراضي للدوريات في الأوباك. ال�
 
 # Staff Client
 msgid "staff_client.pref"
-msgstr "staff_client.pref"
+msgstr "سياسات عميل الموظفين - "
 
 # Staff Client > Appearance
 msgid "staff_client.pref Appearance"
@@ -7039,6 +7822,18 @@ msgstr " عرض"
 msgid "staff_client.pref#HidePatronName# the names of patrons that have items checked out or on hold on detail pages or the \"Place Hold\" screen."
 msgstr "اسماء المستفيدين الذين لديهم مواد معارة أو في الحجز في صفحات التفاصيل أو شاشة\"وضع حجز\" ."
 
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# Don't show"
+msgstr "لا تعرض"
+
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# Show"
+msgstr "أعرض"
+
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# a search field pulldown for 'Search the catalog' boxes."
+msgstr "حقل بحث منسدل لـصناديق \"أبحث في الفهرس\"."
+
 # Staff Client > Appearance
 msgid "staff_client.pref#IntranetCirculationHomeHTML# Show the following HTML in its own div on the bottom of the home page of the circulation module:"
 msgstr "قم بعرض ال HTML التالي في ال div الخاص به أدنى الصفحة الرئيسية من نظام الإعارة الفرعي:"
@@ -7060,8 +7855,8 @@ msgid "staff_client.pref#IntranetReportsHomeHTML# Show the following HTML in its
 msgstr "قم بعرض ال HTML التالي في ال div الخاص به أدنى الصفحة الرئيسية من نظام التقارير الفرعي:"
 
 # Staff Client > Appearance
-msgid "staff_client.pref#IntranetSlipPrinterJS# Use the following JavaScript for printing slips. Define at least function printThenClose(). For use e.g. with Firefox PlugIn jsPrintSetup, see http://jsprintsetup.mozdev.org/:"
-msgstr "استخدم الجافا سكربت التالية لطباعة الملصقات. حدد على الأقل وظيفة للاستخدامprintThenClose(). مثال بإضافات الفاير فوكس jsPrintSetup ، شاهد http://jsprintsetup.mozdev.org/:"
+msgid "staff_client.pref#IntranetSlipPrinterJS# Use the following JavaScript for printing slips. See detailed description on the <a href='https://wiki.koha-community.org/wiki/Setting_up_slip_printer_to_print_silently'>Koha Wiki</a> and eventually Firefox PlugIn <a href='https://github.com/edabg/jsprintsetup/wiki'>jsPrintSetup documentation</a>:"
+msgstr "استخدم الجافاسكريبت التالي لطباعة الكعوب. انظر الوصف المفصل في <a href='https://wiki.koha-community.org/wiki/Setting_up_slip_printer_to_print_silently'> كوها ويكي</a> وأخيراً برنامج فايرفوكس الإضافي <a href='https://github.com/edabg/jsprintsetup/wiki'>توثيق jsPrintSetup </a>:"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#IntranetUserCSS# Include the following CSS on all pages in the staff client:"
@@ -7095,6 +7890,26 @@ msgstr "تفعيل"
 msgid "staff_client.pref#StaffDetailItemSelection# item selection in record detail page."
 msgstr "تحديد المواد في صفحة تفاصيل التسجيلة"
 
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# Display language selector on "
+msgstr "عرض محدد اللغة في"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# both top and footer"
+msgstr "كل من الرأس والتذييل"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# only footer"
+msgstr "التذييل فقط"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# top"
+msgstr "الأعلى"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLoginInstructions# Show the following HTML on the staff client login page"
+msgstr "عرض ال HTML التالي في صفحة تسجيل الدخول إلى برنامج العميل."
+
 # Staff Client > Options
 msgid "staff_client.pref#UseWYSIWYGinSystemPreferences# Don't show"
 msgstr "عدم إظهار"
@@ -7105,7 +7920,7 @@ msgstr "إظهار"
 
 # Staff Client > Options
 msgid "staff_client.pref#UseWYSIWYGinSystemPreferences# WYSIWYG editor when editing certain HTML system preferences."
-msgstr "محرر WYSIWYG  عند تحرير مفضلات نظام HTML معينة"
+msgstr "محرر WYSIWYG عند تحرير مفضلات نظام HTML معينة"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#XSLTDetailsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTDetailsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTDetailsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li>put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
@@ -7114,6 +7929,14 @@ msgstr "<br />الخيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-
 # Staff Client > Appearance
 msgid "staff_client.pref#XSLTDetailsDisplay# Display details in the staff client using XSLT stylesheet at: "
 msgstr "عرض التفاصيل في عميل الموظفين باستخدام ملف استايل XSLT في: "
+
+# Staff Client > Appearance
+msgid "staff_client.pref#XSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+msgstr "<br/>خيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"\">أتركها فارغة</a>لـ \"no xslt\"</li><li>أدخل \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"الافتراضي\">default</a>\" للمفرتض</li><li> ضع مسار لتعريف xslt file</li><li>ضع URL لستايل خارجي محدد</li></ul>{langcode} سوف يستبدل بلغة الواجهة الحالية"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#XSLTListsDisplay# Display lists in the staff client using XSLT stylesheet at: "
+msgstr "أعرض القوائم في عميل الموظفين مستخدماً ستايل XSLT في:"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#XSLTResultsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTResultsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTResultsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
@@ -7160,12 +7983,12 @@ msgid "staff_client.pref#intranetstylesheet# on all pages in the staff interface
 msgstr "في كل الصفحات في واجهة الموظف,بدلا من ال  css الافتراضي(يستخدم عند ترك هذا الحقل خالياً). قم بإدخال اسم الملف فقط,مسار محلي كامل أو ال  URL الكامل الذي يبدأ بـ <code>http://</code> (إذا كان الملف يقع على خادم بعيد).يرجى ملاحظة أنك إذا قمت بإدخال اسم الملف فقط, يجب أن يكون الملف في المسار الفرعي css لكل ثيمة ولغة نشطة في مسار قوالب كوها. من المتوقع أن يبدأ المسار المحلي الكامل من جذر مستند  HTTP الخاص بك."
 
 # Staff Client > Appearance
-msgid "staff_client.pref#staffClientBaseURL# . Do not include a trailing slash in the URL."
-msgstr "عدم إدراج علامة خط مائل في ال URL"
+msgid "staff_client.pref#staffClientBaseURL# The staff client is located at"
+msgstr "عميل الموظفين موجود في"
 
 # Staff Client > Appearance
-msgid "staff_client.pref#staffClientBaseURL# The staff client is located at http://"
-msgstr " يقع برنامج العميل في http://"
+msgid "staff_client.pref#staffClientBaseURL# This should be a complete URL, starting with http:// or https://. Do not include a trailing slash in the URL. (This must be filled in correctly for CAS, svc, and load_testing to work.)"
+msgstr "يجب أن يكون هذا عنوان URL كامل، يبدأ بـ http:// أو https://. لا تقم بإدراج أي شرطة مائلة في عنوان ال URL. (يجب ملء ذلك بطريقة صحيحة لكي يعمل كل من  CAS، svc، و load_testing1)"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#template# Use the"
@@ -7213,7 +8036,7 @@ msgstr "للموظفين بعرض التسجيلات بشكل مارك بسيط 
 
 # Tools
 msgid "tools.pref"
-msgstr "tools.pref"
+msgstr "سياسات الأدوات - "
 
 # Tools > Batch item
 msgid "tools.pref Batch item"
@@ -7226,6 +8049,14 @@ msgstr "الأخبار"
 # Tools > Patron cards
 msgid "tools.pref Patron cards"
 msgstr "بطاقات المستفيد"
+
+# Tools > Reports
+msgid "tools.pref Reports"
+msgstr "تقارير tools.pref"
+
+# Tools > Upload
+msgid "tools.pref Upload"
+msgstr "تحميل tools.pref"
 
 # Tools > Patron cards
 msgid "tools.pref#ImageLimit# Limit the number of creator images stored in the database to"
@@ -7271,9 +8102,25 @@ msgstr "عرض المؤلف لمواد الأخبار:"
 msgid "tools.pref#NewsAuthorDisplay# Staff client only"
 msgstr "برنامج العميل فقط"
 
+# Tools > Reports
+msgid "tools.pref#NumSavedReports# By default, show"
+msgstr "افتراضيا، إظهار"
+
+# Tools > Reports
+msgid "tools.pref#NumSavedReports# reports on the Saved Reports page."
+msgstr "التقارير في صفحة التقارير المحفوظة"
+
+# Tools > Upload
+msgid "tools.pref#UploadPurgeTemporaryFilesDays# Automatically delete temporary uploads older than"
+msgstr "الحذف التلقائي للمرفوعات المؤقتة الأقدم من"
+
+# Tools > Upload
+msgid "tools.pref#UploadPurgeTemporaryFilesDays# days in cleanup_database cron job. NOTE: If you leave this field empty, the cron job will not delete any files. On the other hand a value of 0 means: delete all temporary files."
+msgstr "يوما في كرون cleanup_database. ملاحظة: إذا تركت هذا الحقل فارغا، لن يقوم الكرون بحذف أي ملفات. من ناحية أخرى، فإن القيمة 0 تعني: حذف كل الملفات المؤقتة. "
+
 # Web services
 msgid "web_services.pref"
-msgstr "خدمات الويب"
+msgstr "خدمات الويب - "
 
 # Web services > ILS-DI
 msgid "web_services.pref ILS-DI"
@@ -7281,11 +8128,15 @@ msgstr " ILS-DI"
 
 # Web services > IdRef
 msgid "web_services.pref IdRef"
-msgstr "خدمات الويب"
+msgstr "IdRef"
 
 # Web services > OAI-PMH
 msgid "web_services.pref OAI-PMH"
 msgstr " OAI-PMH"
+
+# Web services > REST API
+msgid "web_services.pref REST API"
+msgstr "REST API"
 
 # Web services > Reporting
 msgid "web_services.pref Reporting"
@@ -7309,7 +8160,7 @@ msgstr "السماح بعناوين IP"
 
 # Web services > ILS-DI
 msgid "web_services.pref#ILS-DI:AuthorizedIPs# to use the ILS-DI services (when enabled). Separate the IP addresses with commas and without spaces. Leave the field blank to allow any IP address."
-msgstr "لاستخدام خدمات ILS-DI (عند التفعيل). قم بفصل عناوين IPبالفصالات وبلا مسافات.اترك الحقل خالياً للسماح بأي عنوان  IP ."
+msgstr "لاستخدام خدمات ILS-DI (عند التفعيل). قم بفصل عناوين IP بالفصالات وبلا مسافات. اترك الحقل خالياً للسماح بأي عنوان IP ."
 
 # Web services > IdRef
 msgid "web_services.pref#IdRef# Disable"
@@ -7399,6 +8250,28 @@ msgstr " : ."
 msgid "web_services.pref#OAI-PMH:archiveID# Identify records at this site with the prefix"
 msgstr "تعريف التسجيلات في هذا الموقع بواسطة البادئة"
 
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# Disable"
+msgstr "إيقاف"
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# Enable"
+msgstr "تفعيل"
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# the OAuth2 client credentials grant for the REST API. Requires Net::OAuth2::AuthorizationServer installed. [EXPERIMENTAL]"
+msgstr ""
+"منح اعتمادات عميل OAuth2 لـ REST API. يتطلب تثبيت Net::OAuth2::"
+"AuthorizationServer [تجريبي]"
+
+# Web services > REST API
+msgid "web_services.pref#RESTdefaultPageSize# Set the default number of results returned by the REST API endpoints to"
+msgstr "ضبط العدد الافتراضي للنتائج بواسطة نقاط نهاية REST API إلى"
+
+# Web services > REST API
+msgid "web_services.pref#RESTdefaultPageSize# per page."
+msgstr "لكل صفحة."
+
 # Web services > Reporting
 msgid "web_services.pref#SvcMaxReportRows# Only return"
 msgstr "الإعادة فقط"
@@ -7406,4 +8279,3 @@ msgstr "الإعادة فقط"
 # Web services > Reporting
 msgid "web_services.pref#SvcMaxReportRows# rows of a report requested via the reports web service."
 msgstr "صفوف التقارير قد طلبت عبر خدمة تقارير ويب."
-

@@ -71,6 +71,9 @@ if ( $output_format eq 'csv' and $record_type eq 'auths' ) {
     pod2usage(q|CSV output is only available for biblio records|);
 }
 
+if ( $output_format eq 'csv' and not $csv_profile_id ) {
+    pod2usage(q|Define a csv profile to export in CSV|);
+}
 
 if ( $timestamp and $record_type ne 'bibs' ) {
     pod2usage(q|--timestamp can only be used with biblios|);
@@ -101,16 +104,16 @@ if ( $record_type eq 'bibs' ) {
     if ( $timestamp ) {
         push @record_ids, $_->{biblionumber} for @{
             $dbh->selectall_arrayref(q| (
-                SELECT biblionumber
-                FROM biblioitems
+                SELECT biblio_metadata.biblionumber
+                FROM biblio_metadata
                   LEFT JOIN items USING(biblionumber)
-                WHERE biblioitems.timestamp >= ?
+                WHERE biblio_metadata.timestamp >= ?
                   OR items.timestamp >= ?
             ) UNION (
-                SELECT biblionumber
-                FROM biblioitems
+                SELECT biblio_metadata.biblionumber
+                FROM biblio_metadata
                   LEFT JOIN deleteditems USING(biblionumber)
-                WHERE biblioitems.timestamp >= ?
+                WHERE biblio_metadata.timestamp >= ?
                   OR deleteditems.timestamp >= ?
             ) |, { Slice => {} }, ( $timestamp ) x 4 );
         };
@@ -249,7 +252,6 @@ Print a brief help message.
 =item B<--csv_profile_id>
 
  --csv_profile_id=ID    Generate a CSV file with the given CSV profile id (see tools/csv-profiles.pl)
-                        Unless provided, the one defined in the system preference 'ExportWithCsvProfile' will be used.
                         This can only be used to export biblio records.
 
 =item B<--deleted_barcodes>

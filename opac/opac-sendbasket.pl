@@ -22,7 +22,6 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use Encode qw(encode);
 use Carp;
-use Digest::MD5 qw(md5_base64);
 use Mail::Sendmail;
 use MIME::QuotedPrint;
 use MIME::Base64;
@@ -34,6 +33,7 @@ use C4::Output;
 use C4::Members;
 use C4::Templates ();
 use Koha::Email;
+use Koha::Patrons;
 use Koha::Token;
 
 my $query = new CGI;
@@ -58,11 +58,11 @@ if ( $email_add ) {
         token  => scalar $query->param('csrf_token'),
     });
     my $email = Koha::Email->new();
-    my $user = GetMember(borrowernumber => $borrowernumber);
-    my $user_email = GetFirstValidEmailAddress($borrowernumber)
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    my $user_email = $patron->first_valid_email_address
     || C4::Context->preference('KohaAdminEmailAddress');
 
-    my $email_replyto = "$user->{firstname} $user->{surname} <$user_email>";
+    my $email_replyto = $patron->firstname . " " . $patron->surname . " <$user_email>";
     my $comment    = $query->param('comment');
 
    # if you want to use the KohaAdmin address as from, that is the default no need to set it
@@ -87,7 +87,9 @@ if ( $email_add ) {
 
         my $dat              = GetBiblioData($biblionumber);
         next unless $dat;
-        my $record           = GetMarcBiblio($biblionumber, 1);
+        my $record           = GetMarcBiblio({
+            biblionumber => $biblionumber,
+            embed_items  => 1 });
         my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
         my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
 
@@ -115,8 +117,8 @@ if ( $email_add ) {
     $template2->param(
         BIBLIO_RESULTS => $resultsarray,
         comment        => $comment,
-        firstname      => $user->{firstname},
-        surname        => $user->{surname},
+        firstname      => $patron->firstname,
+        surname        => $patron->surname,
     );
 
     # Getting template result
@@ -190,13 +192,14 @@ END_OF_BODY
     output_html_with_http_headers $query, $cookie, $template->output;
 }
 else {
+    my $new_session_id = $cookie->value;
     $template->param(
         bib_list       => $bib_list,
         url            => "/cgi-bin/koha/opac-sendbasket.pl",
         suggestion     => C4::Context->preference("suggestion"),
         virtualshelves => C4::Context->preference("virtualshelves"),
         csrf_token => Koha::Token->new->generate_csrf(
-            { session_id => scalar $query->cookie('CGISESSID'), } ),
+            { session_id => $new_session_id, } ),
     );
     output_html_with_http_headers $query, $cookie, $template->output;
 }

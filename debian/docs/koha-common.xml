@@ -119,16 +119,9 @@
     <variablelist>
 
       <varlistentry>
-        <term><option>koha-start-zebra</option></term>
+        <term><option>koha-zebra</option></term>
         <listitem>
-          <para>Start Zebra for named Koha instances.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term><option>koha-restart-zebra</option></term>
-        <listitem>
-          <para>Restart Zebra for named Koha instances.</para>
+          <para>Manage the Zebra daemon for named Koha instances.</para>
         </listitem>
       </varlistentry>
 
@@ -140,19 +133,24 @@
       </varlistentry>
 
       <varlistentry>
-        <term><option>koha-stop-zebra</option></term>
-        <listitem>
-          <para>Stop Zebra for named Koha instances.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
         <term><option>koha-indexer</option></term>
         <listitem>
           <para>Manage the indexer daemon for named Koha instances.</para>
         </listitem>
       </varlistentry>
     </variablelist>
+    </refsect2>
+
+    <refsect2>
+      <title>Elasticsearch-related</title>
+        <variablelist>
+          <varlistentry>
+            <term><option>koha-elasticsearch</option></term>
+            <listitem>
+              <para>Manage Elasticsearch-related tasks for Koha instances.</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
     </refsect2>
 
     <refsect2><title>E-mail</title>

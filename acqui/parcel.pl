@@ -28,7 +28,7 @@ parcel.pl
 =head1 DESCRIPTION
 
 This script shows all orders receipt or pending for a given supplier.
-It allows to write an order as 'received' when he arrives.
+It allows to write an order as 'received' when it arrives.
 
 =head1 CGI PARAMETERS
 
@@ -54,8 +54,7 @@ To filter the results list on this given date.
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use C4::Auth;
 use C4::Acquisition;
@@ -65,10 +64,12 @@ use C4::Items;
 use CGI qw ( -utf8 );
 use C4::Output;
 use C4::Suggestions;
-use C4::Reserves qw/GetReservesFromBiblionumber/;
 
+use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Bookseller;
+use Koha::Biblios;
 use Koha::DateUtils;
+use Koha::Biblios;
 
 use JSON;
 
@@ -110,45 +111,49 @@ unless( $invoiceid and $invoice->{invoiceid} ) {
 }
 
 my $booksellerid = $invoice->{booksellerid};
-my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
-my $gst = $bookseller->{gstrate} // C4::Context->preference("gist") // 0;
+my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 
 my @orders        = @{ $invoice->{orders} };
 my $countlines    = scalar @orders;
 my @loop_received = ();
 my @book_foot_loop;
 my %foot;
-my $total_gste = 0;
-my $total_gsti = 0;
+my $total_tax_excluded = 0;
+my $total_tax_included = 0;
 
 my $subtotal_for_funds;
 for my $order ( @orders ) {
-    $order = C4::Acquisition::populate_order_with_prices({ order => $order, booksellerid => $bookseller->{id}, receiving => 1, ordering => 1 });
     $order->{'unitprice'} += 0;
 
-    if ( $bookseller->{listincgst} and not $bookseller->{invoiceincgst} ) {
-        $order->{ecost}     = $order->{ecostgste};
-        $order->{unitprice} = $order->{unitpricegste};
+    if ( $bookseller->invoiceincgst ) {
+        $order->{ecost}     = $order->{ecost_tax_included};
+        $order->{unitprice} = $order->{unitprice_tax_included};
     }
-    elsif ( not $bookseller->{listinct} and $bookseller->{invoiceincgst} ) {
-        $order->{ecost}     = $order->{ecostgsti};
-        $order->{unitprice} = $order->{unitpricegsti};
+    else {
+        $order->{ecost}     = $order->{ecost_tax_excluded};
+        $order->{unitprice} = $order->{unitprice_tax_excluded};
     }
+
     $order->{total} = $order->{unitprice} * $order->{quantity};
 
     my %line = %{ $order };
     $line{invoice} = $invoice->{invoicenumber};
-    $line{holds} = 0;
     my @itemnumbers = GetItemnumbersFromOrder( $order->{ordernumber} );
-    for my $itemnumber ( @itemnumbers ) {
-        my $holds = GetReservesFromBiblionumber({ biblionumber => $line{biblionumber}, itemnumber => $itemnumber });
-        $line{holds} += scalar( @$holds );
-    }
+    my $biblio = Koha::Biblios->find( $line{biblionumber} );
+    $line{total_holds} = $biblio ? $biblio->holds->count : 0;
+    $line{item_holds} = $biblio ? $biblio->current_holds->search(
+        {
+            itemnumber => { -in => \@itemnumbers },
+        }
+    )->count : 0;
     $line{budget} = GetBudgetByOrderNumber( $line{ordernumber} );
-    $foot{$line{gstrate}}{gstrate} = $line{gstrate};
-    $foot{$line{gstrate}}{gstvalue} += $line{gstvalue};
-    $total_gste += $line{totalgste};
-    $total_gsti += $line{totalgsti};
+
+    $line{tax_value} = $line{tax_value_on_receiving};
+    $line{tax_rate} = $line{tax_rate_on_receiving};
+    $foot{$line{tax_rate}}{tax_rate} = $line{tax_rate};
+    $foot{$line{tax_rate}}{tax_value} += $line{tax_value};
+    $total_tax_excluded += $line{unitprice_tax_excluded} * $line{quantity};
+    $total_tax_included += $line{unitprice_tax_included} * $line{quantity};
 
     my $suggestion   = GetSuggestionInfoFromBiblionumber($line{biblionumber});
     $line{suggestionid}         = $suggestion->{suggestionid};
@@ -219,12 +224,11 @@ unless( defined $invoice->{closedate} ) {
 
     for (my $i = 0 ; $i < $countpendings ; $i++) {
         my $order = $pendingorders->[$i];
-        $order = C4::Acquisition::populate_order_with_prices({ order => $order, booksellerid => $bookseller->{id}, receiving => 1, ordering => 1 });
 
-        if ( $bookseller->{listincgst} and not $bookseller->{invoiceincgst} ) {
-            $order->{ecost} = $order->{ecostgste};
-        } elsif ( not $bookseller->{listinct} and $bookseller->{invoiceincgst} ) {
-            $order->{ecost} = $order->{ecostgsti};
+        if ( $bookseller->invoiceincgst ) {
+            $order->{ecost} = $order->{ecost_tax_included};
+        } else {
+            $order->{ecost} = $order->{ecost_tax_excluded};
         }
         $order->{total} = $order->{ecost} * $order->{quantity};
 
@@ -234,19 +238,14 @@ unless( defined $invoice->{closedate} ) {
         $line{booksellerid} = $booksellerid;
 
         my $biblionumber = $line{'biblionumber'};
+        my $biblio = Koha::Biblios->find( $biblionumber );
         my $countbiblio = CountBiblioInOrders($biblionumber);
         my $ordernumber = $line{'ordernumber'};
-        my @subscriptions = GetSubscriptionsId ($biblionumber);
-        my $itemcount = GetItemsCount($biblionumber);
-        my $holds  = GetHolds ($biblionumber);
+        my $cnt_subscriptions = $biblio ? $biblio->subscriptions->count: 0;
+        my $itemcount   = $biblio ? $biblio->items->count : 0;
+        my $holds_count = $biblio ? $biblio->holds->count : 0;
         my @items = GetItemnumbersFromOrder( $ordernumber );
-        my $itemholds;
-        foreach my $item (@items){
-            my $nb = GetItemHolds($biblionumber, $item);
-            if ($nb){
-                $itemholds += $nb;
-            }
-        }
+        my $itemholds = $biblio ? $biblio->holds->search({ itemnumber => { -in => \@items } })->count : 0;
 
         my $suggestion   = GetSuggestionInfoFromBiblionumber($line{biblionumber});
         $line{suggestionid}         = $suggestion->{suggestionid};
@@ -254,17 +253,18 @@ unless( defined $invoice->{closedate} ) {
         $line{firstnamesuggestedby} = $suggestion->{firstnamesuggestedby};
 
         # if the biblio is not in other orders and if there is no items elsewhere and no subscriptions and no holds we can then show the link "Delete order and Biblio" see bug 5680
-        $line{can_del_bib}          = 1 if $countbiblio <= 1 && $itemcount == scalar @items && !(@subscriptions) && !($holds);
+        $line{can_del_bib}          = 1 if $countbiblio <= 1 && $itemcount == scalar @items && !($cnt_subscriptions) && !($holds_count);
         $line{items}                = ($itemcount) - (scalar @items);
         $line{left_item}            = 1 if $line{items} >= 1;
         $line{left_biblio}          = 1 if $countbiblio > 1;
         $line{biblios}              = $countbiblio - 1;
-        $line{left_subscription}    = 1 if scalar @subscriptions >= 1;
-        $line{subscriptions}        = scalar @subscriptions;
-        $line{left_holds}           = ($holds >= 1) ? 1 : 0;
+        $line{left_subscription}    = 1 if $cnt_subscriptions;
+        $line{subscriptions}        = $cnt_subscriptions;
+        $line{left_holds}           = ($holds_count >= 1) ? 1 : 0;
         $line{left_holds_on_order}  = 1 if $line{left_holds}==1 && ($line{items} == 0 || $itemholds );
-        $line{holds}                = $holds;
-        $line{holds_on_order}       = $itemholds?$itemholds:$holds if $line{left_holds_on_order};
+        $line{holds}                = $holds_count;
+        $line{holds_on_order}       = $itemholds?$itemholds:$holds_count if $line{left_holds_on_order};
+        $line{basket}               = Koha::Acquisition::Baskets->find( $line{basketno} );
 
         my $budget_name = GetBudgetName( $line{budget_id} );
         $line{budget_name} = $budget_name;
@@ -282,14 +282,14 @@ $template->param(
     invoice               => $invoice->{invoicenumber},
     invoiceclosedate      => $invoice->{closedate},
     datereceived          => dt_from_string,
-    name                  => $bookseller->{'name'},
-    booksellerid          => $bookseller->{id},
+    name                  => $bookseller->name,
+    booksellerid          => $bookseller->id,
     loop_received         => \@loop_received,
     loop_orders           => \@loop_orders,
     book_foot_loop        => \@book_foot_loop,
     (uc(C4::Context->preference("marcflavour"))) => 1,
-    total_gste           => $total_gste,
-    total_gsti           => $total_gsti,
+    total_tax_excluded    => $total_tax_excluded,
+    total_tax_included    => $total_tax_included,
     subtotal_for_funds    => $subtotal_for_funds,
     sticky_filters       => $sticky_filters,
 );

@@ -1,6 +1,7 @@
 package Koha::Object;
 
 # Copyright ByWater Solutions 2014
+# Copyright 2016 Koha Development Team
 #
 # This file is part of Koha.
 #
@@ -20,8 +21,13 @@ package Koha::Object;
 use Modern::Perl;
 
 use Carp;
+use Mojo::JSON;
+use Scalar::Util qw( looks_like_number );
+use Try::Tiny;
 
 use Koha::Database;
+use Koha::Exceptions::Object;
+use Koha::DateUtils;
 
 =head1 NAME
 
@@ -56,8 +62,17 @@ sub new {
     my $self = {};
 
     if ($attributes) {
-        $self->{_result} =
-          Koha::Database->new()->schema()->resultset( $class->_type() )
+        my $schema = Koha::Database->new->schema;
+
+        # Remove the arguments which exist, are not defined but NOT NULL to use the default value
+        my $columns_info = $schema->resultset( $class->_type )->result_source->columns_info;
+        for my $column_name ( keys %$attributes ) {
+            my $c_info = $columns_info->{$column_name};
+            next if $c_info->{is_nullable};
+            next if not exists $attributes->{$column_name} or defined $attributes->{$column_name};
+            delete $attributes->{$column_name};
+        }
+        $self->{_result} = $schema->resultset( $class->_type() )
           ->new($attributes);
     }
 
@@ -106,32 +121,32 @@ Returns:
 sub store {
     my ($self) = @_;
 
-    return $self->_result()->update_or_insert() ? $self : undef;
-}
-
-=head3 $object->in_storage();
-
-Returns true if the object has been previously stored.
-
-=cut
-
-sub in_storage {
-    my ($self) = @_;
-
-    return $self->_result()->in_storage();
-}
-
-=head3 $object->is_changed();
-
-Returns true if the object has properties that are different from
-the properties of the object in storage.
-
-=cut
-
-sub is_changed {
-    my ( $self, @columns ) = @_;
-
-    return $self->_result()->is_changed(@columns);
+    try {
+        return $self->_result()->update_or_insert() ? $self : undef;
+    }
+    catch {
+        # Catch problems and raise relevant exceptions
+        if (ref($_) eq 'DBIx::Class::Exception') {
+            if ( $_->{msg} =~ /Cannot add or update a child row: a foreign key constraint fails/ ) {
+                # FK constraints
+                # FIXME: MySQL error, if we support more DB engines we should implement this for each
+                if ( $_->{msg} =~ /FOREIGN KEY \(`(?<column>.*?)`\)/ ) {
+                    Koha::Exceptions::Object::FKConstraint->throw(
+                        error     => 'Broken FK constraint',
+                        broken_fk => $+{column}
+                    );
+                }
+            }
+            elsif( $_->{msg} =~ /Duplicate entry '(.*?)' for key '(?<key>.*?)'/ ) {
+                Koha::Exceptions::Object::DuplicateID->throw(
+                    error => 'Duplicate ID',
+                    duplicate_id => $+{key}
+                );
+            }
+        }
+        # Catch-all for foreign key breakages. It will help find other use cases
+        $_->rethrow();
+    }
 }
 
 =head3 $object->delete();
@@ -185,26 +200,11 @@ sub set {
 
     foreach my $p ( keys %$properties ) {
         unless ( grep {/^$p$/} @columns ) {
-            carp("No property $p!");
-            return 0;
+            Koha::Exceptions::Object::PropertyNotFound->throw( "No property $p for " . ref($self) );
         }
     }
 
     return $self->_result()->set_columns($properties) ? $self : undef;
-}
-
-=head3 $object->id();
-
-Returns the id of the object if it has one.
-
-=cut
-
-sub id {
-    my ($self) = @_;
-
-    my ( $id ) = $self->_result()->id();
-
-    return $id;
 }
 
 =head3 $object->unblessed();
@@ -217,6 +217,114 @@ sub unblessed {
     my ($self) = @_;
 
     return { $self->_result->get_columns };
+}
+
+=head3 $object->TO_JSON
+
+Returns an unblessed representation of the object, suitable for JSON output.
+
+=cut
+
+sub TO_JSON {
+
+    my ($self) = @_;
+
+    my $unblessed    = $self->unblessed;
+    my $columns_info = Koha::Database->new->schema->resultset( $self->_type )
+        ->result_source->{_columns};
+
+    foreach my $col ( keys %{$columns_info} ) {
+
+        if ( $columns_info->{$col}->{is_boolean} )
+        {    # Handle booleans gracefully
+            $unblessed->{$col}
+                = ( $unblessed->{$col} )
+                ? Mojo::JSON->true
+                : Mojo::JSON->false;
+        }
+        elsif ( _numeric_column_type( $columns_info->{$col}->{data_type} )
+            and looks_like_number( $unblessed->{$col} )
+        ) {
+
+            # TODO: Remove once the solution for
+            # https://rt.cpan.org/Ticket/Display.html?id=119904
+            # is ported to whatever distro we support by that time
+            $unblessed->{$col} += 0;
+        }
+        elsif ( _datetime_column_type( $columns_info->{$col}->{data_type} ) ) {
+            eval {
+                return unless $unblessed->{$col};
+                $unblessed->{$col} = output_pref({
+                    dateformat => 'rfc3339',
+                    dt         => dt_from_string($unblessed->{$col}, 'sql'),
+                });
+            };
+        }
+    }
+    return $unblessed;
+}
+
+sub _datetime_column_type {
+    my ($column_type) = @_;
+
+    my @dt_types = (
+        'timestamp',
+        'datetime'
+    );
+
+    return ( grep { $column_type eq $_ } @dt_types) ? 1 : 0;
+}
+
+sub _numeric_column_type {
+    # TODO: Remove once the solution for
+    # https://rt.cpan.org/Ticket/Display.html?id=119904
+    # is ported to whatever distro we support by that time
+    my ($column_type) = @_;
+
+    my @numeric_types = (
+        'bigint',
+        'integer',
+        'int',
+        'mediumint',
+        'smallint',
+        'tinyint',
+        'decimal',
+        'double precision',
+        'float'
+    );
+
+    return ( grep { $column_type eq $_ } @numeric_types) ? 1 : 0;
+}
+
+=head3 $object->unblessed_all_relateds
+
+my $everything_into_one_hashref = $object->unblessed_all_relateds
+
+The unblessed method only retrieves column' values for the column of the object.
+In a *few* cases we want to retrieve the information of all the prefetched data.
+
+=cut
+
+sub unblessed_all_relateds {
+    my ($self) = @_;
+
+    my %data;
+    my $related_resultsets = $self->_result->{related_resultsets} || {};
+    my $rs = $self;
+    while ( $related_resultsets and %$related_resultsets ) {
+        my @relations = keys %{ $related_resultsets };
+        if ( @relations ) {
+            my $relation = $relations[0];
+            $rs = $rs->related_resultset($relation)->get_cache;
+            $rs = $rs->[0]; # Does it makes sense to have several values here?
+            my $object_class = Koha::Object::_get_object_class( $rs->result_class );
+            my $koha_object = $object_class->_new_from_dbic( $rs );
+            $related_resultsets = $rs->{related_resultsets};
+            %data = ( %data, %{ $koha_object->unblessed } );
+        }
+    }
+    %data = ( %data, %{ $self->unblessed } );
+    return \%data;
 }
 
 =head3 $object->_result();
@@ -250,6 +358,16 @@ sub _columns {
     return $self->{_columns};
 }
 
+sub _get_object_class {
+    my ( $type ) = @_;
+    return unless $type;
+
+    if( $type->can('koha_object_class') ) {
+        return $type->koha_object_class;
+    }
+    $type =~ s|Schema::Result::||;
+    return ${type};
+}
 
 =head3 AUTOLOAD
 
@@ -275,8 +393,19 @@ sub AUTOLOAD {
         }
     }
 
-    carp "No method $method!";
-    return;
+    my @known_methods = qw( is_changed id in_storage get_column discard_changes update related_resultset make_column_dirty );
+
+    Koha::Exceptions::Object::MethodNotCoveredByTests->throw(
+        error      => sprintf("The method %s->%s is not covered by tests!", ref($self), $method),
+        show_trace => 1
+    ) unless grep { /^$method$/ } @known_methods;
+
+
+    my $r = eval { $self->_result->$method(@_) };
+    if ( $@ ) {
+        Koha::Exceptions::Object->throw( ref($self) . "::$method generated this error: " . $@ );
+    }
+    return $r;
 }
 
 =head3 _type
@@ -293,6 +422,8 @@ sub DESTROY { }
 =head1 AUTHOR
 
 Kyle M Hall <kyle@bywatersolutions.com>
+
+Jonathan Druart <jonathan.druart@bugs.koha-community.org>
 
 =cut
 

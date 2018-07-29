@@ -31,6 +31,9 @@ use MARC::Record;
 
 use C4::Output;
 use C4::Charset qw(StripNonXmlChars);
+use Koha::Patrons;
+
+use Koha::ItemTypes;
 
 my $query = new CGI;
 
@@ -50,12 +53,11 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-# get borrower information ....
-my ( $borr ) = GetMemberDetails( $borrowernumber );
+my $borr = Koha::Patrons->find( $borrowernumber )->unblessed;
 
 $template->param(%{$borr});
 
-my $itemtypes = GetItemTypes();
+my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 
 # get the record
 my $order = $query->param('order') || '';
@@ -90,8 +92,9 @@ foreach my $issue ( @{$issues} ) {
           getitemtypeimagelocation( 'opac',
             $itemtypes->{ $issue->{$itype_attribute} }->{imageurl} );
     }
-    if ( $issue->{marcxml} ) {
-        my $marcxml = StripNonXmlChars( $issue->{marcxml} );
+    my $marcxml = C4::Biblio::GetXmlBiblio( $issue->{biblionumber} );
+    if ( $marcxml ) {
+        $marcxml = StripNonXmlChars( $marcxml );
         my $marc_rec =
           MARC::Record::new_from_xml( $marcxml, 'utf8',
             C4::Context->preference('marcflavour') );

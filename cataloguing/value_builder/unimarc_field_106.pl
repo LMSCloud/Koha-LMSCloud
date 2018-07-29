@@ -18,8 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
+
 use C4::Auth;
 use CGI qw ( -utf8 );
 use C4::Context;
@@ -45,7 +45,7 @@ return ($field_number,$res);
 sub plugin {
 my ($input) = @_;
 	my $index= $input->param('index');
-	my $result= $input->param('result');
+	my $result= $input->param('result') || q{};
 
 	my $dbh = C4::Context->dbh;
 my ($template, $loggedinuser, $cookie)

@@ -25,6 +25,7 @@ use base qw( Template::Plugin );
 
 use C4::Koha;
 use C4::Context;
+use Koha::Libraries;
 
 sub GetName {
     my ( $self, $branchcode ) = @_;
@@ -57,38 +58,33 @@ sub GetURL {
 sub all {
     my ( $self, $params ) = @_;
     my $selected = $params->{selected};
+    my $unfiltered = $params->{unfiltered} || 0;
+    my $only_from_group = $params->{only_from_group} || 0;
     my $restrict;
     $restrict = $params->{restrict} if $params->{restrict};
     
-    my $dbh = C4::Context->dbh;
-    my @params;
-    my $query = q|
-        SELECT branchcode, branchname
-        FROM branches
-    |;
-    if (    C4::Branch::onlymine
-        and C4::Context->userenv
-        and C4::Context->userenv->{branch} )
-    {
-        $query .= q| WHERE branchcode = ? |;
-        push @params, C4::Context->userenv->{branch};
-    }
-    if ( $restrict && $restrict eq 'NoMobileStations' ) {
-        if  ($query =~ /WHERE/) { $query .= ' AND '; }
-        else { $query .= ' WHERE '; }
-        $query .= ' (mobilebranch is NULL or mobilebranch = \'\') ';
-    }
-    $query .= q| ORDER BY branchname|;
-    my $branches = $dbh->selectall_arrayref( $query, { Slice => {} }, @params );
+    my $searchparam = {};
+    $searchparam = { -or => [ mobilebranch => undef, mobilebranch => '' ] } if ( $restrict && $restrict eq 'NoMobileStations' );
+    $searchparam->{only_from_group} = $only_from_group if (! $unfiltered );
 
-    if ( $selected ) {
-        for my $branch ( @$branches ) {
-            if ( $branch->{branchcode} eq $selected ) {
-                $branch->{selected} = 1;
-            }
+    my $libraries = $unfiltered
+      ? Koha::Libraries->search( $searchparam, { order_by => ['branchname'] } )->unblessed
+      : Koha::Libraries->search_filtered( $searchparam, { order_by => ['branchname'] } )->unblessed;
+
+    for my $l ( @$libraries ) {
+        if (       defined $selected and $l->{branchcode} eq $selected
+            or not defined $selected and C4::Context->userenv and $l->{branchcode} eq ( C4::Context->userenv->{branch} // q{} )
+        ) {
+            $l->{selected} = 1;
         }
     }
-    return $branches;
+
+    return $libraries;
+}
+
+sub InIndependentBranchesMode {
+    my ( $self ) = @_;
+    return ( not C4::Context->preference("IndependentBranches") or C4::Context::IsSuperLibrarian );
 }
 
 1;

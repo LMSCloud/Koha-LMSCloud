@@ -17,14 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Koha;
-use C4::Branch;
 use C4::Letters;
 use C4::Members;
 use C4::Overdues;
@@ -32,16 +30,14 @@ use Koha::ClaimingRule;
 use Koha::ClaimingRules;
 use Koha::Libraries;
 
+use Koha::Patron::Categories;
+
 our $input = new CGI;
 my $dbh = C4::Context->dbh;
 
-my @categories = @{$dbh->selectall_arrayref(
-    'SELECT description, categorycode FROM categories WHERE overduenoticerequired > 0  ORDER BY description',
-    { Slice => {} }
-)};
+my @patron_categories = Koha::Patron::Categories->search( { overduenoticerequired => { '>' => 0 } } );
+my @category_codes  = map { $_->categorycode } @patron_categories;
 
-
-my @category_codes  = map { $_->{categorycode} } @categories;
 our @rule_params     = qw(delay letter debarred);
 
 # blank_row($category_code) - return true if the entire row is blank.
@@ -78,7 +74,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $branch = $input->param('branch');
 $branch =
     defined $branch                                                    ? $branch
-  : C4::Context->preference('DefaultToLoggedInLibraryOverdueTriggers') ? C4::Branch::mybranch()
+  : C4::Context->preference('DefaultToLoggedInLibraryOverdueTriggers') ? C4::Context::mybranch()
   : Koha::Libraries->search->count() == 1                              ? undef
   :                                                                      undef;
 $branch ||= q{};
@@ -136,8 +132,8 @@ if ($op eq 'save') {
 
     foreach my $bor (keys %temphash){
         # get category name if we need it for an error message
-        my $bor_category = GetBorrowercategory($bor);
-        my $bor_category_name = defined($bor_category) ? $bor_category->{description} : $bor;
+        my $bor_category = Koha::Patron::Categories->find($bor);
+        my $bor_category_name = $bor_category ? $bor_category->description : $bor;
 
         # Do some Checking here : delay1 < delay2 <delay3 all of them being numbers
         # Raise error if not true
@@ -326,25 +322,6 @@ elsif ( $op eq 'cloneRules') {
 }
 
 ########################################
-#  Read branches
-########################################
-my $branches;
-if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
-    $branches = GetBranchesWithoutMobileStations();
-} else {
-    $branches = GetBranches();
-}
-
-my @branchloop;
-for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-    push @branchloop, {
-        value      => $thisbranch,
-        selected   => $thisbranch eq $branch,
-        branchname => $branches->{$thisbranch}->{'branchname'},
-    };
-}
-
-########################################
 #  Read avaliable letters
 ########################################
 my $letters = C4::Letters::GetLettersAvailableForALibrary(
@@ -361,7 +338,7 @@ my $letters = C4::Letters::GetLettersAvailableForALibrary(
 my @line_loop;
 my $message_transport_types = C4::Letters::GetMessageTransportTypes();
 my ( @first, @second, @third, @fourth, @fifth );
-for my $data (@categories) {
+for my $patron_category (@patron_categories) {
     if (%temphash and not $input_saved){
         # if we managed to save the form submission, don't
         # reuse %temphash, but take the values from the
@@ -369,13 +346,13 @@ for my $data (@categories) {
         # bugs where the form submission was not correctly saved
         for my $i ( 1..5 ){
             my %row = (
-                overduename => $data->{'categorycode'},
-                line        => $data->{'description'}
+                overduename => $patron_category->categorycode,
+                line        => $patron_category->description,
             );
-            $row{delay}=$temphash{$data->{'categorycode'}}->{"delay$i"};
-            $row{debarred}=$temphash{$data->{'categorycode'}}->{"debarred$i"};
-            $row{selected_lettercode} = $temphash{ $data->{categorycode} }->{"letter$i"};
-            my @selected_mtts = @{ GetOverdueMessageTransportTypes( $branch, $data->{'categorycode'}, $i) };
+            $row{delay}=$temphash{$patron_category->categorycode}->{"delay$i"};
+            $row{debarred}=$temphash{$patron_category->categorycode}->{"debarred$i"};
+            $row{selected_lettercode} = $temphash{ $patron_category->categorycode }->{"letter$i"};
+            my @selected_mtts = @{ GetOverdueMessageTransportTypes( $branch, $patron_category->categorycode, $i) };
             my @mtts;
             for my $mtt ( @$message_transport_types ) {
                 push @mtts, {
@@ -399,19 +376,19 @@ for my $data (@categories) {
     } else {
     #getting values from table
         my $sth2=$dbh->prepare("SELECT * from overduerules WHERE branchcode=? AND categorycode=?");
-        $sth2->execute($branch,$data->{'categorycode'});
+        $sth2->execute($branch,$patron_category->categorycode);
         my $dat=$sth2->fetchrow_hashref;
         for my $i ( 1..5 ){
             my %row = (
-                overduename => $data->{'categorycode'},
-                line        => $data->{'description'}
+                overduename => $patron_category->categorycode,
+                line        => $patron_category->description,
             );
 
             $row{selected_lettercode} = $dat->{"letter$i"};
 
             if ($dat->{"delay$i"}){$row{delay}=$dat->{"delay$i"};}
             if ($dat->{"debarred$i"}){$row{debarred}=$dat->{"debarred$i"};}
-            my @selected_mtts = @{ GetOverdueMessageTransportTypes( $branch, $data->{'categorycode'}, $i) };
+            my @selected_mtts = @{ GetOverdueMessageTransportTypes( $branch, $patron_category->categorycode, $i) };
             my @mtts;
             for my $mtt ( @$message_transport_types ) {
                 push @mtts, {
@@ -468,8 +445,7 @@ my @tabs = (
 ########################################
 #  Read item types
 ########################################
-my @itemtypes = @{ GetItemTypes( style => 'array' ) };
-@itemtypes = sort { lc $a->{translated_description} cmp lc $b->{translated_description} } @itemtypes;
+my @itemtypes = Koha::ItemTypes->search_with_localization;
 
 ########################################
 #  Read claiming fee rules 
@@ -481,14 +457,12 @@ my @claimingFeeRules = readClaimingRules($dbh, $branch, $language);
 #  Set template paramater
 ########################################
 $template->param(
-                        categoryloop => \@categories,
+                        categoryloop => \@patron_categories,
                         itemtypeloop => \@itemtypes,
                         rules => \@claimingFeeRules,
-                        humanbranch => ($branch ne '*' ? $branches->{$branch}->{branchname} : ''),
                         current_branch => $branch,
                         definedbranch => scalar(@claimingFeeRules)>0,
                         table => ( @first or @second or @third or @fourth or @fifth ? 1 : 0 ),
-                        branchloop => \@branchloop,
                         branch => $branch,
                         tabs => \@tabs,
                         message_transport_types => $message_transport_types,

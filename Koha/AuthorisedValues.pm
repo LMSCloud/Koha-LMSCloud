@@ -24,6 +24,8 @@ use Carp;
 use Koha::Database;
 
 use Koha::AuthorisedValue;
+use Koha::MarcSubfieldStructures;
+use Koha::Cache::Memory::Lite;
 
 use base qw(Koha::Objects);
 
@@ -44,7 +46,7 @@ my @objects = Koha::AuthorisedValues->search($params);
 =cut
 
 sub search {
-    my ( $self, $params ) = @_;
+    my ( $self, $params, $attributes ) = @_;
 
     my $branchcode = $params->{branchcode};
     delete( $params->{branchcode} );
@@ -59,7 +61,105 @@ sub search {
       }
       : {};
     my $join = $branchcode ? { join => 'authorised_values_branches' } : {};
-    return $self->SUPER::search( { %$params, %$or, }, $join );
+    $attributes //= {};
+    $attributes = { %$attributes, %$join };
+    return $self->SUPER::search( { %$params, %$or, }, $attributes );
+}
+
+sub search_by_marc_field {
+    my ( $self, $params ) = @_;
+    my $frameworkcode = $params->{frameworkcode} || '';
+    my $tagfield      = $params->{tagfield};
+    my $tagsubfield   = $params->{tagsubfield};
+
+    return unless $tagfield or $tagsubfield;
+
+    return $self->SUPER::search(
+        {   'marc_subfield_structures.frameworkcode' => $frameworkcode,
+            ( defined $tagfield    ? ( 'marc_subfield_structures.tagfield'    => $tagfield )    : () ),
+            ( defined $tagsubfield ? ( 'marc_subfield_structures.tagsubfield' => $tagsubfield ) : () ),
+        },
+        { join => { category => 'marc_subfield_structures' } }
+    );
+}
+
+sub search_by_koha_field {
+    my ( $self, $params ) = @_;
+    my $frameworkcode    = $params->{frameworkcode} || '';
+    my $kohafield        = $params->{kohafield};
+    my $category         = $params->{category};
+
+    return unless $kohafield;
+
+    return $self->SUPER::search(
+        {   'marc_subfield_structures.frameworkcode' => $frameworkcode,
+            'marc_subfield_structures.kohafield'     => $kohafield,
+            ( defined $category ? ( category_name    => $category )         : () ),
+        },
+        {   join     => { category => 'marc_subfield_structures' },
+            distinct => 1,
+        }
+    );
+}
+
+sub find_by_koha_field {
+    my ( $self, $params ) = @_;
+    my $frameworkcode    = $params->{frameworkcode} || '';
+    my $kohafield        = $params->{kohafield};
+    my $authorised_value = $params->{authorised_value};
+
+    my $av = $self->SUPER::search(
+        {   'marc_subfield_structures.frameworkcode' => $frameworkcode,
+            'marc_subfield_structures.kohafield'     => $kohafield,
+            'me.authorised_value'                    => $authorised_value,
+        },
+        {   join     => { category => 'marc_subfield_structures' },
+            distinct => 1,
+        }
+    );
+    return $av->count ? $av->next : undef;
+}
+
+sub get_description_by_koha_field {
+    my ( $self, $params ) = @_;
+    my $frameworkcode    = $params->{frameworkcode} || '';
+    my $kohafield        = $params->{kohafield};
+    my $authorised_value = $params->{authorised_value};
+
+    return {} unless defined $authorised_value;
+
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key    = "AV_descriptions:$frameworkcode:$kohafield:$authorised_value";
+    my $cached       = $memory_cache->get_from_cache($cache_key);
+    return $cached if $cached;
+
+    my $av = $self->find_by_koha_field($params);
+    return {} unless defined $av;
+    my $descriptions = { lib => $av->lib, opac_description => $av->opac_description };
+    $memory_cache->set_in_cache( $cache_key, $descriptions );
+    return $descriptions;
+}
+
+sub get_descriptions_by_koha_field {
+    my ( $self, $params ) = @_;
+    my $frameworkcode = $params->{frameworkcode} || '';
+    my $kohafield = $params->{kohafield};
+
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key    = "AV_descriptions:$frameworkcode:$kohafield";
+    my $cached       = $memory_cache->get_from_cache($cache_key);
+    return @$cached if $cached;
+
+    my @avs          = $self->search_by_koha_field($params);
+    my @descriptions = map {
+        {
+            authorised_value => $_->authorised_value,
+            lib              => $_->lib,
+            opac_description => $_->opac_description
+        }
+    } @avs;
+    $memory_cache->set_in_cache( $cache_key, \@descriptions );
+    return @descriptions;
 }
 
 sub categories {

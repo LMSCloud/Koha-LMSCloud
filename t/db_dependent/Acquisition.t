@@ -19,17 +19,18 @@ use Modern::Perl;
 
 use POSIX qw(strftime);
 
-use Test::More tests => 92;
+use Test::More tests => 68;
+use t::lib::Mocks;
 use Koha::Database;
+
+use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
 
 BEGIN {
     use_ok('C4::Acquisition');
-    use_ok('C4::Bookseller');
     use_ok('C4::Biblio');
     use_ok('C4::Budgets');
-    use_ok('C4::Bookseller');
-    use_ok('Koha::Acquisition::Order');
-    use_ok('Koha::Acquisition::Bookseller');
+    use_ok('Koha::Acquisition::Orders');
+    use_ok('Koha::Acquisition::Booksellers');
 }
 
 # Sub used for testing C4::Acquisition subs returning order(s):
@@ -125,7 +126,7 @@ my $dbh = C4::Context->dbh;
 $dbh->{RaiseError} = 1;
 
 # Creating some orders
-my $booksellerid = C4::Bookseller::AddBookseller(
+my $bookseller = Koha::Acquisition::Bookseller->new(
     {
         name         => "my vendor",
         address1     => "bookseller's address",
@@ -133,11 +134,11 @@ my $booksellerid = C4::Bookseller::AddBookseller(
         active       => 1,
         deliverytime => 5,
     }
-);
+)->store;
+my $booksellerid = $bookseller->id;
 
-my $booksellerinfo = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
-
-is( $booksellerinfo->{deliverytime},
+my $booksellerinfo = Koha::Acquisition::Booksellers->find( $booksellerid );
+is( $booksellerinfo->deliverytime,
     5, 'set deliverytime when creating vendor (Bug 10556)' );
 
 my ( $basket, $basketno );
@@ -156,8 +157,8 @@ my $bpid=AddBudgetPeriod({
 
 my $budgetid = C4::Budgets::AddBudget(
     {
-        budget_code => "budget_code_test_getordersbybib",
-        budget_name => "budget_name_test_getordersbybib",
+        budget_code => "budget_code_test_1",
+        budget_name => "budget_name_test_1",
         budget_period_id => $bpid,
     }
 );
@@ -168,6 +169,9 @@ my ( $biblionumber1, $biblioitemnumber1 ) = AddBiblio( MARC::Record->new, '' );
 my ( $biblionumber2, $biblioitemnumber2 ) = AddBiblio( MARC::Record->new, '' );
 my ( $biblionumber3, $biblioitemnumber3 ) = AddBiblio( MARC::Record->new, '' );
 my ( $biblionumber4, $biblioitemnumber4 ) = AddBiblio( MARC::Record->new, '' );
+my ( $biblionumber5, $biblioitemnumber5 ) = AddBiblio( MARC::Record->new, '' );
+
+
 
 # Prepare 5 orders, and make distinction beween fields to be tested with eq and with ==
 # Ex : a price of 50.1 will be stored internally as 5.100000
@@ -189,7 +193,6 @@ my @order_content = (
             ecost     => 38.15,
             rrp       => 40.15,
             discount  => 5.1111,
-            gstrate   => 0.0515
         }
     },
     {
@@ -217,7 +220,6 @@ my @order_content = (
             ecost     => 38.1,
             rrp       => 11.0,
             discount  => 5.1,
-            gstrate   => 0.1
         }
     },
     {
@@ -237,7 +239,6 @@ my @order_content = (
             rrp            => 11.00,
             discount       => 0,
             uncertainprice => 0,
-            gstrate        => 0
         }
     },
     {
@@ -257,389 +258,41 @@ my @order_content = (
             rrp            => 10,
             discount       => 0,
             uncertainprice => 0,
-            gstrate        => 0
+        }
+    },
+    {
+        str => {
+            basketno     => $basketno,
+            biblionumber => $biblionumber5,
+            budget_id    => $budget->{budget_id},
+            order_internalnote => "internal note",
+            order_vendornote   => "vendor note"
+        },
+        num => {
+            quantity       => 1,
+            ecost          => 10,
+            rrp            => 10,
+            listprice      => 10,
+            ecost          => 10,
+            rrp            => 10,
+            discount       => 0,
+            uncertainprice => 0,
         }
     }
 );
 
-# Create 4 orders in database
-for ( 0 .. 4 ) {
+# Create 5 orders in database
+for ( 0 .. 5 ) {
     my %ocontent;
     @ocontent{ keys %{ $order_content[$_]->{num} } } =
       values %{ $order_content[$_]->{num} };
     @ocontent{ keys %{ $order_content[$_]->{str} } } =
       values %{ $order_content[$_]->{str} };
-    $ordernumbers[$_] = Koha::Acquisition::Order->new( \%ocontent )->insert->{ordernumber};
+    $ordernumbers[$_] = Koha::Acquisition::Order->new( \%ocontent )->store->ordernumber;
     $order_content[$_]->{str}->{ordernumber} = $ordernumbers[$_];
 }
 
-# Test UT sub _check_fields_of_order
-
-my (
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_order(
-    [qw /a b c d e/],
-    { str => { a => "bla", b => "105" }, num => { c => 15.12 } },
-    { a => "blabla", f => "f", b => "105", c => 15.1200, g => '' }
-  );
-ok(
-    (
-              ( $test_nbr_fields == 5 )
-          and ( join( " ", sort @$test_missing_fields ) eq 'd e' )
-          and ( join( " ", sort @$test_extra_fields )   eq 'f g' )
-          and ( join( " ", @$test_different_fields )    eq 'a' )
-    ),
-    "_check_fields_of_order can check an order (test 1)"
-);
-(
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_order(
-    [qw /a b c /],
-    { str => { a => "bla", b => "105" }, num => { c => 15.00 } },
-    { a => "bla", b => "105", c => 15 }
-  );
-ok(
-    (
-              ( $test_nbr_fields == 3 )
-          and ( scalar @$test_missing_fields == 0 )
-          and ( scalar @$test_extra_fields == 0 )
-          and ( scalar @$test_different_fields == 0 )
-    ),
-    "_check_fields_of_order can check an order (test 2)"
-);
-(
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_order(
-    [qw /a b c d e/],
-    { str => { a => "bla", b => "105" }, num => { c => 15.12 } },
-    { a => "blabla", b => "105", c => 15, d => "error" }
-  );
-ok(
-    (
-              ( $test_nbr_fields == 4 )
-          and ( join( " ", sort @$test_missing_fields ) eq 'e' )
-          and ( scalar @$test_extra_fields == 0 )
-          and ( join( " ", @$test_different_fields ) eq 'a c' )
-    ),
-    "_check_fields_of_order can check an order (test 3)"
-);
-
-#
-# test GetOrder
-#
-
-my @expectedfields = qw(
-  order_internalnote
-  order_vendornote
-  ordernumber
-  biblionumber
-  entrydate
-  quantity
-  currency
-  listprice
-  datereceived
-  invoiceid
-  freight
-  unitprice
-  quantityreceived
-  datecancellationprinted
-  purchaseordernumber
-  basketno
-  timestamp
-  rrp
-  ecost
-  unitpricesupplier
-  unitpricelib
-  gstrate
-  discount
-  budget_id
-  budgetdate
-  sort1
-  sort2
-  sort1_authcat
-  sort2_authcat
-  uncertainprice
-  claims_count
-  claimed_date
-  subscriptionid
-  parent_ordernumber
-  orderstatus
-  line_item_id
-  suppliers_reference_number
-  suppliers_reference_qualifier
-  suppliers_report
-  title
-  author
-  basketname
-  branchcode
-  publicationyear
-  copyrightdate
-  editionstatement
-  isbn
-  ean
-  seriestitle
-  publishercode
-  publisher
-  budget
-  supplier
-  supplierid
-  estimateddeliverydate
-  orderdate
-  quantity_to_receive
-  subtotal
-  latesince
-  cancellationreason
-);
-(
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_order( \@expectedfields, $order_content[0],
-    GetOrder( $ordernumbers[0] ) );
-is(
-    $test_nbr_fields,
-    scalar @expectedfields,
-    "GetOrder gets an order with the right number of fields"
-);
-is( join( " ", @$test_missing_fields ),
-    '', "GetOrder gets an order with no missing fields" );
-is( join( " ", @$test_extra_fields ),
-    '', "GetOrder gets an order with no unexpected fields" );
-is( join( " ", @$test_different_fields ),
-    '', "GetOrder gets an order with the right content in every fields" );
-
-#
-# Test GetOrders
-#
-
-my @base_expectedfields = qw(
-  order_internalnote
-  order_vendornote
-  notes
-  ordernumber
-  ecost
-  uncertainprice
-  marc
-  url
-  isbn
-  copyrightdate
-  serial
-  cn_suffix
-  cn_item
-  marcxml
-  freight
-  cn_class
-  title
-  pages
-  budget_encumb
-  budget_name
-  number
-  itemtype
-  totalissues
-  author
-  budget_permission
-  parent_ordernumber
-  size
-  claims_count
-  currency
-  seriestitle
-  timestamp
-  editionstatement
-  budget_parent_id
-  publishercode
-  unitprice
-  collectionvolume
-  budget_amount
-  budget_owner_id
-  datecreated
-  claimed_date
-  subscriptionid
-  editionresponsibility
-  sort2
-  volumedate
-  budget_id
-  illus
-  ean
-  biblioitemnumber
-  datereceived
-  orderstatus
-  line_item_id
-  suppliers_reference_number
-  suppliers_reference_qualifier
-  suppliers_report
-  agerestriction
-  budget_branchcode
-  gstrate
-  listprice
-  budget_code
-  budgetdate
-  basketno
-  discount
-  abstract
-  collectionissn
-  publicationyear
-  collectiontitle
-  invoiceid
-  place
-  issn
-  quantityreceived
-  entrydate
-  cn_source
-  sort1_authcat
-  budget_notes
-  biblionumber
-  unititle
-  sort2_authcat
-  budget_expend
-  rrp
-  cn_sort
-  lccn
-  sort1
-  volume
-  purchaseordernumber
-  quantity
-  budget_period_id
-  frameworkcode
-  volumedesc
-  datecancellationprinted
-  cancellationreason
-);
-@expectedfields =
-  ( @base_expectedfields,
-    ( 'transferred_from_timestamp', 'transferred_from' ) );
-is( GetOrders(), undef, "GetOrders with no params returns undef" );
 DelOrder( $order_content[3]->{str}->{biblionumber}, $ordernumbers[3] );
-my @get_orders = GetOrders($basketno);
-(
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_orders( \@expectedfields, \@order_content, \@get_orders );
-is(
-    $$test_nbr_fields[0],
-    scalar @expectedfields,
-    "GetOrders gets orders with the right number of fields"
-);
-is( join( " ", @$test_missing_fields ),
-    '', "GetOrders gets orders with no missing fields" );
-is( join( " ", @$test_extra_fields ),
-    '', "GetOrders gets orders with no unexpected fields" );
-is( join( " ", @$test_different_fields ),
-    '', "GetOrders gets orders with the right content in every fields" );
-ok(
-    (
-        ( scalar @get_orders == 4 )
-          and !grep ( $_->{ordernumber} eq $ordernumbers[3], @get_orders )
-    ),
-    "GetOrders only gets non-cancelled orders"
-);
-
-#
-# Test GetOrders { cancelled => 1 }
-#
-
-@expectedfields =
-  ( @base_expectedfields, ( 'transferred_to_timestamp', 'transferred_to' ) );
-@get_orders = GetOrders($basketno, { cancelled => 1 });
-(
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_orders( \@expectedfields, \@order_content, \@get_orders );
-is(
-    $$test_nbr_fields[0],
-    scalar @expectedfields,
-    "GetOrders { cancelled => 1 } gets orders with the right number of fields"
-);
-is( join( " ", @$test_missing_fields ),
-    '', "GetOrders { cancelled => 1 } gets orders with no missing fields" );
-is( join( " ", @$test_extra_fields ),
-    '', "GetOrders { cancelled => 1 } gets orders with no unexpected fields" );
-is( join( " ", @$test_different_fields ),
-    '',
-    "GetOrders { cancelled => 1 } gets orders with the right content in every fields" );
-ok(
-    (
-        ( scalar @get_orders == 1 )
-          and grep ( $_->{ordernumber} eq $ordernumbers[3], @get_orders )
-    ),
-    "GetOrders { cancelled => 1 } only gets cancelled orders"
-);
-
-#
-# Test SearchOrders
-#
-
-@expectedfields = qw (
-  order_internalnote
-  order_vendornote
-  notes
-  basketgroupid
-  basketgroupname
-  firstname
-  biblioitemnumber
-  ecost
-  uncertainprice
-  creationdate
-  datereceived
-  orderstatus
-  line_item_id
-  suppliers_reference_number
-  suppliers_reference_qualifier
-  suppliers_report
-  isbn
-  copyrightdate
-  gstrate
-  serial
-  listprice
-  budgetdate
-  basketno
-  discount
-  surname
-  freight
-  abstract
-  title
-  closedate
-  basketname
-  invoiceid
-  author
-  parent_ordernumber
-  claims_count
-  entrydate
-  currency
-  quantityreceived
-  seriestitle
-  sort1_authcat
-  timestamp
-  biblionumber
-  unititle
-  sort2_authcat
-  rrp
-  unitprice
-  sort1
-  ordernumber
-  datecreated
-  purchaseordernumber
-  quantity
-  claimed_date
-  subscriptionid
-  frameworkcode
-  sort2
-  datecancellationprinted
-  budget_id
-  authorisedby
-  booksellerid
-  cancellationreason
-);
-
-# note that authorisedby was added to the return of SearchOrder by the
-# patch for bug 11777
 
 my $invoiceid = AddInvoice(
     invoicenumber => 'invoice',
@@ -647,15 +300,14 @@ my $invoiceid = AddInvoice(
     unknown       => "unknown"
 );
 
+my $invoice = GetInvoice( $invoiceid );
+
 my ($datereceived, $new_ordernumber) = ModReceiveOrder(
     {
         biblionumber      => $biblionumber4,
-        ordernumber       => $ordernumbers[4],
+        order             => Koha::Acquisition::Orders->find( $ordernumbers[4] )->unblessed,
         quantityreceived  => 1,
-        cost              => 10,
-        ecost             => 10,
-        invoiceid         => $invoiceid,
-        rrp               => 10,
+        invoice           => $invoice,
         budget_id          => $order_content[4]->{str}->{budget_id},
     }
 );
@@ -665,26 +317,9 @@ my $search_orders = SearchOrders({
     basketno     => $basketno
 });
 isa_ok( $search_orders, 'ARRAY' );
-(
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_orders( \@expectedfields, \@order_content,
-    $search_orders );
-is(
-    $$test_nbr_fields[0],
-    scalar @expectedfields,
-    "SearchOrders gets orders with the right number of fields"
-);
-is( join( " ", @$test_missing_fields ),
-    '', "SearchOrders gets orders with no missing fields" );
-is( join( " ", @$test_extra_fields ),
-    '', "SearchOrders gets orders with no unexpected fields" );
-is( join( " ", @$test_different_fields ),
-    '', "SearchOrders gets orders with the right content in every fields" );
 ok(
     (
-        ( scalar @$search_orders == 4 )
+        ( scalar @$search_orders == 5 )
           and !grep ( $_->{ordernumber} eq $ordernumbers[3], @$search_orders )
     ),
     "SearchOrders only gets non-cancelled orders"
@@ -697,7 +332,7 @@ $search_orders = SearchOrders({
 });
 ok(
     (
-        ( scalar @$search_orders == 3 ) and !grep ( (
+        ( scalar @$search_orders == 4 ) and !grep ( (
                      ( $_->{ordernumber} eq $ordernumbers[3] )
                   or ( $_->{ordernumber} eq $ordernumbers[4] )
             ),
@@ -736,34 +371,6 @@ is( scalar (@$search_orders), 0, "SearchOrders takes into account the biblionumb
 ok( GetBudgetByOrderNumber( $ordernumbers[0] )->{'budget_id'} eq $budgetid,
     "GetBudgetByOrderNumber returns expected budget" );
 
-#
-# Test GetLateOrders
-#
-
-@expectedfields = qw (
-  orderdate
-  author
-  budget
-  supplierid
-  claims_count
-  supplier
-  publisher
-  ordernumber
-  quantity
-  basketno
-  claimed_date
-  branch
-  estimateddeliverydate
-  title
-  publicationyear
-  unitpricelib
-  unitpricesupplier
-  subtotal
-  latesince
-  basketname
-  basketgroupid
-  basketgroupname
-);
 my @lateorders = GetLateOrders(0);
 is( scalar grep ( $_->{basketno} eq $basketno, @lateorders ),
     0, "GetLateOrders does not get orders from opened baskets" );
@@ -772,25 +379,9 @@ C4::Acquisition::CloseBasket($basketno);
 isnt( scalar grep ( $_->{basketno} eq $basketno, @lateorders ),
     0, "GetLateOrders gets orders from closed baskets" );
 ok( !grep ( $_->{ordernumber} eq $ordernumbers[3], @lateorders ),
-    "GetLateOrders does not gets cancelled orders" );
+    "GetLateOrders does not get cancelled orders" );
 ok( !grep ( $_->{ordernumber} eq $ordernumbers[4], @lateorders ),
-    "GetLateOrders does not gets reveived orders" );
-(
-    $test_missing_fields,   $test_extra_fields,
-    $test_different_fields, $test_nbr_fields
-  )
-  = _check_fields_of_orders( \@expectedfields, \@order_content, \@lateorders );
-is(
-    $$test_nbr_fields[0],
-    scalar @expectedfields,
-    "GetLateOrders gets orders with the right number of fields"
-);
-is( join( " ", @$test_missing_fields ),
-    '', "GetLateOrders gets orders with no missing fields" );
-is( join( " ", @$test_extra_fields ),
-    '', "GetLateOrders gets orders with no unexpected fields" );
-is( join( " ", @$test_different_fields ),
-    '', "GetLateOrders gets orders with the right content in every fields" );
+    "GetLateOrders does not get received orders" );
 
 $search_orders = SearchOrders({
     booksellerid => $booksellerid,
@@ -798,7 +389,7 @@ $search_orders = SearchOrders({
     pending      => 1,
     ordered      => 1,
 });
-is( scalar (@$search_orders), 3, "SearchOrders with pending and ordered params gets only pending ordered orders. After closing the basket, orders are marked as 'ordered' (bug 11170)" );
+is( scalar (@$search_orders), 4, "SearchOrders with pending and ordered params gets only pending ordered orders. After closing the basket, orders are marked as 'ordered' (bug 11170)" );
 
 #
 # Test AddClaim
@@ -813,20 +404,18 @@ is(
     "AddClaim : Check claimed_date"
 );
 
+my $order2 = Koha::Acquisition::Orders->find( $ordernumbers[1] )->unblessed;
+$order2->{order_internalnote} = "my notes";
 ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
     {
         biblionumber     => $biblionumber2,
-        ordernumber      => $ordernumbers[1],
+        order            => $order2,
         quantityreceived => 2,
-        cost             => 12,
-        ecost            => 12,
-        invoiceid        => $invoiceid,
-        rrp              => 42,
-        order_internalnote => "my notes",
-        order_vendornote   => "my vendor notes",
+        invoice          => $invoice,
     }
-);
-my $order2 = GetOrder( $ordernumbers[1] );
+)
+;
+$order2 = GetOrder( $ordernumbers[1] );
 is( $order2->{'quantityreceived'},
     0, 'Splitting up order did not receive any on original order' );
 is( $order2->{'quantity'}, 40, '40 items on original order' );
@@ -834,8 +423,6 @@ is( $order2->{'budget_id'}, $budgetid,
     'Budget on original order is unchanged' );
 is( $order2->{order_internalnote}, "my notes",
     'ModReceiveOrder and GetOrder deal with internal notes' );
-is( $order2->{order_vendornote}, "my vendor notes",
-    'ModReceiveOrder and GetOrder deal with vendor notes' );
 
 $neworder = GetOrder($new_ordernumber);
 is( $neworder->{'quantity'}, 2, '2 items on new order' );
@@ -851,6 +438,9 @@ is( scalar( @$orders ), 1, 'GetHistory with a given ordernumber returns 1 order'
 $orders = GetHistory( ordernumber => $ordernumbers[1], search_children_too => 1 );
 is( scalar( @$orders ), 2, 'GetHistory with a given ordernumber and search_children_too set returns 2 orders' );
 
+# Test GetHistory() with and without SearchWithISBNVariations
+# The ISBN passed as a param is the ISBN-10 version of the 13-digit ISBN in the sample record declared in $marcxml
+
 my $budgetid2 = C4::Budgets::AddBudget(
     {
         budget_code => "budget_code_test_modrecv",
@@ -858,21 +448,19 @@ my $budgetid2 = C4::Budgets::AddBudget(
     }
 );
 
+my $order3 = Koha::Acquisition::Orders->find( $ordernumbers[2] )->unblessed;
+$order3->{order_internalnote} = "my other notes";
 ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
     {
         biblionumber     => $biblionumber2,
-        ordernumber      => $ordernumbers[2],
+        order            => $order3,
         quantityreceived => 2,
-        cost             => 12,
-        ecost            => 12,
-        invoiceid        => $invoiceid,
-        rrp              => 42,
+        invoice          => $invoice,
         budget_id        => $budgetid2,
-        order_internalnote => "my other notes",
     }
 );
 
-my $order3 = GetOrder( $ordernumbers[2] );
+$order3 = GetOrder( $ordernumbers[2] );
 is( $order3->{'quantityreceived'},
     0, 'Splitting up order did not receive any on original order' );
 is( $order3->{'quantity'}, 2, '2 items on original order' );
@@ -887,17 +475,15 @@ is( $neworder->{'quantityreceived'},
     2, 'Splitting up order received items on new order' );
 is( $neworder->{'budget_id'}, $budgetid2, 'Budget on new order is changed' );
 
+$order3 = Koha::Acquisition::Orders->find( $ordernumbers[2] )->unblessed;
+$order3->{order_internalnote} = "my third notes";
 ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
     {
         biblionumber     => $biblionumber2,
-        ordernumber      => $ordernumbers[2],
+        order            => $order3,
         quantityreceived => 2,
-        cost             => 12,
-        ecost            => 12,
-        invoiceid        => $invoiceid,
-        rrp              => 42,
+        invoice          => $invoice,
         budget_id        => $budgetid2,
-        order_internalnote => "my third notes",
     }
 );
 
@@ -919,7 +505,7 @@ ok((not defined $error), "DelOrder does not fail");
 $order1 = GetOrder($order1->{ordernumber});
 ok((defined $order1->{datecancellationprinted}), "order is cancelled");
 ok((not defined $order1->{cancellationreason}), "order has no cancellation reason");
-ok((defined GetBiblio($order1->{biblionumber})), "biblio still exists");
+ok((defined Koha::Biblios->find( $order1->{biblionumber} )), "biblio still exists");
 
 $order2 = GetOrder($ordernumbers[1]);
 $error = DelOrder($order2->{biblionumber}, $order2->{ordernumber}, 1);
@@ -927,7 +513,7 @@ ok((not defined $error), "DelOrder does not fail");
 $order2 = GetOrder($order2->{ordernumber});
 ok((defined $order2->{datecancellationprinted}), "order is cancelled");
 ok((not defined $order2->{cancellationreason}), "order has no cancellation reason");
-ok((not defined GetBiblio($order2->{biblionumber})), "biblio does not exist anymore");
+ok((not defined Koha::Biblios->find( $order2->{biblionumber} )), "biblio does not exist anymore");
 
 my $order4 = GetOrder($ordernumbers[3]);
 $error = DelOrder($order4->{biblionumber}, $order4->{ordernumber}, 1, "foobar");
@@ -935,7 +521,15 @@ ok((not defined $error), "DelOrder does not fail");
 $order4 = GetOrder($order4->{ordernumber});
 ok((defined $order4->{datecancellationprinted}), "order is cancelled");
 ok(($order4->{cancellationreason} eq "foobar"), "order has cancellation reason \"foobar\"");
-ok((not defined GetBiblio($order4->{biblionumber})), "biblio does not exist anymore");
+ok((not defined Koha::Biblios->find( $order4->{biblionumber} )), "biblio does not exist anymore");
+
+my $order5 = GetOrder($ordernumbers[4]);
+C4::Items::AddItem( { barcode => '0102030405' }, $order5->{biblionumber} );
+$error = DelOrder($order5->{biblionumber}, $order5->{ordernumber}, 1);
+$order5 = GetOrder($order5->{ordernumber});
+ok((defined $order5->{datecancellationprinted}), "order is cancelled");
+ok((defined Koha::Biblios->find( $order5->{biblionumber} )), "biblio still exists");
+
 # End of tests for DelOrder
 
 subtest 'ModOrder' => sub {
@@ -954,5 +548,121 @@ ok($active_count >= 1 , "GetBudgetsReport(1) OK");
 
 is($all_count, scalar GetBudgetsReport(), "GetBudgetReport returns inactive budget period acquisitions.");
 ok($active_count >= scalar GetBudgetsReport(1), "GetBudgetReport doesn't return inactive budget period acquisitions.");
+
+# "Flavoured" tests (tests that required a run for each marc flavour)
+# Tests should be added to the run_flavoured_tests sub below
+my $biblio_module = new Test::MockModule('C4::Biblio');
+$biblio_module->mock(
+    'GetMarcSubfieldStructure',
+    sub {
+        my ($self) = shift;
+
+        my ( $title_field,            $title_subfield )            = get_title_field();
+        my ( $isbn_field,             $isbn_subfield )             = get_isbn_field();
+        my ( $issn_field,             $issn_subfield )             = get_issn_field();
+        my ( $biblionumber_field,     $biblionumber_subfield )     = ( '999', 'c' );
+        my ( $biblioitemnumber_field, $biblioitemnumber_subfield ) = ( '999', '9' );
+        my ( $itemnumber_field,       $itemnumber_subfield )       = get_itemnumber_field();
+
+        return {
+            'biblio.title'                 => [ { tagfield => $title_field,            tagsubfield => $title_subfield } ],
+            'biblio.biblionumber'          => [ { tagfield => $biblionumber_field,     tagsubfield => $biblionumber_subfield } ],
+            'biblioitems.isbn'             => [ { tagfield => $isbn_field,             tagsubfield => $isbn_subfield } ],
+            'biblioitems.issn'             => [ { tagfield => $issn_field,             tagsubfield => $issn_subfield } ],
+            'biblioitems.biblioitemnumber' => [ { tagfield => $biblioitemnumber_field, tagsubfield => $biblioitemnumber_subfield } ],
+            'items.itemnumber'             => [ { tagfield => $itemnumber_subfield,    tagsubfield => $itemnumber_subfield } ],
+        };
+      }
+);
+
+sub run_flavoured_tests {
+    my $marcflavour = shift;
+    t::lib::Mocks::mock_preference('marcflavour', $marcflavour);
+
+    #
+    # Test SearchWithISBNVariations syspref
+    #
+    my $marc_record = MARC::Record->new;
+    $marc_record->append_fields( create_isbn_field( '9780136019701', $marcflavour ) );
+    my ( $biblionumber6, $biblioitemnumber6 ) = AddBiblio( $marc_record, '' );
+
+    # Create order
+    my $ordernumber = Koha::Acquisition::Order->new( {
+            basketno     => $basketno,
+            biblionumber => $biblionumber6,
+            budget_id    => $budget->{budget_id},
+            order_internalnote => "internal note",
+            order_vendornote   => "vendor note",
+            quantity       => 1,
+            ecost          => 10,
+            rrp            => 10,
+            listprice      => 10,
+            ecost          => 10,
+            rrp            => 10,
+            discount       => 0,
+            uncertainprice => 0,
+    } )->store->ordernumber;
+
+    t::lib::Mocks::mock_preference('SearchWithISBNVariations', 0);
+    $orders = GetHistory( isbn => '0136019706' );
+    is( scalar(@$orders), 0, "GetHistory searches correctly by ISBN" );
+
+    t::lib::Mocks::mock_preference('SearchWithISBNVariations', 1);
+    $orders = GetHistory( isbn => '0136019706' );
+    is( scalar(@$orders), 1, "GetHistory searches correctly by ISBN" );
+
+    my $order = GetOrder($ordernumber);
+    DelOrder($order->{biblionumber}, $order->{ordernumber}, 1);
+}
+
+# Do "flavoured" tests
+subtest 'MARC21' => sub {
+    plan tests => 2;
+    run_flavoured_tests('MARC21');
+};
+
+subtest 'UNIMARC' => sub {
+    plan tests => 2;
+    run_flavoured_tests('UNIMARC');
+};
+
+subtest 'NORMARC' => sub {
+    plan tests => 2;
+    run_flavoured_tests('NORMARC');
+};
+
+### Functions required for "flavoured" tests
+sub get_title_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '200', 'a' ) : ( '245', 'a' );
+}
+
+sub get_isbn_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '010', 'a' ) : ( '020', 'a' );
+}
+
+sub get_issn_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '011', 'a' ) : ( '022', 'a' );
+}
+
+sub get_itemnumber_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '995', '9' ) : ( '952', '9' );
+}
+
+sub create_isbn_field {
+    my ( $isbn, $marcflavour ) = @_;
+
+    my ( $isbn_field, $isbn_subfield ) = get_isbn_field();
+    my $field = MARC::Field->new( $isbn_field, '', '', $isbn_subfield => $isbn );
+
+    # Add the price subfield
+    my $price_subfield = ( $marcflavour eq 'UNIMARC' ) ? 'd' : 'c';
+    $field->add_subfields( $price_subfield => '$100' );
+
+    return $field;
+}
 
 $schema->storage->txn_rollback();

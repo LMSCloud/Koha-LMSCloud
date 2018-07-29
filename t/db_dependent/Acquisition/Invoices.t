@@ -3,10 +3,9 @@
 use Modern::Perl;
 
 use C4::Biblio qw( AddBiblio );
-use C4::Bookseller qw( AddBookseller );
 
-use Koha::Acquisition::Order;
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 use Koha::Database;
 
 use Test::More tests => 24;
@@ -22,23 +21,24 @@ $dbh->{RaiseError} = 1;
 
 $dbh->do(q{DELETE FROM aqinvoices});
 
-my $booksellerid = C4::Bookseller::AddBookseller(
+my $bookseller = Koha::Acquisition::Bookseller->new(
     {
         name => "my vendor",
         address1 => "bookseller's address",
         phone => "0123456",
         active => 1
     }
-);
+)->store;
+my $booksellerid = $bookseller->id;
 
-my $booksellerinfo = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $booksellerinfo = Koha::Acquisition::Booksellers->find( $booksellerid );
 my $basketno = NewBasket($booksellerid, 1);
 my $basket   = GetBasket($basketno);
 
 my $budgetid = C4::Budgets::AddBudget(
     {
-        budget_code => "budget_code_test_getordersbybib",
-        budget_name => "budget_name_test_getordersbybib",
+        budget_code => "budget_code_test",
+        budget_name => "budget_name_test",
     }
 );
 my $budget = C4::Budgets::GetBudget( $budgetid );
@@ -61,8 +61,8 @@ my $order1 = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber1,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber1 = $order1->{ordernumber};
+)->store;
+my $ordernumber1 = $order1->ordernumber;
 
 my $order2 = Koha::Acquisition::Order->new(
     {
@@ -71,8 +71,8 @@ my $order2 = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber2,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber2 = $order2->{ordernumber};
+)->store;
+my $ordernumber2 = $order2->ordernumber;
 
 my $order3 = Koha::Acquisition::Order->new(
     {
@@ -83,34 +83,32 @@ my $order3 = Koha::Acquisition::Order->new(
         ecost => 42,
         rrp => 42,
     }
-)->insert;
-my $ordernumber3 = $order3->{ordernumber};
+)->store;
+my $ordernumber3 = $order3->ordernumber;
 
 my $invoiceid1 = AddInvoice(invoicenumber => 'invoice1', booksellerid => $booksellerid, unknown => "unknown");
 my $invoiceid2 = AddInvoice(invoicenumber => 'invoice2', booksellerid => $booksellerid, unknown => "unknown",
                             shipmentdate => '2012-12-24',
                            );
 
+my $invoice1 = GetInvoice( $invoiceid1 );
+my $invoice2 = GetInvoice( $invoiceid2 );
+
 my ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
     {
         biblionumber     => $biblionumber1,
-        ordernumber      => $ordernumber1,
+        order            => $order1->unblessed,
         quantityreceived => 2,
-        cost             => 12,
-        ecost            => 12,
-        invoiceid        => $invoiceid1,
-        rrp              => 42
+        invoice          => $invoice1,
     }
 );
 
 ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
     {
         biblionumber     => $biblionumber2,
-        ordernumber      => $ordernumber2,
+        order            => $order2->unblessed,
         quantityreceived => 1,
-        cost             => 5,
-        ecost            => 5,
-        invoiceid        => $invoiceid2,
+        invoice          => $invoice2,
         rrp              => 42
     }
 );
@@ -118,17 +116,14 @@ my ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
 ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
     {
         biblionumber     => $biblionumber3,
-        ordernumber      => $ordernumber3,
+        order            => $order3->unblessed,
         quantityreceived => 1,
-        cost             => 12,
-        ecost            => 12,
-        invoiceid        => $invoiceid2,
-        rrp              => 42
+        invoice          => $invoice2,
     }
 );
 
-my $invoice1 = GetInvoiceDetails($invoiceid1);
-my $invoice2 = GetInvoiceDetails($invoiceid2);
+$invoice1 = GetInvoiceDetails($invoiceid1);
+$invoice2 = GetInvoiceDetails($invoiceid2);
 
 is(scalar @{$invoice1->{'orders'}}, 1, 'Invoice1 has only one order');
 is(scalar @{$invoice2->{'orders'}}, 2, 'Invoice2 has only two orders');

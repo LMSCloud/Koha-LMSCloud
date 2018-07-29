@@ -17,14 +17,14 @@ package C4::Matcher;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
-use C4::Context;
 use MARC::Record;
 
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
+use Koha::SearchEngine::QueryBuilder;
+use Koha::Util::Normalize qw/legacy_default remove_spaces upper_case lower_case/;
 
 =head1 NAME
 
@@ -620,7 +620,8 @@ sub get_matches {
     my $self = shift;
     my ($source_record, $max_matches) = @_;
 
-    my %matches = ();
+    my $matches = {};
+    my $marcframework_used = ''; # use the default framework
 
     my $QParser;
     $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
@@ -638,6 +639,11 @@ sub get_matches {
             && C4::Context->preference('AggressiveMatchOnISBN') )
             && !C4::Context->preference('UseQueryParser');
 
+        @source_keys = C4::Koha::GetVariationsOfISSNs(@source_keys)
+          if ( $matchpoint->{index} =~ /^issn$/i
+            && C4::Context->preference('AggressiveMatchOnISSN') )
+            && !C4::Context->preference('UseQueryParser');
+
         # build query
         my $query;
         my $error;
@@ -645,12 +651,14 @@ sub get_matches {
         my $total_hits;
         if ( $self->{'record_type'} eq 'biblio' ) {
 
-            if ($QParser) {
+            #NOTE: The QueryParser can't handle the CCL syntax of 'qualifier','qualifier', so fallback to non-QueryParser.
+            #NOTE: You can see this in C4::Search::SimpleSearch() as well in a different way.
+            if ($QParser && $matchpoint->{'index'} !~ m/\w,\w/) {
                 $query = join( " || ",
                     map { "$matchpoint->{'index'}:$_" } @source_keys );
             }
             else {
-                my $phr = C4::Context->preference('AggressiveMatchOnISBN') ? ',phr' : q{};
+                my $phr = ( C4::Context->preference('AggressiveMatchOnISBN') || C4::Context->preference('AggressiveMatchOnISSN') )  ? ',phr' : q{};
                 $query = join( " or ",
                     map { "$matchpoint->{'index'}$phr=\"$_\"" } @source_keys );
                     #NOTE: double-quote the values so you don't get a "Embedded truncation not supported" error when a term has a ? in it.
@@ -658,10 +666,32 @@ sub get_matches {
 
             my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
             ( $error, $searchresults, $total_hits ) =
-              $searcher->simple_search_compat( $query, 0, $max_matches );
+              $searcher->simple_search_compat( $query, 0, $max_matches, undef, skip_normalize => 1 );
+
+            if ( defined $error ) {
+                warn "search failed ($query) $error";
+            }
+            else {
+                if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' ) {
+                    foreach my $matched ( @{$searchresults} ) {
+                        my ( $biblionumber_tag, $biblionumber_subfield ) = C4::Biblio::GetMarcFromKohaField( "biblio.biblionumber", $marcframework_used );
+                        my $id = ( $biblionumber_tag > 10 ) ?
+                            $matched->field($biblionumber_tag)->subfield($biblionumber_subfield) :
+                            $matched->field($biblionumber_tag)->data();
+                        $matches->{$id}->{score} += $matchpoint->{score};
+                        $matches->{$id}->{record} = $matched;
+                    }
+                }
+                else {
+                    foreach my $matched ( @{$searchresults} ) {
+                        $matches->{$matched}->{score} += $matchpoint->{'score'};
+                        $matches->{$matched}->{record} = $matched;
+                    }
+                }
+            }
+
         }
         elsif ( $self->{'record_type'} eq 'authority' ) {
-            my $authresults;
             my @marclist;
             my @and_or;
             my @excluding = [];
@@ -673,57 +703,62 @@ sub get_matches {
                 push @operator, 'exact';
                 push @value,    $key;
             }
-            require C4::AuthoritiesMarc;
-            ( $authresults, $total_hits ) =
-              C4::AuthoritiesMarc::SearchAuthorities(
-                \@marclist,  \@and_or, \@excluding, \@operator,
-                \@value,     0,        20,          undef,
-                'AuthidAsc', 1
-              );
-            foreach my $result (@$authresults) {
-                push @$searchresults, $result->{'authid'};
-            }
-        }
+            my $builder  = Koha::SearchEngine::QueryBuilder->new({index => $Koha::SearchEngine::AUTHORITIES_INDEX});
+            my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::AUTHORITIES_INDEX});
+            my $search_query = $builder->build_authorities_query_compat(
+                \@marclist, \@and_or, \@excluding, \@operator,
+                \@value, undef, 'AuthidAsc'
+            );
+            my ( $authresults, $total ) = $searcher->search_auth_compat( $search_query, 0, 20 );
 
-        if ( defined $error ) {
-            warn "search failed ($query) $error";
-        }
-        else {
-            foreach my $matched ( @{$searchresults} ) {
-                $matches{$matched} += $matchpoint->{'score'};
+            foreach my $result (@$authresults) {
+                my $id = $result->{authid};
+                $matches->{$id}->{score} += $matchpoint->{'score'};
+                $matches->{$id}->{record} = $id;
             }
         }
     }
 
     # get rid of any that don't meet the threshold
-    %matches = map { ($matches{$_} >= $self->{'threshold'}) ? ($_ => $matches{$_}) : () } keys %matches;
-
-    # get rid of any that don't meet the required checks
-    %matches = map { _passes_required_checks($source_record, $_, $self->{'required_checks'}) ?  ($_ => $matches{$_}) : () } 
-                keys %matches unless ($self->{'record_type'} eq 'auth');
+    $matches = { map { ($matches->{$_}->{score} >= $self->{'threshold'}) ? ($_ => $matches->{$_}) : () } keys %$matches };
 
     my @results = ();
     if ($self->{'record_type'} eq 'biblio') {
         require C4::Biblio;
-        foreach my $marcblob (keys %matches) {
-            my $target_record = C4::Search::new_record_from_zebra('biblioserver',$marcblob);
-            my $record_number;
-            my $result = C4::Biblio::TransformMarcToKoha($target_record, '');
-            $record_number = $result->{'biblionumber'};
-            push @results, { 'record_id' => $record_number, 'score' => $matches{$marcblob} };
+        # get rid of any that don't meet the required checks
+        $matches = {
+            map {
+                _passes_required_checks( $source_record, $_, $self->{'required_checks'} )
+                  ? ( $_ => $matches->{$_} )
+                  : ()
+            } keys %$matches
+        };
+
+        foreach my $id ( keys %$matches ) {
+            my $target_record = C4::Search::new_record_from_zebra( 'biblioserver', $matches->{$id}->{record} );
+            my $result = C4::Biblio::TransformMarcToKoha( $target_record, $marcframework_used );
+            push @results, {
+                record_id => $result->{biblionumber},
+                score     => $matches->{$id}->{score}
+            };
         }
     } elsif ($self->{'record_type'} eq 'authority') {
         require C4::AuthoritiesMarc;
-        foreach my $authid (keys %matches) {
-            push @results, { 'record_id' => $authid, 'score' => $matches{$authid} };
+        foreach my $id (keys %$matches) {
+            push @results, {
+                record_id => $id,
+                score     => $matches->{$id}->{score}
+            };
         }
     }
-    @results = sort { $b->{'score'} cmp $a->{'score'} } @results;
+    @results = sort {
+        $b->{'score'} cmp $a->{'score'} or
+        $b->{'record_id'} cmp $a->{'record_id'}
+    } @results;
     if (scalar(@results) > $max_matches) {
         @results = @results[0..$max_matches-1];
     }
     return @results;
-
 }
 
 =head2 dump
@@ -774,6 +809,7 @@ sub _passes_required_checks {
 }
 
 sub _get_match_keys {
+
     my $source_record = shift;
     my $matchpoint = shift;
     my $check_only_first_repeat = @_ ? shift : 0;
@@ -792,7 +828,7 @@ sub _get_match_keys {
     # If there are two 003s and two 001s, there will be two keys:
     #    first 003 + first 001
     #    second 003 + second 001
-    
+
     my @keys = ();
     for (my $i = 0; $i <= $#{ $matchpoint->{'components'} }; $i++) {
         my $component = $matchpoint->{'components'}->[$i];
@@ -801,24 +837,45 @@ sub _get_match_keys {
             $j++;
             last FIELD if $j > 0 and $check_only_first_repeat;
             last FIELD if $i > 0 and $j > $#keys;
-            my $key = "";
-			my $string;
-            if ($field->is_control_field()) {
-				$string=$field->data();
+
+            my $string;
+            if ( $field->is_control_field() ) {
+                $string = $field->data();
             } else {
-                foreach my $subfield ($field->subfields()) {
-                    if (exists $component->{'subfields'}->{$subfield->[0]}) {
-                        $string .= " " . $subfield->[1]; #FIXME: It would be better to create an array and join with a space later...
-                    }
-                }
-			}
-            if ($component->{'length'}>0) {
-                    $string= substr($string, $component->{'offset'}, $component->{'length'});
-                            # FIXME normalize, substr
-            } elsif ($component->{'offset'}) {
-                    $string= substr($string, $component->{'offset'});
+                $string = $field->as_string(
+                    join('', keys %{ $component->{ subfields } }), ' ' # ' ' as separator
+                );
             }
-            $key = _normalize($string);
+
+            if ($component->{'length'}>0) {
+                $string= substr($string, $component->{'offset'}, $component->{'length'});
+            } elsif ($component->{'offset'}) {
+                $string= substr($string, $component->{'offset'});
+            }
+
+            my $norms = $component->{'norms'};
+            my $key = $string;
+
+            foreach my $norm ( @{ $norms } ) {
+                if ( grep { $norm eq $_ } valid_normalization_routines() ) {
+                    if ( $norm eq 'remove_spaces' ) {
+                        $key = remove_spaces($key);
+                    }
+                    elsif ( $norm eq 'upper_case' ) {
+                        $key = upper_case($key);
+                    }
+                    elsif ( $norm eq 'lower_case' ) {
+                        $key = lower_case($key);
+                    }
+                    elsif ( $norm eq 'legacy_default' ) {
+                        $key = legacy_default($key);
+                    }
+                } else {
+                    warn "Invalid normalization routine required ($norm)"
+                        unless $norm eq 'none';
+                }
+            }
+
             if ($i == 0) {
                 push @keys, $key if $key;
             } else {
@@ -843,16 +900,14 @@ sub _parse_match_component {
     return $component;
 }
 
-# FIXME - default normalizer
-sub _normalize {
-    my $value = uc shift;
-    $value =~ s/[.;:,\]\[\)\(\/'"]//g;
-    $value =~ s/^\s+//;
-    #$value =~ s/^\s+$//;
-    $value =~ s/\s+$//;
-    $value =~ s/\s+/ /g;
-    #$value =~ s/[.;,\]\[\)\(\/"']//g;
-    return $value;
+sub valid_normalization_routines {
+
+    return (
+        'remove_spaces',
+        'upper_case',
+        'lower_case',
+        'legacy_default'
+    );
 }
 
 1;

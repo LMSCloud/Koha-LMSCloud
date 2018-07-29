@@ -36,7 +36,7 @@ my ($template, $loggedinuser, $cookie)
             query => $cgi,
             type => "intranet",
             authnotrequired => 0,
-            flagsrequired => { tools => 'marc_modfication_templates' },
+            flagsrequired => { tools => 'marc_modification_templates' },
             debug => 1,
     });
 
@@ -112,11 +112,6 @@ if ( $op eq "create_template" ) {
 }
 
 my @templates = GetModificationTemplates( $template_id );
-
-unless ( $template_id ) {
-  $template_id = $templates[0]->{'template_id'};
-  @templates = GetModificationTemplates( $template_id );
-}
 
 my @actions = GetModificationTemplateActions( $template_id );
 foreach my $action ( @actions ) {

@@ -86,7 +86,7 @@ use C4::Auth;
 use C4::Context;
 use CGI qw ( -utf8 );
 use C4::Search qw(SimpleSearch);
-
+use Koha::Items;
 
 my $cgi = new CGI;
 
@@ -122,10 +122,8 @@ sub get_date_due_for_item
     my ( $biblionumber, $itemnumber ) = @_;
     my $date_due = '';
 
-    my $items = &C4::Items::GetItemsByBiblioitemnumber( $biblionumber );
-
-    foreach my $item (@$items) {
-        if ( $item->{itemnumber} == $itemnumber ) {
+    for my $item ( Koha::Items->search({ biblionumber => $biblionumber }) ) {
+        if ( $item->itemnumber == $itemnumber ) {
             $date_due = $item->{date_due};
             last;
         }
@@ -380,24 +378,18 @@ for (my $i = 0; $i < $hits and defined $marcresults->[$i] and $best_item_status 
     {
         my $biblionumber = $marcrecord->subfield("999","c");                        # get biblio number of the title hit
         $marc_titledata = &genISBD($marcrecord);                                    # generate the ISBN output for this title
-        
-        @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };    # read items of this biblio number
-        for my $itemnumber ( @itemnumbers )
+
+        for my $item ( Koha::Items->search({ biblionumber => $biblionumber }) )    # read items of this biblio number
         {
             # check if this item has a "better" status
-            my $itemrecord = C4::Items::GetItem( $itemnumber, 0, 0);
-
-            my $item_notforloan = $itemrecord->{'notforloan'};
-            my $item_damaged = $itemrecord->{'damaged'};
-            my $item_itemlost = $itemrecord->{'itemlost'};
-            my $item_withdrawn = $itemrecord->{'withdrawn'};
-            my $item_restricted = $itemrecord->{'restricted'};
+            my $itemrecord = $item->unblessed;
+            my $itemnumber = $itemrecord->{'itemnumber'};
             
-            if ($item_notforloan ||
-                $item_damaged ||
-                $item_itemlost ||
-                $item_withdrawn ||
-                $item_restricted)
+            if ($itemrecord->{'notforloan'} ||
+                $itemrecord->{'damaged'} ||
+                $itemrecord->{'itemlost'} ||
+                $itemrecord->{'withdrawn'} ||
+                $itemrecord->{'restricted'})
             {
                 if ($best_itemnumber == 0) 
                 {

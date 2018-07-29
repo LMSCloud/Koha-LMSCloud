@@ -19,6 +19,8 @@ use Modern::Perl;
 
 use Carp;
 
+use C4::Context; # Sigh...
+
 use Koha::Database;
 
 use Koha::Patron::Category;

@@ -25,7 +25,6 @@ use C4::Acquisition;
 use C4::Output;
 use C4::Context;
 use C4::Letters;
-use C4::Branch;    # GetBranches GetBranchesLoop
 use C4::Koha qw( GetAuthorisedValues );
 
 use Koha::AdditionalField;
@@ -65,7 +64,6 @@ for my $field ( @$additional_fields ) {
     }
 }
 
-my $branchloop = GetBranchesLoopWithoutMobileStations();
 
 my @serialnums=$input->multi_param('serialid');
 if (@serialnums) { # i.e. they have been flagged to generate claims
@@ -82,7 +80,7 @@ if (@serialnums) { # i.e. they have been flagged to generate claims
         if ( $err->{error} eq "no_email" ) {
             $template->param( error_claim => 'no_vendor_email' );
         } elsif ( $err->{error} =~ m|Bad or missing From address| ) {
-            $template->param( error_claim => 'no_loggedin_user_email' );
+            $template->param( error_claim => 'bad_or_missing_sender' );
         }
     } else {
         $template->param( info_claim => 1 );
@@ -105,9 +103,8 @@ $template->param(
         missingissues => \@missingissues,
         supplierid => $supplierid,
         claimletter => $claimletter,
-        branchloop   => $branchloop,
         additional_fields_for_subscription => $additional_fields,
-        csv_profiles => [ Koha::CsvProfiles->search({ type => 'sql' }) ],
+        csv_profiles => [ Koha::CsvProfiles->search({ type => 'sql', used_for => 'late_issues' }) ],
         letters => $letters,
         (uc(C4::Context->preference("marcflavour"))) => 1
         );

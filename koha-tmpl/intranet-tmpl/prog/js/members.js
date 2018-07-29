@@ -103,20 +103,6 @@ function check_form_borrowers(nav){
             }
         }
     }
-    if ( document.form.password ) {
-        if ( document.form.password.value != document.form.password2.value ){
-            if ( message_champ !== '' ){
-                message_champ += "\n";
-            }
-            message_champ+= MSG_PASSWORD_MISMATCH;
-            statut=1;
-        }
-
-        if ( ! check_password( document.form.password.value ) ) {
-            message_champ += MSG_PASSWORD_CONTAINS_TRAILING_SPACES;
-            statut = 1;
-        }
-    }
 
     //patrons form to test if you checked no to the question of double
     if (statut!=1 && document.form.check_member.value > 0 ) {
@@ -186,13 +172,13 @@ function update_category_code(category_code) {
 function select_user(borrowernumber, borrower) {
     var form = $('#entryform').get(0);
     if (form.guarantorid.value) {
-        $("#contact-details").find('a').remove();
-        $("#contactname, #contactfirstname").parent().find('span').remove();
+        $("#contact-details, #quick_add_form #contact-details").find('a').remove();
+        $("#contactname, #contactfirstname, #quick_add_form #contactname, #quick_add_form #contactfirstname").parent().find('span').remove();
     }
 
     var id = borrower.borrowernumber;
     form.guarantorid.value = id;
-    $('#contact-details')
+    $('#contact-details, #quick_add_form #contact-details')
         .show()
         .find('span')
         .after('<a target="blank" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=' + id + '">' + id + '</a>');
@@ -200,9 +186,11 @@ function select_user(borrowernumber, borrower) {
     $(form.contactname)
         .val(borrower.surname)
         .before('<span>' + borrower.surname + '</span>').get(0).type = 'hidden';
-    $(form.contactfirstname)
+    $("#quick_add_form #contactname").val(borrower.surname).before('<span>'+borrower.surname+'</span.').attr({type:"hidden"});
+    $(form.contactfirstname,"#quick_add_form #contactfirstname")
         .val(borrower.firstname)
         .before('<span>' + borrower.firstname + '</span>').get(0).type = 'hidden';
+    $("#quick_add_form #contactfirstname").val(borrower.firstname).before('<span>'+borrower.firstname+'</span.').attr({type:"hidden"});
 
     form.streetnumber.value = borrower.streetnumber;
     form.address.value = borrower.address;
@@ -213,7 +201,17 @@ function select_user(borrowernumber, borrower) {
     form.country.value = borrower.country;
     form.branchcode.value = borrower.branchcode;
 
+    $("#quick_add_form #streetnumber").val(borrower.streetnumber);
+    $("#quick_add_form #address").val(borrower.address);
+    $("#quick_add_form #address2").val(borrower.address2);
+    $("#quick_add_form #city").val(borrower.city);
+    $("#quick_add_form #state").val(borrower.state);
+    $("#quick_add_form #zipcode").val(borrower.zipcode);
+    $("#quick_add_form #country").val(borrower.country);
+    $("#quick_add_form select[name='branchcode']").val(borrower.branchcode);
+
     form.guarantorsearch.value = LABEL_CHANGE;
+    $("#quick_add_form #guarantorsearch").val(LABEL_CHANGE);
 
     return 0;
 }
@@ -286,26 +284,25 @@ $(document).ready(function(){
     });
 
     $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
-
     $("#guarantordelete").click(function() {
-        $("#contact-details").hide().find('a').remove();
-        $("#guarantorid, #contactname, #contactfirstname").each(function () { this.value = ""; });
-        $("#contactname, #contactfirstname")
+        $("#quick_add_form #contact-details, #contact-details").hide().find('a').remove();
+        $("#quick_add_form #guarantorid, #quick_add_form  #contactname, #quick_add_form #contactfirstname, #guarantorid, #contactname, #contactfirstname").each(function () { this.value = ""; });
+        $("#quick_add_form #contactname, #quick_add_form #contactfirstname, #contactname, #contactfirstname")
             .each(function () { this.type = 'text'; })
             .parent().find('span').remove();
-        $("#guarantorsearch").val(LABEL_SET_TO_PATRON);
+        $("#quick_add_form #guarantorsearch, #guarantorsearch").val(LABEL_SET_TO_PATRON);
     });
 
-    $("#select_city").change(function(){
+    $(document.body).on('change','select[name="select_city"]',function(){
+        $('select[name="select_city"]').val( $(this).val() );
         var myRegEx=new RegExp(/(.*)\|(.*)\|(.*)\|(.*)/);
-        document.form.select_city.value.match(myRegEx);
-        document.form.zipcode.value=RegExp.$1;
-        document.form.city.value=RegExp.$2;
-        document.form.state.value=RegExp.$3;
-        document.form.country.value=RegExp.$4;
+        $(this).val().match(myRegEx);
+        $('input[name="zipcode"]').val( RegExp.$1 );
+        $('input[name="city"]').val( RegExp.$2 );
+        $('input[name="state"]').val( RegExp.$3 );
+        $('input[name="country"]').val( RegExp.$4 );
     });
 
-    $("#dateofbirth").datepicker({ maxDate: "-1D", yearRange: "c-120:" });
     dateformat = $("#dateofbirth").siblings(".hint").first().html();
 
     if( $('#dateofbirth').length ) {
@@ -322,6 +319,13 @@ $(document).ready(function(){
             },
             B_email: {
                 email: true
+            },
+            password: {
+               password_strong: true,
+               password_no_spaces: true
+            },
+            password2: {
+               password_match: true
             }
         },
         submitHandler: function(form) {
@@ -352,4 +356,12 @@ $(document).ready(function(){
         e.preventDefault();
     });
     $('#floating-save').css( { bottom: parseInt( $('#floating-save').css('bottom') ) + $('#changelanguage').height() + 'px' } );
+    $('#qa-save').css( {
+        bottom: parseInt( $('#qa-save').css('bottom') ) + $('#changelanguage').height() + 'px' ,
+        "background-color": "rgba(185, 216, 217, 0.6)",
+        "bottom": "3%",
+        "position": "fixed",
+        "right": "1%",
+        "width": "150px",
+    } );
 });

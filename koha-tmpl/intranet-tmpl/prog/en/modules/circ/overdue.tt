@@ -1,70 +1,16 @@
+[% USE Asset %]
 [% USE KohaDates %]
+[%- USE Branches -%]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Circulation &rsaquo; Items overdue as of [% todaysdate %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-[%- USE Branches -%]
-<script type="text/javascript">
- //<![CDATA[
-     function clone_parent(node) {
-        var parent = node.parentNode;
-        var clone = parent.cloneNode(true);
-        parent.parentNode.insertBefore(clone, parent.nextSibling);
-        $("a", clone).attr("style", "visibility: visible");
-        $("input", clone).attr("value", "");
-
-
-        var theid = $("span", clone).attr("id") || "";
-        var theid = $("span", clone).attr("id") || "";
-        var parts = theid.match(/^pattrodue-getready-(.*)$/);
-        if (parts && parts.length > 1)
-        {
-            var appendid = "-" + Math.floor(Math.random()*1000+1);
-            $("span", clone).attr("id",theid+appendid);
-
-            theid = $("input", clone).attr("id");
-            $("input", clone).attr("id",theid+appendid);
-
-            theid = $("div[id]", clone).attr("id");
-            $("div[id]", clone).attr("id",theid+appendid);
-
-            var attrcode = $("script", clone).attr("x-code");
-            var newsuffix = parts[1] + appendid;
-            create_auto_completion_responder(newsuffix,attrcode);
-        }
-
-    }
-
-
-    function delete_parent(node) {
-        var parent = node.parentNode;
-        parent.parentNode.removeChild(parent);
-    }
-
-    function create_auto_completion_responder(uniqueid,attrcode) {
-       $("#pattrodue-getready-" + uniqueid).ready(function(){
-            $( "#pattrodue-input-" + uniqueid ).autocomplete({
-                source: "/cgi-bin/koha/circ/ypattrodue-attr-search-authvalue.pl/"+attrcode,
-                select: function( event, ui ) {
-                    $( "#pattrodue-input-"+uniqueid ).val( ui.item.description );
-                    return false;
-                }
-            })
-            .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
-                return $( "<li></li>" )
-                .data( "ui-autocomplete-item", item )
-                .append( "<a>" + item.description + " (" + item.authorised_value + ")</a>" )
-                .appendTo( ul )
-                .css("font-size","90%").css("width","13em");
-            };
-        });
-    }
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 <style type="text/css">
     .sql {display:none;}
 </style>
 </head>
+
 <body id="circ_overdue" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
@@ -99,7 +45,7 @@
     <table id="overduest">
       <thead>
         <tr>
-          <th>Due date</th>
+          <th class="title-string">Due date</th>
           <th>Patron</th>
           <th>Library</th>
           <th>Title</th>
@@ -112,10 +58,13 @@
       <tbody>
       [% FOREACH overdueloo IN overdueloop %]
         <tr>
-          <td>[% overdueloo.duedate %]</td>
-          <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% overdueloo.borrowernumber %]">[% overdueloo.surname %][% IF (overdueloo.firstname) %], [% overdueloo.firstname %][% END %] ([% overdueloo.cardnumber %])</a>
-          [% IF ( overdueloo.email ) %][<a href="mailto:[% overdueloo.email %]?subject=[% INCLUDE subject %] [% overdueloo.title |html %]">email</a>][% END %]
-          [% IF ( overdueloo.phone ) %]([% overdueloo.phone %])[% ELSIF ( overdueloo.mobile ) %]([% overdueloo.mobile %])[% ELSIF ( overdueloo.phonepro ) %]([% overdueloo.phonepro %])[% END %]</td>
+          <td><span title="[% overdueloo.duedate %]">[% overdueloo.duedate | $KohaDates %]</span></td>
+          <td>
+            [% INCLUDE 'patron-title.inc' patron=overdueloo.patron hide_patron_infos_if_needed=1 link_to="circulation_reserves" %]
+            [% IF logged_in_user.can_see_patron_infos( overdueloo.patron ) %]
+                [% IF ( overdueloo.email ) %][<a href="mailto:[% overdueloo.email %]?subject=[% INCLUDE subject %] [% overdueloo.title |html %]">email</a>][% END %]
+                [% IF ( overdueloo.phone ) %]([% overdueloo.phone %])[% ELSIF ( overdueloo.mobile ) %]([% overdueloo.mobile %])[% ELSIF ( overdueloo.phonepro ) %]([% overdueloo.phonepro %])[% END %]</td>
+            [% END %]
           <td>[% IF overdueloo.branchcode %][% Branches.GetName( overdueloo.branchcode ) %][% END %]</td>
           <td>[% INCLUDE 'biblio-default-view.inc' biblionumber = overdueloo.biblionumber %][% overdueloo.title |html %]  [% overdueloo.subtitle %]</a> [% IF ( overdueloo.author ) %], by [% overdueloo.author %][% END %][% IF ( overdueloo.enumchron ) %], [% overdueloo.enumchron %][% END %]</td>
           <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% overdueloo.biblionumber %]&amp;itemnumber=[% overdueloo.itemnum %]#item[% overdueloo.itemnum %]">[% overdueloo.barcode %]</a></td>
@@ -213,60 +162,25 @@
         <label>Item home library:</label>
         <select name="homebranch" id="homebranch">
             <option value="">Any</option>
-            [% FOREACH homebranchloo IN homebranchloop %][% IF ( homebranchloo.selected ) %]
-            <option value="[% homebranchloo.value |html %]" selected="selected">[% homebranchloo.branchname %]</option>[% ELSE %]
-            <option value="[% homebranchloo.value |html %]">[% homebranchloo.branchname %]</option>[% END %]
-            [% END %]
+            [% PROCESS options_for_libraries libraries => Branches.all( selected => homebranchfilter ) %]
         </select>
     </li>
 
     <li>
         <label>Item holding library:</label>
-            <select name="holdingbranch" id="holdingbranch">
+        <select name="holdingbranch" id="holdingbranch">
             <option value="">Any</option>
-            [% FOREACH holdingbranchloo IN holdingbranchloop %][% IF ( holdingbranchloo.selected ) %]
-            <option value="[% holdingbranchloo.value |html %]" selected="selected">[% holdingbranchloo.branchname %]</option>[% ELSE %]
-            <option value="[% holdingbranchloo.value |html %]">[% holdingbranchloo.branchname %]</option>[% END %]
-            [% END %]
+            [% PROCESS options_for_libraries libraries => Branches.all( selected => holdingbranchfilter ) %]
         </select>
     </li>
 
     <li>
-    <label>Library of the patron:</label><select name="branch" id="branch">
-        <option value="">Any</option>
-      [% FOREACH branchloo IN branchloop %]
-        [% IF ( branchloo.selected ) %]
-        <option value="[% branchloo.value |html %]" selected="selected">[% branchloo.branchname %]</option>[% ELSE %]
-        <option value="[% branchloo.value |html %]">[% branchloo.branchname %]</option>[% END %]
-      [% END %]
-      </select>
+        <label>Library of the patron:</label>
+        <select name="branch" id="branch">
+            <option value="">Any</option>
+            [% PROCESS options_for_libraries libraries => Branches.all( selected => branchfilter, only_from_group => 1 ) %]
+        </select>
     </li>
-
-    <li><label for="order">Sort by:</label> <select name="order" id="order">
-[% FOREACH ORDER_LOO IN ORDER_LOOP %]
-    [% IF ( ORDER_LOO.selected ) %]
-    <option value="[% ORDER_LOO.ordervalue %]" selected="selected">
-    [% ELSE %]
-    <option value="[% ORDER_LOO.ordervalue %]">
-    [% END %]
-    [% IF ( ORDER_LOO.order_date_due ) %]Due date
-    [% ELSIF ( ORDER_LOO.order_borrower ) %]Patron
-    [% ELSIF ( ORDER_LOO.order_barcode ) %]Barcode
-    [% ELSIF ( ORDER_LOO.order_title ) %]Title
-    [% ELSIF ( ORDER_LOO.order_date_due_desc ) %]Due date desc
-    [% ELSIF ( ORDER_LOO.order_borrower_desc ) %]Patron desc
-    [% ELSIF ( ORDER_LOO.order_barcode_desc ) %]Barcode desc
-    [% ELSIF ( ORDER_LOO.order_title_desc ) %]Title desc
-    [% ELSE %][% ORDER_LOO.label %]
-        [% IF ( ORDER_LOO.desc ) %]desc[% END %]
-    [% END %]
-    </option>
-[% END %]
-	[% FOREACH patron_attr_order_loo IN patron_attr_order_loop %]
-        [% IF ( patron_attr_order_loo.selected ) %]<option value="[% patron_attr_order_loo.value |html %]" selected="selected">[% patron_attr_order_loo.label %]</option>
-        [% ELSE %]<option value="[% patron_attr_order_loo.value |html %]">[% patron_attr_order_loo.label %]</option>[% END %]
-	[% END %]
-</select></li>
 
 <li class="radio"><label for="showall">Show any items currently checked out:</label>
 	[% IF ( showall ) %]
@@ -284,5 +198,72 @@
   </form>
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        function clone_parent(node) {
+            var parent = node.parentNode;
+            var clone = parent.cloneNode(true);
+            parent.parentNode.insertBefore(clone, parent.nextSibling);
+            $("a", clone).attr("style", "visibility: visible");
+            $("input", clone).attr("value", "");
+
+            var theid = $("span", clone).attr("id") || "";
+            var theid = $("span", clone).attr("id") || "";
+            var parts = theid.match(/^pattrodue-getready-(.*)$/);
+            if (parts && parts.length > 1){
+                var appendid = "-" + Math.floor(Math.random()*1000+1);
+                $("span", clone).attr("id",theid+appendid);
+
+                theid = $("input", clone).attr("id");
+                $("input", clone).attr("id",theid+appendid);
+
+                theid = $("div[id]", clone).attr("id");
+                $("div[id]", clone).attr("id",theid+appendid);
+
+                var attrcode = $("script", clone).attr("x-code");
+                var newsuffix = parts[1] + appendid;
+                create_auto_completion_responder(newsuffix,attrcode);
+            }
+        }
+
+
+        function delete_parent(node) {
+            var parent = node.parentNode;
+            parent.parentNode.removeChild(parent);
+        }
+
+        function create_auto_completion_responder(uniqueid,attrcode) {
+            $("#pattrodue-getready-" + uniqueid).ready(function(){
+                $( "#pattrodue-input-" + uniqueid ).autocomplete({
+                    source: "/cgi-bin/koha/circ/ypattrodue-attr-search-authvalue.pl/"+attrcode,
+                    select: function( event, ui ) {
+                        $( "#pattrodue-input-"+uniqueid ).val( ui.item.description );
+                        return false;
+                    }
+                })
+                .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
+                    return $( "<li></li>" )
+                    .data( "ui-autocomplete-item", item )
+                    .append( "<a>" + item.description + " (" + item.authorised_value + ")</a>" )
+                    .appendTo( ul )
+                    .css("font-size","90%").css("width","13em");
+                };
+            });
+        }
+
+        $(document).ready(function(){
+            $("#overduest").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "sPaginationType": "four_button",
+                "aaSorting": [[0, 'asc']],
+                "aoColumnDefs": [
+                    { "sType": "title-string", "aTargets": [ "title-string" ] }
+                ]
+            }));
+        });
+  </script>
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

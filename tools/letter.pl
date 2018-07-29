@@ -40,15 +40,14 @@
 # TODO This script drives the CRUD operations on the letter table
 # The DB interaction should be handled by calls to C4/Letters.pm
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Context;
 use C4::Output;
-use C4::Branch; # GetBranches
 use C4::Letters;
-use C4::Members::Attributes;
+
+use Koha::Patron::Attribute::Types;
 
 # $protected_letters = protected_letters()
 # - return a hashref of letter_codes representing letters that should never be deleted
@@ -67,6 +66,7 @@ my $code        = $input->param('code');
 my $module      = $input->param('module') || '';
 my $content     = $input->param('content');
 my $op          = $input->param('op') || '';
+my $redirect      = $input->param('redirect');
 my $dbh = C4::Context->dbh;
 
 our ( $template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user(
@@ -95,7 +95,12 @@ $template->param(
 
 if ( $op eq 'add_validate' or $op eq 'copy_validate' ) {
     add_validate();
-    $op = q{}; # we return to the default screen for the next operation
+    if( $redirect eq "just_save" ){
+        print $input->redirect("/cgi-bin/koha/tools/letter.pl?op=add_form&branchcode=$branchcode&module=$module&code=$code&redirect=done");
+        exit;
+    } else {
+        $op = q{}; # we return to the default screen for the next operation
+    }
 }
 if ($op eq 'copy_form') {
     my $oldbranchcode = $input->param('oldbranchcode') || q||;
@@ -104,7 +109,6 @@ if ($op eq 'copy_form') {
     $template->param(
         oldbranchcode => $oldbranchcode,
         branchcode => $branchcode,
-        branchloop => _branchloop($branchcode),
         copying => 1,
         modify => 0,
     );
@@ -148,48 +152,70 @@ sub add_form {
     }
 
     my $message_transport_types = GetMessageTransportTypes();
-    my @letter_loop;
+    my $templates = { map { $_ => { message_transport_type => $_ } } sort @$message_transport_types };
+    my %letters = ( default => { templates => $templates } );
+
+    if ( C4::Context->preference('TranslateNotices') ) {
+        my $translated_languages =
+          C4::Languages::getTranslatedLanguages( 'opac',
+            C4::Context->preference('template') );
+        for my $language (@$translated_languages) {
+            for my $sublanguage( @{ $language->{sublanguages_loop} } ) {
+                if ( $language->{plural} ) {
+                    $letters{ $sublanguage->{rfc4646_subtag} } = {
+                        description => $sublanguage->{native_description}
+                          . ' '
+                          . $sublanguage->{region_description} . ' ('
+                          . $sublanguage->{rfc4646_subtag} . ')',
+                        templates => { %$templates },
+                    };
+                }
+                else {
+                    $letters{ $sublanguage->{rfc4646_subtag} } = {
+                        description => $sublanguage->{native_description}
+                          . ' ('
+                          . $sublanguage->{rfc4646_subtag} . ')',
+                        templates => { %$templates },
+                    };
+                }
+            }
+        }
+        $template->param( languages => $translated_languages );
+    }
     if ($letters) {
         $template->param(
             modify     => 1,
             code       => $code,
-            branchcode => $branchcode,
         );
-        my $first_flag = 1;
+        my $first_flag_name = 1;
+        my ( $lang, @templates );
         # The letter name is contained into each mtt row.
         # So we can only sent the first one to the template.
-        for my $mtt ( @$message_transport_types ) {
+        for my $letter ( @$letters ) {
             # The letter_name
-            if ( $first_flag and $letters->{$mtt}{name} ) {
+            if ( $first_flag_name and $letter->{name} ) {
                 $template->param(
-                    letter_name=> $letters->{$mtt}{name},
+                    letter_name=> $letter->{name},
                 );
-                $first_flag = 0;
+                $first_flag_name = 0;
             }
 
-            push @letter_loop, {
-                message_transport_type => $mtt,
-                is_html    => $letters->{$mtt}{is_html},
-                title      => $letters->{$mtt}{title},
-                content    => $letters->{$mtt}{content}//'',
+            my $lang = $letter->{lang};
+            my $mtt = $letter->{message_transport_type};
+            $letters{ $lang }{templates}{$mtt} = {
+                message_transport_type => $letter->{message_transport_type},
+                is_html    => $letter->{is_html},
+                title      => $letter->{title},
+                content    => $letter->{content} // '',
             };
         }
     }
-    else { # initialize the new fields
-        for my $mtt ( @$message_transport_types ) {
-            push @letter_loop, {
-                message_transport_type => $mtt,
-            }
-        }
-        $template->param(
-            branchcode => $branchcode,
-            module     => $module,
-        );
+    else {
         $template->param( adding => 1 );
     }
 
     $template->param(
-        letters => \@letter_loop,
+        letters => \%letters,
     );
 
     my $field_selection;
@@ -200,8 +226,8 @@ sub add_form {
     elsif ( $module eq 'acquisition' ) {
         push @{$field_selection}, add_fields('aqbooksellers', 'aqorders', 'biblio', 'items');
     }
-    elsif ($module eq 'claimacquisition') {
-        push @{$field_selection}, add_fields('aqbooksellers', 'aqorders', 'biblio', 'biblioitems');
+    elsif ($module eq 'claimacquisition' || $module eq 'orderacquisition') {
+        push @{$field_selection}, add_fields('aqbooksellers', 'aqbasket', 'aqorders', 'biblio', 'biblioitems');
     }
     elsif ($module eq 'claimissues') {
         push @{$field_selection}, add_fields('aqbooksellers', 'serial', 'subscription');
@@ -236,13 +262,20 @@ sub add_form {
         } else {
             push @{$field_selection}, add_fields('issues');
         }
+
+        if ( $module eq 'circulation' and $code =~ /^AR_/  ) {
+            push @{$field_selection}, add_fields('article_requests');
+        }
     }
 
+    my $preview_is_available = grep {/^$code$/} qw(
+        CHECKIN CHECKOUT HOLD_SLIP
+    );
     $template->param(
         module     => $module,
-        branchloop => _branchloop($branchcode),
         SQLfieldnames => $field_selection,
         branchcode => $branchcode,
+        preview_is_available => $preview_is_available,
     );
     return;
 }
@@ -257,11 +290,13 @@ sub add_validate {
     my @mtt           = $input->multi_param('message_transport_type');
     my @title         = $input->multi_param('title');
     my @content       = $input->multi_param('content');
+    my @lang          = $input->multi_param('lang');
     for my $mtt ( @mtt ) {
         my $is_html = $input->param("is_html_$mtt");
         my $title   = shift @title;
         my $content = shift @content;
-        my $letter = C4::Letters::getletter( $oldmodule, $code, $branchcode, $mtt);
+        my $lang = shift @lang;
+        my $letter = C4::Letters::getletter( $oldmodule, $code, $branchcode, $mtt, $lang );
 
         # getletter can return the default letter even if we pass a branchcode
         # If we got the default one and we needed the specific one, we didn't get the one we needed!
@@ -270,25 +305,25 @@ sub add_validate {
         }
         unless ( $title and $content ) {
             # Delete this mtt if no title or content given
-            delete_confirmed( $branchcode, $oldmodule, $code, $mtt );
+            delete_confirmed( $branchcode, $oldmodule, $code, $mtt, $lang );
             next;
         }
-        elsif ( $letter and $letter->{message_transport_type} eq $mtt ) {
+        elsif ( $letter and $letter->{message_transport_type} eq $mtt and $letter->{lang} eq $lang ) {
             $dbh->do(
                 q{
                     UPDATE letter
-                    SET branchcode = ?, module = ?, name = ?, is_html = ?, title = ?, content = ?
-                    WHERE branchcode = ? AND module = ? AND code = ? AND message_transport_type = ?
+                    SET branchcode = ?, module = ?, name = ?, is_html = ?, title = ?, content = ?, lang = ?
+                    WHERE branchcode = ? AND module = ? AND code = ? AND message_transport_type = ? AND lang = ?
                 },
                 undef,
-                $branchcode || '', $module, $name, $is_html || 0, $title, $content,
-                $branchcode, $oldmodule, $code, $mtt
+                $branchcode || '', $module, $name, $is_html || 0, $title, $content, $lang,
+                $branchcode, $oldmodule, $code, $mtt, $lang
             );
         } else {
             $dbh->do(
-                q{INSERT INTO letter (branchcode,module,code,name,is_html,title,content,message_transport_type) VALUES (?,?,?,?,?,?,?,?)},
+                q{INSERT INTO letter (branchcode,module,code,name,is_html,title,content,message_transport_type, lang) VALUES (?,?,?,?,?,?,?,?,?)},
                 undef,
-                $branchcode || '', $module, $code, $name, $is_html || 0, $title, $content, $mtt
+                $branchcode || '', $module, $code, $name, $is_html || 0, $title, $content, $mtt, $lang
             );
         }
     }
@@ -309,13 +344,14 @@ sub delete_confirm {
 }
 
 sub delete_confirmed {
-    my ($branchcode, $module, $code, $mtt) = @_;
+    my ($branchcode, $module, $code, $mtt, $lang) = @_;
     C4::Letters::DelLetter(
         {
             branchcode => $branchcode || '',
             module     => $module,
             code       => $code,
-            mtt        => $mtt
+            mtt        => $mtt,
+            lang       => $lang,
         }
     );
     # setup default display for screen
@@ -360,7 +396,7 @@ sub default_display {
 
     unless ( defined $branchcode ) {
         if ( C4::Context->preference('DefaultToLoggedInLibraryNoticesSlips') ) {
-            $branchcode = C4::Branch::mybranch();
+            $branchcode = C4::Context::mybranch();
         }
     }
 
@@ -379,24 +415,8 @@ sub default_display {
 
     $template->param(
         letter => $loop_data,
-        branchloop => _branchloop($branchcode),
+        branchcode => $branchcode,
     );
-}
-
-sub _branchloop {
-    my ($branchcode) = @_;
-
-    my $branches = GetBranchesWithoutMobileStations();
-    my @branchloop;
-    for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-        push @branchloop, {
-            value      => $thisbranch,
-            selected   => $branchcode && $thisbranch eq $branchcode,
-            branchname => $branches->{$thisbranch}->{'branchname'},
-        };
-    }
-
-    return \@branchloop;
 }
 
 sub add_fields {
@@ -447,12 +467,14 @@ sub get_columns_for {
         }
     }
     if ($table eq 'borrowers') {
-        if ( my $attributes = C4::Members::Attributes::GetAttributes() ) {
-            foreach (@$attributes) {
-                push @fields, {
-                    value => "borrower-attribute:$_",
-                    text  => "attribute:$_",
-                }
+        my $attribute_types = Koha::Patron::Attribute::Types->search(
+            {},
+            { order_by => 'code' },
+        );
+        while ( my $at = $attribute_types->next ) {
+            push @fields, {
+                value => "borrower-attribute:" . $at->code,
+                text  => "attribute:" . $at->code,
             }
         }
     }

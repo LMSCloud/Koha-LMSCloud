@@ -1,3 +1,5 @@
+[% USE Branches %]
+[% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Circulation &rsaquo; Overdues at [% LoginBranchname %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -8,10 +10,11 @@
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a> &rsaquo; Overdues at [% LoginBranchname %]</div>
 
-<div id="doc" class="yui-t7">
+[% IF Koha.Preference('CircSidebar') %]<div id="doc3" class="yui-t2">[% ELSE %]<div id="doc" class="yui-t7">[% END %]
 
    <div id="bd">
 	<div id="yui-main">
+        [% IF Koha.Preference('CircSidebar') %]<div class="yui-b">[% END %]
 	<div class="yui-g">
 
 
@@ -34,8 +37,6 @@
             <th>Title</th>
             <th>Patron</th>
             <th>Location</th>
-            <th>Overdue status</th>
-            <th>Notified by</th>
         </tr>
             [% FOREACH overduesloo IN overduesloop %]
                 <tr>
@@ -54,42 +55,7 @@
                     [% IF ( overduesloo.borroweremail ) %]<a href="mailto:[% overduesloo.borroweremail %]?subject=Overdue: [% overduesloo.title |html %]">
                     [% overduesloo.borroweremail %]</a>[% END %]
                     </td>
-                    <td>[% overduesloo.homebranch %] [% overduesloo.itemcallnumber %]
-                    </td>
-                    <td align="center">
-                    <b>
-                        [% IF ( overduesloo.overdue1 ) %]
-                            First overdue
-                        [% END %]
-                        [% IF ( overduesloo.overdue2 ) %]
-                            Second overdue
-                        [% END %]
-                        [% IF ( overduesloo.overdue3 ) %]
-                            Third overdue
-                        [% END %]
-                    </b>
-                    </td>
-                    <td align="center">
-                    [% IF ( overduesloo.overdue1 ) %]
-                        [% IF ( overduesloo.borroweremail ) %]
-                            <a href="branchoverdues.pl?action=add&amp;borrowernumber=[% overduesloo.borrowernumber %]&amp;itemnumber=[% overduesloo.itemnumber %]&amp;method=mail&amp;location=[% overduesloo.location %]&amp;overduelevel=[% overduesloo.overdueLevel %]&amp;notifyId=[% overduesloo.notify_id %]">Mail</a>
-                        [% ELSE %]
-                            Mail
-                        [% END %]
-                            &nbsp;|&nbsp;
-                            <a href="branchoverdues.pl?action=add&amp;borrowernumber=[% overduesloo.borrowernumber %]&amp;itemnumber=[% overduesloo.itemnumber %]&amp;method=phone&amp;location=[% overduesloo.location %]&amp;overduelevel=[% overduesloo.overdueLevel %]&amp;notifyId=[% overduesloo.notify_id %]">Phone</a>
-                            &nbsp;|&nbsp;
-                            <a href="branchoverdues.pl?action=add&amp;borrowernumber=[% overduesloo.borrowernumber %]&amp;itemnumber=[% overduesloo.itemnumber %]&amp;method=letter&amp;location=[% overduesloo.location %]&amp;overduelevel=[% overduesloo.overdueLevel %]&amp;notifyId=[% overduesloo.notify_id %]">Notice</a>
-                    [% END %]
-
-                    [% IF ( overduesloo.overdue2 ) %]
-                        <a href="branchoverdues.pl?action=add&amp;borrowernumber=[% overduesloo.borrowernumber %]&amp;itemnumber=[% overduesloo.itemnumber %]&amp;method=letter&amp;location=[% overduesloo.location %]&amp;overduelevel=[% overduesloo.overdueLevel %]&amp;notifyId=[% overduesloo.notify_id %]">Notice</a>
-                    [% END %]
-
-                    [% IF ( overduesloo.overdue3 ) %]
-                    <a href="branchoverdues.pl?action=add&amp;borrowernumber=[% overduesloo.borrowernumber %]&amp;itemnumber=[% overduesloo.itemnumber %]&amp;method=lost&amp;location=[% overduesloo.location %]&amp;overduelevel=[% overduesloo.overdueLevel %]&amp;notifyId=[% overduesloo.notify_id %]">Considered lost</a>
-                    [% END %]
-
+                    <td>[% Branches.GetName( overduesloo.homebranch ) %] [% overduesloo.itemcallnumber %]
                     </td>
                 </tr>
             [% END %]
@@ -106,8 +72,6 @@
                 <th>Title</th>
                 <th>Borrower</th>
                 <th>Location</th>
-                <th>Overdue status</th>
-                <th>Notified by</th>
                 <th>Cancel</th>
             </tr>
                 [% FOREACH todayoverduesloo IN todayoverduesloop %]
@@ -132,27 +96,10 @@
                         [% todayoverduesloo.borroweremail %]</a>[% END %]
                             </p>
                         </td>
-                        <td><p>[% todayoverduesloo.homebranch %] [% todayoverduesloo.itemcallnumber %]</p>
+                        <td><p>[% Branches.GetName( todayoverduesloo.homebranch ) %] [% todayoverduesloo.itemcallnumber %]</p>
                         </td>
-                        <td align="center">
-                            <b>
-                                [% IF ( todayoverduesloo.overdue1 ) %]
-                                    First overdue
-                                [% END %]
-                                [% IF ( todayoverduesloo.overdue2 ) %]
-                                    Second overdue
-                                [% END %]
-                                [% IF ( todayoverduesloo.overdue3 ) %]
-                                    Considered lost
-                                [% END %]
-                            </b>
-                        </td>
-                        <td align="center">
-                            <b>[% todayoverduesloo.notify_method %]</b>
-                        </td>
-
                         <td>
-                        <a href="branchoverdues.pl?action=remove&amp;borrowernumber=[% todayoverduesloo.borrowernumber %]&amp;itemnumber=[% todayoverduesloo.itemnumber %]&amp;method=phone&amp;location=[% todayoverduesloo.location %]&amp;notify_date=[% todayoverduesloo.notify_date %]">Cancel notification</a>
+                        <a href="branchoverdues.pl?action=remove&amp;borrowernumber=[% todayoverduesloo.borrowernumber %]&amp;itemnumber=[% todayoverduesloo.itemnumber %]&amp;method=phone&amp;location=[% todayoverduesloo.location %]">Cancel notification</a>
                         </td>
                     </tr>
                 [% END %]
@@ -162,5 +109,11 @@
 
 </div>
 </div>
+[% IF Koha.Preference('CircSidebar') %]
+</div>
+<div class="yui-b noprint">
+    [% INCLUDE 'circ-nav.inc' %]
+</div>
+[% END %]
 </div>
 [% INCLUDE 'intranet-bottom.inc' %]

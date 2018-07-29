@@ -20,7 +20,6 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use Encode qw(encode);
 use Carp;
-use Digest::MD5 qw(md5_base64);
 use Mail::Sendmail;
 use MIME::QuotedPrint;
 use MIME::Base64;
@@ -74,7 +73,9 @@ if ( $email_add ) {
 
         my $dat              = GetBiblioData($biblionumber);
         next unless $dat;
-        my $record           = GetMarcBiblio($biblionumber, 1);
+        my $record           = GetMarcBiblio({
+            biblionumber => $biblionumber,
+            embed_items => 1 });
         my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
         my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
 

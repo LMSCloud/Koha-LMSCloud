@@ -22,14 +22,16 @@ use Test::MockModule;
 
 use DateTime;
 use DateTime::Duration;
-use Koha::Cache;
+use Koha::Caches;
 use Koha::DateUtils;
+
+use t::lib::Mocks;
 
 use Module::Load::Conditional qw/check_install/;
 
 BEGIN {
     if ( check_install( module => 'Test::DBIx::Class' ) ) {
-        plan tests => 38;
+        plan tests => 39;
     } else {
         plan skip_all => "Need Test::DBIx::Class"
     }
@@ -37,22 +39,7 @@ BEGIN {
 
 use_ok('Koha::Calendar');
 
-use Test::DBIx::Class {
-    schema_class => 'Koha::Schema',
-    connect_info => ['dbi:SQLite:dbname=:memory:','',''],
-    connect_opts => { name_sep => '.', quote_char => '`', },
-    fixture_class => '::Populate',
-}, 'Biblio' ;
-
-sub fixtures {
-    my ( $data ) = @_;
-    fixtures_ok [
-        Biblio => [
-            [ qw/ biblionumber datecreated timestamp  / ],
-            @$data,
-        ],
-    ], 'add fixtures';
-}
+use Test::DBIx::Class;
 
 my $db = Test::MockModule->new('Koha::Database');
 $db->mock(
@@ -89,8 +76,9 @@ fixtures_ok [
       ],
 ], "add fixtures";
 
-my $cache = Koha::Cache->get_instance();
-$cache->clear_from_cache( 'single_holidays') ;
+my $cache = Koha::Caches->get_instance();
+$cache->clear_from_cache( 'single_holidays' ) ;
+$cache->clear_from_cache( 'exception_holidays' ) ;
 
 # 'MPL' branch is arbitrary, is not used at all but is needed for initialization
 my $cal = Koha::Calendar->new( branchcode => 'MPL' );
@@ -335,4 +323,18 @@ my $holiday_for_another_branch = DateTime->new(
     is ( $cal->is_holiday($holiday_for_another_branch), 1, 'Holiday defined for CPL should be defined as an holiday' );
 }
 
-1;
+subtest 'days_mode parameter' => sub {
+    plan tests => 2;
+
+    t::lib::Mocks::mock_preference('useDaysMode', 'Days');
+    my $cal = Koha::Calendar->new( branchcode => 'CPL' );
+    is( $cal->{days_mode}, 'Days', q|If not set, days_mode defaults to syspref's value|);
+
+    $cal = Koha::Calendar->new( branchcode => 'CPL', days_mode => 'Calendar' );
+    is( $cal->{days_mode}, 'Calendar', q|If set, days_mode is correctly set|);
+};
+
+END {
+    $cache->clear_from_cache( 'single_holidays' ) ;
+    $cache->clear_from_cache( 'exception_holidays' ) ;
+};

@@ -65,7 +65,9 @@ if ($bib_list && $format) {
 
         foreach my $biblio (@bibs) {
 
-            my $record = GetMarcBiblio($biblio, 1);
+            my $record = GetMarcBiblio({
+                biblionumber => $biblio,
+                embed_items  => 1 });
             next unless $record;
 
             if ($format eq 'iso2709') {
@@ -90,7 +92,7 @@ if ($bib_list && $format) {
     print $output;
 
 } else { 
-    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc' }) ]);
+    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ]);
     $template->param(bib_list => $bib_list); 
     output_html_with_http_headers $query, $cookie, $template->output;
 }

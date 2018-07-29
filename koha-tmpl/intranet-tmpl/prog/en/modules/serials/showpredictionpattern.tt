@@ -1,5 +1,4 @@
 [% USE KohaDates %]
-
 <h2>Prediction pattern</h1>
 [% IF (not_consistent_end_date) %]
   <p><em>End date is not consistent with subscription length.</em></p>
@@ -7,38 +6,23 @@
 [% IF (ask_for_irregularities) %]
     <p><em>Please check issues that are NOT published (irregularities)</em></p>
     [% IF (daily_options) %]
-        <script type="text/javascript">
-        //<![CDATA[
-        function Check_boxes(dow) {
-            if($(":checkbox[data-dow='"+dow+"']:first").is(':checked')) {
-                $("#predictionst :checkbox[data-dow='"+dow+"']").each(function(){
-                    $(this).prop('checked', true);
-                });
-            } else {
-                $("#predictionst :checkbox[data-dow='"+dow+"']").each(function(){
-                    $(this).prop('checked', false);
-                });
-            }
-        }
-        //]]>
-        </script>
         <p><em>
             If there is a day (or more) in the week where issues are never
             published, you can check corresponding boxes below.
         </em></p>
-        <input type="checkbox" id="monday" data-dow="1" onchange="Check_boxes(1);" />
+        <input type="checkbox" id="monday" data-dow="1" class="skipday" />
         <label for="monday">Monday</label>
-        <input type="checkbox" id="tuesday" data-dow="2" onchange="Check_boxes(2);" />
+        <input type="checkbox" id="tuesday" data-dow="2" class="skipday" />
         <label for="tuesday">Tuesday</label>
-        <input type="checkbox" id="wednesday" data-dow="3" onchange="Check_boxes(3);" />
+        <input type="checkbox" id="wednesday" data-dow="3" class="skipday" />
         <label for="wednesday">Wednesday</label>
-        <input type="checkbox" id="thursday" data-dow="4" onchange="Check_boxes(4);" />
+        <input type="checkbox" id="thursday" data-dow="4" class="skipday" />
         <label for="thursday">Thursday</label>
-        <input type="checkbox" id="friday" data-dow="5" onchange="Check_boxes(5);" />
+        <input type="checkbox" id="friday" data-dow="5" class="skipday" />
         <label for="friday">Friday</label>
-        <input type="checkbox" id="saturday" data-dow="6" onchange="Check_boxes(6);" />
+        <input type="checkbox" id="saturday" data-dow="6" class="skipday" />
         <label for="saturday">Saturday</label>
-        <input type="checkbox" id="sunday" data-dow="7" onchange="Check_boxes(7);" />
+        <input type="checkbox" id="sunday" data-dow="7" class="skipday" />
         <label for="sunday">Sunday</label>
     [% END %]
 [% END %]
@@ -99,4 +83,5 @@
     [% END %]
   </tbody>
 </table>
+
 [% END %]

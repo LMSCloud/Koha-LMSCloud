@@ -16,29 +16,32 @@ package Koha::REST::V1;
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 use Modern::Perl;
+
 use Mojo::Base 'Mojolicious';
 
-use C4::Auth qw( check_cookie_auth get_session );
 use C4::Context;
-use Koha::Patrons;
+
+=head1 NAME
+
+Koha::REST::V1 - Main v.1 REST api class
+
+=head1 API
+
+=head2 Class Methods
+
+=head3 startup
+
+Overloaded Mojolicious->startup method. It is called at application startup.
+
+=cut
 
 sub startup {
     my $self = shift;
 
-    my $route = $self->routes->under->to(
-        cb => sub {
-            my $c = shift;
-
-            my ($status, $sessionID) = check_cookie_auth($c->cookie('CGISESSID'));
-            if ($status eq "ok") {
-                my $session = get_session($sessionID);
-                my $user = Koha::Patrons->find($session->param('number'));
-                $c->stash('koha.user' => $user);
-            }
-
-            return 1;
-        }
-    );
+    # Remove /api/v1/app.pl/ from the path
+    $self->hook( before_dispatch => sub {
+        shift->req->url->base->path('/');
+    });
 
     # Force charset=utf8 in Content-Type header for JSON responses
     $self->types->type(json => 'application/json; charset=utf8');
@@ -48,10 +51,16 @@ sub startup {
         $self->secrets([$secret_passphrase]);
     }
 
-    $self->plugin(Swagger2 => {
-        route => $route,
-        url => $self->home->rel_file("api/v1/swagger.json"),
+    $self->plugin(OpenAPI => {
+        url => $self->home->rel_file("api/v1/swagger/swagger.json"),
+        route => $self->routes->under('/api/v1')->to('Auth#under'),
+        allow_invalid_ref => 1, # required by our spec because $ref directly under
+                                # Paths-, Parameters-, Definitions- & Info-object
+                                # is not allowed by the OpenAPI specification.
     });
+    $self->plugin( 'Koha::REST::Plugin::Pagination' );
+    $self->plugin( 'Koha::REST::Plugin::Query' );
+    $self->plugin( 'Koha::REST::Plugin::Objects' );
 }
 
 1;

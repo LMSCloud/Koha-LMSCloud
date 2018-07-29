@@ -1,3 +1,6 @@
+[% USE Asset %]
+[% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Serials &rsaquo; Manage new fields for subscriptions
   [% IF op == "list" %] &rsaquo; List of fields
@@ -8,39 +11,7 @@
   [% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE "datatables.inc" %]
-<script type="text/javascript">
-//<![CDATA[
-  $(document).ready(function(){
-
-    $("#fieldst").dataTable($.extend(true, {}, dataTablesDefaults, {
-        'bAutoWidth': false,
-        'sDom': 't<"bottom pager"ilpf>',
-        'sPaginationType': 'four_button',
-        'aLengthMenu': [[10, 20, 50, 100, -1], [10, 20, 50, 100, "All"]],
-        'iDisplayLength': 20,
-        'aaSorting': [[ 0, "asc" ]],
-        "aoColumnDefs": [
-            { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-        ]
-    }));
-
-    $(".confirmdelete").click(function(){
-      return confirm(_("Are you sure you want to delete this field?"));
-    });
-
-    $("#add_field").on('submit', function(){
-        if ( $("#marcfield").val().length > 0
-            && $("select[name='authorised_value_category']" ).val().length > 0 ) {
-            alert("You cannot select an authorised value category and a marcfield");
-            return false;
-        }
-        return true;
-    });
-  });
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="ser_add_fields" class="ser">
@@ -57,7 +28,7 @@
   <div class="yui-b">
   [% IF op == 'list' %]
     <div id="toolbar" class="btn-toolbar">
-      <a class="btn btn-small" id="newfields" href="/cgi-bin/koha/serials/add_fields.pl?op=add_form"><i class="fa fa-plus"></i> New fields</a>
+      <a class="btn btn-default btn-sm" id="newfields" href="/cgi-bin/koha/serials/add_fields.pl?op=add_form"><i class="fa fa-plus"></i> New fields</a>
     </div>
   [% END %]
 
@@ -108,8 +79,8 @@
                 [% IF field.searchable %]Yes[% ELSE %]No[% END %]
               </td>
               <td class="actions">
-                <a class="btn btn-mini" href="/cgi-bin/koha/serials/add_fields.pl?op=add_form&amp;field_id=[% field.id %]"><i class="fa fa-pencil"></i> Edit</a>
-                <a class="confirmdelete btn btn-mini" href="/cgi-bin/koha/serials/add_fields.pl?op=delete&amp;field_id=[% field.id %]"><i class="fa fa-trash"></i> Delete</a>
+                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/add_fields.pl?op=add_form&amp;field_id=[% field.id %]"><i class="fa fa-pencil"></i> Edit</a>
+                <a class="confirmdelete btn btn-default btn-xs" href="/cgi-bin/koha/serials/add_fields.pl?op=delete&amp;field_id=[% field.id %]"><i class="fa fa-trash"></i> Delete</a>
               </td>
             </tr>
           [% END %]
@@ -136,13 +107,7 @@
             <label for="av">Authorised value category: </label>
             <select name="authorised_value_category">
               <option value="">None</option>
-              [% FOR category IN categories %]
-                [% IF field.authorised_value_category == category %]
-                  <option value="[% category %]" selected="selected">[% category %]</option>
-                [% ELSE %]
-                  <option value="[% category %]">[% category %]</option>
-                [% END %]
-              [% END %]
+              [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories( selected => field.authorised_value_category ) %]
             </select>
           </li>
           <li>
@@ -177,4 +142,38 @@
 [% INCLUDE 'serials-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE "datatables.inc" %]
+    <script type="text/javascript">
+        $(document).ready(function(){
+
+            $("#fieldst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'bAutoWidth': false,
+                'sDom': 't<"bottom pager"ilpf>',
+                'sPaginationType': 'four_button',
+                'aLengthMenu': [[10, 20, 50, 100, -1], [10, 20, 50, 100, "All"]],
+                'iDisplayLength': 20,
+                'aaSorting': [[ 0, "asc" ]],
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                ]
+            }));
+
+            $(".confirmdelete").click(function(){
+                return confirm(_("Are you sure you want to delete this field?"));
+            });
+
+            $("#add_field").on('submit', function(){
+                if ( $("#marcfield").val().length > 0
+                    && $("select[name='authorised_value_category']" ).val().length > 0 ) {
+                    alert("You cannot select an authorised value category and a marcfield");
+                    return false;
+                }
+                return true;
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

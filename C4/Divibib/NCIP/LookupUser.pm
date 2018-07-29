@@ -21,7 +21,7 @@ use strict;
 use warnings;
 
 use C4::Context;
-use C4::Members;
+use Koha::Patrons;
 use XML::Simple;
 
 use Carp;
@@ -76,18 +76,20 @@ sub new {
             'xsi:schemaLocation' => 'http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_0/ncip_v2_0.xsd'
         };
         
-    my $borrower = &GetMemberDetails($borrowernumber);
+    my $borrower = Koha::Patrons->find( $borrowernumber );
     # if we did not find the borrowernumber
     # let's check whether the borrower userid is used instead
     if (! $borrower ) { 
-        $borrower = &GetMember( userid => $borrowernumber );
+        $borrower = Koha::Patrons->find({ userid => $borrowernumber} );
     }
-
+    
+    if ( $borrower ) {
+        $borrower = $borrower->unblessed;
+    }
     
     die "borrower not found" unless (  $borrower );
 
     if ( $borrower ) {
-        # $borrower = &GetMemberDetails($borrower->{'borrowernumber'});
         
         $command->{'LookupUser'} = {
                 'AuthenticationInput' => [

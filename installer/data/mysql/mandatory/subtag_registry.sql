@@ -281,7 +281,7 @@ INSERT INTO language_subtag_registry( subtag, type, description, added)
 VALUES ( 'eu', 'language', 'Basque','2014-10-30');
 
 INSERT INTO language_rfc4646_to_iso639(rfc4646_subtag,iso639_2_code)
-VALUES ( 'eu','eus');
+VALUES ( 'eu','baq');
 
 INSERT INTO language_descriptions(subtag, type, lang, description)
 VALUES ( 'eu', 'language', 'eu', 'Euskera');
@@ -669,7 +669,7 @@ INSERT INTO language_subtag_registry( subtag, type, description, added)
 VALUES ( 'mi', 'language', 'Maori','2014-10-30');
 
 INSERT INTO language_rfc4646_to_iso639(rfc4646_subtag,iso639_2_code)
-VALUES ( 'mi','mri');
+VALUES ( 'mi','mao');
 
 INSERT INTO language_descriptions(subtag, type, lang, description)
 VALUES ( 'mi', 'language', 'mi', 'Te Reo Māori');
@@ -922,7 +922,7 @@ INSERT INTO language_subtag_registry( subtag, type, description, added)
 VALUES ( 'sk', 'language', 'Slovak','2014-10-30');
 
 INSERT INTO language_rfc4646_to_iso639(rfc4646_subtag,iso639_2_code)
-VALUES ( 'sk','slk');
+VALUES ( 'sk','slo');
 
 INSERT INTO language_descriptions(subtag, type, lang, description)
 VALUES ( 'sk', 'language', 'sk', 'Slovenčina');
@@ -948,7 +948,7 @@ INSERT INTO language_subtag_registry( subtag, type, description, added)
 VALUES ( 'sq', 'language', 'Albanian','2014-10-30');
 
 INSERT INTO language_rfc4646_to_iso639(rfc4646_subtag,iso639_2_code)
-VALUES ( 'sq','sqi');
+VALUES ( 'sq','alb');
 
 INSERT INTO language_descriptions(subtag, type, lang, description)
 VALUES ( 'sq', 'language', 'sq', 'Shqip');
@@ -1136,10 +1136,13 @@ INSERT INTO language_rfc4646_to_iso639(rfc4646_subtag,iso639_2_code)
 VALUES ( 'vi','vie');
 
 INSERT INTO language_descriptions(subtag, type, lang, description)
-VALUES ( 'vi', 'language', 'vi', '㗂越');
+VALUES ( 'vi', 'language', 'vi', 'Tiếng Việt');
 
 INSERT INTO language_descriptions(subtag, type, lang, description)
 VALUES ( 'vi', 'language', 'en', 'Vietnamese');
+
+INSERT INTO language_descriptions(subtag, type, lang, description)
+VALUES ( 'vi', 'language', 'de', 'Vietnamesisch');
 
 -- Chinese
 INSERT INTO language_subtag_registry( subtag, type, description, added)

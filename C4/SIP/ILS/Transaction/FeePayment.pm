@@ -25,7 +25,7 @@ use Koha::Account::Lines;
 
 use parent qw(C4::SIP::ILS::Transaction);
 
-our $debug   = 0;
+our $debug = 0;
 
 my %fields = ();
 

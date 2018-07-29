@@ -25,8 +25,7 @@ printed out
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Koha;
 use C4::Auth;
@@ -37,6 +36,7 @@ use C4::Context;
 
 use C4::Members;
 use C4::Serials;
+use Koha::Patrons;
 
 use URI::Escape;
 
@@ -50,6 +50,16 @@ my $op = $query->param('op') || q{};
 my $date_selected = $query->param('date_selected');
 $date_selected ||= q{};
 my $dbh = C4::Context->dbh;
+
+my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+    {
+        template_name   => 'serials/routing.tt',
+        query           => $query,
+        type            => 'intranet',
+        authnotrequired => 0,
+        flagsrequired   => { serials => 'routing' },
+    }
+);
 
 if($op eq 'delete'){
     delroutingmember($routingid,$subscriptionid);
@@ -84,18 +94,9 @@ foreach my $dateseq (@{$serialdates}) {
     push @{$dates}, $d;
 }
 
-my ($template, $loggedinuser, $cookie)
-= get_template_and_user({template_name => 'serials/routing.tt',
-				query => $query,
-				type => 'intranet',
-				authnotrequired => 0,
-				flagsrequired => {serials => 'routing'},
-				debug => 1,
-				});
-
 my $member_loop = [];
 for my $routing ( @routinglist ) {
-    my $member=GetMember('borrowernumber' => $routing->{borrowernumber});
+    my $member = Koha::Patrons->find( $routing->{borrowernumber} )->unblessed;
     $member->{location} = $member->{branchcode};
     if ($member->{firstname} ) {
         $member->{name} = $member->{firstname} . q| |;

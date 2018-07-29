@@ -1,3 +1,5 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% SET panel_id = 0 %]
 [% BLOCK pagelist %]
 <div class="pagelist">
@@ -87,25 +89,11 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Columns settings</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-    $(document).ready( function() {
-        var accordion = $( "#modules" ).accordion({
-            collapsible: true,
-            autoHeight: false,
-            header: "h3",
-          [%- IF panel -%]
-            [%# we were asked to show a specific panel, usually on update %]
-            active: [%- panel -%]
-          [%- ELSE -%]
-            active: false
-          [%- END -%]
-        });
-    });
-</script>
 </head>
+
 <body id="admin_tables" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; Columns settings</div>
 
 <div id="doc3" class="yui-t2">
@@ -156,6 +144,12 @@
             [% PROCESS pagelist module=modules.members modulename="members" %]
           </div>
 
+          <h3><a href="#opac">OPAC</a></h3>
+          <div id="opac">
+            <h4>OPAC tables</h4>
+            [% PROCESS pagelist module=modules.opac modulename="opac" %]
+          </div>
+
           <h3><a href="#reports">Reports</a></h3>
           <div id="reports">
             <h4>Reports tables</h4>
@@ -170,4 +164,23 @@
       [% INCLUDE 'admin-menu.inc' %]
     </div>
   </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    <script type="text/javascript">
+        $(document).ready( function() {
+            var accordion = $( "#modules" ).accordion({
+                collapsible: true,
+                autoHeight: false,
+                header: "h3",
+              [%- IF panel -%]
+                [%# we were asked to show a specific panel, usually on update %]
+                active: [%- panel -%]
+              [%- ELSE -%]
+                active: false
+              [%- END -%]
+            });
+        });
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

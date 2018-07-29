@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 33;
+use Test::More tests => 32;
 use DateTime::Duration;
 
 use t::lib::Mocks;
@@ -29,9 +29,12 @@ use C4::Context;
 use C4::Items;
 use C4::Members;
 use C4::Reserves;
+use Koha::Checkouts;
 use Koha::Database;
 use Koha::DateUtils;
+use Koha::Holds;
 use Koha::Library;
+use Koha::Patrons;
 
 BEGIN {
     require_ok('C4::Circulation');
@@ -45,8 +48,6 @@ can_ok(
       AddReturn
       GetBiblioIssues
       GetIssuingCharges
-      GetItemIssue
-      GetItemIssues
       GetOpenIssue
       GetRenewCount
       GetUpcomingDueIssues
@@ -63,7 +64,6 @@ my $builder = t::lib::TestBuilder->new();
 $dbh->do(q|DELETE FROM issues|);
 $dbh->do(q|DELETE FROM items|);
 $dbh->do(q|DELETE FROM borrowers|);
-$dbh->do(q|DELETE FROM branches|);
 $dbh->do(q|DELETE FROM categories|);
 $dbh->do(q|DELETE FROM accountlines|);
 $dbh->do(q|DELETE FROM issuingrules|);
@@ -149,14 +149,14 @@ my $borrower_id1 = C4::Members::AddMember(
     categorycode => $categorycode,
     branchcode   => $branchcode_1
 );
-my $borrower_1 = C4::Members::GetMember(borrowernumber => $borrower_id1);
+my $borrower_1 = Koha::Patrons->find( $borrower_id1 )->unblessed;
 my $borrower_id2 = C4::Members::AddMember(
     firstname    => 'firstname2',
     surname      => 'surname2 ',
     categorycode => $categorycode,
     branchcode   => $branchcode_2,
 );
-my $borrower_2 = C4::Members::GetMember(borrowernumber => $borrower_id2);
+my $borrower_2 = Koha::Patrons->find( $borrower_id2 )->unblessed;
 
 my @USERENV = (
     $borrower_id1, 'test', 'MASTERTEST', 'firstname', $branchcode_1,
@@ -192,11 +192,10 @@ like(
     qr/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
     "Koha::Schema::Result::Issue->date_due() returns a date"
 );
-my $issue_id1 = $dbh->last_insert_id( undef, undef, 'issues', undef );
+my $issue_id1 = $issue1->issue_id;
 
 my $issue2 = C4::Circulation::AddIssue( $borrower_1, 'nonexistent_barcode' );
 is( $issue2, undef, "AddIssue returns undef if no datedue is specified" );
-my $issue_id2 = $dbh->last_insert_id( undef, undef, 'issues', undef );
 
 $sth->execute;
 $countissue = $sth -> fetchrow_array;
@@ -208,14 +207,20 @@ $sth = $dbh->prepare($query);
 $sth->execute;
 my $countaccount = $sth -> fetchrow_array;
 is ($countaccount,0,"0 accountline exists");
-is( C4::Circulation::AddIssuingCharge( $item_id1, $borrower_id1, 10 ),
-    1, "An issuing charge has been added" );
+my $checkout = Koha::Checkouts->find( $issue_id1 );
+my $offset = C4::Circulation::AddIssuingCharge( $checkout, 10 );
+is( ref( $offset ), 'Koha::Account::Offset', "An issuing charge has been added" );
+my $charge = Koha::Account::Lines->find( $offset->debit_id );
+is( $charge->issue_id, $issue_id1, 'Issue id is set correctly for issuing charge' );
 my $account_id = $dbh->last_insert_id( undef, undef, 'accountlines', undef );
 $sth->execute;
 $countaccount = $sth -> fetchrow_array;
 is ($countaccount,1,"1 accountline has been added");
 
 # Test AddRenewal
+
+my $se = Test::MockModule->new( 'C4::Context' );
+$se->mock( 'interface', sub {return 'intranet'});
 
 # Let's renew this one at a different library for statistical purposes to test Bug 17781
 C4::Context->set_userenv(@USERENV_DIFFERENT_LIBRARY);
@@ -231,18 +236,28 @@ like(
 my $stat = $dbh->selectrow_hashref("SELECT * FROM statistics WHERE type = 'renew' AND borrowernumber = ? AND itemnumber = ? AND branch = ?", undef, $borrower_id1, $item_id1, $branchcode_3 );
 ok( $stat, "Bug 17781 - 'Improper branchcode set during renewal' still fixed" );
 
+$se->mock( 'interface', sub {return 'opac'});
+
+#Let's do an opac renewal - whatever branchcode we send should be used
+my $opac_renew_issue = $builder->build({
+    source=>"Issue",
+    value=>{
+        date_due => '2017-01-01',
+        branch => $branchcode_1,
+        itype => $itemtype,
+        borrowernumber => $borrower_id1
+    }
+});
+
+my $datedue4 = AddRenewal( $opac_renew_issue->{borrowernumber}, $opac_renew_issue->{itemnumber}, "Stavromula", $datedue1, $daysago10 );
+
+$stat = $dbh->selectrow_hashref("SELECT * FROM statistics WHERE type = 'renew' AND borrowernumber = ? AND itemnumber = ? AND branch = ?", undef,  $opac_renew_issue->{borrowernumber},  $opac_renew_issue->{itemnumber}, "Stavromula" );
+ok( $stat, "Bug 18572 - 'Bug 18572 - OpacRenewalBranch is now respected" );
+
+
 
 #Test GetBiblioIssues
 is( GetBiblioIssues(), undef, "GetBiblio Issues without parameters" );
-
-#Test GetItemIssue
-#FIXME : As the issues are not correctly added in the database, these tests don't work correctly
-is(GetItemIssue,undef,"Without parameter GetItemIssue returns undef");
-#is(GetItemIssue($item_id1),{},"Item1's issues");
-
-#Test GetItemIssues
-#FIXME: this routine currently doesn't work be
-#is_deeply (GetItemIssues,{},"Without parameter, GetItemIssue returns all the issues");
 
 #Test GetOpenIssue
 is( GetOpenIssue(), undef, "Without parameter GetOpenIssue returns undef" );
@@ -257,19 +272,19 @@ my $issue3 = C4::Circulation::AddIssue( $borrower_1, $barcode_1 );
 @renewcount = C4::Circulation::GetRenewCount();
 is_deeply(
     \@renewcount,
-    [ 0, undef, 0 ], # FIXME Need to be fixed
+    [ 0, 0, 0 ], # FIXME Need to be fixed, see FIXME in GetRenewCount
     "Without issuing rules and without parameter, GetRenewCount returns renewcount = 0, renewsallowed = undef, renewsleft = 0"
 );
 @renewcount = C4::Circulation::GetRenewCount(-1);
 is_deeply(
     \@renewcount,
-    [ 0, undef, 0 ], # FIXME Need to be fixed
+    [ 0, 0, 0 ], # FIXME Need to be fixed
     "Without issuing rules and without wrong parameter, GetRenewCount returns renewcount = 0, renewsallowed = undef, renewsleft = 0"
 );
 @renewcount = C4::Circulation::GetRenewCount($borrower_id1, $item_id1);
 is_deeply(
     \@renewcount,
-    [ 2, undef, 0 ],
+    [ 2, 0, 0 ],
     "Without issuing rules and with a valid parameter, renewcount = 2, renewsallowed = undef, renewsleft = 0"
 );
 
@@ -302,18 +317,6 @@ is_deeply(
 $dbh->do(q|
     UPDATE issuingrules SET renewalsallowed = 3
 |);
-@renewcount = C4::Circulation::GetRenewCount();
-is_deeply(
-    \@renewcount,
-    [ 0, 3, 3 ],
-    "With issuing rules (renewal allowed) and without parameter, GetRenewCount returns renewcount = 0, renewsallowed = 3, renewsleft = 3"
-);
-@renewcount = C4::Circulation::GetRenewCount(-1);
-is_deeply(
-    \@renewcount,
-    [ 0, 3, 3 ],
-    "With issuing rules (renewal allowed) and without wrong parameter, GetRenewCount returns renewcount = 0, renewsallowed = 3, renewsleft = 3"
-);
 @renewcount = C4::Circulation::GetRenewCount($borrower_id1, $item_id1);
 is_deeply(
     \@renewcount,
@@ -373,8 +376,8 @@ my $reserve_id = AddReserve($branchcode_1, $borrower_id1, $biblionumber,
     undef,  1, undef, undef, "a note", "a title", undef, '');
 ok( $reserve_id, 'The reserve should have been inserted' );
 AddIssue( $borrower_2, $barcode_1, dt_from_string, 'cancel' );
-my $reserve = GetReserve( $reserve_id );
-is( $reserve, undef, 'The reserve should have been correctly cancelled' );
+my $hold = Koha::Holds->find( $reserve_id );
+is( $hold, undef, 'The reserve should have been correctly cancelled' );
 
 #End transaction
 $schema->storage->txn_rollback;

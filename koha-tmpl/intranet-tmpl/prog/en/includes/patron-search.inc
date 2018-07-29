@@ -2,82 +2,6 @@
 [% USE Branches %]
 [% USE Categories %]
 [% USE Letters %]
-[% INCLUDE 'calendar.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function() {
-    $("#chargessince").datepicker( { 
-        autoclose: true, 
-        maxDate: -1,
-        showOn: "both",
-        changeMonth: true,
-        changeYear: true,
-        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-        buttonImageOnly: true,
-        showButtonPanel: true,
-        showOtherMonths: true,
-        selectOtherMonths: true
-    });
-    $("#accountexpiresfrom").datepicker( { 
-        autoclose: true, 
-        showOn: "both",
-        changeMonth: true,
-        changeYear: true,
-        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-        buttonImageOnly: true,
-        showButtonPanel: true,
-        showOtherMonths: true,
-        selectOtherMonths: true
-    });
-    $("#accountexpiresto").datepicker( { 
-        autoclose: true, 
-        showOn: "both",
-        changeMonth: true,
-        changeYear: true,
-        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-        buttonImageOnly: true,
-        showButtonPanel: true,
-        showOtherMonths: true,
-        selectOtherMonths: true
-    });
-    $("#debarreduntilfrom").datepicker( {
-        autoclose: true,
-        showOn: "both",
-        changeMonth: true,
-        changeYear: true,
-        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-        buttonImageOnly: true,
-        showButtonPanel: true,
-        showOtherMonths: true,
-        selectOtherMonths: true
-    });
-    $("#debarreduntilto").datepicker( {
-        autoclose: true,
-        showOn: "both",
-        changeMonth: true,
-        changeYear: true,
-        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-        buttonImageOnly: true,
-        showButtonPanel: true,
-        showOtherMonths: true,
-        selectOtherMonths: true
-    });
-    $("#inactivesince").datepicker( { 
-        autoclose: true, 
-        maxDate: -1,
-        showOn: "both",
-        changeMonth: true,
-        changeYear: true,
-        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-        buttonImageOnly: true,
-        showButtonPanel: true,
-        showOtherMonths: true,
-        selectOtherMonths: true
-    });
-});
-
-//]]>
-</script>
 <div class="gradient">
 <h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName %]</a></h1><!-- Begin Patrons Resident Search Box -->
 <div id="header_search">
@@ -167,7 +91,7 @@ $(document).ready(function() {
 
         <p>
             <label for="branchcode">Library: </label>
-            [% SET branches = Branches.all( selected => branchcode_filter ) %]
+            [% SET branches = Branches.all( selected => branchcode_filter, only_my_group => 1 ) %]
             <select name="branchcode_filter" id="branchcode">
                 [% IF branches.size != 1 %]
                   <option value="">Any</option>
@@ -176,7 +100,7 @@ $(document).ready(function() {
                     [% IF b.selected %]
                         <option value="[% b.branchcode %]" selected="selected">[% b.branchname %]</option>
                     [% ELSE %]
-                        <option value="[% b.branchcode %]">[% b.branchname %]</option>
+                        <option value="[% b.branchcode %]">[% b.branchname |html %]</option>
                     [% END %]
                 [% END %]
             </select>
@@ -184,14 +108,14 @@ $(document).ready(function() {
         
         <p>
             <label for="categorycode">Category: </label>
-            [% SET categories = Categories.all( selected => categorycode_filter ) %]
+            [% SET categories = Categories.all() %]
             <select name="categorycode_filter" id="categorycode">
                 <option value="">Any</option>
-                [% FOREACH categorie IN categories %]
-                    [% IF ( categorie.selected ) %]
-                        <option value="[% categorie.categorycode %]" selected="selected">[% categorie.description %]</option>
+                [% FOREACH category IN categories %]
+                    [% IF category.categorycode == categorycode_filter %]
+                        <option value="[% category.categorycode %]" selected="selected">[% category.description |html %]</option>
                     [% ELSE %]
-                        <option value="[% categorie.categorycode %]">[% categorie.description %]</option>
+                        <option value="[% category.categorycode %]">[% category.description |html %]</option>
                     [% END %]
                 [% END %]
             </select>
@@ -305,7 +229,6 @@ $(document).ready(function() {
                 [% END %]
             </select>
         </p>
-
     </div>
     </form>
 </div>
@@ -332,8 +255,9 @@ $(document).ready(function() {
     <div id="catalog_search" class="residentsearch">
     <p class="tip">Enter search keywords:</p>
         <form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
+             [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %][% INCLUDE 'search_indexes.inc' %][% END %]
              <input type="text" name="q" id="search-form" size="40" value="" title="Enter the terms you wish to search for." class="head-searchbox form-text" />
-                <input type="submit" name="op" id="opac-submit" value="Submit" class="submit" />
+             <input type="submit" name="op" id="opac-submit" value="Submit" class="submit" />
         </form>
     </div>[% END %]
 
@@ -346,34 +270,91 @@ $(document).ready(function() {
     </ul>
 </div><!-- /header_search -->
 </div><!-- /gradient -->
-<script type="text/javascript">//<![CDATA[
-$(document).ready(function() {
-    $("#filteraction_off, #filteraction_on").on('click', function(e) {
-        e.preventDefault();
-        $('#filters').toggle();
-        $('.filteraction').toggle();
-    });
-    [% IF ( advsearch ) %]$("#filteraction_on :visible").toggle();
-    [% ELSE %]$("#filters").toggle();
-    $("#filteraction_off").toggle();[% END %]
-    [% SET dateformat = Koha.Preference('dateformat') %]
-    $("#searchfieldstype").change(function() {
-      if ( $(this).val() == 'dateofbirth' ) {
-          [% IF dateformat == 'us' %]
-              var MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'MM/DD/YYYY'");
-          [% ELSIF dateformat == 'iso' %]
-              var MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'YYYY-MM-DD'");
-          [% ELSIF dateformat == 'metric' %]
-              var MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'DD/MM/YYYY'");
-          [% ELSIF dateformat == 'dmydot' %]
-              var MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'DD.MM.YYYY'");
-          [% END %]
-          $('#searchmember').attr("title",MSG_DATE_FORMAT).tooltip('show');
-      } else {
-          $('#searchmember').tooltip('destroy');
-      }
-    });
-});
-//]]>
-</script>
 <!-- End Patrons Resident Search Box -->
+
+<script type="text/javascript">
+    var advsearch = "[% advsearch %]";
+    var destination = "[% destination %]";
+    var catcode = "[% catcode %]";
+    var dateformat = "[% Koha.Preference('dateformat') %]";
+    var CAN_user_borrowers_edit_borrowers = "[% CAN_user_borrowers_edit_borrowers %]";
+    var NorwegianPatronDBEnable = "[% NorwegianPatronDBEnable %]";
+    var CATCODE_MULTI = "[% CATCODE_MULTI %]";
+    var borrowernumber = "[% patron.borrowernumber %]";
+</script>
+
+[% MACRO jsextrainclude BLOCK %]
+[% INCLUDE 'calendar.inc' %]
+<script type="text/javascript">
+    $(document).ready(function() {
+        $("#chargessince").datepicker( { 
+            autoclose: true, 
+            maxDate: -1,
+            showOn: "both",
+            changeMonth: true,
+            changeYear: true,
+            buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+            buttonImageOnly: true,
+            showButtonPanel: true,
+            showOtherMonths: true,
+            selectOtherMonths: true
+        });
+        $("#accountexpiresfrom").datepicker( { 
+            autoclose: true, 
+            showOn: "both",
+            changeMonth: true,
+            changeYear: true,
+            buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+            buttonImageOnly: true,
+            showButtonPanel: true,
+            showOtherMonths: true,
+            selectOtherMonths: true
+        });
+        $("#accountexpiresto").datepicker( { 
+            autoclose: true, 
+            showOn: "both",
+            changeMonth: true,
+            changeYear: true,
+            buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+            buttonImageOnly: true,
+            showButtonPanel: true,
+            showOtherMonths: true,
+            selectOtherMonths: true
+        });
+        $("#debarreduntilfrom").datepicker( {
+            autoclose: true,
+            showOn: "both",
+            changeMonth: true,
+            changeYear: true,
+            buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+            buttonImageOnly: true,
+            showButtonPanel: true,
+            showOtherMonths: true,
+            selectOtherMonths: true
+        });
+        $("#debarreduntilto").datepicker( {
+            autoclose: true,
+            showOn: "both",
+            changeMonth: true,
+            changeYear: true,
+            buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+            buttonImageOnly: true,
+            showButtonPanel: true,
+            showOtherMonths: true,
+            selectOtherMonths: true
+        });
+        $("#inactivesince").datepicker( { 
+            autoclose: true, 
+            maxDate: -1,
+            showOn: "both",
+            changeMonth: true,
+            changeYear: true,
+            buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+            buttonImageOnly: true,
+            showButtonPanel: true,
+            showOtherMonths: true,
+            selectOtherMonths: true
+        });
+    });
+</script>
+[% END %]

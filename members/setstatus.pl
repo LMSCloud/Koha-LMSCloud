@@ -23,18 +23,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Members;
 use C4::Auth;
+use Koha::Patrons;
 
 
 my $input = new CGI;
 
-checkauth($input, 0, { borrowers => 1 }, 'intranet');
+my ( $loggedinuserid ) = checkauth($input, 0, { borrowers => 'edit_borrowers' }, 'intranet');
 
 my $destination = $input->param("destination") || '';
 my $borrowernumber=$input->param('borrowernumber');
@@ -45,13 +45,21 @@ my $reregistration = $input->param('reregistration') || '';
 my $dbh = C4::Context->dbh;
 my $dateexpiry;
 
-if ( $reregistration eq 'y' ) {
-	# re-reregistration function to automatic calcul of date expiry
-	$dateexpiry = ExtendMemberSubscriptionTo( $borrowernumber );
-} else {
-    my $sth = $dbh->prepare("UPDATE borrowers SET debarred = ?, debarredcomment = '' WHERE borrowernumber = ?");
-    $sth->execute( $status, $borrowernumber );
-	$sth->finish;
+my $logged_in_user = Koha::Patrons->find( { userid =>  $loggedinuserid } ) or die "Not logged in";
+my $patron         = Koha::Patrons->find( $borrowernumber );
+
+# Ideally we should display a warning on the interface if the logged in user is
+# not allowed to modify this patron.
+# But a librarian is not supposed to hack the system
+if ( $logged_in_user->can_see_patron_infos($patron) ) {
+    if ( $reregistration eq 'y' ) {
+        # re-reregistration function to automatic calcul of date expiry
+        $dateexpiry = $patron->renew_account;
+    } else {
+        my $sth = $dbh->prepare("UPDATE borrowers SET debarred = ?, debarredcomment = '' WHERE borrowernumber = ?");
+        $sth->execute( $status, $borrowernumber );
+        $sth->finish;
+    }
 }
 
 $borrowernumber = $followupborrower if ( $followupborrower );

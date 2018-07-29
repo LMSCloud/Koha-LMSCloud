@@ -33,6 +33,7 @@ use C4::Letters;
 use C4::Members ();
 use C4::Output;
 
+use Koha::Patrons;
 use Koha::Virtualshelves;
 use Koha::Virtualshelfshares;
 
@@ -125,31 +126,29 @@ sub show_accept {
     my $shelfnumber = $param->{shelfnumber};
     my $shelf = Koha::Virtualshelves->find( $shelfnumber );
 
-    # The key for accepting is checked later in Koha::Virtualshelf->share
+    # The key for accepting is checked later in Koha::Virtualshelfshare
     # You must not be the owner and the list must be private
-    if ( $shelf->category == 2 or $shelf->owner == $param->{loggedinuser} ) {
-        return;
+    if( !$shelf ) {
+        $param->{errcode} = 2;
+    } elsif( $shelf->category == 2 ) {
+        $param->{errcode} = 5;
+    } elsif( $shelf->owner == $param->{loggedinuser} ) {
+        $param->{errcode} = 8;
     }
+    return if $param->{errcode};
 
-    # We could have used ->find with the share id, but we don't want to change
-    # the url sent to the patron
-    my $shared_shelf = Koha::Virtualshelfshares->search(
-        {
-            shelfnumber => $param->{shelfnumber},
-        },
-        {
-            order_by => { -desc => 'sharedate' },
-            limit => 1,
-        }
-    );
+    # Look for shelfnumber and invitekey in shares, expiration check later
+    my $key = keytostring( stringtokey( $param->{key}, 0 ), 1 );
+    my $shared_shelves = Koha::Virtualshelfshares->search({
+        shelfnumber => $param->{shelfnumber},
+        invitekey => $key,
+    });
+    my $shared_shelf = $shared_shelves ? $shared_shelves->next : undef; # we pick the first, but there should only be one
 
     if ( $shared_shelf ) {
-        $shared_shelf = $shared_shelf->next;
-        my $key = keytostring( stringtokey( $param->{key}, 0 ), 1 );
         my $is_accepted = eval { $shared_shelf->accept( $key, $param->{loggedinuser} ) };
-        if ( $is_accepted ) {
+        if( $is_accepted ) {
             notify_owner($param);
-
             #redirect to view of this shared list
             print $param->{query}->redirect(
                 -uri    => SHELVES_URL . $param->{shelfnumber},
@@ -157,23 +156,24 @@ sub show_accept {
             );
             exit;
         }
-        $param->{errcode} = 7;    #not accepted (key not found or expired)
-    } else {
-        # This shelf is not shared
     }
+    $param->{errcode} = 7; # not accepted: key invalid or expired
 }
 
 sub notify_owner {
     my ($param) = @_;
 
-    my $toaddr = C4::Members::GetNoticeEmailAddress( $param->{owner} );
-    return if !$toaddr;
+    my $patron = Koha::Patrons->find( $param->{owner} );
+    return unless $patron;
+
+    my $toaddr = $patron->notice_email_address or return;
 
     #prepare letter
     my $letter = C4::Letters::GetPreparedLetter(
         module      => 'members',
         letter_code => 'SHARE_ACCEPT',
         branchcode  => C4::Context->userenv->{"branch"},
+        lang        => $patron->lang,
         tables      => { borrowers => $param->{loggedinuser}, },
         substitute  => { listname => $param->{shelfname}, },
     );
@@ -240,6 +240,7 @@ sub send_invitekey {
             module      => 'members',
             letter_code => 'SHARE_INVITE',
             branchcode  => C4::Context->userenv->{"branch"},
+            lang        => 'default', # Not sure how we could use something more useful else here
             tables      => { borrowers => $param->{loggedinuser}, },
             substitute  => {
                 listname => $param->{shelfname},

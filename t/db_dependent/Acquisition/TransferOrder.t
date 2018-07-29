@@ -7,11 +7,11 @@ use C4::Context;
 use C4::Acquisition;
 use C4::Biblio;
 use C4::Items;
-use C4::Bookseller;
 use C4::Budgets;
 use Koha::Database;
 use Koha::DateUtils;
-use Koha::Acquisition::Order;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 use MARC::Record;
 
 my $schema = Koha::Database->new()->schema();
@@ -20,30 +20,30 @@ $schema->storage->txn_begin();
 my $dbh = C4::Context->dbh;
 $dbh->{RaiseError} = 1;
 
-my $booksellerid1 = C4::Bookseller::AddBookseller(
+my $bookseller1 = Koha::Acquisition::Bookseller->new(
     {
         name => "my vendor 1",
         address1 => "bookseller's address",
         phone => "0123456",
         active => 1
     }
-);
+)->store;
 
 my $basketno1 = C4::Acquisition::NewBasket(
-    $booksellerid1
+    $bookseller1->id
 );
 
-my $booksellerid2 = C4::Bookseller::AddBookseller(
+my $bookseller2 = Koha::Acquisition::Bookseller->new(
     {
         name => "my vendor 2",
         address1 => "bookseller's address",
         phone => "0123456",
         active => 1
     }
-);
+)->store;
 
 my $basketno2 = C4::Acquisition::NewBasket(
-    $booksellerid2
+    $bookseller2->id
 );
 
 my $budgetid = C4::Budgets::AddBudget(
@@ -65,8 +65,8 @@ my $order = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber = $order->{ordernumber};
+)->store;
+my $ordernumber = $order->ordernumber;
 $order->add_item( $itemnumber );
 
 # Begin tests
@@ -95,11 +95,12 @@ $orders = SearchOrders({ ordernumber => $ordernumber });
 is ( scalar( @$orders ), 1, 'SearchOrders returns 1 order with [old]ordernumber' );
 is ( $orders->[0]->{ordernumber}, $newordernumber, 'SearchOrders returns newordernumber if [old]ordernumber is given' );
 
+my $neworder = Koha::Acquisition::Orders->find( $newordernumber )->unblessed;
+
 ModReceiveOrder({
     biblionumber => $biblionumber,
-    ordernumber => $newordernumber,
+    order       => $neworder,
     quantityreceived => 2, 
-    datereceived => dt_from_string(),
 });
 CancelReceipt( $newordernumber );
 $order = GetOrder( $newordernumber );

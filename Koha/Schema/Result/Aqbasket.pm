@@ -37,12 +37,12 @@ __PACKAGE__->table("aqbasket");
 
 =head2 note
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 booksellernote
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 contractnumber
@@ -78,7 +78,7 @@ __PACKAGE__->table("aqbasket");
 
 =head2 booksellerinvoicenumber
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 basketgroupid
@@ -112,6 +112,12 @@ __PACKAGE__->table("aqbasket");
   default_value: 0
   is_nullable: 0
 
+=head2 create_items
+
+  data_type: 'enum'
+  extra: {list => ["ordering","receiving","cataloguing"]}
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -120,9 +126,9 @@ __PACKAGE__->add_columns(
   "basketname",
   { data_type => "varchar", is_nullable => 1, size => 50 },
   "note",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "booksellernote",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "contractnumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "creationdate",
@@ -139,7 +145,7 @@ __PACKAGE__->add_columns(
   "authorisedby",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "booksellerinvoicenumber",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "basketgroupid",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "deliveryplace",
@@ -150,6 +156,12 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
   "is_standing",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "create_items",
+  {
+    data_type => "enum",
+    extra => { list => ["ordering", "receiving", "cataloguing"] },
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -297,8 +309,8 @@ Composing rels: L</aqbasketusers> -> borrowernumber
 __PACKAGE__->many_to_many("borrowernumbers", "aqbasketusers", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-04-29 13:13:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6gRJtrZ6ZXLHjqX281d9Hg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:gSw/f4JmMBzEssEFRg2fAQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

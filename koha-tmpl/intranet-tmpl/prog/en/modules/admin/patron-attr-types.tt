@@ -1,3 +1,6 @@
+[% USE Asset %]
+[% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Patron attribute types
 [% IF ( attribute_type_form ) %]
@@ -12,20 +15,11 @@
 [% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function() {
-    if ( $("#branches option:selected").length < 1 ) {
-        $("#branches option:first").attr("selected", "selected");
-    }
-} );
-//]]>
-</script>
 </head>
+
 <body id="admin_patron-attr-types" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; [% IF ( display_list ) %]Patron attribute types[% ELSE %]<a href="/cgi-bin/koha/admin/patron-attr-types.pl">Patron attribute types</a>[% END %]
 [% IF ( attribute_type_form ) %]
@@ -122,6 +116,14 @@ $(document).ready(function() {
           [% END %]
             <span>Check to display this attribute on a patron's details page in the OPAC.</span>
        </li>
+       <li><label for="opac_editable">Editable in OPAC: </label>
+          [% IF ( opac_editable_checked ) %]
+            <input type="checkbox" id="opac_editable" name="opac_editable" checked="checked" />
+          [% ELSE %]
+            <input type="checkbox" id="opac_editable" name="opac_editable" />
+          [% END %]
+            <span>Check to allow patrons to edit this attribute from their details page in the OPAC. (Requires above, does not work with <a href="/cgi-bin/koha/admin/preferences.pl?op=search&amp;searchfield=PatronSelfRegistrationVerifyByEmail" target="_blank">PatronSelfRegistrationVerifyByEmail</a>.)</span>
+       </li>
        <li><label for="staff_searchable">Searchable: </label>
           [% IF ( staff_searchable_checked ) %]
             <input type="checkbox" id="staff_searchable" name="staff_searchable" checked="checked" />
@@ -142,17 +144,7 @@ $(document).ready(function() {
         <li><label for="authorised_value_category">Authorized value category: </label>
             <select name="authorised_value_category" id="authorised_value_category">
                 <option value=""></option>
-                [% FOREACH authorised_value_categorie IN authorised_value_categories %]
-                    [% IF ( authorised_value_categorie.selected ) %]
-                        <option value="[% authorised_value_categorie.category %]" selected="selected">
-                            [% authorised_value_categorie.category %]
-                        </option>
-                    [% ELSE %]
-                        <option value="[% authorised_value_categorie.category %]">
-                            [% authorised_value_categorie.category %]
-                        </option>
-                    [% END %]
-                [% END %]
+                [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories( selected => authorised_value_category ) %]
             </select>
             <span>Authorized value category; if one is selected, the patron record input page will only allow values 
                   to be chosen from the authorized value list.  However, an authorized value list is not 
@@ -163,9 +155,9 @@ $(document).ready(function() {
                 <option value="">All branches</option>
                 [% FOREACH branch IN branches_loop %]
                   [% IF ( branch.selected ) %]
-                    <option selected="selected" value="[% branch.branchcode %]">[% branch.branchname %]</option>
+                    <option selected="selected" value="[% branch.branchcode %]">[% branch.branchname |html %]</option>
                   [% ELSE %]
-                    <option value="[% branch.branchcode %]">[% branch.branchname %]</option>
+                    <option value="[% branch.branchcode %]">[% branch.branchname |html %]</option>
                   [% END %]
                 [% END %]
             </select>
@@ -177,7 +169,7 @@ $(document).ready(function() {
             <select name="category_code" id="category">
                 <option value=""></option>
                 [% FOREACH cat IN categories %]
-                    [% IF ( cat.categorycode == category_code ) %]<option value="[% cat.categorycode %]" selected="selected">[% cat.description %]</option>[% ELSE %]<option value="[% cat.categorycode %]">[% cat.description %]</option>[% END %]
+                    [% IF ( cat.categorycode == category_code ) %]<option value="[% cat.categorycode %]" selected="selected">[% cat.description |html %]</option>[% ELSE %]<option value="[% cat.categorycode %]">[% cat.description |html %]</option>[% END %]
                 [% END %]
             </select>
             <span>Choose one to limit this attribute to one patron type. Please leave blank if you want these attributes to be available for all types of patrons.</span>
@@ -189,11 +181,11 @@ $(document).ready(function() {
                 [% FOREACH class IN classes_val_loop %]
                     [% IF class.authorised_value == category_class %]
                         <option value="[% class.authorised_value %]" selected="selected">
-                            [% class.lib %]
+                            [% class.lib |html %]
                         </option>
                     [% ELSE %]
                         <option value="[% class.authorised_value %]" >
-                            [% class.lib %]
+                            [% class.lib |html %]
                         </option>
                     [% END %]
                 [% END %]
@@ -226,7 +218,7 @@ $(document).ready(function() {
 [% IF ( display_list ) %]
 
 <div id="toolbar" class="btn-toolbar">
-    <a class="btn btn-small" id="newrule" href="[% script_name %]?op=add_attribute_type"><i class="fa fa-plus"></i> New patron attribute type</a>
+    <a class="btn btn-default btn-sm" id="newrule" href="[% script_name %]?op=add_attribute_type"><i class="fa fa-plus"></i> New patron attribute type</a>
 </div>
 
 <h2>Patron attribute types</h2>
@@ -265,7 +257,7 @@ $(document).ready(function() {
         [% FOREACH item IN attribute.items %]
           <tr>
             <td>[% item.code |html %]</td>
-            <td>[% item.description %]</td>
+            <td>[% item.description |html %]</td>
             <td>
                 [% IF ( item.branches && item.branches.size > 0 ) %]
                     [% branches_str = "" %]
@@ -284,8 +276,8 @@ $(document).ready(function() {
                 [% END %]
             </td>
             <td class="actions">
-              <a class="btn btn-mini" href="[% item.script_name %]?op=edit_attribute_type&amp;code=[% item.code |html %]"><i class="fa fa-pencil"></i> Edit</a>
-              <a class="btn btn-mini" href="[% item.script_name %]?op=delete_attribute_type&amp;code=[% item.code |html %]"><i class="fa fa-trash"></i> Delete</a>
+              <a class="btn btn-default btn-xs" href="[% item.script_name %]?op=edit_attribute_type&amp;code=[% item.code |html %]"><i class="fa fa-pencil"></i> Edit</a>
+              <a class="btn btn-default btn-xs" href="[% item.script_name %]?op=delete_attribute_type&amp;code=[% item.code |html %]"><i class="fa fa-trash"></i> Delete</a>
             </td>
           </tr>
         [% END %]
@@ -306,4 +298,23 @@ $(document).ready(function() {
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            if ( $("#branches option:selected").length < 1 ) {
+                $("#branches option:first").attr("selected", "selected");
+            }
+
+            $("#opac_display").change( function() {
+                if ( this.checked ) {
+                    $("#opac_editable").removeAttr('disabled').parent().removeAttr('aria-disabled');
+                } else {
+                    $("#opac_editable").attr('disabled', true).parent().attr('aria-disabled', 'true');
+                }
+            } ).change();
+        });
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

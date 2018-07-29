@@ -2,9 +2,11 @@
 
 use Modern::Perl;
 
-use Test::More tests => 88;
+use Test::More tests => 86;
 use Test::MockModule;
 use Test::Warn;
+
+use t::lib::TestBuilder;
 
 use C4::Context;
 use Koha::DateUtils;
@@ -15,21 +17,19 @@ use C4::Serials;
 use C4::Budgets;
 use C4::Biblio;
 
-use Koha::Acquisition::Order;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 use Koha::Database;
 
 BEGIN {
     use_ok('C4::Bookseller');
-    use_ok('Koha::Acquisition::Bookseller');
 }
 
 can_ok(
 
     'C4::Bookseller', qw(
-      AddBookseller
-      DelBookseller
       GetBooksellersWithLateOrders
-      ModBookseller )
+    )
 );
 
 #Start transaction
@@ -37,8 +37,8 @@ my $dbh = C4::Context->dbh;
 my $database = Koha::Database->new();
 my $schema = $database->schema();
 $schema->storage->txn_begin();
-
 $dbh->{RaiseError} = 1;
+my $builder = t::lib::TestBuilder->new;
 
 #Start tests
 $dbh->do(q|DELETE FROM aqorders|);
@@ -46,8 +46,12 @@ $dbh->do(q|DELETE FROM aqbasket|);
 $dbh->do(q|DELETE FROM aqbooksellers|);
 $dbh->do(q|DELETE FROM subscription|);
 
+my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+# Add currency
+my $curcode = $builder->build({ source => 'Currency' })->{currencycode};
+
 #Test AddBookseller
-my $count            = scalar( Koha::Acquisition::Bookseller->search() );
+my $count            = Koha::Acquisition::Booksellers->search()->count();
 my $sample_supplier1 = {
     name          => 'Name1',
     address1      => 'address1_1',
@@ -63,8 +67,8 @@ my $sample_supplier1 = {
     gstreg        => 1,
     listincgst    => 1,
     invoiceincgst => 1,
-    gstrate       => '1.0000',
-    discount      => '1.0000',
+    tax_rate      => '1.0000',
+    discount      => 1.0000,
     notes         => 'notes1',
     deliverytime  => undef
 };
@@ -83,75 +87,77 @@ my $sample_supplier2 = {
     gstreg        => 1,
     listincgst    => 1,
     invoiceincgst => 1,
-    gstrate       => '2.0000',
-    discount      => '2.0000',
+    tax_rate      => '2.0000',
+    discount      => 2.0000,
     notes         => 'notes2',
     deliverytime  => 2
 };
 
-my $id_supplier1 = C4::Bookseller::AddBookseller($sample_supplier1);
-my $id_supplier2 = C4::Bookseller::AddBookseller($sample_supplier2);
-
-#my $id_bookseller3 = C4::Bookseller::AddBookseller();# NOTE : Doesn't work because the field name cannot be null
+my $supplier1 = Koha::Acquisition::Bookseller->new($sample_supplier1)->store;
+my $id_supplier1 = $supplier1->id;
+my $supplier2 = Koha::Acquisition::Bookseller->new($sample_supplier2)->store;
+my $id_supplier2 = $supplier2->id;
 
 like( $id_supplier1, '/^\d+$/', "AddBookseller for supplier1 return an id" );
 like( $id_supplier2, '/^\d+$/', "AddBookseller for supplier2 return an id" );
-my @b = Koha::Acquisition::Bookseller->search();
-is ( scalar(@b),
+is( Koha::Acquisition::Booksellers->search()->count,
     $count + 2, "Supplier1 and Supplier2 have been added" );
 
 #Test DelBookseller
-my $del = C4::Bookseller::DelBookseller($id_supplier1);
+my $del = $supplier1->delete;
 is( $del, 1, "DelBookseller returns 1 - 1 supplier has been deleted " );
-my $b = Koha::Acquisition::Bookseller->fetch({id => $id_supplier1});
+my $b = Koha::Acquisition::Booksellers->find( $id_supplier1 );
 is( $b,
     undef, "Supplier1  has been deleted - id_supplier1 $id_supplier1 doesnt exist anymore" );
 
 #Test get bookseller
-my @bookseller2 = Koha::Acquisition::Bookseller->search({name => $sample_supplier2->{name} });
+my @bookseller2 = Koha::Acquisition::Booksellers->search({name => $sample_supplier2->{name} });
 is( scalar(@bookseller2), 1, "Get only  Supplier2" );
-$bookseller2[0] = field_filter( $bookseller2[0] );
+for my $bookseller ( @bookseller2 ) {
+    $bookseller = field_filter( $bookseller->unblessed );
+}
 
 $sample_supplier2->{id} = $id_supplier2;
-is_deeply( $bookseller2[0], $sample_supplier2,
-    "Koha::Acquisition::Bookseller->search returns the right informations about $sample_supplier2" );
+is_deeply( cast_precision($bookseller2[0]), $sample_supplier2,
+    "Koha::Acquisition::Booksellers->search returns the right informations about supplier $sample_supplier2->{name}" );
 
-$id_supplier1 = C4::Bookseller::AddBookseller($sample_supplier1);
-my @booksellers = Koha::Acquisition::Bookseller->search(); #NOTE :without params, it returns all the booksellers
-for my $i ( 0 .. scalar(@booksellers) - 1 ) {
-    $booksellers[$i] = field_filter( $booksellers[$i] );
+$supplier1 = Koha::Acquisition::Bookseller->new($sample_supplier1)->store;
+$id_supplier1 = $supplier1->id;
+my @booksellers = Koha::Acquisition::Booksellers->search();
+for my $bookseller ( @booksellers ) {
+    $bookseller = field_filter( $bookseller->unblessed );
+    $bookseller = cast_precision($bookseller);
 }
 
 $sample_supplier1->{id} = $id_supplier1;
 is( scalar(@booksellers), $count + 2, "Get  Supplier1 and Supplier2" );
-my @tab = ( $sample_supplier1, $sample_supplier2 );
+my @tab = ( $sample_supplier2, $sample_supplier1 );
 is_deeply( \@booksellers, \@tab,
     "Returns right fields of Supplier1 and Supplier2" );
 
-#Test basket_count
-my @bookseller1 = Koha::Acquisition::Bookseller->search({name => $sample_supplier1->{name} });
-is( $bookseller1[0]->basket_count, 0, 'Supplier1 has 0 basket' );
+#Test baskets
+my @bookseller1 = Koha::Acquisition::Booksellers->search({name => $sample_supplier1->{name} });
+is( $bookseller1[0]->baskets->count, 0, 'Supplier1 has 0 basket' );
 my $basketno1 =
-  C4::Acquisition::NewBasket( $id_supplier1, 'authorisedby1', 'basketname1' );
+  C4::Acquisition::NewBasket( $id_supplier1, $patron->borrowernumber, 'basketname1' );
 my $basketno2 =
-  C4::Acquisition::NewBasket( $id_supplier1, 'authorisedby2', 'basketname2' );
-@bookseller1 = Koha::Acquisition::Bookseller::search({ name => $sample_supplier1->{name} });
-is( $bookseller1[0]->basket_count, 2, 'Supplier1 has 2 baskets' );
+  C4::Acquisition::NewBasket( $id_supplier1, $patron->borrowernumber, 'basketname2' );
+@bookseller1 = Koha::Acquisition::Booksellers->search({ name => $sample_supplier1->{name} });
+is( $bookseller1[0]->baskets->count, 2, 'Supplier1 has 2 baskets' );
 
 #Test Koha::Acquisition::Bookseller->new using id
-my $bookseller1fromid = Koha::Acquisition::Bookseller->fetch;
+my $bookseller1fromid = Koha::Acquisition::Booksellers->find;
 is( $bookseller1fromid, undef,
-    "fetch returns undef if no id given" );
-$bookseller1fromid = Koha::Acquisition::Bookseller->fetch({ id => $id_supplier1});
-$bookseller1fromid = field_filter($bookseller1fromid);
-is_deeply( $bookseller1fromid, $sample_supplier1,
-    "Get Supplier1 (fetch a bookseller by id)" );
+    "find returns undef if no id given" );
+$bookseller1fromid = Koha::Acquisition::Booksellers->find( $id_supplier1 );
+$bookseller1fromid = field_filter($bookseller1fromid->unblessed);
+is_deeply( cast_precision($bookseller1fromid), $sample_supplier1,
+    "Get Supplier1 (find a bookseller by id)" );
 
-#Test basket_count
-$bookseller1fromid = Koha::Acquisition::Bookseller->fetch({ id => $id_supplier1});
-is( $bookseller1fromid->basket_count, 2, 'Supplier1 has 2 baskets' );
+$bookseller1fromid = Koha::Acquisition::Booksellers->find( $id_supplier1 );
+is( $bookseller1fromid->baskets->count, 2, 'Supplier1 has 2 baskets' );
 
-#Test subscription_count
+#Test subscriptions
 my $dt_today    = dt_from_string;
 my $today       = output_pref({ dt => $dt_today, dateformat => 'iso', timeformat => '24hr', dateonly => 1 });
 
@@ -178,15 +184,15 @@ $bib->append_fields(
     MARC::Field->new('500', ' ', ' ', a => 'bib notes'),
 );
 my ($biblionumber, $biblioitemnumber) = AddBiblio($bib, '');
-$bookseller1fromid = Koha::Acquisition::Bookseller->fetch({ id => $id_supplier1 });
-is( $bookseller1fromid->subscription_count,
+$bookseller1fromid = Koha::Acquisition::Booksellers->find( $id_supplier1 );
+is( $bookseller1fromid->subscriptions->count,
     0, 'Supplier1 has 0 subscription' );
 
 my $id_subscription1 = NewSubscription(
     undef,      'BRANCH2',     $id_supplier1, undef, $id_budget, $biblionumber,
-    '01-01-2013',undef, undef, undef,  undef,
+    '2013-01-01',undef, undef, undef,  undef,
     undef,      undef,  undef, undef, undef, undef,
-    1,          "subscription notes",undef, '01-01-2013', undef, undef,
+    1,          "subscription notes",undef, '2013-01-01', undef, undef,
     undef, 'CALL ABC',  0,    "intnotes",  0,
     undef, undef, 0,          undef,         '2013-11-30', 0
 );
@@ -196,15 +202,15 @@ is($subscriptions[0]->{publicnotes}, 'subscription notes', 'subscription search 
 
 my $id_subscription2 = NewSubscription(
     undef,      'BRANCH2',     $id_supplier1, undef, $id_budget, $biblionumber,
-    '01-01-2013',undef, undef, undef,  undef,
+    '2013-01-01',undef, undef, undef,  undef,
     undef,      undef,  undef, undef, undef, undef,
-    1,          "subscription notes",undef, '01-01-2013', undef, undef,
+    1,          "subscription notes",undef, '2013-01-01', undef, undef,
     undef, 'CALL DEF',  0,    "intnotes",  0,
     undef, undef, 0,          undef,         '2013-07-31', 0
 );
 
-$bookseller1fromid = Koha::Acquisition::Bookseller->fetch({ id => $id_supplier1 });
-is( $bookseller1fromid->subscription_count,
+$bookseller1fromid = Koha::Acquisition::Booksellers->find( $id_supplier1 );
+is( $bookseller1fromid->subscriptions->count,
     2, 'Supplier1 has 2 subscriptions' );
 
 #Test ModBookseller
@@ -224,28 +230,18 @@ $sample_supplier2 = {
     gstreg        => 1,
     listincgst    => 1,
     invoiceincgst => 1,
-    gstrate       => '2.0000 ',
-    discount      => '2.0000',
+    tax_rate      => '2.0000',
+    discount      => 2.0000,
     notes         => 'notes2 modified',
     deliverytime  => 2,
 };
 
-my $modif1 = C4::Bookseller::ModBookseller();
-is( $modif1, undef,
-    "ModBookseller returns undef if no params given - Nothing happened" );
-$modif1 = C4::Bookseller::ModBookseller($sample_supplier2);
-is( $modif1, 1, "ModBookseller modifies only the supplier2" );
-is( scalar( Koha::Acquisition::Bookseller->search ),
+my $modif1 = Koha::Acquisition::Booksellers->find($id_supplier2)->set($sample_supplier2)->store;
+is( ref $modif1, 'Koha::Acquisition::Bookseller', "ModBookseller has updated the bookseller" );
+is( Koha::Acquisition::Booksellers->search->count,
     $count + 2, "Supplier2 has been modified - Nothing added" );
-
-$modif1 = C4::Bookseller::ModBookseller(
-    {
-        id   => -1,
-        name => 'name3'
-    }
-);
-#is( $modif1, '0E0',
-#    "ModBookseller returns OEO if the id doesnt exist - Nothing modified" );
+$supplier2 = Koha::Acquisition::Booksellers->find($id_supplier2);
+is( $supplier2->name, 'Name2 modified', "supplier's name should have been modified" );
 
 #Test GetBooksellersWithLateOrders
 #Add 2 suppliers
@@ -264,8 +260,8 @@ my $sample_supplier3 = {
     gstreg        => 1,
     listincgst    => 1,
     invoiceincgst => 1,
-    gstrate       => '3.0000',
-    discount      => '3.0000',
+    tax_rate      => '3.0000',
+    discount      => 3.0000,
     notes         => 'notes3',
     deliverytime  => 3
 };
@@ -284,19 +280,21 @@ my $sample_supplier4 = {
     gstreg        => 1,
     listincgst    => 1,
     invoiceincgst => 1,
-    gstrate       => '3.0000',
-    discount      => '3.0000',
+    tax_rate      => '3.0000',
+    discount      => 3.0000,
     notes         => 'notes3',
 };
-my $id_supplier3 = C4::Bookseller::AddBookseller($sample_supplier3);
-my $id_supplier4 = C4::Bookseller::AddBookseller($sample_supplier4);
+my $supplier3 = Koha::Acquisition::Bookseller->new($sample_supplier3)->store;
+my $id_supplier3 = $supplier3->id;
+my $supplier4 = Koha::Acquisition::Bookseller->new($sample_supplier4)->store;
+my $id_supplier4 = $supplier4->id;
 
 #Add 2 baskets
 my $basketno3 =
-  C4::Acquisition::NewBasket( $id_supplier3, 'authorisedby3', 'basketname3',
+  C4::Acquisition::NewBasket( $id_supplier3, $patron->borrowernumber, 'basketname3',
     'basketnote3' );
 my $basketno4 =
-  C4::Acquisition::NewBasket( $id_supplier4, 'authorisedby4', 'basketname4',
+  C4::Acquisition::NewBasket( $id_supplier4, $patron->borrowernumber, 'basketname4',
     'basketnote4' );
 
 #Modify the basket to add a close date
@@ -333,9 +331,9 @@ ModBasket($basket4info);
 #Add 1 subscription
 my $id_subscription3 = NewSubscription(
     undef,      "BRANCH1",     $id_supplier1, undef, $id_budget, $biblionumber,
-    '01-01-2013',undef, undef, undef,  undef,
+    '2013-01-01',undef, undef, undef,  undef,
     undef,      undef,  undef, undef, undef, undef,
-    1,          "subscription notes",undef, '01-01-2013', undef, undef,
+    1,          "subscription notes",undef, '2013-01-01', undef, undef,
     undef,       undef,  0,    "intnotes",  0,
     undef, undef, 0,          'LOCA',         '2013-12-31', 0
 );
@@ -358,19 +356,19 @@ my $order1 = Koha::Acquisition::Order->new(
         quantity         => 24,
         biblionumber     => $biblionumber,
         budget_id        => $id_budget,
-        entrydate        => '01-01-2013',
-        currency         => 'EUR',
+        entrydate        => '2013-01-01',
+        currency         => $curcode,
         notes            => "This is a note1",
-        gstrate          => 0.0500,
+        tax_rate         => 0.0500,
         orderstatus      => 1,
         subscriptionid   => $id_subscription1,
         quantityreceived => 2,
         rrp              => 10,
         ecost            => 10,
-        datereceived     => '01-06-2013'
+        datereceived     => '2013-06-01'
     }
-)->insert;
-my $ordernumber1 = $order1->{ordernumber};
+)->store;
+my $ordernumber1 = $order1->ordernumber;
 
 my $order2 = Koha::Acquisition::Order->new(
     {
@@ -378,17 +376,17 @@ my $order2 = Koha::Acquisition::Order->new(
         quantity       => 20,
         biblionumber   => $biblionumber,
         budget_id      => $id_budget,
-        entrydate      => '01-01-2013',
-        currency       => 'EUR',
+        entrydate      => '2013-01-01',
+        currency       => $curcode,
         notes          => "This is a note2",
-        gstrate        => 0.0500,
+        tax_rate       => 0.0500,
         orderstatus    => 1,
         subscriptionid => $id_subscription2,
         rrp            => 10,
         ecost          => 10,
     }
-)->insert;
-my $ordernumber2 = $order2->{ordernumber};
+)->store;
+my $ordernumber2 = $order2->ordernumber;
 
 my $order3 = Koha::Acquisition::Order->new(
     {
@@ -396,17 +394,17 @@ my $order3 = Koha::Acquisition::Order->new(
         quantity       => 20,
         biblionumber   => $biblionumber,
         budget_id      => $id_budget,
-        entrydate      => '02-02-2013',
-        currency       => 'EUR',
+        entrydate      => '2013-02-02',
+        currency       => $curcode,
         notes          => "This is a note3",
-        gstrate        => 0.0500,
+        tax_rate       => 0.0500,
         orderstatus    => 2,
         subscriptionid => $id_subscription3,
         rrp            => 11,
         ecost          => 11,
     }
-)->insert;
-my $ordernumber3 = $order3->{ordernumber};
+)->store;
+my $ordernumber3 = $order3->ordernumber;
 
 my $order4 = Koha::Acquisition::Order->new(
     {
@@ -414,18 +412,18 @@ my $order4 = Koha::Acquisition::Order->new(
         quantity         => 20,
         biblionumber     => $biblionumber,
         budget_id        => $id_budget,
-        entrydate        => '02-02-2013',
-        currency         => 'EUR',
+        entrydate        => '2013-02-02',
+        currency         => $curcode,
         notes            => "This is a note3",
-        gstrate          => 0.0500,
+        tax_rate         => 0.0500,
         orderstatus      => 2,
         subscriptionid   => $id_subscription3,
         rrp              => 11,
         ecost            => 11,
         quantityreceived => 20
     }
-)->insert;
-my $ordernumber4 = $order4->{ordernumber};
+)->store;
+my $ordernumber4 = $order4->ordernumber;
 
 #Test cases:
 # Sample datas :
@@ -681,69 +679,83 @@ is(
     3,
     'superlibrarian can see all subscriptions with IndependentBranches on (bug 12048)'
 );
+
 #Test contact editing
-my $booksellerid = C4::Bookseller::AddBookseller(
-    {
+my $sample_supplier = {
         name     => "my vendor",
         address1 => "bookseller's address",
         phone    => "0123456",
         active   => 1
-    },
-    [
-        { name => 'John Smith',  phone => '0123456x1' },
-        { name => 'Leo Tolstoy', phone => '0123456x2' },
-    ]
-);
+    };
+my $supplier = Koha::Acquisition::Bookseller->new($sample_supplier)->store;
+my $booksellerid = $supplier->id;
+my $contact1 = Koha::Acquisition::Bookseller::Contact->new({
+        name => 'John Smith',
+        phone => '0123456x1',
+        booksellerid => $booksellerid,
+})->store;
+my $contact2 = Koha::Acquisition::Bookseller::Contact->new({
+        name => 'Leo Tolstoy',
+        phone => '0123456x2',
+        booksellerid => $booksellerid,
+})->store;
 
-@booksellers = Koha::Acquisition::Bookseller->search({ name => 'my vendor' });
+@booksellers = Koha::Acquisition::Booksellers->search({ name => 'my vendor' });
 ok(
-    ( grep { $_->{'id'} == $booksellerid } @booksellers ),
-    'Koha::Acquisition::Bookseller->search returns correct record when passed a name'
+    ( grep { $_->id == $booksellerid } @booksellers ),
+    'Koha::Acquisition::Booksellers->search returns correct record when passed a name'
 );
 
-my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
-is( $bookseller->{'id'}, $booksellerid, 'Retrieved desired record' );
-is( $bookseller->{'phone'}, '0123456', 'New bookseller has expected phone' );
+my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
+is( $bookseller->id, $booksellerid, 'Retrieved desired record' );
+is( $bookseller->phone, '0123456', 'New bookseller has expected phone' );
 my $contacts = $bookseller->contacts;
-is( ref $bookseller->contacts,
-    'ARRAY', 'Koha::Acquisition::Bookseller->fetch returns arrayref of contacts' );
+is( $contacts->count,
+    2, 'bookseller should have 2 contacts' );
+my $first_contact = $contacts->next;
 is(
-    ref $bookseller->{'contacts'}->[0],
-    'C4::Bookseller::Contact',
-    'First contact is a contact object'
+    ref $first_contact,
+    'Koha::Acquisition::Bookseller::Contact',
+    'First contact is a AqContact'
 );
-is( $bookseller->{'contacts'}->[0]->phone,
+is( $first_contact->phone,
     '0123456x1', 'Contact has expected phone number' );
-is( scalar @{ $bookseller->{'contacts'} }, 2, 'Saved two contacts' );
 
-pop @{ $bookseller->{'contacts'} };
-$bookseller->{'name'} = 'your vendor';
-$bookseller->{'contacts'}->[0]->phone('654321');
-C4::Bookseller::ModBookseller($bookseller);
-
-$bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $second_contact = $contacts->next;
+$second_contact->delete;
+$bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
+$bookseller->name('your vendor')->store;
 $contacts = $bookseller->contacts;
-is( $bookseller->{'name'}, 'your vendor',
+$first_contact = $contacts->next;
+$first_contact->phone('654321');
+$first_contact->store;
+
+$bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
+is( $bookseller->name, 'your vendor',
     'Successfully changed name of vendor' );
-is( $contacts->[0]->phone,
+$contacts = $bookseller->contacts;
+is( $contacts->count,
+    1, 'Only one contact after modification' );
+$first_contact = $contacts->next;
+is( $first_contact->phone,
     '654321',
     'Successfully changed contact phone number by modifying bookseller hash' );
-is( scalar @$contacts,
-    1, 'Only one contact after modification' );
 
-C4::Bookseller::ModBookseller( $bookseller,
-    [ { name => 'John Jacob Jingleheimer Schmidt' } ] );
+$first_contact->name( 'John Jacob Jingleheimer Schmidt' );
+$first_contact->phone(undef);
+$first_contact->store;
 
-$bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+$bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 $contacts = $bookseller->contacts;
+$first_contact = $contacts->next;
 is(
-    $contacts->[0]->name,
+    $first_contact->name,
     'John Jacob Jingleheimer Schmidt',
     'Changed name of contact'
 );
-is( $contacts->[0]->phone,
+is( $first_contact->phone,
     undef, 'Removed phone number from contact' );
-is( scalar @$contacts,
+is( $contacts->count,
     1, 'Only one contact after modification' );
 
 #End transaction
@@ -766,6 +778,17 @@ sub field_filter {
         if ( grep { /^$field$/ } keys %$struct ) {
             delete $struct->{$field};
         }
+    }
+    return $struct;
+}
+
+# ensure numbers are actually tested as numbers to prevent
+# precision changes causing test failures (D8->D9 Upgrades)
+sub cast_precision {
+    my ($struct) = @_;
+    my @cast = ('discount');
+    for my $cast (@cast) {
+        $struct->{$cast} = $struct->{$cast}+0;
     }
     return $struct;
 }

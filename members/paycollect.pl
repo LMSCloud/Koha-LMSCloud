@@ -17,23 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use URI::Escape;
+use CGI qw ( -utf8 );
+
 use C4::Context;
 use C4::Auth;
 use C4::Output;
-use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Accounts;
 use C4::Koha;
-use Koha::Patron::Images;
+
 use Koha::Patrons;
+use Koha::Patron::Categories;
+use Koha::AuthorisedValues;
 use Koha::Account;
 use Koha::Token;
-
-use Koha::Patron::Categories;
 
 my $input = CGI->new();
 
@@ -43,27 +43,24 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1, updatecharges => $updatecharges_permissions },
+        flagsrequired   => { borrowers => 'edit_borrowers', updatecharges => $updatecharges_permissions },
         debug           => 1,
     }
 );
 
 # get borrower details
 my $borrowernumber = $input->param('borrowernumber');
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
 my $patron         = Koha::Patrons->find( $borrowernumber );
-unless ( $patron ) {
-    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
-    exit;
-}
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
+
 my $borrower       = $patron->unblessed;
 my $category       = $patron->category;
-$borrower->{description} = $category->description;
-$borrower->{category_type} = $category->category_type;
 my $user           = $input->remote_user;
 
-my $branch         = C4::Context->userenv->{'branch'};
+my $branch    = C4::Context->userenv->{'branch'};
+my $total_due = $patron->account->outstanding_debits->total_outstanding;
 
-my ( $total_due, $accts, $numaccts ) = GetMemberAccountRecords($borrowernumber);
 my $total_paid = $input->param('paid');
 
 my $individual   = $input->param('pay_individual');
@@ -72,6 +69,7 @@ my $cancel_fee     = $input->param('cancel_individual');
 my $select_lines = $input->param('selected');
 my $select       = $input->param('selected_accts');
 my $payment_note = uri_unescape scalar $input->param('payment_note');
+my $payment_type = scalar $input->param('payment_type');
 my $accountlines_id;
 
 if ( $individual || $writeoff || $cancel_fee ) {
@@ -128,10 +126,11 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             my $line = Koha::Account::Lines->find($accountlines_id);
             Koha::Account->new( { patron_id => $borrowernumber } )->pay(
                 {
-                    lines      => [$line],
-                    amount     => $total_paid,
-                    library_id => $branch,
-                    note       => $payment_note
+                    lines        => [$line],
+                    amount       => $total_paid,
+                    library_id   => $branch,
+                    note         => $payment_note,
+                    payment_type => $payment_type,
                 }
             );
             print $input->redirect(
@@ -159,21 +158,25 @@ if ( $total_paid and $total_paid ne '0.00' ) {
                     }
                   )->pay(
                     {
-                        amount => $total_paid,
-                        lines  => \@lines,
-                        note   => $note,
+                        amount       => $total_paid,
+                        lines        => \@lines,
+                        note         => $note,
+                        payment_type => $payment_type,
                     }
                   );
             }
             else {
                 my $note = $input->param('selected_accts_notes');
-                Koha::Account->new( { patron_id => $borrowernumber } )
-                  ->pay( { amount => $total_paid, note => $note } );
+                Koha::Account->new( { patron_id => $borrowernumber } )->pay(
+                    {
+                        amount       => $total_paid,
+                        note         => $note,
+                        payment_type => $payment_type,
+                    }
+                );
             }
 
-            print $input->redirect(
-"/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber"
-            );
+            print $input->redirect("/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber");
         }
     }
 } else {
@@ -184,12 +187,14 @@ borrower_add_additional_fields($borrower, $template);
 
 $template->param(%$borrower);
 
+if ( $input->param('error_over') ) {
+    $template->param( error_over => 1, total_due => scalar $input->param('amountoutstanding') );
+}
+
 $template->param(
     borrowernumber => $borrowernumber,    # some templates require global
-    borrower      => $borrower,
-    categoryname  => $borrower->{description},
+    patron        => $patron,
     total         => $total_due,
-    RoutingSerials => C4::Context->preference('RoutingSerials'),
     ExtendedPatronAttributes => C4::Context->preference('ExtendedPatronAttributes'),
 
     csrf_token => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID') }),
@@ -206,13 +211,8 @@ sub borrower_add_additional_fields {
     if ( $b_ref->{category_type} eq 'C' ) {
         my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
         $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-        $template->param( 'catcode' => $patron_categories->next )  if $patron_categories->count == 1;
-    } elsif ( $b_ref->{category_type} eq 'A' || $b_ref->{category_type} eq 'I' ) {
-        $b_ref->{adultborrower} = 1;
+        $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
     }
-
-    my $patron_image = Koha::Patron::Images->find($b_ref->{borrowernumber});
-    $template->param( picture => 1 ) if $patron_image;
 
     if (C4::Context->preference('ExtendedPatronAttributes')) {
         $b_ref->{extendedattributes} = GetBorrowerAttributes($b_ref->{borrowernumber});

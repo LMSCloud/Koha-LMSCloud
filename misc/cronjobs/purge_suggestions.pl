@@ -17,12 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
-use utf8;
+use Modern::Perl;
 
 BEGIN {
-
     # find Koha's Perl modules
     # test carefully before changing this
     use FindBin;
@@ -33,30 +30,41 @@ use Getopt::Long;
 use Pod::Usage;
 use C4::Suggestions;
 use C4::Log;
+use C4::Context;
 
-my ($help, $days);
+my ( $help, $days, $confirm );
 
 GetOptions(
-    'help|?'         => \$help,
-    'days=s'         => \$days,
+    'help|?' => \$help,
+    'days:i' => \$days,
+    'confirm'=> \$confirm,
 );
 
-if($help or not $days){
-    print <<EOF
-    This script delete olds suggestions
-    Parameters :
-    -help|? This message
-    -days TTT to define the age of suggestions to delete
+my $usage = << 'ENDUSAGE';
+This script deletes old suggestions
+Parameters:
+-help|? This message
+-days TTT to define the age of suggestions to delete
+-confirm flag needed to confirm purge operation
 
-     example :
-     export PERL5LIB=/path/to/koha;export KOHA_CONF=/etc/koha/koha-conf.xml;./purge_suggestions.pl -days 30
-EOF
-;
-    exit;
-}
+The days parameter falls back to the value of system preference
+PurgeSuggestionsOlderThan. Suggestions are deleted only for a positive
+number of days.
 
-if($days){
+Example:
+ENDUSAGE
+$usage .= $0 . " -confirm -days 30\n";
+
+# If this script is called without the 'days' parameter, we use the system preferences value instead.
+$days = C4::Context->preference('PurgeSuggestionsOlderThan') if !defined($days);
+
+# If this script is called with the 'help' parameter, we show up the help message and we leave the script without doing anything.
+if( !$confirm || $help || !defined($days) ) {
+    print "No confirm parameter passed!\n\n" if !$confirm && !$help;
+    print $usage;
+} elsif( $days and $days > 0 ) {
     cronlogaction();
     DelSuggestionsOlderThan($days);
+} else {
+    warn "This script requires a positive number of days. Aborted.\n";
 }
-

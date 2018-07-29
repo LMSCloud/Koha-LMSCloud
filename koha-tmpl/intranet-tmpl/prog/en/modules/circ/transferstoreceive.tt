@@ -1,38 +1,25 @@
+[% USE Asset %]
+[% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Circulation &rsaquo; Transfers to receive</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function() {
-    [% FOREACH branchesloo IN branchesloop %]
-    $("#transferst[% branchesloo.branchcode %]").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-            { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-            { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-            { "sType": "title-string", "aTargets" : [ "title-string" ] }
-        ],
-        "sDom": 't',
-        "bPaginate": false
-    }));
-    [% END %]
-});
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="circ_transferstoreceive" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>  &rsaquo; Transfers to receive</div>
 
-<div id="doc" class="yui-t7">
+[% IF Koha.Preference('CircSidebar') %]<div id="doc3" class="yui-t2">[% ELSE %]<div id="doc" class="yui-t7">[% END %]
 
    <div id="bd">
 	<div id="yui-main">
+        [% IF Koha.Preference('CircSidebar') %]<div class="yui-b">[% END %]
 	<div class="yui-g">
 
         <h1>Transfers made to your library as of [% show_date | $KohaDates %]</h1>
@@ -64,16 +51,16 @@ $(document).ready(function() {
                             [% IF ( reser.itemtype ) %] (<b>[% reser.itemtype %]</b>)[% END %]
                             <br />Barcode: [% reser.barcode %]
                     </td>
-                    <td>[% IF ( reser.borrowername ) %]
-                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reser.borrowernum %]">
-                            [% reser.borrowername %][%IF ( reser.borrowerfirstname ) %], [% reser.borrowerfirstname %][% END %]
+                    <td>[% IF ( reser.patron ) %]
+                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reser.patron.borrowernumber %]">
+                            [% reser.patron.surname %][%IF ( reser.patron.firstname ) %], [% reser.patron.firstname %][% END %]
                         </a>
-                        [% IF ( reser.borrowerphone ) %]<br />[% reser.borrowerphone %][% END %]
-                            [% IF ( reser.borrowermail ) %]
+                        [% IF ( reser.patron.phone ) %]<br />[% reser.patron.phone %][% END %]
+                            [% IF ( reser.patron.first_valid_email_address ) %]
                                 <br />
                                 [% BLOCK subject %]Hold:[% END %]
-                                <a href="mailto:[% reser.borrowermail %]?subject=[% INCLUDE subject %] [% reser.title |html %]">
-                                    [% reser.borrowermail %]
+                                <a href="mailto:[% reser.patron.first_valid_email_address %]?subject=[% INCLUDE subject %] [% reser.title |html %]">
+                                    [% reser.patron.first_valid_email_address %]
                                 </a>
                             [% END %]
                         [% ELSE %]
@@ -82,7 +69,7 @@ $(document).ready(function() {
                     </td>
                     <td>[% IF reser.homebranch %][% Branches.GetName( reser.homebranch ) %][% END %]</td>
                     <td>[% reser.itemcallnumber %]</td>
-                    <td class="actions"><a href="/cgi-bin/koha/circ/returns.pl?itemnumber=[% reser.itemnumber %]&amp;canceltransfer=1&amp;dest=ttr" class="btn btn-mini"><i class="fa fa-times"></i> Cancel transfer</a></td>
+                    <td class="actions"><a href="/cgi-bin/koha/circ/returns.pl?itemnumber=[% reser.itemnumber %]&amp;canceltransfer=1&amp;dest=ttr" class="btn btn-default btn-xs"><i class="fa fa-times"></i> Cancel transfer</a></td>
                 </tr>
             [% END %]</tbody>
             </table>
@@ -95,5 +82,31 @@ $(document).ready(function() {
 
 </div>
 </div>
+[% IF Koha.Preference('CircSidebar') %]
 </div>
+<div class="yui-b noprint">
+    [% INCLUDE 'circ-nav.inc' %]
+</div>
+[% END %]
+</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            [% FOREACH branchesloo IN branchesloop %]
+            $("#transferst[% branchesloo.branchcode %]").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                ],
+                "sDom": 't',
+                "bPaginate": false
+            }));
+            [% END %]
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

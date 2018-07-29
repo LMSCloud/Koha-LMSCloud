@@ -21,12 +21,15 @@ use Modern::Perl;
 
 use Module::Load::Conditional qw(can_load);
 use Module::Pluggable search_path => ['Koha::Plugin'], except => qr/::Edifact(|::Line|::Message|::Order|::Segment|::Transport)$/;
+use List::MoreUtils qw( any );
 
 use C4::Context;
 use C4::Output;
 
 BEGIN {
-    push @INC, C4::Context->config("pluginsdir");
+    my $pluginsdir = C4::Context->config("pluginsdir");
+    my @pluginsdir = ref($pluginsdir) eq 'ARRAY' ? @$pluginsdir : $pluginsdir;
+    push( @INC, @pluginsdir );
     pop @INC if $INC[-1] eq '.';
 }
 
@@ -46,35 +49,47 @@ sub new {
     return bless( $args, $class );
 }
 
-=head2 GetPlugins()
+=head2 GetPlugins
 
-This will return a list of all the available plugins of the passed type.
+This will return a list of all available plugins, optionally limited by
+method or metadata value.
 
-Usage: my @plugins = C4::Plugins::GetPlugins( $method );
+    my @plugins = Koha::Plugins::GetPlugins({
+        method => 'some_method',
+        metadata => { some_key => 'some_value' },
+    });
 
-At the moment, the available types are 'report', 'tool' and 'to_marc'.
+The method and metadata parameters are optional.
+Available methods currently are: 'report', 'tool', 'to_marc', 'edifact'.
+If you pass multiple keys in the metadata hash, all keys must match.
+
 =cut
 
 sub GetPlugins {
-    my $self   = shift;
-    my $method = shift;
+    my ( $self, $params ) = @_;
+    my $method = $params->{method};
+    my $req_metadata = $params->{metadata} // {};
 
     my @plugin_classes = $self->plugins();
     my @plugins;
 
     foreach my $plugin_class (@plugin_classes) {
-        if ( can_load( modules => { $plugin_class => undef } ) ) {
+        if ( can_load( modules => { $plugin_class => undef }, nocache => 1 ) ) {
             next unless $plugin_class->isa('Koha::Plugins::Base');
 
             my $plugin = $plugin_class->new({ enable_plugins => $self->{'enable_plugins'} });
 
-            if ($method) {
-                if ( $plugin->can($method) ) {
-                    push( @plugins, $plugin );
-                }
-            } else {
-                push( @plugins, $plugin );
-            }
+            # Limit results by method or metadata
+            next if $method && !$plugin->can($method);
+            my $plugin_metadata = $plugin->get_metadata;
+            next if $plugin_metadata
+                and %$req_metadata
+                and any { !$plugin_metadata->{$_} || $plugin_metadata->{$_} ne $req_metadata->{$_} } keys %$req_metadata;
+            push @plugins, $plugin;
+        } else {
+            my $error = $Module::Load::Conditional::ERROR;
+            # Do not warn the error if the plugin has been uninstalled
+            warn $error unless $error =~ m|^Could not find or check module '$plugin_class'|;
         }
     }
     return @plugins;

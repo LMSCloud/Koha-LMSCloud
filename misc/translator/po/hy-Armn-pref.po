@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-10 19:14+0200\n"
-"PO-Revision-Date: 2016-06-16 12:16+0000\n"
+"PO-Revision-Date: 2018-05-24 11:49+0000\n"
 "Last-Translator: tigran <tigran@flib.sci.am>\n"
 "Language-Team: Koha Translation Team <koha-translate@nongnu.org>\n"
 "Language: hy\n"
@@ -11,9 +11,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Pootle 2.5.1.1\n"
+"X-Generator: Pootle 2.8\n"
 "X-Poedit-Bookmarks: 1755,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
-"X-POOTLE-MTIME: 1466079409.000000\n"
+"X-POOTLE-MTIME: 1527162564.923752\n"
+"X-Pootle-Path: /hy/18.05/hy-Armn-pref.po\n"
+"X-Pootle-Revision: 1\n"
 
 # Acquisitions
 msgid "acquisitions.pref"
@@ -30,6 +32,10 @@ msgstr "acquisitions.pref տպում"
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqCreateItem# Create an item when"
 msgstr "acquisitions.pref#AcqCreateItem# Ստեղծիր նյութ երբ"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#AcqCreateItem# This is only the default behavior, and can be changed per-basket."
+msgstr "acquisitions.pref#AcqCreateItem# Սա միայն լռակյաց վարք է, և կարող է փոխվել ըստ զամբյուղի։"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqCreateItem# cataloging the record."
@@ -56,8 +62,8 @@ msgid "acquisitions.pref#AcqEnableFiles# enable the ability to upload and attach
 msgstr "acquisitions.pref#AcqEnableFiles# թույլատրի հնարավորությունը բեռնավորելու և կցելու հաշիվներին կամավոր ֆայլեր։"
 
 # Acquisitions > Policy
-msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a=\"bar foo\"\")."
-msgstr "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Ստացականը չեղալ անելիս թարմացրու նյութի ենթադաշտերը եթե դրանք ստեղծվել են երբ տեղադրվում էր պատվերը (այսինքն o=5|a=\"bar foo\"\")։"
+msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a=\"bar foo\")."
+msgstr "acquisitions.pref#AcqItemSetSubfieldsWhenReceiptIsCancelled# Ստացումը չեղարկելուց հետ թարմացրու նյութի ենթադաշտերը, եթե դրանք ստեղծվել են երբ դրվում էր պատվեր (օր.՝ o=5|a=\"bar foo\")."
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#AcqItemSetSubfieldsWhenReceived# Upon receiving items, update their subfields if they were created when placing an order (e.g. o=5|a=\"foo bar\")."
@@ -120,6 +126,10 @@ msgid "acquisitions.pref#CurrencyFormat# 360 000,00 (FR)"
 msgstr "acquisitions.pref#CurrencyFormat# 360 000,00 (FR)"
 
 # Acquisitions > Policy
+msgid "acquisitions.pref#CurrencyFormat# 360'000.00 (CH)"
+msgstr "acquisitions.pref#CurrencyFormat# 360'000.00 (CH)"
+
+# Acquisitions > Policy
 msgid "acquisitions.pref#CurrencyFormat# 360,000.00 (US)"
 msgstr "acquisitions.pref#CurrencyFormat# 360,000.00 (US)"
 
@@ -138,6 +148,18 @@ msgstr "acquisitions.pref#MarcFieldsToOrder# Տեղադրի քարտեզավոր
 # Acquisitions > Policy
 msgid "acquisitions.pref#MarcFieldsToOrder# You can use the following fields: price, quantity, budget_code, discount, sort1, sort2"
 msgstr "acquisitions.pref#MarcFieldsToOrder# Դու կարող ես օգտագործել հետևյալ դաշտերը. գին, քանակ, budget_code, զեղչ, sort1, sort2"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# <br/>For example:<br/>holdingbranch: 975$b<br/>itype: 975$9|975$z"
+msgstr "acquisitions.pref#MarcItemFieldsToOrder# <br/>Օրինակ․<br/>holdingbranch: 975$b<br/>itype: 975$9|975$z"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# Set the mapping values for new item records created from a MARC record in a staged file."
+msgstr "acquisitions.pref#MarcItemFieldsToOrder# Կարգաբերի նոր նյութի գրառումների քարտեզավորման արժեքները ստեղծված ՄԵԸՔ գրառումից իր աստիճանավորված ֆայլից։"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#MarcItemFieldsToOrder# You can use the following fields: homebranch, holdingbranch, itype, nonpublic_note, public_note, loc, ccode, notforloan, uri, copyno, price, replacementprice and itemcallnumber. Special fields: quantity and budget_code"
+msgstr "acquisitions.pref#MarcItemFieldsToOrder# Դու կարող ես օգտագործել հետևյալ դաշտերը՝ homebranch, holdingbranch, itype, nonpublic_note, public_note, loc, ccode, notforloan, uri, copyno, price, replacementprice և itemcallnumber։ Հատուկ դաշտերն են: quantity և budget_code"
 
 # Acquisitions > Printing
 msgid "acquisitions.pref#OrderPdfFormat# English 2-page"
@@ -164,12 +186,44 @@ msgid "acquisitions.pref#OrderPdfFormat# layout when printing basket groups."
 msgstr "acquisitions.pref#OrderPdfFormat# կաղապար երբ տպում են զամբյուղի խմբերը։"
 
 # Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>(Used when the cronjob purge_suggestions.pl is active and called without a specific number of days)"
+msgstr "acquisitions.pref#PurgeSuggestionsOlderThan# <br>(Օգտագործվում է, երբ cronjob purge_suggestions.pl ակտիվ է, և ակտիվացված է առանց օրերի որոշակի քանակի)"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>Example: [30] Sets purgation of suggestions for those older than 30 days."
+msgstr "acquisitions.pref#PurgeSuggestionsOlderThan# <br>Օրինակ: [30] Sets purgation of suggestions for those older than 30 days."
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# <br>WARNING - Leave this field empty if you don't want to activate this automatic feature."
+msgstr "acquisitions.pref#PurgeSuggestionsOlderThan# <br>ԶԳՈՒՇԱՑՈՒՄ - Թող դաշտը դատարկ, եթե չես ցանկանում ակտիվացնել այս ավտոմատ հնարավորությունը։"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# Keep accepted or rejected purchase suggestions for a period of"
+msgstr "acquisitions.pref#PurgeSuggestionsOlderThan# Գնման առաջարկները պահիր ընդունված կամ մերժված այսօիսի ժամանակահատվածի համար"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#PurgeSuggestionsOlderThan# days."
+msgstr "acquisitions.pref#PurgeSuggestionsOlderThan# օրեր։"
+
+# Acquisitions > Policy
 msgid "acquisitions.pref#UniqueItemFields# (separated by a space)"
 msgstr "acquisitions.pref#UniqueItemFields# (բաժանված բացատով)"
 
 # Acquisitions > Policy
-msgid "acquisitions.pref#UniqueItemFields# The following <a href='http://schema.koha-community.org/16_05/tables/items.html' target='blank'>database columns</a> should be unique in an item:"
-msgstr ""
+msgid "acquisitions.pref#UniqueItemFields# The following <a href='http://schema.koha-community.org/__VERSION__/tables/items.html' target='blank'>database columns</a> should be unique in an item:"
+msgstr "acquisitions.pref#UniqueItemFields# Հետևյալը <a href='http://schema.koha-community.org/__VERSION__/tables/items.html' target='blank'>database columns</a> նյութի համար պետք է լինի եզակի:"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords#  the framework 'ACQ' for bibliographic records fields"
+msgstr "acquisitions.pref#UseACQFrameworkForBiblioRecords#  'ACQ' շրջանակ մատենագիտական գրառումների դաշտերի համար"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords# Don't use"
+msgstr "acquisitions.pref#UseACQFrameworkForBiblioRecords# Մի օգտագործիր"
+
+# Acquisitions > Policy
+msgid "acquisitions.pref#UseACQFrameworkForBiblioRecords# Use"
+msgstr "acquisitions.pref#UseACQFrameworkForBiblioRecords# Օգտագործիր"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#gist# . Enter in numeric form, 0.12 for 12%. The first item in the list will be selected by default. For more than one value, separate with | (pipe)."
@@ -177,7 +231,7 @@ msgstr "acquisitions.pref#gist# . Մուտք արա թվային տեսքով, 0
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#gist# Please note: The database will only accept values up to 4 decimals precision, further values will be rounded."
-msgstr ""
+msgstr "acquisitions.pref#gist# Նկատի առ: Շտեմարանը կընդունի արժեքներ մինչև 4 տասնորդականի ճշտությամբ, հետագա արժեքները կկլորացվեն։"
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#gist# Tax rates are"
@@ -203,10 +257,6 @@ msgstr "admin.pref միջերեսի ընտրանքներ"
 msgid "admin.pref Login options"
 msgstr "admin.pref Գրանցման ընտրանքեր"
 
-# Administration > Mozilla Persona
-msgid "admin.pref Mozilla Persona"
-msgstr "admin.pref Mozilla Persona"
-
 # Administration > SSL client certificate authentication
 msgid "admin.pref SSL client certificate authentication"
 msgstr "admin.pref SSL հաճախորդի վկայագրի փոխճանաչում"
@@ -220,776 +270,772 @@ msgid "admin.pref Share anonymous usage statistics"
 msgstr "admin.pref Կիսիր անանուն օգտագործման վիճակագրությունը"
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# Use"
-msgstr "admin.pref#AllowPKIAuth# Օգտագործիր"
+msgid "admin.pref#AllowPKIAuth# Common Name"
+msgstr "admin.pref#AllowPKIAuth# Համընդհանուր անուն"
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# field for SSL client certificate authentication"
-msgstr "admin.pref#AllowPKIAuth# դաշտ SSL հաճախորդի վկայագրի փոխճանաչման համար"
+msgid "admin.pref#AllowPKIAuth# Field to use for SSL client certificate authentication: "
+msgstr "admin.pref#AllowPKIAuth# Դաշտը հարկ է օգտագործելSSL հաճախորդի վկայականի փոխճանաչման համար: "
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# no"
-msgstr "admin.pref#AllowPKIAuth# ոչ"
+msgid "admin.pref#AllowPKIAuth# None"
+msgstr "admin.pref#AllowPKIAuth# Ոչ մեկը"
 
 # Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# the Common Name"
-msgstr "admin.pref#AllowPKIAuth# Ընդհանուր անուն"
-
-# Administration > SSL client certificate authentication
-msgid "admin.pref#AllowPKIAuth# the emailAddress"
-msgstr "admin.pref#AllowPKIAuth# the emailAddress"
+msgid "admin.pref#AllowPKIAuth# emailAddress"
+msgstr "admin.pref#AllowPKIAuth# emailAddress"
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# Don't require"
-msgstr "admin.pref#AutoLocation# Չի պահանջվում"
+msgid "admin.pref#AutoLocation# <a href=\"/cgi-bin/koha/admin/branches.pl\">Link to library administration</a>"
+msgstr "admin.pref#AutoLocation# <a href=\"/cgi-bin/koha/admin/branches.pl\">Հղում դիր դեպի գրադարանի վարչակազմ</a>"
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# Require"
-msgstr "admin.pref#AutoLocation# Պահանջիր"
+msgid "admin.pref#AutoLocation# No"
+msgstr "admin.pref#AutoLocation# Ոչ"
 
 # Administration > Login options
-msgid "admin.pref#AutoLocation# staff to log in from a computer in the IP address range <a href=\"/cgi-bin/koha/admin/branches.pl\">specified by their library</a> (if any)."
-msgstr "admin.pref#AutoLocation# staff to log in from a computer in the IP address range <a href=\"/cgi-bin/koha/admin/branches.pl\">specified by their library</a> (if any)."
+msgid "admin.pref#AutoLocation# Require staff to log in from a computer in the IP address range specified by their library (if any): "
+msgstr "admin.pref#AutoLocation# Պահանջում է, որ աշխատակազմը մուտք գործի IP հասցեի տիրույթից, որը սահմանված է գրադարանի կողմից (եթե կա այդպիսին): "
+
+# Administration > Login options
+msgid "admin.pref#AutoLocation# Yes"
+msgstr "admin.pref#AutoLocation# Այո"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# Show"
-msgstr "admin.pref#DebugLevel# Ցուցադրի"
+msgid "admin.pref#DebugLevel# All"
+msgstr "admin.pref#DebugLevel# Բոլորը"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# debugging information in the browser when an internal error occurs."
-msgstr "admin.pref#DebugLevel# դիտակում դեբագի տեղեկատվություն երբ հանդիպում է ներքին սխալ"
+msgid "admin.pref#DebugLevel# How much debugging information to show in the browser when an internal error occurs: "
+msgstr "admin.pref#DebugLevel# Ինչ չափի դեբագ տեղեկատվություն ցույց տալ դիտակում, երբ հանդիպում է ներքին սխալ: "
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# lots of"
-msgstr "admin.pref#DebugLevel# բազմաթիվ"
+msgid "admin.pref#DebugLevel# None"
+msgstr "admin.pref#DebugLevel# Ոչ մեկը"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# no"
-msgstr "admin.pref#DebugLevel# ոչ"
+msgid "admin.pref#DebugLevel# Some"
+msgstr "admin.pref#DebugLevel# Որոշը"
 
 # Administration > Interface options
-msgid "admin.pref#DebugLevel# some"
-msgstr "admin.pref#DebugLevel# որոշ"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# All libraries"
+msgstr "admin.pref#DefaultToLoggedInLibraryCircRules# Բոլոր գրադարանները"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# When editing circulation rules show the"
-msgstr "admin.pref#DefaultToLoggedInLibraryCircRules# Երբ խմբագրում ես տացքի օրենքները ցույց տուր"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# Default view when editing circulation rules: "
+msgstr "admin.pref#DefaultToLoggedInLibraryCircRules# Լռակյաց տեսք, երբ խմբագրվում են տացքի օրենքնեռը: "
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# all libraries"
-msgstr "admin.pref#DefaultToLoggedInLibraryCircRules# բոլոր գրադարանները"
+msgid "admin.pref#DefaultToLoggedInLibraryCircRules# The logged-in library"
+msgstr "admin.pref#DefaultToLoggedInLibraryCircRules# Մուտք գործած գրադարան"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# logged in library's"
-msgstr "admin.pref#DefaultToLoggedInLibraryCircRules# մուտք եղած գրադարանի"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# All libraries"
+msgstr "admin.pref#DefaultToLoggedInLibraryNoticesSlips# Բոլոր գրադարանները"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryCircRules# rules by default."
-msgstr "admin.pref#DefaultToLoggedInLibraryCircRules# լռակյաց օրենքներ։"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# Default view when editing notices and slips: "
+msgstr "admin.pref#DefaultToLoggedInLibraryNoticesSlips# Լռակյաց տեսք, երբ խմբագրվում են նշումները և թերթիկները: "
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# When editing notices and slips show the"
-msgstr "admin.pref#DefaultToLoggedInLibraryNoticesSlips# Երբ խմբագրում ես նշումները և թերթիկները ցույց տուր"
+msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# The logged-in library"
+msgstr "admin.pref#DefaultToLoggedInLibraryNoticesSlips# Մուտք գործած գրադարանը"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# all libraries"
-msgstr "admin.pref#DefaultToLoggedInLibraryNoticesSlips# բոլոր գրադարանները"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# All libraries"
+msgstr "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# Բոլոր գրադարանները"
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# logged in library's"
-msgstr "admin.pref#DefaultToLoggedInLibraryNoticesSlips# գրանցված գրադարան"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# Default view when editing overdue notice/status triggers: "
+msgstr "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# Լռակյաց տեսք, երբ խմբագրվում են ժամկետանց նշումների/վիճակի թողարկիչները: "
 
 # Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryNoticesSlips# notices and slips by default."
-msgstr "admin.pref#DefaultToLoggedInLibraryNoticesSlips# լռակյաց հիշեցումներ և թերթիկներ։"
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# When editing overdue notice/status triggers show the"
-msgstr "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# Երբ խմբագրում ես ժամկետանց հիշեցումների/վիճակների տրիգերները ցույց տուր"
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# all libraries"
-msgstr "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# բոլոր գրադարանները"
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# logged in library's"
-msgstr "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# գրանցված գրադարանները"
-
-# Administration > Interface options
-msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# rules by default."
-msgstr "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# լռակյաց օրենքները"
+msgid "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# The logged-in library"
+msgstr "admin.pref#DefaultToLoggedInLibraryOverdueTriggers# Մուտք գործած գրադարան"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID"
-msgstr "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID"
+msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID: "
+msgstr "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID: "
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret"
-msgstr "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret"
+msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret: "
+msgstr "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret: "
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Don't Use"
-msgstr "admin.pref#GoogleOpenIDConnect# Մի օգտագործիր"
+msgid "admin.pref#GoogleOpenIDConnect# No"
+msgstr "admin.pref#GoogleOpenIDConnect# Ոչ"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Google OpenID Connect login."
-msgstr "admin.pref#GoogleOpenIDConnect# Google OpenID Connect գրանցում։"
+msgid "admin.pref#GoogleOpenIDConnect# Use Google OpenID Connect login: "
+msgstr "admin.pref#GoogleOpenIDConnect# Օգտագործիր Google OpenID Connect login: "
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Use"
-msgstr "admin.pref#GoogleOpenIDConnect# Օգտագործիր"
+msgid "admin.pref#GoogleOpenIDConnect# Yes"
+msgstr "admin.pref#GoogleOpenIDConnect# Այո"
 
 # Administration > Google OpenID Connect
 msgid "admin.pref#GoogleOpenIDConnect# You will need to select OAuth2 when creating an app in the google cloud console, and set the web origin to your_opac_url and the redirect url to your_opac_url/cgi-bin/koha/svc/auth/googleopenidconnect ."
 msgstr "admin.pref#GoogleOpenIDConnect# Քեզ կարիք կլինի ընտրել OAuth2 երբ ստեղծում ես կիրառություն google ամպային կոնսոլում, և կարգաբերես ոստայնի բնօրինակը your_opac_url և ուղղորդող urlժը դեպի your_opac_url/cgi-bin/koha/svc/auth/googleopenidconnect ."
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDomain# . Leave blank for all google domains"
-msgstr "admin.pref#GoogleOpenIDConnectDomain# . Թող դատարկ բոլոր google դոմենների համար։"
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# Allow"
+msgstr "admin.pref#GoogleOpenIDConnectAutoRegister# Թույլատրի"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (or subdomain of this domain)"
-msgstr "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (կամ այս դոմենի ենթադոմենը)"
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# Don't Allow"
+msgstr "admin.pref#GoogleOpenIDConnectAutoRegister# Մի թույլատրի"
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectAutoRegister# users logging in with Google Open ID to automatically register."
+msgstr "admin.pref#GoogleOpenIDConnectAutoRegister# ավտոմատ գրանցման նպատակով Google Open ID-ով մուտք գործող օգտատերեր։"
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDefaultBranch# Use this branch code when automatically registering a Google Open ID patron."
+msgstr "admin.pref#GoogleOpenIDConnectDefaultBranch# Օգտագործիր մասնաճյուղի այս կոդը երբ ավտոմատ գրանցում ես Google Open ID հաճախորդի։"
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDefaultCategory# Use this category code when automatically registering a Google Open ID patron."
+msgstr "admin.pref#GoogleOpenIDConnectDefaultCategory# Օգտագործիր դասի այս կոդը երբ ավտոմատ գրացնում ես Google Open ID հաճախորդի։"
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (or subdomain of this domain): "
+msgstr "admin.pref#GoogleOpenIDConnectDomain# Google OpenID Connect Restrict to domain (or subdomain of this domain): "
+
+# Administration > Google OpenID Connect
+msgid "admin.pref#GoogleOpenIDConnectDomain# Leave blank for all google domains"
+msgstr "admin.pref#GoogleOpenIDConnectDomain# Թող դատարկ google բոլոր դոմեյնների համար"
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranches# Don't prevent"
-msgstr "admin.pref#IndependentBranches# Մի կանխիր"
+msgid "admin.pref#IndependentBranches# No"
+msgstr "admin.pref#IndependentBranches# Ոչ"
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranches# Prevent"
-msgstr "admin.pref#IndependentBranches# Կանխիր"
+msgid "admin.pref#IndependentBranches# Prevent staff (but not superlibrarians) from modifying objects (holds, items, patrons, etc.) belonging to other libraries: "
+msgstr "admin.pref#IndependentBranches# Արգելիր աշխատակազմին (բայց ոչ գերգրադարանավարին) օբյեկտների ձևափոխումից (պահում, նյութեր, ընթերցողներ, այլն) որոնք պատկանում են այլ գրադարանների: "
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranches# staff (but not superlibrarians) from modifying objects (holds, items, patrons, etc.) belonging to other libraries."
-msgstr "admin.pref#IndependentBranches# staff (but not superlibrarians) from modifying objects (holds, items, patrons, etc.) belonging to other libraries."
+msgid "admin.pref#IndependentBranches# Yes"
+msgstr "admin.pref#IndependentBranches# Այո"
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# Don't prevent"
-msgstr "admin.pref#IndependentBranchesPatronModifications# Մի կանխիր"
+msgid "admin.pref#IndependentBranchesPatronModifications# No"
+msgstr "admin.pref#IndependentBranchesPatronModifications# Ոչ"
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# Prevent"
-msgstr "admin.pref#IndependentBranchesPatronModifications# Կանխիր"
+msgid "admin.pref#IndependentBranchesPatronModifications# Prevent staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries."
+msgstr "admin.pref#IndependentBranchesPatronModifications# Կանխիր աշխատակազմին (բայց ոչ գերգրադարանավարներին) դիտելու և հաստատելու/արգելելու ընթերցողի ձևափոխման առաջարկները այն հաճախորդների համար, ովքեր պատկանում են այլ գրադարանների։"
 
 # Administration > Login options
-msgid "admin.pref#IndependentBranchesPatronModifications# staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries."
-msgstr "admin.pref#IndependentBranchesPatronModifications# աշխատակազմը (բայց ոչ գերգրադարանավարները) այլ գրադարաններին պատկանող ընթերցողներին դիտելը և  հարցումների թարմացումների հաստատումը/արգելումը։"
+msgid "admin.pref#IndependentBranchesPatronModifications# Yes"
+msgstr "admin.pref#IndependentBranchesPatronModifications# Այո"
 
 # Administration > Interface options
-msgid "admin.pref#KohaAdminEmailAddress# Use"
-msgstr "admin.pref#KohaAdminEmailAddress# Օգտագործում"
+msgid "admin.pref#KohaAdminEmailAddress# (This is the default From: address for emails unless there is one for the particular library, and is referred to when an internal error occurs.)"
+msgstr "admin.pref#KohaAdminEmailAddress# (Սա լռակյացն է Այնտեղից: էլ․ փոստերի հասցեն, քանի դեռ որոշակի գրադարանի համար կա գոնե մեկը, և հարկավոր է երբ հանդիպում է ներքին սխալ։)"
 
 # Administration > Interface options
-msgid "admin.pref#KohaAdminEmailAddress# as the email address for the administrator of Koha. (This is the default From: address for emails unless there is one for the particular library, and is referred to when an internal error occurs.)"
-msgstr "admin.pref#KohaAdminEmailAddress# որպես էլ փոստ Կոհայի ադմինիստրատորի համար։ (Սա լռակյաց է Այստեղից: էլ փոստի հասցեներ քանի դեռ կա մեկը մասնակի գրադարանի համար, և հղված է երբ ներքին սխալ է պատահում։)"
-
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Allow"
-msgstr "admin.pref#Persona# Թույլատրի"
-
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Don't Allow"
-msgstr "admin.pref#Persona# Մի թույլատրի"
-
-# Administration > Mozilla Persona
-msgid "admin.pref#Persona# Mozilla persona for login"
-msgstr "admin.pref#Persona# Mozilla persona for login"
+msgid "admin.pref#KohaAdminEmailAddress# Email address for the administrator of Koha: "
+msgstr "admin.pref#KohaAdminEmailAddress# Կոհայի ադմինիստրատորի համար էլ․ փոստ: "
 
 # Administration > Interface options
-msgid "admin.pref#ReplytoDefault# Use"
-msgstr "admin.pref#ReplytoDefault# Օգտագործում"
+msgid "admin.pref#ReplytoDefault# Email address to be set as the replyto in emails: "
+msgstr "admin.pref#ReplytoDefault# Էլ․ փոստ, որ պետք է օգտագործվի replyto էլ․ փոստում: "
 
 # Administration > Interface options
-msgid "admin.pref#ReplytoDefault# as the email address that will be set as the replyto in emails"
-msgstr "admin.pref#ReplytoDefault# որպես էլ. փոստի հասցե որը կկարգաբերվի որպես replyto"
+msgid "admin.pref#ReturnpathDefault# If you leave this empty, the From address will be used (often defaulting to the admin address)."
+msgstr "admin.pref#ReturnpathDefault# Եթե թողնես դատարկ, Ումից հասցեն կօգտագործվի (հաճախ փոխարինում է ադմինի հասցեին)."
 
 # Administration > Interface options
-msgid "admin.pref#ReturnpathDefault# Use"
-msgstr "admin.pref#ReturnpathDefault# Օգտագործում"
-
-# Administration > Interface options
-msgid "admin.pref#ReturnpathDefault# as the return path or bounce address for undeliverable mail messages. If you leave this empty, the From address will be used (often defaulting to the admin address)."
-msgstr "admin.pref#ReturnpathDefault# որպես էլ. փոստի հասցե կարգաբերի վերադարձի ճանապարհը, եթե թողնես դատարկ կօգտագործվի ադմինի հասցեն։"
+msgid "admin.pref#ReturnpathDefault# Return path or bounce address for undeliverable mail messages: "
+msgstr "admin.pref#ReturnpathDefault# Վերադարձրու հասցեի ուղին չառաքված էլ․ հաղորդագրությունների համար։ "
 
 # Administration > Search Engine
 msgid "admin.pref#SearchEngine# Elasticsearch"
 msgstr "admin.pref#SearchEngine# Elasticsearch"
 
 # Administration > Search Engine
+msgid "admin.pref#SearchEngine# Use following search engine: "
+msgstr "admin.pref#SearchEngine# Օգտագործիր որոնման հետևյալ շարժիչը: "
+
+# Administration > Search Engine
 msgid "admin.pref#SearchEngine# Zebra"
 msgstr "admin.pref#SearchEngine# Zebra"
 
-# Administration > Search Engine
-msgid "admin.pref#SearchEngine# is the search engine used."
-msgstr "admin.pref#SearchEngine# որոնման շարժիչ է օգտագործվել։"
+# Administration > Login options
+msgid "admin.pref#SessionRestrictionByIP# (Disable only when remote IP address changes frequently.)"
+msgstr "admin.pref#SessionRestrictionByIP# (Արգելափակիր երբ հեռավար IP հասցեն հաճախ է փոխվում;)"
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# Disable"
-msgstr "admin.pref#SessionRestrictionByIP# Արգելիր"
+msgid "admin.pref#SessionRestrictionByIP# Enable check for change in remote IP address for session security: "
+msgstr "admin.pref#SessionRestrictionByIP# Կապի անվտանգության համար թույլատրի հեռավար IP հասցեի ստուգումը: "
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# Enable"
-msgstr "admin.pref#SessionRestrictionByIP# Թույլատրի"
+msgid "admin.pref#SessionRestrictionByIP# No"
+msgstr "admin.pref#SessionRestrictionByIP# Ոչ"
 
 # Administration > Login options
-msgid "admin.pref#SessionRestrictionByIP# check for change in remote IP address for session security. Disable only when remote IP address changes frequently."
-msgstr "admin.pref#SessionRestrictionByIP# ստուգիր հեռավար IP հասցեի փոփոխումը սեսիայի անվտանգության համար։ Արգելիր միայն երբ հեռավար IP հասցեն հաճախակի է փոփոխվում։"
+msgid "admin.pref#SessionRestrictionByIP# Yes"
+msgstr "admin.pref#SessionRestrictionByIP# Այո"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# Store login session information"
-msgstr "admin.pref#SessionStorage# Պահիր մուտք գործելու տեղեկատվությունը"
+msgid "admin.pref#SessionStorage# Memcached server"
+msgstr "admin.pref#SessionStorage# Memcached server"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# as temporary files."
-msgstr "admin.pref#SessionStorage# որպես ժամանակավոր ֆայլեր։"
+msgid "admin.pref#SessionStorage# MySQL database"
+msgstr "admin.pref#SessionStorage# MySQL շտեմարան"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in a memcached server."
-msgstr "admin.pref#SessionStorage# քեշավորված կայանում."
+msgid "admin.pref#SessionStorage# PostgreSQL database (not supported)"
+msgstr "admin.pref#SessionStorage# PostgreSQL database (not supported)"
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in the MySQL database."
-msgstr "admin.pref#SessionStorage# իմ MySQL շտեմարանում."
+msgid "admin.pref#SessionStorage# Storage of login session information: "
+msgstr "admin.pref#SessionStorage# Գրանցման սեսիայի տեղեկատվության հիշողություն: "
 
 # Administration > Login options
-msgid "admin.pref#SessionStorage# in the PostgreSQL database (not supported)."
-msgstr "admin.pref#SessionStorage# PostgreSQL շտեմարանում (չի աջակցվում)."
+msgid "admin.pref#SessionStorage# Temporary files"
+msgstr "admin.pref#SessionStorage# Ժամանակավոր ֆայլեր"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# Don't share"
-msgstr "admin.pref#UsageStats# Մի համատեղիր"
+msgid "admin.pref#UsageStats# No"
+msgstr "admin.pref#UsageStats# Ոչ"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# Share"
-msgstr "admin.pref#UsageStats# Համատեղիր"
+msgid "admin.pref#UsageStats# Share anonymous Koha usage data with the Koha community: "
+msgstr "admin.pref#UsageStats# Համատեղիր անանուն Կոհա օգտվողի տվյալները Կոհա համայնքի հետ: "
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStats# anonymous Koha usage data with the Koha community. You can see the data on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>. You have to run misc/cronjobs/share_usage_with_koha_community.pl in a cronjob."
-msgstr "admin.pref#UsageStats# Կոհայի օգտագործման անանուն տվյալներ Կոհա համայնքի հետ։ Տվյալնեը կարող ես տեսնել <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>. Պետք է աշխատեցնես misc/cronjobs/share_usage_with_koha_community.pl կրոնում։"
+msgid "admin.pref#UsageStats# Yes"
+msgstr "admin.pref#UsageStats# Այո"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStats# You have to run misc/cronjobs/share_usage_with_koha_community.pl in a cronjob. Note that the other \"UsageStats\" preferences have no effect if this preference is set to \"No\". Website where usage statistics are published: <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
+msgstr "admin.pref#UsageStats# Պետք է աշխատեցնես misc/cronjobs/share_usage_with_koha_community.pl cronjob-ում։ Նկատի առ, մեկ այլ \"UsageStats\" նախապատվությունները արդյունավետ չեն եթե այս նախապատվությունը կարգաբերված է \"Ոչ\"։ Օգտագործման վիչակագրության կայքն է: <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# "
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# "
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Afghanistan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Աֆղանստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Albania"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ալբանիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Algeria"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ալժիր"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Andorra"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Անդորա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Angola"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Անգոլա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Antigua & Deps"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Անտիգուա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Argentina"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Արգենտինա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Armenia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հայաստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Australia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ավստրալիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Austria"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ավստրիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Azerbaijan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ադրբեջան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bahamas"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բահամներ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bahrain"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բահրեյն"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bangladesh"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բանգլադեշ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Barbados"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բարբադոս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Belarus"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բելառուս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Belgium"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բելգիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Belize"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բելիզ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Benin"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բենին"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bhutan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բութան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bolivia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բոլիվիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bosnia Herz."
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բոսնիա Հերց․"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Botswana"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բոտսվանա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Brazil"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բրազիլիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Brunei"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բրունեյ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Bulgaria"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բուլղարիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Burkina"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բուրկինա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Burundi"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Բուրունդի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cambodia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կամբոջիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cameroon"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կամերուն"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Canada"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կանադա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cape Verde"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կապե Վերդե"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Centr. Afr. Rep"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կենտր. Աֆր. Հանր"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Chad"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Չադ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Chile"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Չիլի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# China"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Չինաստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Colombia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կոլումբիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Comoros"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կոմորոս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Congo"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կոնգո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Costa Rica"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կոստա Ռիկա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Croatia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Խորվաթիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cuba"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կուբա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Cyprus"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կիպրոս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Czech Republic"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Չեխիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Denmark"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Դանիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Djibouti"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ջիբուտու"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Dominica"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Դոմինիկա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Dominican Rep."
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Դոմինիկյան Հանր."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# East Timor"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Արևելյան Թիմոր"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ecuador"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Էկվադոր"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Egypt"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Եգիպտոս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# El Salvador"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Էլ Սալվադոր"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Equator. Guinea"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հասարակածային Գվինեա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Eritrea"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Էրիթերիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Estonia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Էստոնիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ethiopia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Եթոպիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Fiji"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ֆիջի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Finland"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ֆինլանդիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# France"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ֆրանսիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Gabon"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գաբոն"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Gambia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գամբիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Georgia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Վրաստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Germany"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գերմանիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ghana"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գանա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Greece"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հունաստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Grenada"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գրենադա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guatemala"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գվատեմալա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guinea"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գվինեա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guinea-Bissau"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գվինեա Բիսսաու"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Guyana"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Գույանա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Haiti"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հաիթի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Honduras"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հոնդուրաս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Hungary"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հունգարիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Iceland"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Իսլանդիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# India"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հնդկաստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Indonesia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ինդոնեզիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Iran"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Իրան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Iraq"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Իրաք"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ireland"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Իռլանդիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Israel"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Իսրայել"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Italy"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Իտալիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ivory Coast"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Փղոսկրի Ափ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Jamaica"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ջամայկա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Japan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ճապոնիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Jordan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հորդանան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kazakhstan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ղազախստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kenya"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Քենիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kiribati"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կիրիբատի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Korea North"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հյուս․ Կորեա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Korea South"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հարավ․ Կորեա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kosovo"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Կոսովո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kuwait"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Քուվեյթ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Kyrgyzstan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ղրղզստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Laos"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լաոս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Latvia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լատվիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Lebanon"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լիբանան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Lesotho"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լեսոտո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Liberia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լիբերիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Libya"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լիբիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Liechtenstein"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լիխտենշտեյն"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Lithuania"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լիտվա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Luxembourg"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լյուքսեմբուրգ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Macedonia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մակեդոնիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Madagascar"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մադագասկար"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Malawi"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մալավի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Malaysia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մալազիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Maldives"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մալդիվներ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mali"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մալի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Malta"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մալթա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Marshall Isl."
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մարշալյան կղզ․"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mauritania"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մավրիտանիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mauritius"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մավրիտուս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mexico"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մեքսիկա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Micronesia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Միկրոնեզիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Moldova"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մոլդովա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Monaco"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մոնակո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mongolia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մոնղոլիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Montenegro"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մոնտենեգրո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Morocco"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մարոկո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Mozambique"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մոզամբիկ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Myanmar"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Մյանմար"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Namibia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նամիբիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nauru"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նաուրու"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nepal"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նեպալ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Netherlands"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նիդերլանդներ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# New Zealand"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նոր Զելանդիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nicaragua"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նիկարագուա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Niger"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նիգերիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Nigeria"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նիգերիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Norway"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Նորվեգիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
@@ -997,179 +1043,179 @@ msgstr "admin.pref#UsageStatsCountry# Նկատի առ որ այս արժեքը �
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Oman"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Օման"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Pakistan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Պակիստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Palau"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Պալաու"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Panama"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Պանամա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Papua N. Guinea"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Պապուա Նոր Գվինեա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Paraguay"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Պարագվայ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Peru"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Պերու"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Philippines"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ֆիլիպիններ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Poland"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Լեհաստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Portugal"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Պորտուգալիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Qatar"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Քատար"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Romania"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ռումինիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Russian Fed."
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ռուսաստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Rwanda"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ռուանդա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Saint Vincent"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սենթ Վինսենթ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Samoa"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սամոա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# San Marino"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սան Մարինո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sao Tome"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սաո Թոմե"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Saudi Arabia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սաուդյան Արաբիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Senegal"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սենեգալ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Serbia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սերբիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Seychelles"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սեյշելներ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sierra Leone"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սիեռռա Լեոնա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Singapore"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սինգապուր"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Slovakia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սլովակիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Slovenia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սլովենիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Solomon Islands"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սոլոմոնյան կղզ․"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Somalia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սոմալի"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# South Africa"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Հարավային Աֆրիկա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Spain"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Իսպանիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sri Lanka"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Շրի Լանկա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# St Kitts & Nev."
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# St Kitts & Nev."
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# St Lucia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# St Lucia"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sudan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սուդան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Suriname"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սուրինամ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Swaziland"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սվազիլանդ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Sweden"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Շվեդիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Switzerland"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Շվեյցարիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Syria"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Սիրիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Taiwan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Թայվան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tajikistan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Տաջիկստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tanzania"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Տանզանիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Thailand"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Թաիլանդ"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsCountry# The country where your library is located:"
-msgstr "admin.pref#UsageStatsCountry# Երկրի որտեղ տեղակայված է քո գրադարանը:"
+msgid "admin.pref#UsageStatsCountry# The country where your library is located to be shown on the Hea Community website: "
+msgstr "admin.pref#UsageStatsCountry# Երկիրը, որտեղ գտնվում է քո գրադարանը , պետք է ցույց տրվի համայնքի կայքում: "
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# This will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
@@ -1177,87 +1223,111 @@ msgstr "admin.pref#UsageStatsCountry# Սա ցույց կտրվի <a href=\"http:
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Togo"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Տոգո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tonga"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Տոնգա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Trinidad & Tob."
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Տրինիդադ և Տոբագո"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tunisia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Թունիս"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Turkey"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Թուրքիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Turkmenistan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Թուրքմենստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Tuvalu"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Տուվալու"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# UAE"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# ՄԱԷ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# USA"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# ԱՄՆ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Uganda"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ուգանդա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Ukraine"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ուկրաինա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# United Kingdom"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Միացյալ Թագավորություն"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Uruguay"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ուրուգվայ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Uzbekistan"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Ուզբեկստան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Vanuatu"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Վանուատու"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Vatican City"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Վատիկան"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Venezuela"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Վենեսուելա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Vietnam"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Վիետնամ"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Yemen"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Յեմեն"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Zambia"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Զամբիա"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsCountry# Zimbabwe"
-msgstr ""
+msgstr "admin.pref#UsageStatsCountry# Զիմբաբվե"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsGeolocation# Geolocation of the main library: "
+msgstr "admin.pref#UsageStatsGeolocation# Հիմնական գրադարանի գեոտեղաբաշխումը: "
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsGeolocation# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
+msgstr "admin.pref#UsageStatsGeolocation# Նկատի առ, որ այս արժեքը չունի ազդեցություն եթե UsageStats համակարգային նախապատվությունը կարգաբերված է որպես \"Մի կիսիր\""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Do not Share"
+msgstr "admin.pref#UsageStatsLibrariesInfo# Մի կիսիր"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
+msgstr "admin.pref#UsageStatsLibrariesInfo# Նկատի առ, որ այս արժեքը չունի ազդեցություն եթե UsageStats համակարգային նախապատվությունը կարգաբերված է \"Մի կիսիր\""
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# Share"
+msgstr "admin.pref#UsageStatsLibrariesInfo# Կիսվիր"
+
+# Administration > Share anonymous usage statistics
+msgid "admin.pref#UsageStatsLibrariesInfo# libraries information (name, url, country)"
+msgstr "admin.pref#UsageStatsLibrariesInfo# գրադարնի տվյալներ (անուն, url, երկիր)"
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryName# If this field is empty data will be sent anonymously."
@@ -1268,24 +1338,20 @@ msgid "admin.pref#UsageStatsLibraryName# Note that this value has no effect if t
 msgstr "admin.pref#UsageStatsLibraryName# Նկատի առ որ այս արժեքը արդյունք չունի եթե UsageStats համակարգային նախապատվությունը դրված է \"Մի համատեղիր\""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryName# The library name"
-msgstr "admin.pref#UsageStatsLibraryName# Գրադարանի անուն"
-
-# Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryName# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
-msgstr "admin.pref#UsageStatsLibraryName# ցույց կտրվի <a href=\"http://hea.koha-community.org\">Hea Koha համայնքային կայքում</a>։"
+msgid "admin.pref#UsageStatsLibraryName# Use the following library name to be shown on the Hea Community website: "
+msgstr "admin.pref#UsageStatsLibraryName# Օգտագործիր հետևյալ գրադարանի անունը համայնքի կայքում ցույց տալու համար: "
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryType# "
-msgstr ""
+msgstr "admin.pref#UsageStatsLibraryType# "
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryType# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
 msgstr "admin.pref#UsageStatsLibraryType# Նկատի առ որ այս արժեքը արդյունք չունի եթե UsageStats համակարգային նախապատվությունը դրված է \"Մի համատեղիր\""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryType# The library type"
-msgstr "admin.pref#UsageStatsLibraryType# Գրադարանի տեսակ"
+msgid "admin.pref#UsageStatsLibraryType# The library type to be shown on the Hea Community website: "
+msgstr "admin.pref#UsageStatsLibraryType# Գրադարանի տեսակը, որը պետք է արտածվի համայնքի կայք էջում: "
 
 # Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryType# academic"
@@ -1328,64 +1394,52 @@ msgid "admin.pref#UsageStatsLibraryType# subscription"
 msgstr "admin.pref#UsageStatsLibraryType# բաժանորդագրություն"
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryType# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
-msgstr "admin.pref#UsageStatsLibraryType# ցույց կտրվի <a href=\"http://hea.koha-community.org\">Լավ Կոհա համայնքային կայք</a>."
-
-# Administration > Share anonymous usage statistics
 msgid "admin.pref#UsageStatsLibraryUrl# Note that this value has no effect if the UsageStats system preference is set to \"Don't share\""
-msgstr "admin.pref#UsageStatsLibraryType# ցույց կտրվի <a href=\"http://hea.koha-community.org\">Hea Կոհա համայնքի կայք</a>."
+msgstr "dmin.pref#UsageStatsLibraryUrl# Նկատի առ, որ այս արժեքը չի ունենա ազդեցություն եթե UsageStats համակարգային նախապատվությունը կարգաբերված է որպես \"Մի կիսվիր\""
 
 # Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryUrl# The library URL"
-msgstr "admin.pref#UsageStatsLibraryUrl# Գրադարանի URL"
-
-# Administration > Share anonymous usage statistics
-msgid "admin.pref#UsageStatsLibraryUrl# will be shown on the <a href=\"http://hea.koha-community.org\">Hea Koha community website</a>."
-msgstr "admin.pref#UsageStatsLibraryUrl# կցուցադրվի <a href=\"http://hea.koha-community.org\">Hea Կոհա համայնքի կայք</a>."
+msgid "admin.pref#UsageStatsLibraryUrl# The library URL to be shown on the Hea Community website: "
+msgstr "admin.pref#UsageStatsLibraryUrl# Գրադարանի URL-ը, որ պետք է երևա Hea համայնքի կայքում: "
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# CAS for login authentication."
-msgstr "admin.pref#casAuthentication# CAS մուտքի փոխճանաչման համար."
+msgid "admin.pref#casAuthentication# No"
+msgstr "admin.pref#casAuthentication# Ոչ"
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# Don't use"
-msgstr "admin.pref#casAuthentication# Մի օգտագործիր"
+msgid "admin.pref#casAuthentication# Use CAS for login authentication: "
+msgstr "admin.pref#casAuthentication# Օգտագործիր CAS գրանցման փոխճանաչման համար: "
 
 # Administration > CAS authentication
-msgid "admin.pref#casAuthentication# Use"
-msgstr "admin.pref#casAuthentication# Օգտագործիր"
+msgid "admin.pref#casAuthentication# Yes"
+msgstr "admin.pref#casAuthentication# Այո"
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# Don't Logout"
-msgstr "admin.pref#casLogout# Մի անջատվիր համակարգից"
+msgid "admin.pref#casLogout# Logout of CAS when logging out of Koha: "
+msgstr "admin.pref#casLogout# Դուրս եկ CAS երբ դուրս ես գալիս Կոհայից: "
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# Logout"
-msgstr "admin.pref#casLogout# Անջատվիր համակարգից"
+msgid "admin.pref#casLogout# No"
+msgstr "admin.pref#casLogout# Ոչ"
 
 # Administration > CAS authentication
-msgid "admin.pref#casLogout# of CAS when logging out of Koha."
-msgstr "admin.pref#casLogout# CAS-ից երբ դուրս ես գալիղ Կոհաից."
+msgid "admin.pref#casLogout# Yes"
+msgstr "admin.pref#casLogout# Այո"
 
 # Administration > CAS authentication
-msgid "admin.pref#casServerUrl# The CAS Authentication Server can be found at"
-msgstr "admin.pref#casServerUrl# CAS փոխճանաչման կայանը կարելի է գտնել"
+msgid "admin.pref#casServerUrl# URL of the CAS Authentication Server: "
+msgstr "admin.pref#casServerUrl# CAS փոխճանաչմանն կայանի URL-ը: "
 
 # Administration > Interface options
 msgid "admin.pref#delimiter# #'s"
 msgstr "admin.pref#delimiter# #'s"
 
 # Administration > Interface options
-msgid "admin.pref#delimiter# Separate columns in an exported CSV file with"
-msgstr "admin.pref#delimiter# Արտահանված CSV ֆայլում բաժանիր սյունակները ըստ"
+msgid "admin.pref#delimiter# Default separator for columns in an exported CSV file: "
+msgstr "admin.pref#delimiter# Արտահանված CSV ֆայլի սյունակների լռակյաց բաժանիչը: "
 
 # Administration > Interface options
 msgid "admin.pref#delimiter# backslashes"
 msgstr "admin.pref#delimiter# հակառակ թեք գծեր"
-
-# Administration > Interface options
-msgid "admin.pref#delimiter# by default."
-msgstr "admin.pref#delimiter# լռակյաց."
 
 # Administration > Interface options
 msgid "admin.pref#delimiter# commas"
@@ -1404,36 +1458,36 @@ msgid "admin.pref#delimiter# tabs"
 msgstr "admin.pref#delimiter# թաբեր"
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# Don't show"
-msgstr "admin.pref#noItemTypeImages# Ցույց մի տուր"
+msgid "admin.pref#noItemTypeImages# No"
+msgstr "admin.pref#noItemTypeImages# Ոչ"
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# Show"
-msgstr "admin.pref#noItemTypeImages# Ցույց տուր"
+msgid "admin.pref#noItemTypeImages# Show itemtype icons in the catalog: "
+msgstr "admin.pref#noItemTypeImages# Ցույց տուր itemtype պատկերիկները քարտարանում: "
 
 # Administration > Interface options
-msgid "admin.pref#noItemTypeImages# itemtype icons in the catalog."
-msgstr "admin.pref#noItemTypeImages# նյութի տեսակի պատկերիկներ քարտարանում."
+msgid "admin.pref#noItemTypeImages# Yes"
+msgstr "admin.pref#noItemTypeImages# Այո"
 
 # Administration > Login options
-msgid "admin.pref#timeout# Automatically log out users after"
-msgstr "admin.pref#timeout# Ավտոմատ անջատիր օգտվողներին"
+msgid "admin.pref#timeout# Adding d will specify it in days, e.g. 1d is timeout of one day."
+msgstr "admin.pref#timeout# Ավելացնելով d կսահմանի օրերը, օր․՝ 1d մեկ օրվա ընդմիջում։"
 
 # Administration > Login options
-msgid "admin.pref#timeout# seconds of inactivity. Adding d will specify it in days, e.g. 1d is timeout of one day."
-msgstr "admin.pref#timeout# անգործության վայրկյաններ։ Ավելացնելով d կբնորոշի այն օրերով, այսինքն, 1d դա պարապուրդ է մեկ օրով։"
+msgid "admin.pref#timeout# Inactivity timeout in seconds to automatically log out users: "
+msgstr "admin.pref#timeout# Պասիվության ընդմիջում վայրկյաններով, ավտոմատ անջատելու համար: "
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# Allow"
-msgstr "admin.pref#virtualshelves# Թույլատրի"
+msgid "admin.pref#virtualshelves# Allow staff and patrons to create and view saved lists of books: "
+msgstr "admin.pref#virtualshelves# Թույլ տուր աշխատակազմին և հաճախորդներին ստեղծելու և դիտելու գրքերի հիշված ցուցակները: "
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# Don't allow"
-msgstr "admin.pref#virtualshelves# Մի թույլատրի"
+msgid "admin.pref#virtualshelves# No"
+msgstr "admin.pref#virtualshelves# Ոչ"
 
 # Administration > Interface options
-msgid "admin.pref#virtualshelves# staff and patrons to create and view saved lists of books."
-msgstr "admin.pref#virtualshelves# որպեսզի աշխատակազմը և հաճախորդները ստեղծեն և դիտեն գրքերի հիշված ցուցակները։."
+msgid "admin.pref#virtualshelves# Yes"
+msgstr "admin.pref#virtualshelves# Այո"
 
 # Authorities
 msgid "authorities.pref"
@@ -1460,20 +1514,44 @@ msgid "authorities.pref#AuthDisplayHierarchy# broader term/narrower term hierarc
 msgstr "authorities.pref#AuthDisplayHierarchy# աստիճանակարգված լայն տերմին/նեղ տերմին երբ դիտում ես Հեղինակավորները։"
 
 # Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Here auth1 and auth2 refer to the indicators of the authority record, tag is a biblio field number or an asterisk (*), and some_value is a fixed value (one character).<br>"
+msgstr "authorities.pref#AuthorityControlledIndicators# Այստեղ auth1 և auth2 առնչվում են հեղինակավոր գրառման ինդիկատորներին, ցուցիչը դա biblio դաշտի համարն է կամ աստղանիշ է (*), և some_value դա սևեռված արժեք է (մեկ նիշ)։<br>"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Lines starting with a comment symbol (#) are skipped. Each line should be of the form: (marc21|unimarc), tag, ind1:(auth1|auth2|some_value), ind2:(auth1|auth2|thesaurus|some_value).<br>"
+msgstr "authorities.pref#AuthorityControlledIndicators# Տողեր, որոնք սկսվում են մեջբերման նիշով (#) բաց են թողնվում։ Ամեն տողը պետք է լինի այս ձևով: (marc21|unimarc), tag, ind1:(auth1|auth2|some_value), ind2:(auth1|auth2|thesaurus|some_value).<br>"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# The MARC21 option thesaurus refers to indicators controlled by authority field 008/11 and 040$f."
+msgstr "authorities.pref#AuthorityControlledIndicators# MARC21 ընտրանքի թեզաուրուսը առնչվում է հեղինակավորի վերահսկման 008/11 և 040$f դաշտի ինդիկարորներին։"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityControlledIndicators# Use the following text to edit how authority records control indicators of attached biblio fields (and possibly subfield $2).<br>"
+msgstr "authorities.pref#AuthorityControlledIndicators# Օգտագործիր հետևյալ տեքստը խմբագրելու թե ինչպես են հեղինակավոր գրառումները վերահսկում կցված biblio դաշտերի ինդիկատորներին (և հնարավոր է $2 ենթադաշտը)։<br>"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityMergeLimit# When modifying an authority record, do not update attached biblio records if the number exceeds"
+msgstr "authorities.pref#AuthorityMergeLimit# Երբ ձևափոխվում է հեղինակավոր գրառումը, մի թարմացրու կցված բիբլիոները՝ եթե թիվը գերազանցում է"
+
+# Authorities > General
+msgid "authorities.pref#AuthorityMergeLimit# records. (Above this limit, the merge_authority cron job will merge them.)"
+msgstr "authorities.pref#AuthorityMergeLimit# գրառում։. (Այս սահամանից ավելին, merge_authority կրոնի աշխատանքը դրանց կձուլի։)"
+
+# Authorities > General
 msgid "authorities.pref#AuthorityMergeMode# When updating biblio records from an attached authority record (\"merging\"), handle subfields of relevant biblio record fields in"
-msgstr ""
+msgstr "authorities.pref#AuthorityMergeMode# Երբ թարմացնում ես մատեն գրառումները կցված հեղինակավոր գրառումից (\"merging\"), պահիր համապատասխան մատեն գրառումների դաշտերի ենթադաշտերը"
 
 # Authorities > General
 msgid "authorities.pref#AuthorityMergeMode# loose"
-msgstr ""
+msgstr "authorities.pref#AuthorityMergeMode# անփույթ"
 
 # Authorities > General
 msgid "authorities.pref#AuthorityMergeMode# mode. In strict mode subfields that are not found in the authority record, are deleted. Loose mode will keep them. Loose mode is the historical behavior and still the default."
-msgstr ""
+msgstr "authorities.pref#AuthorityMergeMode# վիճակ; Խիստ վիճակում հեղինակավոր գրառումում չգտնված ենթադաշտերը, ջնջվում են։ Անփույթ վիճակում դրանք կպահի։ Անփույթ վիճակը պատմականորեն ընդունված պահելաձևն է, և հանդես է գալիս որպես լռակյաց։"
 
 # Authorities > General
 msgid "authorities.pref#AuthorityMergeMode# strict"
-msgstr ""
+msgstr "authorities.pref#AuthorityMergeMode# խիստ"
 
 # Authorities > General
 msgid "authorities.pref#AutoCreateAuthorities# When editing records,"
@@ -1591,18 +1669,6 @@ msgstr "authorities.pref#UseAuthoritiesForTracings# Օգտագործում"
 msgid "authorities.pref#UseAuthoritiesForTracings# authority record numbers instead of text strings for searches from subject tracings."
 msgstr "authorities.pref#UseAuthoritiesForTracings# խորագրերից որոնման դեպքում հեղինակավոր գրառման համարներ տեքստային տողերի փոխարեն։"
 
-# Authorities > General
-msgid "authorities.pref#dontmerge# Do"
-msgstr "authorities.pref#dontmerge# Արա"
-
-# Authorities > General
-msgid "authorities.pref#dontmerge# Don't"
-msgstr "authorities.pref#dontmerge# Մի արա"
-
-# Authorities > General
-msgid "authorities.pref#dontmerge# automatically update attached biblios when changing an authority record. If this is off, please ask your administrator to enable the merge_authority.pl cronjob."
-msgstr "authorities.pref#dontmerge# ավտոմատ թարմացրու կցված մատենները երբ փոխում ես հեղինակավոր գրառումը։ եթե սա անջատված է, ասա կառավարիչին որ թույլատրի merge_authority.pl կրոնը։"
-
 # Cataloging
 msgid "cataloguing.pref"
 msgstr "cataloguing.pref"
@@ -1659,6 +1725,22 @@ msgstr "cataloguing.pref#AggressiveMatchOnISBN# արա"
 msgid "cataloguing.pref#AggressiveMatchOnISBN# don't"
 msgstr "cataloguing.pref#AggressiveMatchOnISBN# մի արա"
 
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# When matching on ISSN with the record import tool,"
+msgstr "cataloguing.pref#AggressiveMatchOnISSN# Երբ համընկնում է ISSN գրառման ներմուծման գործիքի հետ,"
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# attempt to match aggressively by trying all variations of the ISSNs in the imported record as a phrase in the ISSN fields of already cataloged records.  Note that this preference has no effect if UseQueryParser is on."
+msgstr "cataloguing.pref#AggressiveMatchOnISSN# փորձ ագրեսիվ համընկնեցման, փորձելով ISSNերի բոլոր տարբերակները ներմուծված գրառման մեջ որպես արտահայտություն արդեն իսկ մուտքագրված գրառման ISSN դաշտում։ Նկատի առ, որ այս նախապատվությունը չունի արդյունք, եթեUseQueryParser միացված է։"
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# do"
+msgstr "cataloguing.pref#AggressiveMatchOnISSN# կատարիր"
+
+# Cataloging > Importing
+msgid "cataloguing.pref#AggressiveMatchOnISSN# don't"
+msgstr "cataloguing.pref#AggressiveMatchOnISSN# մի արա"
+
 # Cataloging > Record Structure
 msgid "cataloguing.pref#AlternateHoldingsField# ."
 msgstr "cataloguing.pref#AlternateHoldingsField# ."
@@ -1714,6 +1796,14 @@ msgid "cataloguing.pref#DefaultClassificationSource# as the default classificati
 msgstr "cataloguing.pref#DefaultClassificationSource# որպես լռակյաց դասակարգման աղբյուր."
 
 # Cataloging > Record Structure
+msgid "cataloguing.pref#DefaultCountryField008#  Empty defaults to xxu for United States."
+msgstr "cataloguing.pref#DefaultCountryField008#  Դատարկ լռակյաց xxu ԱՄՆ-ի համար։"
+
+# Cataloging > Record Structure
+msgid "cataloguing.pref#DefaultCountryField008# Fill in the default country code for field 008 Range 15-17 of MARC21 - Place of publication, production, or execution. See <a href=\"http://www.loc.gov/marc/countries/countries_code.html\">MARC Code List for Countries</a>"
+msgstr "cataloguing.pref#DefaultCountryField008# Լրացրու լռակյաց երկրի կոդը MARC21-ի 008 դաշտի 15-17 դիրքերի համար - հրատարակման, թողարկման, կամ կատարման վայր։ Տես <a href=\"http://www.loc.gov/marc/countries/countries_code.html\">MARC Code List for Countries</a>"
+
+# Cataloging > Record Structure
 msgid "cataloguing.pref#DefaultLanguageField008#  Empty defaults to eng."
 msgstr "cataloguing.pref#DefaultLanguageField008#  Դատարկ լռակյացներ դեպի eng."
 
@@ -1732,6 +1822,26 @@ msgstr "cataloguing.pref#EasyAnalyticalRecords# Մի արտածիր"
 # Cataloging > Interface
 msgid "cataloguing.pref#EasyAnalyticalRecords# easy ways to create analytical record relationships"
 msgstr "cataloguing.pref#EasyAnalyticalRecords# հեշտ եղանակ ստեղծելու վերլուծական գրառման կապեր"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# <br/> NOTE:"
+msgstr "cataloguing.pref#EnableAdvancedCatalogingEditor# <br/> ՆՇՈՒՄ:"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Currently does not include support for UNIMARC or NORMARC fixed fields."
+msgstr "cataloguing.pref#EnableAdvancedCatalogingEditor# Այս պահին չի ներառում աջակցություն UNIMARC կամ NORMARC սևեռված դաշտերի համար։"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Don't enable"
+msgstr "cataloguing.pref#EnableAdvancedCatalogingEditor# Մի թույլատրիր"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# Enable"
+msgstr "cataloguing.pref#EnableAdvancedCatalogingEditor# Թույլատրի"
+
+# Cataloging > Interface
+msgid "cataloguing.pref#EnableAdvancedCatalogingEditor# the advanced cataloging editor."
+msgstr "cataloguing.pref#EnableAdvancedCatalogingEditor# խորացված քարտագրման խմբագրիչ։"
 
 # Cataloging > Display
 msgid "cataloguing.pref#ISBD# Use the following as the staff ISBD template:"
@@ -1774,8 +1884,28 @@ msgid "cataloguing.pref#MARCOrgCode# Fill in the <a href=\"http://www.loc.gov/ma
 msgstr "cataloguing.pref#MARCOrgCode# Fill in the <a href=\"http://www.loc.gov/marc/organizations/orgshome.html\">MARC organization code</a>"
 
 # Cataloging > Record Structure
-msgid "cataloguing.pref#MARCOrgCode# by default in new MARC21 records (leave blank to disable)."
-msgstr "cataloguing.pref#MARCOrgCode# որպես լռակյաց նոր ՄԵԸՔ21 գրառումներ (թող դատարկ արգելելու համար)։"
+msgid "cataloguing.pref#MARCOrgCode# by default in new MARC21 records (leave blank to disable). This can be also set on libraries level."
+msgstr "cataloguing.pref#MARCOrgCode# որպես լռակյաց նոր MARC21 գրառումներում (թող դատարկ արգելելու համար)։ Սա կարող է նաև լինել բազմություն գրադարանների մակարդակով։"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# For example <tt>http://fielddoc.example.com/?marc={MARC}&field={FIELD}&language={LANG}</tt>"
+msgstr "cataloguing.pref#MarcFieldDocURL# Օրինակի համար, <tt>http://fielddoc.example.com/?marc={MARC}&field={FIELD}&language={LANG}</tt>"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# If left empty, the format documentation on http://loc.gov (MARC21) or http://archive.ifla.org (UNIMARC) is used."
+msgstr "cataloguing.pref#MarcFieldDocURL# Եթե ձախից դատարկ է, ձևաչափի փաստաթղթերը օգտագործվում են այստեղից http://loc.gov (MARC21) կամ այստեղից http://archive.ifla.org (UNIMARC)"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# Possible substitutions are <tt>{MARC}</tt> (marc flavour, eg. \"MARC21\" or \"UNIMARC\"), <tt>{FIELD}</tt> (field number, eg. \"000\" or \"048\"), <tt>{LANG}</tt> (user language, eg. \"en\" or \"fi-FI\")."
+msgstr "cataloguing.pref#MarcFieldDocURL# Հնարավոր բաժանորդագրություններն են <tt>{MARC}</tt> (marc flavour, օր. \"MARC21\" կամ \"UNIMARC\"), <tt>{FIELD}</tt> (դաշտի համար, օր. \"000\" կամ \"048\"), <tt>{LANG}</tt> (օգտվողի լեզու, օր. \"en\" կամ \"fi-FI\")։"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# Use"
+msgstr "cataloguing.pref#MarcFieldDocURL# Օգտագործիր"
+
+# Cataloging > Display
+msgid "cataloguing.pref#MarcFieldDocURL# as the URL for MARC field documentation."
+msgstr "cataloguing.pref#MarcFieldDocURL# որպես ՄԵԸՔ դաշտի փաստաթղթի URL։"
 
 # Cataloging > Display
 msgid "cataloguing.pref#MergeReportFields# <br />example: '001,245ab,600'"
@@ -1834,8 +1964,8 @@ msgid "cataloguing.pref#OpacSuppression# <br />Redirect the opac detail page for
 msgstr "cataloguing.pref#OpacSuppression# <br />Վերաուղղորդի հօաք մանրամասնի էջը ճնշված գրառումների համար դեպի"
 
 # Cataloging > Display
-msgid "cataloguing.pref#OpacSuppression# <br />Restrict the suppression to IP adresses outside of the IP range"
-msgstr "cataloguing.pref#OpacSuppression# <br />Արգելիր IP հասցեների ճնշումը IP տիրույթից դուրս"
+msgid "cataloguing.pref#OpacSuppression# <br />Restrict the suppression to IP addresses outside of the IP range"
+msgstr "cataloguing.pref#OpacSuppression# <br />Արգելիր IP հասցեների տիրույթից դուրս IP հասցեների ճնշումը"
 
 # Cataloging > Display
 msgid "cataloguing.pref#OpacSuppression# Don't hide"
@@ -1850,8 +1980,8 @@ msgid "cataloguing.pref#OpacSuppression# an explanatory page ('This record is bl
 msgstr "cataloguing.pref#OpacSuppression# բացատրական էջ ('Այս գրառումը արգելափակված է')։"
 
 # Cataloging > Display
-msgid "cataloguing.pref#OpacSuppression# items marked as suppressed from OPAC search results."
-msgstr "cataloguing.pref#OpacSuppression# նյութեր որ նշված են որպես ճնշված ՀՕԱՔ-ի որոնման արդյունքներից։"
+msgid "cataloguing.pref#OpacSuppression# biblios marked as suppressed from OPAC search results."
+msgstr "cataloguing.pref#OpacSuppression# biblios որոնք ՀՕԱՔ փնտրման արդյունքներից նշվել են որպես ճնշված։"
 
 # Cataloging > Display
 msgid "cataloguing.pref#OpacSuppression# the 404 error page ('Not found')."
@@ -2147,6 +2277,10 @@ msgstr "cataloguing.pref#z3950NormalizeAuthor# ցուցիչներ (բաժանվ�
 msgid "circulation.pref"
 msgstr "circulation.pref"
 
+# Circulation > Article Requests
+msgid "circulation.pref Article Requests"
+msgstr "circulation.pref Հոդվածի հարցումներ"
+
 # Circulation > Batch checkout
 msgid "circulation.pref Batch checkout"
 msgstr "circulation.pref Փաթեթով տացք"
@@ -2171,13 +2305,25 @@ msgstr "circulation.pref Տուգանքների քաղաքականություն
 msgid "circulation.pref Holds Policy"
 msgstr "circulation.pref Պահումների քաղաքականություն"
 
+# Circulation > Housebound module
+msgid "circulation.pref Housebound module"
+msgstr "circulation.pref Տան հետ կապված մոդուլ"
+
 # Circulation > Interface
 msgid "circulation.pref Interface"
 msgstr "circulation.pref Միջերես"
 
+# Circulation > Interlibrary Loans
+msgid "circulation.pref Interlibrary Loans"
+msgstr "circulation.pref Միջգրադարանային բաժնույթ"
+
 # Circulation > Self Checkout
 msgid "circulation.pref Self Checkout"
 msgstr "circulation.pref Ինքնասպասարկում"
+
+# Circulation > Self check-in module
+msgid "circulation.pref Self check-in module"
+msgstr "circulation.pref Ինքնատածքի մոդուլ"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AgeRestrictionMarker# E.g. enter target audience keyword(s) split by | (bar) FSK|PEGI|Age| (No white space near |). Be sure to map agerestriction in Koha to MARC mapping (e.g. 521$a). A MARC field value of FSK 12 or PEGI 12 would mean: Borrower must be 12 years old. Leave empty to not apply an age restriction."
@@ -2222,6 +2368,18 @@ msgstr "circulation.pref#AllowAllMessageDeletion# Մի թույլատրի"
 # Circulation > Interface
 msgid "circulation.pref#AllowAllMessageDeletion# staff to delete messages added from other libraries."
 msgstr "circulation.pref#AllowAllMessageDeletion# աշխատակազմը թող ջնջի հաղորդումները ար ավելացվել են այլ գրադարաններից։"
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# Allow"
+msgstr "circulation.pref#AllowCheckoutNotes# Թույլատրի"
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# Don't allow"
+msgstr "circulation.pref#AllowCheckoutNotes# Մի թույլատրի"
+
+# Circulation > Interface
+msgid "circulation.pref#AllowCheckoutNotes# patrons to submit notes about checked out items."
+msgstr "circulation.pref#AllowCheckoutNotes# ընթերցողներ, որ պետք է գրանցեն նշումներ սպասարկված նյութերի վերաբերյալ։"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowFineOverride# Allow"
@@ -2268,8 +2426,8 @@ msgid "circulation.pref#AllowHoldPolicyOverride# Don't allow"
 msgstr "circulation.pref#AllowHoldPolicyOverride# Չթույլատրել"
 
 # Circulation > Holds Policy
-msgid "circulation.pref#AllowHoldPolicyOverride# staff to override hold policies when placing holds."
-msgstr "circulation.pref#AllowHoldPolicyOverride# աշխատակազմը պետք է վերագրի պահման քաղաքականությունը երբ տեղադրում է պահում։"
+msgid "circulation.pref#AllowHoldPolicyOverride# staff to force addition of holds even if the patron already has the maximum number of holds allowed."
+msgstr "circulation.pref#AllowHoldPolicyOverride# եթե նույնիսկ հաճախորդը ունի պահումներ, որ գերազանցում են մեծագույն քանակը, աշխատակազմը պետք է պարտադրի պահումների ավելացումը։"
 
 # Circulation > Holds Policy
 msgid "circulation.pref#AllowHoldsOnDamagedItems# Allow"
@@ -2308,6 +2466,18 @@ msgid "circulation.pref#AllowItemsOnHoldCheckout# checkouts of items reserved to
 msgstr "circulation.pref#AllowItemsOnHoldCheckout# նյութերի դւորս տրումը ռեզերվացված է մեկ ուրիշի համար։ եթե թույլատրված է մի գեներացրու RESERVE_WAITING և RESERVED զգուշացումը։ Սա թույլատրում է այդ նյութերի ինքնասպասարկում։"
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# Allow"
+msgstr "circulation.pref#AllowItemsOnHoldCheckoutSCO# Թույլատրի"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# Don't allow"
+msgstr "circulation.pref#AllowItemsOnHoldCheckoutSCO# Մի թույլատրի"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items."
+msgstr "circulation.pref#AllowItemsOnHoldCheckoutSCO# checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items."
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#AllowMultipleIssuesOnABiblio# Allow"
 msgstr "circulation.pref#AllowMultipleIssuesOnABiblio# Թույլ տուր"
 
@@ -2316,8 +2486,8 @@ msgid "circulation.pref#AllowMultipleIssuesOnABiblio# Don't allow"
 msgstr "circulation.pref#AllowMultipleIssuesOnABiblio# Թույլ մի տուր"
 
 # Circulation > Checkout Policy
-msgid "circulation.pref#AllowMultipleIssuesOnABiblio# patrons to check out multiple items from the same record.  (NOTE: This will only effect records without a subscription attached.)"
-msgstr "circulation.pref#AllowMultipleIssuesOnABiblio# օգտվողները նույն գրառումից հանեն բազմակի նյութերը։ (Նկատի առ որ սա արդյունք կունենա գրառումների համար առանց կցված բաժանորդագրությունների։)"
+msgid "circulation.pref#AllowMultipleIssuesOnABiblio# patrons to check out multiple items from the same record.  (NOTE: This will only affect records without a subscription attached.)"
+msgstr "circulation.pref#AllowMultipleIssuesOnABiblio# ընթեռցողները նուն գրառումից դուրս գրեն բազմակի նյութեր։  (ՆԿԱՏԻ ԱՌ: Սա կազդի միայն գրառումների վրա որոնց կցված չեն բաժանորդագրություններ։)"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowNotForLoanOverride# Allow"
@@ -2411,6 +2581,30 @@ msgstr "circulation.pref#AllowTooManyOverride# Մի թույլատրի"
 msgid "circulation.pref#AllowTooManyOverride# staff to override and check out items when the patron has reached the maximum number of allowed checkouts."
 msgstr "circulation.pref#AllowTooManyOverride# որպեսզի աշխատակազմը վերագրի և դուրս տա նյութերը երբ ընթերցողը հասել է դւրս տրման ամենամեծ քանակին։"
 
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# Don't enable"
+msgstr "circulation.pref#ArticleRequests# Մի թույլատրի"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# Enable"
+msgstr "circulation.pref#ArticleRequests# Թույլատրի"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequests# patrons to place article requests."
+msgstr "circulation.pref#ArticleRequests# հաճախորդներ, որ կատարեն հոդվածի պատվեր։"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFields# For records that are record level or item level requestable, make the following fields mandatory"
+msgstr "circulation.pref#ArticleRequestsMandatoryFields# Այն գրառումներ համար որոնք հասանելի են գրառման կամ նյութի մակարդակով, հետևյալ դաշտերը դարձրու պարտադիր։"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFieldsItemOnly# For records that are only item level requestable, make the following fields mandatory"
+msgstr "circulation.pref#ArticleRequestsMandatoryFieldsItemOnly# Այն գրառումներ համար որոնք հասանելի են միայն նյութի մակարդակով, հետևյալ դաշտերը դարձրու պարտադիր։"
+
+# Circulation > Article Requests
+msgid "circulation.pref#ArticleRequestsMandatoryFieldsRecordOnly# For records that are only record level requestable, make the following fields mandatory"
+msgstr "circulation.pref#ArticleRequestsMandatoryFieldsRecordOnly# Այն գրառումներ համար որոնք հասանելի են միայն գրառման մակարդակով, հետևյալ դաշտերը դարձրու պարտադիր։"
+
 # Circulation > Checkout Policy
 msgid "circulation.pref#AutoRemoveOverduesRestrictions# Do"
 msgstr "circulation.pref#AutoRemoveOverduesRestrictions# Արա"
@@ -2455,6 +2649,22 @@ msgstr "circulation.pref#AutoSelfCheckAllowed# և այս գաղտնաբառը"
 msgid "circulation.pref#AutoSelfCheckAllowed# the web-based self checkout system to automatically login with this staff login"
 msgstr "circulation.pref#AutoSelfCheckAllowed# ոստայնի վրա հիմնված ինքնասպասարկող համակարգ որ ավտոմատ պետք է մուտք լինի աշխատակազմի այս գրանցումով։"
 
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# Don't enable"
+msgstr "circulation.pref#AutoSwitchPatron# Մի թույլատրի"
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# Enable"
+msgstr "circulation.pref#AutoSwitchPatron# Թույլատրի"
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# This should not be enabled if you have overlapping patron and book barcodes."
+msgstr "circulation.pref#AutoSwitchPatron# Սա չպետք է թույլատրված լինի, եթե ունես համընկնող հաճախորդ և գրքի շտրիխ կոդեր։"
+
+# Circulation > Interface
+msgid "circulation.pref#AutoSwitchPatron# the automatic redirection to another patron when a patron barcode is scanned instead of a book."
+msgstr "circulation.pref#AutoSwitchPatron# ավտոմատ ուղղորդում դեպի մեկ այլ ընթերցողի, երբ գրքինի փոխարեն հաճախորդի շտրիխ կոդն է սքանավորվել։"
+
 # Circulation > Checkout Policy
 msgid "circulation.pref#AutomaticItemReturn# Do"
 msgstr "circulation.pref#AutomaticItemReturn# Արա"
@@ -2488,6 +2698,18 @@ msgid "circulation.pref#BatchCheckoutsValidCategories# Patron categories allowed
 msgstr "circulation.pref#BatchCheckoutsValidCategories# Ընթերցողների դասերը թույլ են տալիս կազմակերպելու փաթեթով տացք"
 
 # Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# Block"
+msgstr "circulation.pref#BlockReturnOfLostItems# Արգելիր"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# Don't block"
+msgstr "circulation.pref#BlockReturnOfLostItems# Մի արգելիր"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#BlockReturnOfLostItems# returning of items that have been lost."
+msgstr "circulation.pref#BlockReturnOfLostItems# կորած նյութերի վերադարձ։"
+
+# Circulation > Checkin Policy
 msgid "circulation.pref#BlockReturnOfWithdrawnItems# Block"
 msgstr "circulation.pref#BlockReturnOfWithdrawnItems# Արգելափակիր"
 
@@ -2514,6 +2736,22 @@ msgstr "circulation.pref#CalculateFinesOnReturn# Մի արա"
 # Circulation > Checkin Policy
 msgid "circulation.pref#CalculateFinesOnReturn# calculate and update overdue charges when an item is returned."
 msgstr "circulation.pref#CalculateFinesOnReturn# հաշվիր և թարմացրու ժամկետանց տուգանքները երբ նյութը վերադարձվում է։"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Allow to mark items as lost"
+msgstr "circulation.pref#CanMarkHoldsToPullAsLost# Թույլ տուր նյութերը նշելու որպես կորած"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Allow to mark items as lost and notify the patron"
+msgstr "circulation.pref#CanMarkHoldsToPullAsLost# Թույլ տուր նյութերը նշելու որպես կորած, և տեղեկացնելու այցելուին"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# Do not allow to mark items as lost"
+msgstr "circulation.pref#CanMarkHoldsToPullAsLost# Թույլ մի տուր նյութերը նշելու որպես կորած"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#CanMarkHoldsToPullAsLost# from the 'Holds to pull' screen"
+msgstr "circulation.pref#CanMarkHoldsToPullAsLost# 'Holds to pull' պաստառից"
 
 # Circulation > Interface
 msgid "circulation.pref#CircAutoPrintQuickSlip# ."
@@ -2567,6 +2805,18 @@ msgstr "circulation.pref#CircControl# tայն գրադարանը որտեղից 
 msgid "circulation.pref#CircControl# the library you are logged in at."
 msgstr "circulation.pref#CircControl# գրադարանը որին դու միացել ես։"
 
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# Activate"
+msgstr "circulation.pref#CircSidebar# Ակտիվացրու"
+
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# Deactivate"
+msgstr "circulation.pref#CircSidebar# Ապաակտիվացրու"
+
+# Circulation > Interface
+msgid "circulation.pref#CircSidebar# the navigation sidebar on all Circulation pages."
+msgstr "circulation.pref#CircSidebar# նավարկելու կողային տող Տացքի բոլոր էջերում։"
+
 # Circulation > Holds Policy
 msgid "circulation.pref#ConfirmFutureHolds# Confirm future hold requests (starting no later than"
 msgstr "circulation.pref#ConfirmFutureHolds# Հաստատիր ապագայի պահման առաջարկները (սկսված ոչ ուշ քան"
@@ -2594,6 +2844,18 @@ msgstr "circulation.pref#ConsiderOnSiteCheckoutsAsNormalCheckouts# Եթե թու
 # Circulation > Checkout Policy
 msgid "circulation.pref#ConsiderOnSiteCheckoutsAsNormalCheckouts# on-site checkouts as normal checkouts."
 msgstr "circulation.pref#ConsiderOnSiteCheckoutsAsNormalCheckouts# տեղային տացքերը ոպես նորմալ տացքեր։"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# Cumulate"
+msgstr "circulation.pref#CumulativeRestrictionPeriods# Ավելացրու"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# Don't cumulate"
+msgstr "circulation.pref#CumulativeRestrictionPeriods# Մի կուտակիր"
+
+# Circulation > Checkin Policy
+msgid "circulation.pref#CumulativeRestrictionPeriods# the restriction periods."
+msgstr "circulation.pref#CumulativeRestrictionPeriods# սահմանափակման ժամանակահատվածներ."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#DefaultLongOverdueChargeValue# <br>(Used when the longoverdue.pl script is called without the --charge parameter)"
@@ -2656,6 +2918,18 @@ msgid "circulation.pref#DisplayMultiPlaceHold# the ability to place holds on mul
 msgstr "circulation.pref#DisplayMultiPlaceHold# հնարավորություն փնտրման արդյունքներից տեղադրելու պահումներ բազմակի մատենների վրա"
 
 # Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Allow"
+msgstr "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Թույլատրի"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Closed days to be taken into account in reserves max pickup delay."
+msgstr "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Չաշխատելու օրերը պետք է նկատի առնվեն ռեզերվների ստանալու մեծագույն ուշացման մեջ։"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Don't allow"
+msgstr "circulation.pref#ExcludeHolidaysFromMaxPickUpDelay# Մի թույլատրի"
+
+# Circulation > Holds Policy
 msgid "circulation.pref#ExpireReservesMaxPickUpDelay# Allow"
 msgstr "circulation.pref#ExpireReservesMaxPickUpDelay# Թույլատրի"
 
@@ -2684,20 +2958,24 @@ msgid "circulation.pref#ExpireReservesOnHolidays# expired holds to be canceled o
 msgstr "circulation.pref#ExpireReservesOnHolidays# ժամկետանց պահումները պետք է չեղյալ արվեն գրադարանի փակ օրերին։"
 
 # Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# Don't show"
+msgstr "circulation.pref#ExportCircHistory# Ցույց մի տուր"
+
+# Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# Show"
+msgstr "circulation.pref#ExportCircHistory# Ցույց տուր"
+
+# Circulation > Interface
+msgid "circulation.pref#ExportCircHistory# the export patron checkout history options."
+msgstr "circulation.pref#ExportCircHistory# արտահանել ընթերցողի տացքի ընտրանքները։"
+
+# Circulation > Interface
 msgid "circulation.pref#ExportRemoveFields# (separate fields with space, e.g. 100a 200b 300c)"
 msgstr "circulation.pref#ExportRemoveFields# (բաժանիր դաշտերը բացատներով, այսինքն, 100a 200b 300c)"
 
 # Circulation > Interface
 msgid "circulation.pref#ExportRemoveFields# The following fields should be excluded from the patron checkout history CSV or iso2709 export"
 msgstr "circulation.pref#ExportRemoveFields# Հետևյալ դաշտերը պետք է անտեսվեն ընթերցողի դուրս տրման պատմության CSV կամ iso2709 արտահանումից"
-
-# Circulation > Interface
-msgid "circulation.pref#ExportWithCsvProfile# CSV profile when exporting patron checkout history (enter CSV Profile name)"
-msgstr "circulation.pref#ExportWithCsvProfile# CSV պրոֆայլ երբ արտահանվում է ընթերցողի սպասարկման պատմությունը (մուտք արա CSV պրոֆայլի անունը)"
-
-# Circulation > Interface
-msgid "circulation.pref#ExportWithCsvProfile# Use the"
-msgstr "circulation.pref#ExportWithCsvProfile# Օգտագործիր"
 
 # Circulation > Interface
 msgid "circulation.pref#FilterBeforeOverdueReport# Don't require"
@@ -2740,6 +3018,10 @@ msgid "circulation.pref#HoldFeeMode# Charge a hold fee"
 msgstr "circulation.pref#HoldFeeMode# Գանձիր պահման վճար"
 
 # Circulation > Fines Policy
+msgid "circulation.pref#HoldFeeMode# any time a hold is collected."
+msgstr "circulation.pref#HoldFeeMode# ցանկացած պահի երբ պահումը հավաքված է։"
+
+# Circulation > Fines Policy
 msgid "circulation.pref#HoldFeeMode# any time a hold is placed."
 msgstr "circulation.pref#HoldFeeMode# ամեն անգամ երբ պահում է տեղադրվում։"
 
@@ -2778,6 +3060,34 @@ msgstr "circulation.pref#HomeOrHoldingBranch# գրադարանը որտեղից 
 # Circulation > Checkout Policy
 msgid "circulation.pref#HomeOrHoldingBranch# the library the item was checked out from."
 msgstr "circulation.pref#HomeOrHoldingBranch# գրադարանը որտեղից նյութը դուրս է տրված։"
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# Disable"
+msgstr "circulation.pref#HouseboundModule# Արգելիր"
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# Enable"
+msgstr "circulation.pref#HouseboundModule# Թույլատրի"
+
+# Circulation > Housebound module
+msgid "circulation.pref#HouseboundModule# housebound module"
+msgstr "circulation.pref#HouseboundModule# տնային մոդուլ"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# Disable"
+msgstr "circulation.pref#ILLModule# Անջատել"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# Enable"
+msgstr "circulation.pref#ILLModule# Միացնել"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModule# the interlibrary loans module (master switch)."
+msgstr "circulation.pref#ILLModule# միջգրադարանային բաժնույթի մոդուլներ (վարպետ միացում)։"
+
+# Circulation > Interlibrary Loans
+msgid "circulation.pref#ILLModuleCopyrightClearance# Adding text will enable the copyright clearance stage in request creation. The text you enter will be the text displayed."
+msgstr "circulation.pref#ILLModuleCopyrightClearance# Տեքստի ավելացումը կթույլատրի հարցման ստեղծման պահին հեղինակային իրավունքի մաքրումը։ Քո մուտքագրած տեքստը կարտածվի։"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#InProcessingToShelvingCart# Don't move"
@@ -2865,6 +3175,14 @@ msgid "circulation.pref#ManInvInNoissuesCharge# MANUAL_INV charges when summing 
 msgstr "circulation.pref#ManInvInNoissuesCharge# MANUAL_INV charges when summing up charges for noissuescharge."
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#MarkLostItemsAsReturned# ."
+msgstr "circulation.pref#MarkLostItemsAsReturned# ."
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#MarkLostItemsAsReturned# Mark items as returned when flagged as lost "
+msgstr "circulation.pref#MarkLostItemsAsReturned# Նշիր նյութերը որպես կորած, երբ դրոշմված են որպես կորած "
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#NoIssuesChargeGuarantees# Prevent a patron from checking out if the patron has guarantees owing in total more than"
 msgstr "circulation.pref#NoIssuesChargeGuarantees# Կանխիր հաճախորդին տացքից, եթե նա ունի երաշխիքներ որ պարտք են ավելի քան"
 
@@ -2887,6 +3205,10 @@ msgstr "circulation.pref#NoRenewalBeforePrecision# տվյալ։"
 # Circulation > Checkout Policy
 msgid "circulation.pref#NoRenewalBeforePrecision# exact time."
 msgstr "circulation.pref#NoRenewalBeforePrecision# ճշգրիտ ժամ։"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#NoticeBcc# Send all notices as a BCC to this email address"
+msgstr "circulation.pref#NoticeBcc# Ուղարկիր բոլոր նշումները որպես BCC այս էլ. հասցեներին։"
 
 # Circulation > Interface
 msgid "circulation.pref#NoticeCSS# Include the stylesheet at"
@@ -2921,6 +3243,42 @@ msgid "circulation.pref#OPACAllowUserToChooseBranch# a user to choose the librar
 msgstr "circulation.pref#OPACAllowUserToChooseBranch# օգտվողը պետք է ընտրի ստանալու գրադարանը"
 
 # Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Allow"
+msgstr "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Թույլատրի"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Block"
+msgstr "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Արգելափակիր"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# If a patron owes more than the value of OPACFineNoRenewals,"
+msgstr "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# եթե հաճախորդը պարտք է ավելի քան այս արժեքից OPACFineNoRenewals,"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# his/her auto renewals."
+msgstr "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# իր ավտոմատ թարմացումները։"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# Allow"
+msgstr "circulation.pref#OPACHoldsIfAvailableAtPickup# Թույլատրի"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# Don't allow"
+msgstr "circulation.pref#OPACHoldsIfAvailableAtPickup# Մի թույլատրի"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickup# to pickup up holds at libraries where the item is available."
+msgstr "circulation.pref#OPACHoldsIfAvailableAtPickup# գրադարաններից պահումները վերցնելու համար, որոնցից հասանելի է նյութը։"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# (list of patron categories separated with a pipe '|')"
+msgstr "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# (ընթերցողական դասերի ցուցակը բաժանված '|')"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# Patron categories not affected by OPACHoldsIfAvailableAtPickup"
+msgstr "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# Ընթերցողական դասեր, որոնք վնասված չեն OPACHoldsIfAvailableAtPickup կողմից"
+
+# Circulation > Checkout Policy
 msgid "circulation.pref#OnSiteCheckouts# Disable"
 msgstr "circulation.pref#OnSiteCheckouts# Արգելափակիր"
 
@@ -2943,10 +3301,6 @@ msgstr "circulation.pref#OnSiteCheckoutsForce# Թույլատրիր"
 # Circulation > Checkout Policy
 msgid "circulation.pref#OnSiteCheckoutsForce# the on-site for all cases (Even if a user is debarred, etc.)."
 msgstr "circulation.pref#OnSiteCheckoutsForce# տեղում մնացյալ բոլոր դեպքերի համար (եթե նույնիսկ օգտվողը հեռացվել է, և այլն)։"
-
-# Circulation > Checkout Policy
-msgid "circulation.pref#OverdueNoticeBcc# Send all notices as a BCC to this email address"
-msgstr "circulation.pref#OverdueNoticeBcc# Ուղարկիր բոլոր նշումները որպես BCC էլ փոստի այս հասցեին։"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#OverdueNoticeCalendar# Ignore Calendar"
@@ -3000,6 +3354,10 @@ msgstr "circulation.pref#PrintNoticesMaxLines# Ներառի մինչև"
 msgid "circulation.pref#PrintNoticesMaxLines# item lines in a printed overdue notice. If the number of items is greater than this number, the notice will end with a warning asking the borrower to check their online account for a full list of overdue items.  Set to 0 to include all overdue items in the notice, no matter how many there are."
 msgstr "circulation.pref#PrintNoticesMaxLines# նյութը հարմարեցվում է տպված ժամկետանցի ծանուցմանը։ Եթե նյութերի քանակը ավելին է քան այս թիվը ծանուցումը կավարտվի զգաշուցամուվ որով առաջարկվում է ընթերցողին ստուգել առցանց հաշիվը ժամկետանց նյութերի ամբողջական ցուցակի համար։ Տեղադրի 0 բոլոր ժամկետանց նյութերը մեկ ծանուցման մեջ ներառելու համար, անկախ նրանից թե ինչքան են դրանք։"
 
+# Circulation > Fines Policy
+msgid "circulation.pref#ProcessingFeeNote# Set the text to be recorded in the column 'note', table 'accountlines' when the processing fee (defined in item type) is applied."
+msgstr "circulation.pref#ProcessingFeeNote# Կարգաբերի տեքստը, որը պետք է գրանցվի 'accountlines' աղյուսակի 'նշում' սյունակում, երբ կատարման արժեքը (սահմանված է նյութի տեսակում) կիրառված է։"
+
 # Circulation > Interface
 msgid "circulation.pref#RecordLocalUseOnReturn# Don't record"
 msgstr "circulation.pref#RecordLocalUseOnReturn# Մի ձայնագրի"
@@ -3013,16 +3371,20 @@ msgid "circulation.pref#RecordLocalUseOnReturn# local use when an unissued item 
 msgstr "circulation.pref#RecordLocalUseOnReturn# տեղային օգտագործում երբ առանց համարի նյութ է ընդունվում։"
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# Don't refund"
-msgstr "circulation.pref#RefundLostItemFeeOnReturn# Մի վերաֆինանսավորի"
+msgid "circulation.pref#RefundLostOnReturnControl# If a lost item is returned, apply the refunding rules defined in the"
+msgstr "circulation.pref#RefundLostOnReturnControl# եթե կորած նյութը վերադարձվել է, կիրառիր փոխհատուցման օրենքները սահմանված"
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# Refund"
-msgstr "circulation.pref#RefundLostItemFeeOnReturn# Վերաֆինանսավորի"
+msgid "circulation.pref#RefundLostOnReturnControl# check-in library."
+msgstr "circulation.pref#RefundLostOnReturnControl# հետ ընդունման գրադարան։"
 
 # Circulation > Fines Policy
-msgid "circulation.pref#RefundLostItemFeeOnReturn# lost item fees charged to a borrower when the lost item is returned."
-msgstr "circulation.pref#RefundLostItemFeeOnReturn# կորած նյութի գանձումներ դրված օգտատերի վրա երբ կորած նյութը կվերադարձվի։"
+msgid "circulation.pref#RefundLostOnReturnControl# item holding branch."
+msgstr "circulation.pref#RefundLostOnReturnControl# նյութը պահող մասնաճյուղ։"
+
+# Circulation > Fines Policy
+msgid "circulation.pref#RefundLostOnReturnControl# item home branch."
+msgstr "circulation.pref#RefundLostOnReturnControl# նյութի տնային մասնաճյուղ։"
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#RenewalPeriodBase# When renewing checkouts, base the new due date on"
@@ -3153,6 +3515,10 @@ msgid "circulation.pref#ReturnToShelvingCart# all items to the location CART whe
 msgstr "circulation.pref#ReturnToShelvingCart# բոլոր նյութերը դեպի CART տեղաբաշխում երբ դրանք հետ են ընդունված։"
 
 # Circulation > Self Checkout
+msgid "circulation.pref#SCOMainUserBlock# Include the following HTML on the the web-based self checkout screen:"
+msgstr "circulation.pref#SCOMainUserBlock# Ներառիր հետևյալ HTML-ը ոստայնի վրա հիմնված ինքնատածքի պաստառում։"
+
+# Circulation > Self Checkout
 msgid "circulation.pref#SCOUserCSS# Include the following CSS on all pages in the web-based self checkout:"
 msgstr "circulation.pref#SCOUserCSS# բոլոր էջերում ներառում է հետևյալ CSS-ը ոստայնի վրա հիմնված ինքնատածքով։"
 
@@ -3163,6 +3529,38 @@ msgstr "circulation.pref#SCOUserJS# բոլոր էջերում ներառում �
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckHelpMessage# Include the following HTML in the Help page of the web-based self checkout system:"
 msgstr "circulation.pref#SelfCheckHelpMessage# Ներառում է հետևյալ HTML-ը ոստայնի վրա հիմնված դուրս տրման համակարգի Օգնություն էջում։"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInMainUserBlock# Include the following HTML on the self check-in screen:"
+msgstr "circulation.pref#SelfCheckInMainUserBlock# Ինքնատացքի պաստառին ներառի հետևյալ HTML-ը:"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# Don't enable"
+msgstr "circulation.pref#SelfCheckInModule# Մի թույլատրի"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# Enable"
+msgstr "circulation.pref#SelfCheckInModule# Թույլատրի"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInModule# the standalone self check-in module (available at: /cgi-bin/koha/sci/sci-main.pl)"
+msgstr "circulation.pref#SelfCheckInModule# ինքնատածքի մեկուսի մոդուլ (հասանելի է՝ /cgi-bin/koha/sci/sci-main.pl)"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInTimeout# Reset the current self check-in screen after"
+msgstr "circulation.pref#SelfCheckInTimeout# Վերագրի ընթացիկ ինքնատացքի պաստառը"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInTimeout# seconds."
+msgstr "circulation.pref#SelfCheckInTimeout# վայրկյանից հետո։"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInUserCSS# Include the following CSS on all the self check-in screens:"
+msgstr "circulation.pref#SelfCheckInUserCSS# Ինքնատացքի բոլոր պաստառները ներառում են հետևյալ CSS-ը:"
+
+# Circulation > Self check-in module
+msgid "circulation.pref#SelfCheckInUserJS# Include the following JavaScript on all the self check-in screens:"
+msgstr "circulation.pref#SelfCheckInUserJS# Ինքնատացքի բոլոր պաստառները ներառում են հետևյալ JavaScript-ը:"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckReceiptPrompt# Don't show"
@@ -3185,8 +3583,8 @@ msgid "circulation.pref#SelfCheckTimeout# seconds."
 msgstr "circulation.pref#SelfCheckTimeout# վայրկյաններ։"
 
 # Circulation > Self Checkout
-msgid "circulation.pref#SelfCheckoutByLogin# Barcode"
-msgstr "circulation.pref#SelfCheckoutByLogin# Շտրիխ կոդ"
+msgid "circulation.pref#SelfCheckoutByLogin# Cardnumber"
+msgstr "circulation.pref#SelfCheckoutByLogin# Cardnumber"
 
 # Circulation > Self Checkout
 msgid "circulation.pref#SelfCheckoutByLogin# Have patrons login into the web-based self checkout system with their"
@@ -3308,6 +3706,18 @@ msgstr "circulation.pref#SuspendHoldsOpac# Մի թույլատրի"
 msgid "circulation.pref#SuspendHoldsOpac# holds to be suspended from the OPAC."
 msgstr "circulation.pref#SuspendHoldsOpac# պահում, որ պետք է կասեցվի ՀՕԱՔ-ից։"
 
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# Don't switch"
+msgstr "circulation.pref#SwitchOnSiteCheckouts# Մի միացրեք"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# Switch"
+msgstr "circulation.pref#SwitchOnSiteCheckouts# Միացրեք"
+
+# Circulation > Checkout Policy
+msgid "circulation.pref#SwitchOnSiteCheckouts# on-site checkouts to normal checkouts when checked out."
+msgstr "circulation.pref#SwitchOnSiteCheckouts# ցանցից անջատ տացքերը նորմալ տացքերի համեմատ երբ սպասարկվում են։"
+
 # Circulation > Holds Policy
 msgid "circulation.pref#TransferWhenCancelAllWaitingHolds# Don't transfer"
 msgstr "circulation.pref#TransferWhenCancelAllWaitingHolds# Մի փոխանցիր"
@@ -3327,6 +3737,18 @@ msgstr "circulation.pref#TransfersMaxDaysWarning# Ցույց տուր զգուշ
 # Circulation > Checkout Policy
 msgid "circulation.pref#TransfersMaxDaysWarning# days after it was sent."
 msgstr "circulation.pref#TransfersMaxDaysWarning# օրեր առաքումից հետո"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# Example: \"itemlost: 1\" to set items.itemlost to 1 when the item is marked as lost"
+msgstr "circulation.pref#UpdateItemWhenLostFromHoldList# Օրինակ՝ \"itemlost: 1\" կարգաբերել items.itemlost որպես 1, երբ նյութը նշված է որպես կորած"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# This is a list of values to update an item when it is marked as lost from the holds to pull screen."
+msgstr "circulation.pref#UpdateItemWhenLostFromHoldList# Սա նյութի թարմացման արժեքների ցուցակն է, երբ այն ձգվող պահումների պաստառում նշված է որպես կորած։"
+
+# Circulation > Holds Policy
+msgid "circulation.pref#UpdateItemWhenLostFromHoldList# Update item's values when marked as lost from the hold to pull screen."
+msgstr "circulation.pref#UpdateItemWhenLostFromHoldList# Պահումների բացվող պաստառից թարմացրու նյութերի արժեքները, երբ դրանք նշված են որպես կորած։"
 
 # Circulation > Checkin Policy
 msgid "circulation.pref#UpdateNotForLoanStatusOnCheckin# Each pair of values should be on a separate line."
@@ -3656,6 +4078,18 @@ msgstr "circulation.pref#useDaysMode# օրացույց որը պետք հրի վ
 msgid "circulation.pref#useDaysMode# the calendar to skip all days the library is closed."
 msgstr "circulation.pref#useDaysMode# օրացույց որը պետք է բաց թողնի բոլոր այն օրերը երբ գրադարանը փակ է։"
 
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# Don't use"
+msgstr "circulation.pref#useDefaultReplacementCost# Մի կիրառիր"
+
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# the default replacement cost defined in item type."
+msgstr "circulation.pref#useDefaultReplacementCost# նյութի տեսակում սահմանված փոխարինման արժեքը։"
+
+# Circulation > Fines Policy
+msgid "circulation.pref#useDefaultReplacementCost# use"
+msgstr "circulation.pref#useDefaultReplacementCost# օգտագործում"
+
 # Enhanced Content
 msgid "enhanced_content.pref"
 msgstr "enhanced_content.pref"
@@ -3969,8 +4403,8 @@ msgid "enhanced_content.pref#IDreamBooksReviews# a tab on the OPAC details with 
 msgstr "enhanced_content.pref#IDreamBooksReviews# տաբ ՀՕԱՔ-ի մանրամասներում գրքի գրախոսականերով միացված <a href='https://idreambooks.com/'>IDreamBooks.com</a>."
 
 # Enhanced Content > Library Thing
-msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"http://www.librarything.com/forlibraries/\">sign up</a>, then enter in your ID below."
-msgstr "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"http://www.librarything.com/forlibraries/\">sign up</a>, ապա մուտք արա քո ID-ին։"
+msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"https://www.librarything.com/forlibraries/\">sign up</a>, then enter in your ID below."
+msgstr "enhanced_content.pref#LibraryThingForLibrariesEnabled# <a href=\"https://www.librarything.com/forlibraries/\">sign up</a>, then enter in your ID below."
 
 # Enhanced Content > Library Thing
 msgid "enhanced_content.pref#LibraryThingForLibrariesEnabled# Don't show"
@@ -4029,16 +4463,60 @@ msgid "enhanced_content.pref#NovelistSelectEnabled# Novelist Select content to t
 msgstr "enhanced_content.pref#NovelistSelectEnabled# Novelist Select բովանդակություն ՀՕԱՔ-ում (պահանջում է որ դու մուտք անես օգտվողի պրոֆայլը և գաղտնաբառը, որը կարող է տեսանելի լինել պատկերների հղւմից)։"
 
 # Enhanced Content > Novelist Select
-msgid "enhanced_content.pref#NovelistSelectProfile# ."
-msgstr "enhanced_content.pref#NovelistSelectProfile# ."
+msgid "enhanced_content.pref#NovelistSelectPassword# ."
+msgstr "enhanced_content.pref#NovelistSelectPassword# ."
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectPassword# Access Novelist Select using password"
+msgstr "enhanced_content.pref#NovelistSelectPassword# Access Novelist Select using password"
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectProfile# Access Novelist Select using user profile"
 msgstr "enhanced_content.pref#NovelistSelectProfile# Մուտք դեպի Novelist Select օգտագործելով օգտվողի պրոֆայլը"
 
 # Enhanced Content > Novelist Select
-msgid "enhanced_content.pref#NovelistSelectProfile# and password"
-msgstr "enhanced_content.pref#NovelistSelectProfile# և գաղտնաբառ"
+msgid "enhanced_content.pref#NovelistSelectProfile# on the opac"
+msgstr "enhanced_content.pref#NovelistSelectProfile# հօաք-ում"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Add"
+msgstr "enhanced_content.pref#NovelistSelectStaffEnabled# Ավելացրու"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Don't add"
+msgstr "enhanced_content.pref#NovelistSelectStaffEnabled# Մի ավելացրու"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffEnabled# Novelist Select content to the Staff client (requires that you have entered in a user profile and password, which can be seen in image links)."
+msgstr "enhanced_content.pref#NovelistSelectStaffEnabled# Novelist Select content to the Staff client (requires that you have entered in a user profile and password, which can be seen in image links)."
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffProfile# Access Novelist Select using user profile"
+msgstr "enhanced_content.pref#NovelistSelectStaffProfile# Access Novelist Select using user profile"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffProfile# on the staff client"
+msgstr "enhanced_content.pref#NovelistSelectStaffProfile# աշխատակազմի այս հաճախորդ"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# ."
+msgstr "enhanced_content.pref#NovelistSelectStaffView# ."
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# Display Novelist Select staff content"
+msgstr "enhanced_content.pref#NovelistSelectStaffView# Display Novelist Select staff content"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# above the holdings table"
+msgstr "enhanced_content.pref#NovelistSelectStaffView# պահումների աղյուսակի վերևում"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# below the holdings table"
+msgstr "enhanced_content.pref#NovelistSelectStaffView# պահումների աղյուսակի ներքևում"
+
+# Enhanced Content > Novelist Select
+msgid "enhanced_content.pref#NovelistSelectStaffView# in a tab"
+msgstr "enhanced_content.pref#NovelistSelectStaffView# տաբում"
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectView# ."
@@ -4130,7 +4608,31 @@ msgstr "enhanced_content.pref#OpenLibrarySearch# Ցույց տուր"
 
 # Enhanced Content > Open Library
 msgid "enhanced_content.pref#OpenLibrarySearch# search results from Open Library on the OPAC."
-msgstr ""
+msgstr "enhanced_content.pref#OpenLibrarySearch# ՀՕԱՔ-ում Բաց գրադարանից ստացված որոնման արդյունքները"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# Don't enable"
+msgstr "enhanced_content.pref#OverDriveCirculation# Մի արտոնիր"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# Enable"
+msgstr "enhanced_content.pref#OverDriveCirculation# Արտոնիր"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# If you enable access, you must register auth return url of"
+msgstr "enhanced_content.pref#OverDriveCirculation# Եթե արտոնես հասանելիությունը, պետք է գրանցես auth վերադարձի url"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# http(s)://my.opac.hostname/cgi-bin/koha/external/overdrive/auth.pl"
+msgstr "enhanced_content.pref#OverDriveCirculation# http(s)://my.opac.hostname/cgi-bin/koha/external/overdrive/auth.pl"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# users to access their OverDrive circulation history, and circulate items."
+msgstr "enhanced_content.pref#OverDriveCirculation# օգտվողներին մատչելի լինի իրենց OverDrive տացքի պատմությունը, և շրջանառել նյութերը։"
+
+# Enhanced Content > OverDrive
+msgid "enhanced_content.pref#OverDriveCirculation# with OverDrive."
+msgstr "enhanced_content.pref#OverDriveCirculation# OverDrive-ով։"
 
 # Enhanced Content > OverDrive
 msgid "enhanced_content.pref#OverDriveClientKey# ."
@@ -4417,6 +4919,10 @@ msgid "i18n_l10n.pref#AddressFormat# Format postal addresses using"
 msgstr "i18n_l10n.pref#TimeFormat# Format times in"
 
 # I18N/L10N
+msgid "i18n_l10n.pref#AddressFormat# French style ([Street number] [Address] - [ZIP/Postal Code] [City] - [Country])"
+msgstr "i18n_l10n.pref#AddressFormat# Ֆրանսիական ոճ ([Փոխոցի թիվ] [Հասցե] - [Ցուցիչ/Փոստային կոդ] [Քաղաք] - [Երկիր])"
+
+# I18N/L10N
 msgid "i18n_l10n.pref#AddressFormat# German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])"
 msgstr "i18n_l10n.pref#AddressFormat# German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])"
 
@@ -4477,6 +4983,22 @@ msgid "i18n_l10n.pref#TimeFormat# Format times in"
 msgstr "i18n_l10n.pref#TimeFormat# Format times in"
 
 # I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# Allow"
+msgstr "i18n_l10n.pref#TranslateNotices# Թույլատրի"
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# Don't allow"
+msgstr "i18n_l10n.pref#TranslateNotices# Մի թույլատրի"
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# If set, notices will be translatable from the \"Notices and Slips\" interface. The language used to send a notice to a patron will be the one defined for the patron."
+msgstr "i18n_l10n.pref#TranslateNotices# եթե կարգաբերված է, նշումները կլինեն թարգմանվող \"Նշումներ և թերթիկներ միջերեսից։ Հաճախորդին ուղարկվող նշումի լեզուն կլինի այն, ինչը որ սահմանված է տվյալ հաճախորդի համար։"
+
+# I18N/L10N
+msgid "i18n_l10n.pref#TranslateNotices# notices to be translated."
+msgstr "i18n_l10n.pref#TranslateNotices# թարգմանության ենթակա նշումներ։"
+
+# I18N/L10N
 msgid "i18n_l10n.pref#alphabet# <br/> Hint: Changing collation in the database for the 'surname' column of the 'borrowers' table is helpful to make browsing by last name work in members-home.pl when using an alphabet outside of A-Z"
 msgstr "i18n_l10n.pref#alphabet# <br/> Հնարք: Շտեմարանում 'ազգանուն' սյունակի 'սպասարկվողներ' աղյուսակում փոխելով համեմատումը օգտակար է դիտումը ըստ ազգանվան աշխատեցնելու համար members-home.pl ներսում երբ օգտագործում ենք A-Z այլ այբուբեն։"
 
@@ -4517,8 +5039,16 @@ msgid "i18n_l10n.pref#language# Enable the following languages on the staff inte
 msgstr "i18n_l10n.pref#language# Թույլատրի հետևյալ լեզուները աշխատակազմի համար։"
 
 # I18N/L10N
+msgid "i18n_l10n.pref#language# This list can be sorted to modify the order of the languages on the interface."
+msgstr "i18n_l10n.pref#language# Այս ցուցակը հնարավոր է տեսակավորել, միջերեսում օգտագործվող լեզուների տեսակավորման համար։"
+
+# I18N/L10N
 msgid "i18n_l10n.pref#opaclanguages# Enable the following languages on the OPAC:"
 msgstr "i18n_l10n.pref#opaclanguages# Թույլատրի հետևյալ լեզուները ՀՕԱՔ-ում։"
+
+# I18N/L10N
+msgid "i18n_l10n.pref#opaclanguages# This list can be sorted to modify the order of the languages on the interface."
+msgstr "i18n_l10n.pref#opaclanguages# Այս ցուցակը հնարավոր է տեսակավորել, միջերեսում օգտագործվող լեզուների տեսակավորման համար։"
 
 # I18N/L10N
 msgid "i18n_l10n.pref#opaclanguagesdisplay# Allow"
@@ -4531,34 +5061,6 @@ msgstr "i18n_l10n.pref#opaclanguagesdisplay# Մի թույլատրի"
 # I18N/L10N
 msgid "i18n_l10n.pref#opaclanguagesdisplay# patrons to change the language they see on the OPAC."
 msgstr "i18n_l10n.pref#opaclanguagesdisplay# ընթերցողներ որ պետք է փոխեն լեզուները որ տեսնում են ՀՕԱՔ-ում։"
-
-# Labs
-msgid "labs.pref"
-msgstr "labs.pref"
-
-# Labs > All
-msgid "labs.pref All"
-msgstr "labs.pref Բոլորը"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# <br/> NOTE:"
-msgstr "labs.pref#EnableAdvancedCatalogingEditor# <br/> ՆՇՈՒՄ:"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# Don't enable"
-msgstr "labs.pref#EnableAdvancedCatalogingEditor# Մի թույլատրի"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# Enable"
-msgstr "labs.pref#EnableAdvancedCatalogingEditor# Թույլատրի"
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# This feature is currently experimental, and may have bugs that cause corruption of records. It also does not include any support for UNIMARC or NORMARC fixed fields. Please help us test it and report any bugs, but do so at your own risk."
-msgstr "labs.pref#EnableAdvancedCatalogingEditor# This feature is currently experimental, and may have bugs that cause corruption of records. It also does not include any support for UNIMARC or NORMARC fixed fields. Please help us test it and report any bugs, but do so at your own risk."
-
-# Labs > All
-msgid "labs.pref#EnableAdvancedCatalogingEditor# the advanced cataloging editor."
-msgstr "labs.pref#EnableAdvancedCatalogingEditor# խորացված քարտագրման խմբագրիչ։"
 
 # Local Use
 msgid "local_use.pref"
@@ -4665,6 +5167,18 @@ msgid "logs.pref#FinesLog# when fines are charged, paid, or forgiven."
 msgstr "logs.pref#FinesLog# երբ տւգանքները գանձված են, վճարված են կամ ներված են։"
 
 # Logging > Logging
+msgid "logs.pref#HoldsLog# Don't log"
+msgstr "logs.pref#HoldsLog# Մի մտիր"
+
+# Logging > Logging
+msgid "logs.pref#HoldsLog# Log"
+msgstr "logs.pref#HoldsLog# Մուտք"
+
+# Logging > Logging
+msgid "logs.pref#HoldsLog# any actions on holds (create, cancel, suspend, resume, etc)."
+msgstr "logs.pref#HoldsLog# պահման վրա ցանկացած գործողություններ (ստեղծիր, չեղարկիր, կասեցրու, վերսկսիր, այլն)։"
+
+# Logging > Logging
 msgid "logs.pref#IssueLog# Don't log"
 msgstr "logs.pref#IssueLog# Մի գրանցվի"
 
@@ -4687,6 +5201,18 @@ msgstr "logs.pref#LetterLog# Գրանցվի"
 # Logging > Logging
 msgid "logs.pref#LetterLog# when an automatic claim notice is sent."
 msgstr "logs.pref#LetterLog# երբ պիտակավորման ավտոմատ ծանուցում է ուղարկվում։"
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# Don't log"
+msgstr "logs.pref#RenewalLog# Մի գրանցվի"
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# Log"
+msgstr "logs.pref#RenewalLog# Գրանցվի"
+
+# Logging > Logging
+msgid "logs.pref#RenewalLog# when items are renewed."
+msgstr "logs.pref#RenewalLog# երբ նյութերը թարմացված են։"
 
 # Logging > Logging
 msgid "logs.pref#ReportsLog# Don't log"
@@ -4894,7 +5420,7 @@ msgstr "opac.pref#EnablePayPalOpacPayments# mode."
 
 # OPAC > Payments
 msgid "opac.pref#EnablePayPalOpacPayments# patrons to make payments from the OPAC via PayPal in"
-msgstr ""
+msgstr "opac.pref#EnablePayPalOpacPayments# այցելուները ՀՕԱՔից պետք է կատարեն վճարումներ PayPal-ով"
 
 # OPAC > Appearance
 msgid "opac.pref#GoogleIndicTransliteration# Don't show"
@@ -4940,9 +5466,13 @@ msgstr "opac.pref#LibraryName# Ցույց տուր"
 msgid "opac.pref#LibraryName# as the name of the library on the OPAC."
 msgstr "opac.pref#LibraryName# որպես գրադարանի անուն ՀՕԱՔ-ում։"
 
-# OPAC > Appearance
-msgid "opac.pref#NoLoginInstructions# Show the following HTML on the OPAC login form when a patron is not logged in:"
-msgstr "opac.pref#NoLoginInstructions# Ցույց տուր հետևյալ HTML-ը ՀՕԱՔի գրանցման ձևում, երբ օգտատերը գրանցված չէ։"
+# OPAC > Policy
+msgid "opac.pref#MaxOpenSuggestions# Limit patrons to"
+msgstr "opac.pref#MaxOpenSuggestions# Սահմանափակիր ընթերցողներին"
+
+# OPAC > Policy
+msgid "opac.pref#MaxOpenSuggestions# open suggestions. Leave empty for no limit. **Note: this setting does not affect anonymous suggestions"
+msgstr "opac.pref#MaxOpenSuggestions# բաց առաջարմներ։ Թող դատարկ առանց սահմանափակումների համար։ **Հուշում․ այս կարգաբերումը չի ազդում անանուն առաջարկներին։"
 
 # OPAC > Features
 msgid "opac.pref#OPACAcquisitionDetails# Display"
@@ -5024,9 +5554,25 @@ msgstr "opac.pref#OPACFinesTab# Թույլ մի տուր"
 msgid "opac.pref#OPACFinesTab# patrons to access the Fines tab on the My Account page on the OPAC."
 msgstr "opac.pref#OPACFinesTab# ընթերցողները որ կարողանան մուտք ունենալ Տուգանքների տաբ ՀՕԱՔ-ի Իմ Հաշիվը էջից։"
 
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# First column of the table"
+msgstr "opac.pref#OPACHoldingsDefaultSortField# Աղյուսակի առաջին սյունակը"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# Holding library"
+msgstr "opac.pref#OPACHoldingsDefaultSortField# Տնօրինող գրադարան"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# Home library"
+msgstr "opac.pref#OPACHoldingsDefaultSortField# Տնային գրադարան"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACHoldingsDefaultSortField# is the default sort field for the holdings table"
+msgstr "opac.pref#OPACHoldingsDefaultSortField# պահումների աղյուսակի համար լռակյաց տեսակավորման դաշտն է"
+
 # OPAC > Features
 msgid "opac.pref#OPACISBD# Use the following as the OPAC ISBD template:"
-msgstr ""
+msgstr "opac.pref#OPACISBD# Օգտագործիր հետևյալը որպես ՀՕԱՔ ISBD ձևանմուշ:"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACMySummaryHTML# <br />Note: The placeholders {BIBLIONUMBER}, {TITLE}, {ISBN} and {AUTHOR} will be replaced with information from the displayed record."
@@ -5086,19 +5632,19 @@ msgstr "opac.pref#OPACPrivacy# ընթերցողները թող ընտրեն ան
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# . Please note that this feature is currently available for MARC21 and UNIMARC."
-msgstr ""
+msgstr "opac.pref#OPACResultsLibrary# . Նկատի ունեցիր, որ այս հնարավորությունը հասանելի է MARC21 և UNIMARC համար։"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# For search results in the OPAC, show the item's"
-msgstr ""
+msgstr "opac.pref#OPACResultsLibrary# ՀՕԱՔում փնտրման արդյունքների համար, ցույց տուռ նյութի"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# current location"
-msgstr ""
+msgstr "opac.pref#OPACResultsLibrary# ընթացիկ տեղաբաշխում"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsLibrary# home library"
-msgstr ""
+msgstr "opac.pref#OPACResultsLibrary# տնային գրադարան"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACResultsSidebar# Include the following HTML under the facets in OPAC search results:"
@@ -5123,18 +5669,6 @@ msgstr "opac.pref#OPACShelfBrowser# Ցույց տուր"
 # OPAC > Shelf Browser
 msgid "opac.pref#OPACShelfBrowser# a shelf browser on item details pages, allowing patrons to see what's near that item on the shelf. Note that this uses up a fairly large amount of resources on your server, and should be avoided if your collection has a large number of items."
 msgstr "opac.pref#OPACShelfBrowser# դարակի դիտակ նյութի մանրամասների էջերից, որը թույլ է տալիս ընթերցողներին ինչ կա այդ նյութին մոտիկ դարակի վրա։ Նկատի առ որ սա օգտագործում է բավական շատ պաշարներ սպասարկող կայանի վրա, և պետք է բացառվի եթե քո հավաքածուն ունի մեծաթիվ նյութեր։"
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# Don't show"
-msgstr "opac.pref#OPACShowBarcode# Ցույց մի տուր"
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# Show"
-msgstr "opac.pref#OPACShowBarcode# Ցույց տուր"
-
-# OPAC > Appearance
-msgid "opac.pref#OPACShowBarcode# the item's barcode on the holdings tab."
-msgstr "opac.pref#OPACShowBarcode# նյութի շտրիխ կոդ պահումների տաբում։"
 
 # OPAC > Appearance
 msgid "opac.pref#OPACShowCheckoutName# Don't show"
@@ -5180,6 +5714,14 @@ msgstr "opac.pref#OPACShowUnusedAuthorities# Ցույց տուր"
 msgid "opac.pref#OPACShowUnusedAuthorities# unused authorities in the OPAC authority browser."
 msgstr "opac.pref#OPACShowUnusedAuthorities# ՀՕԱՔ-ի հեղինակավորների դիտակում չօգտագործված հեղինակավորներ։"
 
+# OPAC > Policy
+msgid "opac.pref#OPACSuggestionMandatoryFields# <br />Note: if none of the above options are selected, 'Title' field would be mandatory anyway, by default."
+msgstr "opac.pref#OPACSuggestionMandatoryFields# <br />Նկատի առ․ եթե վերը բերված ընտրություններից ոչ մեկը չի ընտրված, 'Վերնագիր' դաշտը կլինի պարտադիր և լռակյաց։"
+
+# OPAC > Policy
+msgid "opac.pref#OPACSuggestionMandatoryFields# Fields that should be mandatory for patron purchase suggestions:"
+msgstr "opac.pref#OPACSuggestionMandatoryFields# Դաշտեր որոնք պետք է լինեն պարտադիր ընթերցողի գնման առաջարկներում․"
+
 # OPAC > Appearance
 msgid "opac.pref#OPACURLOpenInNewWindow# When patrons click on a link to another website from your OPAC (like Amazon or OCLC),"
 msgstr "opac.pref#OPACURLOpenInNewWindow# Երբ քո ՀՕԱՔ-ից ընթերցողները սեղմում են դեպի այլ կայք էջ ուղղորդող հղման վրա (ինչպես Amazon կամ OCLC)։"
@@ -5204,6 +5746,18 @@ msgstr "opac.pref#OPACUserCSS# Ներառի հետևյալ CSS-ը ՀՕԱՔ-ի բ
 msgid "opac.pref#OPACUserJS# Include the following JavaScript on all pages in the OPAC:"
 msgstr "opac.pref#OPACUserJS# Ներառում է հետևյալ JavaScript-ը ՀՕԱՔ-ի բոլոր էջերում։"
 
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# Don't show"
+msgstr "opac.pref#OPACUserSummary# Ցույց մի տուր"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# Show"
+msgstr "opac.pref#OPACUserSummary# Ցույց տուր"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACUserSummary# a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
+msgstr "opac.pref#OPACUserSummary# հիմնական էջում գրանցված ընթերցողների տացքերի, պահումների, ժամկետանցների և տուգանքների հանրագումար"
+
 # OPAC > Policy
 msgid "opac.pref#OPACViewOthersSuggestions# Don't show"
 msgstr "opac.pref#OPACViewOthersSuggestions# Ցույց մի տուր"
@@ -5223,6 +5777,14 @@ msgstr "opac.pref#OPACXSLTDetailsDisplay# <br />Ընտրություններ:<ul
 # OPAC > Appearance
 msgid "opac.pref#OPACXSLTDetailsDisplay# Display OPAC details using XSLT stylesheet at: "
 msgstr "opac.pref#OPACXSLTDetailsDisplay# Արտածիր ՀՕԱՔ-ի մանրամասները օգտագործելով XSLT ձևաթուղթը: "
+
+# OPAC > Appearance
+msgid "opac.pref#OPACXSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+msgstr "opac.pref#OPACXSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+
+# OPAC > Appearance
+msgid "opac.pref#OPACXSLTListsDisplay# Display lists in the OPAC using XSLT stylesheet at: "
+msgstr "opac.pref#OPACXSLTListsDisplay# Արտածում է ցուցակները ՀՕԱՔ-ում օգտագործելով XSLT ձևաթղթերը: "
 
 # OPAC > Appearance
 msgid "opac.pref#OPACXSLTResultsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
@@ -5461,24 +6023,36 @@ msgid "opac.pref#OpacLocationBranchToDisplay# home library"
 msgstr "opac.pref#OpacLocationBranchToDisplay# տնային գրադարան"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# Display the shelving location under the"
-msgstr "opac.pref#OpacLocationBranchToDisplayShelving# Արտածիր դարակի վրա տեղաբաշխումը"
+msgid "opac.pref#OpacLocationOnDetail# <br />Note: If 'on a separate column' is selected, you still need to enable the item_shelving_location display on the <a href='/cgi-bin/koha/admin/columns_settings.pl'>configure columns</a> administration page"
+msgstr "opac.pref#OpacLocationOnDetail# <br />Նշում․ եթե ընտրված է 'առանձին սյունակով', քեզ դեռ հարկավոր է թույլատրել item_shelving_location display on the <a href='/cgi-bin/koha/admin/columns_settings.pl'>configure columns</a> կառավարման էջը"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# for items on the OPAC record details page."
-msgstr "opac.pref#OpacLocationBranchToDisplayShelving# ՀՕԱՔ գրառման մանրամասների էջի նյութերի համար։"
+msgid "opac.pref#OpacLocationOnDetail# Display the shelving location "
+msgstr "opac.pref#OpacLocationOnDetail# Արտածիր դարակի վրայի տեղը "
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# holding library"
-msgstr "opac.pref#OpacLocationBranchToDisplayShelving# պահման գրադարան"
+msgid "opac.pref#OpacLocationOnDetail# below both home and holding libraries"
+msgstr "opac.pref#OpacLocationOnDetail# ստորև երկուսն են՝ տնային և պահման գրադարանները"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# home and holding libraries"
-msgstr "opac.pref#OpacLocationBranchToDisplayShelving# տնային և պահման գրադարաններ"
+msgid "opac.pref#OpacLocationOnDetail# below the holding library"
+msgstr "opac.pref#OpacLocationOnDetail# ստորև պահման գրադարանն է"
 
 # OPAC > Appearance
-msgid "opac.pref#OpacLocationBranchToDisplayShelving# home library"
-msgstr "opac.pref#OpacLocationBranchToDisplayShelving# տնային գրադարան"
+msgid "opac.pref#OpacLocationOnDetail# below the home library"
+msgstr "opac.pref#OpacLocationOnDetail# ստորև տան գրադարանն է"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLocationOnDetail# for items on the OPAC record details page."
+msgstr "opac.pref#OpacLocationOnDetail# Նյութերի համար որ գտնվում են ՀՕԱՔի գրառման մանրամասների էջում։"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLocationOnDetail# on a separate column"
+msgstr "opac.pref#OpacLocationOnDetail# առանձին սյունակում"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacLoginInstructions# Show the following HTML on the OPAC login form when a patron is not logged in:"
+msgstr "opac.pref#OpacLoginInstructions# Երբ հաճախորդը մուտք չի եղել, ցույց տուր հետևյալ HTML-ը ՀՕԱՔ-ի գրանցման ձևում:"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacMainUserBlock# Show the following HTML in its own column on the main page of the OPAC:"
@@ -5498,7 +6072,7 @@ msgstr "opac.pref#OpacMaintenance# զգուշացում որ ՀՕԱՔ-ը շահ�
 
 # OPAC > Appearance
 msgid "opac.pref#OpacMaintenanceNotice# Show the following HTML when OpacMaintenance is enabled:"
-msgstr ""
+msgstr "opac.pref#OpacMaintenanceNotice# Ցույց տուր հետևյալ HTML-ը երբ OpacMaintenance-ը թույլատրված է։"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacMaxItemsToDisplay# Display up to"
@@ -5519,6 +6093,18 @@ msgstr "opac.pref#OpacNavBottom# Ցույց տուր հետևյալ HTML-ը հի
 # OPAC > Appearance
 msgid "opac.pref#OpacNavRight# Show the following HTML in the right hand column of the main page under the main login form:"
 msgstr "opac.pref#OpacNavRight# Ցույց տուր հետևյալ HTML-ը հիմնական էջի աջ մասում հիմնական մուտքի լոգինի ներքո։"
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# Display"
+msgstr "opac.pref#OpacNewsLibrarySelect# Արտածիր"
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# Don't display"
+msgstr "opac.pref#OpacNewsLibrarySelect# Մի արտածիր"
+
+# OPAC > Features
+msgid "opac.pref#OpacNewsLibrarySelect# a branch selection list for news items in the OPAC."
+msgstr "opac.pref#OpacNewsLibrarySelect# ՀՕԱՔ-ում մասնաճյուղի ընտրության ցուցակ նորությունների համար։"
 
 # OPAC > Features
 msgid "opac.pref#OpacPasswordChange# Allow"
@@ -5542,7 +6128,7 @@ msgstr "opac.pref#OpacPublic# Թույլատրի"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacPublic# Koha OPAC as public. Private OPAC requires authentication before accessing the OPAC."
-msgstr ""
+msgstr "opac.pref#OpacPublic# Կոհա ՀՕԱՔ-ը հանրային է։ Մասնավոր ՀՕԱՔ-ը պահանջում է մինչ ՀՕԱՔ մուտքը փոխճանարում։"
 
 # OPAC > Policy
 msgid "opac.pref#OpacRenewalAllowed# Allow"
@@ -5586,19 +6172,19 @@ msgstr "opac.pref#OpacRenewalBranch# ընթերցողի տնային գրադա�
 
 # OPAC > Features
 msgid "opac.pref#OpacResetPassword#  to recover their password via e-mail in the OPAC"
-msgstr ""
+msgstr "opac.pref#OpacResetPassword# ՀՕԱՔ-ում էլ․փոստի միջոցով իրենց գաղտնաբառի վերականգնման համար"
 
 # OPAC > Features
 msgid "opac.pref#OpacResetPassword# Library users are "
-msgstr ""
+msgstr "opac.pref#OpacResetPassword# Գրադարանի օգտվողներն են "
 
 # OPAC > Features
 msgid "opac.pref#OpacResetPassword# allowed"
-msgstr ""
+msgstr "opac.pref#OpacResetPassword# թույլատրված"
 
 # OPAC > Features
 msgid "opac.pref#OpacResetPassword# not allowed"
-msgstr ""
+msgstr "opac.pref#OpacResetPassword# չթույլատրված"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacSeparateHoldings# Don't separate"
@@ -5682,11 +6268,11 @@ msgstr "opac.pref#OpacTopissue# ընթերցողներ որ պետք է մուտ
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# (separate columns with |)"
-msgstr ""
+msgstr "opac.pref#PatronSelfModificationBorrowerUnwantedField# (բաժանիր սյունակները ըստ |)"
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
-msgstr ""
+msgid "opac.pref#PatronSelfModificationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
+msgstr "opac.pref#PatronSelfModificationBorrowerUnwantedField# Հետևյալը <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> չի հայտնվի ընթերցողի ինքնաթարմացման պաստառին:"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistration# Allow"
@@ -5698,7 +6284,7 @@ msgstr "opac.pref#PatronSelfRegistration# Մի թույլատրի"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistration# library patrons to register or modify their account via the OPAC. Note: This needs PatronSelfRegistrationDefaultCategory to be set to a valid patron category code."
-msgstr ""
+msgstr "opac.pref#PatronSelfRegistration# գրադարանի ընթերցողները ՀՕԱՔ-ի միջոցով գրանցվեն կամ ձևափոխեն իրենց հաշվեհամարները։ Հուշում․ Սա պահանջում է PatronSelfRegistrationDefaultCategory կարգաբերել վավեր ընթերցողի դասի կոդով։"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationAdditionalInstructions# Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
@@ -5709,16 +6295,16 @@ msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# (separate columns
 msgstr "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# (բաժանիր սյունակները ըստ |)"
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
-msgstr ""
+msgid "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+msgstr "opac.pref#PatronSelfRegistrationBorrowerMandatoryField# Հետևյալը <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> պետք է լրացվի ընթերցողի մուտքի պաստառից:"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# (separate columns with |)"
 msgstr "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# (բաժանիր սյունակները ըստ |)"
 
 # OPAC > Self Registration
-msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
-msgstr ""
+msgid "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
+msgstr "opac.pref#PatronSelfRegistrationBorrowerUnwantedField# Հետևյալը <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> չի հայտնվի ընթերցողի ինքնագրանցման պաստառին:"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationDefaultCategory# Use the patron category code"
@@ -5729,12 +6315,48 @@ msgid "opac.pref#PatronSelfRegistrationDefaultCategory# as the default patron ca
 msgstr "opac.pref#PatronSelfRegistrationDefaultCategory# որպես օգտատիրոջ լռակյաց դաս այն օգտատերերի համար ովքեր գրանցվել են ՀՕԱՔ-ից։"
 
 # OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Consider"
+msgstr "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Համարիր"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Do not consider"
+msgstr "opac.pref#PatronSelfRegistrationEmailMustBeUnique# Մի համարիր"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationEmailMustBeUnique# patron's email (borrowers.email) as unique on self registering. An email won't be accepted if it already exists in the database."
+msgstr "opac.pref#PatronSelfRegistrationEmailMustBeUnique# (borrowers.email) որպես եզակի ինքնագրանցման ժամանակ։ էլ․ հասցեն չի ընդունվի, եթե այն արդեն առկա է շտեմարանում։"
+
+# OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# Delete patrons registered via the OPAC, but not yet verified after"
 msgstr "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# Ջնջիր օգտվողներին որ գրանցվել են ՀՕԱՔ-ից, բայց դրանից հետ չեն ստուգել։"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# days."
 msgstr "opac.pref#PatronSelfRegistrationExpireTemporaryAccountsDelay# օրեր։"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# (separate branchcode with |)."
+msgstr "opac.pref#PatronSelfRegistrationLibraryList# (առանձին branchcode որն ունի |)։"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# Enable the self registration for the following libraries:"
+msgstr "opac.pref#PatronSelfRegistrationLibraryList# Թույլատրի ինքնագրանցումը հետևյալ գրադարանների համար․"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationLibraryList# If empty, all libraries will be listed."
+msgstr "opac.pref#PatronSelfRegistrationLibraryList# եթե դատարկ է, կթվարկվեն բոլոր գրադարանները։"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# Display and prefill"
+msgstr "opac.pref#PatronSelfRegistrationPrefillForm# Արտածիր և նախապես լրացրու"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# Do not display and prefill"
+msgstr "opac.pref#PatronSelfRegistrationPrefillForm# Մի արտածիր և նախապես մի լրացրու"
+
+# OPAC > Self Registration
+msgid "opac.pref#PatronSelfRegistrationPrefillForm# password and login form after a patron has self registered."
+msgstr "opac.pref#PatronSelfRegistrationPrefillForm# գաղտնաբառի և գրանցաբառի ձև ընթերցողի ինքնագրանցումից հետո։"
 
 # OPAC > Self Registration
 msgid "opac.pref#PatronSelfRegistrationVerifyByEmail# Don't require"
@@ -6113,8 +6735,12 @@ msgid "patrons.pref#BorrowerMandatoryField# (separate columns with |)"
 msgstr "patrons.pref#BorrowerMandatoryField# (բաժանիր սյունակները ըստ |)"
 
 # Patrons > General
-msgid "patrons.pref#BorrowerMandatoryField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
-msgstr ""
+msgid "patrons.pref#BorrowerMandatoryField# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
+msgstr "patrons.pref#BorrowerMandatoryField# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
+
+# Patrons > General
+msgid "patrons.pref#BorrowerMandatoryField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+msgstr "patrons.pref#BorrowerMandatoryField# Հետևյալը <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> պետք է լրացվի ընթերցողի մուտքի պաստառից:"
 
 # Patrons > General
 msgid "patrons.pref#BorrowerRenewalPeriodBase# When renewing borrowers, base the new expiry date on"
@@ -6129,12 +6755,16 @@ msgid "patrons.pref#BorrowerRenewalPeriodBase# current membership expiry date."
 msgstr "patrons.pref#BorrowerRenewalPeriodBase# ընթացիկ անդամակցության ժամկետի լրանալը։"
 
 # Patrons > General
+msgid "patrons.pref#BorrowerRenewalPeriodBase# the latter of the current and expiry date."
+msgstr "patrons.pref#BorrowerRenewalPeriodBase# ընթացիկ և ժամկետանցի ամսաթվերից ամենաուշը։"
+
+# Patrons > General
 msgid "patrons.pref#BorrowerUnwantedField# (separate columns with |)"
 msgstr "patrons.pref#BorrowerUnwantedField# (բաժանիր սյունակները ըստ |)"
 
 # Patrons > General
-msgid "patrons.pref#BorrowerUnwantedField# The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
-msgstr ""
+msgid "patrons.pref#BorrowerUnwantedField# The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
+msgstr "patrons.pref#BorrowerUnwantedField# Հետևյալը <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> չի արտածվի ընթերցողի մուտքի պաստառում:"
 
 # Patrons > General
 msgid "patrons.pref#BorrowersTitles# (separate multiple choices with |)"
@@ -6149,12 +6779,36 @@ msgid "patrons.pref#CardnumberLength# Card numbers for patrons must be"
 msgstr "patrons.pref#CardnumberLength# Օգտատերերի քարտերի համարները պետք է"
 
 # Patrons > General
-msgid "patrons.pref#CardnumberLength# If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size."
-msgstr ""
+msgid "patrons.pref#CardnumberLength# If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size of 32."
+msgstr "patrons.pref#CardnumberLength# Եթե 'cardnumber' ներառված է BorrowerMandatoryField ցանկում, նվազագույն երկարությունը, եթե այստեղ սահմանված չէ, մեկն է։ Մեծագույնը չի կարող լինել շտեմարանի դաշտի երկարության 32-ից։"
 
 # Patrons > General
 msgid "patrons.pref#CardnumberLength# characters long. The length can be a single number to specify an exact length, a range separated by a comma (i.e., 'Min,Max'), or a maximum with no minimum (i.e., ',Max')."
 msgstr "patrons.pref#CardnumberLength# նիշ։ Երկարությունը կարող է լինել մեկ թիվ որ սահմանում է ճշգրիտ երկարությունը, տիրույթ՝ բաժանված ստորակետով (այսինքն, 'Min,Max'), կամ մեծագույն առանց նվազագույնի (այսինքն, ',Max')։"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout#  check borrower checkout history to see if the current item has been checked out before."
+msgstr "patrons.pref#CheckPrevCheckout# ստուգիր հաճախորդի տացքի պատմությունը, տեսնելու համար արդյոք ընթացիկ նյութը մինչ այդ սպասարկվել է։"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Do"
+msgstr "patrons.pref#CheckPrevCheckout# Արա"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Do not"
+msgstr "patrons.pref#CheckPrevCheckout# Մի արա"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Unless overridden, do"
+msgstr "patrons.pref#CheckPrevCheckout# Քանի դեռ վերասահմանված չէ, արա"
+
+# Patrons > General
+msgid "patrons.pref#CheckPrevCheckout# Unless overridden, do not"
+msgstr "patrons.pref#CheckPrevCheckout# Քանի դեռ չի վերասահմանվել, մի արա"
+
+# Patrons > General
+msgid "patrons.pref#DefaultPatronSearchFields# Comma separated list defining the default fields to be used during a patron search"
+msgstr "patrons.pref#DefaultPatronSearchFields# Ստորակետով բաժանված ցուցակ,  որը սահմանում է ընթերցողի որոնման համար լռակյաց դաշտերը։"
 
 # Patrons > General
 msgid "patrons.pref#EnableBorrowerFiles# Do"
@@ -6205,6 +6859,14 @@ msgid "patrons.pref#ExtendedPatronAttributes# searching, editing and display of 
 msgstr "patrons.pref#ExtendedPatronAttributes# ընթերցողների վերաբերյալ մանրամասների որոնում, խմբագրում և արտածում։"
 
 # Patrons > General
+msgid "patrons.pref#FailedLoginAttempts# Block a patron's account if it reaches"
+msgstr "patrons.pref#FailedLoginAttempts# Եթե այն հասնում է, արգելափակիր ընթերցողի հաշիվը"
+
+# Patrons > General
+msgid "patrons.pref#FailedLoginAttempts# failed login attempts."
+msgstr "patrons.pref#FailedLoginAttempts# ձախողված գրանցման փորձեր։"
+
+# Patrons > General
 msgid "patrons.pref#FeeOnChangePatronCategory# Do"
 msgstr "patrons.pref#FeeOnChangePatronCategory# Արա"
 
@@ -6230,7 +6892,7 @@ msgstr "patrons.pref#MaxFine# [% local_currency %]."
 
 # Patrons > General
 msgid "patrons.pref#MembershipExpiryDaysNotice# Send an account expiration notice when a patron's card will expire in"
-msgstr ""
+msgstr "patrons.pref#MembershipExpiryDaysNotice# Ուղարկիր հաշվեհամարի ժամկետի լրացման ծանուցումը երբ ընթերցողի քարտի ժամկետը կլրանա"
 
 # Patrons > General
 msgid "patrons.pref#MembershipExpiryDaysNotice# days."
@@ -6285,12 +6947,48 @@ msgid "patrons.pref#NotifyBorrowerDeparture# days beforehand."
 msgstr "patrons.pref#NotifyBorrowerDeparture# օրեր ժամկետից շուտ։"
 
 # Patrons > General
+msgid "patrons.pref#PatronQuickAddFields# (separate columns with |)"
+msgstr "patrons.pref#PatronQuickAddFields# (անջատիր սյունակները ըստ |)"
+
+# Patrons > General
+msgid "patrons.pref#PatronQuickAddFields# add these fields to the patron quick add form when entering a new patron. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
+msgstr "patrons.pref#PatronQuickAddFields# ավելացրու այս դաշտերը ընթերցողի արագ ավելացման ձևին երբ մուտք ես անում նոր ընթերցողի։ Արտածում է միայն պարտադիր դաշտերը և այստեղ սահմանված դաշտերը։ Եթե ընդունելի է, երաշխավորի ձևը ևս ցույց կտրվի, անհատական դաշտերը կանտեսվեն։"
+
+# Patrons > General
 msgid "patrons.pref#PatronsPerPage# By default, show"
 msgstr "patrons.pref#PatronsPerPage# Որպես լռակյաց, ցույց տուր"
 
 # Patrons > General
 msgid "patrons.pref#PatronsPerPage# results per page in the staff client."
 msgstr "patrons.pref#PatronsPerPage# աշխատակազմի հաճախորդում արդյունքներ ըստ էջի։"
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# Allow all permitted users"
+msgstr "patrons.pref#ProtectSuperlibrarianPrivileges# Թույլ տուր բոլոր թույլատրված օգտվողներին"
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# Allow only superlibrarians"
+msgstr "patrons.pref#ProtectSuperlibrarianPrivileges# Թույլ տուր միայն գերգրադարանավարներին"
+
+# Patrons > General
+msgid "patrons.pref#ProtectSuperlibrarianPrivileges# to access/change superlibrarian privileges. Note: A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
+msgstr "patrons.pref#ProtectSuperlibrarianPrivileges# գերգրադարանավարի իրավասություններին մուտք ունենալու/փոփոխելու համար։ Նկատ առ. թույլատրված օգտվողները պետք է ունենան 'permissions' դրոշակ (եթե գերգրադարանավար չէ)։"
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# (Must contain at least one digit, one lowercase and one uppercase)."
+msgstr "patrons.pref#RequireStrongPassword# (Պետք է պարունակի առնվազն մեկ թիվ, մեկ փոքրատառ և մեկ մեծատառ։"
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# Don't require"
+msgstr "patrons.pref#RequireStrongPassword# Մի պահանջիր"
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# Require"
+msgstr "patrons.pref#RequireStrongPassword# Պահանջիր"
+
+# Patrons > General
+msgid "patrons.pref#RequireStrongPassword# a strong password for staff and patrons"
+msgstr "patrons.pref#RequireStrongPassword# աշխատակազմի և հաճախորդների համար ուժեղ գաղտնաբառ"
 
 # Patrons > General
 msgid "patrons.pref#SMSSendDriver# Define a username/login"
@@ -6329,12 +7027,32 @@ msgid "patrons.pref#TalkingTechItivaPhoneNotification# patron phone notification
 msgstr "patrons.pref#TalkingTechItivaPhoneNotification# ընթերցողի հեռախոսային զգուշացումներ օգտագործելով Talking Tech i-tiva (ժամկետանցներ, պահումների զգուշացումներ)։"
 
 # Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Do"
+msgstr "patrons.pref#TrackLastPatronActivity# Արա"
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Don't"
+msgstr "patrons.pref#TrackLastPatronActivity# Մի արա"
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# Everytime a patron will connect, the borrowers.lastseen will be updated with the current time."
+msgstr "patrons.pref#TrackLastPatronActivity# Ամեն անգամ երբ ընթերցողը կմիանա, borrowers.lastseen կթարմացվի ըստ ընթացիկ ժամի։"
+
+# Patrons > General
+msgid "patrons.pref#TrackLastPatronActivity# track last patron activity."
+msgstr "patrons.pref#TrackLastPatronActivity# հետևիր վերջին ընթերցողի ակտիվությանը։"
+
+# Patrons > General
 msgid "patrons.pref#autoMemberNum# Do"
 msgstr "patrons.pref#autoMemberNum# Արա"
 
 # Patrons > General
 msgid "patrons.pref#autoMemberNum# Don't"
 msgstr "patrons.pref#autoMemberNum# Մի արա"
+
+# Patrons > General
+msgid "patrons.pref#autoMemberNum# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
+msgstr "patrons.pref#autoMemberNum# NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
 
 # Patrons > General
 msgid "patrons.pref#autoMemberNum# default the card number field on the patron addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942)."
@@ -6349,18 +7067,6 @@ msgid "patrons.pref#borrowerRelationship# Guarantors can be the following of tho
 msgstr "patrons.pref#borrowerRelationship# Երաշխավորողները կարող են լինել հետևայլը նրանց համար ում համար որ երաշխավորում են։"
 
 # Patrons > General
-msgid "patrons.pref#checkdigit# Do"
-msgstr "patrons.pref#checkdigit# Արա"
-
-# Patrons > General
-msgid "patrons.pref#checkdigit# Don't"
-msgstr "patrons.pref#checkdigit# Մի արա"
-
-# Patrons > General
-msgid "patrons.pref#checkdigit# check and construct borrower card numbers in the Katipo style. This overrides <code>autoMemberNum</code> if on."
-msgstr "patrons.pref#checkdigit# ստուգի և կառուցի ընթերցողի քարտի համար Katipo ոճով։ Սա վերագրում է <code>autoMemberNum</code> եթե միացված է։"
-
-# Patrons > General
 msgid "patrons.pref#intranetreadinghistory# Allow"
 msgstr "patrons.pref#intranetreadinghistory# Թույլատրի"
 
@@ -6369,8 +7075,8 @@ msgid "patrons.pref#intranetreadinghistory# Don't allow"
 msgstr "patrons.pref#intranetreadinghistory# Մի թույլատրի"
 
 # Patrons > General
-msgid "patrons.pref#intranetreadinghistory# staff to access a patron's checkout history (reading history is still stored, regardless of staff being allowed access or not)."
-msgstr "patrons.pref#intranetreadinghistory# աշխատակազմին հասանելի է ընթերցողների տացքի պատմությունը (ընթերցանության պատմությունը դեռ հիշված է, անկախ հանգամանքից աշխատակազմը մուտք ունի թե ոչ)։"
+msgid "patrons.pref#intranetreadinghistory# staff to access a patron's checkout and hold history (reading history is still stored, regardless of staff being allowed access or not)."
+msgstr "patrons.pref#intranetreadinghistory# աշխատակազմ ով պետք է մուտք ունենա հաճախորդի տացքի և պահումների պատմությանը (կարդացածների պատմությունը դեռ հիշված է, անկախ այն փաստից արդյոք աշխատակազմը ունի արտոնություն թե չունի)։"
 
 # Patrons > General
 msgid "patrons.pref#minPasswordLength# Login passwords for staff and patrons must be at least"
@@ -6456,6 +7162,18 @@ msgstr "searching.pref#AdvancedSearchTypes# Ցույց տուր տաբերը Հ�
 msgid "searching.pref#AdvancedSearchTypes# fields (separate values with |). Tabs appear in the order listed.<br/>"
 msgstr "searching.pref#AdvancedSearchTypes# դաշտեր (անջատիր արժեքները ըստ |)։ Տաբերը հայտնվում են թվարկված հաջորդականությամբ։<br/>"
 
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# Disable"
+msgstr "searching.pref#BrowseResultSelection# Արգելիր"
+
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# Enable"
+msgstr "searching.pref#BrowseResultSelection# Թույլատրի"
+
+# Searching > Features
+msgid "searching.pref#BrowseResultSelection# browsing search results fromt the bibliographic record detail page in staff client."
+msgstr "searching.pref#BrowseResultSelection# աշխատակազմի հաճախորդում փնտրման արդյունքների դիտում մատենագիտական գրառման մանրամասների էջից։"
+
 # Searching > Results Display
 msgid "searching.pref#DisplayLibraryFacets# Show facets for"
 msgstr "searching.pref#DisplayLibraryFacets# Ցույց տուր ֆասետները"
@@ -6528,13 +7246,29 @@ msgstr "searching.pref#IntranetNumbersPreferPhrase# \"phr\" գործողությ
 msgid "searching.pref#IntranetNumbersPreferPhrase# use"
 msgstr "searching.pref#IntranetNumbersPreferPhrase# օգտագործի"
 
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Don't load"
+msgstr "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Մի բեռնավորիր"
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Load"
+msgstr "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Բեռնավորի"
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Load the unlogged history to the next user."
+msgstr "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# Բեռնավորի չգրանցված պատմությունը հաջորդ օգտվողի վրա։"
+
+# Searching > Search Form
+msgid "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# history to the next client."
+msgstr "searching.pref#LoadSearchHistoryToTheFirstLoggedUser# պատմությունը հաջորդ հաճախորդին։"
+
 # Searching > Results Display
 msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Availability statuses may show incorrectly in search results if a record has more items than the limit set. Statuses will display correctly in the record details."
-msgstr ""
+msgstr "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Հասանելիության վիճակները փնտրման արդյունքներում կարող են արտածվել սխալ, եթե գրառումը ունի ավելի նյութեր քան սահմանված է։ Վիճակները կարտածվեն ճիշտ գրառման մանրամասներում։"
 
 # Searching > Results Display
 msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Leave empty for no limit."
-msgstr ""
+msgstr "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# <br/>Թող դատարկ առանց սահմանափակումների դեպքում։"
 
 # Searching > Results Display
 msgid "searching.pref#MaxSearchResultsItemsPerRecordStatusCheck# For records with many items, only check the availability status for the first"
@@ -6949,6 +7683,18 @@ msgid "serials.pref#SubscriptionHistory# view of serial issues."
 msgstr "serials.pref#SubscriptionHistory# պարբերականի համարների դիտում։"
 
 # Serials
+msgid "serials.pref#makePreviousSerialAvailable# Do not make"
+msgstr "serials.pref#makePreviousSerialAvailable# Մի ստեղծիր"
+
+# Serials
+msgid "serials.pref#makePreviousSerialAvailable# Make"
+msgstr "serials.pref#makePreviousSerialAvailable# Անել"
+
+# Serials
+msgid "serials.pref#makePreviousSerialAvailable# previous serial automatically available when receiving a new serial issue. The previous issue can also be set to another item type when receiving a new one. Please note that the item-level_itypes syspref must be set to specific item."
+msgstr "serials.pref#makePreviousSerialAvailable# նախորդ շարունակականը ավտոմատ հասանելի է, երբ ստացվում է շարունակականի նոր համարը։ Նախորդ համարը ևս կարող է կարգաբերվել նյութի մեկ այլ տեսակի երբ ստացվում է նորը։ Նկատի առ, որ item-level_itypes syspref պետք է կարգաբերված լինի որոշակի նյութի։"
+
+# Serials
 msgid "serials.pref#opacSerialDefaultTab# Holdings tab"
 msgstr "serials.pref#opacSerialDefaultTab# Պահումների տաբ"
 
@@ -7040,6 +7786,18 @@ msgstr "staff_client.pref#HidePatronName# Ցույց տուր"
 msgid "staff_client.pref#HidePatronName# the names of patrons that have items checked out or on hold on detail pages or the \"Place Hold\" screen."
 msgstr "staff_client.pref#HidePatronName# այն ընթերցողների անունները ովքեր  \"Տեղադրի պահում\" պաստառում կամ մանրամասների էջերից ունեն վերցված կամ պահված գրքեր։"
 
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# Don't show"
+msgstr "staff_client.pref#IntranetCatalogSearchPulldown# Ցույց մի տուր"
+
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# Show"
+msgstr "staff_client.pref#IntranetCatalogSearchPulldown# Ցույց տուր"
+
+# Staff Client > Options
+msgid "staff_client.pref#IntranetCatalogSearchPulldown# a search field pulldown for 'Search the catalog' boxes."
+msgstr "staff_client.pref#IntranetCatalogSearchPulldown# փնտռովի դաշտ 'Որոնիր քարտարանը' վանդակների համար։"
+
 # Staff Client > Appearance
 msgid "staff_client.pref#IntranetCirculationHomeHTML# Show the following HTML in its own div on the bottom of the home page of the circulation module:"
 msgstr "staff_client.pref#IntranetCirculationHomeHTML# Ցույց տուր հետևյալ HTML սեփական div տացքի մոդուլի տնային էջի ներքին մասում։"
@@ -7061,8 +7819,8 @@ msgid "staff_client.pref#IntranetReportsHomeHTML# Show the following HTML in its
 msgstr "staff_client.pref#IntranetReportsHomeHTML# Ցույց տուր հետևյալ HTML սեփական div հաշվետվությունների մոդուլի տնային էջի նեռքևի մասում։"
 
 # Staff Client > Appearance
-msgid "staff_client.pref#IntranetSlipPrinterJS# Use the following JavaScript for printing slips. Define at least function printThenClose(). For use e.g. with Firefox PlugIn jsPrintSetup, see http://jsprintsetup.mozdev.org/:"
-msgstr "staff_client.pref#IntranetSlipPrinterJS# Օգտագործիր հետևյալ JavaScript թերթիկներ տպելու համար։ Սահմանիր առնվազն այս ֆունկցիան printThenClose(). Օգտագործելու համար ասենք Firefox PlugIn-ի հետ jsPrintSetup, տես http://jsprintsetup.mozdev.org/:"
+msgid "staff_client.pref#IntranetSlipPrinterJS# Use the following JavaScript for printing slips. See detailed description on the <a href='https://wiki.koha-community.org/wiki/Setting_up_slip_printer_to_print_silently'>Koha Wiki</a> and eventually Firefox PlugIn <a href='https://github.com/edabg/jsprintsetup/wiki'>jsPrintSetup documentation</a>:"
+msgstr "staff_client.pref#IntranetSlipPrinterJS# Use the following JavaScript for printing slips. See detailed description on the <a href='https://wiki.koha-community.org/wiki/Setting_up_slip_printer_to_print_silently'>Koha Wiki</a> and eventually Firefox PlugIn <a href='https://github.com/edabg/jsprintsetup/wiki'>jsPrintSetup documentation</a>:"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#IntranetUserCSS# Include the following CSS on all pages in the staff client:"
@@ -7096,6 +7854,26 @@ msgstr "staff_client.pref#StaffDetailItemSelection# Թույլատրի"
 msgid "staff_client.pref#StaffDetailItemSelection# item selection in record detail page."
 msgstr "staff_client.pref#StaffDetailItemSelection# նյութի ընտրություն գրառման մանրամասնի էջից։"
 
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# Display language selector on "
+msgstr "staff_client.pref#StaffLangSelectorMode# Արտածիր լեզվի ընտրիչը "
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# both top and footer"
+msgstr "staff_client.pref#StaffLangSelectorMode# երկուսն էլ՝ վերևում և տողատակում"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# only footer"
+msgstr "staff_client.pref#StaffLangSelectorMode# միայն տողատակում"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLangSelectorMode# top"
+msgstr "staff_client.pref#StaffLangSelectorMode# վերևում"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#StaffLoginInstructions# Show the following HTML on the staff client login page"
+msgstr "staff_client.pref#StaffLoginInstructions# Աշխատակազմի հաճախորդի գրանցման էջից ցույց տուր հետևյալ HTML-ը"
+
 # Staff Client > Options
 msgid "staff_client.pref#UseWYSIWYGinSystemPreferences# Don't show"
 msgstr "staff_client.pref#UseWYSIWYGinSystemPreferences# Ցույց մի տուր"
@@ -7115,6 +7893,14 @@ msgstr "staff_client.pref#XSLTDetailsDisplay# <br />Ընտրություններ
 # Staff Client > Appearance
 msgid "staff_client.pref#XSLTDetailsDisplay# Display details in the staff client using XSLT stylesheet at: "
 msgstr "staff_client.pref#XSLTDetailsDisplay# Արտածիր մանրմասները աշխատակազմի հաճախորդում օգտագործելով XSLT ձևաթուղթ: "
+
+# Staff Client > Appearance
+msgid "staff_client.pref#XSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+msgstr "staff_client.pref#XSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
+
+# Staff Client > Appearance
+msgid "staff_client.pref#XSLTListsDisplay# Display lists in the staff client using XSLT stylesheet at: "
+msgstr "staff_client.pref#XSLTListsDisplay# Արտածիր ցաները աշխատակազմի հաճախորդում օգտագործելով XSLT ձևաթղթերը: "
 
 # Staff Client > Appearance
 msgid "staff_client.pref#XSLTResultsDisplay# <br />Options:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTResultsDisplay\" data-value=\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTResultsDisplay\" data-value=\"default\">default</a>\" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language"
@@ -7161,12 +7947,12 @@ msgid "staff_client.pref#intranetstylesheet# on all pages in the staff interface
 msgstr "staff_client.pref#intranetstylesheet# on all pages in the staff interface, instead of the default css (used when leaving this field blank). Enter just a filename, a full local path or a complete URL starting with <code>http://</code> (if the file lives on a remote server). Please note that if you just enter a filename, the file should be in the css subdirectory for each active theme and language within the Koha templates directory. A full local path is expected to start from your HTTP document root."
 
 # Staff Client > Appearance
-msgid "staff_client.pref#staffClientBaseURL# . Do not include a trailing slash in the URL."
-msgstr "staff_client.pref#staffClientBaseURL# . Մի ներառի URLում վերջին սլաշը։"
+msgid "staff_client.pref#staffClientBaseURL# The staff client is located at"
+msgstr "staff_client.pref#staffClientBaseURL# Աշխատակազմի հաճախորդը տեղաբաշխված է"
 
 # Staff Client > Appearance
-msgid "staff_client.pref#staffClientBaseURL# The staff client is located at http://"
-msgstr "staff_client.pref#staffClientBaseURL# Աշխատակազմի հաճախորդը տեղաբաշխված է http://"
+msgid "staff_client.pref#staffClientBaseURL# This should be a complete URL, starting with http:// or https://. Do not include a trailing slash in the URL. (This must be filled in correctly for CAS, svc, and load_testing to work.)"
+msgstr "staff_client.pref#staffClientBaseURL# Սա պետք է լինի ամբողջական URL, որը սկսվում է http:// կամ https://։ Մի ավելացրու URL-ում թեք գիծ։ (Սա պետք է ճիշտ լրացված լինի CAS, svc, և load_testing համար, որպեսզի աշխատի։)"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#template# Use the"
@@ -7218,7 +8004,7 @@ msgstr "tools.pref"
 
 # Tools > Batch item
 msgid "tools.pref Batch item"
-msgstr ""
+msgstr "tools.pref Նյութը փաթեթով"
 
 # Tools > News
 msgid "tools.pref News"
@@ -7227,6 +8013,14 @@ msgstr "tools.pref Նորություններ"
 # Tools > Patron cards
 msgid "tools.pref Patron cards"
 msgstr "tools.pref Ընթերցողական քարտեր"
+
+# Tools > Reports
+msgid "tools.pref Reports"
+msgstr "tools.pref Հաշվետվություններ"
+
+# Tools > Upload
+msgid "tools.pref Upload"
+msgstr "tools.pref Upload"
 
 # Tools > Patron cards
 msgid "tools.pref#ImageLimit# Limit the number of creator images stored in the database to"
@@ -7238,19 +8032,19 @@ msgstr "tools.pref#ImageLimit# պատկերներ։"
 
 # Tools > Batch item
 msgid "tools.pref#MaxItemsToDisplayForBatchDel# Display up to"
-msgstr ""
+msgstr "tools.pref#MaxItemsToDisplayForBatchDel# Արտածիր մինչև"
 
 # Tools > Batch item
 msgid "tools.pref#MaxItemsToDisplayForBatchDel# items in a single item deletion batch."
-msgstr ""
+msgstr "tools.pref#MaxItemsToDisplayForBatchDel# նյութերը մեկ նյութի ջնջման փաթեթում։"
 
 # Tools > Batch item
 msgid "tools.pref#MaxItemsToProcessForBatchMod# Process up to"
-msgstr ""
+msgstr "tools.pref#MaxItemsToProcessForBatchMod# Կատարիր մինչև"
 
 # Tools > Batch item
 msgid "tools.pref#MaxItemsToProcessForBatchMod# items in a single item modification batch."
-msgstr ""
+msgstr "tools.pref#MaxItemsToProcessForBatchMod# նյութեր մեկ նյութի ձևափոխման փաթեթում։"
 
 # Tools > News
 msgid "tools.pref#NewsAuthorDisplay# Both OPAC and staff client"
@@ -7272,6 +8066,22 @@ msgstr "tools.pref#NewsAuthorDisplay# Ցույց տուր հեղինակին ն�
 msgid "tools.pref#NewsAuthorDisplay# Staff client only"
 msgstr "tools.pref#NewsAuthorDisplay# Միայն աշխատակազմի հաճախորդ"
 
+# Tools > Reports
+msgid "tools.pref#NumSavedReports# By default, show"
+msgstr "tools.pref#NumSavedReports# Որպես լռակյաց, ցույց տուր"
+
+# Tools > Reports
+msgid "tools.pref#NumSavedReports# reports on the Saved Reports page."
+msgstr "tools.pref#NumSavedReports# հաշվետվություններ Saved Reports էջում։"
+
+# Tools > Upload
+msgid "tools.pref#UploadPurgeTemporaryFilesDays# Automatically delete temporary uploads older than"
+msgstr "tools.pref#UploadPurgeTemporaryFilesDays# Ավտոմատ ջնջիր ժամանակավոր վերբեռնումները որոնք հին են քան"
+
+# Tools > Upload
+msgid "tools.pref#UploadPurgeTemporaryFilesDays# days in cleanup_database cron job. NOTE: If you leave this field empty, the cron job will not delete any files. On the other hand a value of 0 means: delete all temporary files."
+msgstr "tools.pref#UploadPurgeTemporaryFilesDays# օր cleanup_database cron job. ՆՇՈՒՄ: Եթե այս դաշտը թողնես դատարկ, կրոնի աշխատանքը չի ջնջի որևէ ֆայլ։ Մյուս կողմից, 0 արժեքը նշանակում է: ջնջիր բոլոր ժամանակավոր ֆայլերը։"
+
 # Web services
 msgid "web_services.pref"
 msgstr "web_services.pref"
@@ -7288,6 +8098,10 @@ msgstr "web_services.pref"
 msgid "web_services.pref OAI-PMH"
 msgstr "web_services.pref OAI-PMH"
 
+# Web services > REST API
+msgid "web_services.pref REST API"
+msgstr "web_services.pref REST API"
+
 # Web services > Reporting
 msgid "web_services.pref Reporting"
 msgstr "web_services.pref Հաշվետվություն"
@@ -7302,7 +8116,7 @@ msgstr "web_services.pref#ILS-DI# Թույլատրի"
 
 # Web services > ILS-DI
 msgid "web_services.pref#ILS-DI# ILS-DI services for OPAC users (available at: /cgi-bin/koha/ilsdi.pl)"
-msgstr ""
+msgstr "web_services.pref#ILS-DI# ILS-DI ծառայություններ ՀՕԱՔ օգտվողների համար (հասանելի է՝ /cgi-bin/koha/ilsdi.pl)"
 
 # Web services > ILS-DI
 msgid "web_services.pref#ILS-DI:AuthorizedIPs# Allow IP addresses"
@@ -7399,6 +8213,26 @@ msgstr "web_services.pref#OAI-PMH:archiveID# : ."
 # Web services > OAI-PMH
 msgid "web_services.pref#OAI-PMH:archiveID# Identify records at this site with the prefix"
 msgstr "web_services.pref#OAI-PMH:archiveID# Բնութագրի այս կայքի գրառումները հետևյալ նախածանցով"
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# Disable"
+msgstr "web_services.pref#RESTOAuth2ClientCredentials# Արգելիր"
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# Enable"
+msgstr "web_services.pref#RESTOAuth2ClientCredentials# Թույլատրի"
+
+# Web services > REST API
+msgid "web_services.pref#RESTOAuth2ClientCredentials# the OAuth2 client credentials grant for the REST API. Requires Net::OAuth2::AuthorizationServer installed. [EXPERIMENTAL]"
+msgstr "web_services.pref#RESTOAuth2ClientCredentials# the OAuth2 client credentials grant for the REST API. Requires Net::OAuth2::AuthorizationServer installed. [EXPERIMENTAL]"
+
+# Web services > REST API
+msgid "web_services.pref#RESTdefaultPageSize# Set the default number of results returned by the REST API endpoints to"
+msgstr "web_services.pref#RESTdefaultPageSize# Կարգաբերի արդյունքների լռակյաց թիվը REST API վերջնակետերից"
+
+# Web services > REST API
+msgid "web_services.pref#RESTdefaultPageSize# per page."
+msgstr "web_services.pref#RESTdefaultPageSize# ըստ էջի։"
 
 # Web services > Reporting
 msgid "web_services.pref#SvcMaxReportRows# Only return"

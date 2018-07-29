@@ -1,35 +1,13 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE Branches %]
 [% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Serials &rsaquo; Details for subscription #[% subscriptionid %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-// the english words used in display purposes
-var text = new Array(_("Number"),_("Volume"),_("Issue"),_("Month"),_("Week"),_("Starting with:"),_("Rollover at:"),_("Choose Hemisphere:"),_("Northern"),_("Southern",
-"Autumn"),_("Winter"),_("Spring"),_("Summer"),_("Fall"),_("Season"),_("Year"));
-
-
-function confirm_deletion() {
-    var is_confirmed = confirm(_("Are you sure you want to delete this subscription?"));
-    if (is_confirmed) {
-        window.location="subscription-detail.pl?subscriptionid=[% subscriptionid %]&op=del";
-    }
-}
-function popup(subscriptionid) {
-    newin=window.open("subscription-renew.pl?mode=popup&subscriptionid="+subscriptionid,'popup','width=590,height=440,toolbar=false,scrollbars=yes');
-}
-$(document).ready(function() {
-    $("#subscription_description").tabs();
-    $("#renewsub").click(function(){
-        popup([% subscriptionid %]);
-        return false;
-    })
-});
-//]]>
-</script>
 </head>
+
 <body id="ser_subscription-detail" class="ser">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'serials-search.inc' %]
@@ -87,7 +65,7 @@ $(document).ready(function() {
 		<ol>
 		<li><span class="label">Subscription ID: </span>[% subscriptionid %]</li>
         <li><span class="label">Librarian identity:</span> [% librarian %]</li>
-        <li><span class="label">Vendor:</span> <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% aqbooksellerid %]">[% aqbooksellername %]</a></li>
+        <li><span class="label">Vendor:</span> <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% aqbooksellerid %]">[% aqbooksellername |html %]</a></li>
         <li><span class="label">Biblio:</span>  <a href="/cgi-bin/koha/catalogue/[% default_bib_view %].pl?biblionumber=[% bibnum %]">[% bibliotitle %]</a> <i>([% bibnum %])</i></li>
         [% IF ( OPACBaseURL ) %]
             <li>
@@ -117,7 +95,7 @@ $(document).ready(function() {
     <div class="rows">
         <ol>
         [% IF ( location ) %]<li><span class="label">Location:</span> [% location %]</li>[% END %]
-        [% IF ( callnumber ) %]<li><span class="label">Call number:</span> [% callnumber %]</li>[% END %]
+        [% IF ( callnumber ) %]<li><span class="label">Call number:</span> [% callnumber |html %]</li>[% END %]
 		[% IF ( staffdisplaycount ) %]<li><span class="label">Number of issues to display to staff:</span>[% staffdisplaycount %]</li>[% END %]
         [% IF ( opacdisplaycount ) %]<li><span class="label">Number of issues to display in OPAC:</span>[% opacdisplaycount %]</li>[% END %]
         [% IF ( letter ) %]
@@ -339,8 +317,8 @@ $(document).ready(function() {
             <li><span class="label">History end date:</span> [% histenddate %]</li>
             <li><span class="label">Received issues:</span>[% recievedlist %]</li>
             <li><span class="label">Missing issues:</span>[% missinglist %]</li>
-            <li><span class="label">Nonpublic note:</span>[% internalnotes FILTER html_line_break %]</li>
-            <li><span class="label">Public note:</span>[% notes FILTER html_line_break %]</li>
+            <li><span class="label">Nonpublic note:</span>[% internalnotes FILTER html_line_break |html %]</li>
+            <li><span class="label">Public note:</span>[% notes FILTER html_line_break |html %]</li>
             <li><span class="label">History staff note:</span>[% librariannote FILTER html_line_break %]</li>
             <li><span class="label">History OPAC note:</span>[% opacnote FILTER html_line_break %]</li>
         </ol>
@@ -359,8 +337,8 @@ $(document).ready(function() {
                 <tbody>
                     <tr>
                         <td>Ordered amount</td>
-                        <td>[% valuegste_ordered %]</td>
-                        <td>[% valuegsti_ordered %]</td>
+                        <td>[% value_tax_excluded_ordered %]</td>
+                        <td>[% value_tax_included_ordered %]</td>
                         <td>[% budget_name_ordered %]</td>
                         <td>
                             [% IF ( ordered_exists ) %]
@@ -370,8 +348,8 @@ $(document).ready(function() {
                     </tr>
                     <tr>
                         <td>Spent amount</td>
-                        <td>[% valuegste_spent %]</td>
-                        <td>[% valuegsti_spent %]</td>
+                        <td>[% value_tax_excluded_spent %]</td>
+                        <td>[% value_tax_included_spent %]</td>
                         <td>[% budget_name_spent %]</td>
                         <td>
                             [% IF ( spent_exists ) %]
@@ -393,4 +371,27 @@ $(document).ready(function() {
 [% INCLUDE 'serials-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    <script type="text/javascript">
+        var subscriptionid = "[% subscriptionid %]";
+        var MSG_CLOSE_SUBSCRIPTION = _("Are you sure you want to close this subscription?");
+        var MSG_REOPEN_SUBSCRIPTION = _("Are you sure you want to reopen this subscription?");
+        var CONFIRM_DELETE_SUBSCRIPTION = _("Are you sure you want to delete this subscription?");
+    </script>
+    [% Asset.js("js/serials-toolbar.js") %]
+    <script type="text/javascript">
+        // the english words used in display purposes
+        var text = new Array(_("Number"),_("Volume"),_("Issue"),_("Month"),_("Week"),_("Starting with:"),_("Rollover at:"),_("Choose Hemisphere:"),_("Northern"),_("Southern",
+        "Autumn"),_("Winter"),_("Spring"),_("Summer"),_("Fall"),_("Season"),_("Year"));
+        $(document).ready(function() {
+            $("#subscription_description").tabs();
+            $("#renewsub").click(function(){
+                popup([% subscriptionid %]);
+                return false;
+            })
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

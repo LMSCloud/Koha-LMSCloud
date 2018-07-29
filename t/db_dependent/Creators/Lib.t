@@ -148,8 +148,8 @@ my $author3 = 'Author 3';
 
 $query = '
   INSERT INTO biblio
-    (title, author)
-  VALUES (?,?)';
+    (title, author, datecreated)
+  VALUES (?,?, NOW())';
 $insert_sth = $dbh->prepare($query);
 $insert_sth->execute( $title1, $author1 );
 $insert_sth->execute( $title2, undef );
@@ -238,13 +238,13 @@ $query = '
   INSERT INTO creator_batches
     (batch_id , item_number, borrower_number,
      timestamp, branch_code, creator)
-  VALUES (?,?,?,?,?,?)';
+  VALUES (?,?,?,NOW(),?,?)';
 $insert_sth = $dbh->prepare($query);
-$insert_sth->execute( 11, $item_number1, $borrowernumber1, 'now()', $library1->{branchcode}, 'Labels' );
+$insert_sth->execute( 11, $item_number1, $borrowernumber1, $library1->{branchcode}, 'Labels' );
 
-$insert_sth->execute( 12, $item_number2, $borrowernumber2, 'now()', $library2->{branchcode}, 'Labels' );
+$insert_sth->execute( 12, $item_number2, $borrowernumber2, $library2->{branchcode}, 'Labels' );
 
-$insert_sth->execute( 12, $item_number3, $borrowernumber3, 'now()', $library3->{branchcode}, 'Labels' );
+$insert_sth->execute( 12, $item_number3, $borrowernumber3, $library3->{branchcode}, 'Labels' );
 
 ###########################################################
 #                     Testing Subs
@@ -403,7 +403,6 @@ $templates = get_all_templates( { orderby => 'rows DESC' } );
 $query = '
   SELECT    count(*)
   FROM      creator_templates
-  ORDER BY  rows DESC
   ';
 $count = $dbh->selectrow_array($query);
 is( $count,      2,      'There are 2 templates' );
@@ -579,7 +578,6 @@ $layouts = get_all_layouts( { orderby => 'font_size DESC' } );
 $query = '
   SELECT   count(*)
   FROM     creator_layouts
-  ORDER BY font_size DESC
   ';
 $count = $dbh->selectrow_array($query);
 is( $count,    2,      'There are layout matching' );

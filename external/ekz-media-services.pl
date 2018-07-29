@@ -131,7 +131,7 @@ sub buildHashFromArray {
 #print STDERR "ekz-media-services.pl::buildHashFromArray nodeName:",$nodeName, ": ref(\$retHash{\$nodeName}):", ref($retHash{$nodeName}), ":\n" if $debugIt;
                         if ( exists($retHash{$nodeName}->{$fields->[$i]}) ) {
                             if ( ref($retHash{$nodeName}->{$fields->[$i]}) eq 'ARRAY' ) {
-                                push $retHash{$nodeName}->{$fields->[$i]}, $hashRef->{$fields->[$i]};
+                                push @{$retHash{$nodeName}->{$fields->[$i]}}, $hashRef->{$fields->[$i]};
                             } else {
                                 my @tmpArray;
                                 $tmpArray[0] = $retHash{$nodeName}->{$fields->[$i]};

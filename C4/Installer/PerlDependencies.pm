@@ -4,6 +4,11 @@ use warnings;
 use strict;
 
 our $PERL_DEPS = {
+    'Try::Tiny' => {
+        'usage'    => 'Core',
+        'required' => '1',
+        'min_ver'  => '0.22'
+    },
     'Plack::Middleware::ReverseProxy' => {
         'usage'    => 'Plack',
         'required' => '1',
@@ -159,11 +164,6 @@ our $PERL_DEPS = {
         'required' => '1',
         'min_ver'  => '1.01'
     },
-    'Test::Harness' => {
-        'usage'    => 'Core',
-        'required' => '1',
-        'min_ver'  => '2.56'
-    },
     'PDF::API2::Util' => {
         'usage'    => 'Core',
         'required' => '1',
@@ -254,7 +254,7 @@ our $PERL_DEPS = {
     },
     'Cache::Memcached' => {
         'usage'    => 'Caching',
-        'required' => '0',
+        'required' => '1',
         'min_ver'  => '1.30'
     },
     'Cache::Memcached::Fast' => {
@@ -376,11 +376,6 @@ our $PERL_DEPS = {
         'usage'    => 'Core',
         'required' => '1',
         'min_ver'  => '0.05'
-    },
-    'Test::More' => {
-        'usage'    => 'Core',
-        'required' => '1',
-        'min_ver'  => '0.8'
     },
     'GD::Barcode::UPCE' => {
         'usage'    => 'Core',
@@ -517,6 +512,11 @@ our $PERL_DEPS = {
         'required' => '1',
         'min_ver'  => '2.05',
     },
+    'Business::ISSN' => {
+        'usage'    => 'Core',
+        'required' => '1',
+        'min_ver'  => '0.91',
+    },
     'Template' => {
         'usage'    => 'Core',
         'required' => '1',
@@ -557,30 +557,60 @@ our $PERL_DEPS = {
         'required' => '1',
         'min_ver'  => '1.39'
     },
-    'Test::MockObject' => {
+    'Text::Bidi'   => {
+        'usage'    => 'Label batch PDF',
+        'required' => '1',
+        'min_ver'  => '0.03',
+    },
+    'Test::DBIx::Class' => {
+        'usage'    => 'Testing modules utilising DBIx::Class',
+        'required' => '0',
+        'min_ver'  => '0.42',
+    },
+    'Test::Deep' => {
         'usage'    => 'Core',
         'required' => '0',
-        'min_ver'  => '1.09',
+        'min_ver'  => '0.106',
+    },
+    'Test::Exception' => {
+        'usage'    => 'Core',
+        'required' => '0',
+        'min_ver'  => '0.35',
+    },
+    'Test::Harness' => {
+        'usage'    => 'Core',
+        'required' => '1',
+        'min_ver'  => '2.56'
     },
     'Test::MockModule' => {
         'usage'    => 'Core',
         'required' => '1',
         'min_ver'  => '0.05',
     },
-    'Test::Warn' => {
+    'Test::MockObject' => {
         'usage'    => 'Core',
         'required' => '0',
-        'min_ver'  => '0.21',
+        'min_ver'  => '1.09',
+    },
+    'Test::MockTime' => {
+        usage      => 'Testing suite',
+        required   => 0,
+        min_ver    => '0.13',
+    },
+    'Test::More' => {
+        'usage'    => 'Core',
+        'required' => '1',
+        'min_ver'  => '1.302073'
     },
     'Test::Strict' => {
         'usage'    => 'Core',
         'required' => '0',
         'min_ver'  => '0.14',
     },
-    'Test::Deep' => {
+    'Test::Warn' => {
         'usage'    => 'Core',
         'required' => '0',
-        'min_ver'  => '0.106',
+        'min_ver'  => '0.21',
     },
     'Test::YAML::Valid' => {
         'usage'    => 'Core',
@@ -591,6 +621,11 @@ our $PERL_DEPS = {
         'usage'    => 'Core',
         'required' => '1',
         'min_ver'  => '1.08',
+    },
+    'Test::WWW::Mechanize' => {
+        'usage'    => 'Testing suite',
+        'required' => '0',
+        'min_ver'  => '1.42',
     },
     'HTML::FormatText' => {
         'usage'    => 'Core',
@@ -658,14 +693,9 @@ our $PERL_DEPS = {
         'min_ver'  => '3.9',
     },
     'File::Slurp' => {
-        'usage'    => 'Command line scripts',
-        'required' => '0',
+        'usage'    => 'Core',
+        'required' => '1',
         'min_ver'  => '9999.13',
-    },
-    'Test::WWW::Mechanize' => {
-        'usage'    => 'Testing suite',
-        'required' => '0',
-        'min_ver'  => '1.42',
     },
     'Library::CallNumber::LC' => {
         'usage'    => 'Core',
@@ -706,16 +736,6 @@ our $PERL_DEPS = {
         'usage'    => 'OverDrive integration',
         'required' => '0',
         'min_ver'  => '5.836',
-    },
-    'Test::DBIx::Class' => {
-        'usage'    => 'Testing modules utilising DBIx::Class',
-        'required' => '0',
-        'min_ver'  => '0.42',
-    },
-    'Text::Bidi'   => {
-        'usage'    => 'Label batch PDF',
-        'required' => '1',
-        'min_ver'  => '0.03',
     },
     'SOAP::Lite' => {
         'usage'    => 'Norwegian national library card',
@@ -764,13 +784,18 @@ our $PERL_DEPS = {
     },
     'Mojolicious' => {
         'usage'    => 'REST API',
-        'required' => '0',
-        'min_ver'  => '6.0',
+        'required' => '1',
+        'min_ver'  => '7.21',
     },
-    'Swagger2' => {
+    'Mojolicious::Plugin::OpenAPI' => {
         'usage'    => 'REST API',
-        'required' => '0',
-        'min_ver'  => '0.59',
+        'required' => '1',
+        'min_ver'  => '1.15',
+    },
+    'JSON::Validator' => {
+        'usage'    => 'REST API',
+        'required' => '1',
+        'min_ver'  => '0.97',
     },
     'UNIVERSAL::can' => {
         'usage'    => 'SIP',
@@ -807,20 +832,20 @@ our $PERL_DEPS = {
         'required' => '0',
         'min_ver'  => '0.07'
     },
-    'IO::Socket::IP' => {
-        'usage'    => 'Rest API',
-        'required' => '0',
-        'min_ver'  => '0.16'
+    'WWW::CSRF' => {
+        usage => 'Core',
+        required => 1,
+        min_ver => '1.00',
     },
-    'Readonly' => {
-        'usage'    => 'No idea',
-        'required' => '0',
-        'min_ver'  => '0.01'
+    'Sereal::Encoder' => {
+        'usage'    => 'Caching',
+        'required' => '1',
+        'min_ver'  => '3.0',
     },
-    'Readonly::XS' => {
-        'usage'    => 'No idea',
-        'required' => '0',
-        'min_ver'  => '0.01'
+    'Sereal::Decoder' => {
+        'usage'    => 'Caching',
+        'required' => '1',
+        'min_ver'  => '3.0',
     },
     'HTML::Entities' => {
         usage => 'Core',
@@ -842,10 +867,41 @@ our $PERL_DEPS = {
         required => 1,
         min_ver => '0.28',
     },
-    'WWW::CSRF' => {
-        usage => 'Core',
-        required => 1,
-        min_ver => '1.00',
+    'WebService::ILS' => {
+        'usage'    => 'Interface third party systems',
+        'required' => '0',
+        'min_ver'  => '0.17',
+    },
+    'Search::Elasticsearch' => {
+        'usage'    => 'Elasticsearch integration',
+        'required' => '1',
+        'min_ver'  => '5.01',
+        # also required for Zebra installs: about page: bug 20061
+    },
+    'Parallel::ForkManager' => {
+        usage      => 'Testing suite',
+        required   => 0,
+        min_ver    => '0.75',
+    },
+    'Sys::CPU' => {
+        usage      => 'Testing suite',
+        required   => 0,
+        min_ver    => '0.52',
+    },
+    'Net::OAuth2::AuthorizationServer' => {
+        usage    => 'REST API',
+        required => '0',
+        min_ver  => '0.16',
+    },
+    'CGI::Emulate::PSGI' => {
+        usage    => 'Plack',
+        required => '1',
+        min_ver  => '0.20',
+    },
+    'CGI::Compile' => {
+       usage    => 'Plack',
+       required => '1',
+       min_ver  => '0.17'
     },
 };
 

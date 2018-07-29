@@ -72,7 +72,7 @@ __PACKAGE__->table("old_reserves");
 
 =head2 reservenotes
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 priority
@@ -115,6 +115,7 @@ __PACKAGE__->table("old_reserves");
 
   accessor: 'lowest_priority'
   data_type: 'tinyint'
+  default_value: 0
   is_nullable: 0
 
 =head2 suspend
@@ -156,7 +157,7 @@ __PACKAGE__->add_columns(
   "cancellationdate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "reservenotes",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "priority",
   { data_type => "smallint", is_nullable => 1 },
   "found",
@@ -175,7 +176,12 @@ __PACKAGE__->add_columns(
   "expirationdate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "lowestPriority",
-  { accessor => "lowest_priority", data_type => "tinyint", is_nullable => 0 },
+  {
+    accessor      => "lowest_priority",
+    data_type     => "tinyint",
+    default_value => 0,
+    is_nullable   => 0,
+  },
   "suspend",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "suspend_until",
@@ -283,8 +289,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-16 11:50:06
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ImO51xAuZi1Dw4e6023BIA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ynb6NtiTN8ZZur2YCvxlNg
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

@@ -11,14 +11,14 @@ use C4::Serials;
 use C4::Serials::Frequency;
 use C4::Serials::Numberpattern;
 use C4::Debug;
-use C4::Bookseller;
 use C4::Biblio;
 use C4::Budgets;
 use C4::Items;
 use Koha::DateUtils;
+use Koha::Acquisition::Booksellers;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
-use Test::More tests => 49;
+use Test::More tests => 48;
 
 BEGIN {
     use_ok('C4::Serials');
@@ -38,7 +38,7 @@ can_ok('C4::Serials', @methods);
 
 $dbh->do(q|UPDATE marc_subfield_structure SET value_builder="callnumber.pl" where kohafield="items.itemcallnumber" and frameworkcode=''|);
 
-my $booksellerid = C4::Bookseller::AddBookseller(
+my $bookseller = Koha::Acquisition::Bookseller->new(
     {
         name => "my vendor",
         address1 => "bookseller's address",
@@ -51,8 +51,8 @@ my ($biblionumber, $biblioitemnumber) = AddBiblio(MARC::Record->new, '');
 
 my $budgetid;
 my $bpid = AddBudgetPeriod({
-    budget_period_startdate   => '01-01-2015',
-    budget_period_enddate     => '31-12-2015',
+    budget_period_startdate   => '2015-01-01',
+    budget_period_enddate     => '2015-12-31',
     budget_period_description => "budget desc"
 });
 
@@ -67,6 +67,7 @@ my $budget_id = AddBudget({
 my $frequency_id = AddSubscriptionFrequency({ description => "Test frequency 1" });
 my $pattern_id = AddSubscriptionNumberpattern({
     label => 'Test numberpattern 1',
+    description => 'Description for numberpattern 1',
     numberingmethod => '{X}',
     label1 => q{},
     add1 => 1,
@@ -264,8 +265,6 @@ subtest 'test_updateClaim' => sub {
     is($late_or_missing_issues_1_2[0]->{claims_count}, $claim_count_1, 'Got the expected unchanged claim count from update claim');
     is($late_or_missing_issues_1_2[0]->{status}, 3, 'Got the expected unchanged claim status from update claim');
 };
-
-is(C4::Serials::getsupplierbyserialid(),undef, 'test getting supplier idea');
 
 is(C4::Serials::check_routing(), undef, 'test checking route');
 

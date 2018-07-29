@@ -1,19 +1,5 @@
 [% USE Koha %]
-<script type="text/javascript">//<![CDATA[
-    $(document).ready(function() {
-        var path = location.pathname.substring(1);
-        if (path == "cgi-bin/koha/admin/marctagstructure.pl" || path == "cgi-bin/koha/admin/marc_subfields_structure.pl") {
-            $('#navmenulist a[href$="/cgi-bin/koha/admin/biblio_framework.pl"]').css('font-weight','bold');
-        } else if (path == "cgi-bin/koha/admin/auth_tag_structure.pl" || path == "cgi-bin/koha/admin/auth_subfields_structure.pl") {
-            $('#navmenulist a[href$="/cgi-bin/koha/admin/authtypes.pl"]').css('font-weight','bold');
-        } else if (path == "cgi-bin/koha/admin/oai_set_mappings.pl") {
-            $('#navmenulist a[href$="/cgi-bin/koha/admin/oai_sets.pl"]').css('font-weight','bold');
-        } else {
-            $('#navmenulist a[href$="/' + path + '"]').css('font-weight','bold');
-        }
-    });
-//]]>
-</script>
+
 <div id="navmenu">
 <div id="navmenulist">
 <h5>System preferences</h5>
@@ -23,7 +9,8 @@
 
 <h5>Basic parameters</h5>
 <ul>
-    <li><a href="/cgi-bin/koha/admin/branches.pl">Libraries and groups</a></li>
+    <li><a href="/cgi-bin/koha/admin/branches.pl">Libraries</a></li>
+    <li><a href="/cgi-bin/koha/admin/library_groups.pl">Library groups</a></li>
     <li><a href="/cgi-bin/koha/admin/itemtypes.pl">Item types</a></li>
     <li><a href="/cgi-bin/koha/admin/authorised_values.pl">Authorized values</a></li>
 </ul>
@@ -50,6 +37,9 @@
     <li><a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a></li>
     <li><a href="/cgi-bin/koha/admin/oai_sets.pl">OAI sets configuration</a></li>
     <li><a href="/cgi-bin/koha/admin/items_search_fields.pl">Item search fields</a></li>
+    [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' %]
+        <li><a href="/cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl">Search engine configuration</a></li>
+    [% END %]
 </ul>
 
 <h5>Acquisition parameters</h5>
@@ -81,6 +71,7 @@
     [% IF Koha.Preference('SMSSendDriver') == 'Email' %]
         <li><a href="/cgi-bin/koha/admin/sms_providers.pl">SMS cellular providers</a></li>
     [% END %]
+    <li><a href="/cgi-bin/koha/admin/usage_statistics.pl">Share usage statistics</a></li>
 </ul>
 </div>
 </div>

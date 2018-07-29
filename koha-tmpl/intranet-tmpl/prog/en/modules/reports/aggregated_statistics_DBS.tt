@@ -1,240 +1,13 @@
 [% USE Koha %]
 [% USE KohaDates %]
+[% USE Price %]
+[% SET footerjs = 1 %]
+
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Reports &rsaquo; Aggregated statistics &rsaquo; DBS</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% INCLUDE 'greybox.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-[% USE Price %]
-[% INCLUDE 'format_price.inc' %]
-
-<script type="text/javascript">
-//<![CDATA[
-    $(document).ready(function() {
-
-        $('#DBScalc').click(function() {
-            $('#op').val("dcv_calc");    // calculate derived class values for display
-            $("#DBS_edit").submit();
-            return true;
-        });
-
-        $('#DBSdel').on("click", function() {
-            var statname = DBSdel.getAttribute("statname");
-            var deleteIt = confirm(_("Are you sure you want to reset all entries of statistics %s?").format(statname) );
-            if (!deleteIt) {
-                return false;
-            }
-            $('#op').val("dcv_del");    // delete derived class values from database
-            $("#DBS_edit").submit();
-            return true;
-        });
-
-        $('#DBSsave').click(function() {
-            $('#op').val("dcv_save");    // store derived class values into database
-            $("#DBS_edit").submit();
-            return true;
-        });
-
-        $('#DBSdownload_csv').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'export.csv', 'csv');
-        });
-
-        $('#DBSdownload_tab').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'export.tab', 'tab');
-        });
-
-        $('#DBSdownload_dbs105').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs105.csv', 'dbs105');
-        });
-
-        $('#DBSdownload_dbs116').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs116.csv', 'dbs116');
-        });
-
-        $('#DBSdownload_dbs123').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs123.csv', 'dbs123');
-        });
-
-        $('#DBSdownload_dbs145').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs145.csv', 'dbs145');
-        });
-
-    });
-
-    function getcolvalues(j, col) {
-        var $col = $(col),
-        text = $col.text();
-        var $myinput = $col.find('input');
-        var type = $myinput.attr('type'),
-            inpval = $myinput.val();
-
-        if ( type == "checkbox" ) {
-            var ischecked = $myinput.prop('checked');
-            if ( ischecked ) {
-                text = 'ja';
-            } else {
-                text = 'nein';
-            }
-        } else if ( ! (inpval === undefined) ) {
-            text = inpval;
-        }
-
-        return text.replace(/"/g, '""'); // escape double quotes
-    }
-
-    function exportTableToCSV($table, filename, format) {
-        var $rows = $table.find('tr:has(td)');
-
-        // Temporary delimiter characters unlikely to be typed by keyboard
-        // This is to avoid accidentally splitting the actual contents
-        tmpColDelim = String.fromCharCode(11); // vertical tab character
-        tmpRowDelim = String.fromCharCode(0); // null character
-
-        // actual delimiter characters for CSV format
-        rowDelim = '\r\n';
-        if ( format == "tab" ) {
-            colDelim = '\t';
-        } else if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
-            colDelim = ';';
-        } else {
-            [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
-            [% IF kohaColDelimiter == "" %][% SET kohaColDelimiter = "," %][% END %]
-            [% IF kohaColDelimiter == "tabulation" %][% SET kohaColDelimiter = "\t" %][% END %]
-            [% IF kohaColDelimiter == "\\" %][% SET kohaColDelimiter = "\\\\" %][% END %]
-            colDelim = '[% kohaColDelimiter | html %]';
-        }
-
-        // Grab text from table into CSV formatted string
-        csv = '';
-        if ( format == "csv" || format == "tab" ) {
-            var row_array = $rows.map(
-                function(i, row) {
-                    var $row = $(row);
-                    var $cols = $row.find('td');
-
-                    return $cols.map(getcolvalues).get().join(tmpColDelim);
-                }
-            );
-
-            csv = '"DBS-Rubrik"' + colDelim + '"Bezeichnung"' + colDelim + '"Wert"' + rowDelim;
-            csv += '"' + row_array.get().join(tmpRowDelim)
-                    .split(tmpRowDelim).join('"' + rowDelim + '"')
-                    .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
-
-            // Data URI
-            csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
-        }
-
-
-        if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
-            var values = $rows.map(
-                function(i, row) {
-                    var $row = $(row);
-                    var $cols = $row.find('td');
-
-                    return $cols.map(getcolvalues).get()[2];
-                }
-            );
-            // default length corresponds to dbs145
-            if ( format == "dbs105" ) {
-                values = values.slice(0,105);
-            } else if ( format == "dbs116" ) {
-                values = values.slice(0,116);
-            } else if ( format == "dbs123" ) {
-                values = values.slice(0,123);
-            }
-            csv += '"' + values.get().join(tmpColDelim)
-                    .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
-
-            // Data URI (we export using UTF-8 encoding; converting to the required charset ISO-8859-1 has to be done in Excel / LibreOfficeCalc / etc.)
-            csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
-        }
-
-        $(this).attr({
-            'download': filename,
-            'href': csvData,
-            'target': '_blank'
-        });
-    }
-
-//]]>
-</script>
-
-<script type= "text/javascript">
-//<![CDATA[
-
-    function floatInput(floatAsText,decimalplaces) {
-        // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
-        var len = floatAsText.value.length;
-        var decSepPos = floatAsText.value.indexOf(".");
-        var decSepPos2 = floatAsText.value.indexOf(",");
-        if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
-            decSepPos = decSepPos2;
-        }
-        if ( decSepPos >= 0 && len > decSepPos + 1 + decimalplaces ) {
-            floatAsText.value = floatAsText.value.substr(0, decSepPos + 1 + decimalplaces);
-        }
-    }
-
-    function moneyNormalize(textObj) {
-        var amountNew = parseFloat(textObj.value.replace(",","."));
-        if ( isNaN(amountNew) ) {
-            amountNew = 0.0;
-        }
-        textObj.value = parseFloat(amountNew);
-    }
-
-    function moneyFormat(textObj) {
-        var newValue = textObj.value.replace(",",".");
-        var decAmount = "";
-        var dolAmount = "";
-        var decFlag   = false;
-        var aChar     = "";
-
-        for(i=0; i < newValue.length; i++) {
-            aChar = newValue.substring(i, i+1);
-            if (aChar >= "0" && aChar <= "9") {
-                if(decFlag) {
-                    decAmount = "" + decAmount + aChar;
-                }
-                else {
-                    dolAmount = "" + dolAmount + aChar;
-                }
-            }
-            if (aChar == ".") {
-                if (decFlag) {
-                    break;
-                }
-                decFlag = true;
-            }
-        }
-
-        if (dolAmount == "") {
-            dolAmount = "0";
-        }
-        // Strip leading 0s
-        if (dolAmount.length > 1) {
-            while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
-                dolAmount = dolAmount.substring(1,dolAmount.length);
-            }
-        }
-        if (decAmount.length > 2) {
-            decAmount = decAmount.substring(0,2);
-        }
-        // Pad right side
-        if (decAmount.length == 1) {
-            decAmount = decAmount + "0";
-        }
-        if (decAmount.length == 0) {
-        decAmount = decAmount + "00";
-        }
-
-        textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
-    }
-
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 
 </head>
 
@@ -259,16 +32,16 @@
 
         <div id="toolbar" class="btn-toolbar">
             <div class="btn-group">
-                <button class="btn btn-small" id="DBScalc" name="DBScalc"> Recalculate</button>
+                <button class="btn btn-default btn-xs" id="DBScalc" name="DBScalc"><i class="fa fa-calculator"></i> Recalculate</button>
             </div>
             <div class="btn-group">
-                <button class="btn btn-small" id="DBSdel" name="DBSdel" statname="[% name %]"> Reset values</button>
+                <button class="btn btn-default btn-xs" id="DBSdel" name="DBSdel" statname="[% name %]"><i class="fa fa-minus-square"></i> Reset values</button>
             </div>
             <div class="btn-group">
-                <button class="btn btn-small" id="DBSsave" name="DBSsave"> Save</button>
+                <button class="btn btn-default btn-xs" id="DBSsave" name="DBSsave"><i class="fa fa-save"></i> Save</button>
             </div>
                 <div class="btn-group">
-                    <button class="btn btn-small dropdown-toggle" data-toggle="dropdown" id="DBSdownload" name="DBSdownload"> <i class="fa fa-upload"></i> Download <span class="caret"></span></button>
+                    <button class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" id="DBSdownload" name="DBSdownload"><i class="fa fa-upload"></i> Download <span class="caret"></span></button>
                     <ul class="dropdown-menu">
                         <li><a id="DBSdownload_csv" >Comma separated text</a></li>
                         <li><a id="DBSdownload_tab" >Tab separated text</a></li>
@@ -1620,13 +1393,234 @@
 
         </table>
         </form>
-
-
-
-
       </div>
     </div>
     <div class="yui-b">
   </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'format_price.inc' %]
+
+    <script type="text/javascript">
+
+        $(document).ready(function() {
+
+            $('#DBScalc').click(function() {
+                $('#op').val("dcv_calc");    // calculate derived class values for display
+                $("#DBS_edit").submit();
+                return true;
+            });
+
+            $('#DBSdel').on("click", function() {
+                var statname = DBSdel.getAttribute("statname");
+                var deleteIt = confirm(_("Are you sure you want to reset all entries of statistics %s?").format(statname) );
+                if (!deleteIt) {
+                    return false;
+                }
+                $('#op').val("dcv_del");    // delete derived class values from database
+                $("#DBS_edit").submit();
+                return true;
+            });
+
+            $('#DBSsave').click(function() {
+                $('#op').val("dcv_save");    // store derived class values into database
+                $("#DBS_edit").submit();
+                return true;
+            });
+
+            $('#DBSdownload_csv').click(function() {
+                exportTableToCSV.call(this, $('#dbs_values_table'), 'export.csv', 'csv');
+            });
+
+            $('#DBSdownload_tab').click(function() {
+                exportTableToCSV.call(this, $('#dbs_values_table'), 'export.tab', 'tab');
+            });
+
+            $('#DBSdownload_dbs105').click(function() {
+                exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs105.csv', 'dbs105');
+            });
+
+            $('#DBSdownload_dbs116').click(function() {
+                exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs116.csv', 'dbs116');
+            });
+
+            $('#DBSdownload_dbs123').click(function() {
+                exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs123.csv', 'dbs123');
+            });
+
+            $('#DBSdownload_dbs145').click(function() {
+                exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs145.csv', 'dbs145');
+            });
+
+        });
+
+        function getcolvalues(j, col) {
+            var $col = $(col),
+            text = $col.text();
+            var $myinput = $col.find('input');
+            var type = $myinput.attr('type'),
+                inpval = $myinput.val();
+
+            if ( type == "checkbox" ) {
+                var ischecked = $myinput.prop('checked');
+                if ( ischecked ) {
+                    text = 'ja';
+                } else {
+                    text = 'nein';
+                }
+            } else if ( ! (inpval === undefined) ) {
+                text = inpval;
+            }
+
+            return text.replace(/"/g, '""'); // escape double quotes
+        }
+
+        function exportTableToCSV($table, filename, format) {
+            var $rows = $table.find('tr:has(td)');
+
+            // Temporary delimiter characters unlikely to be typed by keyboard
+            // This is to avoid accidentally splitting the actual contents
+            tmpColDelim = String.fromCharCode(11); // vertical tab character
+            tmpRowDelim = String.fromCharCode(0); // null character
+
+            // actual delimiter characters for CSV format
+            rowDelim = '\r\n';
+            if ( format == "tab" ) {
+                colDelim = '\t';
+            } else if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
+                colDelim = ';';
+            } else {
+                [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
+                [% IF kohaColDelimiter == "" %][% SET kohaColDelimiter = "," %][% END %]
+                [% IF kohaColDelimiter == "tabulation" %][% SET kohaColDelimiter = "\t" %][% END %]
+                [% IF kohaColDelimiter == "\\" %][% SET kohaColDelimiter = "\\\\" %][% END %]
+                colDelim = '[% kohaColDelimiter | html %]';
+            }
+
+            // Grab text from table into CSV formatted string
+            csv = '';
+            if ( format == "csv" || format == "tab" ) {
+                var row_array = $rows.map(
+                    function(i, row) {
+                        var $row = $(row);
+                        var $cols = $row.find('td');
+
+                        return $cols.map(getcolvalues).get().join(tmpColDelim);
+                    }
+                );
+
+                csv = '"DBS-Rubrik"' + colDelim + '"Bezeichnung"' + colDelim + '"Wert"' + rowDelim;
+                csv += '"' + row_array.get().join(tmpRowDelim)
+                        .split(tmpRowDelim).join('"' + rowDelim + '"')
+                        .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
+
+                // Data URI
+                csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+            }
+
+
+            if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
+                var values = $rows.map(
+                    function(i, row) {
+                        var $row = $(row);
+                        var $cols = $row.find('td');
+
+                        return $cols.map(getcolvalues).get()[2];
+                    }
+                );
+                // default length corresponds to dbs145
+                if ( format == "dbs105" ) {
+                    values = values.slice(0,105);
+                } else if ( format == "dbs116" ) {
+                    values = values.slice(0,116);
+                } else if ( format == "dbs123" ) {
+                    values = values.slice(0,123);
+                }
+                csv += '"' + values.get().join(tmpColDelim)
+                        .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
+
+                // Data URI (we export using UTF-8 encoding; converting to the required charset ISO-8859-1 has to be done in Excel / LibreOfficeCalc / etc.)
+                csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+            }
+
+            $(this).attr({
+                'download': filename,
+                'href': csvData,
+                'target': '_blank'
+            });
+        }
+
+        function floatInput(floatAsText,decimalplaces) {
+            // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
+            var len = floatAsText.value.length;
+            var decSepPos = floatAsText.value.indexOf(".");
+            var decSepPos2 = floatAsText.value.indexOf(",");
+            if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
+                decSepPos = decSepPos2;
+            }
+            if ( decSepPos >= 0 && len > decSepPos + 1 + decimalplaces ) {
+                floatAsText.value = floatAsText.value.substr(0, decSepPos + 1 + decimalplaces);
+            }
+        }
+
+        function moneyNormalize(textObj) {
+            var amountNew = parseFloat(textObj.value.replace(",","."));
+            if ( isNaN(amountNew) ) {
+                amountNew = 0.0;
+            }
+            textObj.value = parseFloat(amountNew);
+        }
+
+        function moneyFormat(textObj) {
+            var newValue = textObj.value.replace(",",".");
+            var decAmount = "";
+            var dolAmount = "";
+            var decFlag   = false;
+            var aChar     = "";
+
+            for(i=0; i < newValue.length; i++) {
+                aChar = newValue.substring(i, i+1);
+                if (aChar >= "0" && aChar <= "9") {
+                    if(decFlag) {
+                        decAmount = "" + decAmount + aChar;
+                    }
+                    else {
+                        dolAmount = "" + dolAmount + aChar;
+                    }
+                }
+                if (aChar == ".") {
+                    if (decFlag) {
+                        break;
+                    }
+                    decFlag = true;
+                }
+            }
+
+            if (dolAmount == "") {
+                dolAmount = "0";
+            }
+            // Strip leading 0s
+            if (dolAmount.length > 1) {
+                while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
+                    dolAmount = dolAmount.substring(1,dolAmount.length);
+                }
+            }
+            if (decAmount.length > 2) {
+                decAmount = decAmount.substring(0,2);
+            }
+            // Pad right side
+            if (decAmount.length == 1) {
+                decAmount = decAmount + "0";
+            }
+            if (decAmount.length == 0) {
+            decAmount = decAmount + "00";
+            }
+
+            textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
+        }
+
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

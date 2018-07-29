@@ -29,6 +29,9 @@ use C4::Serials;
 use C4::Koha;
 use C4::Reserves qw/MergeHolds/;
 use C4::Acquisition qw/ModOrder GetOrdersByBiblionumber/;
+
+use Koha::BiblioFrameworks;
+use Koha::Items;
 use Koha::MetadataRecord;
 
 my $input = new CGI;
@@ -75,7 +78,7 @@ if ($merge) {
     }
 
     # Rewriting the leader
-    $record->leader(GetMarcBiblio($ref_biblionumber)->leader());
+    $record->leader(GetMarcBiblio({ biblionumber => $ref_biblionumber })->leader());
 
     my $frameworkcode = $input->param('frameworkcode');
     my @notmoveditems;
@@ -85,13 +88,13 @@ if ($merge) {
 
     # Moving items from the other record to the reference record
     foreach my $biblionumber (@biblionumbers) {
-        my $itemnumbers = get_itemnumbers_of($biblionumber);
-        foreach my $itemnumber (@{ $itemnumbers->{$biblionumber} }) {
-        my $res = MoveItemFromBiblio($itemnumber, $biblionumber, $ref_biblionumber);
-        if (not defined $res) {
-            push @notmoveditems, $itemnumber;
+        my $items = Koha::Items->search({ biblionumber => $biblionumber });
+        while ( my $item = $items->next) {
+            my $res = MoveItemFromBiblio( $item->itemnumber, $biblionumber, $ref_biblionumber );
+            if ( not defined $res ) {
+                push @notmoveditems, $item->itemnumber;
+            }
         }
-    }
     }
     # If some items could not be moved :
     if (scalar(@notmoveditems) > 0) {
@@ -108,11 +111,14 @@ if ($merge) {
     my $sth_serial = $dbh->prepare("
         UPDATE serial SET biblionumber = ? WHERE biblionumber = ?
     ");
+    my $sth_suggestions = $dbh->prepare("
+        UPDATE suggestions SET biblionumber = ? WHERE biblionumber = ?
+    ");
 
     my $report_header = {};
     foreach my $biblionumber ($ref_biblionumber, @biblionumbers) {
         # build report
-        my $marcrecord = GetMarcBiblio($biblionumber);
+        my $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
         my %report_record = (
             biblionumber => $biblionumber,
             fields => {},
@@ -152,12 +158,13 @@ if ($merge) {
         }
 
     # Moving serials
-        $sth_serial->execute($ref_biblionumber, $biblionumber);
+    $sth_serial->execute($ref_biblionumber, $biblionumber);
+
+    # Moving suggestions
+    $sth_suggestions->execute($ref_biblionumber, $biblionumber);
 
     # Moving orders (orders linked to items of frombiblio have already been moved by MoveItemFromBiblio)
     my @allorders = GetOrdersByBiblionumber($biblionumber);
-    my @tobiblioitem = GetBiblioItemByBiblioNumber ($ref_biblionumber);
-    my $tobiblioitem_biblioitemnumber = $tobiblioitem [0]-> {biblioitemnumber };
     foreach my $myorder (@allorders) {
         $myorder->{'biblionumber'} = $ref_biblionumber;
         ModOrder ($myorder);
@@ -199,7 +206,7 @@ if ($merge) {
         # Creating a loop for display
         my @records;
         foreach my $biblionumber (@biblionumbers) {
-            my $marcrecord = GetMarcBiblio($biblionumber);
+            my $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
             my $frameworkcode = GetFrameworkCode($biblionumber);
             my $recordObj = new Koha::MetadataRecord({'record' => $marcrecord, schema => $marcflavour});
             my $record = {
@@ -245,18 +252,8 @@ if ($merge) {
             records => \@records,
         );
 
-        my $frameworks = getframeworks;
-        my @frameworkselect;
-        foreach my $thisframeworkcode ( keys %$frameworks ) {
-            my %row = (
-                value         => $thisframeworkcode,
-                frameworktext => $frameworks->{$thisframeworkcode}->{'frameworktext'},
-            );
-            push @frameworkselect, \%row;
-        }
-        $template->param(
-            frameworkselect => \@frameworkselect,
-        );
+        my $frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] });
+        $template->param( frameworks => $frameworks );
     }
 }
 

@@ -1,20 +1,24 @@
+[% USE Koha %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; 
     [% IF ( nopermission ) %]Access denied[% END %]
     [% IF ( timed_out ) %]Session timed out[% END %]
     [% IF ( different_ip ) %]IP address change[% END %]
-    [% IF ( invalid_username_or_password ) %]Invalid username or password[% END %]
+    [% IF too_many_login_attempts %]This account has been locked.
+    [% ELSIF invalid_username_or_password %]Invalid username or password[% END %]
     [% IF ( loginprompt ) %]Log in to Koha[% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
-<body id="main_auth" class="main">
+<body id="main_auth" class="main_main-auth">
 
-<div id="doc" class="yui-t7">
-   <div id="bd">
+<div class="main container-fluid">
 
 <div id="login">
 <h1><a href="http://koha-community.org">Koha</a></h1>
+[% IF (Koha.Preference('StaffLoginInstructions')) %]<div id="login_instructions">[% Koha.Preference('StaffLoginInstructions') %]</div>[% END %]
 [% IF ( nopermission ) %]
 <div id="login_error">
     <strong>Error:</strong>
@@ -35,7 +39,12 @@
 <div id="login_error"><strong>Error: </strong>Autolocation is switched on and you are logging in with an IP address that doesn't match your library. </div>
 [% END %]
 
-[% IF ( invalid_username_or_password ) %]
+[% IF too_many_login_attempts %]
+    <div id="login_error"><strong>Error: </strong>This account has been locked!</div>
+    [% IF Koha.Preference('OpacResetPassword') && Koha.Preference('OpacBaseURL') %]
+        <a href="[% Koha.Preference('OpacBaseURL') %]/cgi-bin/koha/opac-password-recovery.pl">You must reset your password</a>.
+    [% END %]
+[% ELSIF invalid_username_or_password %]
 <div id="login_error"><strong>Error: </strong>Invalid username or password</div>
 [% END %]
 
@@ -100,14 +109,15 @@
 <!-- </ul> -->
 
 </div>
-</div>
 
-<script>
-$(document).ready( function() {
-    if ( document.location.hash ) {
-        $( '#loginform' ).append( '<input name="auth_forwarded_hash" type="hidden" value="' + document.location.hash + '"/>' );
-    }
-} );
-</script>
-
+[% MACRO jsinclude BLOCK %]
+    <script type="text/javascript">
+        $(document).ready( function() {
+            if ( document.location.hash ) {
+                $( '#loginform' ).append( '<input name="auth_forwarded_hash" type="hidden" value="' + document.location.hash + '"/>' );
+            }
+        });
+    </script>
+[% END %]
+<!-- the main div is closed in intranet-bottom.inc -->
 [% INCLUDE 'intranet-bottom.inc' %]

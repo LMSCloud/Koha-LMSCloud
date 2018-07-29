@@ -1,6 +1,8 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE AuthorisedValues %]
 [% USE Price %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Item types [% IF op == 'add_form' %]&rsaquo;
   [% IF ( itemtype ) %]
@@ -21,34 +23,7 @@ Data deleted
 [% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'greybox.inc' %]
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-     $(document).ready(function() {
-        $('#icons').tabs();
-        $("#table_item_type").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumnDefs": [
-                { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-            ],
-            "aaSorting": [[ 2, "asc" ]],
-            "iDisplayLength": 10,
-            "sPaginationType": "four_button"
-        }));
-        $( "#itemtypeentry" ).validate({
-            rules: {
-                itemtype: { required: true },
-                description: { required: true },
-                rentalcharge: { number: true }
-            }
-        });
-        $("#itemtype").on("blur",function(){
-            toUC(this);
-        });
-     });
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 <style type="text/css">
 	fieldset.rows div.toptabs li { clear:none;margin-right:.5em;padding-bottom:0;width:auto; }
   fieldset.rows div.toptabs .ui-tabs-nav li.ui-tabs-active {background-color : #F4F8F9; }
@@ -56,9 +31,10 @@ Data deleted
   fieldset.rows .ui-tabs-nav { margin-left : 10px; }
 </style>
 </head>
+
 <body id="admin_itemtypes" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; [% IF op == 'add_form' %]
   [% IF itemtype %]
@@ -89,7 +65,7 @@ Item types administration
 	
 
 [% IF op == 'list' %]<div id="toolbar" class="btn-toolbar">
-    <a class="btn btn-small" id="newitemtype" href="/cgi-bin/koha/admin/itemtypes.pl?op=add_form"><i class="fa fa-plus"></i> New item type</a>
+    <a class="btn btn-default btn-sm" id="newitemtype" href="/cgi-bin/koha/admin/itemtypes.pl?op=add_form"><i class="fa fa-plus"></i> New item type</a>
 </div>[% END %]
 
 [% FOREACH m IN messages %]
@@ -110,7 +86,7 @@ Item types administration
         [% CASE 'already_exists' %]
             This item type already exists.
         [% CASE 'cannot_be_deleted' %]
-            Cannot delete this item type. <p><strong>This record is used [% m.total %] times</strong>. Deletion is not possible.</p>
+            Cannot delete this item type. <p><strong>This record is in use</strong>. Deletion is not possible.</p>
         [% CASE %]
             [% m.code %]
         [% END %]
@@ -220,14 +196,14 @@ Item types administration
                         <ul>
                             <li>
                                 <label for="remote_image_check"> Remote image:</label>
-                                [% IF remote_image %]
+                                [% IF itemtype.imageurl %]
                                     <input type="radio" id="remote_image_check" name="image" value="remoteImage" checked="checked" />
                                 [% ELSE %]
                                     <input type="radio" id="remote_image_check" name="image" value="remoteImage" />
                                 [% END %]
-                                <input type="text" name="remoteImage" size="48" maxlength="200" value="[% remote_image %]" onmousedown="document.getElementById('remote_image_check').checked = true;" />
-                                [% IF ( remote_image ) %]
-                                    <img src="[% remote_image %]" alt="" />
+                                <input type="text" name="remoteImage" size="48" maxlength="200" value="[% itemtype.imageurl %]" onmousedown="document.getElementById('remote_image_check').checked = true;" />
+                                [% IF itemtype.imageurl %]
+                                    <img src="[% itemtype.imageurl %]" alt="" />
                                 [% END %]
                             </li>
                         </ul>
@@ -235,7 +211,7 @@ Item types administration
                     </div>
                 </div>
             [% END %]
-            <ol>
+            <ol class="oladditemtype">
                 <li>
                     <label for="hideinopac">Hide in OPAC: </label>
                     [% IF ( itemtype.hideinopac ) %]
@@ -257,6 +233,14 @@ Item types administration
                 <li>
                     <label for="rentalcharge">Rental charge: </label>
                     <input type="text" id="rentalcharge" name="rentalcharge" size="10" value="[% itemtype.rentalcharge %]" />
+                </li>
+                <li>
+                    <label for="defaultreplacecost">Default replacement cost: </label>
+                    <input type="text" id="defaultreplacecost" name="defaultreplacecost" size="10" value="[% itemtype.defaultreplacecost %]" />
+                </li>
+                <li>
+                    <label for="processfee">Processing fee (when lost): </label>
+                    <input type="text" id="processfee" name="processfee" size="10" value="[% itemtype.processfee %]" />
                 </li>
                 <li>
                     <label for="checkinmsg">Checkin message: </label>
@@ -348,6 +332,8 @@ Item types administration
             <th>Not for loan</th>
             <th>Hide in OPAC</th>
             <th>Charge</th>
+            <th>Default replacement cost</th>
+            <th>Processing fee (when lost)</th>
             <th>Checkin message</th>
             <th>Actions</th>
           </thead>
@@ -376,7 +362,7 @@ Item types administration
                         <br/>
                     [% END %]
                 [% ELSE %]
-                    [% itemtype.description %]
+                    [% itemtype.description |html %]
                 [% END %]
             </td>
             <td>[% itemtype.searchcategory %]</td>
@@ -387,10 +373,12 @@ Item types administration
               [% itemtype.rentalcharge | $Price %]
             [% END %]
             </td>
-            <td>[% itemtype.checkinmsg | html_line_break %]</td>
+            <td>[% itemtype.defaultreplacecost | $Price %]</td>
+            <td>[% itemtype.processfee | $Price %]</td>
+            <td>[% itemtype.checkinmsg | html | html_line_break %]</td>
             <td class="actions">
-              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=add_form&amp;itemtype=[% itemtype.itemtype |html %]" class="btn btn-mini"><i class="fa fa-pencil"></i> Edit</a>
-              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=delete_confirm&amp;itemtype=[% itemtype.itemtype |html %]" class="btn btn-mini"><i class="fa fa-trash"></i> Delete</a>
+              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=add_form&amp;itemtype=[% itemtype.itemtype |html %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=delete_confirm&amp;itemtype=[% itemtype.itemtype |html %]" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</a>
             </td>
           </tr>
           [% END %]
@@ -406,4 +394,34 @@ Item types administration
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    [% INCLUDE 'greybox.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+         $(document).ready(function() {
+            $('#icons').tabs();
+            $("#table_item_type").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                ],
+                "aaSorting": [[ 2, "asc" ]],
+                "iDisplayLength": 10,
+                "sPaginationType": "four_button"
+            }));
+            $( "#itemtypeentry" ).validate({
+                rules: {
+                    itemtype: { required: true },
+                    description: { required: true },
+                    rentalcharge: { number: true }
+                }
+            });
+            $("#itemtype").on("blur",function(){
+                toUC(this);
+            });
+         });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

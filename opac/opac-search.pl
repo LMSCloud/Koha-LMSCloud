@@ -46,16 +46,17 @@ use C4::Auth qw(:DEFAULT get_session);
 use C4::Languages qw(getLanguages);
 use C4::Search;
 use C4::Search::History;
-use C4::Biblio;  # GetBiblioData
+use C4::Biblio; # Unused here?
 use C4::Koha;
 use C4::Tags qw(get_tags);
-use C4::Branch; # GetBranches
 use C4::SocialData;
-use C4::Ratings;
 use C4::External::OverDrive;
 use C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
 
-use Koha::LibraryCategories;
+use Koha::ItemTypes;
+use Koha::Ratings;
+use Koha::Virtualshelves;
+use Koha::Library::Groups;
 
 use POSIX qw(ceil floor strftime);
 use URI::Escape;
@@ -108,7 +109,7 @@ if ($format =~ /(rss|atom|opensearchdescription)/) {
 elsif (@params && $build_grouped_results) {
     $template_name = 'opac-results-grouped.tt';
 }
-elsif ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr') || ($cgi->param('limit-copydate')) ) ) {
+elsif ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) || ($cgi->param('limit-copydate')) || @searchCategories ) {
     $template_name = 'opac-results.tt';
 }
 else {
@@ -214,9 +215,8 @@ if ($cgi->cookie("search_path_code")) {
     }
 }
 
-my $branches = GetBranches();   # used later in *getRecords, probably should be internalized by those functions after caching in C4::Branch is established
-my $library_categories = Koha::LibraryCategories->search( { categorytype => 'searchdomain' }, { order_by => [ 'categorytype', 'categorycode' ] } );
-$template->param( searchdomainloop => $library_categories );
+my @search_groups = Koha::Library::Groups->get_search_groups();
+$template->param( search_groups => \@search_groups );
 
 # load the language limits (for search)
 my $languages_limit_loop = getLanguages($lang, 1);
@@ -226,13 +226,14 @@ $template->param(search_languages_loop => $languages_limit_loop,);
 my $itemtypes = GetItemTypesCategorized;
 # add translated_description to itemtypes
 foreach my $itemtype ( keys %{$itemtypes} ) {
-    # Itemtypes search categories don't have (yet) translated descriptions, they are auth values
-    my $translated_description = getitemtypeinfo( $itemtype, 'opac' )->{translated_description};
-    $itemtypes->{$itemtype}->{translated_description} =
-            ( $translated_description ) ? $translated_description : $itemtypes->{$itemtype}->{description};
+    # Itemtypes search categories don't have (yet) translated descriptions, they are auth values (and could still have no descriptions too BZ 18400)
+    # If 'iscat' (see ITEMTYPECAT) then there is no itemtype and the description is not translated
+    my $translated_description = $itemtypes->{$itemtype}->{iscat}
+      ? $itemtypes->{$itemtype}->{description}
+      : Koha::ItemTypes->find($itemtype)->translated_description;
+    $itemtypes->{$itemtype}->{translated_description} = $translated_description || $itemtypes->{$itemtype}->{description} || q{};
 }
-# Load the Type stuff without search categories for facets
-my $itemtypes_nocategory = GetItemTypes;
+
 # the index parameter is different for item-level itemtypes
 my $itype_or_itemtype = (C4::Context->preference("item-level_itypes"))?'itype':'itemtype';
 my @advancedsearchesloop;
@@ -252,13 +253,14 @@ if ( $yaml =~ /\S/ ) {
     }
 }
 
+my @sorted_itemtypes = sort { $itemtypes->{$a}->{translated_description} cmp $itemtypes->{$b}->{translated_description} } keys %$itemtypes;
 foreach my $advanced_srch_type (@advanced_search_types) {
     $advanced_srch_type =~ s/^\s*//;
     $advanced_srch_type =~ s/\s*$//;
    if ($advanced_srch_type eq 'itemtypes') {
    # itemtype is a special case, since it's not defined in authorized values
         my @itypesloop;
-        foreach my $thisitemtype ( sort {$itemtypes->{$a}->{translated_description} cmp $itemtypes->{$b}->{translated_description} } keys %$itemtypes ) {
+        foreach my $thisitemtype ( @sorted_itemtypes ) {
             next if $hidingrules->{itype} && any { $_ eq $thisitemtype } @{$hidingrules->{itype}};
             next if $hidingrules->{itemtype} && any { $_ eq $thisitemtype } @{$hidingrules->{itemtype}};
 	    my %row =(  number=>$cnt++,
@@ -381,9 +383,6 @@ if ( $template_type && $template_type eq 'advsearch' ) {
         }
     }
 
-    if (C4::Context->preference('OPACNumbersPreferPhrase')) {
-        $template->param('numbersphr' => 1);
-    }
 
     output_html_with_http_headers $cgi, $cookie, $template->output;
     exit;
@@ -483,7 +482,8 @@ my %is_nolimit = map { $_ => 1 } @nolimits;
 if (@searchCategories > 0) {
     my @tabcat;
     foreach my $typecategory (@searchCategories) {
-        push (@tabcat, GetItemTypesByCategory($typecategory));
+        my @itemtypes = Koha::ItemTypes->search({ searchcategory => $typecategory });
+        push @tabcat, $_->itemtype for @itemtypes;
     }
 
     foreach my $itemtypeInCategory (@tabcat) {
@@ -494,9 +494,9 @@ if (@searchCategories > 0) {
 @limits = map { uri_unescape($_) } @limits;
 
 if($params->{'multibranchlimit'}) {
-    my $library_category = Koha::LibraryCategories->find( $params->{multibranchlimit} );
-    my @libraries = $library_category->libraries;
-    my $multibranch = '('.join( " or ", map { 'branch: ' . $_->id } @libraries ) .')';
+    my $search_group = Koha::Library::Groups->find( $params->{multibranchlimit} );
+    my @libraries = $search_group->all_libraries;
+    my $multibranch = '('.join( " or ", map { 'branch: ' . $_->branchcode } @libraries ) .')';
     push @limits, $multibranch if ($multibranch ne  '()');
 }
 
@@ -534,6 +534,7 @@ my $count = C4::Context->preference('OPACnumSearchResults') || 20;
 my $countRSS         = C4::Context->preference('numSearchRSSResults') || 50;
 my $results_per_page = $params->{'count'} || $count;
 my $offset = $params->{'offset'} || 0;
+$offset = 0 if $offset < 0;
 my $page = $cgi->param('page') || 1;
 $offset = ($page-1)*$results_per_page if $page>1;
 my $hits;
@@ -544,8 +545,31 @@ my ($error,$query,$simple_query,$query_cgi,$query_desc,$limit,$limit_cgi,$limit_
 
 my @results;
 
+my $suppress = 0;
+if (C4::Context->preference('OpacSuppression')) {
+    # OPAC suppression by IP address
+    if (C4::Context->preference('OpacSuppressionByIPRange')) {
+        my $IPAddress = $ENV{'REMOTE_ADDR'};
+        my $IPRange = C4::Context->preference('OpacSuppressionByIPRange');
+        $suppress = ($IPAddress !~ /^$IPRange/);
+    }
+    else {
+        $suppress = 1;
+    }
+}
+
 ## I. BUILD THE QUERY
-( $error,$query,$simple_query,$query_cgi,$query_desc,$limit,$limit_cgi,$limit_desc,$query_type) = $builder->build_query_compat(\@operators,\@operands,\@indexes,\@limits,\@sort_by, 0, $lang, { expanded_facet => $expanded_facet });
+( $error,$query,$simple_query,$query_cgi,$query_desc,$limit,$limit_cgi,$limit_desc,$query_type)
+  = $builder->build_query_compat(
+    \@operators,
+    \@operands,
+    \@indexes,
+    \@limits,
+    \@sort_by,
+    0,
+    $lang,
+    { expanded_facet => $expanded_facet, suppress => $suppress }
+    );
 
 sub _input_cgi_parse {
     my @elements;
@@ -565,36 +589,6 @@ $template->param ( QUERY_INPUTS => \@query_inputs );
 ## parse the limit_cgi string and put it into a form suitable for <input>s
 my @limit_inputs = $limit_cgi ? _input_cgi_parse($limit_cgi) : ();
 
-# add OPAC 'hidelostitems'
-#if (C4::Context->preference('hidelostitems') == 1) {
-#    # either lost ge 0 or no value in the lost register
-#    $query ="($query) and ( (lost,st-numeric <= 0) or ( allrecords,AlwaysMatches='' not lost,AlwaysMatches='') )";
-#}
-#
-# add OPAC suppression - requires at least one item indexed with Suppress
-if (C4::Context->preference('OpacSuppression')) {
-    # OPAC suppression by IP address
-    if (C4::Context->preference('OpacSuppressionByIPRange')) {
-        my $IPAddress = $ENV{'REMOTE_ADDR'};
-        my $IPRange = C4::Context->preference('OpacSuppressionByIPRange');
-        if ($IPAddress !~ /^$IPRange/)  {
-            if ( $query_type eq 'pqf' ) {
-                $query = '@not '.$query.' @attr 14=1 @attr 1=9011 1';
-            } else {
-                $query = "($query) not Suppress=1";
-            }
-        }
-    }
-    else {
-        if ( $query_type eq 'pqf' ) {
-            #$query = "($query) && -(suppress:1)"; #QP syntax
-            $query = '@not '.$query.' @attr 14=1 @attr 1=9011 1'; #PQF syntax
-        } else {
-            $query = "($query) not Suppress=1";
-        }
-    }
-}
-
 $template->param ( LIMIT_INPUTS => \@limit_inputs );
 $template->param ( OPACResultsSidebar => C4::Context->preference('OPACResultsSidebar'));
 
@@ -609,28 +603,28 @@ if ($tag) {
     $query_cgi = "tag=" .$tag . "&" . $query_cgi;
     my $taglist = get_tags({term=>$tag, approved=>1});
     $results_hashref->{biblioserver}->{hits} = scalar (@$taglist);
-    my @biblist  = (map {GetBiblioData($_->{biblionumber})} @$taglist);
-    my @marclist = (map { (C4::Context->config('zebra_bib_index_mode') eq 'dom')? $_->{marcxml}: $_->{marc}; } @biblist);
+    my @marclist = map { C4::Biblio::GetXmlBiblio( $_->{biblionumber} ) } @$taglist;
     $DEBUG and printf STDERR "taglist (%s biblionumber)\nmarclist (%s records)\n", scalar(@$taglist), scalar(@marclist);
     $results_hashref->{biblioserver}->{RECORDS} = \@marclist;
     # FIXME: tag search and standard search should work together, not exclusively
     # FIXME: No facets for tags search.
 } elsif ($build_grouped_results) {
     eval {
-        ($error, $results_hashref, $facets) = C4::Search::pazGetRecords($query,$simple_query,\@sort_by,\@servers,$results_per_page,$offset,$expanded_facet,$branches,$query_type,$scan);
+        ($error, $results_hashref, $facets) = C4::Search::pazGetRecords($query,$simple_query,\@sort_by,\@servers,$results_per_page,$offset,$expanded_facet,undef,$query_type,$scan);
     };
 } else {
     $pasarParams .= '&amp;query=' . uri_escape_utf8($query);
     $pasarParams .= '&amp;count=' . uri_escape_utf8($results_per_page);
     $pasarParams .= '&amp;simple_query=' . uri_escape_utf8($simple_query);
     $pasarParams .= '&amp;query_type=' . uri_escape_utf8($query_type) if ($query_type);
+    my $itemtypes_nocategory = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
     eval {
-        ($error, $results_hashref, $facets) = $searcher->search_compat($query,$simple_query,\@sort_by,\@servers,$results_per_page,$offset,$expanded_facet,$branches,$itemtypes,$query_type,$scan,1);
+        ($error, $results_hashref, $facets) = $searcher->search_compat($query,$simple_query,\@sort_by,\@servers,$results_per_page,$offset,$expanded_facet,undef,$itemtypes_nocategory,$query_type,$scan,1);
 };
 }
 
 # use Data::Dumper; print STDERR "-" x 25, "\n", Dumper($results_hashref);
-if ($@ || $error) {
+if (not $tag and ( $@ || $error)) {
     $template->param(query_error => $error.$@);
     output_html_with_http_headers $cgi, $cookie, $template->output;
     exit;
@@ -675,7 +669,7 @@ for (my $i=0;$i<@servers;$i++) {
             }
 
             if (C4::Context->preference('COinSinOPACResults') || C4::Context->preference('DivibibEnabled')) {
-                my $record = GetMarcBiblio($res->{'biblionumber'});
+                my $record = GetMarcBiblio({ biblionumber => $res->{'biblionumber'} });
                 if ( C4::Context->preference('COinSinOPACResults') ) {
                     $res->{coins} = GetCOinSBiblio($record);
                 }
@@ -717,12 +711,17 @@ for (my $i=0;$i<@servers;$i++) {
                 }
             }
 
+            $res->{shelves} = Koha::Virtualshelves->get_shelves_containing_record(
+                {
+                    biblionumber   => $res->{biblionumber},
+                    borrowernumber => $borrowernumber
+                }
+            );
+
             if ( C4::Context->preference('OpacStarRatings') eq 'all' ) {
-                my $rating = GetRating( $res->{'biblionumber'}, $borrowernumber );
-                $res->{'rating_value'}  = $rating->{'rating_value'};
-                $res->{'rating_total'}  = $rating->{'rating_total'};
-                $res->{'rating_avg'}    = $rating->{'rating_avg'};
-                $res->{'rating_avg_int'} = $rating->{'rating_avg_int'};
+                my $ratings = Koha::Ratings->search({ biblionumber => $res->{biblionumber} });
+                $res->{ratings} = $ratings;
+                $res->{my_rating} = $borrowernumber ? $ratings->search({ borrowernumber => $borrowernumber })->next : undef;
             }
 
         }
@@ -825,12 +824,12 @@ for (my $i=0;$i<@servers;$i++) {
                     ||
                     C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'OpacURLBranch'
                 ) {
-                    my $branchname;
+                    my $branchcode;
                     if ( C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'PatronBranch' ) {
-                        $branchname = $branches->{$branch}->{'branchname'};
+                        $branchcode = $branch;
                     }
                     elsif (  C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'OpacURLBranch' ) {
-                        $branchname = $branches->{ $ENV{'BRANCHCODE'} }->{'branchname'};
+                        $branchcode = $ENV{'BRANCHCODE'};
                     }
 
                     foreach my $res ( @newresults ) {
@@ -838,7 +837,7 @@ for (my $i=0;$i<@servers;$i++) {
                         my @top_loop;
                         my @old_loop = @{$res->{'available_items_loop'}};
                         foreach my $item ( @old_loop ) {
-                            if ( $item->{'branchname'} eq $branchname ) {
+                            if ( $item->{'branchcode'} eq $branchcode ) {
                                 $item->{'this_branch'} = 1;
                                 push( @top_loop, $item );
                             } else {
@@ -864,6 +863,7 @@ for (my $i=0;$i<@servers;$i++) {
             my @page_numbers;
             # total number of pages there will be
             my $pages = ceil($hits / $results_per_page);
+            my $last_page_offset = ( $pages - 1 ) * $results_per_page;
             # default page number
             my $current_page_number = 1;
             if ($offset) {
@@ -914,6 +914,7 @@ for (my $i=0;$i<@servers;$i++) {
                         
             }
             $template->param(   PAGE_NUMBERS => \@page_numbers,
+                                last_page_offset => $last_page_offset,
                                 previous_page_offset => $previous_page_offset) unless $pages < 2;
             $template->param(next_page_offset => $next_page_offset) unless $pages eq $current_page_number;
         }

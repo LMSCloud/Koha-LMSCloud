@@ -1,3 +1,5 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; MARC check
 [% IF ( total ) %] :[% total %] errors found[% ELSE %] : Configuration OK![% END %]</title>
@@ -5,7 +7,7 @@
 </head>
 <body id="admin_checkmarc" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; MARC check
 [% IF ( total ) %]: [% total %] errors found[% ELSE %] : Configuration OK![% END %]</div>
@@ -276,4 +278,8 @@
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

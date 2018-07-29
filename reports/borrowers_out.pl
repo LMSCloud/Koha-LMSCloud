@@ -17,8 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
@@ -28,7 +27,9 @@ use C4::Output;
 use C4::Circulation;
 use C4::Reports;
 use C4::Members;
+
 use Koha::DateUtils;
+use Koha::Patron::Categories;
 
 =head1 NAME
 
@@ -116,19 +117,12 @@ if ($do_it) {
     
     my $CGIextChoice = ( 'CSV' ); # FIXME translation
 	my $CGIsepChoice = GetDelimiterChoices;
-    
-    my ($codes,$labels) = GetborCatFromCatType(undef,undef);
-    my @borcatloop;
-    foreach my $thisborcat (sort keys %$labels) {
-            my %row =(value => $thisborcat,
-                                    description => $labels->{$thisborcat},
-                            );
-            push @borcatloop, \%row;
-    }
+
+    my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['categorycode']});
     $template->param(
                     CGIextChoice => $CGIextChoice,
                     CGIsepChoice => $CGIsepChoice,
-                    borcatloop =>\@borcatloop,
+                    patron_categories => $patron_categories,
                     );
 output_html_with_http_headers $input, $cookie, $template->output;
 }

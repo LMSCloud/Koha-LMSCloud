@@ -1,62 +1,37 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE ColumnsSettings %]
+[% USE AuthorisedValues %]
 [% USE Price %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Patrons &rsaquo; Account for [% INCLUDE 'patron-title.inc' %]</title>
+<title>Koha &rsaquo; Patrons &rsaquo; Account for [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-$(document).ready(function() {
-    var txtActivefilter = _("Filter paid transactions");
-    var txtInactivefilter = _("Show all transactions");
-    var table_account_fines = $("#table_account_fines").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "sPaginationType": "four_button",
-        'aaSorting': [[0, 'desc']],
-        "sDom": 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
-        "aoColumnDefs": [
-            { "sType": "title-string", "aTargets" : [ "title-string" ] },
-            { "bSortable": false, "bSearchable": false, "aTargets": [-1] }
-        ]
-    }));
-    $("#filter_c").html('<p><a href="#" id="filter_transacs"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
-    $('#filter_transacs').click(function(e) {
-        e.preventDefault();
-        if ($(this).hasClass('filtered')) {
-            var filteredValue = '';
-            $(this).html('<i class="fa fa-filter"></i> '+txtActivefilter);
-        } else { //Not filtered. Let's do it!
-            var filteredValue = '^((?!0.00).*)$'; //Filter not matching 0.00 http://stackoverflow.com/a/406408
-            $(this).html('<i class="fa fa-filter"></i> '+txtInactivefilter);
-        }
-        table_account_fines.fnFilter(filteredValue, 4, true, false);
-        $(this).toggleClass('filtered');
-    });
-});
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="pat_borraccount" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
+[% PROCESS 'patron-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Account for [% INCLUDE 'patron-title.inc' %]</div>
 
 <div id="doc3" class="yui-t2">
-   
    <div id="bd">
 	<div id="yui-main">
 	<div class="yui-b">
 [% INCLUDE 'members-toolbar.inc' %]
-<form action="/cgi-bin/koha/members/boraccount.pl" method="get"><input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrowernumber %]" /></form>
+<form action="/cgi-bin/koha/members/boraccount.pl" method="get"><input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" /></form>
 
 <!-- The manual invoice and credit buttons -->
 <div class="statictabs">
 <ul>
-    <li class="active"><a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% borrowernumber %]">Account</a></li>
-	<li><a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrowernumber %]" >Pay fines</a></li>
-	<li><a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% borrowernumber %]" >Create manual invoice</a></li>
-	<li><a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% borrowernumber %]" >Create manual credit</a></li>
+    <li class="active"><a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber %]">Account</a></li>
+    <li><a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]" >Pay fines</a></li>
+    <li><a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber %]" >Create manual invoice</a></li>
+    <li><a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber %]" >Create manual credit</a></li>
 </ul>
 <div class="tabs-container">
 <!-- The table with the account items -->
@@ -82,54 +57,29 @@ $(document).ready(function() {
    <tr>
    <td><span title="[% account.date %]">[% account.date |$KohaDates %]</span></td>
       <td>
-        [% SWITCH account.accounttype %]
-          [% CASE 'Pay' %]Payment, thanks
-          [% CASE 'Pay00' %]Payment, thanks (cash via SIP2)
-          [% CASE 'Pay01' %]Payment, thanks (VISA via SIP2)
-          [% CASE 'Pay02' %]Payment, thanks (credit card via SIP2)
-          [% CASE 'N' %]New card
-          [% CASE 'F' %]Fine
-          [% CASE 'A' %]Account management fee
-          [% CASE 'M' %]Sundry
-          [% CASE 'L' %]Lost item
-          [% CASE 'W' %]Writeoff
-          [% CASE 'CAN' %]Fine cancelled
-          [% CASE 'FU' %]Accruing fine
-          [% CASE 'HE' %]Hold waiting too long
-          [% CASE 'Rent' %]Rental fee
-          [% CASE 'FOR' %]Forgiven
-          [% CASE 'LR' %]Lost item fee refund
-          [% CASE 'PAY' %]Payment
-          [% CASE 'WO' %]Writeoff
-          [% CASE 'C' %]Credit
-          [% CASE 'CR' %]Credit
-          [% CASE 'CL1' %]Overdue fine (level 1)
-          [% CASE 'CL2' %]Overdue fine (level 2)
-          [% CASE 'CL3' %]Overdue fine (level 3)
-          [% CASE 'CL4' %]Overdue fine (level 4)
-          [% CASE 'CL5' %]Overdue fine (level 5)
-          [% CASE 'NOTF' %]Notice fee
-          [% CASE %][% account.accounttype %]
-        [%- END -%]
+        [% INCLUDE 'accounttype.inc' accountline => account %]
+        [%- IF account.payment_type %], [% AuthorisedValues.GetByCode('PAYMENT_TYPE', account.payment_type) %][% END %]
         [%- IF account.description %], [% account.description.replace('^(Writeoff|Fine cancelled)[:]?','') %][% END %]
-        &nbsp;[% IF ( account.itemnumber ) %]<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% account.biblionumber %]&amp;itemnumber=[% account.itemnumber %]">[% account.title |html %]</a>[% END %]</td>
+        &nbsp;[% IF ( account.itemnumber ) %]<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% account.item.biblionumber %]&amp;itemnumber=[% account.itemnumber %]">[% account.item.biblio.title |html %]</a>[% END %]</td>
       <td>[% account.note | html_line_break %]</td>
       [% IF ( account.amountcredit ) %]<td class="credit" style="text-align: right;">[% ELSE %]<td class="debit" style="text-align: right;">[% END %][% account.amount | $Price %]</td>
       [% IF ( account.amountoutstandingcredit ) %]<td class="credit" style="text-align: right;">[% ELSE %]<td class="debit" style="text-align: right;">[% END %][% account.amountoutstanding | $Price %]</td>
       <td class="actions">
         [% IF ( account.payment ) %]
-          <a target="_blank" href="printfeercpt.pl?action=print&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-mini"><i class="fa fa-print"></i> Print</a>
+          <a target="_blank" href="printfeercpt.pl?action=print&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-default btn-xs"><i class="fa fa-print"></i> Print</a>
         [% ELSE %]
-          <a target="_blank" href="printinvoice.pl?action=print&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-mini"><i class="fa fa-print"></i> Print</a>
+          <a target="_blank" href="printinvoice.pl?action=print&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-default btn-xs"><i class="fa fa-print"></i> Print</a>
         [% END %]
+        <a href="accountline-details.pl?accountlines_id=[% account.accountlines_id %]" class="btn btn-default btn-xs"><i class="fa fa-list"></i> Details</a>
         [% IF ( reverse_col) %]
           [% IF ( account.payment ) %]
             [% IF (checkCashRegisterFailed) %]
-              <a href="javascript:void(0)" class="btn btn-mini" disabled="disabled"><i class="fa fa-undo"></i> Reverse</a>
+                <a href="boraccount.pl?action=reverse&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-default btn-xs"><i class="fa fa-undo"></i> Reverse</a>
             [% ELSE %]
-              <a href="boraccount.pl?action=reverse&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-mini"><i class="fa fa-undo"></i> Reverse</a>
+                <a href="javascript:void(0)" class="btn btn-default btn-xs" disabled="disabled"><i class="fa fa-undo"></i> Reverse</a>
             [% END %]
-          [% ELSE %]
+            <a href="boraccount.pl?action=void&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-default btn-xs"><i class="fa fa-ban"></i> Void</a>
+          [% ELSE %][% SET footerjs = 1 %]
             &nbsp;
           [% END %]
         [% END %]
@@ -163,4 +113,41 @@ Please open a cash register to reverse payments.
 [% INCLUDE 'circ-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% Asset.js("js/members-menu.js") %]
+    <script type="text/javascript">
+        var dateformat = "[% Koha.Preference('dateformat') %]";
+        $(document).ready(function() {
+            var txtActivefilter = _("Filter paid transactions");
+            var txtInactivefilter = _("Show all transactions");
+            var columns_settings = [% ColumnsSettings.GetColumns('members', 'fines', 'account-fines', 'json') %];
+            var table_account_fines = KohaTable("table_account_fines", {
+                "sPaginationType": "four_button",
+                'aaSorting': [[0, 'desc']],
+                "sDom": 'C<"top pager"ilpfB><"#filter_c">tr<"bottom pager"ip>',
+                "aoColumnDefs": [
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] },
+                    { "bSortable": false, "bSearchable": false, "aTargets": [-1] }
+                ]
+            }, columns_settings);
+            $("#filter_c").html('<p><a href="#" id="filter_transacs"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
+            $('#filter_transacs').click(function(e) {
+                e.preventDefault();
+                if ($(this).hasClass('filtered')) {
+                    var filteredValue = '';
+                    $(this).html('<i class="fa fa-filter"></i> '+txtActivefilter);
+                } else { //Not filtered. Let's do it!
+                    var filteredValue = '^((?!0.00).*)$'; //Filter not matching 0.00 http://stackoverflow.com/a/406408
+                    $(this).html('<i class="fa fa-filter"></i> '+txtInactivefilter);
+                }
+                table_account_fines.fnFilter(filteredValue, 4, true, false);
+                $(this).toggleClass('filtered');
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

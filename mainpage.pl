@@ -25,11 +25,12 @@ use C4::Output;
 use C4::Auth;
 use C4::Koha;
 use C4::NewsChannels; # GetNewsToDisplay
-use C4::Review qw/numberofreviews/;
 use C4::Suggestions qw/CountSuggestion/;
 use C4::Tags qw/get_count_by_tag_status/;
 use Koha::Patron::Modifications;
 use Koha::Patron::Discharge;
+use Koha::Reviews;
+use Koha::ArticleRequests;
 
 my $query = new CGI;
 
@@ -62,12 +63,17 @@ my $branch =
   ? C4::Context->userenv()->{'branch'}
   : undef;
 
-my $pendingcomments    = numberofreviews(0);
+my $pendingcomments    = Koha::Reviews->search_limited({ approved => 0 })->count;
 my $pendingtags        = get_count_by_tag_status(0);
 my $pendingsuggestions = CountSuggestion("ASKED");
-my $pending_borrower_modifications =
-  Koha::Patron::Modifications->GetPendingModificationsCount( $branch );
+my $pending_borrower_modifications = Koha::Patron::Modifications->pending_count( $branch );
 my $pending_discharge_requests = Koha::Patron::Discharge::count({ pending => 1 });
+my $pending_article_requests = Koha::ArticleRequests->search_limited(
+    {
+        status => Koha::ArticleRequest::Status::Pending,
+        $branch ? ( branchcode => $branch ) : (),
+    }
+)->count;
 
 $template->param(
     pendingcomments                => $pendingcomments,
@@ -75,13 +81,7 @@ $template->param(
     pendingsuggestions             => $pendingsuggestions,
     pending_borrower_modifications => $pending_borrower_modifications,
     pending_discharge_requests     => $pending_discharge_requests,
+    pending_article_requests       => $pending_article_requests,
 );
-
-#
-# warn user if he is using mysql/admin login
-#
-unless ($loggedinuser) {
-    $template->param(adminWarning => 1);
-}
 
 output_html_with_http_headers $query, $cookie, $template->output;

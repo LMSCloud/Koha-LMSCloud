@@ -1,31 +1,12 @@
+[% USE Asset %]
 [% USE Koha %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; [% IF ( booksellername ) %]Orders with uncertain prices for vendor [% booksellername %][% ELSE %]Orders with uncertain prices[% END %]</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
- $(document).ready(function() {
-    var uncertainpricet = $("#uncertainpricet").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-            { "aTargets": [ -1, -2, -3 ], "bSortable": false, "bSearchable": false },
-        ],
-        "sPaginationType": "four_button"
-    } ) );
- });
-var MSG_INVALIDPRICE = _("ERROR: Price is not a valid number, please check the price and try again!");
- //]]>
-</script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/acq.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-function check(form) {
-    form.submit();
-}
-//]]>
-</script>
 </head>
+
 <body id="acq_uncertainprice" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
@@ -40,7 +21,8 @@ function check(form) {
 
 [% INCLUDE 'acquisitions-toolbar.inc' %]
         [% IF ( validate ) %]
-            <META HTTP-EQUIV=Refresh CONTENT="0; url=[% scriptname %]?booksellerid=[% booksellerid %]">
+            [% SET metacontent = '0; url=' _  scriptname  _ '?booksellerid=' _  booksellerid %]
+            <META HTTP-EQUIV=Refresh CONTENT="[% metacontent %]">
         [% ELSE %]
         [% IF ( booksellername ) %]
             <h1>Orders with uncertain prices for vendor <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% booksellername %]</a></h1>
@@ -75,10 +57,10 @@ function check(form) {
         [% END %]
 
         <h2>Orders with uncertain prices</h2>
-        <form action="[% scriptname %]" method="post" name="uncertainprices">
+        <form action="[% scriptname %]" method="post">
         <input type="hidden" name="booksellerid" value="[% booksellerid %]" />
-        Orders from:
-        <select name="owner">
+        <label for="owner">Orders from:</label>
+        <select id="owner" name="owner">
             [% IF ( owner ) %]
             <option value="0">Everyone</option>
             <option value="1" selected="selected">me</option>
@@ -89,7 +71,7 @@ function check(form) {
         </select>
         <input type="submit" value="Filter" />
         </form>
-        <form action="[% scriptname %]" method="post" name="uncertainprices">
+        <form action="[% scriptname %]" method="post" id="uncertainprices">
         <input type="hidden" name="booksellerid" value="[% booksellerid %]" />
         <input type="hidden" name="op" value="validate" />
         <table id="uncertainpricet">
@@ -110,11 +92,20 @@ function check(form) {
             [% uncertainpriceorder.basketname %]
         </td>
 	    <td>
-	        [% uncertainpriceorder.bibtitle %] / [% uncertainpriceorder.bibauthor %] <br /> [% uncertainpriceorder.bibpublishercode %], [% uncertainpriceorder.bibpublicationyear %]<br />[% uncertainpriceorder.bibisbn %]<br />
-	        <a href="neworderempty.pl?ordernumber=[% uncertainpriceorder.ordernumber %]&amp;booksellerid=[% booksellerid %]&amp;basketno=[% uncertainpriceorder.basketno %]">
-	            edit
-	        </a>
-	    </td>
+            <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% uncertainpriceorder.biblionumber %]">[% uncertainpriceorder.title |html %]</a>
+            [% IF ( uncertainpriceorder.author ) %] <em>by</em> [% uncertainpriceorder.author %][% END %]
+            [% IF ( uncertainpriceorder.publishercode ) %]
+                <br /><em>Publisher:</em> [% uncertainpriceorder.publishercode %]
+                [%- IF    ( uncertainpriceorder.publicationyear ) -%], [% uncertainpriceorder.publicationyear %]
+                [%- ELSIF ( uncertainpriceorder.copyrightdate ) -%] [% uncertainpriceorder.copyrightdate %]
+                [% END %]
+            [% END %]
+            [% IF ( uncertainpriceorder.isbn ) %]<br />[% uncertainpriceorder.isbn %][% END %]
+            <br />
+            <a href="neworderempty.pl?ordernumber=[% uncertainpriceorder.ordernumber %]&amp;booksellerid=[% booksellerid %]&amp;basketno=[% uncertainpriceorder.basketno %]">
+                Edit
+            </a>
+        </td>
         <td>
             [% uncertainpriceorder.firstname %] [% uncertainpriceorder.surname %]
         </td>
@@ -122,24 +113,21 @@ function check(form) {
 	        <input type="checkbox" name="uncertainprice[% uncertainpriceorder.ordernumber %]" value="1" checked="checked" />
 	    </td>
 	    <td>
-	        <input type="text" size="10" name="price[% uncertainpriceorder.ordernumber %]" value="[% uncertainpriceorder.listprice %]"
-	                                        onchange="uncheckbox(this.form, [% uncertainpriceorder.ordernumber %]);" />
+            <input class="check_uncertain" data-ordernumber="[% uncertainpriceorder.ordernumber %]" type="text" size="10" name="price[% uncertainpriceorder.ordernumber %]" value="[% uncertainpriceorder.listprice %]" />
 	    </td>
 	    <td>
-	        
-        [% IF Koha.Preference('AcqCreateItem') == 'ordering' %]
+        [% IF basket.effective_create_items == 'ordering' %]
             [% uncertainpriceorder.quantity %]
             <input type="hidden" name="qty[% uncertainpriceorder.ordernumber %]" value="[% uncertainpriceorder.quantity %]" />
         [% ELSE %]
-            <input type="text" size="10" name="qty[% uncertainpriceorder.ordernumber %]" value="[% uncertainpriceorder.quantity %]"
-                    onchange="uncheckbox(this.form, [% uncertainpriceorder.ordernumber %]);" />
+            <input class="check_uncertain" data-ordernumber="[% uncertainpriceorder.ordernumber %]" type="text" size="10" name="qty[% uncertainpriceorder.ordernumber %]" value="[% uncertainpriceorder.quantity %]" />
         [% END %]
 	    </td>
 	    </tr>
 	    [% END %]
     </tbody>
 	</table>
-	<fieldset class="action"><input type="button" value="Save" onclick="check(this.form)" /></fieldset>
+    <fieldset class="action"><input type="submit" value="Save" /></fieldset>
 	</form>
 	[% END %]
 
@@ -149,4 +137,27 @@ function check(form) {
 [% INCLUDE 'vendor-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var uncertainpricet = $("#uncertainpricet").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1, -2, -3 ], "bSortable": false, "bSearchable": false },
+                ],
+                "sPaginationType": "four_button"
+            }));
+            $(".check_uncertain").on("change",function(){
+                var form = document.getElementById("uncertainprices");
+                var ordernumber = $(this).data("ordernumber");
+                uncheckbox( form, ordernumber );
+            });
+        });
+        var MSG_INVALIDPRICE = _("ERROR: Price is not a valid number, please check the price and try again!");
+    </script>
+    [% Asset.js("js/acq.js") %]
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

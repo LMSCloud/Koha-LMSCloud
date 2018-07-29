@@ -19,7 +19,7 @@ package Koha::DateUtils;
 use Modern::Perl;
 use DateTime;
 use C4::Context;
-use Carp;
+use Koha::Exceptions;
 
 use base 'Exporter';
 
@@ -103,6 +103,22 @@ sub dt_from_string {
             /
             (?<year>\d{4})
         |xms;
+    }
+    elsif ( $date_format eq 'rfc3339' ) {
+        $regex = qr/
+            (?<year>\d{4})
+            -
+            (?<month>\d{2})
+            -
+            (?<day>\d{2})
+            ([Tt\s])
+            (?<hour>\d{2})
+            :
+            (?<minute>\d{2})
+            :
+            (?<second>\d{2})
+            (([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))
+        /xms;
     }
     elsif ( $date_format eq 'iso' or $date_format eq 'sql' ) {
         # iso or sql format are yyyy-dd-mm[ hh:mm:ss]"
@@ -209,17 +225,16 @@ sub output_pref {
         $dt = $params;
     }
 
-    carp "output_pref should not be called with both dt and str parameters"
-        and return
-            if $dt and $str;
+    Koha::Exceptions::WrongParameter->throw( 'output_pref should not be called with both dt and str parameter' ) if $dt and $str;
 
     if ( $str ) {
         local $@;
         $dt = eval { dt_from_string( $str ) };
-        carp "Invalid date '$str' passed to output_pref\n" if $@;
+        Koha::Exceptions::WrongParameter->throw("Invalid date '$str' passed to output_pref" ) if $@;
     }
 
-    return unless defined $dt;
+    return if !defined $dt; # NULL date
+    Koha::Exceptions::WrongParameter->throw( "output_pref is called with '$dt' (ref ". ( ref($dt) ? ref($dt):'SCALAR')."), not a DateTime object")  if ref($dt) ne 'DateTime';
 
     # FIXME: see bug 13242 => no TZ for dates 'infinite'
     if ( $dt->ymd !~ /^9999/ ) {
@@ -237,6 +252,10 @@ sub output_pref {
         $date = $dateonly
           ? $dt->strftime("%Y-%m-%d")
           : $dt->strftime("%Y-%m-%d $time");
+    }
+    elsif ( $pref =~ m/^rfc3339/ ) {
+        $date = $dt->strftime('%FT%T%z');
+        substr($date, -2, 0, ':'); # timezone "HHmm" => "HH:mm"
     }
     elsif ( $pref =~ m/^metric/ ) {
         $date = $dateonly

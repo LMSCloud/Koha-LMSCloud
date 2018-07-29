@@ -18,8 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 #
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Output;
@@ -27,9 +26,11 @@ use C4::Auth;
 use C4::Koha;
 use C4::Context;
 use C4::Circulation;
-use C4::Branch;
 use C4::Members;
 use C4::Biblio;
+use Koha::Patrons;
+
+use Koha::Items;
 
 my $query = CGI->new;
 
@@ -44,13 +45,16 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
 my $operations = GetOfflineOperations;
 
 for (@$operations) {
-    my $biblio             = GetBiblioFromItemNumber(undef, $_->{'barcode'});
-    $_->{'bibliotitle'}    = $biblio->{'title'};
-    $_->{'biblionumber'}   = $biblio->{'biblionumber'};
-    my $borrower           = C4::Members::GetMember( cardnumber => $_->{'cardnumber'} );
-    if ($borrower) {
-        $_->{'borrowernumber'} = $borrower->{'borrowernumber'};
-        $_->{'borrower'}       = ($borrower->{'firstname'}?$borrower->{'firstname'}:'').' '.$borrower->{'surname'};
+    my $item = $_->{barcode} ? Koha::Items->find({ barcode => $_->{barcode} }) : undef;
+    if ($item) {
+        my $biblio = $item->biblio;
+        $_->{'bibliotitle'}    = $biblio->title;
+        $_->{'biblionumber'}   = $biblio->biblionumber;
+    }
+    my $patron             = $_->{cardnumber} ? Koha::Patrons->find( { cardnumber => $_->{cardnumber} } ) : undef;
+    if ($patron) {
+        $_->{'borrowernumber'} = $patron->borrowernumber;
+        $_->{'borrower'}       = ($patron->firstname ? $patron->firstname:'').' '.$patron->surname;
     }
     $_->{'actionissue'}    = $_->{'action'} eq 'issue';
     $_->{'actionreturn'}   = $_->{'action'} eq 'return';

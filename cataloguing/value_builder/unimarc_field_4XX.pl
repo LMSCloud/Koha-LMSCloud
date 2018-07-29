@@ -31,7 +31,6 @@ use C4::Output;
 use C4::Biblio;
 use C4::Koha;
 use MARC::Record;
-use C4::Branch;    # GetBranches
 
 use Koha::ItemTypes;
 
@@ -97,7 +96,7 @@ sub plugin {
         );
 
         #get marc record
-        $marcrecord = GetMarcBiblio($biblionumber);
+        $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
 
         my $subfield_value_9 = $biblionumber;
         my $subfield_value_0;

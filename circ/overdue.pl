@@ -24,7 +24,6 @@ use C4::Context;
 use C4::Output;
 use CGI qw(-oldstyle_urls -utf8);
 use C4::Auth;
-use C4::Branch;
 use C4::Debug;
 use Text::CSV_XS;
 use Koha::DateUtils;
@@ -32,7 +31,6 @@ use DateTime;
 use DateTime::Format::MySQL;
 
 my $input = new CGI;
-my $order           = $input->param('order') || '';
 my $showall         = $input->param('showall');
 my $bornamefilter   = $input->param('borname') || '';
 my $borcatfilter    = $input->param('borcat') || '';
@@ -65,6 +63,8 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+our $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+
 my $dbh = C4::Context->dbh;
 
 my $req;
@@ -89,13 +89,6 @@ while (my ($itemtype, $description) =$req->fetchrow) {
         itemtypename => $description,
     };
 }
-my $onlymine =
-     C4::Context->preference('IndependentBranches')
-  && C4::Context->userenv
-  && !C4::Context->IsSuperLibrarian()
-  && C4::Context->userenv->{branch};
-
-$branchfilter = C4::Context->userenv->{'branch'} if ($onlymine && !$branchfilter);
 
 # Filtering by Patron Attributes
 #  @patron_attr_filter_loop        is non empty if there are any patron attribute filters
@@ -113,20 +106,6 @@ for my $attrcode (grep { /^patron_attr_filter_/ } $input->multi_param) {
 my $have_pattr_filter_data = keys(%cgi_attrcode_to_attrvalues) > 0;
 
 my @patron_attr_filter_loop;   # array of [ domid cgivalue ismany isclone ordinal code description repeatable authorised_value_category ]
-my @patron_attr_order_loop;    # array of { label => $patron_attr_label, value => $patron_attr_order }
-
-my @sort_roots = qw(borrower title barcode date_due);
-push @sort_roots, map {$_ . " desc"} @sort_roots;
-my @order_loop = ({selected => $order ? 0 : 1});   # initial blank row
-foreach (@sort_roots) {
-    my $tmpl_name = $_;
-    $tmpl_name =~ s/\s/_/g;
-    push @order_loop, {
-        selected => $order eq $_ ? 1 : 0,
-        ordervalue => $_,
-        'order_' . $tmpl_name => 1,
-    };
-}
 
 my $sth = $dbh->prepare('SELECT code,description,repeatable,authorised_value_category
     FROM borrower_attribute_types
@@ -147,19 +126,7 @@ while (my $row = $sth->fetchrow_hashref) {
         $row->{isclone} = $isclone;
         push @patron_attr_filter_loop, { %$row };  # careful: must store a *deep copy* of the modified row
     } continue { $isclone = 1, ++$serial }
-    foreach my $sortorder ('asc', 'desc') {
-        my $ordervalue = "patron_attr_${sortorder}_${code}";
-        push @order_loop, {
-            selected => $order eq $ordervalue ? 1 : 0,
-            ordervalue => $ordervalue,
-            label => $row->{description},
-            $sortorder => 1,
-        };
-    }
 } continue { ++$ordinal }
-for (@patron_attr_order_loop) { $_->{selected} = 1 if $order eq $_->{value} }
-
-$template->param(ORDER_LOOP => \@order_loop);
 
 my %borrowernumber_to_attributes;    # hash of { borrowernumber => { attrcode => [ [val,display], [val,display], ... ] } }
                                      #   i.e. val differs from display when attr is an authorised value
@@ -214,9 +181,6 @@ if (@patron_attr_filter_loop) {
 
 $template->param(
     patron_attr_header_loop => [ map { { header => $_->{description} } } grep { ! $_->{isclone} } @patron_attr_filter_loop ],
-    branchloop   => GetBranchesLoop($branchfilter, $onlymine),
-    homebranchloop => GetBranchesLoop( $homebranchfilter, $onlymine ),
-    holdingbranchloop => GetBranchesLoop( $holdingbranchfilter, $onlymine ),
     branchfilter => $branchfilter,
     homebranchfilter => $homebranchfilter,
     holdingbranchfilter => $homebranchfilter,
@@ -224,7 +188,6 @@ $template->param(
     itemtypeloop => \@itemtypeloop,
     patron_attr_filter_loop => \@patron_attr_filter_loop,
     borname => $bornamefilter,
-    order => $order,
     showall => $showall,
     dateduefrom => $dateduefrom,
     datedueto   => $datedueto,
@@ -311,14 +274,7 @@ if ($noreport) {
     my $bnlist = $have_pattr_filter_data ? join(',',keys %borrowernumber_to_attributes) : '';
     $strsth =~ s/WHERE 1=1/WHERE 1=1 AND borrowers.borrowernumber IN ($bnlist)/ if $bnlist;
     $strsth =~ s/WHERE 1=1/WHERE 0=1/ if $have_pattr_filter_data  && !$bnlist;  # no match if no borrowers matched patron attrs
-    $strsth.=" ORDER BY " . (
-        ($order eq "borrower")                              ? "surname, firstname, date_due"               : 
-        ($order eq "borrower desc")                         ? "surname desc, firstname desc, date_due"     : 
-        ($order eq "title"    or $order eq    "title desc") ? "$order, date_due, surname, firstname"       :
-        ($order eq "barcode"  or $order eq  "barcode desc") ? "items.$order, date_due, surname, firstname" :
-                                ($order eq "date_due desc") ? "date_due DESC, surname, firstname"          :
-                                                            "date_due, surname, firstname"  # default sort order
-    );
+    $strsth.=" ORDER BY date_due, surname, firstname";
     $template->param(sql=>$strsth);
     my $sth=$dbh->prepare($strsth);
     $sth->execute(
@@ -340,31 +296,16 @@ if ($noreport) {
             my @displayvalues = map { $_->[1] } @{ $pattrs->{$pattr_filter->{code}} };   # grab second value from each subarray
             push @patron_attr_value_loop, { value => join(', ', sort { lc $a cmp lc $b } @displayvalues) };
         }
-        my $dt = dt_from_string($data->{date_due}, 'sql');
 
         push @overduedata, {
-            duedate                => output_pref($dt),
-            borrowernumber         => $data->{borrowernumber},
+            patron                 => scalar Koha::Patrons->find( $data->{borrowernumber} ),
+            duedate                => $data->{date_due},
             barcode                => $data->{barcode},
-            cardnumber             => $data->{cardnumber},
             itemnum                => $data->{itemnumber},
             issuedate              => output_pref({ dt => dt_from_string( $data->{issuedate} ), dateonly => 1 }),
-            borrowertitle          => $data->{borrowertitle},
-            surname                => $data->{surname},
-            firstname              => $data->{firstname},
-            streetnumber           => $data->{streetnumber},                   
-            streettype             => $data->{streettype},                     
-            address                => $data->{address},                        
-            address2               => $data->{address2},                       
-            city                   => $data->{city},                   
-            zipcode                => $data->{zipcode},                        
-            country                => $data->{country},
-            phone                  => $data->{phone},
-            email                  => $data->{email},
             biblionumber           => $data->{biblionumber},
             title                  => $data->{title},
             author                 => $data->{author},
-            branchcode             => $data->{branchcode},
             homebranchcode         => $data->{homebranchcode},
             holdingbranchcode      => $data->{holdingbranchcode},
             itemcallnumber         => $data->{itemcallnumber},
@@ -372,29 +313,6 @@ if ($noreport) {
             enumchron              => $data->{enumchron},
             patron_attr_value_loop => \@patron_attr_value_loop,
         };
-    }
-
-    my ($attrorder) = $order =~ /patron_attr_(.*)$/; 
-    my $patrorder = '';
-    my $sortorder = 'asc';
-    if (defined $attrorder) {
-        ($sortorder, $patrorder) = split /_/, $attrorder, 2;
-    }
-    print STDERR ">>> order is $order, patrorder is $patrorder, sortorder is $sortorder\n" if $debug;
-
-    if (my @attrtype = grep { $_->{'code'} eq $patrorder } @patron_attr_filter_loop) {        # sort by patron attrs perhaps?
-        my $ordinal = $attrtype[0]{ordinal};
-        print STDERR ">>> sort ordinal is $ordinal\n" if $debug;
-
-        sub patronattr_sorter_asc {
-            lc $a->{patron_attr_value_loop}[$ordinal]{value}
-            cmp
-            lc $b->{patron_attr_value_loop}[$ordinal]{value} }
-
-        sub patronattr_sorter_des { -patronattr_sorter_asc() }
-
-        my $sorter = $sortorder eq 'desc' ? \&patronattr_sorter_des : \&patronattr_sorter_asc;
-        @overduedata = sort $sorter @overduedata;
     }
 
     if ($op eq 'csv') {
@@ -439,14 +357,19 @@ sub build_csv {
     my @lines = ();
 
     # build header ...
-    my @keys = qw /duedate title author borrowertitle firstname surname phone barcode email address address2 zipcode city country
-                branchcode itemcallnumber biblionumber borrowernumber itemnum issuedate replacementprice streetnumber streettype/;
+    my @keys =
+      qw ( duedate title author borrowertitle firstname surname phone barcode email address address2 zipcode city country
+      branchcode itemcallnumber biblionumber borrowernumber itemnum issuedate replacementprice streetnumber streettype);
     my $csv = Text::CSV_XS->new();
     $csv->combine(@keys);
     push @lines, $csv->string();
 
+    my @private_keys = qw( dueborrowertitle firstname surname phone email address address2 zipcode city country streetnumber streettype );
     # ... and rest of report
     foreach my $overdue ( @{ $overdues } ) {
+        unless ( $logged_in_user->can_see_patron_infos( $overdue->{patron} ) ) {
+            $overdue->{$_} = undef for @private_keys;
+        }
         push @lines, $csv->string() if $csv->combine(map { $overdue->{$_} } @keys);
     }
 

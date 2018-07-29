@@ -22,8 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-# use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Koha;
@@ -32,14 +31,13 @@ use C4::Output;
 use C4::NewsChannels;
 use C4::Languages qw(getTranslatedLanguages);
 use Date::Calc qw/Date_to_Days Today/;
-use C4::Branch;
 use Koha::DateUtils;
 
 my $cgi = new CGI;
 
 my $id             = $cgi->param('id');
 my $title          = $cgi->param('title');
-my $new            = $cgi->param('new');
+my $content        = $cgi->param('content');
 my $expirationdate;
 if ( $cgi->param('expirationdate') ) {
     $expirationdate = output_pref({ dt => dt_from_string( scalar $cgi->param('expirationdate') ), dateformat => 'iso', dateonly => 1 });
@@ -85,7 +83,6 @@ foreach my $language ( @$tlangs ) {
 }
 
 $template->param( lang_list   => \@lang_list,
-                  branch_list => GetBranchesLoop($branchcode),
                   branchcode  => $branchcode );
 
 my $op = $cgi->param('op') // '';
@@ -109,7 +106,7 @@ elsif ( $op eq 'add' ) {
         add_opac_new(
             {
                 title          => $title,
-                new            => $new,
+                content        => $content,
                 lang           => $lang,
                 expirationdate => $expirationdate,
                 timestamp      => $timestamp,
@@ -129,7 +126,7 @@ elsif ( $op eq 'edit' ) {
         {
             idnew          => $id,
             title          => $title,
-            new            => $new,
+            content        => $content,
             lang           => $lang,
             expirationdate => $expirationdate,
             timestamp      => $timestamp,

@@ -22,8 +22,7 @@
 use Modern::Perl;
 
 # standard or CPAN modules used
-use CGI qw(:standard);
-use DBI;
+use CGI qw(:standard -utf8);
 
 # Koha modules used
 use C4::Context;
@@ -31,9 +30,8 @@ use C4::Output;
 use C4::Auth;
 use C4::Biblio;
 use C4::ImportBatch;
-use XML::LibXSLT;
-use XML::LibXML;
 
+use Koha::Biblios;
 
 # Input params
 my $input        = new CGI;
@@ -41,16 +39,13 @@ my $biblionumber = $input->param('id');
 my $importid     = $input->param('importid');
 my $batchid      = $input->param('batchid');
 
-
 if ( not $biblionumber or not $importid ) {
     print $input->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
 
 # Init vars
-my ($recordBiblionumber, $recordImportid, $biblioTitle, $importTitle, $formatted1, $formatted2,
-    $errorFormatted1, $errorFormatted2);
-
+my ($recordBiblionumber, $recordImportid, $biblioTitle, $importTitle, $formatted1, $formatted2, $errorFormatted1, $errorFormatted2);
 
 # Prepare template
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -64,12 +59,14 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-
-$recordBiblionumber = GetMarcBiblio($biblionumber, 'embed_items');
+$recordBiblionumber = GetMarcBiblio({
+    biblionumber => $biblionumber,
+    embed_items  => 1,
+});
 if( $recordBiblionumber ) {
     $formatted1 = $recordBiblionumber->as_formatted;
-    my $data = GetBiblioData($biblionumber);
-    $biblioTitle = $data->{title};
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    $biblioTitle = $biblio->title;
 } else {
     $errorFormatted1 = 1;
 }
@@ -82,7 +79,6 @@ if( $importid ) {
 } else {
     $errorFormatted2 = 1;
 }
-
 
 $template->param(
     SCRIPT_NAME      => '/cgi-bin/koha/tools/showdiffmarc.pl',

@@ -1,3 +1,4 @@
+[% USE Asset %]
 [% USE Koha %]
 [% PROCESS 'opac-authorities.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -46,7 +47,7 @@
                         <h1>[% summary.mainentry %][% IF authtypetext %] ([% authtypetext %])[% END %]</h1>
 
                         <div class="usedin">
-                            [% IF count > 0 %]<a href="/cgi-bin/koha/opac-search.pl?type=opac&amp;q=[% authid %]&amp;idx=an,phr">Number of records used in: [% count %]</a>[% ELSE %]This authority is not used in any records.[% END %]
+                            [% IF count %]<a href="/cgi-bin/koha/opac-search.pl?type=opac&amp;q=[% authid %]&amp;idx=an,phr">Number of records used in: [% count %]</a>[% ELSE %]This authority is not used in any records.[% END %]
                         </div>
 
                         <div class="authstanza">
@@ -128,9 +129,9 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
 [% IF ( displayhierarchy ) %]
-    <script type="text/javascript" src="/opac-tmpl/lib/jquery/plugins/jquery.jstree.js"></script>
+    [% Asset.js("lib/jquery/plugins/jquery.jstree.js") %]
 [% END %]
-<script type="text/javascript">
+<script>
     //<![CDATA[
         $(document).ready(function() {
             $('#authdescriptions').tabs();

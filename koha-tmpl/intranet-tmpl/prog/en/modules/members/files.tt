@@ -1,12 +1,16 @@
+[% USE Asset %]
 [% USE KohaDates %]
+[% USE Branches %]
 [% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Files for [% INCLUDE 'patron-title.inc' %]</title>
+<title>Files for [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
+
 <body id="pat_files" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
+[% PROCESS 'patron-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Files for [% INCLUDE 'patron-title.inc' %]</div>
 
@@ -33,18 +37,18 @@
                             <th>Type</th>
                             <th>Description</th>
                             <th>Uploaded</th>
-                            [% IF CAN_user_borrowers %]<th>&nbsp;</th>[% END %]
+                            [% IF CAN_user_borrowers_edit_borrowers %]<th>&nbsp;</th>[% END %]
                         </tr>
                     </thead>
 
                     <tbody>
                         [% FOREACH f IN files %]
                             <tr>
-                                 <td><a href="?borrowernumber=[% borrowernumber %]&amp;op=download&amp;file_id=[% f.file_id %]">[% f.file_name %]</a></td>
+                                 <td><a href="?borrowernumber=[% patron.borrowernumber %]&amp;op=download&amp;file_id=[% f.file_id %]">[% f.file_name %]</a></td>
                                  <td>[% f.file_type %]</td>
                                  <td>[% f.file_description %]</td>
                                  <td>[% f.date_uploaded | $KohaDates %]</td>
-                                 [% IF CAN_user_borrowers %]<td><a href="?borrowernumber=[% borrowernumber %]&amp;op=delete&amp;file_id=[% f.file_id %]">Delete</a></td>[% END %]
+                                 [% IF CAN_user_borrowers_edit_borrowers %]<td><a class="btn btn-default btn-xs confirmdelete" href="?borrowernumber=[% patron.borrowernumber %]&amp;op=delete&amp;file_id=[% f.file_id %]"><i class="fa fa-trash"></i> Delete</a></td>[% END %]
                             </tr>
                         [% END %]
                     </tbody>
@@ -57,10 +61,10 @@
 
                 <form method="post" action="/cgi-bin/koha/members/files.pl" enctype="multipart/form-data">
                     <fieldset class="rows">
-                        <legend>Upload New File</legend>
+                        <legend>Upload new file</legend>
                         <ol>
                         <li><input type="hidden" name="op" value="upload" />
-                        <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
+                        <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber %]" />
                         <input type="hidden" name="MAX_FILE_SIZE" value="2000000" />
 
                         <label for="description">Description:</label>
@@ -69,7 +73,7 @@
                         <li><label for="uploadfile">File:</label><input name="uploadfile" type="file" id="uploadfile" /></li>
 
                         </ol>
-                        <fieldset class="action"><input name="upload" type="submit" id="upload" value="Upload File" /></fieldset>
+                        <fieldset class="action"><input name="upload" type="submit" id="upload" value="Upload file" /></fieldset>
                     </fieldset>
                 </form>
 
@@ -80,4 +84,22 @@
             [% INCLUDE 'circ-menu.inc' %]
         </div>
     </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/members-menu.js") %]
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $(".confirmdelete").on("click", function(){
+                $(this).parents('tr').addClass("warn");
+                if(confirm(_("Are you sure you want to delete this file?"))){
+                    return true;
+                } else {
+                    $(this).parents('tr').removeClass("warn");
+                    return false;
+                }
+            });
+    });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

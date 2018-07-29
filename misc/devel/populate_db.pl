@@ -25,6 +25,8 @@ use Pod::Usage;
 use C4::Installer;
 use C4::Context;
 
+use Koha::SearchEngine::Elasticsearch;
+
 =head1 NAME
 
 populate_db.pl - Load included sample data into the DB
@@ -104,6 +106,7 @@ my @sample_files_mandatory = (
     "$data_dir/sysprefs.sql",
     "$data_dir/userflags.sql",
     "$data_dir/userpermissions.sql",
+    "$data_dir/account_offset_types.sql",
 );
 my @sample_lang_files_mandatory    = ( glob $root . "/installer/data/mysql/$lang/mandatory/*.sql" );
 my @sample_lang_files_optional     = ( glob $root . "/installer/data/mysql/$lang/optional/*.sql" );
@@ -160,6 +163,8 @@ sub initialize_data {
         INSERT INTO systempreferences(variable, value, options, explanation, type)
         VALUES ('Version', '$version', NULL, 'The Koha database version. WARNING: Do not change this value manually, it is maintained by the webinstaller', NULL)
     });
+    # Initialize ES mappings
+    Koha::SearchEngine::Elasticsearch->reset_elasticsearch_mappings;
 }
 
 sub execute_sqlfile {

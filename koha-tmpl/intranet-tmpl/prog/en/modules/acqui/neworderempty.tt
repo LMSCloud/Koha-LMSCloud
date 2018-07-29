@@ -1,202 +1,12 @@
+[% USE Asset %]
+[% USE Koha %]
 [% USE KohaDates %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; Basket [% basketno %] &rsaquo; [% IF ( ordernumber ) %]Modify order details (line #[% ordernumber %])[% ELSE %]New order[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/acq.js"></script>
-[% INCLUDE 'additem.js.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/additem.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/cataloging.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/prevent_submit.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-actTotal = "";
-
-function Check(ff) {
-    [% IF (AcqCreateItemOrdering) %]
-        // Remove last itemblock if it is not in items_list
-        var lastitemblock = $("#outeritemblock > div:last");
-        var tobedeleted = true;
-        var listitems = $("#items_list tr");
-        $(listitems).each(function(){
-            if($(this).attr('idblock') == $(lastitemblock).attr('id')){
-                tobedeleted = false;
-            }
-        });
-        if(tobedeleted){
-            $(lastitemblock).remove();
-        }
-    [% END %]
-
-    var ok=0;
-    var _alertString= _("Form not submitted because of the following problem(s)")+"\n";
-
-    _alertString +="-------------------------------------------------------------------\n\n";
-
-    if ( isNull(ff.title,1)  &&  isNull(ff.entertitle,1)   ){
-        ok=1;
-                    _alertString += "\n- " + _("Title cannot be empty");
-    }
-    
-    if(isNull(ff.budget_id,1)){
-		ok=1;
-        _alertString += "\n- "+ _("You must select a fund");
-    }
-
-    if (!(isNum(ff.quantity,0)) || ff.quantity.value == 0){
-        ok=1;
-                    _alertString += "\n- " + _("Quantity must be greater than '0'");
-    }
-
-    if (!(isNum(ff.listprice,0))){
-        ok=1;
-                    _alertString += "\n- " + _("Vendor price must be a number");
-    }
-
-    if (!(isNum(ff.total,0))){
-        ok=1;
-                    _alertString += "\n- " + _("Total must be a number");
-    }
-
-    if (totalExceedsBudget(ff.budget_id.value, ff.total.value  )  ) {
-        ok=1;
-        _alertString += "\n- " + _("Order total (%s) exceeds budget available (%s)").format(ff.total.value, actTotal);
-    }
-
-    if ( ff.field_value ) {
-        var empty_item_mandatory = CheckMandatorySubfields(ff);
-        if (empty_item_mandatory > 0) {
-            ok = 1;
-            _alertString +=
-                "\n- " + _("%s item mandatory fields empty").format(empty_item_mandatory);
-        }
-
-    }
-
-    if (ok) {
-        alert(_alertString);
-        [% IF (AcqCreateItemOrdering) %]
-            if(tobedeleted) {
-                $(lastitemblock).appendTo('#outeritemblock');
-            }
-        [% END %]
-        return false;
-    }
-
-    [% IF (AcqCreateItemOrdering) %]
-        if(check_additem('[% UniqueItemFields %]') == false) {
-            alert(_("Duplicate values detected. Please correct the errors and resubmit.") );
-            if(tobedeleted) {
-                $(lastitemblock).appendTo('#outeritemblock');
-            }
-            return false;
-        }
-    [% END %]
-}
-
-$(document).ready(function() 
-    {
-        [% IF AcqCreateItemOrdering and not basket.is_standing %]
-            cloneItemBlock(0, '[% UniqueItemFields %]');
-        [% END %]
-
-        [% IF ( suggestionid ) %]updateCosts();[% END %]
-        $("#quantity").change(function() {
-            updateCosts();
-        });
-
-        //We apply the fonction only for modify option
-        [% IF ( quantityrec ) %]
-        [% IF ( acqcreate ) %]
-        $('#quantity').blur(function() 
-        {
-            // if user decreases the quantity
-            if($(this).val() < [% quantityrec %]) 
-            {
-                alert(_("You have deleted item(s) in the order, don't forget to delete it(them) in the catalog"));
-                return true;
-            } 
-            else 
-            {
-                // if user increases the quantity
-                alert(_("You can't add a new item, please create a new order line"));
-                // and we replace the original value
-                $(this).val([% quantityrec %])
-                updateCosts(); // blur is invoked after change which updated values
-                return false;
-            }
-        });
-        [% END %]
-        [% END %]
-        
-        //keep a copy of all budgets before removing the inactives
-        disabledBudgetsCopy = $('#budget_id').html();
-        $('#budget_id .b_inactive').remove();
-
-        $('#showallbudgets').click(function() {
-            if ($(this).is(":checked")) {
-                $('#budget_id').html(disabledBudgetsCopy); //Puts back all the funds
-            }
-            else {
-                $('#budget_id .b_inactive').remove();
-            }
-        });
-
-        $("#budget_id").change(function(){
-            var destination_sort1 = $(this).parents('fieldset.rows').find('input[name="sort1"]');
-            var sort1_authcat = $(this).find("option:selected").attr('data-sort1-authcat');
-            var sort1 = $(destination_sort1).val() || "";
-            if ( destination_sort1.length < 1 ) {
-                destination_sort1 = $(this).parents('fieldset.rows').find('select[name="sort1"]');
-            }
-            var destination_sort2 = $(this).parents('fieldset.rows').find('input[name="sort2"]');
-            var sort2_authcat = $(this).find("option:selected").attr('data-sort2-authcat');
-            var sort2 = $(destination_sort2).val() || "";
-            if ( destination_sort2.length < 1 ) {
-                destination_sort2 = $(this).parents('fieldset.rows').find('select[name="sort2"]');
-            }
-            getAuthValueDropbox( 'sort1', sort1_authcat, destination_sort1, sort1 );
-            getAuthValueDropbox( 'sort2', sort2_authcat, destination_sort2, sort2 );
-        });
-        $("#budget_id").change();
-    });
-
-    function UserSearchPopup(f) {
-        window.open(
-            "/cgi-bin/koha/acqui/add_user_search.pl",
-            'UserSearchPopup',
-            'width=740, height=450, scrollbars=yes, toolbar=no,'
-         );
-    }
-
-    function add_user(borrowernumber, borrowername) {
-        var ids = $("#users_ids").val();
-        if(ids.length > 0) {
-            ids = ids.split(':');
-        } else {
-            ids = new Array;
-        }
-        if (ids.indexOf(borrowernumber) < 0) {
-            ids.push(borrowernumber);
-            $("#users_ids").val(ids.join(':'));
-            var li = '<li id="user_'+borrowernumber+'">'+borrowername
-                + ' [<a style="cursor:pointer" onclick="del_user('+borrowernumber+');">'
-                + _("Delete user") + '</a>]</li>';
-            $("#users_names").append(li);
-            return 0;
-        }
-        return -1;
-    }
-
-    function del_user(borrowernumber) {
-      $("#user_"+borrowernumber).remove();
-      var ids = $("#users_ids").val().split(':');
-      ids.splice(ids.indexOf(borrowernumber.toString()), 1);
-      $("#users_ids").val(ids.join(':'));
-    }
-//]]>
-</script>
 </head>
+
 <body id="acq_neworderempty" class="acq">
 
 [% INCLUDE 'header.inc' %]
@@ -259,7 +69,7 @@ $(document).ready(function()
     </div>
 [% END %]
 
-<form action="/cgi-bin/koha/acqui/addorder.pl" method="post" id="Aform" onsubmit="return Check(this);">
+<form action="/cgi-bin/koha/acqui/addorder.pl" method="post" class="validated" id="Aform" onsubmit="return Check(this);" >
 
     <fieldset class="rows">
         <legend>Patrons</legend>
@@ -306,99 +116,121 @@ $(document).ready(function()
             <input type="hidden" id="currency_rate_[% c.currency %]"  name="[% c.currency %]" value="[% c.rate %]" />
         [% END %]
 
-        <ol><li>
-            [% IF ( biblionumber ) %]
-            <span class="label">Title</span>
-                <input type="hidden" name="title" value="[% title |html %]" /> <span class="title">[% title |html %]</span>
-            [% ELSE %]
-            <label for="entertitle" class="required">Title: </label>
-                <input type="text" id="entertitle" size="50" name="title" value="[% title |html %]" class="focus" />
-                <span class="required">Required</span>
-            [% END %]
-        </li>
-        <li>
-            [% IF ( biblionumber ) %]
-            <span class="label">Author: </span>
-                <input type="hidden" name="author" id="author" value="[% author %]" />[% author %]
-            [% ELSE %]
-            <label for="author">Author: </label>
-                <input type="text" size="50" name="author" id="author" value="[% author %]" />
-            [% END %]
-        </li>
-        <li>
-            [% IF ( biblionumber ) %]
-            <span class="label">Publisher: </span>
-                <input type="hidden" name="publishercode" id="publishercode" value="[% publishercode %]" />[% publishercode %]
-            [% ELSE %]
-            <label for="publishercode"> Publisher: </label>
-                <input type="text" size="50" name="publishercode" id="publishercode" value="[% publishercode %]" />
-            [% END %]
-        </li>
-        <li>
-            [% IF ( biblionumber ) %]
-            <span class="label">Edition: </span>
-                <input type="hidden" name="editionstatement" id="editionstatement" value="[% editionstatement %]" />[% editionstatement %]
-
-            [% ELSE %]
-            <label for="editionstatement">Edition: </label>
-                <input type="text" size="20" name="editionstatement" id="editionstatement" value="[% editionstatement %]" />
-            [% END %]
-        </li>
-        <li>
-            [% IF ( biblionumber ) %]
-            <span class="label">Publication year: </span>
-                <input type="hidden" name="publicationyear" id="publicationyear" value="[% publicationyear %]" />[% publicationyear %]
-            [% ELSE %]
-            <label for="publicationyear">Publication year: </label>
-                <input type="text" size="10" name="publicationyear" id="publicationyear" value="[% publicationyear %]" />
-            [% END %]
-        </li>
-        <li>
-            [% IF ( biblionumber ) %]
-            <span class="label">ISBN: </span>
-                <input type="hidden" name="isbn" id="ISBN" value="[% isbn %]" />[% isbn %]
-            [% ELSE %]
-            <label for="ISBN">ISBN: </label>
-                <input type="text" size="50" name="isbn" id="ISBN" value="[% isbn %]" />
-            [% END %]
-        </li>
-        [% IF (UNIMARC) %]
-        <li>
-            [% IF ( biblionumber ) %]
-            <span class="label">EAN: </span>
-                <input type="hidden" name="ean" id="EAN" value="[% ean %]" />[% ean %]
-            [% ELSE %]
-            <label for="EAN">EAN: </label>
-                <input type="text" size="20" name="ean" id="EAN" value="[% ean %]" />
-            [% END %]
-        </li>
-        [% END %]
-        <li>
-            [% IF ( biblionumber ) %]
-            <span class="label">Series: </span>
-                <input type="hidden" name="series" id="series" value="[% seriestitle %]" />[% seriestitle %]
-            [% ELSE %]
-            <label for="series">Series: </label>
-                <input type="text" size="50" name="series" id="series" value="[% seriestitle %]" />
-            [% END %]
-        </li>
-            [% UNLESS ( biblionumber ) %]
-            [% IF ( itemtypeloop ) %]
-            <li>
-                <span class="label">Item type:</span>
-                <select name="itemtype" style="width:12em;">
-                [% FOREACH itemtype IN itemtypeloop %]
-                    [% IF ( itemtype.selected ) %]
-                        <option value="[% itemtype.itemtype %]" selected="selected">[% itemtype.description %]</option>
-                    [% ELSE %]
-                        <option value="[% itemtype.itemtype %]">[% itemtype.description %]</option>
-                    [% END %]
+        [% IF NOT Koha.Preference('UseACQFrameworkForBiblioRecords') OR NoACQframework %]
+            <ol><li>
+                [% IF ( biblionumber ) %]
+                <span class="label">Title</span>
+                    <input type="hidden" name="title" value="[% title |html %]" /> <span class="title">[% title |html %]</span>
+                [% ELSE %]
+                <label for="entertitle">Title: </label>
+                    <input type="text" id="entertitle" size="50" name="title" value="[% title |html %]" class="focus" required="required" />
+                    <span class="required">Required</span>
                 [% END %]
-                </select>
+            </li>
+            <li>
+                [% IF ( biblionumber ) %]
+                <span class="label">Author: </span>
+                    <input type="hidden" name="author" id="author" value="[% author %]" />[% author %]
+                [% ELSE %]
+                <label for="author">Author: </label>
+                    <input type="text" size="50" name="author" id="author" value="[% author %]" />
+                [% END %]
+            </li>
+            <li>
+                [% IF ( biblionumber ) %]
+                <span class="label">Publisher: </span>
+                    <input type="hidden" name="publishercode" id="publishercode" value="[% publishercode %]" />[% publishercode %]
+                [% ELSE %]
+                <label for="publishercode"> Publisher: </label>
+                    <input type="text" size="50" name="publishercode" id="publishercode" value="[% publishercode %]" />
+                [% END %]
+            </li>
+            <li>
+                [% IF ( biblionumber ) %]
+                <span class="label">Edition: </span>
+                    <input type="hidden" name="editionstatement" id="editionstatement" value="[% editionstatement %]" />[% editionstatement %]
+
+                [% ELSE %]
+                <label for="editionstatement">Edition: </label>
+                    <input type="text" size="20" name="editionstatement" id="editionstatement" value="[% editionstatement %]" />
+                [% END %]
+            </li>
+            <li>
+                [% IF ( biblionumber ) %]
+                <span class="label">Publication year: </span>
+                    <input type="hidden" name="publicationyear" id="publicationyear" value="[% publicationyear %]" />[% publicationyear %]
+                [% ELSE %]
+                <label for="publicationyear">Publication year: </label>
+                    <input type="text" size="10" name="publicationyear" id="publicationyear" value="[% publicationyear %]" />
+                [% END %]
+            </li>
+            <li>
+                [% IF ( biblionumber ) %]
+                <span class="label">ISBN: </span>
+                    <input type="hidden" name="isbn" id="ISBN" value="[% isbn %]" />[% isbn %]
+                [% ELSE %]
+                <label for="ISBN">ISBN: </label>
+                    <input type="text" size="50" name="isbn" id="ISBN" value="[% isbn %]" />
+                [% END %]
+            </li>
+            [% IF (UNIMARC) %]
+            <li>
+                [% IF ( biblionumber ) %]
+                <span class="label">EAN: </span>
+                    <input type="hidden" name="ean" id="EAN" value="[% ean %]" />[% ean %]
+                [% ELSE %]
+                <label for="EAN">EAN: </label>
+                    <input type="text" size="20" name="ean" id="EAN" value="[% ean %]" />
+                [% END %]
             </li>
             [% END %]
+            <li>
+                [% IF ( biblionumber ) %]
+                <span class="label">Series: </span>
+                    <input type="hidden" name="series" id="series" value="[% seriestitle %]" />[% seriestitle %]
+                [% ELSE %]
+                <label for="series">Series: </label>
+                    <input type="text" size="50" name="series" id="series" value="[% seriestitle %]" />
+                [% END %]
+            </li>
+                [% UNLESS ( biblionumber ) %]
+                [% IF ( itemtypeloop ) %]
+                <li>
+                    <span class="label">Item type:</span>
+                    <select name="itemtype" style="width:12em;">
+                    [% FOREACH itemtype IN itemtypeloop %]
+                        <option value="[% itemtype.itemtype %]">[% itemtype.description %]</option>
+                    [% END %]
+                    </select>
+                </li>
+                [% END %]
+                [% END %]
+            </ol>
+        [% ELSE %]
+            <input type="hidden" name="use_ACQ_framework" value="1" />
+            [% IF biblionumber %]
+                <ol>
+                    [% FOREACH field IN catalog_details %]
+                        <li>
+                            <div class="subfield_line">
+                                <label>[% field.lib %] ([% field.tag %][% field.subfield %])</label>
+                                [% field.value %]
+                            </div>
+                        </li>
+                    [% END %]
+                </ol>
+            [% ELSE %]
+                <ol>
+                    [% FOREACH field IN catalog_details %]
+                        <li>
+                            <div class="subfield_line">
+                                [% PROCESS display_subfield field=field %]
+                            </div>
+                        </li>
+                    [% END %]
+                </ol>
             [% END %]
-        </ol>
+        [% END %]
     </fieldset>
 
     [% IF ( suggestionid ) %]
@@ -451,6 +283,10 @@ $(document).ready(function()
               <div class="dialog message">No ACQ framework, using default. You should create a framework with code ACQ, the items framework would be used</div>
           [% END %]
 
+          [% UNLESS Koha.Preference('autoBarcode') == 'OFF' %]
+              <div class="dialog message">The autoBarcode system preference is set to [% Koha.Preference('autoBarcode') %] and items with blank barcodes will have barcodes generated upon save to database</div>
+          [% END %]
+
           <div id="outeritemblock"></div>
 
       </fieldset>
@@ -500,12 +336,18 @@ $(document).ready(function()
                 [% FOREACH budget_loo IN budget_loop %]
                     [% IF ( budget_loo.b_sel ) %]
                         [% active_count = 0 #select no other fund %]
-                        <option value="[% budget_loo.b_id %]" selected="selected" data-sort1-authcat="[% budget_loo.b_sort1_authcat %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat %]">
+                        <option value="[% budget_loo.b_id %]" selected="selected" data-sort1-authcat="[% budget_loo.b_sort1_authcat %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat %]"
+                                style="padding-left:[% budget_loo.b_level %]em;"
+                        >
                     [% ELSIF active_count==1 && budget_loo.b_active %]
-                        <option value="[% budget_loo.b_id %]" selected="selected" data-sort1-authcat="[% budget_loo.b_sort1_authcat %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat %]">
+                        <option value="[% budget_loo.b_id %]" selected="selected" data-sort1-authcat="[% budget_loo.b_sort1_authcat %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat %]"
+                                style="padding-left:[% budget_loo.b_level %]em;"
+                        >
                     [% ELSE %]
                         [% bdgclass=budget_loo.b_active? "": "b_inactive" %]
-                        <option value="[% budget_loo.b_id %]" class="[% bdgclass %]" data-sort1-authcat="[% budget_loo.b_sort1_authcat %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat %]">
+                        <option value="[% budget_loo.b_id %]" class="[% bdgclass %]" data-sort1-authcat="[% budget_loo.b_sort1_authcat %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat %]"
+                                style="padding-left:[% budget_loo.b_level %]em;"
+                        >
                     [% END %]
                     [% budget_loo.b_txt %][% IF !budget_loo.b_active %] (inactive)[% END %]
                     </option>
@@ -556,12 +398,12 @@ $(document).ready(function()
                 <li>
                     [% IF ( close ) %]
                         <span class="label">Tax rate: </span>
-                        <input type="hidden" name="gstrate" id="gstrate" value="[% gstrate %]" />[% gstrate %]%
+                        <input type="hidden" name="tax_rate" id="tax_rate" value="[% tax_rate %]" />[% tax_rate %]%
                     [% ELSE %]
-                        <label for="gstrate">Tax rate: </label>
-                        <select name="gstrate" id="gstrate" onchange="updateCosts();">
+                        <label for="tax_rate">Tax rate: </label>
+                        <select name="tax_rate" id="tax_rate" onchange="updateCosts();">
                         [% FOREACH gst IN gst_values %]
-                          [% IF ( gst.option == gstrate ) %]
+                          [% IF ( gst.option == tax_rate ) %]
                             <option value="[% gst.option %]" selected="selected">[% gst.option * 100 %]%</option>
                           [% ELSE %]
                             <option value="[% gst.option %]">[% gst.option * 100 %]%</option>
@@ -570,7 +412,7 @@ $(document).ready(function()
                         </select>
                     [% END %]
                 [% ELSE %]
-                    <input type="hidden" name="gstrate" value="0" />
+                    <input type="hidden" name="tax_rate" value="0" />
                 </li>
             [% END %]
             <li>
@@ -646,10 +488,256 @@ $(document).ready(function()
         [% END %]
     </fieldset>
 </form>
+
+<div id="procModal" data-backdrop="static" class="modal fade" aria-labelledby="procModal" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+    <div class="modal-body">
+    <h3>Processing multiple items</h3>
+    </div>
+    </div>
+    </div>
+</div>
+
+<div id="multiCountModal" class="modal fade" aria-labelledby="multiCountModal" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+    <h3>Invalid number of copies</h3>
+    <p>Please enter a <b>number</b>, greater than or equal to 1</p>
+    </div>
+    </div>
+</div>
+
 </div>
 </div>
 <div class="yui-b">
 [% INCLUDE 'acquisitions-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+    [% Asset.js("js/acq.js") %]
+    [% INCLUDE 'additem.js.inc' %]
+    [% Asset.js("js/additem.js") %]
+    [% Asset.js("js/cataloging.js") %]
+    [% Asset.js("js/prevent_submit.js") %]
+    <script type="text/javascript">
+        actTotal = "";
+
+        function Check(ff) {
+            [% IF (AcqCreateItemOrdering) %]
+                // Remove last itemblock if it is not in items_list
+                var lastitemblock = $("#outeritemblock > div:last");
+                var tobedeleted = true;
+                var listitems = $("#items_list tr");
+                $(listitems).each(function(){
+                    if($(this).attr('idblock') == $(lastitemblock).attr('id')){
+                        tobedeleted = false;
+                    }
+                });
+                if(tobedeleted){
+                    $(lastitemblock).remove();
+                }
+            [% END %]
+
+            var ok=0;
+            var _alertString= _("Form not submitted because of the following problem(s)")+"\n";
+
+            _alertString +="-------------------------------------------------------------------\n\n";
+
+            if(isNull(ff.budget_id,1)){
+                ok=1;
+                _alertString += "\n- "+ _("You must select a fund");
+            }
+
+            if (!(isNum(ff.quantity,0)) || ff.quantity.value == 0){
+                ok=1;
+                            _alertString += "\n- " + _("Quantity must be greater than '0'");
+            }
+
+            if (!(isNum(ff.listprice,0))){
+                ok=1;
+                            _alertString += "\n- " + _("Vendor price must be a number");
+            }
+
+            if (!(isNum(ff.total,0))){
+                ok=1;
+                            _alertString += "\n- " + _("Total must be a number");
+            }
+
+            if (totalExceedsBudget(ff.budget_id.value, ff.total.value  )  ) {
+                ok=1;
+                _alertString += "\n- " + _("Order total (%s) exceeds budget available (%s)").format(ff.total.value, actTotal);
+            }
+
+            if ( ff.field_value ) {
+                var empty_item_mandatory = CheckMandatorySubfields(ff);
+                if (empty_item_mandatory > 0) {
+                    ok = 1;
+                    _alertString +=
+                        "\n- " + _("%s item mandatory fields empty").format(empty_item_mandatory);
+                }
+
+            }
+
+            if (ok) {
+                alert(_alertString);
+                [% IF (AcqCreateItemOrdering) %]
+                    if(tobedeleted) {
+                        $(lastitemblock).appendTo('#outeritemblock');
+                    }
+                [% END %]
+                return false;
+            }
+
+            [% IF (AcqCreateItemOrdering) %]
+                if(check_additem('[% UniqueItemFields %]') == false) {
+                    alert(_("Duplicate values detected. Please correct the errors and resubmit.") );
+                    if(tobedeleted) {
+                        $(lastitemblock).appendTo('#outeritemblock');
+                    }
+                    return false;
+                }
+            [% END %]
+        }
+
+        $(document).ready(function(){
+            [% IF AcqCreateItemOrdering and not basket.is_standing %]
+                cloneItemBlock(0, '[% UniqueItemFields %]');
+            [% END %]
+
+            [% IF ( suggestionid ) %]updateCosts();[% END %]
+            $("#quantity").change(function() {
+                updateCosts();
+            });
+
+            //We apply the fonction only for modify option
+            [% IF ( quantityrec ) %]
+                [% IF ( acqcreate ) %]
+                    $('#quantity').blur(function(){
+                        // if user decreases the quantity
+                        if($(this).val() < [% quantityrec %]){
+                            alert(_("You have deleted item(s) in the order, don't forget to delete it(them) in the catalog"));
+                            return true;
+                        } else {
+                            // if user increases the quantity
+                            alert(_("You can't add a new item, please create a new order line"));
+                            // and we replace the original value
+                            $(this).val([% quantityrec %])
+                            updateCosts(); // blur is invoked after change which updated values
+                            return false;
+                        }
+                    });
+                [% END %]
+            [% END %]
+
+            //keep a copy of all budgets before removing the inactives
+            disabledBudgetsCopy = $('#budget_id').html();
+            $('#budget_id .b_inactive').remove();
+
+            $('#showallbudgets').click(function() {
+                if ($(this).is(":checked")) {
+                    $('#budget_id').html(disabledBudgetsCopy); //Puts back all the funds
+                }
+                else {
+                    $('#budget_id .b_inactive').remove();
+                }
+            });
+
+            $("#budget_id").change(function(){
+                var destination_sort1 = $(this).parents('fieldset.rows').find('input[name="sort1"]');
+                var sort1_authcat = $(this).find("option:selected").attr('data-sort1-authcat');
+                var sort1 = $(destination_sort1).val() || "";
+                if ( destination_sort1.length < 1 ) {
+                    destination_sort1 = $(this).parents('fieldset.rows').find('select[name="sort1"]');
+                }
+                var destination_sort2 = $(this).parents('fieldset.rows').find('input[name="sort2"]');
+                var sort2_authcat = $(this).find("option:selected").attr('data-sort2-authcat');
+                var sort2 = $(destination_sort2).val() || "";
+                if ( destination_sort2.length < 1 ) {
+                    destination_sort2 = $(this).parents('fieldset.rows').find('select[name="sort2"]');
+                }
+                getAuthValueDropbox( 'sort1', sort1_authcat, destination_sort1, sort1 );
+                getAuthValueDropbox( 'sort2', sort2_authcat, destination_sort2, sort2 );
+            });
+            $("#budget_id").change();
+        });
+
+        function UserSearchPopup(f) {
+            window.open(
+                "/cgi-bin/koha/acqui/add_user_search.pl",
+                'UserSearchPopup',
+                'width=740, height=450, scrollbars=yes, toolbar=no,'
+             );
+        }
+
+        function add_user(borrowernumber, borrowername) {
+            var ids = $("#users_ids").val();
+            if(ids.length > 0) {
+                ids = ids.split(':');
+            } else {
+                ids = new Array;
+            }
+        if (ids.indexOf(borrowernumber.toString()) < 0) {
+                ids.push(borrowernumber);
+                $("#users_ids").val(ids.join(':'));
+                var li = '<li id="user_'+borrowernumber+'">'+borrowername
+                    + ' [<a style="cursor:pointer" onclick="del_user('+borrowernumber+');">'
+                    + _("Delete user") + '</a>]</li>';
+                $("#users_names").append(li);
+                return 0;
+            }
+            return -1;
+        }
+
+        function del_user(borrowernumber) {
+            $("#user_"+borrowernumber).remove();
+            var ids = $("#users_ids").val().split(':');
+            ids.splice(ids.indexOf(borrowernumber.toString()), 1);
+            $("#users_ids").val(ids.join(':'));
+        }
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]
+
+[% BLOCK display_subfield %]
+    <label>[% field.lib %] ([% field.tag %][% field.subfield %])</label>
+    [% IF field.authorised_value %]
+        [% SWITCH field.authorised_value %]
+        [% CASE 'branches' %]
+            [% IF field.mandatory %]
+            <select name="bib_field_value" required="required">
+            [% ELSE %]
+            <select name="bib_field_value">
+            [% END %]
+                <option value=""></option>
+                [% PROCESS options_for_libraries libraries => Branches.all( selected => "FIXME", restrict => 'NoMobileStations' ) %]
+            </select>
+        [% CASE 'itemtypes' %]
+            [% IF field.mandatory %]
+            <select name="bib_field_value" required="required">
+            [% ELSE %]
+            <select name="bib_field_value">
+            [% END %]
+                <option value=""></option>
+                [% PROCESS options_for_itemtypes itemtypes => ItemTypes.Get(), selected_itemtype => "FIXME" %]
+            </select>
+        [% CASE 'cn_source' %]
+        [% CASE %]
+            [% PROCESS 'av-build-dropbox.inc' name="bib_field_value", category=field.authorised_value, default="FIXME" %]
+        [% END %]
+    [% ELSE %]
+        [% IF field.mandatory %]
+        <input type="text" name="bib_field_value" value="[% field.value %]" required="required" size="50" />
+        [% ELSE %]
+        <input type="text" name="bib_field_value" value="[% field.value %]" size="50" />
+        [% END %]
+
+    [% END %]
+    <input type="hidden" name="bib_kohafield" value="[% field.kohafield %]" />
+    <input type="hidden" name="bib_tag" value="[% field.tag %]" />
+    <input type="hidden" name="bib_subfield" value="[% field.subfield %]" />
+    [% IF field.mandatory %] <span class="required">Required</span>[% END %]
+[% END %]

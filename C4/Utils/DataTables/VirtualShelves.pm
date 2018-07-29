@@ -1,9 +1,7 @@
 package C4::Utils::DataTables::VirtualShelves;
 
 use Modern::Perl;
-use C4::Branch qw/onlymine/;
 use C4::Context;
-use C4::Members qw/GetMemberIssuesAndFines/;
 use C4::Utils::DataTables;
 use Koha::Virtualshelves;
 
@@ -97,7 +95,8 @@ sub search {
         $limit = "LIMIT $dt_params->{iDisplayStart},$dt_params->{iDisplayLength}";
     }
 
-    my $group_by = " GROUP BY vs.shelfnumber";
+    my $group_by = " GROUP BY vs.shelfnumber, vs.shelfname, vs.owner, vs.category,
+        vs.created_on, vs.lastmodified, bo.surname, bo.firstname, vs.sortfield ";
 
     my $query = join(
         " ",
@@ -124,6 +123,7 @@ sub search {
         my $s = Koha::Virtualshelves->find( $shelf->{shelfnumber} );
         $shelf->{can_manage_shelf} = $s->can_be_managed( $loggedinuser );
         $shelf->{can_delete_shelf} = $s->can_be_deleted( $loggedinuser );
+        $shelf->{is_shared} = $s->is_shared;
     }
     return {
         iTotalRecords => $iTotalRecords,

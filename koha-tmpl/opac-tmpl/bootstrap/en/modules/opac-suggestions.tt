@@ -1,4 +1,6 @@
+[% USE Asset %]
 [% USE Koha %]
+[% USE Branches %]
 [% USE AuthorisedValues %]
 [% USE KohaDates %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -28,34 +30,37 @@
                 <div class="span10">
                     <div id="usersuggestions" class="maincontent">
                         [% IF ( op_add ) %]
+                            [% IF ( Koha.Preference('MaxOpenSuggestions') != '' && patrons_pending_suggestions_count >= Koha.Preference('MaxOpenSuggestions') ) %]
+                                    <h1 class="TooManySuggestions">You cannot place any more suggestions</h1>
+                                    <h2 class="TooManySuggestionsText">You have reached your limit of suggestions you can place at this time ([% Koha.Preference('MaxOpenSuggestions') %]). Once the library has processed those suggestions you will be able to place more.</h2>
+                            [% ELSE %]
                             <h1>Enter a new purchase suggestion</h1>
 
-                            <p>Please fill out this form to make a purchase suggestion. You will receive an email when the library processes your suggestion</p>
-                            <p>Only the title is required, but the more information you enter the easier it will be for the librarians to find the title you're requesting. The "Notes" field can be used to provide any additional information.</p>
+                            <p>Please fill out this form to make a purchase suggestion. You will receive an email when the library processes your suggestion.</p>
+                            <p>Only certain fields (marked in red) are required, but the more information you enter the easier it will be for the librarians to find the title you're requesting. The "Notes" field can be used to provide any additional information.</p>
 
-                            <form action="/cgi-bin/koha/opac-suggestions.pl" method="post">
+                            <form action="/cgi-bin/koha/opac-suggestions.pl" method="post" id="add_suggestion_form">
                                 <fieldset class="rows">
                                     <ol>
-                                        <li><label class="required" for="title">Title:</label><input type="text" id="title" name="title" class="span6" maxlength="255" /></li>
+                                        <li><label for="title">Title:</label><input type="text" id="title" name="title" class="span6" maxlength="255" /></li>
                                         <li><label for="author">Author:</label><input type="text" id="author" name="author" class="span6" maxlength="80" /></li>
-                                        <li><label for="copyrightdate">Copyright date:</label><input type="text" id="copyrightdate" name="copyrightdate" size="4" maxlength="4" /></li>
+                                        <li>
+                                            <div title="Copyright or publication year, for example: 2016">
+                                            <label for="copyrightdate">Copyright date:</label><input type="text" id="copyrightdate" name="copyrightdate" pattern="[12]\d{3}" size="4" maxlength="4" />
+                                            </div>
+                                        </li>
                                         <li><label for="isbn">Standard number (ISBN, ISSN or other):</label><input type="text" id="isbn" name="isbn"  maxlength="80" /></li>
                                         <li><label for="publishercode">Publisher:</label><input type="text" id="publishercode" name="publishercode" class="span6" maxlength="80" /></li>
                                         <li><label for="collectiontitle">Collection title:</label><input type="text" id="collectiontitle" name="collectiontitle" class="span6" maxlength="80" /></li>
                                         <li><label for="place">Publication place:</label><input type="text" id="place" name="place"  maxlength="80" /></li>
+                                        <li id="opac-suggestion-quantity"><label for="quantity">Quantity:</label><input type="text" id="quantity" name="quantity"  maxlength="4" size="4" /></li>
                                         <li><label for="itemtype">Item type:</label>
                                             [% PROCESS 'av-build-dropbox.inc' name="itemtype", category="SUGGEST_FORMAT", size = 20 %]
                                         </li>
-                                        [% IF ( branchloop ) %]
+                                        [% IF branchcode %]
                                             <li><label for="branch">Library:</label>
                                                 <select name="branchcode" id="branch">
-                                                    [% FOREACH branchloo IN branchloop %]
-                                                        [% IF ( branchloo.selected ) %]
-                                                            <option value="[% branchloo.branchcode %]" selected="selected">[% branchloo.branchname %]</option>
-                                                        [% ELSE %]
-                                                            <option value="[% branchloo.branchcode %]">[% branchloo.branchname %]</option>
-                                                        [% END %]
-                                                    [% END %]
+                                                    [% PROCESS options_for_libraries libraries => Branches.all( selected => branchcode, restrict => 'NoMobileStations' ) %]
                                                 </select>
                                             </li>
                                         [% END %]
@@ -85,9 +90,10 @@
                                 <fieldset class="action">
                                     <input type="hidden" name="suggested_by_anyone" value="[% suggested_by_anyone %]" />
                                     <input type="hidden" name="op" value="add_confirm" />
-                                    <input type="submit" onclick="Check(this.form); return false;" class="btn" value="Submit your suggestion" /> <a class="action" href="/cgi-bin/koha/opac-suggestions.pl">Cancel</a>
+                                    <input type="submit" class="btn" value="Submit your suggestion" /> <a class="action" href="/cgi-bin/koha/opac-suggestions.pl">Cancel</a>
                                 </fieldset>
                             </form>
+                            [% END %]
                         [% END #  IF op_add %]
 
                         [% IF ( op_else ) %]
@@ -105,6 +111,8 @@
                             [% FOR m IN messages %]
                                 <div class="alert alert-[% m.type %]">
                                     [% SWITCH m.code %]
+                                    [% CASE 'too_many' %]
+                                        The suggestion has not been added. You have reached your limit of suggestions you can place at this time ([% Koha.Preference('MaxOpenSuggestions') %]). Once the library has processed those suggestions you will be able to place more.
                                     [% CASE 'already_exists' %]
                                         The suggestion has not been added. A suggestion with this title already exists.
                                     [% CASE 'success_on_inserted' %]
@@ -145,7 +153,11 @@
                                     <input type="hidden" name="op" value="delete_confirm" />
                                     [% IF ( loggedinusername || ( Koha.Preference( 'AnonSuggestions' ) == 1 ) ) %]
                                         <div id="toolbar" class="toolbar clearfix">
-                                            <a class="new" href="/cgi-bin/koha/opac-suggestions.pl?op=add">New purchase suggestion</a>
+                                        [% IF ( Koha.Preference('MaxOpenSuggestions') != '' && patrons_pending_suggestions_count >= Koha.Preference('MaxOpenSuggestions') ) %]
+                                                <p class="TooManySuggestionsText">You have reached your limit of suggestions you can place at this time ([% Koha.Preference('MaxOpenSuggestions') %]).</br>Once the library has processed those suggestions you will be able to place more.</p>
+                                        [% ELSE %]
+                                                <a class="new" href="/cgi-bin/koha/opac-suggestions.pl?op=add">New purchase suggestion</a>
+                                        [% END %]
                                         </div>
                                     [% END %]
 
@@ -245,7 +257,11 @@
                                     <p>There are no pending purchase suggestions.</p>
                                 [% END %]
                                 [% IF ( loggedinusername || ( Koha.Preference( 'AnonSuggestions' ) == 1 ) ) %]
-                                    <p><a class="new" href="/cgi-bin/koha/opac-suggestions.pl?op=add">New purchase suggestion</a></p>
+                                    [% IF ( Koha.Preference('MaxOpenSuggestions') != ''  && patrons_pending_suggestions_count >= Koha.Preference('MaxOpenSuggestions') ) %]
+                                        <p class="TooManySuggestionsText">You have reached your limit of suggestions you can place at this time.</br>Once the library has processed those suggestions you will be able to place more.</p>
+                                    [% ELSE %]
+                                        <p><a class="new" href="/cgi-bin/koha/opac-suggestions.pl?op=add">New purchase suggestion</a></p>
+                                    [% END %]
                                 [% END %]
                             [% END # / IF suggestions_loop %]
 
@@ -258,9 +274,9 @@
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.checkboxes.min.js"></script>
+[% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
 [% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
+<script>
     //<![CDATA[
     [% IF ( loggedinusername ) %]
         function enableCheckboxActions(){
@@ -322,25 +338,20 @@
           return true;
         });
         [% END %]
+        [% IF ( op_add && mandatoryfields ) %]
+        {
+            var FldsRequired = [[% mandatoryfields %]];
+            for (var i = 0; i < FldsRequired.length; i++) {
+                var rq_input = $('#' + FldsRequired[i]);
+                if (rq_input.length != 1) continue;
+                $(rq_input).attr("required", "required");
+                var rq_label = $("label[for=" + rq_input.attr("id") + "]");
+                if (rq_label.length != 1) continue;
+                $(rq_label).addClass('required');
+            }
+        }
+        [% END %]
     });
-
-    function Check(f) {
-        var _alertString="";
-        var alertString2;
-
-        if(f.title.value.length ==0){
-            _alertString += _("- You must enter a Title") + "\n";
-        }
-
-        if (_alertString.length==0) {
-            f.submit();
-        } else {
-            alertString2 = _("Form not submitted because of the following problem(s)");
-            alertString2 += "\n------------------------------------------------------------------------------------\n\n";
-            alertString2 += _alertString;
-            alert(alertString2);
-        }
-    }
 //]]>
 </script>
 [% END %]

@@ -17,8 +17,7 @@
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI;
 use JSON qw(to_json);
@@ -26,11 +25,12 @@ use JSON qw(to_json);
 use C4::Auth qw(check_cookie_auth haspermission get_session);
 use C4::Biblio qw(GetMarcBiblio GetFrameworkCode GetRecordValue );
 use C4::Circulation qw(GetIssuingCharges CanBookBeRenewed GetRenewCount GetSoonestRenewDate);
-use C4::Koha qw(GetAuthorisedValueByCode);
 use C4::Overdues qw(GetFine);
 use C4::Context;
 
+use Koha::AuthorisedValues;
 use Koha::DateUtils;
+use Koha::ItemTypes;
 
 my $input = new CGI;
 
@@ -41,7 +41,7 @@ my $session   = get_session($sessionID);
 my $userid   = $session->param('id');
 
 unless (haspermission($userid, { circulate => 'circulate_remaining_permissions' })
-    || haspermission($userid, { borrowers => '*' })) {
+    || haspermission($userid, { borrowers => 'edit_borrowers' })) {
     exit 0;
 }
 
@@ -78,13 +78,14 @@ my $sql = '
 
         itemnumber,
         barcode,
+        branches2.branchname AS homebranch,
         itemnotes,
         itemnotes_nonpublic,
         itemcallnumber,
         replacementprice,
 
         issues.branchcode,
-        branchname,
+        branches.branchname,
 
         items.itype,
         biblioitems.itemtype,
@@ -97,6 +98,7 @@ my $sql = '
         itemlost,
         damaged,
         location,
+        items.enumchron,
 
         DATEDIFF( issuedate, CURRENT_DATE() ) AS not_issued_today
     FROM issues
@@ -105,6 +107,7 @@ my $sql = '
         LEFT JOIN biblioitems USING ( biblionumber )
         LEFT JOIN borrowers USING ( borrowernumber )
         LEFT JOIN branches ON ( issues.branchcode = branches.branchcode )
+        LEFT JOIN branches branches2 ON ( items.homebranch = branches2.branchcode )
     WHERE borrowernumber
 ';
 
@@ -145,15 +148,31 @@ while ( my $c = $sth->fetchrow_hashref() ) {
     my ( $renewals_count, $renewals_allowed, $renewals_remaining ) =
       GetRenewCount( $c->{borrowernumber}, $c->{itemnumber} );
 
-    my $itemtype = C4::Koha::getitemtypeinfo( $item_level_itypes ? $c->{itype} : $c->{itemtype} );
+    my $itemtype = Koha::ItemTypes->find( $item_level_itypes ? $c->{itype} : $c->{itemtype} );
+    my $location;
+    if ( $c->{location} ) {
+        my $av = Koha::AuthorisedValues->search({ category => 'LOC', authorised_value => $c->{location} });
+        $location = $av->count ? $av->next->lib : '';
+    }
+    my $lost;
+    if ( $c->{itemlost} ) {
+        my $av = Koha::AuthorisedValues->search({ category => 'LOST', authorised_value => $c->{itemlost} });
+        $lost = $av->count ? $av->next->lib : '';
+    }
+    my $damaged;
+    if ( $c->{damaged} ) {
+        my $av = Koha::AuthorisedValues->search({ category => 'DAMAGED', authorised_value => $c->{damaged} });
+        $damaged = $av->count ? $av->next->lib : '';
+    }
     my $checkout = {
         DT_RowId             => $c->{itemnumber} . '-' . $c->{borrowernumber},
         title                => $c->{title},
         author               => $c->{author},
         barcode              => $c->{barcode},
         itemtype             => $item_level_itypes ? $c->{itype} : $c->{itemtype},
-        itemtype_description => $itemtype->{translated_description},
-        location             => $c->{location} ? GetAuthorisedValueByCode( 'LOC', $c->{location} ) : q{},
+        itemtype_description => $itemtype ? $itemtype->translated_description : q{},
+        location             => $location,
+        homebranch           => $c->{homebranch},
         itemnotes            => $c->{itemnotes},
         itemnotes_nonpublic  => $c->{itemnotes_nonpublic},
         branchcode           => $c->{branchcode},
@@ -173,6 +192,7 @@ while ( my $c = $sth->fetchrow_hashref() ) {
         date_due_overdue    => $c->{date_due_overdue} ? JSON::true : JSON::false,
         timestamp           => $c->{timestamp},
         onsite_checkout     => $c->{onsite_checkout},
+        enumchron           => $c->{enumchron},
         renewals_count      => $renewals_count,
         renewals_allowed    => $renewals_allowed,
         renewals_remaining  => $renewals_remaining,
@@ -188,10 +208,12 @@ while ( my $c = $sth->fetchrow_hashref() ) {
                 as_due_date => 1
             }
         ),
-        subtitle =>
-          GetRecordValue( 'subtitle', GetMarcBiblio( $c->{biblionumber} ), GetFrameworkCode( $c->{biblionumber} ) ),
-        lost    => $c->{itemlost} ? GetAuthorisedValueByCode( 'LOST',    $c->{itemlost} ) : undef,
-        damaged => $c->{damaged}  ? GetAuthorisedValueByCode( 'DAMAGED', $c->{damaged} )  : undef,
+        subtitle => GetRecordValue(
+            'subtitle',
+            GetMarcBiblio({ biblionumber => $c->{biblionumber} }),
+            GetFrameworkCode( $c->{biblionumber} ) ),
+        lost    => $lost,
+        damaged => $damaged,
         borrower => {
             surname    => $c->{surname},
             firstname  => $c->{firstname},

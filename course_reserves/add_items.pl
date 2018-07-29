@@ -26,18 +26,23 @@ use C4::Auth;
 use C4::Output;
 use C4::Koha;
 use C4::Biblio;
-use C4::Branch;
+use Koha::Items;
 
 use C4::CourseReserves qw(GetCourse GetCourseItem GetCourseReserve ModCourseItem ModCourseReserve);
 
+use Koha::Items;
+use Koha::ItemTypes;
+
 my $cgi = new CGI;
 
-my $action    = $cgi->param('action')    || '';
-my $course_id = $cgi->param('course_id') || '';
-my $barcode   = $cgi->param('barcode')   || '';
-my $return    = $cgi->param('return')    || '';
+my $action       = $cgi->param('action')       || '';
+my $course_id    = $cgi->param('course_id')    || '';
+my $barcode      = $cgi->param('barcode')      || '';
+my $return       = $cgi->param('return')       || '';
+my $itemnumber   = ($cgi->param('itemnumber') && $action eq 'lookup') ? $cgi->param('itemnumber') : '';
 
-my $item = GetBiblioFromItemNumber( undef, $barcode );
+my $item = Koha::Items->find( { ( $itemnumber ? ( itemnumber => $itemnumber ) : ( barcode => $barcode ) ) } );
+my $title = ($item) ? $item->biblio->title : undef;
 
 my $step = ( $action eq 'lookup' && $item ) ? '2' : '1';
 
@@ -50,13 +55,16 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         flagsrequired   => { coursereserves => 'add_reserves' },
     }
 );
-$template->param( ERROR_BARCODE_NOT_FOUND => $barcode )
-  unless ( $barcode && $item && $action eq 'lookup' );
+
+if ( !$item && $action eq 'lookup' ){
+    $template->param( ERROR_ITEM_NOT_FOUND => 1 );
+    $template->param( UNKNOWN_BARCODE => $barcode ) if $barcode;
+}
 
 $template->param( course => GetCourse($course_id) );
 
-if ( $action eq 'lookup' ) {
-    my $course_item = GetCourseItem( itemnumber => $item->{'itemnumber'} );
+if ( $action eq 'lookup' and $item ) {
+    my $course_item = GetCourseItem( itemnumber => $item->itemnumber );
     my $course_reserve =
       ($course_item)
       ? GetCourseReserve(
@@ -65,15 +73,16 @@ if ( $action eq 'lookup' ) {
       )
       : undef;
 
+    my $itemtypes = Koha::ItemTypes->search;
     $template->param(
         item           => $item,
+        biblio         => $item->biblio,
         course_item    => $course_item,
         course_reserve => $course_reserve,
 
         ccodes    => GetAuthorisedValues('CCODE'),
         locations => GetAuthorisedValues('LOC'),
-        itypes    => GetItemTypes( style => 'array' ),
-        branches  => GetBranchesLoop(),
+        itypes    => $itemtypes, # FIXME We certainly want to display the translated_description in the template
         return    => $return,
     );
 

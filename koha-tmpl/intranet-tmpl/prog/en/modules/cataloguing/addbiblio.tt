@@ -1,14 +1,12 @@
+[% USE Asset %]
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Cataloging &rsaquo; [% IF ( biblionumber ) %]Editing [% title |html %] (Record number [% biblionumber %])[% ELSE %]Add MARC record[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.fixFloat.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/cataloging.js"></script>
+[% Asset.js("lib/jquery/plugins/jquery.fixFloat.js") %]
+[% Asset.js("js/cataloging.js") %]
 [% INCLUDE 'browser-strings.inc' %]
-<!--[if lt IE 9]>
-<script type="text/javascript" src="[% interface %]/lib/shims/json2.min.js"></script>
-<![endif]-->
-<script type="text/javascript" src="[% interface %]/js/browser.js"></script>
+[% Asset.js("js/browser.js") %]
 <script type="text/javascript">
 //<![CDATA[
     var browser = KOHA.browser('[% searchid %]', parseInt('[% biblionumber %]', 10));
@@ -18,6 +16,12 @@
         $("#loading").hide();
     });
 	 $(document).ready(function() {
+
+        [% IF bib_doesnt_exist %]
+            $("#addbibliotabs").hide();
+            $("#toolbar").hide();
+        [% END %]
+
         $('#addbibliotabs').tabs().bind('show.ui-tabs', function(e, ui) {
 			$("#"+ui.panel.id+" input:eq(0)").focus();
 		});
@@ -159,7 +163,13 @@ function PopupZ3950() {
 }
 
 function PopupMARCFieldDoc(field) {
-    [% IF ( marcflavour == 'MARC21' ) %]
+    [% IF Koha.Preference('marcfielddocurl') %]
+        var docurl = "[% Koha.Preference('marcfielddocurl').replace('"','&quot;') %]";
+        docurl = docurl.replace("{MARC}", "[% marcflavour %]");
+        docurl = docurl.replace("{FIELD}", ""+field);
+        docurl = docurl.replace("{LANG}", "[% lang %]");
+        window.open(docurl);
+    [% ELSIF ( marcflavour == 'MARC21' ) %]
         _MARC21FieldDoc(field);
     [% ELSIF ( marcflavour == 'UNIMARC' ) %]
         _UNIMARCFieldDoc(field);
@@ -380,9 +390,17 @@ function Changefwk() {
 
 //]]>
 </script>
-<link type="text/css" rel="stylesheet" href="[% interface %]/[% theme %]/css/addbiblio.css" />
+[% Asset.css("css/addbiblio.css") %]
+
+[% INCLUDE 'select2.inc' %]
+<script>
+  $(document).ready(function() {
+    $('.subfield_line select').select2();
+  });
+</script>
+
 [% IF ( bidi ) %]
-   <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/right-to-left.css" />
+   [% Asset.css("css/right-to-left.css") %]
 [% END %]
 </head>
 <body id="cat_addbiblio" class="cat">
@@ -444,12 +462,12 @@ function Changefwk() {
     [% IF CAN_user_editcatalogue_edit_items or ( frameworkcode == 'FA' and CAN_user_editcatalogue_fast_cataloging ) %]
         [% IF (circborrowernumber) %][%# fast cataloging must lead to items %]
             <!-- Action is under fast cataloging - Save button redirecting to items -->
-            <div class="btn-group"><a href="#" id="saveanditems" class="btn btn-small"><i class="fa fa-save"></i> Save</a></div>
+            <div class="btn-group"><a href="#" id="saveanditems" class="btn btn-default btn-sm"><i class="fa fa-save"></i> Save</a></div>
         [% ELSE %]
             <!-- Not using fast cataloging - Display split menu -->
             <div class="btn-group">
-                <button class="btn btn-small" id="saverecord"><i class="fa fa-save"></i> Save</button>
-                <button class="btn btn-small dropdown-toggle" data-toggle="dropdown">
+                <button class="btn btn-default btn-sm" id="saverecord"><i class="fa fa-save"></i> Save</button>
+                <button class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
                 <span class="caret"></span>
                 </button>
                 <ul class="dropdown-menu">
@@ -461,15 +479,15 @@ function Changefwk() {
         [% END %]
     [% ELSE %]
         <!-- User cannot edit items - single button redirecting to view -->
-        <div class="btn-group"><a href="#" id="saveandview" class="btn btn-small"><i class="fa fa-save"></i> Save</a></div>
+        <div class="btn-group"><a href="#" id="saveandview" class="btn btn-default btn-sm"><i class="fa fa-save"></i> Save</a></div>
     [% END %]
 
     [% UNLESS (circborrowernumber) %][%# Hide in fast cataloging %]
-        <div class="btn-group"><a class="btn btn-small" href="#" id="z3950search"><i class="fa fa-search"></i> Z39.50/SRU search</a></div>
+        <div class="btn-group"><a class="btn btn-default btn-sm" href="#" id="z3950search"><i class="fa fa-search"></i> Z39.50/SRU search</a></div>
     [% END %]
 
     <div class="btn-group">
-        <button class="btn btn-small dropdown-toggle" data-toggle="dropdown"><i class="fa fa-cog"></i> Settings <span class="caret"></span></button>
+        <button class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown"><i class="fa fa-cog"></i> Settings <span class="caret"></span></button>
         <ul id="settings-menu" class="dropdown-menu">
             [% IF Koha.Preference( 'EnableAdvancedCatalogingEditor' ) == 1 %]
                 <li><a href="#" id="switcheditor">Switch to advanced editor</a></li>
@@ -493,15 +511,15 @@ function Changefwk() {
                     Default
                 </a>
             </li>
-            [% FOREACH frameworkcodeloo IN frameworkcodeloop %]
+            [% FOREACH framework IN frameworks%]
                 <li>
-                    <a href="#" class="change-framework" data-frameworkcode="[% frameworkcodeloo.frameworkcode %]">
-                        [% IF ( frameworkcodeloo.frameworkcode == frameworkcode ) %]
+                    <a href="#" class="change-framework" data-frameworkcode="[% framework.frameworkcode %]">
+                        [% IF framework.frameworkcode == frameworkcode %]
                             <i class="fa fa-fw fa-check"></i>
                         [% ELSE %]
                             <i class="fa fa-fw">&nbsp;</i>
                         [% END %]
-                        [% frameworkcodeloo.frameworktext %]
+                        [% framework.frameworktext %]
                     </a>
                 </li>
             [% END %]
@@ -511,26 +529,33 @@ function Changefwk() {
         [% IF (biblionumber) %]
             [% IF ( BiblioDefaultViewmarc ) %]
                 <div class="btn-group">
-                    <a class="btn btn-small" id="cancel" href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
+                    <a class="btn btn-default btn-sm" id="cancel" href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
                 </div>
             [% ELSIF ( BiblioDefaultViewlabeled_marc ) %]
                 <div class="btn-group">
-                    <a class="btn btn-small" id="cancel" href="/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
+                    <a class="btn btn-default btn-sm" id="cancel" href="/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
                 </div>
             [% ELSIF ( BiblioDefaultViewisbd ) %]
                 <div class="btn-group">
-                    <a class="btn btn-small" id="cancel" href="/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
+                    <a class="btn btn-default btn-sm" id="cancel" href="/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
                 </div>
             [% ELSE %]
                 <div class="btn-group">
-                    <a class="btn btn-small" id="cancel" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
+                    <a class="btn btn-default btn-sm" id="cancel" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber |url %]">Cancel</a>
                 </div>
             [% END %]
         [% ELSE %]
-            <a class="btn btn-small" id="cancel" href="/cgi-bin/koha/cataloguing/addbooks.pl">Cancel</a>
+            <a class="btn btn-default btn-sm" id="cancel" href="/cgi-bin/koha/cataloguing/addbooks.pl">Cancel</a>
         [% END %]
     [% END %]
 </div>
+
+[% IF bib_doesnt_exist %]
+    <div class="dialog alert">
+        The record you are trying to edit doesn't exist.<br>
+        <a href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=">Add a new record</a> or <a href="/cgi-bin/koha/catalogue/search.pl">do a catalog search</a>.
+    </div>
+[% END %]
 
 [% IF ( popup ) %]
         <input type="hidden" name="mode" value="popup" />

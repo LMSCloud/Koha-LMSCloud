@@ -1,0 +1,32 @@
+{
+  "/oauth/token": {
+    "$ref": "paths/oauth.json#/~1oauth~1token"
+  },
+  "/acquisitions/vendors": {
+    "$ref": "paths/acquisitions_vendors.json#/~1acquisitions~1vendors"
+  },
+  "/acquisitions/vendors/{vendor_id}": {
+    "$ref": "paths/acquisitions_vendors.json#/~1acquisitions~1vendors~1{vendor_id}"
+  },
+  "/cities": {
+    "$ref": "paths/cities.json#/~1cities"
+  },
+  "/cities/{city_id}": {
+    "$ref": "paths/cities.json#/~1cities~1{city_id}"
+  },
+  "/holds": {
+    "$ref": "paths/holds.json#/~1holds"
+  },
+  "/holds/{reserve_id}": {
+    "$ref": "paths/holds.json#/~1holds~1{reserve_id}"
+  },
+  "/patrons": {
+    "$ref": "paths/patrons.json#/~1patrons"
+  },
+  "/patrons/{patron_id}": {
+    "$ref": "paths/patrons.json#/~1patrons~1{patron_id}"
+  },
+  "/illrequests": {
+    "$ref": "paths/illrequests.json#/~1illrequests"
+  }
+}

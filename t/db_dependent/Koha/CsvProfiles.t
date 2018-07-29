@@ -35,12 +35,15 @@ my $nb_of_csv_profiles = Koha::CsvProfiles->search->count;
 my $new_csv_profile_1 = Koha::CsvProfile->new({
     profile => 'my_csv_profile_name_for_test_1',
     description => 'my_csv_profile_description_for_test_1',
-    type => 'sql'
+    type => 'sql',
+    used_for => 'late_issues',
+    content => 'a content',
 })->store;
 my $new_csv_profile_2 = Koha::CsvProfile->new({
     profile => 'my_csv_profile_name_for_test_2',
     description => 'my_csv_profile_description_for_test_2',
     type => 'marc',
+    content => 'another content',
 })->store;
 
 like( $new_csv_profile_1->export_format_id, qr|^\d+$|, 'Adding a new csv_profile should have set the export_format_id');
@@ -54,4 +57,3 @@ is( Koha::CsvProfiles->search->count, $nb_of_csv_profiles + 1, 'Delete should ha
 
 $schema->storage->txn_rollback;
 
-1;

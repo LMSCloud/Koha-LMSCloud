@@ -19,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use warnings;
-use strict;
+use Modern::Perl;
 use CGI qw/-utf8/;
 
 use C4::Auth;
@@ -29,11 +28,12 @@ use C4::Context;
 use C4::Breeding;
 use C4::Koha;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
+use Koha::BiblioFrameworks;
 
 my $input           = new CGI;
 my $biblionumber    = $input->param('biblionumber')||0;
-my $frameworkcode   = $input->param('frameworkcode')||'';
+my $frameworkcode   = $input->param('frameworkcode') || q{};
 my $title           = $input->param('title');
 my $author          = $input->param('author');
 my $isbn            = $input->param('isbn');
@@ -41,10 +41,10 @@ my $issn            = $input->param('issn');
 my $lccn            = $input->param('lccn');
 my $lccall          = $input->param('lccall');
 my $subject         = $input->param('subject');
+my $srchany         = $input->param('srchany');
+my $stdid           = $input->param('stdid');
 my $dewey           = $input->param('dewey');
 my $controlnumber   = $input->param('controlnumber');
-my $stdid           = $input->param('stdid');
-my $srchany         = $input->param('srchany');
 my $op              = $input->param('op')||'';
 my $booksellerid    = $input->param('booksellerid');
 my $basketno        = $input->param('basketno');
@@ -52,20 +52,9 @@ my $page            = $input->param('current_page') || 1;
 $page               = $input->param('goto_page') if $input->param('changepage_goto');
 
 # get framework list
-my $frameworks = getframeworks;
-my @frameworkcodeloop;
-foreach my $thisframeworkcode ( keys %$frameworks ) {
-    my %row = (
-        value         => $thisframeworkcode,
-        frameworktext => $frameworks->{$thisframeworkcode}->{'frameworktext'},
-    );
-    if ( $row{'value'} eq $frameworkcode){
-        $row{'active'} = 'true';
-    }
-    push @frameworkcodeloop, \%row;
-}
+my $frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] });
 
-my $vendor = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $vendor = Koha::Acquisition::Booksellers->find( $booksellerid );
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -77,10 +66,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 $template->param(
         frameworkcode => $frameworkcode,
-        frameworkcodeloop => \@frameworkcodeloop,
+        frameworks   => $frameworks,
         booksellerid => $booksellerid,
         basketno     => $basketno,
-        name         => $vendor->{'name'},
+        name         => $vendor->name,
         isbn         => $isbn,
         issn         => $issn,
         lccn         => $lccn,
@@ -93,6 +82,8 @@ $template->param(
         biblionumber => $biblionumber,
         dewey        => $dewey,
         subject      => $subject,
+        srchany      => $srchany,
+        stdid        => $stdid,
 );
 
 if ( $op ne "do_search" ) {

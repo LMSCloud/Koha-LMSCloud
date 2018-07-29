@@ -19,19 +19,29 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Digest::MD5 qw( md5_base64 md5_hex );
+use JSON;
+use List::MoreUtils qw( any each_array uniq );
 use String::Random qw( random_string );
 
 use C4::Auth;
 use C4::Output;
 use C4::Members;
+use C4::Members::Attributes qw( GetBorrowerAttributes );
 use C4::Form::MessagingPreferences;
+use Koha::AuthUtils;
 use Koha::Patrons;
+use Koha::Patron::Modification;
 use Koha::Patron::Modifications;
-use C4::Branch qw(GetBranchesLoop);
 use C4::Scrubber;
 use Email::Valid;
 use Koha::DateUtils;
+use Koha::Libraries;
+use Koha::Patron::Attribute::Types;
+use Koha::Patron::Attributes;
 use Koha::Patron::Images;
+use Koha::Patron::Modification;
+use Koha::Patron::Modifications;
+use Koha::Patrons;
 use Koha::Token;
 
 my $cgi = new CGI;
@@ -64,13 +74,40 @@ if ( $action eq q{} ) {
 
 my $mandatory = GetMandatoryFields($action);
 
+my @libraries = Koha::Libraries->search;
+if ( my @libraries_to_display = split '\|', C4::Context->preference('PatronSelfRegistrationLibraryList') ) {
+    @libraries = map { my $b = $_; my $branchcode = $_->branchcode; grep( /^$branchcode$/, @libraries_to_display ) ? $b : () } @libraries;
+}
+my ( $min, $max ) = C4::Members::get_cardnumber_length();
+if ( defined $min ) {
+     $template->param(
+         minlength_cardnumber => $min,
+         maxlength_cardnumber => $max
+     );
+ }
+
 $template->param(
     action            => $action,
     hidden            => GetHiddenFields( $mandatory, 'registration' ),
     mandatory         => $mandatory,
-    branches          => GetBranchesLoop(),
+    libraries         => \@libraries,
     OPACPatronDetails => C4::Context->preference('OPACPatronDetails'),
 );
+
+my $attributes = ParsePatronAttributes($borrowernumber,$cgi);
+my $conflicting_attribute = 0;
+
+foreach my $attr (@$attributes) {
+    unless ( C4::Members::Attributes::CheckUniqueness($attr->{code}, $attr->{value}, $borrowernumber) ) {
+        my $attr_info = C4::Members::AttributeTypes->fetch($attr->{code});
+        $template->param(
+            extended_unique_id_failed_code => $attr->{code},
+            extended_unique_id_failed_value => $attr->{value},
+            extended_unique_id_failed_description => $attr_info->description()
+        );
+        $conflicting_attribute = 1;
+    }
+}
 
 if ( $action eq 'create' ) {
 
@@ -88,7 +125,7 @@ if ( $action eq 'create' ) {
         $cardnumber_error_code = checkcardnumber( $borrower{cardnumber}, $borrower{borrowernumber} );
     }
 
-    if ( @empty_mandatory_fields || @$invalidformfields || $cardnumber_error_code ) {
+    if ( @empty_mandatory_fields || @$invalidformfields || $cardnumber_error_code || $conflicting_attribute ) {
         if ( $cardnumber_error_code == 1 ) {
             $template->param( cardnumber_already_exists => 1 );
         } elsif ( $cardnumber_error_code == 2 ) {
@@ -100,6 +137,7 @@ if ( $action eq 'create' ) {
             invalid_form_fields    => $invalidformfields,
             borrower               => \%borrower
         );
+        $template->param( patron_attribute_classes => GeneratePatronAttributesForm( undef, $attributes ) );
     }
     elsif (
         md5_base64( uc( $cgi->param('captcha') ) ) ne $cgi->param('captcha_digest') )
@@ -108,6 +146,7 @@ if ( $action eq 'create' ) {
             failed_captcha => 1,
             borrower       => \%borrower
         );
+        $template->param( patron_attribute_classes => GeneratePatronAttributesForm( undef, $attributes ) );
     }
     else {
         if (
@@ -125,17 +164,21 @@ if ( $action eq 'create' ) {
             );
             $template->param( 'email' => $borrower{'email'} );
 
-            my $verification_token = md5_hex( \%borrower );
-            $borrower{'password'} = random_string("..........");
+            my $verification_token = md5_hex( time().{}.rand().{}.$$ );
+            while ( Koha::Patron::Modifications->search( { verification_token => $verification_token } )->count() ) {
+                $verification_token = md5_hex( time().{}.rand().{}.$$ );
+            }
 
-            Koha::Patron::Modifications->new(
-                verification_token => $verification_token )
-              ->AddModifications(\%borrower);
+            $borrower{password}           = Koha::AuthUtils::generate_password unless $borrower{password};
+            $borrower{verification_token} = $verification_token;
+
+            Koha::Patron::Modification->new( \%borrower )->store();
 
             #Send verification email
             my $letter = C4::Letters::GetPreparedLetter(
                 module      => 'members',
                 letter_code => 'OPAC_REG_VERIFY',
+                lang        => 'default', # Patron does not have a preferred language defined yet
                 tables      => {
                     borrower_modifications => $verification_token,
                 },
@@ -166,11 +209,12 @@ if ( $action eq 'create' ) {
                   C4::Context->preference('OpacPasswordChange') );
 
             my ( $borrowernumber, $password ) = AddMember_Opac(%borrower);
+            C4::Members::Attributes::SetBorrowerAttributes( $borrowernumber, $attributes );
             C4::Form::MessagingPreferences::handle_form_action($cgi, { borrowernumber => $borrowernumber }, $template, 1, C4::Context->preference('PatronSelfRegistrationDefaultCategory') ) if $borrowernumber && C4::Context->preference('EnhancedMessagingPreferences');
 
             $template->param( password_cleartext => $password );
-            $template->param(
-                borrower => GetMember( borrowernumber => $borrowernumber ) );
+            my $patron = Koha::Patrons->find( $borrowernumber );
+            $template->param( borrower => $patron->unblessed );
             $template->param(
                 PatronSelfRegistrationAdditionalInstructions =>
                   C4::Context->preference(
@@ -181,7 +225,7 @@ if ( $action eq 'create' ) {
 }
 elsif ( $action eq 'update' ) {
 
-    my $borrower = GetMember( borrowernumber => $borrowernumber );
+    my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
     die "Wrong CSRF token"
         unless Koha::Token->new->check_csrf({
             session_id => scalar $cgi->cookie('CGISESSID'),
@@ -189,6 +233,7 @@ elsif ( $action eq 'update' ) {
         });
 
     my %borrower = ParseCgiForBorrower($cgi);
+    $borrower{borrowernumber} = $borrowernumber;
 
     my %borrower_changes = DelEmptyFields(%borrower);
     my @empty_mandatory_fields =
@@ -207,12 +252,15 @@ elsif ( $action eq 'update' ) {
                 session_id => scalar $cgi->cookie('CGISESSID'),
             }),
         );
+        $template->param( patron_attribute_classes => GeneratePatronAttributesForm( $borrowernumber, $attributes ) );
 
         $template->param( action => 'edit' );
     }
     else {
         my %borrower_changes = DelUnchangedFields( $borrowernumber, %borrower );
-        if (%borrower_changes) {
+        my $extended_attributes_changes = FilterUnchangedAttributes( $borrowernumber, $attributes );
+
+        if ( %borrower_changes || scalar @{$extended_attributes_changes} > 0 ) {
             ( $template, $borrowernumber, $cookie ) = get_template_and_user(
                 {
                     template_name   => "opac-memberentry-update-submitted.tt",
@@ -222,21 +270,23 @@ elsif ( $action eq 'update' ) {
                 }
             );
 
-            my $m =
-              Koha::Patron::Modifications->new(
-                borrowernumber => $borrowernumber );
+            $borrower_changes{borrowernumber} = $borrowernumber;
+            $borrower_changes{extended_attributes} = to_json($extended_attributes_changes);
 
-            $m->DelModifications;
-            $m->AddModifications(\%borrower_changes);
-            $template->param(
-                borrower => GetMember( borrowernumber => $borrowernumber ),
-            );
+            Koha::Patron::Modifications->search({ borrowernumber => $borrowernumber })->delete;
+
+            my $m = Koha::Patron::Modification->new( \%borrower_changes )->store();
+
+            my $patron = Koha::Patrons->find( $borrowernumber );
+            $template->param( borrower => $patron->unblessed );
         }
         else {
+            my $patron = Koha::Patrons->find( $borrowernumber );
             $template->param(
                 action => 'edit',
                 nochanges => 1,
-                borrower => GetMember( borrowernumber => $borrowernumber ),
+                borrower => $patron->unblessed,
+                patron_attribute_classes => GeneratePatronAttributesForm( $borrowernumber, $attributes ),
                 csrf_token => Koha::Token->new->generate_csrf({
                     session_id => scalar $cgi->cookie('CGISESSID'),
                 }),
@@ -245,15 +295,8 @@ elsif ( $action eq 'update' ) {
     }
 }
 elsif ( $action eq 'edit' ) {    #Display logged in borrower's data
-    my $borrower = GetMember( borrowernumber => $borrowernumber );
-
-    if (C4::Context->preference('ExtendedPatronAttributes')) {
-        my $attributes = C4::Members::Attributes::GetBorrowerAttributes($borrowernumber, 'opac');
-        if (scalar(@$attributes) > 0) {
-            $borrower->{ExtendedPatronAttributes} = 1;
-            $borrower->{patron_attributes} = $attributes;
-        }
-    }
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    my $borrower = $patron->unblessed;
 
     $template->param(
         borrower  => $borrower,
@@ -265,10 +308,13 @@ elsif ( $action eq 'edit' ) {    #Display logged in borrower's data
     );
 
     if (C4::Context->preference('OPACpatronimages')) {
-        my $patron_image = Koha::Patron::Images->find($borrower->{borrowernumber});
-        $template->param( display_patron_image => 1 ) if $patron_image;
+        $template->param( display_patron_image => 1 ) if $patron->image;
     }
 
+    $template->param( patron_attribute_classes => GeneratePatronAttributesForm( $borrowernumber ) );
+} else {
+    # Render self-registration page
+    $template->param( patron_attribute_classes => GeneratePatronAttributesForm() );
 }
 
 my $captcha = random_string("CCCCC");
@@ -339,11 +385,27 @@ sub CheckMandatoryFields {
 }
 
 sub CheckForInvalidFields {
-    my $minpw = C4::Context->preference('minPasswordLength');
     my $borrower = shift;
     my @invalidFields;
     if ($borrower->{'email'}) {
-        push(@invalidFields, "email") if (!Email::Valid->address($borrower->{'email'}));
+        unless ( Email::Valid->address($borrower->{'email'}) ) {
+            push(@invalidFields, "email");
+        } elsif ( C4::Context->preference("PatronSelfRegistrationEmailMustBeUnique") ) {
+            my $patrons_with_same_email = Koha::Patrons->search( # FIXME Should be search_limited?
+                {
+                    email => $borrower->{email},
+                    (
+                        exists $borrower->{borrowernumber}
+                        ? ( borrowernumber =>
+                              { '!=' => $borrower->{borrowernumber} } )
+                        : ()
+                    )
+                }
+            )->count;
+            if ( $patrons_with_same_email ) {
+                push @invalidFields, "duplicate_email";
+            }
+        }
     }
     if ($borrower->{'emailpro'}) {
         push(@invalidFields, "emailpro") if (!Email::Valid->address($borrower->{'emailpro'}));
@@ -351,14 +413,18 @@ sub CheckForInvalidFields {
     if ($borrower->{'B_email'}) {
         push(@invalidFields, "B_email") if (!Email::Valid->address($borrower->{'B_email'}));
     }
-    if ( $borrower->{'password'} ne $borrower->{'password2'} ){
-        push(@invalidFields, "password_match");
-    }
-    if ( $borrower->{'password'}  && $minpw && (length($borrower->{'password'}) < $minpw) ) {
-       push(@invalidFields, "password_invalid");
+    if ( defined $borrower->{'password'}
+        and $borrower->{'password'} ne $borrower->{'password2'} )
+    {
+        push( @invalidFields, "password_match" );
     }
     if ( $borrower->{'password'} ) {
-       push(@invalidFields, "password_spaces") if ($borrower->{'password'} =~ /^\s/ or $borrower->{'password'} =~ /\s$/);
+        my ( $is_valid, $error ) = Koha::AuthUtils::is_password_valid( $borrower->{password} );
+          unless ( $is_valid ) {
+              push @invalidFields, 'password_too_short' if $error eq 'too_short';
+              push @invalidFields, 'password_too_weak' if $error eq 'too_weak';
+              push @invalidFields, 'password_has_whitespaces' if $error eq 'has_whitespaces';
+          }
     }
 
     return \@invalidFields;
@@ -370,10 +436,15 @@ sub ParseCgiForBorrower {
     my $scrubber = C4::Scrubber->new();
     my %borrower;
 
-    foreach ( $cgi->param ) {
-        if ( $_ =~ '^borrower_' ) {
-            my ($key) = substr( $_, 9 );
-            $borrower{$key} = $scrubber->scrub( scalar $cgi->param($_) );
+    foreach my $field ( $cgi->param ) {
+        if ( $field =~ '^borrower_' ) {
+            my ($key) = substr( $field, 9 );
+            if ( $field !~ '^borrower_password' ) {
+                $borrower{$key} = $scrubber->scrub( scalar $cgi->param($field) );
+            } else {
+                # Allow html characters for passwords
+                $borrower{$key} = $cgi->param($field);
+            }
         }
     }
 
@@ -395,7 +466,8 @@ sub ParseCgiForBorrower {
 sub DelUnchangedFields {
     my ( $borrowernumber, %new_data ) = @_;
 
-    my $current_data = GetMember( borrowernumber => $borrowernumber );
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    my $current_data = $patron->unblessed;
 
     foreach my $key ( keys %new_data ) {
         if ( $current_data->{$key} eq $new_data{$key} ) {
@@ -415,3 +487,176 @@ sub DelEmptyFields {
 
     return %borrower;
 }
+
+sub FilterUnchangedAttributes {
+    my ( $borrowernumber, $entered_attributes ) = @_;
+
+    my @patron_attributes = grep {$_->opac_editable} Koha::Patron::Attributes->search({ borrowernumber => $borrowernumber })->as_list;
+
+    my $patron_attribute_types;
+    foreach my $attr (@patron_attributes) {
+        $patron_attribute_types->{ $attr->code } += 1;
+    }
+
+    my $passed_attribute_types;
+    foreach my $attr (@{ $entered_attributes }) {
+        $passed_attribute_types->{ $attr->{ code } } += 1;
+    }
+
+    my @changed_attributes;
+
+    # Loop through the current patron attributes
+    foreach my $attribute_type ( keys %{ $patron_attribute_types } ) {
+        if ( $patron_attribute_types->{ $attribute_type } !=  $passed_attribute_types->{ $attribute_type } ) {
+            # count differs, overwrite all attributes for given type
+            foreach my $attr (@{ $entered_attributes }) {
+                push @changed_attributes, $attr
+                    if $attr->{ code } eq $attribute_type;
+            }
+        } else {
+            # count matches, check values
+            my $changes = 0;
+            foreach my $attr (grep { $_->code eq $attribute_type } @patron_attributes) {
+                $changes = 1
+                    unless any { $_->{ value } eq $attr->attribute } @{ $entered_attributes };
+                last if $changes;
+            }
+
+            if ( $changes ) {
+                foreach my $attr (@{ $entered_attributes }) {
+                    push @changed_attributes, $attr
+                        if $attr->{ code } eq $attribute_type;
+                }
+            }
+        }
+    }
+
+    # Loop through passed attributes, looking for new ones
+    foreach my $attribute_type ( keys %{ $passed_attribute_types } ) {
+        if ( !defined $patron_attribute_types->{ $attribute_type } ) {
+            # YAY, new stuff
+            foreach my $attr (grep { $_->{code} eq $attribute_type } @{ $entered_attributes }) {
+                push @changed_attributes, $attr;
+            }
+        }
+    }
+
+    return \@changed_attributes;
+}
+
+sub GeneratePatronAttributesForm {
+    my ( $borrowernumber, $entered_attributes ) = @_;
+
+    # Get all attribute types and the values for this patron (if applicable)
+    my @types = grep { $_->opac_editable() or $_->opac_display }
+        Koha::Patron::Attribute::Types->search()->as_list();
+    if ( scalar(@types) == 0 ) {
+        return [];
+    }
+
+    my @displayable_attributes = grep { $_->opac_display }
+        Koha::Patron::Attributes->search({ borrowernumber => $borrowernumber })->as_list;
+
+    my %attr_values = ();
+
+    # Build the attribute values list either from the passed values
+    # or taken from the patron itself
+    if ( defined $entered_attributes ) {
+        foreach my $attr (@$entered_attributes) {
+            push @{ $attr_values{ $attr->{code} } }, $attr->{value};
+        }
+    }
+    elsif ( defined $borrowernumber ) {
+        my @editable_attributes = grep { $_->opac_editable } @displayable_attributes;
+        foreach my $attr (@editable_attributes) {
+            push @{ $attr_values{ $attr->code } }, $attr->attribute;
+        }
+    }
+
+    # Add the non-editable attributes (that don't come from the form)
+    foreach my $attr ( grep { !$_->opac_editable } @displayable_attributes ) {
+        push @{ $attr_values{ $attr->code } }, $attr->attribute;
+    }
+
+    # Find all existing classes
+    my @classes = sort( uniq( map { $_->class } @types ) );
+    my %items_by_class;
+
+    foreach my $attr_type (@types) {
+        push @{ $items_by_class{ $attr_type->class() } }, {
+            type => $attr_type,
+            # If editable, make sure there's at least one empty entry,
+            # to make the template's job easier
+            values => $attr_values{ $attr_type->code() } || ['']
+        }
+            unless !defined $attr_values{ $attr_type->code() }
+                    and !$attr_type->opac_editable;
+    }
+
+    # Finally, build a list of containing classes
+    my @class_loop;
+    foreach my $class (@classes) {
+        next unless ( $items_by_class{$class} );
+
+        my $av = Koha::AuthorisedValues->search(
+            { category => 'PA_CLASS', authorised_value => $class } );
+
+        my $lib = $av->count ? $av->next->opac_description : $class;
+
+        push @class_loop,
+            {
+            class => $class,
+            items => $items_by_class{$class},
+            lib   => $lib,
+            };
+    }
+
+    return \@class_loop;
+}
+
+sub ParsePatronAttributes {
+    my ( $borrowernumber, $cgi ) = @_;
+
+    my @codes  = $cgi->multi_param('patron_attribute_code');
+    my @values = $cgi->multi_param('patron_attribute_value');
+
+    my @editable_attribute_types
+        = map { $_->code } Koha::Patron::Attribute::Types->search({ opac_editable => 1 });
+
+    my $ea = each_array( @codes, @values );
+    my @attributes;
+
+    my $delete_candidates = {};
+
+    while ( my ( $code, $value ) = $ea->() ) {
+        if ( any { $_ eq $code } @editable_attribute_types ) {
+            # It is an editable attribute
+            if ( !defined($value) or $value eq '' ) {
+                $delete_candidates->{$code} = 1
+                    unless $delete_candidates->{$code};
+            }
+            else {
+                # we've got a value
+                push @attributes, { code => $code, value => $value };
+
+                # 'code' is no longer a delete candidate
+                delete $delete_candidates->{$code}
+                    if defined $delete_candidates->{$code};
+            }
+        }
+    }
+
+    foreach my $code ( keys %{$delete_candidates} ) {
+        if ( Koha::Patron::Attributes->search({
+                borrowernumber => $borrowernumber, code => $code })->count > 0 )
+        {
+            push @attributes, { code => $code, value => '' }
+                unless any { $_->{code} eq $code } @attributes;
+        }
+    }
+
+    return \@attributes;
+}
+
+
+1;

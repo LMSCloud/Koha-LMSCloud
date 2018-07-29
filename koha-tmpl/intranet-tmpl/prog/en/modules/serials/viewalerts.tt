@@ -19,14 +19,16 @@
     <span class="label">Subscription:</span> <a href="subscription-detail.pl?subscriptionid=[% subscriptionid %]">[% bibliotitle %] #[% subscriptionid %]</a>
 </p>
 
-[% IF ( alertloop ) %]
+[% IF subscribers.count %]
     <table>
         <tr>
             <th>Patron name</th>
         </tr>
-        [% FOREACH alertloo IN alertloop %]
+        [% FOREACH subscriber IN subscribers %]
         <tr>
-            <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% alertloo.borrowernumber %]">[% alertloo.name %]</a></td>
+            <td>
+                <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% subscriber.borrowernumber %]">[% INCLUDE 'patron-title.inc' patron=subscriber %]</a>
+            </td>
         </tr>
         [% END %]
     </table>

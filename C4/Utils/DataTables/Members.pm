@@ -1,11 +1,10 @@
 package C4::Utils::DataTables::Members;
 
 use Modern::Perl;
-use C4::Branch qw/onlymine/;
 use C4::Context;
-use C4::Members qw/GetMemberIssuesAndFines/;
 use C4::Utils::DataTables;
 use Koha::DateUtils;
+use C4::Members::Attributes qw(SearchIdMatchingAttribute );
 
 sub search {
     my ( $params ) = @_;
@@ -37,32 +36,40 @@ sub search {
         $searchmember = $dt_params->{sSearch} // '';
     }
 
-    my ($sth, $query, $iTotalRecords, $iTotalDisplayRecords);
+    # If branches are independent and user is not superlibrarian
+    # The search has to be only on the user branch
+    my $userenv = C4::Context->userenv;
+    my $logged_in_user = Koha::Patrons->find( $userenv->{number} );
+    my @restricted_branchcodes = $logged_in_user->libraries_where_can_see_patrons;
+
+    my ($sth, $query, $iTotalQuery, $iTotalRecords, $iTotalDisplayRecords);
     my $dbh = C4::Context->dbh;
     # Get the iTotalRecords DataTable variable
-    $query = "SELECT COUNT(borrowers.borrowernumber) FROM borrowers";
-    $sth = $dbh->prepare($query);
-    $sth->execute;
-    ($iTotalRecords) = $sth->fetchrow_array;
+    $query = $iTotalQuery = "SELECT COUNT(borrowers.borrowernumber) FROM borrowers";
+    if ( @restricted_branchcodes ) {
+        $iTotalQuery .= " WHERE borrowers.branchcode IN (" . join( ',', ('?') x @restricted_branchcodes ) . ")";
+    }
+    ($iTotalRecords) = $dbh->selectrow_array( $iTotalQuery, undef, @restricted_branchcodes );
+
+    # Do that after iTotalQuery!
+    if ( defined $branchcode and $branchcode ) {
+        @restricted_branchcodes = @restricted_branchcodes
+            ? grep { /^$branchcode$/ } @restricted_branchcodes
+                ? ($branchcode)
+                : (undef) # Do not return any results
+            : ($branchcode);
+    }
 
     if ( $searchfieldstype eq 'dateofbirth' ) {
         # Return an empty list if the date of birth is not correctly formatted
         $searchmember = eval { output_pref( { str => $searchmember, dateformat => 'iso', dateonly => 1 } ); };
         if ( $@ or not $searchmember ) {
             return {
-                iTotalRecords        => 0,
+                iTotalRecords        => $iTotalRecords,
                 iTotalDisplayRecords => 0,
                 patrons              => [],
             };
         }
-    }
-
-    # If branches are independent and user is not superlibrarian
-    # The search has to be only on the user branch
-    if ( C4::Branch::onlymine ) {
-        my $userenv = C4::Context->userenv;
-        $branchcode = $userenv->{'branch'};
-
     }
 
     my $select = "SELECT
@@ -89,9 +96,9 @@ sub search {
         push @where_strs, "borrowers.categorycode = ?";
         push @where_args, $categorycode;
     }
-    if(defined $branchcode and $branchcode ne '') {
-        push @where_strs, "borrowers.branchcode = ?";
-        push @where_args, $branchcode;
+    if(@restricted_branchcodes ) {
+        push @where_strs, "borrowers.branchcode IN (" . join( ',', ('?') x @restricted_branchcodes ) . ")";
+        push @where_args, @restricted_branchcodes;
     }
     if ( defined($chargesfrom) && $chargesfrom =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
         $chargesfrom += 0.0;
@@ -209,7 +216,7 @@ sub search {
     }
 
     my $searchfields = {
-        standard => 'surname,firstname,othernames,cardnumber,userid,altcontactfirstname,altcontactsurname',
+        standard => C4::Context->preference('DefaultPatronSearchFields') || 'surname,firstname,othernames,cardnumber,userid,altcontactfirstname,altcontactsurname',
         surname => 'surname,altcontactsurname',
         email => 'email,emailpro,B_email',
         borrowernumber => 'borrowernumber',
@@ -238,10 +245,16 @@ sub search {
     foreach my $term (@terms) {
         next unless $term;
 
-        $term .= '%' # end with anything
-            if $term !~ /%$/;
-        $term = "%$term" # begin with anythin unless start_with
-            if $searchtype eq 'contain' && $term !~ /^%/;
+        my $term_dt = eval { local $SIG{__WARN__} = {}; output_pref( { str => $term, dateonly => 1, dateformat => 'sql' } ); };
+
+        if ($term_dt) {
+            $term = $term_dt;
+        } else {
+            $term .= '%'    # end with anything
+              if $term !~ /%$/;
+            $term = "%$term"    # begin with anythin unless start_with
+              if $searchtype eq 'contain' && $term !~ /^%/;
+        }
 
         my @where_strs_or;
         for my $searchfield ( split /,/, $searchfields->{$searchfieldstype} ) {
@@ -285,7 +298,6 @@ sub search {
         ($orderby ? $orderby : ""),
         ($limit ? $limit : "")
     );
-    # print STDERR "Searching borrowers: $query";
     $sth = $dbh->prepare($query);
     $sth->execute(@where_args);
     my $patrons = $sth->fetchall_arrayref({});
@@ -298,14 +310,19 @@ sub search {
 
     # Get some information on patrons
     foreach my $patron (@$patrons) {
-        ($patron->{overdues}, $patron->{issues}, $patron->{fines}) =
-            GetMemberIssuesAndFines($patron->{borrowernumber});
-        if($patron->{dateexpiry} and $patron->{dateexpiry} ne '0000-00-00') {
-            $patron->{dateexpiry} = output_pref( { dt => dt_from_string( $patron->{dateexpiry}, 'iso'), dateonly => 1} );
+        my $patron_object = Koha::Patrons->find( $patron->{borrowernumber} );
+        $patron->{overdues} = $patron_object->get_overdues->count;
+        $patron->{issues} = $patron_object->checkouts->count;
+        my $balance = $patron_object->account->balance;
+        # FIXME Should be formatted from the template
+        $patron->{fines} = sprintf("%.2f", $balance);
+
+        if( $patron->{dateexpiry} ) {
+            # FIXME We should not format the date here, do it in template-side instead
+            $patron->{dateexpiry} = output_pref( { dt => scalar dt_from_string( $patron->{dateexpiry}, 'iso'), dateonly => 1} );
         } else {
             $patron->{dateexpiry} = '';
         }
-        $patron->{fines} = sprintf("%.2f", $patron->{fines} || 0);
     }
 
     return {

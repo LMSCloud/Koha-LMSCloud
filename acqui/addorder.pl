@@ -119,8 +119,7 @@ if it is an order from an existing suggestion : the id of this suggestion.
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;           # get_template_and_user
 use C4::Acquisition;    # ModOrder
@@ -130,6 +129,8 @@ use C4::Budgets;
 use C4::Items;
 use C4::Output;
 use Koha::Acquisition::Currencies;
+use Koha::Acquisition::Orders;
+use C4::Barcodes;
 
 ### "-------------------- addorder.pl ----------"
 
@@ -137,6 +138,7 @@ use Koha::Acquisition::Currencies;
 # not just blindly call C4 functions and print a redirect.  
 
 my $input = new CGI;
+my $use_ACQ_framework = $input->param('use_ACQ_framework');
 
 # Check if order total amount exceed allowed budget
 my $confirm_budget_exceeding = $input->param('confirm_budget_exceeding');
@@ -223,15 +225,14 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 # get CGI parameters
-my $orderinfo					= $input->Vars;
+my $orderinfo = $input->Vars;
 $orderinfo->{'list_price'}    ||=  0;
 $orderinfo->{'uncertainprice'} ||= 0;
 $orderinfo->{subscriptionid} ||= undef;
 
-my $basketno=$$orderinfo{basketno};
-my $basket = GetBasket($basketno);
-
-my $user = $input->remote_user;
+my $user     = $input->remote_user;
+my $basketno = $$orderinfo{basketno};
+my $basket   = Koha::Acquisition::Baskets->find($basketno);
 
 # create, modify or delete biblio
 # create if $quantity>0 and $existing='no'
@@ -239,21 +240,31 @@ my $user = $input->remote_user;
 if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
     #TODO:check to see if biblio exists
     unless ( $$orderinfo{biblionumber} ) {
-        #if it doesn't create it
-        my $record = TransformKohaToMarc(
-            {
-                "biblio.title"                => "$$orderinfo{title}",
-                "biblio.author"               => $$orderinfo{author}          ? $$orderinfo{author}        : "",
-                "biblio.seriestitle"          => $$orderinfo{series}          ? $$orderinfo{series}        : "",
-                "biblioitems.isbn"            => $$orderinfo{isbn}            ? $$orderinfo{isbn}          : "",
-                "biblioitems.ean"             => $$orderinfo{ean}             ? $$orderinfo{ean}           : "",
-                "biblioitems.publishercode"   => $$orderinfo{publishercode}   ? $$orderinfo{publishercode} : "",
-                "biblioitems.publicationyear" => $$orderinfo{publicationyear} ? $$orderinfo{publicationyear}: "",
-                "biblio.copyrightdate"        => $$orderinfo{publicationyear} ? $$orderinfo{publicationyear}: "",
-                "biblioitems.itemtype"        => $$orderinfo{itemtype} ? $$orderinfo{itemtype} : "",
-                "biblioitems.editionstatement"=> $$orderinfo{editionstatement} ? $$orderinfo{editionstatement} : "",
-            });
 
+        my $record;
+        if ( $use_ACQ_framework ) {
+            my @tags         = $input->multi_param('bib_tag');
+            my @subfields    = $input->multi_param('bib_subfield');
+            my @field_values = $input->multi_param('bib_field_value');
+            my $xml = TransformHtmlToXml( \@tags, \@subfields, \@field_values );
+            $record=MARC::Record::new_from_xml($xml, 'UTF-8');
+        } else {
+            #if it doesn't create it
+            $record = TransformKohaToMarc(
+                {
+                    "biblio.title"                => "$$orderinfo{title}",
+                    "biblio.author"               => $$orderinfo{author}          ? $$orderinfo{author}        : "",
+                    "biblio.seriestitle"          => $$orderinfo{series}          ? $$orderinfo{series}        : "",
+                    "biblioitems.isbn"            => $$orderinfo{isbn}            ? $$orderinfo{isbn}          : "",
+                    "biblioitems.ean"             => $$orderinfo{ean}             ? $$orderinfo{ean}           : "",
+                    "biblioitems.publishercode"   => $$orderinfo{publishercode}   ? $$orderinfo{publishercode} : "",
+                    "biblioitems.publicationyear" => $$orderinfo{publicationyear} ? $$orderinfo{publicationyear}: "",
+                    "biblio.copyrightdate"        => $$orderinfo{publicationyear} ? $$orderinfo{publicationyear}: "",
+                    "biblioitems.itemtype"        => $$orderinfo{itemtype} ? $$orderinfo{itemtype} : "",
+                    "biblioitems.editionstatement"=> $$orderinfo{editionstatement} ? $$orderinfo{editionstatement} : "",
+                });
+
+        }
         C4::Acquisition::FillWithDefaultValues( $record );
 
         # create the record in catalogue, with framework ''
@@ -267,6 +278,14 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
 
     $orderinfo->{unitprice} = $orderinfo->{ecost} if not defined $orderinfo->{unitprice} or $orderinfo->{unitprice} eq '';
 
+    $orderinfo = C4::Acquisition::populate_order_with_prices(
+        {
+            order        => $orderinfo,
+            booksellerid => $orderinfo->{booksellerid},
+            ordering     => 1,
+        }
+    );
+
     # if we already have $ordernumber, then it's an ordermodif
     my $order = Koha::Acquisition::Order->new($orderinfo);
     if ( $orderinfo->{ordernumber} ) {
@@ -277,11 +296,11 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
         ModOrderUsers( $orderinfo->{ordernumber}, @order_users );
     }
     else { # else, it's a new line
-        $order->insert;
+        $order->store;
     }
 
     # now, add items if applicable
-    if (C4::Context->preference('AcqCreateItem') eq 'ordering') {
+    if ($basket->effective_create_items eq 'ordering') {
 
         my @tags         = $input->multi_param('tag');
         my @subfields    = $input->multi_param('subfield');
@@ -300,14 +319,13 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
             unless ($itemhash{$itemid[$i]}){
             $countdistinct++;
             }
-            push @{$itemhash{$itemid[$i]}->{'tags'}},$tags[$i];
-            push @{$itemhash{$itemid[$i]}->{'subfields'}},$subfields[$i];
+        push @{$itemhash{$itemid[$i]}->{'tags'}},$tags[$i];
+        push @{$itemhash{$itemid[$i]}->{'subfields'}},$subfields[$i];
             push @{$itemhash{$itemid[$i]}->{'field_values'}},$field_values[$i];
             push @{$itemhash{$itemid[$i]}->{'ind_tag'}},$ind_tag[$i];
             push @{$itemhash{$itemid[$i]}->{'indicator'}},$indicator[$i];
         }
         foreach my $item (keys %itemhash){
-
             my $xml = TransformHtmlToXml( $itemhash{$item}->{'tags'},
                                     $itemhash{$item}->{'subfields'},
                                     $itemhash{$item}->{'field_values'},
@@ -315,6 +333,23 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
                                     $itemhash{$item}->{'ind_tag'},
                                     'ITEM');
             my $record=MARC::Record::new_from_xml($xml, 'UTF-8');
+            my ($barcodefield,$barcodesubfield) = GetMarcFromKohaField('items.barcode');
+            next unless ( defined $barcodefield && defined $barcodesubfield );
+            my $barcode = $record->subfield($barcodefield,$barcodesubfield) || '';
+            my $aBpref = C4::Context->preference('autoBarcode');
+            if( $barcode eq '' && $aBpref ne 'OFF'){
+                my $barcodeobj;
+                if ( $aBpref eq 'hbyymmincr'){
+                    my ($homebranchfield,$homebranchsubfield) = GetMarcFromKohaField('items.homebranch');
+                    my $homebranch = $record->subfield($homebranchfield,$homebranchsubfield);
+                    $barcodeobj = C4::Barcodes->new($aBpref, $homebranch);
+                } else {
+                    $barcodeobj = C4::Barcodes->new($aBpref);
+                }
+                $barcode = $barcodeobj->value();
+                $record->field($barcodefield)->delete_subfield( code => $barcodesubfield);
+                $record->field($barcodefield)->add_subfields($barcodesubfield => $barcode);
+            }
             my ($biblionumber,$bibitemnum,$itemnumber) = AddItemFromMarc($record,$$orderinfo{biblionumber});
             $order->add_item($itemnumber);
         }

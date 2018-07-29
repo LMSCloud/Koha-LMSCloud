@@ -88,8 +88,7 @@ can be equal to
 
 =cut
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;    # get_template_and_user
@@ -97,7 +96,7 @@ use C4::Output;
 use C4::Suggestions;
 use C4::Biblio;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
 
 my $input = new CGI;
 
@@ -137,12 +136,12 @@ my $suggestions_loop = SearchSuggestion(
         STATUS        => 'ACCEPTED'
     }
 );
-my $vendor = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $vendor = Koha::Acquisition::Booksellers->find( $booksellerid );
 $template->param(
     suggestions_loop        => $suggestions_loop,
     basketno                => $basketno,
     booksellerid              => $booksellerid,
-    name					=> $vendor->{'name'},
+    name                    => $vendor->name,
     loggedinuser            => $borrowernumber,
     "op_$op"                => 1,
 );

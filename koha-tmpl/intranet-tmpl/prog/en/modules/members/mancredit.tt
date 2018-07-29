@@ -1,19 +1,15 @@
+[% USE Asset %]
 [% USE Koha %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Patrons &rsaquo; Create manual credit</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function(){
-        $('#mancredit').preventDoubleFormSubmit();
-        $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
-});
-//]]>
-</script>
 </head>
+
 <body id="pat_mancredit" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
+[% PROCESS 'patron-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Manual credit</div>
 
@@ -27,15 +23,16 @@ $(document).ready(function(){
 <!-- The manual invoice and credit buttons -->
 <div class="statictabs">
 <ul>
-	<li><a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% borrowernumber %]">Account</a></li>
-	<li><a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrowernumber %]" >Pay fines</a></li>
-	<li><a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% borrowernumber %]" >Create manual invoice</a></li>
-    <li class="active"><a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% borrowernumber %]" >Create manual credit</a></li>
+    <li><a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber %]">Account</a></li>
+    <li><a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]" >Pay fines</a></li>
+    <li><a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber %]" >Create manual invoice</a></li>
+    <li class="active"><a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber %]" >Create manual credit</a></li>
 </ul>
 <div class="tabs-container">
 
 <form action="/cgi-bin/koha/members/mancredit.pl" method="post" id="mancredit">
-<input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrowernumber %]" />
+<input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
+    <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
 
 <fieldset class="rows">
 <legend>Manual credit</legend><ol>
@@ -49,7 +46,7 @@ $(document).ready(function(){
     <li><label for="amount">Amount: </label><input type="number" name="amount" id="amount" required="required" value="" step="any" min="0" /> Example: 5.00</li>
 </ol></fieldset>
 
-<fieldset class="action"><input type="submit" name="add" value="Add credit" /> <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% borrowernumber %]">Cancel</a></fieldset>
+<fieldset class="action"><input type="submit" name="add" value="Add credit" /> <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a></fieldset>
 </form>
 [% IF (checkCashRegisterFailed) %] 
 <div class="warn"><i class="fa fa-warning"></i> 
@@ -65,4 +62,15 @@ Please open a cash register to add credits.
 [% INCLUDE 'circ-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/members-menu.js") %]
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#mancredit').preventDoubleFormSubmit();
+            $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

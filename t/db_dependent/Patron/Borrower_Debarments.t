@@ -5,6 +5,7 @@ use Modern::Perl;
 use C4::Context;
 use C4::Members;
 use Koha::Database;
+use Koha::Patrons;
 
 use t::lib::TestBuilder;
 
@@ -21,10 +22,11 @@ my $library = $builder->build({
     source => 'Branch',
 });
 
+my $patron_category = $builder->build({ source => 'Category' });
 my $borrowernumber = AddMember(
     firstname =>  'my firstname',
     surname => 'my surname',
-    categorycode => 'S',
+    categorycode => $patron_category->{categorycode},
     branchcode => $library->{branchcode},
 );
 
@@ -64,8 +66,7 @@ ModDebarment({
 $debarments = GetDebarments({ borrowernumber => $borrowernumber });
 is( $debarments->[1]->{'comment'}, 'Test 3', "ModDebarment functions correctly" );
 
-
-my $patron = GetMember( borrowernumber => $borrowernumber );
+my $patron = Koha::Patrons->find( $borrowernumber )->unblessed;
 is( $patron->{'debarred'}, '9999-06-10', "Field borrowers.debarred set correctly" );
 is( $patron->{'debarredcomment'}, "Test 1\nTest 3", "Field borrowers.debarredcomment set correctly" );
 
@@ -154,10 +155,10 @@ $debarments = GetDebarments({ borrowernumber => $borrowernumber });
 is( @$debarments, 0, "DelDebarment functions correctly" );
 
 $dbh->do(q|UPDATE borrowers SET debarred = '1970-01-01'|);
-is( IsDebarred( $borrowernumber ), undef, 'A patron with a debarred date in the past is not debarred' );
+is( Koha::Patrons->find( $borrowernumber )->is_debarred, undef, 'A patron with a debarred date in the past is not debarred' );
 
 $dbh->do(q|UPDATE borrowers SET debarred = NULL|);
-is( IsDebarred( $borrowernumber ), undef, 'A patron without a debarred date is not debarred' );
+is( Koha::Patrons->find( $borrowernumber )->is_debarred, undef, 'A patron without a debarred date is not debarred' );
 
 $dbh->do(q|UPDATE borrowers SET debarred = '9999-12-31'|); # Note: Change this test before the first of January 10000!
-is( IsDebarred( $borrowernumber ), '9999-12-31', 'A patron with a debarred date in the future is debarred' );
+is( Koha::Patrons->find( $borrowernumber )->is_debarred, '9999-12-31', 'A patron with a debarred date in the future is debarred' );

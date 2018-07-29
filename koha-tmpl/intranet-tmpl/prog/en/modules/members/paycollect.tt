@@ -1,185 +1,41 @@
+[% USE Asset %]
 [% USE Koha %]
-[% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Patrons &rsaquo; Collect fine payment for  [% borrower.firstname %] [% borrower.surname %]</title>
-[% INCLUDE 'doc-head-close.inc' %]
+[% USE Branches %]
+[% USE AuthorisedValues %]
 [% USE Price %]
-[% INCLUDE 'format_price.inc' %]
-<script type= "text/javascript">
-//<![CDATA[
-
-
-// The Koha user can enter the amount of money handed out by the borrower in the form field 'paid'.
-// On any input event in form field 'paid', the disabled form field 'returnAmount' will be recalculated
-// for displaying the amount to be returned to the borrower.
-// This approach necessitates a manipulation of the value in form field 'paid' in case 'paid' > 'total'
-// when confirming the payment. (See comment for function recalculatePaidAmount)
-function updateReturnAmount(handedoutObj) {
-
-    handedoutObj.on("input",
-        function(event) {
-
-            // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
-            var len = $("#handedout").val().length;
-            var decSepPos = $("#handedout").val().indexOf(".");
-            var decSepPos2 = $("#handedout").val().indexOf(",");
-            if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
-                decSepPos = decSepPos2;
-            }
-            if ( decSepPos >= 0 && len > decSepPos + 1 + 2 ) {
-                $("#handedout").val($("#handedout").val().substr(0, decSepPos + 1 + 2));
-            }
-
-            updReturnAmount();
-        }
-    );
-
-}
-
-// When confirming the payment, the value of form field 'paid' will remain unchanged only if 'paid' <= 'total'
-// otherwise it has to be limited to the value of 'total'.
-// There are no credit notes created.
-function recalculatePaidAmount(payformObj) {
-
-    payformObj.on("submit",
-        function(event) {
-
-            var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
-            if ( isNaN(handedOutNew) ) {
-                handedOutNew = 0.0;
-            }
-            $("#paid").val(parseFloat(handedOutNew));
-
-            if ( parseFloat($("#paid").val()) > parseFloat($("#total").val())) {
-                $("#paid").val($("#total").val());
-
-                // displaying the new values for a short instant in the GUI 
-                $("#returnAmount").val(parseFloat("0.00").format_price());
-                $("#handedout").val(parseFloat((Math.round($("#paid").val()*100.0)/100.0).toFixed(2)).format_price());
-            }
-        }
-    );
-
-}
-
-
-$(document).ready(function() {
-    $('#payindivfine, #woindivfine, #payfine').preventDoubleFormSubmit();
-
-// Same structure of IF/ELSIF/ELSE/END as below for better readability.
-[% IF ( pay_individual ) %]
-    updateReturnAmount($("#handedout"));
-    recalculatePaidAmount($("#payindivfine"));
-
-[% ELSIF ( writeoff_individual || cancelfee_individual ) %]
-    // The form woindivfine/cancelindivfine does not contain fields 'handedout' or 'paid', so no special event listener required in this case.
-
-[% ELSE %]
-    updateReturnAmount($("#handedout"));
-    recalculatePaidAmount($("#payfine"));
-
-[% END %]
-
-});
-//]]>
-</script>
-<script type= "text/javascript">
-//<![CDATA[
-function moneyFormat(textObj) {
-    var newValue = textObj.value.replace(",",".");
-    var decAmount = "";
-    var dolAmount = "";
-    var decFlag   = false;
-    var aChar     = "";
-
-    for(i=0; i < newValue.length; i++) {
-        aChar = newValue.substring(i, i+1);
-        if (aChar >= "0" && aChar <= "9") {
-            if(decFlag) {
-                decAmount = "" + decAmount + aChar;
-            }
-            else {
-                dolAmount = "" + dolAmount + aChar;
-            }
-        }
-        if (aChar == ".") {
-            if (decFlag) {
-                break;
-            }
-            decFlag = true;
-        }
-    }
-
-    if (dolAmount == "") {
-        dolAmount = "0";
-    }
-// Strip leading 0s
-    if (dolAmount.length > 1) {
-        while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
-            dolAmount = dolAmount.substring(1,dolAmount.length);
-        }
-    }
-    if (decAmount.length > 2) {
-        decAmount = decAmount.substring(0,2);
-    }
-// Pad right side
-    if (decAmount.length == 1) {
-       decAmount = decAmount + "0";
-    }
-    if (decAmount.length == 0) {
-       decAmount = decAmount + "00";
-    }
-
-    textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
-    
-    updReturnAmount();
-}
-
-function updReturnAmount() {
-
-    var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
-    if ( isNaN(handedOutNew) ) {
-        handedOutNew = 0.0;
-    }
-    var returnAmountNew = handedOutNew - $("#total").val();
-
-    if ( returnAmountNew < 0.0 ) {
-        returnAmountNew = 0.0;
-    }
-    var returnAmountNewRounded = (Math.round(returnAmountNew*100.0)/100.0).toFixed(2);
-    returnAmountNewRounded = parseFloat(returnAmountNewRounded).format_price();
-    $("#returnAmount").val(returnAmountNewRounded);
-}
-
-//]]>
-</script>
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Patrons &rsaquo; Collect fine payment for  [% patron.firstname %] [% patron.surname %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
 </head>
+
 <body id="pat_paycollect" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Pay fines for [% borrower.firstname %] [% borrower.surname %]</a> &rsaquo; [% IF ( pay_individual ) %]Pay an individual fine[% ELSIF ( writeoff_individual ) %]Write off an individual fine[% ELSIF ( cancelfee_individual ) %]Cancel an individual fine[% ELSE %][% IF ( selected_accts ) %]Pay an amount toward selected fines[% ELSE %]Pay an amount toward all fines[% END %][% END %]</div>
+[% PROCESS 'patron-search.inc' %]
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]">Pay fines for [% patron.firstname %] [% patron.surname %]</a> &rsaquo; [% IF ( pay_individual ) %]Pay an individual fine[% ELSIF ( writeoff_individual ) %]Write off an individual fine[% ELSIF ( cancelfee_individual ) %]Cancel an individual fine[% ELSE %][% IF ( selected_accts ) %]Pay an amount toward selected fines[% ELSE %]Pay an amount toward all fines[% END %][% END %]</div>
 
 <div id="doc3" class="yui-t2">
 
 <div id="bd">
 <div id="yui-main">
 <div class="yui-b">
-[% INCLUDE 'members-toolbar.inc' borrowernumber=borrower.borrowernumber %]
+[% INCLUDE 'members-toolbar.inc' borrowernumber=patron.borrowernumber %]
 
 
 <!-- The manual invoice and credit buttons -->
 <div class="statictabs">
 <ul>
     <li>
-    <a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% borrower.borrowernumber %]">Account</a>
+    <a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber %]">Account</a>
     </li>
     <li class="active">
-    <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]" >Pay fines</a>
+    <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]" >Pay fines</a>
     </li>
     <li>
-    <a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% borrower.borrowernumber %]" >Create manual invoice</a>
+    <a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber %]" >Create manual invoice</a>
     </li>
     <li>
-    <a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% borrower.borrowernumber %]" >Create manual credit</a>
+    <a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber %]" >Create manual credit</a>
     </li>
 </ul>
 <div class="tabs-container">
@@ -192,14 +48,13 @@ function updReturnAmount() {
 [% IF ( pay_individual ) %]
     <form name="payindivfine" id="payindivfine" method="post" action="/cgi-bin/koha/members/paycollect.pl">
     <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
-    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
+    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
     <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description %]" />
     <input type="hidden" name="accounttype" id="accounttype" value="[% accounttype %]" />
     <input type="hidden" name="amount" id="amount" value="[% amount %]" />
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
-    <input type="hidden" name="accountno" id="accountno" value="[% accountno %]" />
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
     <input type="hidden" name="total" id="total" value="[% amountoutstanding %]" />
@@ -240,18 +95,30 @@ function updReturnAmount() {
         <!-- default to paying all (default amount handed out == amountoutstanding, so default returnAmount == 0.00) -->
         <input disabled type="text" name="returnAmount" id="returnAmount" value="[% 0.00 | $Price %]" />
     </li>
+    [% SET payment_types = AuthorisedValues.GetAuthValueDropbox('PAYMENT_TYPE') %]
+    [% IF payment_types %]
+        <li>
+            <label for="payment_type">Payment type: </label>
+            <select name="payment_type" id="payment_type">
+                <option value=""></option>
+                [% FOREACH pt IN payment_types %]
+                    <option value="[% pt.authorised_value %]">[% pt.lib %]</option>
+                [% END %]
+            </select>
+        </li>
+    [% END %]
 </ol>
 </fieldset>
 
     <div class="action"><input type="submit" name="submitbutton" value="Confirm" />
-        <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a></div>
+        <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a></div>
     </form>
 [% ELSIF ( writeoff_individual ) %]
     <form name="woindivfine" id="woindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
     <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
     <fieldset class="rows">
     <legend>Write off an individual fine</legend>
-    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
+    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
     <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description %]" />
@@ -262,6 +129,8 @@ function updReturnAmount() {
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
     <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note %]" />
+    <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
+    <input type="hidden" name="confirm_writeoff" id="confirm_writeoff" value="1" />
     <table>
     <thead><tr>
             <th>Description</th>
@@ -277,9 +146,19 @@ function updReturnAmount() {
             <td class="debit">[% amountoutstanding | $Price %]</td>
         </tr></tbody>
     </table>
-    </fieldset>
-    <div class="action"><input type="submit" name="confirm_writeoff" id="confirm_writeoff" value="Write off this charge" />
-        <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a></div>
+
+            <ol>
+                <li>
+                    <label for="paid">Writeoff amount: </label>
+                    <!-- default to writing off all -->
+                    <input name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding | $Price on_editing => 1 %]" />
+                </li>
+            </ol>
+        </fieldset>
+        <div class="action">
+            <input type="submit" value="Write off this charge" />
+            <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a>
+        </div>
     </form>
 [% ELSIF ( cancelfee_individual ) %]
     <form name="cancelindivfine" id="cancelindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
@@ -321,7 +200,7 @@ function updReturnAmount() {
 
     <form name="payfine" id="payfine" method="post" action="/cgi-bin/koha/members/paycollect.pl">
     <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
-    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
+    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
     <input type="hidden" name="selected_accts" id="selected_accts" value="[% selected_accts %]" />
     <input type="hidden" name="total" id="total" value="[% total %]" />
     <input type="hidden" name="paid" id="paid" value="[% total %]" />
@@ -343,6 +222,18 @@ function updReturnAmount() {
         <!-- default to paying all (default amount handed out == total, so default returnAmount == 0.00) -->
         <input disabled type="text" name="returnAmount" id="returnAmount" value="[% 0.00 | $Price %]" />
     </li>
+    [% SET payment_types = AuthorisedValues.GetAuthValueDropbox('PAYMENT_TYPE') %]
+    [% IF payment_types %]
+        <li>
+            <label for="payment_type">Payment type: </label>
+            <select name="payment_type" id="payment_type">
+                <option value=""></option>
+                [% FOREACH pt IN payment_types %]
+                    <option value="[% pt.authorised_value %]">[% pt.lib %]</option>
+                [% END %]
+            </select>
+        </li>
+    [% END %]
     <li>
         <label for="selected_accts_notes">Note: </label>
         <textarea name="selected_accts_notes" id="selected_accts_notes">[% selected_accts_notes %]</textarea>
@@ -350,7 +241,7 @@ function updReturnAmount() {
     </ol>
     </fieldset>
     <div class="action"><input type="submit" name="submitbutton" value="Confirm" />
-        <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a></div>
+        <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a></div>
     </form>
 [% END %]
 </div></div>
@@ -361,5 +252,158 @@ function updReturnAmount() {
 [% INCLUDE 'circ-menu.inc' %]
 </div>
 </div>
-[% INCLUDE 'intranet-bottom.inc' %]
 
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/members-menu.js") %]
+    [% INCLUDE 'format_price.inc' %]
+    <script type= "text/javascript">
+        //<![CDATA[
+
+
+        // The Koha user can enter the amount of money handed out by the borrower in the form field 'paid'.
+        // On any input event in form field 'paid', the disabled form field 'returnAmount' will be recalculated
+        // for displaying the amount to be returned to the borrower.
+        // This approach necessitates a manipulation of the value in form field 'paid' in case 'paid' > 'total'
+        // when confirming the payment. (See comment for function recalculatePaidAmount)
+        function updateReturnAmount(handedoutObj) {
+
+            handedoutObj.on("input",
+                function(event) {
+
+                    // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
+                    var len = $("#handedout").val().length;
+                    var decSepPos = $("#handedout").val().indexOf(".");
+                    var decSepPos2 = $("#handedout").val().indexOf(",");
+                    if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
+                        decSepPos = decSepPos2;
+                    }
+                    if ( decSepPos >= 0 && len > decSepPos + 1 + 2 ) {
+                        $("#handedout").val($("#handedout").val().substr(0, decSepPos + 1 + 2));
+                    }
+
+                    updReturnAmount();
+                }
+            );
+
+        }
+
+        // When confirming the payment, the value of form field 'paid' will remain unchanged only if 'paid' <= 'total'
+        // otherwise it has to be limited to the value of 'total'.
+        // There are no credit notes created.
+        function recalculatePaidAmount(payformObj) {
+
+            payformObj.on("submit",
+                function(event) {
+
+                    var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
+                    if ( isNaN(handedOutNew) ) {
+                        handedOutNew = 0.0;
+                    }
+                    $("#paid").val(parseFloat(handedOutNew));
+
+                    if ( parseFloat($("#paid").val()) > parseFloat($("#total").val())) {
+                        $("#paid").val($("#total").val());
+
+                        // displaying the new values for a short instant in the GUI 
+                        $("#returnAmount").val(parseFloat("0.00").format_price());
+                        $("#handedout").val(parseFloat((Math.round($("#paid").val()*100.0)/100.0).toFixed(2)).format_price());
+                    }
+                }
+            );
+
+        }
+
+
+        $(document).ready(function() {
+            $('#payindivfine, #woindivfine, #payfine').preventDoubleFormSubmit();
+
+        // Same structure of IF/ELSIF/ELSE/END as below for better readability.
+        [% IF ( pay_individual ) %]
+            updateReturnAmount($("#handedout"));
+            recalculatePaidAmount($("#payindivfine"));
+
+        [% ELSIF ( writeoff_individual || cancelfee_individual ) %]
+            // The form woindivfine/cancelindivfine does not contain fields 'handedout' or 'paid', so no special event listener required in this case.
+
+        [% ELSE %]
+            updateReturnAmount($("#handedout"));
+            recalculatePaidAmount($("#payfine"));
+
+        [% END %]
+
+        });
+        //]]>
+    </script>
+    <script type= "text/javascript">
+        //<![CDATA[
+        function moneyFormat(textObj) {
+            var newValue = textObj.value.replace(",",".");
+            var decAmount = "";
+            var dolAmount = "";
+            var decFlag   = false;
+            var aChar     = "";
+
+            for(i=0; i < newValue.length; i++) {
+                aChar = newValue.substring(i, i+1);
+                if (aChar >= "0" && aChar <= "9") {
+                    if(decFlag) {
+                        decAmount = "" + decAmount + aChar;
+                    }
+                    else {
+                        dolAmount = "" + dolAmount + aChar;
+                    }
+                }
+                if (aChar == ".") {
+                    if (decFlag) {
+                        break;
+                    }
+                    decFlag = true;
+                }
+            }
+
+            if (dolAmount == "") {
+                dolAmount = "0";
+            }
+        // Strip leading 0s
+            if (dolAmount.length > 1) {
+                while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
+                    dolAmount = dolAmount.substring(1,dolAmount.length);
+                }
+            }
+            if (decAmount.length > 2) {
+                decAmount = decAmount.substring(0,2);
+            }
+        // Pad right side
+            if (decAmount.length == 1) {
+               decAmount = decAmount + "0";
+            }
+            if (decAmount.length == 0) {
+               decAmount = decAmount + "00";
+            }
+
+            textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
+            
+            updReturnAmount();
+        }
+
+        function updReturnAmount() {
+
+            var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
+            if ( isNaN(handedOutNew) ) {
+                handedOutNew = 0.0;
+            }
+            var returnAmountNew = handedOutNew - $("#total").val();
+
+            if ( returnAmountNew < 0.0 ) {
+                returnAmountNew = 0.0;
+            }
+            var returnAmountNewRounded = (Math.round(returnAmountNew*100.0)/100.0).toFixed(2);
+            returnAmountNewRounded = parseFloat(returnAmountNewRounded).format_price();
+            $("#returnAmount").val(returnAmountNewRounded);
+        }
+
+        //]]>
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

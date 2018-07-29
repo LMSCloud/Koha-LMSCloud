@@ -23,13 +23,15 @@ Patrons:
                yes: Do
                no: "Don't"
          - default the card number field on the patron addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942).
+         - "NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
      -
-         - "The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
          - pref: BorrowerMandatoryField
            class: multi
          - (separate columns with |)
+         - "NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
      -
-         - "The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
          - pref: BorrowerUnwantedField
            class: multi
          - (separate columns with |)
@@ -44,11 +46,14 @@ Patrons:
            class: multi
          - (separate multiple choices with |)
      -
-         - pref: checkdigit
+         - pref: CheckPrevCheckout
+           default: no
            choices:
-               none: "Don't"
-               katipo: Do
-         - check and construct borrower card numbers in the Katipo style. This overrides <code>autoMemberNum</code> if on.
+               hardyes: "Do"
+               softyes: "Unless overridden, do"
+               softno: "Unless overridden, do not"
+               hardno: "Do not"
+         - " check borrower checkout history to see if the current item has been checked out before."
      -
          - pref: EnhancedMessagingPreferences
            choices:
@@ -66,7 +71,7 @@ Patrons:
            choices:
                yes: "Allow"
                no: "Don't allow"
-         - "staff to access a patron's checkout history (reading history is still stored, regardless of staff being allowed access or not)."
+         - "staff to access a patron's checkout and hold history (reading history is still stored, regardless of staff being allowed access or not)."
      -
          - The late fine for all checkouts will only go up to
          - pref: MaxFine
@@ -78,6 +83,13 @@ Patrons:
          - pref: minPasswordLength
            class: integer
          - characters long.
+     -
+         - pref: RequireStrongPassword
+           choices:
+               yes: "Require"
+               no: "Don't require"
+         - a strong password for staff and patrons
+         - (Must contain at least one digit, one lowercase and one uppercase).
      -
          - Show a notice if the patron is about to expire or has expired
          - pref: NotifyBorrowerDeparture
@@ -100,6 +112,15 @@ Patrons:
            class: integer
          - results per page in the staff client.
      -
+         - pref: DefaultPatronSearchFields
+           class: multi
+         - "Comma separated list defining the default fields to be used during a patron search"
+     -
+         - pref: PatronQuickAddFields
+           class: multi
+         - (separate columns with |)
+         - "add these fields to the patron quick add form when entering a new patron. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
+     -
          - "Use the SMS::Send::"
          - pref: SMSSendDriver
          - driver to send SMS messages.
@@ -119,6 +140,7 @@ Patrons:
            choices:
                now: current date.
                dateexpiry: current membership expiry date.
+               combination: the latter of the current and expiry date.
      -
          - pref: TalkingTechItivaPhoneNotification
            choices:
@@ -146,7 +168,7 @@ Patrons:
          - Card numbers for patrons must be
          - pref: CardnumberLength
          - "characters long. The length can be a single number to specify an exact length, a range separated by a comma (i.e., 'Min,Max'), or a maximum with no minimum (i.e., ',Max')."
-         - "If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size."
+         - "If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size of 32."
      -
          - pref: useDischarge
            choices:
@@ -170,6 +192,24 @@ Patrons:
          - pref: AdhocNoticesLetterCodes
            class: multi
          - "<br />An asterix can be used as wildcard character to match multiple letter codes."
+     -
+         - pref: TrackLastPatronActivity
+           choices:
+               yes: Do
+               no: "Don't"
+         - track last patron activity.
+         - Everytime a patron will connect, the borrowers.lastseen will be updated with the current time.
+     -
+         - Block a patron's account if it reaches
+         - pref: FailedLoginAttempts
+           class: integer
+         - failed login attempts.
+     -
+         - pref: ProtectSuperlibrarianPrivileges
+           choices:
+               yes: Allow only superlibrarians
+               no: Allow all permitted users
+         - "to access/change superlibrarian privileges. Note: A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
 
     "Norwegian patron database":
      -

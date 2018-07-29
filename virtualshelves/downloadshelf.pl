@@ -64,14 +64,16 @@ if ($shelfid && $format) {
             if ($format =~ /^\d+$/) {
                 my @biblios;
                 while ( my $content = $contents->next ) {
-                    push @biblios, $content->biblionumber->biblionumber;
+                    push @biblios, $content->biblionumber;
                 }
                 $output = marc2csv(\@biblios, $format);
             }
             else { #Other formats
                 while ( my $content = $contents->next ) {
-                    my $biblionumber = $content->biblionumber->biblionumber;
-                    my $record = GetMarcBiblio($biblionumber, 1);
+                    my $biblionumber = $content->biblionumber;
+                    my $record = GetMarcBiblio({
+                        biblionumber => $biblionumber,
+                        embed_items  => 1 });
                     if ($format eq 'iso2709') {
                         $output .= $record->as_usmarc();
                     }
@@ -101,7 +103,7 @@ if ($shelfid && $format) {
     }
 }
 else {
-    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc' }) ]);
+    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ]);
     $template->param(shelfid => $shelfid); 
 }
 $template->param( messages => \@messages );

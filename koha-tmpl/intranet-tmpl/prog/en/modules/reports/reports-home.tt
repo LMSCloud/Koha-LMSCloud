@@ -8,20 +8,35 @@
 [% INCLUDE 'circ-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; Reports</div>
-<div id="doc" class="yui-t7">
 
-   <div id="bd">
-    <div id="yui-main">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
 
-    <div class="yui-g">
-    <h1>Reports</h1>
-    <div class="yui-u first"><h2>Guided reports</h2>
-        <ul>
-            <li><a href="/cgi-bin/koha/reports/guided_reports.pl">Guided reports wizard</a></li>
-            [% IF ( CAN_user_reports_create_reports ) %]<li><a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Build%20new">Build new</a></li>[% END %]
-            [% IF ( CAN_user_reports_execute_reports ) %]<li><a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved">Use saved</a></li>[% END %]
-            [% IF ( CAN_user_reports_create_reports ) %]<li><a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Create%20report%20from%20SQL">Create from SQL</a></li>[% END %]
-        </ul>
+            <div class="row">
+                <div class="col-xs-6">
+
+                    [% IF ( CAN_user_reports_execute_reports || CAN_user_reports_create_reports ) %]
+                        <form action="/cgi-bin/koha/reports/guided_reports.pl" method="get">
+                            <fieldset class="brief">
+                                <h2>Guided reports</h2>
+                                <input name="phase" value="Use saved" type="hidden">
+                                <input name="filter_set" value="1" type="hidden">
+                                [% IF ( CAN_user_reports_create_reports ) %]
+                                    <p>
+                                        <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Build%20new"><i class="fa fa-code-fork"></i> Create guided report</a>
+                                    </p>
+                                    <p>
+                                        <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Create%20report%20from%20SQL"><i class="fa fa-plus"></i> Create from SQL</a>
+                                    </p>
+                                [% END %]
+                                <p>
+                                    <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved"><i class="fa fa-list"></i> Use saved</a>
+                                </p>
+                                <label for="filter_keyword">Search by keyword:</label> <input id="filter_keyword" name="filter_keyword" value="" size="16" type="text" /> <input value="Search" type="submit" />
+                            </fieldset>
+                        </form>
+                    [% END %]
 
         <h5>Reports dictionary</h5>
         <ul>
@@ -35,8 +50,9 @@
             <li><a href="/cgi-bin/koha/reports/catalogue_stats.pl">Catalog</a></li>
             <li><a href="/cgi-bin/koha/reports/issues_stats.pl">Circulation</a></li>
             <li><a href="/cgi-bin/koha/reports/serials_stats.pl">Serials</a></li>
+            <li><a href="/cgi-bin/koha/reports/cash_register_stats.pl">Cash register</a></li>
             <li><a href="/cgi-bin/koha/reports/reserves_stats.pl">Holds</a></li>
-        </ul>
+      </ul>
 
         <h2>Aggregated statistics</h2>
         <ul>
@@ -44,42 +60,41 @@
         </ul>
 
         [% IF UseKohaPlugins %]
-        <h2>Report plugins</h2>
-        <ul>
+            <h2>Report plugins</h2>
+            <ul>
                 <li><a href="/cgi-bin/koha/plugins/plugins-home.pl?method=report">Report plugins</a></li>
-        </ul>
+            </ul>
         [% END %]
 
     </div>
 
-    <div class="yui-u"><h2>Top lists</h2>
-	<ul>
-        <li><a href="/cgi-bin/koha/reports/bor_issues_top.pl">Patrons with the most checkouts</a></li>
-        <li><a href="/cgi-bin/koha/reports/cat_issues_top.pl">Most-circulated items</a></li>
-        <li><a href="/cgi-bin/koha/reports/fines_overviews.pl">Fines overview</a></li>
-    </ul>
+    <div class="col-xs-6"><h2>Top lists</h2>
+        <ul>
+            <li><a href="/cgi-bin/koha/reports/bor_issues_top.pl">Patrons with the most checkouts</a></li>
+            <li><a href="/cgi-bin/koha/reports/cat_issues_top.pl">Most-circulated items</a></li>
+            <li><a href="/cgi-bin/koha/reports/fines_overviews.pl">Fines overview</a></li>
+        </ul>
 
-    <h2>Inactive</h2>
-    <ul>
-        <li><a href="/cgi-bin/koha/reports/borrowers_out.pl">Patrons who haven't checked out</a></li>
-        <li><a href="/cgi-bin/koha/reports/catalogue_out.pl">Items with no checkouts</a></li>
-    </ul>
+        <h2>Inactive</h2>
+        <ul>
+                <li><a href="/cgi-bin/koha/reports/borrowers_out.pl">Patrons who haven't checked out</a></li>
+                <li><a href="/cgi-bin/koha/reports/catalogue_out.pl">Items with no checkouts</a></li>
+        </ul>
 
-    <h2>Other</h2>
-    <ul>
-        <li><a href="/cgi-bin/koha/reports/itemslost.pl">Items lost</a></li>
-                <li><a href="/cgi-bin/koha/reports/orders_by_fund.pl">Orders by fund</a></li>
-        <li><a href="/cgi-bin/koha/reports/manager.pl?report_name=itemtypes">Catalog by itemtype</a></li>
-        <li><a href="/cgi-bin/koha/reports/issues_avg_stats.pl">Average loan time</a></li>
-                <li><a href="http://schema.koha-community.org/" target="blank">Koha database schema</a></li>
-                <li><a href="http://wiki.koha-community.org/wiki/SQL_Reports_Library" target="blank">Koha reports library</a></li>
-                <!--<li><a href="/cgi-bin/koha/reports/stats.screen.pl">Till reconciliation</a></li> -->
-</ul></div>
+        <h2>Other</h2>
+        <ul>
+            <li><a href="/cgi-bin/koha/reports/itemslost.pl">Items lost</a></li>
+            <li><a href="/cgi-bin/koha/reports/orders_by_fund.pl">Orders by fund</a></li>
+            <li><a href="/cgi-bin/koha/reports/manager.pl?report_name=itemtypes">Catalog by item type</a></li>
+            <li><a href="/cgi-bin/koha/reports/issues_avg_stats.pl">Average loan time</a></li>
+            <li><a href="http://schema.koha-community.org/" target="blank">Koha database schema</a></li>
+            <li><a href="http://wiki.koha-community.org/wiki/SQL_Reports_Library" target="blank">Koha reports library</a></li>
+        </ul></div>
 </div>
 
 
 </div>
-    <div class="yui-g" id="intranet-reports-home-html">
+    <div class="col-md-12" id="intranet-reports-home-html">
         [% Koha.Preference('IntranetReportsHomeHTML') %]
     </div>
 </div>

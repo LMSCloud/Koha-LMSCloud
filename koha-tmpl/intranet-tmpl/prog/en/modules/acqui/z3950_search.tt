@@ -1,66 +1,30 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; [% IF ( opsearch ) %]Order from external source[% ELSE %]Order from external source &rsaquo; Search results[% END %]</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'datatables.inc' %]
-
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.checkboxes.min.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-    $(document).ready(function(){
-
-    var resultst = $("#resultst").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-            { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false },
-            { "aTargets": [ 1 ], "sType": "nsb-nse" },
-        ],
-        "aaSorting": [[ 1, "asc" ]],
-        "bPaginate": false
-    } ) );
-        /* Inline edit/delete links */
-        $("td").click(function(event){
-            var $tgt = $(event.target);
-            var row = $(this).parent();
-            $(".linktools").hide();
-            $("tr").removeClass("selected");
-            row.addClass("selected");
-            if($tgt.is("a")||$tgt.is(":nth-child(6)")||$tgt.is(":nth-child(7)")){
-                //Don't show inline links for cells containing links of their own.
-            } else {
-                var position = $(this).offset();
-                var top = position.top+5;
-                var left = position.left+5;
-                $(".linktools",row).show().css("position","absolute").css("top",top).css("left",left);
-            }
-        });
-
-});
-
-//]]>
-</script>
-[% INCLUDE 'z3950_search.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/z3950_search.js"></script>
 <style type="text/css">
 .linktools { background-color:#FFF;border-top:1px solid #DDD; border-left: 1px solid #DDD; border-right: 1px solid #666; border-bottom:1px solid #666;display: none; white-space: nowrap;}
 .linktools a { font-size : 85%; text-decoration:none; padding:.3em;;background-color:#FFF; display:block;float:left;border-right:1px solid #DDD;}
 .linktools a:hover { background-color:#EEE;color:#CC3300;border-right:1px solid #CCC;}
-tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : transparent !important; } #dataPreview { width : 80%; margin-left : -40%; } @media (max-width: 767px) { #dataPreview { margin: 0; width : auto; } }
+tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : transparent !important; } #dataPreview { width : 80%; } @media (max-width: 767px) { #dataPreview { margin: 0; width : auto; } }
 </style>
 </head>
+
 <body id="acq_z3950_search" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name %]</a> &rsaquo; <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketno | html %]</a> &rsaquo; [% IF ( opsearch ) %]Order from external source[% ELSE %]<a href="/cgi-bin/koha/acqui/z3950_search.pl?booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]">Order from external source</a> &rsaquo; Search results[% END %]</div>
 
-<div id="doc3" class="yui-t7">
-      <div id="bd">
-	  [% IF ( opsearch ) %]
-<h2>Order from external source</h2>
+<div class="main container-fluid">
     <form method="post" action="z3950_search.pl" name="f" class="checkboxed">
+    <div class="row">
+      [% IF ( opsearch ) %]
+    <div class="col-sm-6">
+    <h2>Order from external source</h2>
     <input type="hidden" name="op" id="op" value="do_search" />
-	<div class="yui-g">
-    <div class="yui-u first">
 	    <fieldset class="rows">
          <ol>
              <li><label for="searchtitle">Title: </label> <input type="text" id="searchtitle"  name="title" value="[% title |html %]" class="focus" /></li>
@@ -76,12 +40,8 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
              <li><label for="frameworkcode" >Select MARC framework:</label>
              <select id="frameworkcode" name="frameworkcode" >
              <option value="">Default</option>
-                 [% FOREACH frameworkcodeloo IN frameworkcodeloop %]
-                    [% IF ( frameworkcodeloo.active ) %]
-                        <option value="[% frameworkcodeloo.value %]" selected="selected" >[% frameworkcodeloo.frameworktext %]</option>
-                    [% ELSE %]
-                        <option value="[% frameworkcodeloo.value %]" >[% frameworkcodeloo.frameworktext %]</option>
-                    [% END %]
+                 [% FOREACH framework IN frameworks %]
+                    <option value="[% framework.frameworkcode %]" >[% framework.frameworktext %]</option>
                  [% END %]
               </select>
               </li>
@@ -92,7 +52,7 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
     <input type="hidden" name="basketno" value="[% basketno | html %]" />
     <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
 	    </div>
-<div class="yui-u second">
+<div class="col-sm-6">
 <h2>Search targets</h2>
     <div id="z3950_search_targets_acq">
         <span class="z3950checks"><span class="checkall"><a id="CheckAll" href="#"><i class="fa fa-check"></i> Select all</a></span> | <span class="clearall"><a id="CheckNone" href="#"><i class="fa fa-remove"></i> Clear all</a></span></span>
@@ -111,11 +71,16 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
   </div>
 </div>
 
+<div class="row">
+    <div class="col-md-12">
     <fieldset class="action"><input type="submit"  class="submit" value="Search" /> <a class="cancel" href="/cgi-bin/koha/acqui/basket.pl?booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]">Cancel</a></fieldset>
+</div>
 </form>
+</div>
 
 
 [% ELSE %]
+    <div class="col-md-12">
     <h2>Search results</h2>
 
     <p>You searched for:
@@ -160,16 +125,20 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
 </table>
 
 
-    <div id="dataPreview" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+    <div id="dataPreview" class="modal" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+        <div class="modal-dialog">
+        <div class="modal-content">
         <div class="modal-header">
             <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
             <h3 id="dataPreviewLabel">MARC preview</h3>
         </div>
         <div class="modal-body">
-            <div id="loading"> <img src="[% interface %]/[% theme %]/img/loading-small.gif" alt="" /> Loading </div>
+            <div id="loading"> <img src="[% interface %]/[% theme %]/img/spinner-small.gif" alt="" /> Loading </div>
         </div>
         <div class="modal-footer">
-            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+            <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+        </div>
+        </div>
         </div>
     </div>
 
@@ -220,14 +189,46 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
         [% END %]
         <div class="dialog message">Nothing found. <a href="javascript: history.back()">Try another search</a>.</div>
     [% END %]
-
+</div>
 
 [% END %]
 
-	</div>
-</div>
 [% IF ( numberpending ) %]<h3 align="center">Still [% numberpending %] servers to search</h3>[% END %]
 
-</body>
-</html>
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
+    <script type="text/javascript">
+        $(document).ready(function(){
+            var resultst = $("#resultst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false },
+                    { "aTargets": [ 1 ], "sType": "nsb-nse" },
+                ],
+                "aaSorting": [[ 1, "asc" ]],
+                "bPaginate": false
+            }));
+            /* Inline edit/delete links */
+            $("td").click(function(event){
+                var $tgt = $(event.target);
+                var row = $(this).parent();
+                $(".linktools").hide();
+                $("tr").removeClass("selected");
+                row.addClass("selected");
+                if($tgt.is("a")||$tgt.is(":nth-child(6)")||$tgt.is(":nth-child(7)")){
+                    //Don't show inline links for cells containing links of their own.
+                } else {
+                    var position = $(this).offset();
+                    var top = position.top+5;
+                    var left = position.left+5;
+                    $(".linktools",row).show().css("position","absolute").css("top",top).css("left",left);
+                }
+            });
+        });
+    </script>
+    [% INCLUDE 'z3950_search.inc' %]
+    [% Asset.js("js/z3950_search.js") %]
+[% END %]
 
+[% INCLUDE 'intranet-bottom.inc' %]

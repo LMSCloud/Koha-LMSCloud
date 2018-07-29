@@ -26,13 +26,14 @@
 
 =cut
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Auth;
 use C4::Output;
 use C4::Members;
+use Koha::Patrons;
+use Koha::Patron::Categories;
 
 # use Smart::Comments;
 
@@ -45,7 +46,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1 },
+        flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
@@ -56,36 +57,31 @@ my $cattype        = $input->param('cattype');
 my $catcode_multi = $input->param('catcode_multi');
 my $op             = $input->param('op');
 
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+
 if ( $op eq 'multi' ) {
-    my ( $catcodes, $labels ) =
-		# FIXME - what are the possible upgrade paths?  C -> A , C -> S ...
-		#   currently just allowing C -> A because of limitation of API.
-      GetborCatFromCatType( 'A', 'WHERE category_type = ?' );
-    my @rows;
-    foreach my $k ( keys %$labels ) {
-        my $row;
-        $row->{catcode} = $k;
-        $row->{catdesc} = $labels->{$k};
-        my $borcat = GetBorrowercategory( $row->{catcode} );
-        $row->{cattype} = $borcat->{'category_type'};
-        push @rows, $row;
-    }
+    # FIXME - what are the possible upgrade paths?  C -> A , C -> S ...
+    #   currently just allowing C -> A
+    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
     $template->param(
-        MULTI          => 1,
-        CATCODE_MULTI          => 1,
-        borrowernumber => $borrowernumber,
-        CAT_LOOP       => \@rows,
+        MULTI             => 1,
+        CATCODE_MULTI     => 1,
+        borrowernumber    => $borrowernumber,
+        patron_categories => $patron_categories,
     );
     output_html_with_http_headers $input, $cookie, $template->output;
 }
 
 elsif ( $op eq 'update' ) {
-    my $member = GetMember('borrowernumber'=>$borrowernumber);
+    my $patron         = Koha::Patrons->find( $borrowernumber );
+    output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
+
+    my $member = $patron->unblessed;
     $member->{'guarantorid'}  = 0;
     $member->{'categorycode'} = $catcode;
-    my $borcat = GetBorrowercategory($catcode);
-    $member->{'category_type'} = $borcat->{'category_type'};
-    $member->{'description'}   = $borcat->{'description'};
+    my $borcat = Koha::Patron::Categories->find($catcode);
+    $member->{'category_type'} = $borcat->category_type;
+    $member->{'description'}   = $borcat->description;
     delete $member->{password};
     ModMember(%$member);
 

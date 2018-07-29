@@ -37,7 +37,7 @@ use Locale::Currency::Format;
 use DateTime::Format::MySQL;
 use Storable qw(dclone);
 use Koha::ItemTypes;
-use C4::Branch;
+use Koha::Libraries;
 
 use constant false => 0;
 use constant true  => 1;
@@ -119,7 +119,7 @@ sub getEffectiveBranchcode {
     # If logged in as a book mobile station, the cash register of the assigned book mobile has to be used;
     # cash registers for book mobile station make no sense and therefore can not be created.
     my %assignedBookMobileBranchcode = ();
-    my $branches = GetBranches();
+    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
     for my $branchi (sort { $branches->{$a}->{branchcode} cmp $branches->{$b}->{branchcode} } keys %$branches) {
         if ( $branches->{$branchi}->{'mobilebranch'} ) {
             $assignedBookMobileBranchcode{$branchi} = $branches->{$branchi}->{'mobilebranch'};

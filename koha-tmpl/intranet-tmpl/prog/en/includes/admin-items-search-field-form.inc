@@ -1,8 +1,9 @@
+[% PROCESS 'html_helpers.inc' %]
 <ol>
   <li>
       [% IF field %]
           <span class="label">Name: </span>
-          [% field.name %]
+          [% field.name |html %]
           <input type="hidden" name="name" value="[% field.name %]">
       [% ELSE %]
           <label class="required" for="name">Name: </label>
@@ -13,7 +14,7 @@
   <li>
     <label class="required" for="label">Label: </label>
     [% IF field %]
-        <input type="text" name="label" id="label" value="[% field.label %]" class="required" required="required" />
+        <input type="text" name="label" id="label" value="[% field.label |html %]" class="required" required="required" />
     [% ELSE %]
         <input type="text" name="label" id="label" class="required" required="required" />
     [% END %]
@@ -50,13 +51,7 @@
     <label for="authorised_values_category">Authorised values category: </label>
     <select id="authorised_values_category" name="authorised_values_category">
       <option value="">- None -</option>
-      [% FOREACH category IN authorised_values_categories %]
-        [% IF field && field.authorised_values_category == category %]
-          <option value="[% category %]" selected="selected">[% category %]</option>
-        [% ELSE %]
-          <option value="[% category %]">[% category %]</option>
-        [% END %]
-      [% END %]
+      [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories( selected => field.authorised_values_category ) %]
     </select>
   </li>
 </ol>

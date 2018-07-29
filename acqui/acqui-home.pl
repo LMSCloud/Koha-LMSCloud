@@ -26,8 +26,7 @@ this script is the main page for acqui
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
@@ -35,10 +34,10 @@ use C4::Output;
 use C4::Acquisition;
 use C4::Budgets;
 use C4::Members;
-use C4::Branch;
 use C4::Debug;
 use C4::Suggestions;
 use Koha::Acquisition::Currencies;
+use Koha::Patrons;
 
 my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
@@ -50,9 +49,6 @@ my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
         debug           => 1,
     }
 );
-
-my $user = GetMember( 'borrowernumber' => $loggedinuser );
-my $branchname = GetBranchName($user->{branchcode});
 
 my $status           = $query->param('status') || "ASKED";
 my $suggestions_count       = CountSuggestion($status);
@@ -74,22 +70,14 @@ my @budget_loop;
 foreach my $budget ( @{$budget_arr} ) {
     next unless (CanUserUseBudget($loggedinuser, $budget, $userflags));
 
-    $budget->{'budget_branchname'} =
-      GetBranchName( $budget->{'budget_branchcode'} );
-
-    my $member = GetMember( borrowernumber => $budget->{budget_owner_id} );
-    if ($member) {
-        $budget->{budget_owner_firstname} = $member->{'firstname'};
-        $budget->{budget_owner_surname} = $member->{'surname'};
-        $budget->{budget_owner_borrowernumber} = $member->{'borrowernumber'};
+    my $patron = Koha::Patrons->find( $budget->{budget_owner_id} );
+    if ( $patron ) {
+        $budget->{budget_owner} = $patron;
     }
 
     if ( !defined $budget->{budget_amount} ) {
         $budget->{budget_amount} = 0;
     }
-
-    $budget->{'budget_ordered'} = GetBudgetOrdered( $budget->{'budget_id'} );
-    $budget->{'budget_spent'}   = GetBudgetSpent( $budget->{'budget_id'} );
     if ( !defined $budget->{budget_spent} ) {
         $budget->{budget_spent} = 0;
     }
@@ -117,7 +105,6 @@ foreach my $budget ( @{$budget_arr} ) {
 $template->param(
     type          => 'intranet',
     loop_budget   => \@budget_loop,
-    branchname    => $branchname,
     total         => $total,
     totspent      => $totspent,
     totordered    => $totordered,

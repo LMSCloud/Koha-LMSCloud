@@ -57,6 +57,11 @@ use C4::Members;
 use C4::Acquisition;
 use C4::Koha;
 use List::MoreUtils qw( any uniq );
+use Koha::Biblios;
+use Koha::IssuingRules;
+use Koha::Items;
+use Koha::Patrons;
+use Koha::RecordProcessor;
 
 my $query = new CGI;
 
@@ -64,6 +69,14 @@ my $dbh = C4::Context->dbh;
 
 my $biblionumber = $query->param('biblionumber');
 if ( ! $biblionumber ) {
+    print $query->redirect("/cgi-bin/koha/errors/404.pl");
+    exit;
+}
+
+my $record = GetMarcBiblio({
+    biblionumber => $biblionumber,
+    embed_items  => 1 });
+if ( ! $record ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
@@ -79,16 +92,20 @@ if (scalar @all_items >= 1) {
     }
 }
 
-my $itemtype     = &GetFrameworkCode($biblionumber);
-my $tagslib      = &GetMarcStructure( 0, $itemtype );
-my ($tag_itemnumber,$subtag_itemnumber) = &GetMarcFromKohaField('items.itemnumber',$itemtype);
-my $biblio = GetBiblioData($biblionumber);
-$biblionumber = $biblio->{biblionumber};
-my $record = GetMarcBiblio($biblionumber, 1);
-if ( ! $record ) {
-    print $query->redirect("/cgi-bin/koha/errors/404.pl");
-    exit;
-}
+my $framework = &GetFrameworkCode( $biblionumber );
+my $tagslib = &GetMarcStructure( 0, $framework );
+my ($tag_itemnumber,$subtag_itemnumber) = &GetMarcFromKohaField('items.itemnumber',$framework);
+my $biblio = Koha::Biblios->find( $biblionumber );
+
+my $record_processor = Koha::RecordProcessor->new({
+    filters => 'ViewPolicy',
+    options => {
+        interface => 'opac',
+        frameworkcode => $framework
+    }
+});
+$record_processor->process($record);
+
 # open template
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -100,10 +117,11 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my ($bt_tag,$bt_subtag) = GetMarcFromKohaField('biblio.title',$itemtype);
+my ($bt_tag,$bt_subtag) = GetMarcFromKohaField('biblio.title',$framework);
 $template->param(
-    bibliotitle => $biblio->{title},
-) if $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} <= 0; #<=0 is OPAC visible.
+    bibliotitle => $biblio->title,
+) if $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} <= 0 && # <=0 OPAC visible.
+     $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} > -8;   # except -8;
 
 # get biblionumbers stored in the cart
 if(my $cart_list = $query->cookie("bib_list")){
@@ -114,14 +132,16 @@ if(my $cart_list = $query->cookie("bib_list")){
 }
 
 my $allow_onshelf_holds;
-my $borrower = GetMember( 'borrowernumber' => $loggedinuser );
+my $patron = Koha::Patrons->find( $loggedinuser );
 for my $itm (@all_items) {
-    $allow_onshelf_holds = C4::Reserves::OnShelfHoldsAllowed($itm, $borrower);
+    my $item = Koha::Items->find( $itm->{itemnumber} );
+    $allow_onshelf_holds = Koha::IssuingRules->get_onshelfholds_policy( { item => $item, patron => $patron } );
     last if $allow_onshelf_holds;
 }
 
-$template->param( 'AllowOnShelfHolds' => $allow_onshelf_holds );
-$template->param( 'ItemsIssued' => CountItemsIssued( $biblionumber ) );
+if( $allow_onshelf_holds || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
+    $template->param( ReservableItems => 1 );
+}
 
 # adding the $RequestOnOpac param
 my $RequestOnOpac;
@@ -286,7 +306,7 @@ foreach my $field (@fields) {
     push @item_loop, $item if $item;
 }
 my ( $holdingbrtagf, $holdingbrtagsubf ) =
-  &GetMarcFromKohaField( "items.holdingbranch", $itemtype );
+  &GetMarcFromKohaField( "items.holdingbranch", $framework );
 @item_loop =
   sort { ($a->{$holdingbrtagsubf}||'') cmp ($b->{$holdingbrtagsubf}||'') } @item_loop;
 
@@ -333,7 +353,7 @@ $template->param(
     item_loop           => \@item_loop,
     item_header_loop    => \@item_header_loop,
     item_subfield_codes => \@item_subfield_codes,
-    biblionumber        => $biblionumber,
+    biblio              => $biblio,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

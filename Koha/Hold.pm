@@ -1,6 +1,7 @@
 package Koha::Hold;
 
 # Copyright ByWater Solutions 2014
+# Copyright 2017 Koha Development team
 #
 # This file is part of Koha.
 #
@@ -20,14 +21,18 @@ package Koha::Hold;
 use Modern::Perl;
 
 use Carp;
+use Data::Dumper qw(Dumper);
 
 use C4::Context qw(preference);
+use C4::Log;
 
-use Koha::DateUtils qw(dt_from_string);
+use Koha::DateUtils qw(dt_from_string output_pref);
 use Koha::Patrons;
 use Koha::Biblios;
 use Koha::Items;
 use Koha::Libraries;
+use Koha::Old::Holds;
+use Koha::Calendar;
 
 use base qw(Koha::Object);
 
@@ -41,6 +46,34 @@ Koha::Hold - Koha Hold object class
 
 =cut
 
+=head3 age
+
+returns the number of days since a hold was placed, optionally
+using the calendar
+
+my $age = $hold->age( $use_calendar );
+
+=cut
+
+sub age {
+    my ( $self, $use_calendar ) = @_;
+
+    my $today = dt_from_string;
+    my $age;
+
+    if ( $use_calendar ) {
+        my $calendar = Koha::Calendar->new( branchcode => $self->branchcode );
+        $age = $calendar->days_between( dt_from_string( $self->reservedate ), $today );
+    }
+    else {
+        $age = $today->delta_days( dt_from_string( $self->reservedate ) );
+    }
+
+    $age = $age->in_units( 'days' );
+
+    return $age;
+}
+
 =head3 suspend_hold
 
 my $hold = $hold->suspend_hold( $suspend_until_dt );
@@ -50,7 +83,7 @@ my $hold = $hold->suspend_hold( $suspend_until_dt );
 sub suspend_hold {
     my ( $self, $dt ) = @_;
 
-    $dt = $dt ? $dt->clone()->truncate( to => 'day' ) : undef;
+    my $date = $dt ? $dt->clone()->truncate( to => 'day' )->datetime : undef;
 
     if ( $self->is_waiting ) {    # We can't suspend waiting holds
         carp "Unable to suspend waiting hold!";
@@ -58,9 +91,11 @@ sub suspend_hold {
     }
 
     $self->suspend(1);
-    $self->suspend_until( $dt );
-
+    $self->suspend_until( $date );
     $self->store();
+
+    logaction( 'HOLDS', 'SUSPEND', $self->reserve_id, Dumper($self->unblessed) )
+        if C4::Context->preference('HoldsLog');
 
     return $self;
 }
@@ -79,31 +114,73 @@ sub resume {
 
     $self->store();
 
+    logaction( 'HOLDS', 'RESUME', $self->reserve_id, Dumper($self->unblessed) )
+        if C4::Context->preference('HoldsLog');
+
     return $self;
 }
 
-=head3 waiting_expires_on
+=head3 delete
 
-Returns a DateTime for the date a waiting holds expires on.
-Returns undef if the system peference ReservesMaxPickUpDelay is not set.
-Returns undef if the hold is not waiting ( found = 'W' ).
+$hold->delete();
 
 =cut
 
-sub waiting_expires_on {
-    my ($self) = @_;
+sub delete {
+    my ( $self ) = @_;
 
-    my $found = $self->found;
-    return unless $found && $found eq 'W';
+    my $deleted = $self->SUPER::delete($self);
 
-    my $ReservesMaxPickUpDelay = C4::Context->preference('ReservesMaxPickUpDelay');
-    return unless $ReservesMaxPickUpDelay;
+    logaction( 'HOLDS', 'DELETE', $self->reserve_id, Dumper($self->unblessed) )
+        if C4::Context->preference('HoldsLog');
 
-    my $dt = dt_from_string( $self->waitingdate() );
+    return $deleted;
+}
 
-    $dt->add( days => $ReservesMaxPickUpDelay );
+=head3 set_waiting
 
-    return $dt;
+=cut
+
+sub set_waiting {
+    my ( $self, $transferToDo ) = @_;
+
+    $self->priority(0);
+
+    if ($transferToDo) {
+        $self->found('T')->store();
+        return $self;
+    }
+
+    my $today = dt_from_string();
+    my $values = {
+        found => 'W',
+        waitingdate => $today->ymd,
+    };
+
+    my $requested_expiration;
+    if ($self->expirationdate) {
+        $requested_expiration = dt_from_string($self->expirationdate);
+    }
+
+    my $max_pickup_delay = C4::Context->preference("ReservesMaxPickUpDelay");
+    my $cancel_on_holidays = C4::Context->preference('ExpireReservesOnHolidays');
+    my $calendar = Koha::Calendar->new( branchcode => $self->branchcode );
+
+    my $expirationdate = $today->clone;
+    $expirationdate->add(days => $max_pickup_delay);
+
+    if ( C4::Context->preference("ExcludeHolidaysFromMaxPickUpDelay") ) {
+        $expirationdate = $calendar->days_forward( dt_from_string(), $max_pickup_delay );
+    }
+
+    # If patron's requested expiration date is prior to the
+    # calculated one, we keep the patron's one.
+    my $cmp = $requested_expiration ? DateTime->compare($requested_expiration, $expirationdate) : 0;
+    $values->{expirationdate} = $cmp == -1 ? $requested_expiration->ymd : $expirationdate->ymd;
+
+    $self->set($values)->store();
+
+    return $self;
 }
 
 =head3 is_found
@@ -146,23 +223,21 @@ sub is_in_transit {
     return $self->found() eq 'T';
 }
 
-=head3 is_cancelable
+=head3 is_cancelable_from_opac
 
 Returns true if hold is a cancelable hold
 
-Holds may be canceled if they not found, or
-are found and waiting. A hold found but in
-transit cannot be canceled.
+Holds may be only canceled if they are not found.
+
+This is used from the OPAC.
 
 =cut
 
-sub is_cancelable {
+sub is_cancelable_from_opac {
     my ($self) = @_;
 
     return 1 unless $self->is_found();
-    return 0 if $self->is_in_transit();
-    return 1 if $self->is_waiting();
-    return 0;
+    return 0; # if ->is_in_transit or if ->is_waiting
 }
 
 =head3 is_at_destination
@@ -227,6 +302,7 @@ Returns the related Koha::Patron object for this Hold
 
 =cut
 
+# FIXME Should be renamed with ->patron
 sub borrower {
     my ($self) = @_;
 
@@ -247,6 +323,58 @@ sub is_suspended {
     return $self->suspend();
 }
 
+
+=head3 cancel
+
+my $cancel_hold = $hold->cancel();
+
+Cancel a hold:
+- The hold will be moved to the old_reserves table with a priority=0
+- The priority of other holds will be updated
+- The patron will be charge (see ExpireReservesMaxPickUpDelayCharge) if the charge_cancel_fee parameter is set
+- a CANCEL HOLDS log will be done if the pref HoldsLog is on
+
+=cut
+
+sub cancel {
+    my ( $self, $params ) = @_;
+    $self->_result->result_source->schema->txn_do(
+        sub {
+            $self->cancellationdate(dt_from_string);
+            $self->priority(0);
+            $self->_move_to_old;
+            $self->SUPER::delete(); # Do not add a DELETE log
+
+            # now fix the priority on the others....
+            C4::Reserves::_FixPriority({ biblionumber => $self->biblionumber });
+
+            # and, if desired, charge a cancel fee
+            my $charge = C4::Context->preference("ExpireReservesMaxPickUpDelayCharge");
+            if ( $charge && $params->{'charge_cancel_fee'} ) {
+                C4::Accounts::manualinvoice($self->borrowernumber, $self->itemnumber, '', 'HE', $charge);
+            }
+
+            C4::Log::logaction( 'HOLDS', 'CANCEL', $self->reserve_id, Dumper($self->unblessed) )
+                if C4::Context->preference('HoldsLog');
+        }
+    );
+    return $self;
+}
+
+=head3 _move_to_old
+
+my $is_moved = $hold->_move_to_old;
+
+Move a hold to the old_reserve table following the same pattern as Koha::Patron->move_to_deleted
+
+=cut
+
+sub _move_to_old {
+    my ($self) = @_;
+    my $hold_infos = $self->unblessed;
+    return Koha::Old::Hold->new( $hold_infos )->store;
+}
+
 =head3 type
 
 =cut
@@ -255,9 +383,11 @@ sub _type {
     return 'Reserve';
 }
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Kyle M Hall <kyle@bywatersolutions.com>
+
+Jonathan Druart <jonathan.druart@bugs.koha-community.org>
 
 =cut
 

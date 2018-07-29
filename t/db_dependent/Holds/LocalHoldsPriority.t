@@ -4,7 +4,6 @@ use Modern::Perl;
 
 use t::lib::Mocks;
 use C4::Context;
-use C4::Branch;
 
 use Test::More tests => 6;
 use MARC::Record;
@@ -54,22 +53,20 @@ my ( $item_bibnum, $item_bibitemnum, $itemnumber ) = AddItem(
 
 my @branchcodes = ( $library1->{branchcode}, $library2->{branchcode}, $library3->{branchcode}, $library4->{branchcode}, $library3->{branchcode}, $library4->{branchcode} );
 
+my $patron_category = $builder->build({ source => 'Category' });
 # Create some borrowers
 my @borrowernumbers;
 foreach ( 1 .. $borrowers_count ) {
     my $borrowernumber = AddMember(
         firstname    => 'my firstname',
         surname      => 'my surname ' . $_,
-        categorycode => 'S',
+        categorycode => $patron_category->{categorycode},
         branchcode   => $branchcodes[$_],
     );
     push @borrowernumbers, $borrowernumber;
 }
 
 my $biblionumber = $bibnum;
-
-my @branches = GetBranchesLoop();
-my $branch   = $branches[0][0]{value};
 
 # Create five item level holds
 my $i = 1;

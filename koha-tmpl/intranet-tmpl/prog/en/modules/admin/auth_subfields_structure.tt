@@ -1,17 +1,13 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Authority MARC subfield structure</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-     $(document).ready(function() {
-        $('#subfieldtabs').tabs();
-     });
-//]]>
-</script>
 </head>
+
 <body id="admin_auth_subfields_structure" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo;
   <a href="/cgi-bin/koha/admin/authtypes.pl">Authority types</a> &rsaquo;
   [% IF ( authtypecode ) %]<a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri%]">[% authtypecode |html%] framework</a> &rsaquo;
@@ -117,13 +113,11 @@
                                 <select name="ohidden" size="1" id="ohidden[% loo.row %]">
                                     [%- IF ( loo.ohidden ==  0 ) -%]
                                     <option value= "0" selected="selected">Show all</option>
-                                    <option value="-5">Hide all</option>
-                                    [%- ELSIF ( loo.ohidden == -5 ) -%]
-                                    <option value= "0">Show all</option>
-                                    <option value="-5" selected="selected">Hide all</option>
+                                    <option value="1">Hide all</option>
                                     [%- ELSE -%]
+                                    [%# All other non-zero values mean: Hide %]
                                     <option value= "0">Show all</option>
-                                    <option value="-5">Hide all</option>
+                                    <option value="1" selected="selected">Hide all</option>
                                     [%- END -%]
                                 </select>
                             </li>
@@ -307,7 +301,7 @@
                 [% IF ( loo.value_builder ) %] | <strong>Plugin:</strong>[% loo.value_builder %],[% END %]
             [% END %]
         </td>
-        <td><a href="[% loo.delete %]" class="btn btn-mini"><i class="fa fa-trash"></i> Delete</a></td>
+        <td><a href="[% loo.delete %]" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</a></td>
     </tr>
     [% END %]
 </table>
@@ -338,4 +332,13 @@
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    <script type="text/javascript">
+     $(document).ready(function() {
+        $('#subfieldtabs').tabs();
+     });
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

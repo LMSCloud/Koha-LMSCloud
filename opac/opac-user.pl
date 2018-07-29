@@ -34,14 +34,17 @@ use C4::Output;
 use C4::Biblio;
 use C4::Items;
 use C4::Letters;
-use C4::Branch; # GetBranches
+use Koha::Account::Lines;
+use Koha::Libraries;
 use Koha::DateUtils;
-use Koha::Patron::Debarments qw(IsDebarred);
 use Koha::Holds;
 use Koha::Database;
+use Koha::ItemTypes;
+use Koha::Patron::Attribute::Types;
 use Koha::Patron::Messages;
 use Koha::Patron::Discharge;
-use Koha::Biblioitems;
+use Koha::Patrons;
+use DateTime::Format::MySQL;
 
 use constant ATTRIBUTE_SHOW_BARCODE => 'SHOW_BCODE';
 
@@ -64,6 +67,10 @@ BEGIN {
         import C4::Divibib::NCIPService;
     }
 }
+
+# CAS single logout handling
+# Will print header and exit
+C4::Context->preference('casAuthentication') and C4::Auth_with_cas::logout_if_required($query);
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
@@ -92,12 +99,13 @@ if (!$borrowernumber) {
 }
 
 # get borrower information ....
-my ( $borr ) = GetMemberDetails( $borrowernumber );
+my $patron = Koha::Patrons->find( $borrowernumber );
+my $borr = $patron->unblessed;
 
 my (  $today_year,   $today_month,   $today_day) = Today();
 my ($warning_year, $warning_month, $warning_day) = split /-/, $borr->{'dateexpiry'};
 
-my $debar = IsDebarred($borrowernumber);
+my $debar = Koha::Patrons->find( $borrowernumber )->is_debarred;
 my $userdebarred;
 
 if ($debar) {
@@ -107,7 +115,7 @@ if ($debar) {
         $borr->{'userdebarreddate'} = $debar;
     }
     # FIXME looks like $available is not needed
-    # If a patron is discharged he has a validated discharge available
+    # If a user is discharged they have a validated discharge available
     my $available = Koha::Patron::Discharge::count({
         borrowernumber => $borrowernumber,
         validated      => 1,
@@ -120,10 +128,11 @@ if ( $userdebarred || $borr->{'gonenoaddress'} || $borr->{'lost'} ) {
     $canrenew = 0;
 }
 
-if ( $borr->{'amountoutstanding'} > 5 ) {
+my $amountoutstanding = $patron->account->balance;
+if ( $amountoutstanding > 5 ) {
     $borr->{'amountoverfive'} = 1;
 }
-if ( 5 >= $borr->{'amountoutstanding'} && $borr->{'amountoutstanding'} > 0 ) {
+if ( 5 >= $amountoutstanding && $amountoutstanding > 0 ) {
     $borr->{'amountoverzero'} = 1;
 }
 my $no_renewal_amt = C4::Context->preference( 'OPACFineNoRenewals' );
@@ -131,19 +140,19 @@ $no_renewal_amt = undef unless looks_like_number( $no_renewal_amt );
 
 if (   C4::Context->preference('OpacRenewalAllowed')
     && defined($no_renewal_amt)
-    && $borr->{amountoutstanding} > $no_renewal_amt )
+    && $amountoutstanding > $no_renewal_amt )
 {
     $borr->{'flagged'} = 1;
     $canrenew = 0;
     $template->param(
         renewal_blocked_fines => $no_renewal_amt,
-        renewal_blocked_fines_amountoutstanding => $borr->{amountoutstanding},
+        renewal_blocked_fines_amountoutstanding => $amountoutstanding,
     );
 }
 
-if ( $borr->{'amountoutstanding'} < 0 ) {
+if ( $amountoutstanding < 0 ) {
     $borr->{'amountlessthanzero'} = 1;
-    $borr->{'amountoutstanding'} = -1 * ( $borr->{'amountoutstanding'} );
+    $amountoutstanding = -1 * ( $amountoutstanding );
 }
 
 # Warningdate is the date that the warning starts appearing
@@ -165,6 +174,7 @@ if ( $borr->{'dateexpiry'} && C4::Context->preference('NotifyBorrowerDeparture')
 my $renew_error = $query->param('renew_error');
 
 $template->param(   BORROWER_INFO     => $borr,
+                    amountoutstanding => $amountoutstanding,
                     borrowernumber    => $borrowernumber,
                     patron_flagged    => $borr->{flagged},
                     OPACMySummaryHTML => (C4::Context->preference("OPACMySummaryHTML")) ? 1 : 0,
@@ -172,37 +182,6 @@ $template->param(   BORROWER_INFO     => $borr,
                     RENEW_ERROR       => $renew_error,
                     borrower          => $borr,
                 );
-
-# load the branches
-my $branches = GetBranches();
-my @branch_loop;
-for my $branch_hash ( sort keys %{$branches} ) {
-    my $selected;
-    if ( C4::Context->preference('SearchMyLibraryFirst') ) {
-        $selected =
-          ( C4::Context->userenv
-              && ( $branch_hash eq C4::Context->userenv->{branch} ) );
-    }
-    push @branch_loop,
-      { value      => "branch: $branch_hash",
-        branchname => $branches->{$branch_hash}->{'branchname'},
-        selected   => $selected,
-      };
-
-    # enrich %{$branches} by branchname for display (special handling for mobile branches)
-    $branches->{$branch_hash}->{'branchcode_displayed'} = $branches->{$branch_hash}->{'mobilebranch'};
-    if ( !defined($branches->{$branch_hash}->{'branchcode_displayed'}) || length($branches->{$branch_hash}->{'branchcode_displayed'}) == 0 ) {
-        $branches->{$branch_hash}->{'branchcode_displayed'} = $branch_hash;
-    }
-    $branches->{$branch_hash}->{'branchname_displayed'} = $branches->{$branches->{$branch_hash}->{'branchcode_displayed'}}->{'branchname'};
-    if ( !defined($branches->{$branch_hash}->{'branchname_displayed'}) || length($branches->{$branch_hash}->{'branchname_displayed'}) == 0 ) {
-        $branches->{$branch_hash}->{'branchname_displayed'} = $branches->{$branch_hash}->{'branchcode_displayed'};
-    }
-    if ( !defined($branches->{$branch_hash}->{'branchname_displayed'}) || length($branches->{$branch_hash}->{'branchname_displayed'}) == 0 ) {    # should not happen
-        $branches->{$branch_hash}->{'branchname_displayed'} = $branch_hash;
-    }
-}
-$template->param( branchloop => \@branch_loop );
 
 #get issued items ....
 
@@ -212,101 +191,17 @@ my $overdues_count = 0;
 my @overdues;
 my @koha_issuedat;
 my @divibib_issuedat;
-my $itemtypes = GetItemTypes();
-my $issues = GetPendingIssues($borrowernumber);
+my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
+
 if (C4::Context->preference('DivibibEnabled')) {
     my $service = C4::Divibib::NCIPService->new();
     my $divibib_issues = $service->getPendingIssues($borrowernumber);
         
     if ( $divibib_issues ) {
-        push @{$issues}, @{$divibib_issues};
-    }
-}
-if ($issues){
-
-    my $accountlineshavebeenread = 0;    # read the borrower's accountlines and sum the fines for each item only once
-    my %itemcharges = ();
-
-    foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$issues} ) {
-        if (! $issue->{itemSource} ) {
-            $issue->{itemSource} = 'koha';
-        }
-        
-        if ( $issue->{itemSource} eq 'koha' ) {
-            # check for reserves
-            my $restype = GetReserveStatus( $issue->{'itemnumber'} );
-            if ( $restype ) {
-                $issue->{'reserved'} = 1;
-            }
-            if ( !$accountlineshavebeenread ) {
-                my ( $total , $accts, $numaccts) = GetMemberAccountRecords( $borrowernumber );
-                foreach my $ac (@$accts) {
-                    if ( ( defined($ac->{'itemnumber'}) && length($ac->{'itemnumber'}) > 0 ) && 
-                         ( $ac->{'accounttype'} eq 'CAN' ||
-                           $ac->{'accounttype'} eq 'CL' ||
-                           $ac->{'accounttype'} =~ /^CL[1-5]$/ ||
-                           $ac->{'accounttype'} eq 'F' ||
-                           $ac->{'accounttype'} eq 'Fernl' ||
-                           $ac->{'accounttype'} eq 'FU' ||
-                           $ac->{'accounttype'} eq 'L' ||
-                           $ac->{'accounttype'} eq 'M' ||
-                           $ac->{'accounttype'} eq 'Manue' ||
-                           $ac->{'accounttype'} eq 'Rent' ||
-                           $ac->{'accounttype'} eq 'Res' ) ) {
-                        $itemcharges{$ac->{'itemnumber'}} += $ac->{'amountoutstanding'};
-                    }
-                }
-                $accountlineshavebeenread = 1;
-            }
-            if ( exists($itemcharges{$issue->{'itemnumber'}}) && defined($itemcharges{$issue->{'itemnumber'}}) ) {
-                $issue->{'charges'} = $itemcharges{$issue->{'itemnumber'}};
-            } else {
-                $issue->{'charges'} = 0.0;
-            }
-        }
-        # supply branchname for display (special handling for mobile branches)
-        $issue->{'branchname_displayed'} = $branches->{$issue->{'branchcode'}}->{'branchname_displayed'};
-
-        my $marcrecord = GetMarcBiblio( $issue->{'biblionumber'} );
-        $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
-        
-        if ( $issue->{itemSource} eq 'koha' ) {
-            # check if renewal of issued item causes effective rentalcharge 
-            $issue->{'rentalcharge'} = 0.0;
-            my ( $charge, $type ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber, 1, $issue->{'branchcode'});
-            if ( defined($charge) ) {
-                $issue->{'rentalcharge'} = $charge;
-            }
-            # check if item is renewable
-            my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
-            ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
-            if($status && C4::Context->preference("OpacRenewalAllowed")){
-                $issue->{'status'} = $status;
-            }
-
-            $issue->{'renewed'} = $renewed{ $issue->{'itemnumber'} };
-
-            if ($renewerror) {
-                $issue->{'too_many'}       = 1 if $renewerror eq 'too_many';
-                $issue->{'on_reserve'}     = 1 if $renewerror eq 'on_reserve';
-                $issue->{'norenew_overdue'} = 1 if $renewerror eq 'overdue';
-                $issue->{'auto_renew'}     = 1 if $renewerror eq 'auto_renew';
-                $issue->{'auto_too_soon'}  = 1 if $renewerror eq 'auto_too_soon';
-
-                if ( $renewerror eq 'too_soon' ) {
-                    $issue->{'too_soon'}         = 1;
-                    $issue->{'soonestrenewdate'} = output_pref(
-                         C4::Circulation::GetSoonestRenewDate(
-                            $issue->{borrowernumber},
-                            $issue->{itemnumber}
-                        )
-                    );
-                }
-            }
-        }
-        
-        # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
-        if ( $issue->{itemSource} eq 'onleihe' ) {
+        foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$divibib_issues} ) {
+            my $marcrecord = GetMarcBiblio( $issue->{'biblionumber'} );
+            $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
+            
             my $itemtype = $issue->{'itemtype'};                
             if ( !exists($itemtypes->{$itemtype}) ) {
                 $itemtype = lc($issue->{'itemtype'});    # e.g. treat eBook as ebook
@@ -322,22 +217,136 @@ if ($issues){
             }
             $issue->{'imageurl'} = $issue->{'itype_imageurl'};
             $issue->{'description'} = $issue->{'itype_description'};
-        } else
-        {
-            # imageurl for biblioitems.itemtype:
-            my $itemtype = $issue->{'itemtype'};
-            if ( $itemtype && (! $issue->{'imageurl'} )  ) {
-                $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
-                $issue->{'description'} = $itemtypes->{$itemtype}->{'translated_description'};
+            $issue->{itemSource} = 'onleihe';
+            
+            my $isbn = GetNormalizedISBN($issue->{'isbn'});
+            $issue->{normalized_isbn} = $isbn;
+            $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
+
+            # My Summary HTML
+            if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
+                $issue->{author} ? $my_summary_html =~ s/{AUTHOR}/$issue->{author}/g : $my_summary_html =~ s/{AUTHOR}//g;
+                $issue->{title} =~ s/\/+$//; # remove trailing slash
+                $issue->{title} =~ s/\s+$//; # remove trailing space
+                $issue->{title} ? $my_summary_html =~ s/{TITLE}/$issue->{title}/g : $my_summary_html =~ s/{TITLE}//g;
+                $issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
+                $issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
+                $issue->{MySummaryHTML} = $my_summary_html;
             }
-            # imageurl for items.itype:
-            if (exists $issue->{'itype'} && defined($issue->{'itype'}) && exists $itemtypes->{ $issue->{'itype'} }) {
-                $issue->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $issue->{'itype'} }->{'imageurl'} );
-                $issue->{'itype_description'} = $itemtypes->{ $issue->{'itype'} }->{'translated_description'};
-            }
+            
+            push @divibib_issuedat, $issue;
+            $divibib_issues_count++;
+        }
+    }
+}
+
+my $pending_checkouts = $patron->pending_checkouts->search({}, { order_by => [ { -desc => 'date_due' }, { -asc => 'issue_id' } ] });
+if ( $pending_checkouts->count ) { # Useless test
+    while ( my $c = $pending_checkouts->next ) {
+        my $issue = $c->unblessed_all_relateds;
+        
+        $issue->{itemSource} = 'koha';
+        
+        # check for reserves
+        my $restype = GetReserveStatus( $issue->{'itemnumber'} );
+        if ( $restype ) {
+            $issue->{'reserved'} = 1;
         }
 
-        if ( $issue->{'overdue'} ) {
+        # Must be moved in a module if reused
+        my $charges = Koha::Account::Lines->search(
+            {
+                borrowernumber    => $patron->borrowernumber,
+                amountoutstanding => { '>' => 0 },
+                accounttype       => [ 'F', 'FU', 'L', 'CAN', 'CL1', 'CL2', 'CL3', 'CL4', 'CL5', 'CL', 'Res', 'Manue', 'M', 'Fernl', 'Rent' ],
+                itemnumber        => $issue->{itemnumber}
+            },
+            { select => [ { sum => 'amountoutstanding' } ], as => ['charges'] }
+        );
+        $issue->{charges} = $charges->count ? $charges->next->get_column('charges') : 0.0;
+
+        my $rental_fines = Koha::Account::Lines->search(
+            {
+                borrowernumber    => $patron->borrowernumber,
+                amountoutstanding => { '>' => 0 },
+                accounttype       => 'Rent',
+                itemnumber        => $issue->{itemnumber}
+            },
+            {
+                select => [ { sum => 'amountoutstanding' } ],
+                as     => ['rental_fines']
+            }
+        );
+        $issue->{rentalfines} = $rental_fines->count ? $rental_fines->next->get_column('rental_fines') : 0;
+
+        my $marcrecord = GetMarcBiblio({ biblionumber => $issue->{'biblionumber'} });
+        $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
+        
+        # check if renewal of issued item causes effective rentalcharge 
+        $issue->{'rentalcharge'} = 0.0;
+        my ( $charge, $type ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber, 1, $issue->{'branchcode'});
+        if ( defined($charge) ) {
+            $issue->{'rentalcharge'} = $charge;
+        }
+        
+        # check if item is renewable
+        my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
+        ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
+        ( $issue->{'renewalfee'}, $issue->{'renewalitemtype'} ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber );
+        if($status && C4::Context->preference("OpacRenewalAllowed")){
+            $issue->{'status'} = $status;
+        }
+
+        $issue->{'renewed'} = $renewed{ $issue->{'itemnumber'} };
+
+        if ($renewerror) {
+            $issue->{'too_many'}       = 1 if $renewerror eq 'too_many';
+            $issue->{'on_reserve'}     = 1 if $renewerror eq 'on_reserve';
+            $issue->{'norenew_overdue'} = 1 if $renewerror eq 'overdue';
+            $issue->{'auto_renew'}     = 1 if $renewerror eq 'auto_renew';
+            $issue->{'auto_too_soon'}  = 1 if $renewerror eq 'auto_too_soon';
+            $issue->{'auto_too_late'}  = 1 if $renewerror eq 'auto_too_late';
+            $issue->{'auto_too_much_oweing'}  = 1 if $renewerror eq 'auto_too_much_oweing';
+
+            if ( $renewerror eq 'too_soon' ) {
+                $issue->{'too_soon'}         = 1;
+                $issue->{'soonestrenewdate'} = output_pref(
+                    C4::Circulation::GetSoonestRenewDate(
+                        $issue->{borrowernumber},
+                        $issue->{itemnumber}
+                    )
+                );
+            }
+        }
+        
+        # imageurl for biblioitems.itemtype:
+        my $itemtype = $issue->{'itemtype'};
+        if ( $itemtype && (! $issue->{'imageurl'} )  ) {
+            $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
+            $issue->{'description'} = $itemtypes->{$itemtype}->{'translated_description'};
+        }
+        # imageurl for items.itype:
+        if (exists $issue->{'itype'} && defined($issue->{'itype'}) && exists $itemtypes->{ $issue->{'itype'} }) {
+            $issue->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $issue->{'itype'} }->{'imageurl'} );
+            $issue->{'itype_description'} = $itemtypes->{ $issue->{'itype'} }->{'translated_description'};
+        }
+        
+        my $isbn = GetNormalizedISBN($issue->{'isbn'});
+        $issue->{normalized_isbn} = $isbn;
+        $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
+
+        # My Summary HTML
+        if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
+            $issue->{author} ? $my_summary_html =~ s/{AUTHOR}/$issue->{author}/g : $my_summary_html =~ s/{AUTHOR}//g;
+            $issue->{title} =~ s/\/+$//; # remove trailing slash
+            $issue->{title} =~ s/\s+$//; # remove trailing space
+            $issue->{title} ? $my_summary_html =~ s/{TITLE}/$issue->{title}/g : $my_summary_html =~ s/{TITLE}//g;
+            $issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
+            $issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
+            $issue->{MySummaryHTML} = $my_summary_html;
+        }
+
+        if ( $c->is_overdue ) {
             $issue->{'overdue'} = 1;
             push @overdues, $issue;
             $overdues_count++;
@@ -345,30 +354,12 @@ if ($issues){
         else {
             $issue->{'issued'} = 1;
         }
-        if ( $issue->{itemSource} eq 'onleihe' ) {
-            push @divibib_issuedat, $issue;
-            $divibib_issues_count++;
-        } else {
-            push @koha_issuedat, $issue;
-            $koha_issues_count++;
-        }
-
-        my $isbn = GetNormalizedISBN($issue->{'isbn'});
-        $issue->{normalized_isbn} = $isbn;
-        $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
-
-                # My Summary HTML
-                if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
-                    $issue->{author} ? $my_summary_html =~ s/{AUTHOR}/$issue->{author}/g : $my_summary_html =~ s/{AUTHOR}//g;
-                    $issue->{title} =~ s/\/+$//; # remove trailing slash
-                    $issue->{title} =~ s/\s+$//; # remove trailing space
-                    $issue->{title} ? $my_summary_html =~ s/{TITLE}/$issue->{title}/g : $my_summary_html =~ s/{TITLE}//g;
-                    $issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
-                    $issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
-                    $issue->{MySummaryHTML} = $my_summary_html;
-                }
+        push @koha_issuedat, $issue;
+        $koha_issues_count++;
     }
 }
+
+
 my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
 $canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $koha_issues_count);
 $template->param( KOHA_ISSUES       => \@koha_issuedat );
@@ -379,7 +370,8 @@ $template->param( canrenew     => $canrenew );
 $template->param( OVERDUES       => \@overdues );
 $template->param( overdues_count => $overdues_count );
 
-my $show_barcode = C4::Members::AttributeTypes::AttributeTypeExists( ATTRIBUTE_SHOW_BARCODE );
+my $show_barcode = Koha::Patron::Attribute::Types->search(
+    { code => ATTRIBUTE_SHOW_BARCODE } )->count;
 if ($show_barcode) {
     my $patron_show_barcode = GetBorrowerAttributeValue($borrowernumber, ATTRIBUTE_SHOW_BARCODE);
     undef $show_barcode if defined($patron_show_barcode) && !$patron_show_barcode;
@@ -388,53 +380,11 @@ $template->param( show_barcode => 1 ) if $show_barcode;
 
 # now the reserved items....
 my $reserves = Koha::Holds->search( { borrowernumber => $borrowernumber } );
-my @reservesdat = ();
-
-# getting imageurl and description via itemtype/itype
-foreach my $reserve ($reserves->as_list()) {
-    my $reservedat = {};
-
-    $reservedat->{'reserve'} = $reserve;
-
-    my $biblioitem = Koha::Biblioitems->find( $reserve->biblionumber());
-    my $item = $reserve->item();
-
-    # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
-    if ( defined($item) && defined($item->itype()) && exists $itemtypes->{ $item->itype() }) {
-        $reservedat->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $item->itype() }->{'imageurl'} );
-        $reservedat->{'itype_description'} = $itemtypes->{ $item->itype() }->{'translated_description'};
-    }
-    if ( defined($reserve->itemtype()) && exists $itemtypes->{ $reserve->itemtype() } ) {
-        $reservedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $reserve->itemtype() }->{'imageurl'} );
-        $reservedat->{'itemtype_description'} = $itemtypes->{ $reserve->itemtype() }->{'translated_description'};
-    }
-    if ( !defined($reservedat->{'itemtype_description'}) || length($reservedat->{'itemtype_description'}) == 0 ) {
-        if ( defined($biblioitem->itemtype()) && exists $itemtypes->{ $biblioitem->itemtype() } ) {
-            $reservedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $biblioitem->itemtype() }->{'imageurl'} );
-            $reservedat->{'itemtype_description'} = $itemtypes->{ $biblioitem->itemtype() }->{'translated_description'};
-        }
-    }
-    if ( !defined($reservedat->{'itype_description'}) || length($reservedat->{'itype_description'}) == 0 ) {
-        if ( defined($reservedat->{'itemtype_description'}) && length($reservedat->{'itemtype_description'}) > 0 ) {
-            $reservedat->{'itype_imageurl'}    = $reservedat->{'itemtype_imageurl'};
-            $reservedat->{'itype_description'} = $reservedat->{'itemtype_description'};
-        }
-    }
-
-    push @reservesdat, $reservedat;
-}
 
 $template->param(
-    RESERVESDAT    => { 'count' => $reserves->count(), 'reservesdat' => \@reservesdat },
+    RESERVES       => $reserves,
     showpriority   => $show_priority,
 );
-
-# current alert subscriptions
-my $alerts = getalert($borrowernumber);
-foreach ( @$alerts ) {
-    $_->{ $_->{type} } = 1;
-    $_->{relatedto} = findrelatedto( $_->{type}, $_->{externalid} );
-}
 
 if (C4::Context->preference('BakerTaylorEnabled')) {
     $template->param(
@@ -452,22 +402,18 @@ if (C4::Context->preference("OPACAmazonCoverImages") or
         $template->param(JacketImages=>1);
 }
 
+$template->param(
+    OverDriveCirculation => C4::Context->preference('OverDriveCirculation') || 0,
+    overdrive_error      => scalar $query->param('overdrive_error') || undef,
+    overdrive_tab        => scalar $query->param('overdrive_tab') || 0,
+);
+
 my $patron_messages = Koha::Patron::Messages->search(
     {
         borrowernumber => $borrowernumber,
         message_type => 'B',
     }
 );
-if ( $patron_messages->count ) {
-    $template->param( bor_messages => 1 );
-}
-
-if ( $borr->{'opacnote'} ) {
-  $template->param( 
-    bor_messages => 1,
-    opacnote => $borr->{'opacnote'},
-  );
-}
 
 if (   C4::Context->preference('AllowPatronToSetCheckoutsVisibilityForGuarantor')
     || C4::Context->preference('AllowStaffToSetCheckoutsVisibilityForGuarantor') )
@@ -478,62 +424,15 @@ if (   C4::Context->preference('AllowPatronToSetCheckoutsVisibilityForGuarantor'
             privacy_guarantor_checkouts => 1,
             'me.guarantorid'           => $borrowernumber
         },
-        { prefetch => [ { 'issues' => { 'item' => 'biblio' } } ] }
+        { prefetch => [ { 'issues' => { 'item' => ['biblio','biblioitem'] } } ] }
       );
-    my @relativesdat = ();
-    my $today = dt_from_string('', 'sql');
-
-    # getting imageurl and description via itemtype/itype
-    foreach my $relative (@relatives) {
-        my $relativedat = {};
-
-        $relativedat->{'relative'} = $relative;
-        $relativedat->{'issuesdat'} = [];
-
-        foreach my $issue ($relative->issues()) {
-            my $issuedat = {};
-            $issuedat->{'issue'} = $issue;
-            my $issuebranchcode = $issue->branchcode();
-            my $item = $issue->item();
-            my $itemitype = undef;
-            if ( defined($item) ) {
-                $itemitype = $item->itype();
-            }
-            my $biblioitem = $item->biblioitem();
-
-            if ( scalar $issue->date_due() ) {
-                $issuedat->{'date_due_cmp'} = dt_from_string(scalar $issue->date_due(), 'sql');
-                if ( DateTime->compare($issuedat->{'date_due_cmp'}, $today) == -1 ) {
-                    $issuedat->{overdue} = 1;
-                }
-            }
-
-            # supply branchname for display (special handling for mobile branches)
-            $issuedat->{'branchname_displayed'} = $branches->{$issuebranchcode}->{'branchname_displayed'};
-
-            # which imageurl is used depends on system preference item_level_itypes (evaluated in opac-user.tt)
-            # imageurl for biblioitems.itemtype:
-            my $itemtype = undef;
-            $itemtype = $biblioitem->itemtype() if defined($biblioitem);
-            if ( defined($itemtype) && exists $itemtypes->{ $itemtype } ) {
-                $issuedat->{'itemtype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itemtype }->{'imageurl'} );
-                $issuedat->{'itemtype_description'} = $itemtypes->{ $itemtype }->{'translated_description'};
-            }
-            # imageurl for items.itype:
-            if ( defined($itemitype) && exists $itemtypes->{ $itemitype }) {
-                $issuedat->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itemitype }->{'imageurl'} );
-                $issuedat->{'itype_description'} = $itemtypes->{ $itemitype }->{'translated_description'};
-            }
-            push @{$relativedat->{'issuesdat'}}, $issuedat;
-        }
-        push @relativesdat, $relativedat;
-    }
-    $template->param( RELATIVESDAT => \@relativesdat );
+    $template->param( relatives => \@relatives );
 }
 
 $template->param(
-    borrower                 => $borr,
+    borrower                 => scalar Koha::Patrons->find($borrowernumber),
     patron_messages          => $patron_messages,
+    opacnote                 => $borr->{opacnote},
     patronupdate             => $patronupdate,
     OpacRenewalAllowed       => C4::Context->preference("OpacRenewalAllowed"),
     userview                 => 1,

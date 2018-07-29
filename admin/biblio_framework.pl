@@ -26,12 +26,12 @@ use C4::Output;
 use Koha::Biblios;
 use Koha::BiblioFramework;
 use Koha::BiblioFrameworks;
-use Koha::Cache;
+use Koha::Caches;
 
 my $input         = new CGI;
 my $frameworkcode = $input->param('frameworkcode') || q||;
 my $op            = $input->param('op') || q|list|;
-my $cache         = Koha::Cache->get_instance();
+my $cache         = Koha::Caches->get_instance();
 my @messages;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -80,7 +80,7 @@ if ( $op eq 'add_form' ) {
     }
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-$frameworkcode");
+    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
     $op = 'list';
 } elsif ( $op eq 'delete_confirm' ) {
@@ -111,7 +111,7 @@ if ( $op eq 'add_form' ) {
     }
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-$frameworkcode");
+    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
     $op = 'list';
 }

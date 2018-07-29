@@ -1,24 +1,26 @@
+[%- USE KohaPlugins -%]
+[% USE Asset %]
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Koha [% Version %]" /> <!-- leave this for stats -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="shortcut icon" href="[% IF ( OpacFavicon ) %][% OpacFavicon %][% ELSE %][% interface %]/[% theme %]/images/favicon.ico[% END %]" type="image/x-icon" />
 [% IF ( bidi ) %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/lib/bootstrap/css/bootstrap-rtl.min.css" />
+    [% Asset.css("lib/bootstrap/css/bootstrap-rtl.min.css") %]
 [% ELSE %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/lib/bootstrap/css/bootstrap.min.css" />
+    [% Asset.css("lib/bootstrap/css/bootstrap.min.css") %]
 [% END %]
 
 [% IF ( bidi ) %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/lib/jquery/jquery-ui-rtl.css" />
+    [% Asset.css("lib/jquery/jquery-ui-rtl.css") %]
 [% ELSE %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/lib/jquery/jquery-ui.css" />
+    [% Asset.css("lib/jquery/jquery-ui.css") %]
 [% END %]
 
 [% SET opaclayoutstylesheet='opac.css' UNLESS opaclayoutstylesheet %]
 [% IF (opaclayoutstylesheet.match('^https?:|^\/')) %]
     <link rel="stylesheet" type="text/css" href="[% opaclayoutstylesheet %]" />
 [% ELSE %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/[% opaclayoutstylesheet %]" />
+    [% Asset.css("css/" _ opaclayoutstylesheet) %]
 [% END %]
 [% IF ( OpacAdditionalStylesheet ) %]
     [% IF (OpacAdditionalStylesheet.match('^https?:|^\/')) %]
@@ -30,18 +32,15 @@
 [% IF ( opac_css_override ) %]
     <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/[% opac_css_override %]" />
 [% END %]
-<link rel="stylesheet" type="text/css" media="print" href="[% interface %]/[% theme %]/css/print.css" />
-[% IF persona %]
- <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/persona-buttons.css" />
-[% END %]
+[% Asset.css("css/print.css", { media = "print" }) %]
 [% IF ( bidi ) %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/right-to-left.css" />
+    [% Asset.css("css/right-to-left.css") %]
 [% END %]
-[% IF ( OPACUserCSS ) %]<style type="text/css">[% OPACUserCSS %]</style>[% END %]
+[% IF ( OPACUserCSS ) %]<style>[% OPACUserCSS %]</style>[% END %]
 [% IF SCO_login %]
     [% SET SCOUserCSS = Koha.Preference('SCOUserCSS') %]
     [% IF SCOUserCSS %]
-        <style type="text/css">[% SCOUserCSS %]</style>
+        <style>[% SCOUserCSS %]</style>
     [% END %]
 [% END %]
 <link rel="unapi-server" type="application/xml" title="unAPI" href="[% OPACBaseURL %]/cgi-bin/koha/unapi" />
@@ -50,8 +49,10 @@
 <!--[if lt IE 9]>
     <script src="[% interface %]/[% theme %]/lib/respond.min.js"></script>
 <![endif]-->
-<script type="text/javascript">
+<script>
     function _(s) { return s } // dummy function for gettext
 </script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/modernizr.min.js"></script>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/lib/font-awesome/css/font-awesome.min.css" />
+[% Asset.js("lib/modernizr.min.js") %]
+[% Asset.css("lib/font-awesome/css/font-awesome.min.css") %]
+[% PROCESS 'html_helpers.inc' %]
+[% KohaPlugins.get_plugins_opac_head %]

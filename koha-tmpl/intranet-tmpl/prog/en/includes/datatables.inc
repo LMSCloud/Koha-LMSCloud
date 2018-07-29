@@ -1,8 +1,12 @@
+[% USE Asset %]
 [% INCLUDE 'format_price.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/buttons.dataTables.min.css" />
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.dataTables.min.js"></script>
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/dataTables.buttons.min.js"></script>
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/buttons.colVis.min.js"></script>
+[% Asset.css("css/buttons.dataTables.min.css") %]
+[% Asset.js("lib/jquery/plugins/jquery.dataTables.min.js") %]
+[% Asset.js("lib/jquery/plugins/dataTables.buttons.min.js") %]
+[% Asset.js("lib/jquery/plugins/buttons.colVis.min.js") %]
+[% Asset.js("lib/jquery/plugins/jszip.min.js") %]
+[% Asset.js("lib/jquery/plugins/buttons.print.min.js") %]
+[% Asset.js("lib/jquery/plugins/buttons.html5.min.js") %]
 <script type="text/javascript">
 //<![CDATA[
     var MSG_DT_FIRST = _("First");
@@ -20,6 +24,10 @@
     var MSG_DT_ZERO_RECORDS = _("No matching records found");
     var MSG_DT_ALL = _("All");
     var CONFIG_EXCLUDE_ARTICLES_FROM_SORT = _("a an the");
+    var MSG_DT_COPY_TITLE = _("Copy to clipboard");
+    var MSG_DT_COPY_KEYS = _("Press ctrl or ⌘ + C to copy the table data<br>to your system clipboard.<br><br>To cancel, click this message or press escape.");
+    var MSG_DT_COPY_SUCCESS_ONE = _("Copied one row to clipboard");
+    var MSG_DT_COPY_SUCCESS_X = _("Copied %d rows to clipboard");
 //]]>
 </script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/datatables.js"></script>
+[% Asset.js("js/datatables.js") %]

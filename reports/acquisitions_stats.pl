@@ -26,9 +26,10 @@ use C4::Reports;
 use C4::Output;
 use C4::Koha;
 use C4::Circulation;
-use C4::Branch;
 use C4::Biblio;
+use Koha::ItemTypes;
 use Koha::DateUtils;
+use Koha::Libraries;
 
 =head1 NAME
 
@@ -124,8 +125,6 @@ else {
     $req->execute;
     my $booksellers = $req->fetchall_arrayref({});
 
-    my $itemtypes = GetItemTypes( style => 'array' );
-
     $req = $dbh->prepare("SELECT DISTINCTROW budget_code, budget_name FROM aqbudgets ORDER BY budget_name");
     $req->execute;
     my @bselect;
@@ -185,13 +184,9 @@ else {
 
     my $CGIsepChoice = GetDelimiterChoices;
 
-    my $branches = GetBranches;
-    my @branches;
-    foreach ( sort keys %$branches ) {
-        push @branches, $branches->{$_};
-    }
+    my @branches = Koha::Libraries->search({}, { order_by => 'branchname' });
 
-    my $ccode_subfield_structure = GetMarcSubfieldStructureFromKohaField('items.ccode', '');
+    my $ccode_subfield_structure = GetMarcSubfieldStructureFromKohaField('items.ccode');
     my $ccode_label;
     my $ccode_avlist;
     if($ccode_subfield_structure) {
@@ -199,9 +194,10 @@ else {
         $ccode_avlist = GetAuthorisedValues($ccode_subfield_structure->{authorised_value});
     }
 
+    my $itemtypes = Koha::ItemTypes->search_with_localization;
     $template->param(
         booksellers   => $booksellers,
-        itemtypes     => $itemtypes,
+        itemtypes     => $itemtypes, # FIXME Should use the TT plugin instead
         Budgets       => $Budgets,
         hassort1      => $hassort1,
         hassort2      => $hassort2,

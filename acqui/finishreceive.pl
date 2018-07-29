@@ -20,19 +20,19 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Context;
 use C4::Acquisition;
 use C4::Biblio;
-use C4::Bookseller;
 use C4::Items;
 use C4::Search;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Number::Price;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 
 use List::MoreUtils qw/any/;
 
@@ -47,25 +47,25 @@ my $ordernumber      = $input->param('ordernumber');
 my $origquantityrec  = $input->param('origquantityrec');
 my $quantityrec      = $input->param('quantityrec');
 my $quantity         = $input->param('quantity');
-my $unitprice        = $input->param('cost');
+my $unitprice        = $input->param('unitprice');
 my $datereceived     = $input->param('datereceived'),
 my $invoiceid        = $input->param('invoiceid');
 my $invoice          = GetInvoice($invoiceid);
 my $invoiceno        = $invoice->{invoicenumber};
 my $booksellerid     = $input->param('booksellerid');
 my $cnt              = 0;
-my $ecost            = $input->param('ecost');
-my $rrp              = $input->param('rrp');
-my $order_internalnote = $input->param("order_internalnote");
 my $bookfund         = $input->param("bookfund");
 my $order            = GetOrder($ordernumber);
 my $new_ordernumber  = $ordernumber;
 
+$unitprice = Koha::Number::Price->new( $unitprice )->unformat();
+my $basket = Koha::Acquisition::Orders->find( $ordernumber )->basket;
+
 #need old receivedate if we update the order, parcel.pl only shows the right parcel this way FIXME
 if ($quantityrec > $origquantityrec ) {
     my @received_items = ();
-    if(C4::Context->preference('AcqCreateItem') eq 'ordering') {
-        @received_items = $input->multi_param('items_to_receive');
+    if ($basket->effective_create_items eq 'ordering') {
+        @received_items = $input->param('items_to_receive');
         my @affects = split q{\|}, C4::Context->preference("AcqItemSetSubfieldsWhenReceived");
         if ( @affects ) {
             my $frameworkcode = GetFrameworkCode($biblionumber);
@@ -83,44 +83,35 @@ if ($quantityrec > $origquantityrec ) {
         }
     }
 
-    $order->{rrp} = $rrp;
-    $order->{ecost} = $ecost;
+    $order->{order_internalnote} = $input->param("order_internalnote");
+    $order->{tax_rate_on_receiving} = $input->param("tax_rate");
     $order->{unitprice} = $unitprice;
-    my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
-    if ( $bookseller->{listincgst} ) {
-        if ( not $bookseller->{invoiceincgst} ) {
-            $order->{rrp} = $order->{rrp} * ( 1 + $order->{gstrate} );
-            $order->{ecost} = $order->{ecost} * ( 1 + $order->{gstrate} );
-            $order->{unitprice} = $order->{unitprice} * ( 1 + $order->{gstrate} );
+
+    $order = C4::Acquisition::populate_order_with_prices(
+        {
+            order => $order,
+            booksellerid => $booksellerid,
+            receiving => 1
         }
-    } else {
-        if ( $bookseller->{invoiceincgst} ) {
-            $order->{rrp} = $order->{rrp} / ( 1 + $order->{gstrate} );
-            $order->{ecost} = $order->{ecost} / ( 1 + $order->{gstrate} );
-            $order->{unitprice} = $order->{unitprice} / ( 1 + $order->{gstrate} );
-        }
-    }
+    );
 
     # save the quantity received.
     if ( $quantityrec > 0 ) {
-        ($datereceived, $new_ordernumber) = ModReceiveOrder({
-              biblionumber     => $biblionumber,
-              ordernumber      => $ordernumber,
-              quantityreceived => $quantityrec,
-              user             => $user,
-              cost             => $order->{unitprice},
-              ecost            => $order->{ecost},
-              invoiceid        => $invoiceid,
-              rrp              => $order->{rrp},
-              budget_id        => $bookfund,
-              datereceived     => $datereceived,
-              received_items   => \@received_items,
-              order_internalnote  => $order_internalnote,
-        } );
+        ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
+            {
+                biblionumber     => $biblionumber,
+                order            => $order,
+                quantityreceived => $quantityrec,
+                user             => $user,
+                invoice          => $invoice,
+                budget_id        => $bookfund,
+                received_items   => \@received_items,
+            }
+        );
     }
 
     # now, add items if applicable
-    if (C4::Context->preference('AcqCreateItem') eq 'receiving') {
+    if ($basket->effective_create_items eq 'receiving') {
 
         my @tags         = $input->multi_param('tag');
         my @subfields    = $input->multi_param('subfield');
@@ -144,7 +135,7 @@ if ($quantityrec > $origquantityrec ) {
             push @{$itemhash{$itemid[$i]}->{'ind_tag'}},$ind_tag[$i];
             push @{$itemhash{$itemid[$i]}->{'indicator'}},$indicator[$i];
         }
-        my $order = Koha::Acquisition::Order->fetch({ ordernumber => $new_ordernumber });
+        my $new_order = Koha::Acquisition::Orders->find( $new_ordernumber );
         foreach my $item (keys %itemhash){
             my $xml = TransformHtmlToXml( $itemhash{$item}->{'tags'},
                                           $itemhash{$item}->{'subfields'},
@@ -154,7 +145,7 @@ if ($quantityrec > $origquantityrec ) {
                                           'ITEM' );
             my $record=MARC::Record::new_from_xml($xml, 'UTF-8');
             my (undef,$bibitemnum,$itemnumber) = AddItemFromMarc($record,$biblionumber);
-            $order->add_item( $itemnumber );
+            $new_order->add_item( $itemnumber );
         }
     }
 }
@@ -165,7 +156,7 @@ ModItem(
         dateaccessioned      => $datereceived,
         datelastseen         => $datereceived,
         price                => $unitprice,
-        replacementprice     => $rrp,
+        replacementprice     => $order->{rrp},
         replacementpricedate => $datereceived,
     },
     $biblionumber,

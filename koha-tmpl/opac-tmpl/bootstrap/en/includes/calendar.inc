@@ -1,5 +1,5 @@
 [% USE Koha %]
-<script type="text/javascript">
+<script>
     //<![CDATA[
         var debug    = "[% debug %]";
         var dformat  = "[% dateformat %]";
@@ -56,7 +56,12 @@
                 buttonImage: '[% interface %]/lib/famfamfam/silk/calendar.png',
                 buttonImageOnly: true,
                 showButtonPanel: true,
-                showOtherMonths: true
+                showOtherMonths: true,
+                yearRange: "c-100:c+10"
+            });
+
+        $("#borrower_dateofbirth").datepicker({
+                yearRange: "c-100:c"
             });
 
             $( ".datepicker" ).datepicker();

@@ -6,11 +6,10 @@ use Data::Dumper;
 
 use C4::Acquisition qw( NewBasket GetBasketsInfosByBookseller );
 use C4::Biblio qw( AddBiblio );
-use C4::Bookseller qw( AddBookseller );
 use C4::Budgets qw( AddBudget );
 use C4::Context;
 use Koha::Database;
-use Koha::Acquisition::Order;
+use Koha::Acquisition::Orders;
 
 my $schema = Koha::Database->new()->schema();
 $schema->storage->txn_begin();
@@ -18,7 +17,7 @@ $schema->storage->txn_begin();
 my $dbh = C4::Context->dbh;
 $dbh->{RaiseError} = 1;
 
-my $supplierid = C4::Bookseller::AddBookseller(
+my $supplier = Koha::Acquisition::Bookseller->new(
     {
         name => 'my vendor',
         address1 => 'bookseller\'s address',
@@ -26,15 +25,16 @@ my $supplierid = C4::Bookseller::AddBookseller(
         active => 1,
         deliverytime => 5,
     }
-);
+)->store;
+my $supplierid = $supplier->id;
 
 my $basketno;
 ok($basketno = NewBasket($supplierid, 1), 'NewBasket(  $supplierid , 1  ) returns $basketno');
 
 my $budgetid = C4::Budgets::AddBudget(
     {
-        budget_code => 'budget_code_test_getordersbybib',
-        budget_name => 'budget_name_test_getordersbybib',
+        budget_code => 'budget_code_test_1',
+        budget_name => 'budget_name_test_1',
     }
 );
 my $budget = C4::Budgets::GetBudget( $budgetid );
@@ -50,8 +50,8 @@ my $order1 = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber1,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber1 = $order1->{ordernumber};
+)->store;
+my $ordernumber1 = $order1->ordernumber;
 
 my $order2 = Koha::Acquisition::Order->new(
     {
@@ -60,8 +60,8 @@ my $order2 = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber2,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber2 = $order2->{ordernumber};
+)->store;
+my $ordernumber2 = $order2->ordernumber;
 
 my $baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
 is( scalar(@$baskets), 1, 'Start: 1 basket' );

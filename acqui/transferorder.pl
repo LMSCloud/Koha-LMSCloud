@@ -26,7 +26,7 @@ use C4::Auth;
 use C4::Output;
 use C4::Context;
 use C4::Acquisition;
-use C4::Members;
+use Koha::Acquisition::Booksellers;
 
 my $input = new CGI;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -54,15 +54,15 @@ if($order) {
     $bookselleridfrom = $basket->{booksellerid} if $basket;
 }
 
-my $booksellerfrom = Koha::Acquisition::Bookseller->fetch({ id => $bookselleridfrom });
+my $booksellerfrom = Koha::Acquisition::Booksellers->find( $bookselleridfrom );
 my $booksellerfromname;
 if($booksellerfrom){
-    $booksellerfromname = $booksellerfrom->{name};
+    $booksellerfromname = $booksellerfrom->name;
 }
-my $booksellerto = Koha::Acquisition::Bookseller->fetch({ id => $bookselleridto });
+my $booksellerto = Koha::Acquisition::Booksellers->find( $bookselleridto );
 my $booksellertoname;
 if($booksellerto){
-    $booksellertoname = $booksellerto->{name};
+    $booksellertoname = $booksellerto->name;
 }
 
 
@@ -70,8 +70,8 @@ if( $basketno && $ordernumber) {
     # Transfer order and exit
     my $order = GetOrder( $ordernumber );
     my $basket = GetBasket($order->{basketno});
-    my $booksellerfrom = Koha::Acquisition::Bookseller->fetch({ id => $basket->{booksellerid} });
-    my $bookselleridfrom = $booksellerfrom->{id};
+    my $booksellerfrom = Koha::Acquisition::Booksellers->find( $basket->{booksellerid} );
+    my $bookselleridfrom = $booksellerfrom->id;
 
     TransferOrder($ordernumber, $basketno);
 
@@ -80,16 +80,16 @@ if( $basketno && $ordernumber) {
     # Show open baskets for this bookseller
     my $order = GetOrder( $ordernumber );
     my $basketfrom = GetBasket( $order->{basketno} );
-    my $booksellerfrom = Koha::Acquisition::Bookseller->fetch({ id => $basketfrom->{booksellerid} });
-    $booksellerfromname = $booksellerfrom->{name};
+    my $booksellerfrom = Koha::Acquisition::Booksellers->find( $basketfrom->{booksellerid} );
+    $booksellerfromname = $booksellerfrom->name;
     my $baskets = GetBasketsByBookseller( $bookselleridto );
     my $basketscount = scalar @$baskets;
     my @basketsloop = ();
     for( my $i = 0 ; $i < $basketscount ; $i++ ){
         my %line;
         %line = %{ $baskets->[$i] };
-        my $createdby = GetMember(borrowernumber => $line{authorisedby});
-        $line{createdby} = "$createdby->{surname}, $createdby->{firstname}";
+        my $createdby = Koha::Patrons->find( $line{authorisedby} );
+        $line{createdby} = $createdby ? $createdby->surname . ', ' . $createdby->firstname : '';
         push @basketsloop, \%line unless $line{closedate};
     }
     $template->param(
@@ -117,7 +117,9 @@ if( $basketno && $ordernumber) {
     # Search for booksellers to transfer from/to
     $op = '' unless $op;
     if( $op eq "do_search" ) {
-        my @booksellers = Koha::Acquisition::Bookseller->search({ name => $query });
+        my @booksellers = Koha::Acquisition::Booksellers->search(
+                            { name     => { -like => "%$query%" } },
+                            { order_by => { -asc => 'name' } } );
         $template->param(
             query => $query,
             do_search => 1,

@@ -29,17 +29,20 @@
       <arg><option>--zebralang</option> en|es|fr|gr|nb|ru|uk</arg>
       <arg><option>--auth-idx</option> dom|grs1</arg>
       <arg><option>--biblio-idx</option> dom|grs1</arg>
-      <arg><option>--use-memcached</option></arg>
       <arg><option>--memcached-servers</option> server:port</arg>
       <arg><option>--memcached-prefix</option> namespace_prefix</arg>
       <arg><option>--defaultsql</option> /path/to/some.sql</arg>
       <arg><option>--configfile</option> /path/to/config</arg>
       <arg><option>--passwdfile</option> /path/to/passwd</arg>
+      <arg><option>--dbhost</option> host</arg>
       <arg><option>--database</option> database</arg>
       <arg><option>--adminuser</option> n</arg>
       <arg><option>--enable-sru</option></arg>
       <arg><option>--sru-port</option> port</arg>
+      <arg><option>--template-cache-dir</option> directory</arg>
+      <arg><option>--timezone</option> time/zone</arg>
       <arg><option>--upload-path</option> directory</arg>
+      <arg><option>--tmp-path</option> directory</arg>
       <arg><option>--letsencrypt</option></arg>
       <arg><option>--help</option>|<option>-h</option></arg>
 
@@ -93,6 +96,13 @@
     </varlistentry>
 
     <varlistentry>
+      <term><option>--dbhost</option></term>
+      <listitem>
+        <para>Database server hostname/IP to use.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
       <term><option>--defaultsql</option></term>
       <listitem>
         <para>Path to an SQL-file other than the one pointed to in the default or alternative config file. Corresponds to the DEFAULTSQL config file variable.</para>
@@ -142,13 +152,6 @@
     </varlistentry>
 
     <varlistentry>
-      <term><option>--use-memcached</option></term>
-      <listitem>
-        <para>Make the Koha instance use memcached. <option>Disabled by default</option>.</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
       <term><option>--memcached-servers</option></term>
       <listitem>
         <para>Specify a comma-separated list of host:port memcached servers for using with the created Koha instance. Defaults to <option>127.0.0.1:11211</option>, the needed configuration for a locally installed memcached server.</para>
@@ -177,10 +180,33 @@
     </varlistentry>
 
     <varlistentry>
+      <term><option>--template-cache-dir</option></term>
+      <listitem>
+        <para>Specify a <option>directory</option> for storing the template cache files of the instance.
+              It defaults to <filename>/var/cache/koha/instance/templates</filename>.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--timezone</option></term>
+      <listitem>
+        <para>Specify a <option>timezone</option> for the created instance. e.g. America/Argentina</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
       <term><option>--upload-path</option></term>
       <listitem>
         <para>Specify a <option>directory</option> for storing the permanently uploaded files of the instance.
               It defaults to <filename>/var/lib/koha/instance/uploads</filename>.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--tmp-path</option></term>
+      <listitem>
+        <para>Specify a <option>directory</option> for storing the temporary files. For example temporarily
+              uploaded files of the instance. It defaults to <filename>/var/lib/koha/instance/tmp</filename>.</para>
       </listitem>
     </varlistentry>
 
@@ -270,13 +296,6 @@
       </varlistentry>
 
       <varlistentry>
-        <term><option>USE_MEMCACHED</option></term>
-        <listitem>
-          <para>Valid values are <option>yes</option> and <option>no</option>. If not present koha-create will default to <option>no</option>. Also, this will be overriden by the <option>--use-memcached</option> switch.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
         <term><option>MEMCACHED_SERVERS</option></term>
         <listitem>
           <para>A comma-separated list of valid memcached servers. Usually in the form of <option>host:port</option>. If not present koha-create will default to <option>127.0.0.1:11211</option>. Also, this will be overriden by the arguments of the <option>--memcached-servers</option> switch.</para>
@@ -330,7 +349,7 @@
     <varlistentry>
       <term><option><filename>/etc/koha/passwd</filename></option></term>
       <listitem>
-        <para>Pre-selected database credentials are read from this file, if it exists. The format for this file is instancename:username:passwd:database. Database is optional, but the other three are required if you want to use pre-determined database user credentials.</para>
+        <para>Pre-selected database credentials are read from this file, if it exists. The format for this file is instancename:username:passwd:database:dbhost. Database is optional, but the other three are required if you want to use pre-determined database user credentials.</para>
       </listitem>
     </varlistentry>
   </variablelist>

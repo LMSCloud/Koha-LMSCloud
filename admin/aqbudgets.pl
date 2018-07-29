@@ -26,16 +26,15 @@ use List::Util qw/min/;
 
 use Koha::Database;
 use C4::Auth qw/get_user_subpermissions/;
-use C4::Branch; # GetBranches
 use C4::Auth;
 use C4::Acquisition;
 use C4::Budgets;
-use C4::Members;  # calls GetSortDetails()
 use C4::Context;
 use C4::Output;
 use C4::Koha;
 use C4::Debug;
 use Koha::Acquisition::Currencies;
+use Koha::Patrons;
 
 my $input = new CGI;
 my $dbh     = C4::Context->dbh;
@@ -51,9 +50,11 @@ my ($template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user(
 );
 
 my $active_currency = Koha::Acquisition::Currencies->get_active;
-$template->param( symbol => $active_currency->symbol,
-                  currency => $active_currency->currency
-               );
+if ( $active_currency ) {
+    $template->param( symbol => $active_currency->symbol,
+                      currency => $active_currency->currency
+                   );
+}
 
 my $op = $input->param('op') || 'list';
 
@@ -90,17 +91,14 @@ if ( $budget_period_id ) {
 
 # USED FOR PERMISSION COMPARISON LATER
 my $borrower_id         = $template->{VARS}->{'USER_INFO'}->{'borrowernumber'};
-my $user                = C4::Members::GetMember( borrowernumber => $borrower_id );
-my $user_branchcode     = $user->{'branchcode'};
 
 $template->param(
     show_mine   => $show_mine,
     op  => $op,
+    selected_branchcode => $filter_budgetbranch,
 );
 
 my $budget;
-
-my $branchloop = C4::Branch::GetBranchesLoopWithoutMobileStations($filter_budgetbranch);
 
 $template->param(auth_cats_loop => GetBudgetAuthCats( $budget_period_id ))
     if $budget_period_id;
@@ -119,8 +117,7 @@ if ($op eq 'add_form') {
             exit;
         }
         $dropbox_disabled = BudgetHasChildren($budget_id);
-        my $borrower = &GetMember( borrowernumber=>$budget->{budget_owner_id} );
-        $budget->{budget_owner_name} = ( $borrower ? $borrower->{'firstname'} . ' ' . $borrower->{'surname'} : '' );
+        $budget->{budget_owner} = Koha::Patrons->find( $budget->{budget_owner_id} );
     }
 
     # build budget hierarchy
@@ -142,36 +139,11 @@ if ($op eq 'add_form') {
     }
     $budget_parent = GetBudget($budget_parent_id);
 
-    # build branches select
-    my $branches = GetBranchesWithoutMobileStations;
-    my @branchloop_select;
-    foreach my $thisbranch ( sort keys %$branches ) {
-        my %row = (
-            value      => $thisbranch,
-            branchname => $branches->{$thisbranch}->{'branchname'},
-        );
-        $row{selected} = 1 if $budget and $thisbranch eq $budget->{'budget_branchcode'};
-        push @branchloop_select, \%row;
-    }
-    
-    # populates the YUI planning button
-    my $categories = GetAuthorisedValueCategories();
-    my @auth_cats_loop1 = ();
-    foreach my $category (@$categories) {
-        my $entry = { category => $category,
-                        selected => ( $budget and $budget->{sort1_authcat} eq $category ? 1 : 0 ),
-                    };
-        push @auth_cats_loop1, $entry;
-    }
-    my @auth_cats_loop2 = ();
-    foreach my $category (@$categories) {
-        my $entry = { category => $category,
-                        selected => ( $budget and $budget->{sort2_authcat} eq $category ? 1 : 0 ),
-                    };
-        push @auth_cats_loop2, $entry;
-    }
-    $template->param(authorised_value_categories1 => \@auth_cats_loop1);
-    $template->param(authorised_value_categories2 => \@auth_cats_loop2);
+    # populates the planning button
+    $template->param(
+        sort1_auth => $budget->{sort1_authcat},
+        sort2_auth => $budget->{sort2_authcat},
+    );
 
     if($budget->{'budget_permission'}){
         my $budget_permission = "budget_perm_".$budget->{'budget_permission'};
@@ -182,11 +154,10 @@ if ($op eq 'add_form') {
         my @budgetusers = GetBudgetUsers($budget->{budget_id});
         my @budgetusers_loop;
         foreach my $borrowernumber (@budgetusers) {
-            my $member = C4::Members::GetMember(
-                borrowernumber => $borrowernumber);
+            my $patron = Koha::Patrons->find( $borrowernumber );
             push @budgetusers_loop, {
-                firstname => $member->{firstname},
-                surname => $member->{surname},
+                firstname => $patron->firstname, # FIXME Should pass the patron object
+                surname => $patron->surname,
                 borrowernumber => $borrowernumber
             };
         }
@@ -201,7 +172,6 @@ if ($op eq 'add_form') {
         budget_has_children => BudgetHasChildren( $budget->{budget_id} ),
         budget_parent_id    		  => $budget_parent->{'budget_id'},
         budget_parent_name    		  => $budget_parent->{'budget_name'},
-        branchloop_select         => \@branchloop_select,
 		%$period,
 		%$budget,
     );
@@ -259,14 +229,13 @@ if ($op eq 'add_form') {
 }
 
 if ( $op eq 'list' ) {
-    my $branches = GetBranches();
     $template->param(
         budget_id => $budget_id,
         %$period,
     );
 
     my @budgets = @{
-        GetBudgetHierarchy( $$period{budget_period_id}, C4::Context->userenv->{branch}, ( $show_mine ? $borrower_id : 0 ))
+        GetBudgetHierarchy( $$period{budget_period_id}, undef, ( $show_mine ? $borrower_id : 0 ))
     };
 
     my $period_total = 0;
@@ -277,6 +246,7 @@ if ( $op eq 'list' ) {
     my @budgets_to_display;
     foreach my $budget (@budgets) {
         # PERMISSIONS
+        next unless CanUserUseBudget($borrowernumber, $budget, $staffflags);
         unless(CanUserModifyBudget($borrowernumber, $budget, $staffflags)) {
             $budget->{'budget_lock'} = 1;
         }
@@ -342,7 +312,6 @@ if ( $op eq 'list' ) {
         spent_total            => $spent_total,
         ordered_total          => $ordered_total,
         available_total        => $available_total,
-        branchloop             => $branchloop,
         filter_budgetname      => $filter_budgetname,
     );
 

@@ -43,12 +43,13 @@ __PACKAGE__->table("reviews");
 
 =head2 review
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 approved
 
   data_type: 'tinyint'
+  default_value: 0
   is_nullable: 1
 
 =head2 datereviewed
@@ -67,9 +68,9 @@ __PACKAGE__->add_columns(
   "biblionumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "review",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "approved",
-  { data_type => "tinyint", is_nullable => 1 },
+  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
   "datereviewed",
   {
     data_type => "datetime",
@@ -133,8 +134,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2014-07-11 09:26:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:u+R08bCdVQA697aPo9zEUA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:gEngecP849wzHprYW7H2tw
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

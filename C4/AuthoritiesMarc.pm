@@ -1,4 +1,5 @@
 package C4::AuthoritiesMarc;
+
 # Copyright 2000-2002 Katipo Communications
 #
 # This file is part of Koha.
@@ -28,8 +29,10 @@ use C4::Charset;
 use C4::Log;
 use Koha::MetadataRecord::Authority;
 use Koha::Authorities;
+use Koha::Authority::MergeRequest;
 use Koha::Authority::Types;
 use Koha::Authority;
+use Koha::Libraries;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 
@@ -49,8 +52,6 @@ BEGIN {
     	&GetAuthority
     	&GetAuthorityXML
 
-    	&CountUsage
-    	&CountUsageChildren
     	&SearchAuthorities
     
         &BuildSummary
@@ -238,7 +239,7 @@ sub SearchAuthorities {
         $query="\@or $orderstring $query" if $orderstring;
     }
 
-    $offset=0 unless $offset;
+    $offset = 0 if not defined $offset or $offset < 0;
     my $counter = $offset;
     $length=10 unless $length;
     my @oAuth;
@@ -325,7 +326,7 @@ sub SearchAuthorities {
         ###
         if (! $skipmetadata) {
             for (my $z=0; $z<@finalresult; $z++){
-                my  $count=CountUsage($finalresult[$z]{authid});
+                my $count = Koha::Authorities->get_usage_count({ authid => $finalresult[$z]{authid} });
                 $finalresult[$z]{used}=$count;
             }# all $z's
         }
@@ -336,43 +337,6 @@ sub SearchAuthorities {
     # $oAuth[0]->destroy();
 
     return (\@finalresult, $nbresults);
-}
-
-=head2 CountUsage 
-
-  $count= &CountUsage($authid)
-
-counts Usage of Authid in bibliorecords. 
-
-=cut
-
-sub CountUsage {
-    my ($authid) = @_;
-        ### ZOOM search here
-        my $query;
-        $query= "an:".$authid;
-        # Should really be replaced with a real count call, this is a
-        # bad way.
-        my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
-        my ($err,$res,$result) = $searcher->simple_search_compat($query,0,1);
-        if ($err) {
-            warn "Error: $err from search $query";
-            $result = 0;
-        }
-
-        return $result;
-}
-
-=head2 CountUsageChildren 
-
-  $count= &CountUsageChildren($authid)
-
-counts Usage of narrower terms of Authid in bibliorecords.
-
-=cut
-
-sub CountUsageChildren {
-  my ($authid) = @_;
 }
 
 =head2 GuessAuthTypeCode
@@ -603,12 +567,19 @@ sub AddAuthority {
 
     SetUTF8Flag($record);
 	if ($format eq "MARC21") {
+        my $userenv = C4::Context->userenv;
+        my $library;
+        my $marcorgcode = C4::Context->preference('MARCOrgCode');
+        if ( $userenv && $userenv->{'branch'} ) {
+            $library = Koha::Libraries->find( $userenv->{'branch'} );
+            $marcorgcode = $library->get_effective_marcorgcode;
+        }
 		if (!$record->leader) {
 			$record->leader($leader);
 		}
 		if (!$record->field('003')) {
 			$record->insert_fields_ordered(
-				MARC::Field->new('003',C4::Context->preference('MARCOrgCode'))
+                MARC::Field->new('003', $marcorgcode),
 			);
 		}
 		my $date=POSIX::strftime("%y%m%d",localtime);
@@ -627,8 +598,8 @@ sub AddAuthority {
 		if (!$record->field('040')) {
 		 $record->insert_fields_ordered(
         MARC::Field->new('040','','',
-				'a' => C4::Context->preference('MARCOrgCode'),
-				'c' => C4::Context->preference('MARCOrgCode')
+            'a' => $marcorgcode,
+            'c' => $marcorgcode,
 				) 
 			);
     }
@@ -663,57 +634,42 @@ sub AddAuthority {
     $record->add_fields($auth_type_tag,'','', $auth_type_subfield=>$authtypecode); 
   }
 
-  my $auth_exists=0;
-  my $oldRecord;
-  if (!$authid) {
-    my $sth=$dbh->prepare("select max(authid) from auth_header");
-    $sth->execute;
-    ($authid)=$sth->fetchrow;
-    $authid=$authid+1;
-  ##Insert the recordID in MARC record 
-    unless ($record->field('001') && $record->field('001')->data() eq $authid){
-        $record->delete_field($record->field('001'));
-        $record->insert_fields_ordered(MARC::Field->new('001',$authid));
+    # Save record into auth_header, update 001
+    if (!$authid ) {
+        # Save a blank record, get authid
+        $dbh->do( "INSERT INTO auth_header (datecreated,marcxml) values (NOW(),?)", undef, '' );
+        $authid = $dbh->last_insert_id( undef, undef, 'auth_header', 'authid' );
+        logaction( "AUTHORITIES", "ADD", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
     }
-  } else {
-    $auth_exists=$dbh->do(qq(select authid from auth_header where authid=?),undef,$authid);
-#     warn "auth_exists = $auth_exists";
-  }
-  if ($auth_exists>0){
-      $oldRecord=GetAuthority($authid);
-      $record->add_fields('001',$authid) unless ($record->field('001'));
-#       warn "\n\n\n enregistrement".$record->as_formatted;
-      my $sth=$dbh->prepare("update auth_header set authtypecode=?,marc=?,marcxml=? where authid=?");
-      $sth->execute($authtypecode,$record->as_usmarc,$record->as_xml_record($format),$authid) or die $sth->errstr;
-      $sth->finish;
-  }
-  else {
-    my $sth=$dbh->prepare("insert into auth_header (authid,datecreated,authtypecode,marc,marcxml) values (?,now(),?,?,?)");
-    $sth->execute($authid,$authtypecode,$record->as_usmarc,$record->as_xml_record($format));
-    $sth->finish;
-    logaction( "AUTHORITIES", "ADD", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
-  }
-  ModZebra($authid,'specialUpdate',"authorityserver",$oldRecord,$record);
-  return ($authid);
-}
+    # Insert/update the recordID in MARC record
+    $record->delete_field( $record->field('001') );
+    $record->insert_fields_ordered( MARC::Field->new( '001', $authid ) );
+    # Update
+    $dbh->do( "UPDATE auth_header SET authtypecode=?, marc=?, marcxml=? WHERE authid=?", undef, $authtypecode, $record->as_usmarc, $record->as_xml_record($format), $authid ) or die $DBI::errstr;
+    ModZebra( $authid, 'specialUpdate', 'authorityserver', $record );
 
+    return ( $authid );
+}
 
 =head2 DelAuthority
 
-  $authid= &DelAuthority($authid)
+    DelAuthority({ authid => $authid, [ skip_merge => 1 ] });
 
-Deletes $authid
+Deletes $authid and calls merge to cleanup linked biblio records.
+Parameter skip_merge is used in authorities/merge.pl. You should normally not
+use it.
 
 =cut
 
 sub DelAuthority {
-    my ($authid) = @_;
-    my $dbh=C4::Context->dbh;
-
+    my ( $params ) = @_;
+    my $authid = $params->{authid} || return;
+    my $skip_merge = $params->{skip_merge};
+    my $dbh = C4::Context->dbh;
+    merge({ mergefrom => $authid }) if !$skip_merge;
+    $dbh->do( "DELETE FROM auth_header WHERE authid=?", undef, $authid );
     logaction( "AUTHORITIES", "DELETE", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
-    ModZebra($authid,"recordDelete","authorityserver",GetAuthority($authid),undef);
-    my $sth = $dbh->prepare("DELETE FROM auth_header WHERE authid=?");
-    $sth->execute($authid);
+    ModZebra( $authid, "recordDelete", "authorityserver", undef);
 }
 
 =head2 ModAuthority
@@ -725,27 +681,13 @@ Modifies authority record, optionally updates attached biblios.
 =cut
 
 sub ModAuthority {
-  my ($authid,$record,$authtypecode)=@_; # deprecated $merge parameter removed
-
-  my $dbh=C4::Context->dbh;
-  #Now rewrite the $record to table with an add
-  my $oldrecord=GetAuthority($authid);
-  $authid=AddAuthority($record,$authid,$authtypecode);
-
-  # If a library thinks that updating all biblios is a long process and wishes
-  # to leave that to a cron job, use misc/migration_tools/merge_authority.pl.
-  # In that case set system preference "dontmerge" to 1. Otherwise biblios will
-  # be updated.
-  unless(C4::Context->preference('dontmerge') eq '1'){
-      &merge($authid,$oldrecord,$authid,$record);
-  } else {
-      # save a record in need_merge_authorities table
-      my $sqlinsert="INSERT INTO need_merge_authorities (authid, done) ".
-	"VALUES (?,?)";
-      $dbh->do($sqlinsert,undef,($authid,0));
-  }
-  logaction( "AUTHORITIES", "MODIFY", $authid, "authority BEFORE=>" . $oldrecord->as_formatted ) if C4::Context->preference("AuthoritiesLog");
-  return $authid;
+    my ( $authid, $record, $authtypecode ) = @_;
+    my $oldrecord = GetAuthority($authid);
+    #Now rewrite the $record to table with an add
+    $authid = AddAuthority($record, $authid, $authtypecode);
+    merge({ mergefrom => $authid, MARCfrom => $oldrecord, mergeto => $authid, MARCto => $record });
+    logaction( "AUTHORITIES", "MODIFY", $authid, "authority BEFORE=>" . $oldrecord->as_formatted ) if C4::Context->preference("AuthoritiesLog");
+    return $authid;
 }
 
 =head2 GetAuthorityXML 
@@ -828,7 +770,7 @@ sub FindDuplicateAuthority {
         }
     }
     my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::AUTHORITIES_INDEX});
-    my ($error, $results, $total_hits) = $searcher->simple_search_compat( $query, 0, 1 );
+    my ($error, $results, $total_hits) = $searcher->simple_search_compat( $query, 0, 1, [ 'authorityserver' ] );
     # there is at least 1 result => return the 1st one
     if (!defined $error && @{$results} ) {
         my $marcrecord = C4::Search::new_record_from_zebra(
@@ -1362,6 +1304,7 @@ sub _get_authid_subfield{
     my ($field)=@_;
     return $field->subfield('9')||$field->subfield('3');
 }
+
 =head2 GetHeaderAuthority
 
   $ref= &GetHeaderAuthority( $authid)
@@ -1399,73 +1342,104 @@ sub AddAuthorityTrees{
 
 =head2 merge
 
-  $ref= &merge(mergefrom,$MARCfrom,$mergeto,$MARCto)
+    $count = merge({
+        mergefrom => $mergefrom,
+        [ MARCfrom => $MARCfrom, ]
+        [ mergeto => $mergeto, ]
+        [ MARCto => $MARCto, ]
+        [ biblionumbers => [ $a, $b, $c ], ]
+        [ override_limit => 1, ]
+    });
 
-Could add some feature : Migrating from a typecode to an other for instance.
-Then we should add some new parameter : bibliotargettag, authtargettag
+Merge biblios linked to authority $mergefrom (mandatory parameter).
+If $mergeto equals mergefrom, the linked biblio field is updated.
+If $mergeto is different, the biblio field will be linked to $mergeto.
+If $mergeto is missing, the biblio field is deleted.
+
+MARCfrom is used to determine if a cleared subfield in the authority record
+should be removed from a biblio. MARCto is used to populate the biblio
+record with the updated values; if you do not pass it, the biblio field
+will be deleted (same as missing mergeto).
+
+Normally all biblio records linked to $mergefrom, will be considered. But
+you can pass specific numbers via the biblionumbers parameter.
+
+The parameter override_limit is used by the cron job to force larger
+postponed merges.
+
+Note: Although $mergefrom and $mergeto will normally be of the same
+authority type, merge also supports moving to another authority type.
 
 =cut
 
 sub merge {
-    my ($mergefrom,$MARCfrom,$mergeto,$MARCto) = @_;
-    my ($counteditedbiblio,$countunmodifiedbiblio,$counterrors)=(0,0,0);        
-    my $dbh=C4::Context->dbh;
+    my ( $params ) = @_;
+    my $mergefrom = $params->{mergefrom} || return;
+    my $MARCfrom = $params->{MARCfrom};
+    my $mergeto = $params->{mergeto};
+    my $MARCto = $params->{MARCto};
+    my $override_limit = $params->{override_limit};
+
+    # If we do not have biblionumbers, we get all linked biblios if the
+    # number of linked records does not exceed the limit UNLESS we override.
+    my @biblionumbers;
+    if( $params->{biblionumbers} ) {
+        @biblionumbers = @{ $params->{biblionumbers} };
+    } elsif( $override_limit ) {
+        @biblionumbers = Koha::Authorities->linked_biblionumbers({ authid => $mergefrom });
+    } else { # now first check number of linked records
+        my $max = C4::Context->preference('AuthorityMergeLimit') // 0;
+        my $hits = Koha::Authorities->get_usage_count({ authid => $mergefrom });
+        if( $hits > 0 && $hits <= $max ) {
+            @biblionumbers = Koha::Authorities->linked_biblionumbers({ authid => $mergefrom });
+        } elsif( $hits > $max ) { #postpone this merge to the cron job
+            Koha::Authority::MergeRequest->new({
+                authid => $mergefrom,
+                oldrecord => $MARCfrom,
+                authid_new => $mergeto,
+            })->store;
+        }
+    }
+    return 0 if !@biblionumbers;
+
+    # Search authtypes and reporting tags
     my $authfrom = Koha::Authorities->find($mergefrom);
     my $authto = Koha::Authorities->find($mergeto);
-    my $authtypefrom = Koha::Authority::Types->find($authfrom->authtypecode);
-    my $authtypeto   = Koha::Authority::Types->find($authto->authtypecode);
-
-    return "error MARCFROM not a marcrecord ".Data::Dumper::Dumper($MARCfrom) if scalar($MARCfrom->fields()) == 0;
-    return "error MARCTO not a marcrecord".Data::Dumper::Dumper($MARCto) if scalar($MARCto->fields()) == 0;
-    # search the tag to report
-    my $auth_tag_to_report_from = $authtypefrom->auth_tag_to_report;
-    my $auth_tag_to_report_to   = $authtypeto->auth_tag_to_report;
+    my $authtypefrom = $authfrom ? Koha::Authority::Types->find($authfrom->authtypecode) : undef;
+    my $authtypeto   = $authto ? Koha::Authority::Types->find($authto->authtypecode) : undef;
+    my $auth_tag_to_report_from = $authtypefrom ? $authtypefrom->auth_tag_to_report : '';
+    my $auth_tag_to_report_to   = $authtypeto ? $authtypeto->auth_tag_to_report : '';
 
     my @record_to;
-    @record_to = $MARCto->field($auth_tag_to_report_to)->subfields() if $MARCto->field($auth_tag_to_report_to);
+    @record_to = $MARCto->field($auth_tag_to_report_to)->subfields() if $auth_tag_to_report_to && $MARCto && $MARCto->field($auth_tag_to_report_to);
+    # Exceptional: If MARCto and authtypeto exist but $auth_tag_to_report_to
+    # is empty, make sure that $9 and $a remain (instead of clearing the
+    # reference) in order to allow for data recovery.
+    # Note: We need $a too, since a single $9 does not pass ModBiblio.
+    if( $MARCto && $authtypeto && !@record_to  ) {
+        push @record_to, [ 'a', ' ' ]; # do not remove the space
+    }
+
     my @record_from;
-    @record_from = $MARCfrom->field($auth_tag_to_report_from)->subfields() if $MARCfrom->field($auth_tag_to_report_from);
-    
-    my @reccache;
-    # search all biblio tags using this authority.
-    #Getting marcbiblios impacted by the change.
-    #zebra connection
-    my $oConnection=C4::Context->Zconn("biblioserver",0);
-    # We used to use XML syntax here, but that no longer works.
-    # Thankfully, we don't need it.
-    my $query;
-    $query= "an=".$mergefrom;
-    my $oResult = $oConnection->search(new ZOOM::Query::CCL2RPN( $query, $oConnection ));
-    my $count = 0;
-    if  ($oResult) {
-        $count=$oResult->size();
+    if( !$authfrom && $MARCfrom && $MARCfrom->field('1..','2..') ) {
+    # postponed merge, authfrom was deleted and MARCfrom only contains the old reporting tag (and possibly a 100 for UNIMARC)
+    # 2XX is for UNIMARC; we use -1 in order to skip 100 in UNIMARC; this will not impact MARC21, since there is only one tag
+        @record_from = ( $MARCfrom->field('1..','2..') )[-1]->subfields;
+    } elsif( $auth_tag_to_report_from && $MARCfrom && $MARCfrom->field($auth_tag_to_report_from) ) {
+        @record_from = $MARCfrom->field($auth_tag_to_report_from)->subfields;
     }
-    my $z=0;
-    while ( $z<$count ) {
-        my $marcrecordzebra = C4::Search::new_record_from_zebra(
-            'biblioserver',
-            $oResult->record($z)->raw()
-        );
-        my ( $biblionumbertagfield, $biblionumbertagsubfield ) = &GetMarcFromKohaField( "biblio.biblionumber", '' );
-        my $i = ($biblionumbertagfield < 10)
-            ? $marcrecordzebra->field( $biblionumbertagfield )->data
-            : $marcrecordzebra->subfield( $biblionumbertagfield, $biblionumbertagsubfield );
-        my $marcrecorddb = GetMarcBiblio($i);
-        push @reccache, $marcrecorddb;
-        $z++;
-    }
-    $oResult->destroy();
-    #warn scalar(@reccache)." biblios to update";
-    # Get All candidate Tags for the change 
+
+    # Get all candidate tags for the change
     # (This will reduce the search scope in marc records).
+    # For a deleted authority record, we scan all auth controlled fields
+    my $dbh = C4::Context->dbh;
     my $sql = "SELECT DISTINCT tagfield FROM marc_subfield_structure WHERE authtypecode=?";
-    my $tags_using_authtype = $dbh->selectcol_arrayref( $sql, undef, ( $authtypefrom->authtypecode ));
+    my $tags_using_authtype = $authtypefrom && $authtypefrom->authtypecode ? $dbh->selectcol_arrayref( $sql, undef, ( $authtypefrom->authtypecode )) : $dbh->selectcol_arrayref( "SELECT DISTINCT tagfield FROM marc_subfield_structure WHERE authtypecode IS NOT NULL AND authtypecode<>''" );
     my $tags_new;
-    if ($authtypeto->authtypecode ne $authtypefrom->authtypecode){
+    if( $authtypeto && ( !$authtypefrom || $authtypeto->authtypecode ne $authtypefrom->authtypecode )) {
         $tags_new = $dbh->selectcol_arrayref( $sql, undef, ( $authtypeto->authtypecode ));
     }  
-    # BulkEdit marc records
-    # May be used as a template for a bulkedit field  
+
     my $overwrite = C4::Context->preference( 'AuthorityMergeMode' ) eq 'strict';
     my $skip_subfields = $overwrite
         # This hash contains all subfields from the authority report fields
@@ -1473,122 +1447,88 @@ sub merge {
         # We only need it in loose merge mode; replaces the former $exclude
         ? {}
         : { map { ( $_->[0], 1 ); } ( @record_from, @record_to ) };
-    # And we need to add $9 in order not to duplicate
-    $skip_subfields->{9} = 1 if !$overwrite;
 
-    foreach my $marcrecord(@reccache){
+    my $counteditedbiblio = 0;
+    foreach my $biblionumber ( @biblionumbers ) {
+        my $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
+        next if !$marcrecord;
         my $update = 0;
         foreach my $tagfield (@$tags_using_authtype) {
-#             warn "tagfield : $tagfield ";
-            my $countfrom = 0; # used in strict mode to remove duplicates
-            foreach my $field ($marcrecord->field($tagfield)){
-                # biblio is linked to authority with $9 subfield containing authid
-                my $auth_number=$field->subfield("9");
-                my $tag=$field->tag();
+            my $countfrom = 0;    # used in strict mode to remove duplicates
+            foreach my $field ( $marcrecord->field($tagfield) ) {
+                my $auth_number = $field->subfield("9");    # link to authority
+                my $tag         = $field->tag();
                 next if !defined($auth_number) || $auth_number ne $mergefrom;
                 $countfrom++;
-                if( $overwrite && $countfrom > 1 ) {
-                    # remove this duplicate in strict mode
-                    $marcrecord->delete_field( $field );
+                if ( !$mergeto || !@record_to ||
+                  ( $overwrite && $countfrom > 1 ) ) {
+                    # !mergeto or !record_to indicates a delete
+                    # Other condition: remove this duplicate in strict mode
+                    $marcrecord->delete_field($field);
                     $update = 1;
                     next;
                 }
-                my $newtag = $tags_new
-                    ? _merge_newtag( $tag, $tags_new )
-                    : $tag;
-                    my $field_to = MARC::Field->new(
-                        $newtag,
-                        $field->indicator(1),
-                        $field->indicator(2),
-                        "9" => $mergeto,
-                    );
-                foreach my $subfield (grep {$_->[0] ne '9'} @record_to) {
-                    $field_to->add_subfields($subfield->[0] =>$subfield->[1]);
-                }
-                if( !$overwrite ) {
+                my $newtag = $tags_new && @$tags_new
+                  ? _merge_newtag( $tag, $tags_new )
+                  : $tag;
+                my $controlled_ind = $authto->controlled_indicators({ record => $MARCto, biblio_tag => $newtag });
+                my $field_to = MARC::Field->new(
+                    $newtag,
+                    $controlled_ind->{ind1} // $field->indicator(1),
+                    $controlled_ind->{ind2} // $field->indicator(2),
+                    9 => $mergeto, # Needed to create field, will be moved
+                );
+                my ( @prefix, @postfix );
+                if ( !$overwrite ) {
                     # add subfields back in loose mode, check skip_subfields
+                    # The first extra subfields will be in front of the
+                    # controlled block, the rest at the end.
+                    my $prefix_flag = 1;
                     foreach my $subfield ( $field->subfields ) {
-                        next if $skip_subfields->{ $subfield->[0] };
-                        $field_to->add_subfields( $subfield->[0], $subfield->[1] );
+                        next if $subfield->[0] eq '9'; # skip but leave flag
+                        if ( $skip_subfields->{ $subfield->[0] } ) {
+                            # This marks the beginning of the controlled block
+                            $prefix_flag = 0;
+                            next;
+                        }
+                        if ($prefix_flag) {
+                            push @prefix, [ $subfield->[0], $subfield->[1] ];
+                        } else {
+                            push @postfix, [ $subfield->[0], $subfield->[1] ];
+                        }
                     }
                 }
-            if( $tags_new ) {
-                $marcrecord->delete_field( $field );
-                append_fields_ordered( $marcrecord, $field_to );
-            } else {
-                $field->replace_with($field_to);
+                foreach my $subfield ( @prefix, @record_to, @postfix ) {
+                    $field_to->add_subfields($subfield->[0] => $subfield->[1]);
+                }
+                if( exists $controlled_ind->{sub2} ) { # thesaurus info
+                    if( defined $controlled_ind->{sub2} ) {
+                        # Add or replace
+                        $field_to->update( 2 => $controlled_ind->{sub2} );
+                    } else {
+                        # Key alerts us here to remove $2
+                        $field_to->delete_subfield( code => '2' );
+                    }
+                }
+                # Move $9 to the end
+                $field_to->delete_subfield( code => '9' );
+                $field_to->add_subfields( 9 => $mergeto );
+
+                if ($tags_new && @$tags_new) {
+                    $marcrecord->delete_field($field);
+                    append_fields_ordered( $marcrecord, $field_to );
+                } else {
+                    $field->replace_with($field_to);
+                }
+                $update = 1;
             }
-                $update=1;
-            }#for each tag
-        }#foreach tagfield
-        my ($bibliotag,$bibliosubf) = GetMarcFromKohaField("biblio.biblionumber","") ;
-        my $biblionumber;
-        if ($bibliotag<10){
-            $biblionumber=$marcrecord->field($bibliotag)->data;
         }
-        else {
-            $biblionumber=$marcrecord->subfield($bibliotag,$bibliosubf);
-        }
-        unless ($biblionumber){
-            warn "pas de numéro de notice bibliographique dans : ".$marcrecord->as_formatted;
-            next;
-        }
-        if ($update==1){
-            &ModBiblio($marcrecord,$biblionumber,GetFrameworkCode($biblionumber)) ;
-            $counteditedbiblio++;
-            warn $counteditedbiblio if (($counteditedbiblio % 10) and $ENV{DEBUG});
-        }    
-    }#foreach $marc
-    return $counteditedbiblio;  
-  # now, find every other authority linked with this authority
-  # now, find every other authority linked with this authority
-#   my $oConnection=C4::Context->Zconn("authorityserver");
-#   my $query;
-# # att 9210               Auth-Internal-authtype
-# # att 9220               Auth-Internal-LN
-# # ccl.properties to add for authorities
-#   $query= "= ".$mergefrom;
-#   my $oResult = $oConnection->search(new ZOOM::Query::CCL2RPN( $query, $oConnection ));
-#   my $count=$oResult->size() if  ($oResult);
-#   my @reccache;
-#   my $z=0;
-#   while ( $z<$count ) {
-#   my $rec;
-#           $rec=$oResult->record($z);
-#       my $marcdata = $rec->raw();
-#   push @reccache, $marcdata;
-#   $z++;
-#   }
-#   $oResult->destroy();
-#   foreach my $marc(@reccache){
-#     my $update;
-#     my $marcrecord;
-#     $marcrecord = MARC::File::USMARC::decode($marc);
-#     foreach my $tagfield (@tags_using_authtype){
-#       $tagfield=substr($tagfield,0,3);
-#       my @tags = $marcrecord->field($tagfield);
-#       foreach my $tag (@tags){
-#         my $tagsubs=$tag->subfield("9");
-#     #warn "$tagfield:$tagsubs:$mergefrom";
-#         if ($tagsubs== $mergefrom) {
-#           $tag->update("9" =>$mergeto);
-#           foreach my $subfield (@record_to) {
-#     #        warn "$subfield,$subfield->[0],$subfield->[1]";
-#             $tag->update($subfield->[0] =>$subfield->[1]);
-#           }#for $subfield
-#         }
-#         $marcrecord->delete_field($tag);
-#         $marcrecord->add_fields($tag);
-#         $update=1;
-#       }#for each tag
-#     }#foreach tagfield
-#     my $authoritynumber = TransformMarcToKoha($marcrecord,"") ;
-#     if ($update==1){
-#       &ModAuthority($marcrecord,$authoritynumber,GetAuthTypeCode($authoritynumber)) ;
-#     }
-# 
-#   }#foreach $marc
-}#sub
+        next if !$update;
+        ModBiblio($marcrecord, $biblionumber, GetFrameworkCode($biblionumber));
+        $counteditedbiblio++;
+    }
+    return $counteditedbiblio;
+}
 
 sub _merge_newtag {
 # Routine is only called for an (exceptional) authtypecode change

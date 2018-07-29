@@ -23,10 +23,13 @@ use JSON;
 
 use C4::Auth;
 use C4::Biblio;
-use C4::Branch;
 use C4::Items;
 use C4::Koha;
 use C4::Output;
+use Koha::Libraries;
+
+use Koha::AuthorisedValues;
+use Koha::ItemTypes;
 
 my $cgi = new CGI;
 
@@ -46,35 +49,31 @@ if($itemnumber) {
     $item = GetItem($itemnumber);
 
     if($item->{homebranch}) {
-        $item->{homebranchname} = GetBranchName($item->{homebranch});
+        $item->{homebranchname} = Koha::Libraries->find($item->{homebranch})->branchname;
     }
 
     if($item->{holdingbranch}) {
-        $item->{holdingbranchname} = GetBranchName($item->{holdingbranch});
+        $item->{holdingbranchname} = Koha::Libraries->find($item->{holdingbranch})->branchname;
     }
 
-    if(my $code = GetAuthValCode("items.notforloan", $fw)) {
-        $item->{notforloan} = GetKohaAuthorisedValueLib($code, $item->{notforloan});
-    }
+    my $descriptions;
+    $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({ frameworkcode => $fw, kohafield => 'items.notforloan', authorised_value => $item->{notforloan} });
+    $item->{notforloan} = $descriptions->{lib} // '';
 
-    if(my $code = GetAuthValCode("items.restricted", $fw)) {
-        $item->{restricted} = GetKohaAuthorisedValueLib($code, $item->{restricted});
-    }
+    $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({ frameworkcode => $fw, kohafield => 'items.restricted', authorised_value => $item->{restricted} });
+    $item->{restricted} = $descriptions->{lib} // '';
 
-    if(my $code = GetAuthValCode("items.location", $fw)) {
-        $item->{location} = GetKohaAuthorisedValueLib($code, $item->{location});
-    }
+    $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({ frameworkcode => $fw, kohafield => 'items.location', authorised_value => $item->{location} });
+    $item->{location} = $descriptions->{lib} // '';
 
-    if(my $code = GetAuthValCode("items.ccode", $fw)) {
-        $item->{collection} = GetKohaAuthorisedValueLib($code, $item->{ccode});
-    }
+    $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({ frameworkcode => $fw, kohafield => 'items.collection', authorised_value => $item->{collection} });
+    $item->{collection} = $descriptions->{lib} // '';
 
-    if(my $code = GetAuthValCode("items.materials", $fw)) {
-        $item->{materials} = GetKohaAuthorisedValueLib($code, $item->{materials});
-    }
+    $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({ frameworkcode => $fw, kohafield => 'items.materials', authorised_value => $item->{materials} });
+    $item->{materials} = $descriptions->{lib} // '';
 
-    my $itemtype = getitemtypeinfo($item->{itype});
-    $item->{itemtype} = $itemtype->{description};
+    my $itemtype = Koha::ItemTypes->find( $item->{itype} );
+    $item->{itemtype} = $itemtype->description; # FIXME Should not it be translated_description?
 }
 
 my $json_text = to_json( $item, { utf8 => 1 } );

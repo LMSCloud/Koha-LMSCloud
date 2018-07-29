@@ -26,11 +26,17 @@ use Koha::Account::Offset;
 use base qw(Koha::Objects);
 
 =head1 NAME
+
 Koha::Account::Offsets - Koha Account Offset Object set class
+
 Account offsets track the changes made to the balance of account lines
+
 =head1 API
+
 =head2 Internal methods
+
 =head3 _type
+
 =cut
 
 sub _type {
@@ -38,6 +44,7 @@ sub _type {
 }
 
 =head3 object_class
+
 =cut
 
 sub object_class {

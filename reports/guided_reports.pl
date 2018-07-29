@@ -28,14 +28,15 @@ use C4::Reports::Guided;
 use C4::Auth qw/:DEFAULT get_session/;
 use C4::Output;
 use C4::Debug;
-use C4::Koha qw/GetFrameworksLoop/;
-use C4::Branch;
 use C4::Context;
+use Koha::Caches;
 use C4::Log;
 use Koha::DateUtils qw/dt_from_string output_pref/;
 use Koha::AuthorisedValue;
 use Koha::AuthorisedValues;
-use Koha::LibraryCategories;
+use Koha::BiblioFrameworks;
+use Koha::Libraries;
+use Koha::Patron::Categories;
 
 =head1 NAME
 
@@ -48,16 +49,20 @@ Script to control the guided report creation
 =cut
 
 my $input = new CGI;
-my $usecache = C4::Context->ismemcached;
+my $usecache = Koha::Caches->get_instance->memcached_cache;
 
 my $phase = $input->param('phase') // '';
 my $flagsrequired;
-if ( $phase eq 'Build new' or $phase eq 'Delete Saved' ) {
+if ( ( $phase eq 'Build new' ) || ( $phase eq 'Create report from SQL' ) || ( $phase eq 'Edit SQL' ) ){
     $flagsrequired = 'create_reports';
 }
 elsif ( $phase eq 'Use saved' ) {
     $flagsrequired = 'execute_reports';
-} else {
+}
+elsif ( $phase eq 'Delete Saved' ) {
+    $flagsrequired = 'delete_reports';
+}
+else {
     $flagsrequired = '*';
 }
 
@@ -84,6 +89,7 @@ elsif ($session and not $input->param('clear_filters')) {
     $filter = $session->param('report_filter');
 }
 
+my $op = $input->param('op') || q||;
 
 my @errors = ();
 if ( !$phase ) {
@@ -101,18 +107,49 @@ elsif ( $phase eq 'Build new' ) {
     );
 } elsif ( $phase eq 'Use saved' ) {
 
+    if ( $op eq 'convert' ) {
+        my $report_id = $input->param('report_id');
+        my $report    = C4::Reports::Guided::get_saved_report($report_id);
+        if ($report) {
+            my $updated_sql = C4::Reports::Guided::convert_sql( $report->{savedsql} );
+            C4::Reports::Guided::update_sql(
+                $report_id,
+                {
+                    sql          => $updated_sql,
+                    name         => $report->{report_name},
+                    group        => $report->{report_group},
+                    subgroup     => $report->{report_subgroup},
+                    notes        => $report->{notes},
+                    public       => $report->{public},
+                    cache_expiry => $report->{cache_expiry},
+                }
+            );
+            $template->param( report_converted => $report->{report_name} );
+        }
+    }
+
     # use a saved report
     # get list of reports and display them
     my $group = $input->param('group');
     my $subgroup = $input->param('subgroup');
     $filter->{group} = $group;
     $filter->{subgroup} = $subgroup;
+    my $reports = get_saved_reports($filter);
+    my $has_obsolete_reports;
+    for my $report ( @$reports ) {
+        $report->{results} = C4::Reports::Guided::get_results( $report->{id} );
+        if ( $report->{savedsql} =~ m|biblioitems| and $report->{savedsql} =~ m|marcxml| ) {
+            $report->{seems_obsolete} = 1;
+            $has_obsolete_reports++;
+        }
+    }
     $template->param(
-        'saved1' => 1,
-        'savedreports' => get_saved_reports($filter),
-        'usecache' => $usecache,
-        'groups_with_subgroups'=> groups_with_subgroups($group, $subgroup),
-        filters => $filter,
+        'saved1'                => 1,
+        'savedreports'          => $reports,
+        'usecache'              => $usecache,
+        'groups_with_subgroups' => groups_with_subgroups( $group, $subgroup ),
+        filters                 => $filter,
+        has_obsolete_reports    => $has_obsolete_reports,
     );
 }
 
@@ -242,6 +279,13 @@ elsif ( $phase eq 'Update SQL'){
                 'save_successful'       => 1,
                 'reportname'            => $reportname,
                 'id'                    => $id,
+                'editsql'               => 1,
+                'sql'                   => $sql,
+                'groups_with_subgroups' => groups_with_subgroups($group, $subgroup),
+                'notes'                 => $notes,
+                'cache_expiry'          => $cache_expiry,
+                'public'                => $public,
+                'usecache'              => $usecache,
             );
             logaction( "REPORTS", "MODIFY", $id, "$reportname | $sql" ) if C4::Context->preference("ReportsLog");
         }
@@ -255,14 +299,13 @@ elsif ( $phase eq 'Update SQL'){
 }
 
 elsif ($phase eq 'retrieve results') {
-	my $id = $input->param('id');
-	my ($results,$name,$notes) = format_results($id);
-	# do something
-	$template->param(
-		'retresults' => 1,
-		'results' => $results,
-		'name' => $name,
-		'notes' => $notes,
+    my $id = $input->param('id');
+    my $result = format_results( $id );
+    $template->param(
+        report_name   => $result->{report_name},
+        notes         => $result->{notes},
+        saved_results => $result->{results},
+        date_run      => $result->{date_run},
     );
 }
 
@@ -612,6 +655,13 @@ elsif ( $phase eq 'Save Report' ) {
                 'save_successful' => 1,
                 'reportname'      => $name,
                 'id'              => $id,
+                'editsql'         => 1,
+                'sql'             => $sql,
+                'groups_with_subgroups' => groups_with_subgroups($group, $subgroup),
+                'notes'      => $notes,
+                'cache_expiry' => $cache_expiry,
+                'public' => $public,
+                'usecache' => $usecache,
             );
         }
     }
@@ -623,6 +673,8 @@ elsif ($phase eq 'Run this report'){
     my $offset     = 0;
     my $report_id  = $input->param('reports');
     my @sql_params = $input->multi_param('sql_params');
+    my @param_names = $input->multi_param('param_name');
+
     # offset algorithm
     if ($input->param('page')) {
         $offset = ($input->param('page') - 1) * $limit;
@@ -646,8 +698,13 @@ elsif ($phase eq 'Run this report'){
             my @split = split /<<|>>/,$sql;
             my @tmpl_parameters;
             my @authval_errors;
+            my %uniq_params;
             for(my $i=0;$i<($#split/2);$i++) {
                 my ($text,$authorised_value) = split /\|/,$split[$i*2+1];
+                my $sep = $authorised_value ? "|" : "";
+                if( defined $uniq_params{$text.$sep.$authorised_value} ){
+                    next;
+                } else { $uniq_params{$text.$sep.$authorised_value} = "$i"; }
                 my $input;
                 my $labelid;
                 if ( not defined $authorised_value ) {
@@ -663,10 +720,10 @@ elsif ($phase eq 'Run this report'){
                     my %authorised_lib;
                     # builds list, depending on authorised value...
                     if ( $authorised_value eq "branches" ) {
-                        my $branches = GetBranchesLoop();
-                        foreach my $thisbranch (@$branches) {
-                            push @authorised_values, $thisbranch->{value};
-                            $authorised_lib{$thisbranch->{value}} = $thisbranch->{branchname};
+                        my $libraries = Koha::Libraries->search( {}, { order_by => ['branchname'] } );
+                        while ( my $library = $libraries->next ) {
+                            push @authorised_values, $library->branchcode;
+                            $authorised_lib{$library->branchcode} = $library->branchname;
                         }
                     }
                     elsif ( $authorised_value eq "branchcategories" ) {
@@ -684,13 +741,13 @@ elsif ($phase eq 'Run this report'){
                         }
                     }
                     elsif ( $authorised_value eq "biblio_framework" ) {
-                        my $frameworks = GetFrameworksLoop();
+                        my @frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] });
                         my $default_source = '';
                         push @authorised_values,$default_source;
                         $authorised_lib{$default_source} = 'Default';
-                        foreach my $framework (@$frameworks) {
-                            push @authorised_values, $framework->{value};
-                            $authorised_lib{$framework->{value}} = $framework->{description};
+                        foreach my $framework (@frameworks) {
+                            push @authorised_values, $framework->frameworkcode;
+                            $authorised_lib{$framework->frameworkcode} = $framework->frameworktext;
                         }
                     }
                     elsif ( $authorised_value eq "cn_source" ) {
@@ -704,14 +761,9 @@ elsif ($phase eq 'Run this report'){
                         }
                     }
                     elsif ( $authorised_value eq "categorycode" ) {
-                        my $sth = $dbh->prepare("SELECT categorycode, description FROM categories ORDER BY description");
-                        $sth->execute;
-                        while ( my ( $categorycode, $description ) = $sth->fetchrow_array ) {
-                            push @authorised_values, $categorycode;
-                            $authorised_lib{$categorycode} = $description;
-                        }
-
-                        #---- "true" authorised value
+                        my @patron_categories = Koha::Patron::Categories->search({}, { order_by => ['description']});
+                        %authorised_lib = map { $_->categorycode => $_->description } @patron_categories;
+                        push @authorised_values, $_->categorycode for @patron_categories;
                     }
                     else {
                         if ( Koha::AuthorisedValues->search({ category => $authorised_value })->count ) {
@@ -750,7 +802,7 @@ elsif ($phase eq 'Run this report'){
                     };
                 }
 
-                push @tmpl_parameters, {'entry' => $text, 'input' => $input, 'labelid' => $labelid };
+                push @tmpl_parameters, {'entry' => $text, 'input' => $input, 'labelid' => $labelid, 'name' => $text.$sep.$authorised_value };
             }
             $template->param('sql'         => $sql,
                             'name'         => $name,
@@ -760,22 +812,8 @@ elsif ($phase eq 'Run this report'){
                             'reports'      => $report_id,
                             );
         } else {
-            # OK, we have parameters, or there are none, we run the report
-            # if there were parameters, replace before running
-            # split on ??. Each odd (2,4,6,...) entry should be a parameter to fill
-            my @split = split /<<|>>/,$sql;
-            my @tmpl_parameters;
-            for(my $i=0;$i<$#split/2;$i++) {
-                my $quoted = $sql_params[$i];
-                # if there are special regexp chars, we must \ them
-                $split[$i*2+1] =~ s/(\||\?|\.|\*|\(|\)|\%)/\\$1/g;
-                if ($split[$i*2+1] =~ /\|\s*date\s*$/) {
-                    $quoted = output_pref({ dt => dt_from_string($quoted), dateformat => 'iso', dateonly => 1 }) if $quoted;
-                }
-                $quoted = C4::Context->dbh->quote($quoted);
-                $sql =~ s/<<$split[$i*2+1]>>/$quoted/;
-            }
-            my ($sth, $errors) = execute_query($sql, $offset, $limit);
+            my $sql = get_prepped_report( $sql, \@param_names, \@sql_params);
+            my ( $sth, $errors ) = execute_query( $sql, $offset, $limit, undef, $report_id );
             my $total = nb_rows($sql) || 0;
             unless ($sth) {
                 die "execute_query failed to return sth for report $report_id: $sql";
@@ -802,9 +840,10 @@ elsif ($phase eq 'Run this report'){
                 'name'    => $name,
                 'notes'   => $notes,
                 'errors'  => defined($errors) ? [ $errors ] : undef,
-                'pagination_bar'  => pagination_bar($url, $totpages, $input->param('page')),
+                'pagination_bar'  => pagination_bar($url, $totpages, scalar $input->param('page')),
                 'unlimited_total' => $total,
                 'sql_params'      => \@sql_params,
+                'param_names'     => \@param_names,
             );
         }
     }
@@ -816,10 +855,16 @@ elsif ($phase eq 'Run this report'){
 elsif ($phase eq 'Export'){
 
 	# export results to tab separated text or CSV
-	my $sql    = $input->param('sql');  # FIXME: use sql from saved report ID#, not new user-supplied SQL!
-    my $format = $input->param('format');
-    my $reportname = $input->param('reportname');
+    my $report_id      = $input->param('report_id');
+    my $report         = get_saved_report($report_id);
+    my $sql            = $report->{savedsql};
+    my @param_names    = $input->multi_param('param_name');
+    my @sql_params     = $input->multi_param('sql_params');
+    my $format         = $input->param('format');
+    my $reportname     = $input->param('reportname');
     my $reportfilename = $reportname ? "$reportname-reportresults.$format" : "reportresults.$format" ;
+
+    $sql = get_prepped_report( $sql, \@param_names, \@sql_params );
 	my ($sth, $q_errors) = execute_query($sql);
     unless ($q_errors and @$q_errors) {
         my ( $type, $content );
@@ -935,22 +980,6 @@ elsif ( $phase eq 'Create report from SQL' ) {
     );
 }
 
-elsif ($phase eq 'Create Compound Report'){
-	$template->param( 'savedreports' => get_saved_reports(),
-		'compound' => 1,
-	);
-}
-
-elsif ($phase eq 'Save Compound'){
-    my $master    = $input->param('master');
-	my $subreport = $input->param('subreport');
-	my ($mastertables,$subtables) = create_compound($master,$subreport);
-	$template->param( 'save_compound' => 1,
-		master=>$mastertables,
-		subsql=>$subtables
-	);
-}
-
 # pass $sth, get back an array of names for the column headers
 sub header_cell_values {
     my $sth = shift or return ();
@@ -1027,4 +1056,24 @@ sub create_non_existing_group_and_subgroup {
             }
         }
     }
+}
+
+# pass $sth and sql_params, get back an executable query
+sub get_prepped_report {
+    my ($sql, $param_names, $sql_params ) = @_;
+    my %lookup;
+    @lookup{@$param_names} = @$sql_params;
+    my @split = split /<<|>>/,$sql;
+    my @tmpl_parameters;
+    for(my $i=0;$i<$#split/2;$i++) {
+        my $quoted = @$param_names ? $lookup{ $split[$i*2+1] } : @$sql_params[$i];
+        # if there are special regexp chars, we must \ them
+        $split[$i*2+1] =~ s/(\||\?|\.|\*|\(|\)|\%)/\\$1/g;
+        if ($split[$i*2+1] =~ /\|\s*date\s*$/) {
+            $quoted = output_pref({ dt => dt_from_string($quoted), dateformat => 'iso', dateonly => 1 }) if $quoted;
+        }
+        $quoted = C4::Context->dbh->quote($quoted);
+        $sql =~ s/<<$split[$i*2+1]>>/$quoted/;
+    }
+    return $sql;
 }

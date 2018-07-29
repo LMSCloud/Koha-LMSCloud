@@ -16,8 +16,7 @@
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI;
 use Koha::Database;
@@ -32,7 +31,7 @@ my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
         query           => $q,
         type            => 'intranet',
         authnotrequired => 0,
-        flagsrequired   => { acquisition => 'manage_edi' },
+        flagsrequired   => { acquisition => 'edi_manage' },
         debug           => 1,
     }
 );

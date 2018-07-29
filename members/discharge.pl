@@ -37,7 +37,7 @@ use C4::Members;
 use C4::Reserves;
 use C4::Letters;
 use Koha::Patron::Discharge;
-use Koha::Patron::Images;
+use Koha::Patrons;
 
 use Koha::DateUtils;
 
@@ -48,7 +48,7 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user({
     query           => $input,
     type            => 'intranet',
     authnotrequired => 0,
-    flagsrequired   => { 'borrowers' => '*' },
+    flagsrequired   => { 'borrowers' => 'edit_borrowers' },
 });
 
 my $borrowernumber = $input->param('borrowernumber');
@@ -58,88 +58,56 @@ unless ( C4::Context->preference('useDischarge') ) {
    exit;
 }
 
-my $data;
-if ( $input->param('borrowernumber') ) {
-    $borrowernumber = $input->param('borrowernumber');
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $patron = Koha::Patrons->find( $borrowernumber );
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
-    # Getting member data
-    $data = GetMember( borrowernumber => $borrowernumber );
+my $can_be_discharged = Koha::Patron::Discharge::can_be_discharged({
+    borrowernumber => $borrowernumber
+});
 
-    my $can_be_discharged = Koha::Patron::Discharge::can_be_discharged({
-        borrowernumber => $borrowernumber
-    });
-
-    # Getting reserves
-    my @reserves    = GetReservesFromBorrowernumber($borrowernumber);
-    my $has_reserves = scalar(@reserves);
-
-    # Generating discharge if needed
-    if ( $input->param('discharge') and $can_be_discharged ) {
-        my $is_discharged = Koha::Patron::Discharge::is_discharged({
-            borrowernumber => $borrowernumber,
-        });
-        unless ($is_discharged) {
-            Koha::Patron::Discharge::discharge({
-                borrowernumber => $borrowernumber
-            });
-        }
-        eval {
-            my $pdf_path = Koha::Patron::Discharge::generate_as_pdf(
-                { borrowernumber => $borrowernumber, branchcode => $data->{'branchcode'} } );
-
-            binmode(STDOUT);
-            print $input->header(
-                -type       => 'application/pdf',
-                -charset    => 'utf-8',
-                -attachment => "discharge_$borrowernumber.pdf",
-            );
-            open my $fh, '<', $pdf_path;
-            my @lines = <$fh>;
-            close $fh;
-            print @lines;
-            exit;
-        };
-        if ( $@ ) {
-            carp $@;
-            $template->param( messages => [ {type => 'error', code => 'unable_to_generate_pdf'} ] );
-        }
-    }
-
-    # Already generated discharges
-    my $validated_discharges = Koha::Patron::Discharge::get_validated({
+# Generating discharge if needed
+if ( $input->param('discharge') and $can_be_discharged ) {
+    my $is_discharged = Koha::Patron::Discharge::is_discharged({
         borrowernumber => $borrowernumber,
     });
+    unless ($is_discharged) {
+        Koha::Patron::Discharge::discharge({
+            borrowernumber => $borrowernumber
+        });
+    }
+    eval {
+        my $pdf_path = Koha::Patron::Discharge::generate_as_pdf(
+            { borrowernumber => $borrowernumber, branchcode => $patron->branchcode } );
 
-    my $patron_image = Koha::Patron::Images->find($borrowernumber);
-    $template->param( picture => 1 ) if $patron_image;
-
-    $template->param(
-        borrowernumber    => $borrowernumber,
-        biblionumber      => $data->{'biblionumber'},
-        title             => $data->{'title'},
-        initials          => $data->{'initials'},
-        surname           => $data->{'surname'},
-        borrowernumber    => $borrowernumber,
-        firstname         => $data->{'firstname'},
-        cardnumber        => $data->{'cardnumber'},
-        categorycode      => $data->{'categorycode'},
-        category_type     => $data->{'category_type'},
-        categoryname      => $data->{'description'},
-        address           => $data->{'address'},
-        streetnumber      => $data->{streetnumber},
-        streettype        => $data->{streettype},
-        address2          => $data->{'address2'},
-        city              => $data->{'city'},
-        zipcode           => $data->{'zipcode'},
-        country           => $data->{'country'},
-        phone             => $data->{'phone'},
-        email             => $data->{'email'},
-        branchcode        => $data->{'branchcode'},
-        has_reserves      => $has_reserves,
-        can_be_discharged => $can_be_discharged,
-        validated_discharges => $validated_discharges,
-    );
+        binmode(STDOUT);
+        print $input->header(
+            -type       => 'application/pdf',
+            -charset    => 'utf-8',
+            -attachment => "discharge_$borrowernumber.pdf",
+        );
+        open my $fh, '<', $pdf_path;
+        my @lines = <$fh>;
+        close $fh;
+        print @lines;
+        exit;
+    };
+    if ( $@ ) {
+        carp $@;
+        $template->param( messages => [ {type => 'error', code => 'unable_to_generate_pdf'} ] );
+    }
 }
+
+# Already generated discharges
+my @validated_discharges = Koha::Patron::Discharge::get_validated({
+    borrowernumber => $borrowernumber,
+});
+
+$template->param(
+    patron => $patron,
+    can_be_discharged => $can_be_discharged,
+    validated_discharges => \@validated_discharges,
+);
 
 $template->param( dischargeview => 1, );
 

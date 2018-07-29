@@ -1,46 +1,15 @@
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports &rsaquo; Average checkout period</title>
+<title>Koha &rsaquo; Reports &rsaquo; Average loan time</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-        $(document).ready(function() {
-        // http://jqueryui.com/demos/datepicker/#date-range
-        var dates = $( "#from, #to" ).datepicker({
-            changeMonth: true,
-            numberOfMonths: 1,
-            onSelect: function( selectedDate ) {
-                var option = this.id == "from" ? "minDate" : "maxDate",
-                    instance = $( this ).data( "datepicker" );
-                    date = $.datepicker.parseDate(
-                        instance.settings.dateFormat ||
-                        $.datepicker._defaults.dateFormat,
-                        selectedDate, instance.settings );
-                dates.not( this ).datepicker( "option", option, date );
-            }
-        });
-        var datesRO = $( "#fromRO, #toRO" ).datepicker({
-            changeMonth: true,
-            numberOfMonths: 1,
-            onSelect: function( selectedDate ) {
-                var option = this.id == "fromRO" ? "minDate" : "maxDate",
-                    instance = $( this ).data( "datepicker" );
-                    date = $.datepicker.parseDate(
-                        instance.settings.dateFormat ||
-                        $.datepicker._defaults.dateFormat,
-                        selectedDate, instance.settings );
-                datesRO.not( this ).datepicker( "option", option, date );
-            }
-        });
-        });
-//]]>
-</script>
 </head>
+
 <body id="rep_issues_avg_stats" class="rep">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> [% IF ( do_it ) %]&rsaquo; <a href="/cgi-bin/koha/reports/issues_avg_stats.pl">Average checkout period</a> &rsaquo; Results [% ELSE %]&rsaquo; Average checkout period[% END %]</div>
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> [% IF ( do_it ) %]&rsaquo; <a href="/cgi-bin/koha/reports/issues_avg_stats.pl">Average loan time</a> &rsaquo; Results [% ELSE %]&rsaquo; Average loan time[% END %]</div>
 
 <div id="doc3" class="yui-t2">
    
@@ -155,8 +124,8 @@
                 <td>
                     <select name="Filter" size="1" id="borcat">
                         <option value=""></option>
-                        [% FOREACH value IN BorCat.values %]
-                        <option value="[%- value -%]">[%- BorCat.labels.$value -%]</option>
+                        [% FOREACH patron_category IN patron_categories %]
+                            <option value="[%- patron_category.categorycode -%]">[%- patron_category.description-%]</option>
                         [% END %]
                     </select>
                 </td>
@@ -181,9 +150,7 @@
                 <td>
                     <select name="Filter" size="1" id="branch">
                         <option value=""></option>
-                        [%- FOREACH branchloo IN branchloop %]
-                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
-                        [%- END %]
+                        [% PROCESS options_for_libraries libraries => Branches.all() %]
                     </select>
                 </td>
 			</tr>
@@ -262,4 +229,40 @@
 [% INCLUDE 'reports-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // http://jqueryui.com/demos/datepicker/#date-range
+            var dates = $( "#from, #to" ).datepicker({
+                changeMonth: true,
+                numberOfMonths: 1,
+                onSelect: function( selectedDate ) {
+                    var option = this.id == "from" ? "minDate" : "maxDate",
+                        instance = $( this ).data( "datepicker" );
+                        date = $.datepicker.parseDate(
+                            instance.settings.dateFormat ||
+                            $.datepicker._defaults.dateFormat,
+                            selectedDate, instance.settings );
+                    dates.not( this ).datepicker( "option", option, date );
+                }
+            });
+            var datesRO = $( "#fromRO, #toRO" ).datepicker({
+                changeMonth: true,
+                numberOfMonths: 1,
+                onSelect: function( selectedDate ) {
+                    var option = this.id == "fromRO" ? "minDate" : "maxDate",
+                        instance = $( this ).data( "datepicker" );
+                        date = $.datepicker.parseDate(
+                            instance.settings.dateFormat ||
+                            $.datepicker._defaults.dateFormat,
+                            selectedDate, instance.settings );
+                    datesRO.not( this ).datepicker( "option", option, date );
+                }
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

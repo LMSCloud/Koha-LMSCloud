@@ -67,7 +67,7 @@ number is set to 0, which is the same as the superlibrarian's number.
 
 #'
 sub logaction {
-    my ($modulename, $actionname, $objectnumber, $infos)=@_;
+    my ($modulename, $actionname, $objectnumber, $infos, $interface)=@_;
 
     # Get ID of logged in user.  if called from a batch job,
     # no user session exists and C4::Context->userenv() returns
@@ -75,10 +75,11 @@ sub logaction {
     my $userenv = C4::Context->userenv();
     my $usernumber = (ref($userenv) eq 'HASH') ? $userenv->{'number'} : 0;
     $usernumber ||= 0;
+    $interface //= C4::Context->interface;
 
     my $dbh = C4::Context->dbh;
-    my $sth=$dbh->prepare("Insert into action_logs (timestamp,user,module,action,object,info) values (now(),?,?,?,?,?)");
-    $sth->execute($usernumber,$modulename,$actionname,$objectnumber,$infos);
+    my $sth=$dbh->prepare("Insert into action_logs (timestamp,user,module,action,object,info,interface) values (now(),?,?,?,?,?,?)");
+    $sth->execute($usernumber,$modulename,$actionname,$objectnumber,$infos,$interface);
     $sth->finish;
 
     my $logger = Koha::Logger->get(
@@ -139,6 +140,7 @@ sub GetLogStatus {
     my %hash;
     $hash{BorrowersLog}    = C4::Context->preference("BorrowersLog");
     $hash{CataloguingLog}  = C4::Context->preference("CataloguingLog");
+    $hash{HoldsLog}        = C4::Context->preference("HoldsLog");
     $hash{IssueLog}        = C4::Context->preference("IssueLog");
     $hash{ReturnLog}       = C4::Context->preference("ReturnLog");
     $hash{SubscriptionLog} = C4::Context->preference("SubscriptionLog");
@@ -228,7 +230,7 @@ sub displaylog {
 $logs = GetLogs($datefrom,$dateto,$user,\@modules,$action,$object,$info);
 
 Return:
-C<$logs> is a ref to a hash which containts all columns from action_logs
+C<$logs> is a ref to a hash which contains all columns from action_logs
 
 =cut
 
@@ -240,6 +242,7 @@ sub GetLogs {
     my $action   = shift;
     my $object   = shift;
     my $info     = shift;
+    my $interfaces = shift;
 
     my $iso_datefrom = $datefrom ? output_pref({ dt => dt_from_string( $datefrom ), dateformat => 'iso', dateonly => 1 }) : undef;
     my $iso_dateto = $dateto ? output_pref({ dt => dt_from_string( $dateto ), dateformat => 'iso', dateonly => 1 }) : undef;
@@ -280,6 +283,11 @@ sub GetLogs {
     if ($info) {
         $query .= " AND info LIKE ? ";
         push( @parameters, "%" . $info . "%" );
+    }
+    if ( $interfaces && scalar(@$interfaces) ) {
+        $query .=
+          " AND interface IN (" . join( ",", map { "?" } @$interfaces ) . ") ";
+        push( @parameters, @$interfaces );
     }
 
     my $sth = $dbh->prepare($query);

@@ -45,6 +45,7 @@ use C4::Context;
 use Koha::ItemTypes;
 use Koha::AuthorisedValues;
 use Koha::SearchEngine::QueryBuilder;
+use Koha::SearchEngine::Search;
 use MARC::Record;
 use Catmandu::Store::ElasticSearch;
 
@@ -146,8 +147,10 @@ sub search_compat {
         $servers,  $results_per_page, $offset,       $expanded_facet,
         $branches, $query_type,       $scan
     ) = @_;
-
     my %options;
+    if ( !defined $offset or $offset < 0 ) {
+        $offset = 0;
+    }
     $options{offset} = $offset;
     $options{expanded_facet} = $expanded_facet;
     my $results = $self->search($query, undef, $results_per_page, %options);
@@ -167,7 +170,7 @@ sub search_compat {
     my %result;
     $result{biblioserver}{hits} = $results->total;
     $result{biblioserver}{RECORDS} = \@records;
-    return (undef, \%result, $self->_convert_facets($results->{facets}, $expanded_facet));
+    return (undef, \%result, $self->_convert_facets($results->{aggregations}, $expanded_facet));
 }
 
 =head2 search_auth_compat
@@ -197,9 +200,9 @@ sub search_auth_compat {
 
             # I wonder if these should be real values defined in the mapping
             # rather than hard-coded conversions.
-            # Our results often come through as nested arrays, to fix this
-            # requires changes in catmandu.
-            my $authid = $record->{ 'Local-number' }[0][0];
+            # Handle legacy nested arrays indexed with splitting enabled.
+            my $authid = $record->{ 'Local-number' }[0];
+            $authid = @$authid[0] if (ref $authid eq 'ARRAY');
             $result{authid} = $authid;
 
             # TODO put all this info into the record at index time so we
@@ -214,7 +217,7 @@ sub search_auth_compat {
             # with the record. It's not documented why this is the case, so
             # it's not reproduced here yet.
             my $authtype           = $rs->single;
-            my $auth_tag_to_report = $authtype->auth_tag_to_report;
+            my $auth_tag_to_report = $authtype ? $authtype->auth_tag_to_report : "";
             my $marc               = $self->json2marc($marc_json);
             my $mainentry          = $marc->field($auth_tag_to_report);
             my $reported_tag;
@@ -224,11 +227,7 @@ sub search_auth_compat {
                 }
             }
             # Turn the resultset into a hash
-            my %authtype_cols;
-            foreach my $col ($authtype->result_source->columns) {
-                $authtype_cols{$col} = $authtype->get_column($col);
-            }
-            $result{authtype}     = $authtype->authtypetext;
+            $result{authtype}     = $authtype ? $authtype->authtypetext : $authtypecode;
             $result{reported_tag} = $reported_tag;
 
             # Reimplementing BuildSummary is out of scope because it'll be hard
@@ -257,8 +256,8 @@ sub count_auth_use {
 
     my $query = {
         query => {
-            filtered => {
-                query  => { match_all => {} },
+            bool => {
+#                query  => { match_all => {} },
                 filter => { term      => { an => $authid } }
             }
         }
@@ -269,7 +268,7 @@ sub count_auth_use {
 =head2 simple_search_compat
 
     my ( $error, $marcresults, $total_hits ) =
-      $searcher->simple_search( $query, $offset, $max_results );
+      $searcher->simple_search( $query, $offset, $max_results, %options );
 
 This is a simpler interface to the searching, intended to be similar enough to
 L<C4::Search::SimpleSearch>.
@@ -291,6 +290,10 @@ How many results to skip from the start of the results.
 
 The max number of results to return. The default is 100 (because unlimited
 is a pretty terrible thing to do.)
+
+=item C<%options>
+
+These options are unused by Elasticsearch
 
 =back
 
@@ -322,7 +325,8 @@ sub simple_search_compat {
     return ('No query entered', undef, undef) unless $query;
 
     my %options;
-    $options{offset} = $offset // 0;
+    $offset = 0 if not defined $offset or $offset < 0;
+    $options{offset} = $offset;
     $max_results //= 100;
 
     unless (ref $query) {
@@ -339,6 +343,21 @@ sub simple_search_compat {
             push @records, $marc;
         });
     return (undef, \@records, $results->total);
+}
+
+=head2 extract_biblionumber
+
+    my $biblionumber = $searcher->extract_biblionumber( $searchresult );
+
+$searchresult comes from simple_search_compat.
+
+Returns the biblionumber from the search result record.
+
+=cut
+
+sub extract_biblionumber {
+    my ( $self, $searchresultrecord ) = @_;
+    return Koha::SearchEngine::Search::extract_biblionumber( $searchresultrecord );
 }
 
 =head2 json2marc
@@ -408,6 +427,7 @@ sub _convert_facets {
         'su-geo' => { order => 4, label => 'Places', },
         se       => { order => 5, label => 'Series', },
         subject  => { order => 6, label => 'Topics', },
+        ccode    => { order => 7, label => 'CollectionCodes',},
         holdingbranch => { order => 8, label => 'HoldingLibrary' },
         homebranch => { order => 9, label => 'HomeLibrary' }
     );
@@ -436,15 +456,15 @@ sub _convert_facets {
             type_id    => $type . '_id',
             expand     => $type,
             expandable => ( $type ne $exp_facet )
-              && ( @{ $data->{terms} } > $limit ),
+              && ( @{ $data->{buckets} } > $limit ),
             "type_label_$type_to_label{$type}{label}" => 1,
             type_link_value                    => $type,
             order      => $type_to_label{$type}{order},
         };
-        $limit = @{ $data->{terms} } if ( $limit > @{ $data->{terms} } );
-        foreach my $term ( @{ $data->{terms} }[ 0 .. $limit - 1 ] ) {
-            my $t = $term->{term};
-            my $c = $term->{count};
+        $limit = @{ $data->{buckets} } if ( $limit > @{ $data->{buckets} } );
+        foreach my $term ( @{ $data->{buckets} }[ 0 .. $limit - 1 ] ) {
+            my $t = $term->{key};
+            my $c = $term->{doc_count};
             my $label;
             if ( exists( $special{$type} ) ) {
                 $label = $special{$type}->{$t} // $t;

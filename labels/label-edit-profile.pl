@@ -18,8 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
@@ -50,7 +49,7 @@ my $units = get_unit_values();
 
 if ($op eq 'edit') {
     $profile = C4::Labels::Profile->retrieve(profile_id => $profile_id);
-    $template_list = get_all_templates( fields => [ qw( template_id template_code profile_id) ] );
+    $template_list = get_all_templates( { fields => [ qw( template_id template_code profile_id) ] } );
 }
 elsif ($op eq 'save') {
     my @params = (

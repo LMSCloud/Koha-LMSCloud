@@ -32,10 +32,10 @@ use YAML;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug);
 
 BEGIN {
-	require Exporter;
-	$debug = $ENV{DEBUG};
-	@ISA    = qw(Exporter);
-	@EXPORT = qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url);
+    require Exporter;
+    $debug = $ENV{DEBUG};
+    @ISA   = qw(Exporter);
+    @EXPORT = qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url logout_if_required);
 }
 my $defaultcasserver;
 my $casservers;
@@ -52,6 +52,10 @@ if (multipleAuth()) {
     $casservers = { 'default' => C4::Context->preference('casServerUrl') };
 }
 
+=head1 Subroutines
+
+=cut
+
 # Is there a configuration file for multiple cas servers?
 sub multipleAuth {
     return (-e qq($yamlauthfile));
@@ -66,6 +70,7 @@ sub getMultipleAuth {
 sub logout_cas {
     my ($query, $type) = @_;
     my ( $cas, $uri ) = _get_cas_and_service($query, undef, $type);
+    $uri =~ s/\?logout\.x=1//; # We don't want to keep triggering a logout, if we got here, the borrower is already logged out of Koha
     print $query->redirect( $cas->logout_url(url => $uri));
 }
 
@@ -104,18 +109,20 @@ sub checkpw_cas {
             my $userid = $val->user();
             $debug and warn "User CAS authenticated as: $userid";
 
+            # we should store the CAS ticekt too, we need this for single logout https://apereo.github.io/cas/4.2.x/protocol/CAS-Protocol-Specification.html#233-single-logout
+
             # Does it match one of our users ?
             my $sth = $dbh->prepare("select cardnumber from borrowers where userid=?");
             $sth->execute($userid);
             if ( $sth->rows ) {
                 $retnumber = $sth->fetchrow;
-                return ( 1, $retnumber, $userid );
+                return ( 1, $retnumber, $userid, $ticket );
             }
             $sth = $dbh->prepare("select userid from borrowers where cardnumber=?");
             $sth->execute($userid);
             if ( $sth->rows ) {
                 $retnumber = $sth->fetchrow;
-                return ( 1, $retnumber, $userid );
+                return ( 1, $retnumber, $userid, $ticket );
             }
 
             # If we reach this point, then the user is a valid CAS user, but not a Koha user
@@ -153,19 +160,21 @@ sub check_api_auth_cas {
 
             my $userid = $r->user;
 
+            # we should store the CAS ticket too, we need this for single logout https://apereo.github.io/cas/4.2.x/protocol/CAS-Protocol-Specification.html#233-single-logout
+
             # Does it match one of our users ?
             my $sth = $dbh->prepare("select cardnumber from borrowers where userid=?");
             $sth->execute($userid);
             if ( $sth->rows ) {
                 $retnumber = $sth->fetchrow;
-                return ( 1, $retnumber, $userid );
+                return ( 1, $retnumber, $userid, $PT );
             }
             $sth = $dbh->prepare("select userid from borrowers where cardnumber=?");
             return $r->user;
             $sth->execute($userid);
             if ( $sth->rows ) {
                 $retnumber = $sth->fetchrow;
-                return ( 1, $retnumber, $userid );
+                return ( 1, $retnumber, $userid, $PT );
             }
 
             # If we reach this point, then the user is a valid CAS user, but not a Koha user
@@ -201,9 +210,11 @@ sub _url_with_get_params {
     my $query = shift;
     my $type = shift;
 
-    my $uri_base_part = ($type eq 'opac') ?
-                        C4::Context->preference('OPACBaseURL') . get_script_name() :
-                        C4::Context->preference('staffClientBaseURL');
+    my $uri_base_part =
+      ( $type eq 'opac' )
+      ? C4::Context->preference('OPACBaseURL')
+      : C4::Context->preference('staffClientBaseURL');
+    $uri_base_part .= get_script_name();
 
     my $uri_params_part = '';
     foreach my $param ( $query->url_param() ) {
@@ -219,6 +230,44 @@ sub _url_with_get_params {
     $uri_base_part .= '?' if $uri_params_part;
 
     return $uri_base_part . $uri_params_part;
+}
+
+=head2 logout_if_required
+
+    If using CAS, this subroutine will trigger single-signout of the CAS server.
+
+=cut
+
+sub logout_if_required {
+    my ( $query ) = @_;
+    # Check we havent been hit by a logout call
+    my $xml = $query->param('logoutRequest');
+    return 0 unless $xml;
+
+    my $dom = XML::LibXML->load_xml(string => $xml);
+    my $ticket;
+    foreach my $node ($dom->findnodes('/samlp:LogoutRequest')){
+        # We got a cas single logout request from a cas server;
+        $ticket = $node->findvalue('./samlp:SessionIndex');
+    }
+
+    return 0 unless $ticket;
+
+    # We've been called as part of the single logout destroy the session associated with the cas ticket
+    my $params = C4::Auth::_get_session_params();
+    my $success = CGI::Session->find( $params->{dsn}, sub {delete_cas_session(@_, $ticket)}, $params->{dsn_args} );
+
+    sub delete_cas_session {
+        my $session = shift;
+        my $ticket = shift;
+        if ($session->param('cas_ticket') && $session->param('cas_ticket') eq $ticket ) {
+            $session->delete;
+            $session->flush;
+        }
+    }
+
+    print $query->header;
+    exit;
 }
 
 1;

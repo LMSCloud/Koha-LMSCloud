@@ -28,11 +28,9 @@ use C4::Output;
 use C4::Biblio;
 use C4::Items;
 use C4::Circulation;
-use C4::Branch;
 use C4::Reserves;
-use C4::Members; # to use GetMember
 use C4::Serials;
-use C4::XISBN qw(get_xisbns get_biblionumber_from_isbn);
+use C4::XISBN qw(get_xisbns);
 use C4::External::Amazon;
 use C4::Search;		# enabled_staff_search_views
 use C4::Tags qw(get_tags);
@@ -42,6 +40,11 @@ use Koha::DateUtils;
 use C4::HTML5Media;
 use C4::CourseReserves qw(GetItemCourseReservesInfo);
 use C4::Acquisition qw(GetOrdersByBiblionumber);
+use Koha::AuthorisedValues;
+use Koha::Biblios;
+use Koha::Items;
+use Koha::ItemTypes;
+use Koha::Patrons;
 use Koha::Virtualshelves;
 
 my $query = CGI->new();
@@ -60,7 +63,7 @@ my ( $template, $borrowernumber, $cookie, $flags ) = get_template_and_user(
 
 my $biblionumber = $query->param('biblionumber');
 $biblionumber = HTML::Entities::encode($biblionumber);
-my $record       = GetMarcBiblio($biblionumber);
+my $record       = GetMarcBiblio({ biblionumber => $biblionumber });
 
 if ( not defined $record ) {
     # biblionumber invalid -> report and exit
@@ -71,12 +74,13 @@ if ( not defined $record ) {
 }
 
 if($query->cookie("holdfor")){ 
-    my $holdfor_patron = GetMember('borrowernumber' => $query->cookie("holdfor"));
+    my $holdfor_patron = Koha::Patrons->find( $query->cookie("holdfor") );
     $template->param(
+        # FIXME Should pass the patron object
         holdfor => $query->cookie("holdfor"),
-        holdfor_surname => $holdfor_patron->{'surname'},
-        holdfor_firstname => $holdfor_patron->{'firstname'},
-        holdfor_cardnumber => $holdfor_patron->{'cardnumber'},
+        holdfor_surname => $holdfor_patron->surname,
+        holdfor_firstname => $holdfor_patron->firstname,
+        holdfor_cardnumber => $holdfor_patron->cardnumber,
     );
 }
 
@@ -126,15 +130,15 @@ my $marcurlsarray    = GetMarcUrls    ($record,$marcflavour);
 my $marchostsarray  = GetMarcHosts($record,$marcflavour);
 my $subtitle         = GetRecordValue('subtitle', $record, $fw);
 
-# Get Branches, Itemtypes and Locations
-my $branches = GetBranches();
-my $itemtypes = GetItemTypes();
+my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search->unblessed } };
+
 my $dbh = C4::Context->dbh;
 
 my @all_items = GetItemsInfo( $biblionumber );
 my @items;
+my $patron = Koha::Patrons->find( $borrowernumber );
 for my $itm (@all_items) {
-    push @items, $itm unless ( $itm->{itemlost} && GetHideLostItemsPreference($borrowernumber) && !$showallitems);
+    push @items, $itm unless ( $itm->{itemlost} && $patron->category->hidelostitems && !$showallitems);
 }
 
 # flag indicating existence of at least one item linked via a host record
@@ -161,7 +165,6 @@ foreach my $subscription (@subscriptions) {
     $cell{missinglist}       = $subscription->{missinglist};
     $cell{librariannote}     = $subscription->{librariannote};
     $cell{branchcode}        = $subscription->{branchcode};
-    $cell{branchname}        = GetBranchName($subscription->{branchcode});
     $cell{hasalert}          = $subscription->{hasalert};
     $cell{callnumber}        = $subscription->{callnumber};
     $cell{closed}            = $subscription->{closed};
@@ -191,23 +194,32 @@ $dat->{'count'} = scalar @all_items + @hostitems;
 $dat->{'showncount'} = scalar @items + @hostitems;
 $dat->{'hiddencount'} = scalar @all_items + @hostitems - scalar @items;
 
-my $shelflocations = GetKohaAuthorisedValues('items.location', $fw);
-my $collections    = GetKohaAuthorisedValues('items.ccode'   , $fw);
-my $copynumbers    = GetKohaAuthorisedValues('items.copynumber', $fw);
+my $shelflocations =
+  { map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $fw, kohafield => 'items.location' } ) };
+my $collections =
+  { map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $fw, kohafield => 'items.ccode' } ) };
+my $copynumbers =
+  { map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $fw, kohafield => 'items.copynumber' } ) };
 my (@itemloop, @otheritemloop, %itemfields);
 my $norequests = 1;
 
-if ( my $lost_av = GetAuthValCode('items.itemlost', $fw) ) {
-    $template->param( itemlostloop => GetAuthorisedValues( $lost_av ) );
+my $mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $fw, kohafield => 'items.itemlost', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
+if ( $mss->count ) {
+    $template->param( itemlostloop => GetAuthorisedValues( $mss->next->authorised_value ) );
 }
-if ( my $damaged_av = GetAuthValCode('items.damaged', $fw) ) {
-    $template->param( itemdamagedloop => GetAuthorisedValues( $damaged_av ) );
+$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $fw, kohafield => 'items.damaged', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
+if ( $mss->count ) {
+    $template->param( itemdamagedloop => GetAuthorisedValues( $mss->next->authorised_value ) );
+}
+$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $fw, kohafield => 'items.withdrawn', authorised_value => { not => undef } });
+if ( $mss->count ) {
+    $template->param( itemwithdrawnloop => GetAuthorisedValues( $mss->next->authorised_value) );
 }
 
-my $materials_authvalcode = GetAuthValCode('items.materials', $fw);
+$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $fw, kohafield => 'items.materials', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
 my %materials_map;
-if ($materials_authvalcode) {
-    my $materials_authvals = GetAuthorisedValues($materials_authvalcode);
+if ($mss->count) {
+    my $materials_authvals = GetAuthorisedValues($mss->next->authorised_value);
     if ($materials_authvals) {
         foreach my $value (@$materials_authvals) {
             $materials_map{$value->{authorised_value}} = $value->{lib};
@@ -246,32 +258,28 @@ foreach my $item (@items) {
     }
 
     # checking for holds
-    my ($reservedate,$reservedfor,$expectedAt,undef,$wait) = GetReservesFromItemnumber($item->{itemnumber});
-    my $ItemBorrowerReserveInfo = C4::Members::GetMember( borrowernumber => $reservedfor);
-    
-    if (C4::Context->preference('HidePatronName')){
-	$item->{'hidepatronname'} = 1;
-    }
-
-    if ( defined $reservedate ) {
+    my $item_object = Koha::Items->find( $item->{itemnumber} );
+    my $holds = $item_object->current_holds;
+    if ( my $first_hold = $holds->next ) {
+        my $patron = Koha::Patrons->find( $first_hold->borrowernumber );
         $item->{backgroundcolor} = 'reserved';
-        $item->{reservedate}     = $reservedate;
-        $item->{ReservedForBorrowernumber}     = $reservedfor;
-        $item->{ReservedForSurname}     = $ItemBorrowerReserveInfo->{'surname'};
-        $item->{ReservedForFirstname}   = $ItemBorrowerReserveInfo->{'firstname'};
-        $item->{ExpectedAtLibrary}      = $branches->{$expectedAt}{branchname};
-        $item->{Reservedcardnumber}             = $ItemBorrowerReserveInfo->{'cardnumber'};
+        $item->{reservedate}     = $first_hold->reservedate;
+        $item->{ReservedFor}     = $patron,
+        $item->{ExpectedAtLibrary}      = $first_hold->branchcode;
         # Check waiting status
-        $item->{waitingdate} = $wait;
+        $item->{waitingdate} = $first_hold->waitingdate;
     }
 
+    if ( my $checkout = $item_object->checkout ) {
+        $item->{CheckedOutFor} = $checkout->patron;
+    }
 
 	# Check the transit status
     my ( $transfertwhen, $transfertfrom, $transfertto ) = GetTransfers($item->{itemnumber});
     if ( defined( $transfertwhen ) && ( $transfertwhen ne '' ) ) {
         $item->{transfertwhen} = $transfertwhen;
-        $item->{transfertfrom} = $branches->{$transfertfrom}{branchname};
-        $item->{transfertto}   = $branches->{$transfertto}{branchname};
+        $item->{transfertfrom} = $transfertfrom;
+        $item->{transfertto}   = $transfertto;
         $item->{nocancel} = 1;
     }
 
@@ -290,7 +298,7 @@ foreach my $item (@items) {
     }
 	
     #count if item is used in analytical bibliorecords
-    my $countanalytics= GetAnalyticsCount($item->{itemnumber});
+    my $countanalytics = C4::Context->preference('EasyAnalyticalRecords') ? GetAnalyticsCount($item->{itemnumber}) : 0;
     if ($countanalytics > 0){
         $analytics_flag=1;
         $item->{countanalytics} = $countanalytics;
@@ -427,7 +435,7 @@ if (C4::Context->preference("virtualshelves") ) {
 if (C4::Context->preference("FRBRizeEditions")==1) {
     eval {
         $template->param(
-            XISBNS => get_xisbns($isbn)
+            XISBNS => scalar get_xisbns($isbn)
         );
     };
     if ($@) { warn "XISBN Failed $@"; }
@@ -456,8 +464,9 @@ if (C4::Context->preference('TagsEnabled') and $tag_quantity = C4::Context->pref
 }
 
 #we only need to pass the number of holds to the template
-my $holds = C4::Reserves::GetReservesFromBiblionumber({ biblionumber => $biblionumber, all_dates => 1 });
-$template->param( holdcount => scalar ( @$holds ) );
+my $biblio = Koha::Biblios->find( $biblionumber );
+my $holds = $biblio->holds;
+$template->param( holdcount => $holds->count );
 
 my $StaffDetailItemSelection = C4::Context->preference('StaffDetailItemSelection');
 if ($StaffDetailItemSelection) {

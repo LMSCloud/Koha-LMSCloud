@@ -19,6 +19,7 @@ use Modern::Perl;
 
 use Test::More;
 use Test::MockModule;
+use Test::Warn;
 
 use MARC::Record;
 
@@ -32,14 +33,12 @@ BEGIN {
     }
 }
 
-use_ok('C4::Matcher');
+use Test::DBIx::Class;
 
-use Test::DBIx::Class {
-    schema_class => 'Koha::Schema',
-    connect_info => ['dbi:SQLite:dbname=:memory:','',''],
-    connect_opts => { name_sep => '.', quote_char => '`', },
-    fixture_class => '::Populate',
-}, 'MarcMatcher' ;
+my $db = Test::MockModule->new('Koha::Database');
+$db->mock( _new_schema => sub { return Schema(); } );
+
+use_ok('C4::Matcher');
 
 fixtures_ok [
     MarcMatcher => [
@@ -48,9 +47,6 @@ fixtures_ok [
         [ 2,            'ISSN', 'ISSN',        'blue',        0 ]
     ],
 ], 'add fixtures';
-
-my $db = Test::MockModule->new('Koha::Database');
-$db->mock( _new_schema => sub { return Schema(); } );
 
 my @matchers = C4::Matcher::GetMatcherList();
 
@@ -86,11 +82,11 @@ is( $testmatcher->description(), 'match on ISSN', 'testing code accessor' );
 
 subtest '_get_match_keys() tests' => sub {
 
-    plan tests => 8;
+    plan tests => 17;
 
     my $matchpoint = get_title_matchpoint({
         length => 0,
-        norms  => [],
+        norms  => [ 'legacy_default' ],
         offset => 0
     });
 
@@ -114,7 +110,7 @@ subtest '_get_match_keys() tests' => sub {
 
     $matchpoint = get_title_matchpoint({
         length => 9,
-        norms  => [],
+        norms  => [ 'legacy_default' ],
         offset => 0
     });
     @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
@@ -123,16 +119,16 @@ subtest '_get_match_keys() tests' => sub {
 
     $matchpoint = get_title_matchpoint({
         length => 9,
-        norms  => [],
+        norms  => [ 'legacy_default' ],
         offset => 1
     });
     @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
-    is( $keys[0], 'THE',
+    is( $keys[0], 'THE T',
         'Match key correctly calculated with length 9 and offset 1');
 
     $matchpoint = get_title_matchpoint({
         length => 9,
-        norms  => [],
+        norms  => [ 'legacy_default' ],
         offset => 2
     });
     @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
@@ -141,7 +137,7 @@ subtest '_get_match_keys() tests' => sub {
 
     $matchpoint = get_authors_matchpoint({
         length => 0,
-        norms  => [],
+        norms  => [ 'legacy_default' ],
         offset => 0
     });
     @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
@@ -150,30 +146,102 @@ subtest '_get_match_keys() tests' => sub {
 
     $matchpoint = get_authors_matchpoint({
         length => 9,
-        norms  => [],
-        offset => 0
-    });
-    @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
-    is( $keys[0], 'STRAUB KING ST',
-        'Match key correctly calculated with multiple components, length 9');
-
-    $matchpoint = get_authors_matchpoint({
-        length => 10,
-        norms  => [],
+        norms  => [ 'legacy_default' ],
         offset => 0
     });
     @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
     is( $keys[0], 'STRAUB P KING STE',
+        'Match key correctly calculated with multiple components, length 9');
+
+    $matchpoint = get_authors_matchpoint({
+        length => 10,
+        norms  => [ 'legacy_default' ],
+        offset => 0
+    });
+    @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
+    is( $keys[0], 'STRAUB PE KING STEP',
         'Match key correctly calculated with multiple components, length 10');
 
     $matchpoint = get_authors_matchpoint({
         length => 10,
-        norms  => [],
+        norms  => [ 'legacy_default' ],
         offset => 2
     });
     @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
-    is( $keys[0], 'TRAUB PET ING STEPH',
+    is( $keys[0], 'RAUB PETE NG STEPHE',
         'Match key correctly calculated with multiple components, length 10, offset 1');
+
+    $matchpoint = get_title_matchpoint({
+        length => 0,
+        norms  => [ 'none', 'none' ],
+        offset => 0
+    });
+    @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
+    is( $keys[0], '  .; thE t[]:,aliS(m)/An\'" Stephen King, Peter Straub.',
+        'Match key intact if \'none\' specified, length 0 and offset 0' );
+
+    $matchpoint = get_authors_matchpoint({
+        length => 0,
+        norms  => [ 'upper_case' ],
+        offset => 0
+    });
+    @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
+    is( $keys[0], 'STRAUB, PETER KING, STEPHEN',
+        'Match key correctly calculated with multiple components, \'upper_case\' norm');
+
+    $matchpoint = get_authors_matchpoint({
+        length => 0,
+        norms  => [ 'lower_case' ],
+        offset => 0
+    });
+    @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
+    is( $keys[0], 'straub, peter king, stephen',
+        'Match key correctly calculated with multiple components, \'lower_case\' norm');
+
+    $matchpoint = get_authors_matchpoint({
+        length => 0,
+        norms  => [ 'remove_spaces' ],
+        offset => 0
+    });
+    @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
+    is( $keys[0], 'Straub,Peter King,Stephen',
+        'Match key correctly calculated with multiple components, \'remove_spaces\' norm');
+
+    $matchpoint = get_authors_matchpoint({
+        length => 0,
+        norms  => [ 'remove_spaces', 'lower_case' ],
+        offset => 0
+    });
+    @keys = C4::Matcher::_get_match_keys( $record, $matchpoint );
+    is( $keys[0], 'straub,peter king,stephen',
+        'Match key correctly calculated with multiple components, \'remove_spaces\' and \'lower_case\' norm');
+
+    my $norm = 'unknown_norm';
+    $matchpoint = get_title_matchpoint({
+        length => 0,
+        norms  => [ $norm ],
+        offset => 0
+    });
+    warning_is
+            { @keys = C4::Matcher::_get_match_keys( $record, $matchpoint ) }
+            qq{Invalid normalization routine required ($norm)},
+            'Passing an invalid normalization routine name raises a warning';
+
+    is( $keys[0], '  .; thE t[]:,aliS(m)/An\'" Stephen King, Peter Straub.',
+        'Match key intact if invalid normalization routine specified' );
+
+    $matchpoint = get_title_matchpoint({
+        length => 0,
+        norms  => [ $norm, 'upper_case' ],
+        offset => 0
+    });
+    warning_is
+            { @keys = C4::Matcher::_get_match_keys( $record, $matchpoint ) }
+            qq{Invalid normalization routine required ($norm)},
+            'Passing an invalid normalization routine name raises a warning';
+
+    is( $keys[0], '  .; THE T[]:,ALIS(M)/AN\'" STEPHEN KING, PETER STRAUB.',
+        'Match key correctly normalized if invalid normalization routine specified' );
 };
 
 sub get_title_matchpoint {
@@ -243,4 +311,3 @@ sub get_authors_matchpoint {
     return $matchpoint;
 }
 
-1;

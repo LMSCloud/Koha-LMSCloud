@@ -32,6 +32,7 @@ use MARC::File::USMARC;
 use MARC::File::XML;
 use C4::Biblio;
 use Koha::Authority::Types;
+use Koha::ItemTypes;
 use vars qw( $tagslib);
 use vars qw( $authorised_values_sth);
 use vars qw( $is_a_modif );
@@ -91,10 +92,10 @@ sub build_authorized_values_list {
             && ( $value || $tagslib->{$tag}->{$subfield}->{defaultvalue} ) );
 
         my $itemtype;
-        my $itemtypes = GetItemTypes( style => 'array' );
-        for my $itemtype ( @$itemtypes ) {
-            push @authorised_values, $itemtype->{itemtype};
-            $authorised_lib{$itemtype->{itemtype}} = $itemtype->{translated_description};
+        my $itemtypes = Koha::ItemTypes->search_with_localization;
+        while ( $itemtype = $itemtypes->next ) {
+            push @authorised_values, $itemtype->itemtype;
+            $authorised_lib{$itemtype->itemtype} = $itemtype->translated_description;
         }
         $value = $itemtype unless ($value);
 
@@ -186,7 +187,7 @@ sub create_input {
     }
     
     $subfield_data{visibility} = "display:none;"
-        if (    ($tagslib->{$tag}->{$subfield}->{hidden} % 2 == 1) and $value ne ''
+        if( $tagslib->{$tag}->{$subfield}->{hidden} and $value ne ''
             or ($value eq '' and !$tagslib->{$tag}->{$subfield}->{mandatory})
         );
     
@@ -319,7 +320,7 @@ sub CreateKey {
 
 =item GetMandatoryFieldZ3950
 
-    This function return an hashref which containts all mandatory field
+    This function returns a hashref which contains all mandatory field
     to search with z3950 server.
 
 =cut
@@ -403,6 +404,7 @@ sub build_tabs {
                             $subfield = '@';
                         }
                         next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
+                        next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9';
                         push(
                             @subfields_data,
                             &create_input(
@@ -418,6 +420,7 @@ sub build_tabs {
                             my $value    = $subfields[$subfieldcount][1];
                             next if ( length $subfield != 1 );
                             next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
+                            next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9';
                             push(
                                 @subfields_data,
                                 &create_input(
@@ -434,10 +437,7 @@ sub build_tabs {
                         next if ( length $subfield != 1 );
                         next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
                         next if ( $tag < 10 );
-                        next
-                        if ( ( $tagslib->{$tag}->{$subfield}->{hidden} <= -4 )
-                            or ( $tagslib->{$tag}->{$subfield}->{hidden} >= 5 )
-                        );    #check for visibility flag
+                        next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9';
                         next if ( defined( $field->subfield($subfield) ) );
                         push(
                             @subfields_data,
@@ -476,9 +476,7 @@ sub build_tabs {
                 my @subfields_data;
                 foreach my $subfield ( sort( keys %{ $tagslib->{$tag} } ) ) {
                     next if ( length $subfield != 1 );
-                    next if ( ( $tagslib->{$tag}->{$subfield}->{hidden} <= -5 )
-                                or ( $tagslib->{$tag}->{$subfield}->{hidden} >= 4 ) )
-                            ;    #check for visibility flag
+                    next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9';
                     next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
                     push(
                         @subfields_data,
@@ -641,7 +639,7 @@ if ($op eq "add") {
     }
 } elsif ($op eq "delete") {
 #------------------------------------------------------------------------------------------------------------------------------
-        &DelAuthority($authid);
+        DelAuthority({ authid => $authid });
         if ($nonav){
             print $input->redirect("auth_finder.pl");
         }else{
@@ -662,12 +660,13 @@ if ($op eq "duplicate")
 
 my $authority_types = Koha::Authority::Types->search( {}, { order_by => ['authtypetext'] } );
 
+my $type = $authority_types->find($authtypecode);
 $template->param(
     authority_types => $authority_types,
     authtypecode    => $authtypecode,
     authid          => $authid,
     linkid          => $linkid,
-    authtypetext    => $authority_types->find($authtypecode)->authtypetext,
+    authtypetext    => $type ? $type->authtypetext : "",
     hide_marc       => C4::Context->preference('hide_marc'),
 );
 output_html_with_http_headers $input, $cookie, $template->output;

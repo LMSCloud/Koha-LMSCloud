@@ -1,31 +1,3 @@
-<script type="text/javascript">
-   //<![CDATA[
-        $(document).ready(function(e){
-            $("div#reldebarments .remove_restriction").on("click",function(){
-                return confirm(_("Remove restriction?"));
-            });
-            var mrform = $("#manual_restriction_form");
-            var mrlink = $("#add_manual_restriction");
-            mrform.hide();
-            mrlink.on("click",function(e){
-                $(this).hide();
-                mrform.show();
-                e.preventDefault();
-            });
-            $("#cancel_manual_restriction").on("click",function(e){
-                mrlink.show();
-                mrform.hide();
-                e.preventDefault();
-            });
-            $(".clear-date").on("click",function(e){
-                e.preventDefault();
-                var fieldID = this.id.replace("clear-date-","");
-                $("#" + fieldID).val("");
-            });
-        })
-    //]]>
-</script>
-
 <div id="reldebarments">
     [% IF ( not debarments.defined || debarments.size < 1 ) %]
         <p>Patron is currently unrestricted.</p>
@@ -36,7 +8,8 @@
                      <th>Type</th>
                      <th>Comment</th>
                      <th>Expiration</th>
-                     [% IF CAN_user_borrowers && CAN_user_circulate_manage_restrictions %]
+                     <th>Created</th>
+                     [% IF CAN_user_borrowers_edit_borrowers && CAN_user_circulate_manage_restrictions %]
                          <th>&nbsp;</th>
                      [% END %]
                 </tr>
@@ -64,9 +37,10 @@
 			    [% END %]
 			</td>
                         <td>[% IF d.expiration %] [% d.expiration | $KohaDates %] [% ELSE %] <i>Indefinite</i> [% END %]</td>
-                        [% IF CAN_user_borrowers && CAN_user_circulate_manage_restrictions %]
+                        <td>[% d.created | $KohaDates %]</td>
+                        [% IF CAN_user_borrowers_edit_borrowers && CAN_user_circulate_manage_restrictions %]
                             <td>
-                                <a class="remove_restriction btn btn-mini" href="/cgi-bin/koha/members/mod_debarment.pl?borrowernumber=[% borrowernumber %]&amp;borrower_debarment_id=[% d.borrower_debarment_id %]&amp;action=del">
+                                <a class="remove_restriction btn btn-default btn-xs" href="/cgi-bin/koha/members/mod_debarment.pl?borrowernumber=[% patron.borrowernumber %]&amp;borrower_debarment_id=[% d.borrower_debarment_id %]&amp;action=del">
                                     <i class="fa fa-trash"></i> Remove
                                 </a>
                             </td>
@@ -76,10 +50,10 @@
             </tbody>
         </table>
     [% END %]
-    [% IF CAN_user_borrowers && CAN_user_circulate_manage_restrictions %]
+    [% IF CAN_user_borrowers_edit_borrowers && CAN_user_circulate_manage_restrictions %]
         <p><a href="#" id="add_manual_restriction"><i class="fa fa-plus"></i> Add manual restriction</a></p>
         <form method="post" action="/cgi-bin/koha/members/mod_debarment.pl" class="clearfix">
-            <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
+            <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber %]" />
             <input type="hidden" name="action" value="add" />
             <fieldset class="rows" id="manual_restriction_form">
                 <legend>Add manual restriction</legend>

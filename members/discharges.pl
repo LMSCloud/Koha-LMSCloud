@@ -33,7 +33,7 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user({
     query           => $input,
     type            => "intranet",
     authnotrequired => 0,
-    flagsrequired   => { borrowers => 1 },
+    flagsrequired   => { borrowers => 'edit_borrowers' },
 });
 
 my $branchcode =
@@ -44,15 +44,17 @@ my $branchcode =
 
 if( $op eq 'allow' ) {
     my $borrowernumber = $input->param('borrowernumber');
+    my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+    my $patron         = Koha::Patrons->find($borrowernumber);
+    output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
     Koha::Patron::Discharge::discharge({
         borrowernumber => $borrowernumber
     }) if $borrowernumber;
 }
 
-my $pending_discharges = Koha::Patron::Discharge::get_pendings({
+my @pending_discharges = Koha::Patron::Discharge::get_pendings({
     branchcode => $branchcode
 });
-
-$template->param( pending_discharges => $pending_discharges );
+$template->param( pending_discharges => \@pending_discharges );
 
 output_html_with_http_headers $input, $cookie, $template->output;

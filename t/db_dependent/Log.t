@@ -5,13 +5,13 @@
 # Add more tests here!!!
 
 use Modern::Perl;
-use Test::More tests => 8;
+use Test::More tests => 10;
 
 use C4::Context;
+use Koha::Database;
 use Koha::DateUtils;
 
 use t::lib::Mocks qw/mock_preference/; # to mock CronjobLog
-use Data::Dumper;
 
 $| = 1;
 
@@ -20,9 +20,13 @@ BEGIN {
 }
 my $success;
 
+# Make sure we can rollback.
+my $schema  = Koha::Database->new->schema;
+$schema->storage->txn_begin;
+my $dbh = C4::Context->dbh;
+
 eval {
     # FIXME: are we sure there is an member number 1?
-    # FIXME: can we remove this log entry somehow?
     logaction("MEMBERS","MODIFY",1,"test operation");
     $success = 1;
 } or do {
@@ -58,11 +62,6 @@ eval {
 };
 ok($success, "GetLogs seemed to find ".$success." like our test record in a tighter search");
 
-# Make sure we can rollback.
-my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
-
 # We want numbers to be the same between runs.
 $dbh->do("DELETE FROM action_logs;");
 
@@ -92,4 +91,64 @@ subtest "GetLogs should return all logs if dates are not set" => sub {
     is( scalar(@$logs), 1, 'GetLogs should return the logs for today' );
 };
 
-$dbh->rollback();
+subtest 'logaction(): interface is correctly logged' => sub {
+
+    plan tests => 4;
+
+    # No interface passed, using C4::Context->interface
+    $dbh->do("DELETE FROM action_logs;");
+    C4::Context->interface( 'commandline' );
+    logaction( "MEMBERS", "MODIFY", 1, "test operation");
+    my $logs = GetLogs();
+    is( @{$logs}[0]->{ interface }, 'commandline', 'Interface correctly deduced (commandline)');
+
+    # No interface passed, using C4::Context->interface
+    $dbh->do("DELETE FROM action_logs;");
+    C4::Context->interface( 'opac' );
+    logaction( "MEMBERS", "MODIFY", 1, "test operation");
+    $logs = GetLogs();
+    is( @{$logs}[0]->{ interface }, 'opac', 'Interface correctly deduced (opac)');
+
+    # Explicit interfaces
+    $dbh->do("DELETE FROM action_logs;");
+    C4::Context->interface( 'intranet' );
+    logaction( "MEMBERS", "MODIFY", 1, 'test info', 'intranet');
+    $logs = GetLogs();
+    is( @{$logs}[0]->{ interface }, 'intranet', 'Passed interface is respected (intranet)');
+
+    # Explicit interfaces
+    $dbh->do("DELETE FROM action_logs;");
+    C4::Context->interface( 'sip' );
+    logaction( "MEMBERS", "MODIFY", 1, 'test info', 'sip');
+    $logs = GetLogs();
+    is( @{$logs}[0]->{ interface }, 'sip', 'Passed interface is respected (sip)');
+};
+
+subtest 'GetLogs() respects interface filters' => sub {
+
+    plan tests => 5;
+
+    $dbh->do("DELETE FROM action_logs;");
+
+    logaction( 'MEMBERS', 'MODIFY', 1, 'opac info',        'opac');
+    logaction( 'MEMBERS', 'MODIFY', 1, 'sip info',         'sip');
+    logaction( 'MEMBERS', 'MODIFY', 1, 'intranet info',    'intranet');
+    logaction( 'MEMBERS', 'MODIFY', 1, 'commandline info', 'commandline');
+
+    my $logs = scalar @{ GetLogs() };
+    is( $logs, 4, 'If no filter on interfaces is passed, all logs are returned');
+
+    $logs = GetLogs(undef,undef,undef,undef,undef,undef,undef,['opac']);
+    is( @{$logs}[0]->{ interface }, 'opac', 'Interface correctly filtered (opac)');
+
+    $logs = GetLogs(undef,undef,undef,undef,undef,undef,undef,['sip']);
+    is( @{$logs}[0]->{ interface }, 'sip', 'Interface correctly filtered (sip)');
+
+    $logs = GetLogs(undef,undef,undef,undef,undef,undef,undef,['intranet']);
+    is( @{$logs}[0]->{ interface }, 'intranet', 'Interface correctly filtered (intranet)');
+
+    $logs = GetLogs(undef,undef,undef,undef,undef,undef,undef,['commandline']);
+    is( @{$logs}[0]->{ interface }, 'commandline', 'Interface correctly filtered (commandline)');
+};
+
+$schema->storage->txn_rollback;

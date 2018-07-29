@@ -1,13 +1,14 @@
+[% USE Asset %]
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Batch item modification</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/background-job-progressbar.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/cataloging.js"></script>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.js("js/background-job-progressbar.js") %]
+[% Asset.js("js/cataloging.js") %]
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'datatables.inc' %]
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.checkboxes.min.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/pages/batchMod.js"></script>
+[% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
+[% Asset.js("js/pages/batchMod.js") %]
 <script type="text/javascript">
 //<![CDATA[
 
@@ -22,13 +23,12 @@ $(document).ready(function(){
   $("input[name='disable_input']").click(function() {
       var row = $(this).attr("id");
       row = row.replace("row","hint");
-      var subfield = $(this).next();
-      if ($(this).is(":checked")){
-          $(this).val($(this).siblings("[name='subfield']").val());
-          $(subfield).prop('disabled', true);
+      var editor = $(this).parent().find("[name='field_value']");
+      if ($(this).is(":checked")) {
+          $(editor).prop('disabled', true);
           $("#"+row).html(_("This subfield will be deleted"));
       } else {
-          $(subfield).prop('disabled', false);
+          $(editor).prop('disabled', false);
           $("#"+row).html("");
       }
   });
@@ -42,7 +42,15 @@ $(document).ready(function(){
 <style type="text/css">#selections { display: none; }</style>
 <![endif]-->
 <style type="text/css">input[type=checkbox]{ margin : 0 .5em; }</style>
-<link type="text/css" rel="stylesheet" href="[% interface %]/[% theme %]/css/addbiblio.css" />
+[% Asset.css("css/addbiblio.css") %]
+
+[% INCLUDE 'select2.inc' %]
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('.subfield_line select').select2();
+  });
+</script>
+
 </head>
 <body id="tools_batchMod-edit" class="tools">
 [% INCLUDE 'header.inc' %]
@@ -54,9 +62,8 @@ $(document).ready(function(){
   <a href="/cgi-bin/koha/tools/batchMod.pl">Batch item modification</a>
 </div>
 
-<div id="doc3" class="yui-t7">
-    <div id="bd">
-        <div id="yui-main">
+<div class="main container-fluid">
+
             [% IF ( show ) %]
               <h1>Batch item modification</h1>
             [% ELSE %]
@@ -91,7 +98,7 @@ $(document).ready(function(){
     </thead>
     <tbody>
         [% FOREACH notfoundbarcode IN notfoundbarcodes %]
-      <tr><td>[% notfoundbarcode.barcode %]</td></td>
+      <tr><td>[% notfoundbarcode.barcode |html %]</td></td>
         [% END %]
     </tbody>
       </table>
@@ -183,57 +190,63 @@ $(document).ready(function(){
   <fieldset class="rows">
   <ol>
         [% FOREACH ite IN item %]
-               <li><div class="subfield_line" style="[% ite.visibility %]" id="subfield[% ite.tag %][% ite.subfield %][% ite.random %]">
+          <li>
+            <div class="subfield_line" style="[% ite.visibility %]" id="subfield[% ite.tag %][% ite.subfield %][% ite.random %]">
+              [% SET mv = ite.marc_value %]
               [% IF ( ite.mandatory ) %]
-              <label class="required" for="tag_[% ite.tag %]_subfield_[% ite.subfield %]_[% ite.random %]">
+                <label class="required" for="[%- mv.id -%]">
               [% ELSE %]
-              <label for="tag_[% ite.tag %]_subfield_[% ite.subfield %]_[% ite.random %]">
+                <label for="[%- mv.id -%]">
               [% END %]
-              [% ite.subfield %] -
-          [% ite.marc_lib %]
-         </label>
-                [% UNLESS ( ite.mandatory ) %]<input type="checkbox" id="row[% ite.tag %][% ite.subfield %][% ite.random %]" title="Check to delete subfield [% ite.subfield %]" name="disable_input" value="[% ite.subfield %]" />[% ELSE %]<span class="required">Required</span>[% END %]
+                [% ite.subfield %] - [% ite.marc_lib %]
+              </label>
 
-                [% SET mv = ite.marc_value %]
-                [% IF    ( mv.type == 'select' ) -%]
-                    <select name="[%- mv.name -%]" id="[%- mv.id -%]" size="1" tabindex="1" class="input_marceditor">
-                    [%- FOREACH aval IN mv.values %]
+              [% IF ( mv.type == 'select' ) -%]
+                <select name="[%- mv.name -%]" id="[%- mv.id -%]" size="1" tabindex="1" class="input_marceditor">
+                  [%- FOREACH aval IN mv.values %]
                     [% IF aval == mv.default %]
-                        <option value="[%- aval -%]" selected="selected">[%- mv.labels.$aval -%]</option>
+                      <option value="[%- aval -%]" selected="selected">[%- mv.labels.$aval -%]</option>
                     [% ELSE %]
-                        <option value="[%- aval -%]">[%- mv.labels.$aval -%]</option>
+                      <option value="[%- aval -%]">[%- mv.labels.$aval -%]</option>
                     [% END %]
-                    [%- END -%]
-                    </select>
-                [% ELSIF ( mv.type == 'text1' ) %]
-                    <input type="text" tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
-                    <a href="#" class="buttonDot" onclick="Dopop('/cgi-bin/koha/authorities/auth_finder.pl?authtypecode=[%- mv.authtypecode -%]&index=[%- mv.id -%]','[%- mv.id -%]'); return false;" title="Tag editor">...</a>
-                [% ELSIF ( mv.type == 'text2' ) %]
-                    <input type="text" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
-                    [% IF mv.noclick %]
-                        <a href="#" class="buttonDot disabled" title="No popup">...</a>
-                    [% ELSE %]
-                        <a href="#" id="buttonDot_[% mv.id %]" class="buttonDot" title="Tag editor">...</a>
-                    [% END %]
-                    [% mv.javascript %]
-                [% ELSIF ( mv.type == 'text' ) %]
-                    <input type="text" tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
-                [% ELSIF ( mv.type == 'hidden' ) %]
-                    <input type="hidden" tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
-                [% ELSIF ( mv.type == 'textarea' ) %]
-                    <textarea tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255">[%- mv.value -%]"</textarea>
-                [%- END -%]
-
-                <input type="hidden" name="tag"       value="[% ite.tag %]" />
-                <input type="hidden" name="subfield"       value="[% ite.subfield %]" />
-                <input type="hidden" name="mandatory"       value="[% ite.mandatory %]" />
-                [% IF ( ite.repeatable ) %]
-                    <a href="#" class="buttonPlus" onclick="CloneItemSubfield(this.parentNode); return false;">
-                        <img src="[% interface %]/[% theme %]/img/clone-subfield.png" alt="Clone" title="Clone this subfield" />
-                    </a>
+                  [%- END -%]
+                </select>
+              [% ELSIF ( mv.type == 'text1' ) %]
+                <input type="text" tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
+                <a href="#" class="buttonDot" onclick="Dopop('/cgi-bin/koha/authorities/auth_finder.pl?authtypecode=[%- mv.authtypecode -%]&index=[%- mv.id -%]','[%- mv.id -%]'); return false;" title="Tag editor">...</a>
+              [% ELSIF ( mv.type == 'text2' ) %]
+                <input type="text" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
+                [% IF mv.noclick %]
+                  <a href="#" class="buttonDot disabled" title="No popup">...</a>
+                [% ELSE %]
+                  <a href="#" id="buttonDot_[% mv.id %]" class="buttonDot" title="Tag editor">...</a>
                 [% END %]
-                <span class="hint" id="hint[% ite.tag %][% ite.subfield %][% ite.random %]"></span>
-            </div></li>
+                [% mv.javascript %]
+              [% ELSIF ( mv.type == 'text' ) %]
+                <input type="text" tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
+              [% ELSIF ( mv.type == 'hidden' ) %]
+                <input type="hidden" tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255" value="[%- mv.value -%]" />
+              [% ELSIF ( mv.type == 'textarea' ) %]
+                <textarea tabindex="1" id="[%- mv.id -%]" name="field_value" class="input_marceditor" size="50" maxlength="255">[%- mv.value -%]"</textarea>
+              [%- END -%]
+
+              [% UNLESS ( ite.mandatory ) %]
+                <input type="checkbox" id="row[% ite.tag %][% ite.subfield %][% ite.random %]" title="Check to delete subfield [% ite.subfield %]" name="disable_input" value="[% ite.subfield %]" />
+              [% ELSE %]
+                <span class="required">Required</span>
+              [% END %]
+
+              <input type="hidden" name="tag"       value="[% ite.tag %]" />
+              <input type="hidden" name="subfield"       value="[% ite.subfield %]" />
+              <input type="hidden" name="mandatory"       value="[% ite.mandatory %]" />
+              [% IF ( ite.repeatable ) %]
+                <a href="#" class="buttonPlus" onclick="CloneItemSubfield(this.parentNode); return false;">
+                  <img src="[% interface %]/[% theme %]/img/clone-subfield.png" alt="Clone" title="Clone this subfield" />
+                </a>
+              [% END %]
+              <span class="hint" id="hint[% ite.tag %][% ite.subfield %][% ite.random %]"></span>
+            </div>
+          </li>
         [% END %]
     </ol>
     </fieldset>
@@ -252,15 +265,14 @@ $(document).ready(function(){
 [% ELSE %] <!-- // show -->
 <fieldset class="action">
 [% IF src == 'CATALOGUING' # from catalogue/detail.pl > Edit items in a batch%]
-   <a class="btn" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber %]"><i class="fa fa-check-square-o"></i> Return to the record</a>
+   <a class="btn btn-default" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber %]"><i class="fa fa-check-square-o"></i> Return to the record</a>
 [% ELSIF src %]
-   <a class="btn" href="[% src %]"><i class="fa fa-check-square-o"></i> Return to where you were</a>
+   <a class="btn btn-default" href="[% src %]"><i class="fa fa-check-square-o"></i> Return to where you were</a>
 [% ELSE %]
-   <a class="btn" href="/cgi-bin/koha/tools/batchMod.pl"><i class="fa fa-check-square-o"></i> Return to batch item modification</a>
+   <a class="btn btn-default" href="/cgi-bin/koha/tools/batchMod.pl"><i class="fa fa-check-square-o"></i> Return to batch item modification</a>
 [% END %]
 </fieldset>
-         
+
 [% END %]
-</div>
-    </div>
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -1,22 +1,10 @@
 [% USE Koha %]
 [% USE KohaDates %]
-
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 
 <title>Koha &rsaquo; Circulation &rsaquo; Renew [% title |html %]</title>
-
 [% INCLUDE 'doc-head-close.inc' %]
-
-[% IF error %]
-    <script type="text/javascript">
-    //<![CDATA[
-        $( document ).ready(function() {
-            removeFocus()
-        });
-    //]]>
-    </script>
-[% END %]
-
 </head>
 
 <body id="circ_renew" class="circ">
@@ -26,9 +14,10 @@
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a> &rsaquo; Renew</div>
 
-<div id="doc" class="yui-t7">
+[% IF Koha.Preference('CircSidebar') %]<div id="doc3" class="yui-t2">[% ELSE %]<div id="doc" class="yui-t7">[% END %]
     <div id="bd">
-
+        <div id="yui-main">
+            [% IF Koha.Preference('CircSidebar') %]<div class="yui-b">[% END %]
                 [% IF error %]
                     <div class="dialog alert">
                         <h3>Cannot renew:</h3>
@@ -77,7 +66,31 @@
                                     </form>
                                 [% END %]
 
-                            [% ELSIF error == "auto_renew" %]
+                            [% ELSIF error == "auto_too_late" %]
+
+                                <p>[% item.biblio.title %] [% item.biblioitem.subtitle %] ( [% item.barcode %] ) has been scheduled for automatic renewal and cannot be renewed anymore since [% latestautorenewdate | $KohaDates %]. </p>
+
+                                [% IF Koha.Preference('AllowRenewalLimitOverride') %]
+                                    <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        <input type="hidden" name="barcode" value="[% item.barcode %]"/>
+                                        <input type="hidden" name="override_limit" value="1" />
+                                        <input type="submit" class="approve" value="Override and renew" />
+                                    </form>
+                                [% END %]
+
+                            [% ELSIF error == "auto_account_expired" %]
+
+                                <p>[% item.biblio.title %] [% item.biblioitem.subtitle %] ( [% item.barcode %] ) has been scheduled for automatic renewal and cannot be renewed because the patron's account is expired</p>
+
+                                [% IF Koha.Preference('AllowRenewalLimitOverride') %]
+                                    <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        <input type="hidden" name="barcode" value="[% item.barcode %]"/>
+                                        <input type="hidden" name="override_limit" value="1" />
+                                        <input type="submit" class="approve" value="Override and renew" />
+                                    </form>
+                                [% END %]
+
+                            [% ELSIF error == "auto_renew" or error == "auto_too_much_oweing" %]
 
                                 <p>[% item.biblio.title %] [% item.biblioitem.subtitle %] ( [% item.barcode %] ) has been scheduled for automatic renewal. </p>
 
@@ -111,7 +124,7 @@
                             [% END %]
 
                                 <form method="get" action="/cgi-bin/koha/circ/renew.pl">
-                                    <button type="submit" class="deny"><i class="fa fa-times"></i> Ignore and continue</button>
+                                    <button type="submit" class="deny"><i class="fa fa-times"></i> Continue without renewing</button>
                                 </form>
                     </div>
                 [% END %]
@@ -128,7 +141,6 @@
                         </p>
                     </div>
                 [% END %]
-            </div>
 
             <div class="yui-g">
 
@@ -151,9 +163,25 @@
             [% END %]
 
         </div>
-
     </div>
 
+[% IF Koha.Preference('CircSidebar') %]
+</div>
+
+<div class="yui-b noprint">
+    [% INCLUDE 'circ-nav.inc' %]
+</div>
+[% END %]
 <div>
+
+[% MACRO jsinclude BLOCK %]
+    [% IF error %]
+        <script type="text/javascript">
+            $( document ).ready(function() {
+                removeFocus();
+            });
+        </script>
+    [% END %]
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

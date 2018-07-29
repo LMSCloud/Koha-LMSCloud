@@ -21,6 +21,8 @@ use Modern::Perl;
 
 use Carp;
 
+use C4::Context;
+
 use Koha::Database;
 
 use base qw(Koha::Object);
@@ -31,30 +33,44 @@ Koha::Library - Koha Library Object class
 
 =head1 API
 
-=head2 Class Methods
+=head2 Class methods
+
+=head3 get_categories
+
+TODO: Ask the author to add a proper description
 
 =cut
 
-sub get_categories {
-    my ( $self, $params ) = @_;
-    # TODO This should return Koha::LibraryCategories
-    return $self->{_result}->categorycodes( $params );
+=head3 get_effective_marcorgcode
+
+    my $marcorgcode = Koha::Libraries->find( $library_id )->get_effective_marcorgcode();
+
+Returns the effective MARC organization code of the library. It falls back to the value
+from the I<MARCOrgCode> syspref if undefined for the library.
+
+=cut
+
+sub get_effective_marcorgcode {
+    my ( $self )  = @_;
+
+    return $self->marcorgcode || C4::Context->preference("MARCOrgCode");
 }
 
-sub update_categories {
-    my ( $self, $categories ) = @_;
-    $self->_result->delete_related( 'branchrelations' );
-    $self->add_to_categories( $categories );
+=head3 library_groups
+
+Return the Library groups of this library
+
+=cut
+
+sub library_groups {
+    my ( $self ) = @_;
+    my $rs = $self->_result->library_groups;
+    return Koha::Library::Groups->_new_from_dbic( $rs );
 }
 
-sub add_to_categories {
-    my ( $self, $categories ) = @_;
-    for my $category ( @$categories ) {
-        $self->_result->add_to_categorycodes( $category->_result );
-    }
-}
+=head2 Internal methods
 
-=head3 type
+=head3 _type
 
 =cut
 

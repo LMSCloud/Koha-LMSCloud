@@ -17,14 +17,16 @@
 
 use Modern::Perl;
 
-use Test::More tests => 79;
+use Test::More tests => 51;
 use Test::MockModule;
-use Data::Dumper;
+use Test::Exception;
+
+use Data::Dumper qw/Dumper/;
 use C4::Context;
 use Koha::Database;
 use Koha::Holds;
 use Koha::List::Patron;
-
+use Koha::Patrons;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -37,7 +39,9 @@ my $schema = Koha::Database->schema;
 $schema->storage->txn_begin;
 my $builder = t::lib::TestBuilder->new;
 my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
+
+# Remove invalid guarantorid's as long as we have no FK
+$dbh->do("UPDATE borrowers b1 LEFT JOIN borrowers b2 ON b2.borrowernumber=b1.guarantorid SET b1.guarantorid=NULL where b1.guarantorid IS NOT NULL AND b2.borrowernumber IS NULL");
 
 my $library1 = $builder->build({
     source => 'Branch',
@@ -45,10 +49,10 @@ my $library1 = $builder->build({
 my $library2 = $builder->build({
     source => 'Branch',
 });
+my $patron_category = $builder->build({ source => 'Category' });
 my $CARDNUMBER   = 'TESTCARD01';
 my $FIRSTNAME    = 'Marie';
 my $SURNAME      = 'Mcknight';
-my $CATEGORYCODE = 'S';
 my $BRANCHCODE   = $library1->{branchcode};
 
 my $CHANGED_FIRSTNAME = "Marry Ann";
@@ -81,52 +85,37 @@ my $userenv = C4::Context->userenv
 # Make a borrower for testing
 my %data = (
     cardnumber => $CARDNUMBER,
-    firstname =>  $FIRSTNAME,
+    firstname =>  $FIRSTNAME . q{ },
     surname => $SURNAME,
-    categorycode => $CATEGORYCODE,
+    categorycode => $patron_category->{categorycode},
     branchcode => $BRANCHCODE,
     dateofbirth => '',
     dateexpiry => '9999-12-31',
     userid => 'tomasito'
 );
 
-testAgeAccessors(\%data); #Age accessor tests don't touch the db so it is safe to run them with just the object.
-
 my $addmem=AddMember(%data);
 ok($addmem, "AddMember()");
 
-# It's not really a Move, it's a Copy.
-my $result = MoveMemberToDeleted($addmem);
-ok($result,"MoveMemberToDeleted()");
-
-my $sth = $dbh->prepare("SELECT * from borrowers WHERE borrowernumber=?");
-$sth->execute($addmem);
-my $MemberAdded = $sth->fetchrow_hashref;
-
-$sth = $dbh->prepare("SELECT * from deletedborrowers WHERE borrowernumber=?");
-$sth->execute($addmem);
-my $MemberMoved = $sth->fetchrow_hashref;
-
-is_deeply($MemberMoved,$MemberAdded,"Confirm MoveMemberToDeleted.");
-
-my $member=GetMemberDetails("",$CARDNUMBER)
+my $member = Koha::Patrons->find( { cardnumber => $CARDNUMBER } )
   or BAIL_OUT("Cannot read member with card $CARDNUMBER");
+$member = $member->unblessed;
 
 ok ( $member->{firstname}    eq $FIRSTNAME    &&
      $member->{surname}      eq $SURNAME      &&
-     $member->{categorycode} eq $CATEGORYCODE &&
+     $member->{categorycode} eq $patron_category->{categorycode} &&
      $member->{branchcode}   eq $BRANCHCODE
      , "Got member")
   or diag("Mismatching member details: ".Dumper(\%data, $member));
 
 is($member->{dateofbirth}, undef, "Empty dates handled correctly");
 
-$member->{firstname} = $CHANGED_FIRSTNAME;
+$member->{firstname} = $CHANGED_FIRSTNAME . q{ };
 $member->{email}     = $EMAIL;
 $member->{phone}     = $PHONE;
 $member->{emailpro}  = $EMAILPRO;
 ModMember(%$member);
-my $changedmember=GetMemberDetails("",$CARDNUMBER);
+my $changedmember = Koha::Patrons->find( { cardnumber => $CARDNUMBER } )->unblessed;
 ok ( $changedmember->{firstname} eq $CHANGED_FIRSTNAME &&
      $changedmember->{email}     eq $EMAIL             &&
      $changedmember->{phone}     eq $PHONE             &&
@@ -150,108 +139,55 @@ $checkcardnum=C4::Members::checkcardnumber($IMPOSSIBLE_CARDNUMBER, "");
 is ($checkcardnum, "2", "Card number is too long");
 
 
-
-t::lib::Mocks::mock_preference( 'AutoEmailPrimaryAddress', 'OFF' );
-C4::Context->clear_syspref_cache();
-
-my $notice_email = GetNoticeEmailAddress($member->{'borrowernumber'});
-is ($notice_email, $EMAIL, "GetNoticeEmailAddress returns correct value when AutoEmailPrimaryAddress is off");
-
-t::lib::Mocks::mock_preference( 'AutoEmailPrimaryAddress', 'emailpro' );
-C4::Context->clear_syspref_cache();
-
-$notice_email = GetNoticeEmailAddress($member->{'borrowernumber'});
-is ($notice_email, $EMAILPRO, "GetNoticeEmailAddress returns correct value when AutoEmailPrimaryAddress is emailpro");
-
-ok(!$member->{is_expired}, "GetMemberDetails() indicates that patron is not expired");
-ModMember(borrowernumber => $member->{'borrowernumber'}, dateexpiry => '2001-01-1');
-$member = GetMemberDetails($member->{'borrowernumber'});
-ok($member->{is_expired}, "GetMemberDetails() indicates that patron is expired");
-
-# Create a reserve for the patron
-$builder->build({
-    source => 'Reserve',
-    value  => {
-        borrowernumber => $member->{ borrowernumber }
-    }
-});
-is( Koha::Holds->search({ borrowernumber => $member->{borrowernumber} })->count,
-    1, 'Hold created correctly' );
-DelMember($member->{borrowernumber});
-my $borrower = GetMember( cardnumber => $CARDNUMBER );
-is( $borrower, undef, 'DelMember should remove the patron' );
-is( Koha::Holds->search({ borrowernumber => $member->{borrowernumber} })->count,
-    0, 'Hold deleted correctly' );
-
-# Check_Userid tests
+# Add a new borrower
 %data = (
     cardnumber   => "123456789",
     firstname    => "Tomasito",
     surname      => "None",
-    categorycode => "S",
+    categorycode => $patron_category->{categorycode},
     branchcode   => $library2->{branchcode},
     dateofbirth  => '',
     debarred     => '',
     dateexpiry   => '',
     dateenrolled => '',
 );
-# Add a new borrower
 my $borrowernumber = AddMember( %data );
-is( Check_Userid( 'tomasito.non', $borrowernumber ), 1,
-    'recently created userid -> unique (borrowernumber passed)' );
-is( Check_Userid( 'tomasitoxxx', $borrowernumber ), 1,
-    'non-existent userid -> unique (borrowernumber passed)' );
-is( Check_Userid( 'tomasito.none', '' ), 0,
-    'userid exists (blank borrowernumber)' );
-is( Check_Userid( 'tomasitoxxx', '' ), 1,
-    'non-existent userid -> unique (blank borrowernumber)' );
-
-$borrower = GetMember( borrowernumber => $borrowernumber );
+my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 is( $borrower->{dateofbirth}, undef, 'AddMember should undef dateofbirth if empty string is given');
 is( $borrower->{debarred}, undef, 'AddMember should undef debarred if empty string is given');
 isnt( $borrower->{dateexpiry}, '0000-00-00', 'AddMember should not set dateexpiry to 0000-00-00 if empty string is given');
 isnt( $borrower->{dateenrolled}, '0000-00-00', 'AddMember should not set dateenrolled to 0000-00-00 if empty string is given');
 
 ModMember( borrowernumber => $borrowernumber, dateofbirth => '', debarred => '', dateexpiry => '', dateenrolled => '' );
-$borrower = GetMember( borrowernumber => $borrowernumber );
+$borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 is( $borrower->{dateofbirth}, undef, 'ModMember should undef dateofbirth if empty string is given');
 is( $borrower->{debarred}, undef, 'ModMember should undef debarred if empty string is given');
 isnt( $borrower->{dateexpiry}, '0000-00-00', 'ModMember should not set dateexpiry to 0000-00-00 if empty string is given');
 isnt( $borrower->{dateenrolled}, '0000-00-00', 'ModMember should not set dateenrolled to 0000-00-00 if empty string is given');
 
 ModMember( borrowernumber => $borrowernumber, dateofbirth => '1970-01-01', debarred => '2042-01-01', dateexpiry => '9999-12-31', dateenrolled => '2015-09-06' );
-$borrower = GetMember( borrowernumber => $borrowernumber );
+$borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 is( $borrower->{dateofbirth}, '1970-01-01', 'ModMember should correctly set dateofbirth if a valid date is given');
 is( $borrower->{debarred}, '2042-01-01', 'ModMember should correctly set debarred if a valid date is given');
 is( $borrower->{dateexpiry}, '9999-12-31', 'ModMember should correctly set dateexpiry if a valid date is given');
 is( $borrower->{dateenrolled}, '2015-09-06', 'ModMember should correctly set dateenrolled if a valid date is given');
 
-# Add a new borrower with the same userid but different cardnumber
-$data{ cardnumber } = "987654321";
-my $new_borrowernumber = AddMember( %data );
-is( Check_Userid( 'tomasito.none', '' ), 0,
-    'userid not unique (blank borrowernumber)' );
-is( Check_Userid( 'tomasito.none', $new_borrowernumber ), 0,
-    'userid not unique (second borrowernumber passed)' );
-$borrower = GetMember( borrowernumber => $new_borrowernumber );
-ok( $borrower->{userid} ne 'tomasito', "Borrower with duplicate userid has new userid generated" );
-
-$data{ cardnumber } = "234567890";
-$data{userid} = 'a_user_id';
-$borrowernumber = AddMember( %data );
-$borrower = GetMember( borrowernumber => $borrowernumber );
-is( $borrower->{userid}, $data{userid}, 'AddMember should insert the given userid' );
-
 subtest 'ModMember should not update userid if not true' => sub {
     plan tests => 3;
+
+    $data{ cardnumber } = "234567890";
+    $data{userid} = 'a_user_id';
+    $borrowernumber = AddMember( %data );
+    $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
+
     ModMember( borrowernumber => $borrowernumber, firstname => 'Tomas', userid => '' );
-    $borrower = GetMember( borrowernumber => $borrowernumber );
+    $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
     is ( $borrower->{userid}, $data{userid}, 'ModMember should not update the userid with an empty string' );
     ModMember( borrowernumber => $borrowernumber, firstname => 'Tomas', userid => 0 );
-    $borrower = GetMember( borrowernumber => $borrowernumber );
+    $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
     is ( $borrower->{userid}, $data{userid}, 'ModMember should not update the userid with an 0');
     ModMember( borrowernumber => $borrowernumber, firstname => 'Tomas', userid => undef );
-    $borrower = GetMember( borrowernumber => $borrowernumber );
+    $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
     is ( $borrower->{userid}, $data{userid}, 'ModMember should not update the userid with an undefined value');
 };
 
@@ -292,6 +228,7 @@ my $borrower1 = $builder->build({
             categorycode=>'STAFFER',
             branchcode => $library3->{branchcode},
             dateexpiry => '2015-01-01',
+            guarantorid=> undef,
         },
 });
 my $bor1inlist = $borrower1->{borrowernumber};
@@ -301,6 +238,7 @@ my $borrower2 = $builder->build({
             categorycode=>'STAFFER',
             branchcode => $library3->{branchcode},
             dateexpiry => '2015-01-01',
+            guarantorid=> undef,
         },
 });
 
@@ -310,6 +248,7 @@ my $guarantee = $builder->build({
             categorycode=>'KIDclamp',
             branchcode => $library3->{branchcode},
             dateexpiry => '2015-01-01',
+            guarantorid=> undef, # will be filled later
         },
 });
 
@@ -322,6 +261,10 @@ $builder->build({
             timestamp => '2016-01-01',
         },
 });
+
+# The following calls to GetBorrowersToExpunge are assuming that the pref
+# IndependentBranches is off.
+t::lib::Mocks::mock_preference('IndependentBranches', 0);
 
 my $owner = AddMember (categorycode => 'STAFFER', branchcode => $library2->{branchcode} );
 my $list1 = AddPatronList( { name => 'Test List 1', owner => $owner } );
@@ -376,104 +319,35 @@ is( scalar(@$patstodel),2,'Borrowers without issues deleted by expiration_date a
 $patstodel = GetBorrowersToExpunge( {not_borrowed_since => '2016-01-02', patron_list_id => $list1->patron_list_id() } );
 is( scalar(@$patstodel),2,'Borrowers without issues deleted by last issue date');
 
-
-
-
+# Test GetBorrowersToExpunge and TrackLastPatronActivity
+$dbh->do(q|UPDATE borrowers SET lastseen=NULL|);
+$builder->build({ source => 'Borrower', value => { lastseen => '2016-01-01 01:01:01', categorycode => 'CIVILIAN', guarantorid => undef } } );
+$builder->build({ source => 'Borrower', value => { lastseen => '2016-02-02 02:02:02', categorycode => 'CIVILIAN', guarantorid => undef } } );
+$builder->build({ source => 'Borrower', value => { lastseen => '2016-03-03 03:03:03', categorycode => 'CIVILIAN', guarantorid => undef } } );
+$patstodel = GetBorrowersToExpunge( { last_seen => '1999-12-12' });
+is( scalar @$patstodel, 0, 'TrackLastPatronActivity - 0 patrons must be deleted' );
+$patstodel = GetBorrowersToExpunge( { last_seen => '2016-02-15' });
+is( scalar @$patstodel, 2, 'TrackLastPatronActivity - 2 patrons must be deleted' );
+$patstodel = GetBorrowersToExpunge( { last_seen => '2016-04-04' });
+is( scalar @$patstodel, 3, 'TrackLastPatronActivity - 3 patrons must be deleted' );
+my $patron2 = $builder->build({ source => 'Borrower', value => { lastseen => undef } });
+t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '0' );
+Koha::Patrons->find( $patron2->{borrowernumber} )->track_login;
+is( Koha::Patrons->find( $patron2->{borrowernumber} )->lastseen, undef, 'Lastseen should not be changed' );
+Koha::Patrons->find( $patron2->{borrowernumber} )->track_login({ force => 1 });
+isnt( Koha::Patrons->find( $patron2->{borrowernumber} )->lastseen, undef, 'Lastseen should be changed now' );
 
 # Regression tests for BZ13502
 ## Remove all entries with userid='' (should be only 1 max)
 $dbh->do(q|DELETE FROM borrowers WHERE userid = ''|);
 ## And create a patron with a userid=''
-$borrowernumber = AddMember( categorycode => 'S', branchcode => $library2->{branchcode} );
+$borrowernumber = AddMember( categorycode => $patron_category->{categorycode}, branchcode => $library2->{branchcode} );
 $dbh->do(q|UPDATE borrowers SET userid = '' WHERE borrowernumber = ?|, undef, $borrowernumber);
 # Create another patron and verify the userid has been generated
-$borrowernumber = AddMember( categorycode => 'S', branchcode => $library2->{branchcode} );
+$borrowernumber = AddMember( categorycode => $patron_category->{categorycode}, branchcode => $library2->{branchcode} );
 ok( $borrowernumber > 0, 'AddMember should have inserted the patron even if no userid is given' );
-$borrower = GetMember( borrowernumber => $borrowernumber );
+$borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 ok( $borrower->{userid},  'A userid should have been generated correctly' );
-
-# Regression tests for BZ12226
-is( Check_Userid( C4::Context->config('user'), '' ), 0,
-    'Check_Userid should return 0 for the DB user (Bug 12226)');
-
-subtest 'GetMemberAccountRecords' => sub {
-
-    plan tests => 2;
-
-    my $borrowernumber = $builder->build({ source => 'Borrower' })->{ borrowernumber };
-    my $accountline_1  = $builder->build({
-        source => 'Accountline',
-        value  => {
-            borrowernumber    => $borrowernumber,
-            amountoutstanding => 64.60
-        }
-    });
-
-    my ($total,undef,undef) = GetMemberAccountRecords( $borrowernumber );
-    is( $total , 64.60, "Rounding works correctly in total calculation (single value)" );
-
-    my $accountline_2 = $builder->build({
-        source => 'Accountline',
-        value  => {
-            borrowernumber    => $borrowernumber,
-            amountoutstanding => 10.65
-        }
-    });
-
-    ($total,undef,undef) = GetMemberAccountRecords( $borrowernumber );
-    is( $total , 75.25, "Rounding works correctly in total calculation (multiple values)" );
-
-};
-
-subtest 'GetMemberAccountBalance' => sub {
-
-    plan tests => 10;
-
-    my $members_mock = new Test::MockModule('C4::Members');
-    $members_mock->mock( 'GetMemberAccountRecords', sub {
-        my ($borrowernumber) = @_;
-        if ($borrowernumber) {
-            my @accountlines = (
-            { amountoutstanding => '7', accounttype => 'Rent' },
-            { amountoutstanding => '5', accounttype => 'Res' },
-            { amountoutstanding => '3', accounttype => 'Pay' } );
-            return ( 15, \@accountlines );
-        }
-        else {
-            my @accountlines;
-            return ( 0, \@accountlines );
-        }
-    });
-
-    my $person = GetMemberDetails(undef,undef);
-    ok( !$person , 'Expected no member details from undef,undef' );
-    $person = GetMemberDetails(undef,'987654321');
-    is( $person->{amountoutstanding}, 15,
-        'Expected 15 outstanding for cardnumber.');
-    $borrowernumber = $person->{borrowernumber};
-    $person = GetMemberDetails($borrowernumber,undef);
-    is( $person->{amountoutstanding}, 15,
-        'Expected 15 outstanding for borrowernumber.');
-    $person = GetMemberDetails($borrowernumber,'987654321');
-    is( $person->{amountoutstanding}, 15,
-        'Expected 15 outstanding for both borrowernumber and cardnumber.');
-
-    # do not count holds charges
-    t::lib::Mocks::mock_preference( 'HoldsInNoissuesCharge', '1' );
-    t::lib::Mocks::mock_preference( 'ManInvInNoissuesCharge', '0' );
-    my ($total, $total_minus_charges,
-        $other_charges) = C4::Members::GetMemberAccountBalance(123);
-    is( $total, 15 , "Total calculated correctly");
-    is( $total_minus_charges, 15, "Holds charges are not count if HoldsInNoissuesCharge=1");
-    is( $other_charges, 0, "Holds charges are not considered if HoldsInNoissuesCharge=1");
-
-    t::lib::Mocks::mock_preference( 'HoldsInNoissuesCharge', '0' );
-    ($total, $total_minus_charges,
-        $other_charges) = C4::Members::GetMemberAccountBalance(123);
-    is( $total, 15 , "Total calculated correctly");
-    is( $total_minus_charges, 10, "Holds charges are count if HoldsInNoissuesCharge=0");
-    is( $other_charges, 5, "Holds charges are considered if HoldsInNoissuesCharge=1");
-};
 
 subtest 'purgeSelfRegistration' => sub {
     plan tests => 2;
@@ -508,94 +382,43 @@ my $password="";
 is( $password =~ /^[a-zA-Z]{10}$/ , 1, 'Test for autogenerated password if none submitted');
 ( $borrowernumber, $password ) = AddMember_Opac(surname=>"Deckard",firstname=>"Rick",password=>"Nexus-6",branchcode => $library2->{branchcode});
 is( $password eq "Nexus-6", 1, 'Test password used if submitted');
-$borrower = GetMember(borrowernumber => $borrowernumber);
+$borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 my $hashed_up =  Koha::AuthUtils::hash_password("Nexus-6", $borrower->{password});
 is( $borrower->{password} eq $hashed_up, 1, 'Check password hash equals hash of submitted password' );
 
-
-
-### ------------------------------------- ###
-### Testing GetAge() / SetAge() functions ###
-### ------------------------------------- ###
-#USES the package $member-variable to mock a koha.borrowers-object
-sub testAgeAccessors {
-    my ($member) = @_;
-    my $original_dateofbirth = $member->{dateofbirth};
-
-    ##Testing GetAge()
-    my $age=GetAge("1992-08-14", "2011-01-19");
-    is ($age, "18", "Age correct");
-
-    $age=GetAge("2011-01-19", "1992-01-19");
-    is ($age, "-19", "Birthday In the Future");
-
-    ##Testing SetAge() for now()
-    my $dt_now = DateTime->now();
-    $age = DateTime::Duration->new(years => 12, months => 6, days => 1);
-    C4::Members::SetAge( $member, $age );
-    $age = C4::Members::GetAge( $member->{dateofbirth} );
-    is ($age, '12', "SetAge 12 years");
-
-    $age = DateTime::Duration->new(years => 18, months => 12, days => 31);
-    C4::Members::SetAge( $member, $age );
-    $age = C4::Members::GetAge( $member->{dateofbirth} );
-    is ($age, '19', "SetAge 18+1 years"); #This is a special case, where months=>12 and days=>31 constitute one full year, hence we get age 19 instead of 18.
-
-    $age = DateTime::Duration->new(years => 18, months => 12, days => 30);
-    C4::Members::SetAge( $member, $age );
-    $age = C4::Members::GetAge( $member->{dateofbirth} );
-    is ($age, '19', "SetAge 18 years");
-
-    $age = DateTime::Duration->new(years => 0, months => 1, days => 1);
-    C4::Members::SetAge( $member, $age );
-    $age = C4::Members::GetAge( $member->{dateofbirth} );
-    is ($age, '0', "SetAge 0 years");
-
-    $age = '0018-12-31';
-    C4::Members::SetAge( $member, $age );
-    $age = C4::Members::GetAge( $member->{dateofbirth} );
-    is ($age, '19', "SetAge ISO_Date 18+1 years"); #This is a special case, where months=>12 and days=>31 constitute one full year, hence we get age 19 instead of 18.
-
-    $age = '0018-12-30';
-    C4::Members::SetAge( $member, $age );
-    $age = C4::Members::GetAge( $member->{dateofbirth} );
-    is ($age, '19', "SetAge ISO_Date 18 years");
-
-    $age = '18-1-1';
-    eval { C4::Members::SetAge( $member, $age ); };
-    is ((length $@ > 1), '1', "SetAge ISO_Date $age years FAILS");
-
-    $age = '0018-01-01';
-    eval { C4::Members::SetAge( $member, $age ); };
-    is ((length $@ == 0), '1', "SetAge ISO_Date $age years succeeds");
-
-    ##Testing SetAge() for relative_date
-    my $relative_date = DateTime->new(year => 3010, month => 3, day => 15);
-
-    $age = DateTime::Duration->new(years => 10, months => 3);
-    C4::Members::SetAge( $member, $age, $relative_date );
-    $age = C4::Members::GetAge( $member->{dateofbirth}, $relative_date->ymd() );
-    is ($age, '10', "SetAge, 10 years and 3 months old person was born on ".$member->{dateofbirth}." if todays is ".$relative_date->ymd());
-
-    $age = DateTime::Duration->new(years => 112, months => 1, days => 1);
-    C4::Members::SetAge( $member, $age, $relative_date );
-    $age = C4::Members::GetAge( $member->{dateofbirth}, $relative_date->ymd() );
-    is ($age, '112', "SetAge, 112 years, 1 months and 1 days old person was born on ".$member->{dateofbirth}." if today is ".$relative_date->ymd());
-
-    $age = '0112-01-01';
-    C4::Members::SetAge( $member, $age, $relative_date );
-    $age = C4::Members::GetAge( $member->{dateofbirth}, $relative_date->ymd() );
-    is ($age, '112', "SetAge ISO_Date, 112 years, 1 months and 1 days old person was born on ".$member->{dateofbirth}." if today is ".$relative_date->ymd());
-
-    $member->{dateofbirth} = $original_dateofbirth; #It is polite to revert made changes in the unit tests.
-} #sub testAgeAccessors
-
-# regression test for bug 16009
-my $patron;
-eval {
-    my $patron = GetMember(cardnumber => undef);
+subtest 'Trivial test for AddMember_Auto' => sub {
+    plan tests => 3;
+    my $members_mock = Test::MockModule->new( 'C4::Members' );
+    $members_mock->mock( 'fixup_cardnumber', sub { 12345; } );
+    my $library = $builder->build({ source => 'Branch' });
+    my $category = $builder->build({ source => 'Category' });
+    my %borr = AddMember_Auto( surname=> 'Dick3', firstname => 'Philip', branchcode => $library->{branchcode}, categorycode => $category->{categorycode}, password => '34567890' );
+    ok( $borr{borrowernumber}, 'Borrower hash contains borrowernumber' );
+    is( $borr{cardnumber}, 12345, 'Borrower hash contains cardnumber' );
+    my $patron = Koha::Patrons->find( $borr{borrowernumber} );
+    isnt( $patron, undef, 'Patron found' );
 };
-is($@, '', 'Bug 16009: GetMember(cardnumber => undef) works');
-is($patron, undef, 'Bug 16009: GetMember(cardnumber => undef) returns undef');
 
-1;
+$schema->storage->txn_rollback;
+
+subtest 'AddMember (invalid categorycode) tests' => sub {
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    my $category    = $builder->build_object({ class => 'Koha::Patron::Categories' });
+    my $category_id = $category->id;
+    # Remove category to make sure the id is not on the DB
+    $category->delete;
+
+    my $patron_data = {
+        categorycode => $category_id
+    };
+
+    throws_ok
+        { AddMember( %{ $patron_data } ); }
+        'Koha::Exceptions::Object::FKConstraint',
+        'AddMember raises an exception on invalid categorycode';
+
+    $schema->storage->txn_rollback;
+};

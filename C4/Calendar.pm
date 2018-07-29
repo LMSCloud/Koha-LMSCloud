@@ -23,7 +23,7 @@ use Carp;
 use Date::Calc qw( Date_to_Days Today);
 
 use C4::Context;
-use Koha::Cache;
+use Koha::Caches;
 
 use constant ISO_DATE_FORMAT => "%04d-%02d-%02d";
 
@@ -201,7 +201,7 @@ sub insert_week_day_holiday {
     croak "Invalid weekday $weekday" unless $weekday =~ m/^[0-6]$/;
 
     my $dbh = C4::Context->dbh();
-    my $insertHoliday = $dbh->prepare("insert into repeatable_holidays (id,branchcode,weekday,day,month,title,description) values ( '',?,?,NULL,NULL,?,? )"); 
+    my $insertHoliday = $dbh->prepare("insert into repeatable_holidays (branchcode,weekday,day,month,title,description) values ( ?,?,NULL,NULL,?,? )");
 	$insertHoliday->execute( $self->{branchcode}, $weekday, $options{title}, $options{description});
     $self->{'week_days_holidays'}->{$weekday}{title} = $options{title};
     $self->{'week_days_holidays'}->{$weekday}{description} = $options{description};
@@ -232,7 +232,7 @@ sub insert_day_month_holiday {
     my %options = @_;
 
     my $dbh = C4::Context->dbh();
-    my $insertHoliday = $dbh->prepare("insert into repeatable_holidays (id,branchcode,weekday,day,month,title,description) values ('', ?, NULL, ?, ?, ?,? )");
+    my $insertHoliday = $dbh->prepare("insert into repeatable_holidays (branchcode,weekday,day,month,title,description) values (?, NULL, ?, ?, ?,? )");
 	$insertHoliday->execute( $self->{branchcode}, $options{day},$options{month},$options{title}, $options{description});
     $self->{'day_month_holidays'}->{"$options{month}/$options{day}"}{title} = $options{title};
     $self->{'day_month_holidays'}->{"$options{month}/$options{day}"}{description} = $options{description};
@@ -269,14 +269,14 @@ sub insert_single_holiday {
 
 	my $dbh = C4::Context->dbh();
     my $isexception = 0;
-    my $insertHoliday = $dbh->prepare("insert into special_holidays (id,branchcode,day,month,year,isexception,title,description) values ('', ?,?,?,?,?,?,?)");
+    my $insertHoliday = $dbh->prepare("insert into special_holidays (branchcode,day,month,year,isexception,title,description) values (?,?,?,?,?,?,?)");
 	$insertHoliday->execute( $self->{branchcode}, $options{day},$options{month},$options{year}, $isexception, $options{title}, $options{description});
     $self->{'single_holidays'}->{"$options{year}/$options{month}/$options{day}"}{title} = $options{title};
     $self->{'single_holidays'}->{"$options{year}/$options{month}/$options{day}"}{description} = $options{description};
 
 
     # changed the 'single_holidays' table, lets force/reset its cache
-    my $cache = Koha::Cache->get_instance();
+    my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'single_holidays') ;
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'exception_holidays') ;
 
@@ -315,13 +315,13 @@ sub insert_exception_holiday {
 
     my $dbh = C4::Context->dbh();
     my $isexception = 1;
-    my $insertException = $dbh->prepare("insert into special_holidays (id,branchcode,day,month,year,isexception,title,description) values ('', ?,?,?,?,?,?,?)");
+    my $insertException = $dbh->prepare("insert into special_holidays (branchcode,day,month,year,isexception,title,description) values (?,?,?,?,?,?,?)");
 	$insertException->execute( $self->{branchcode}, $options{day},$options{month},$options{year}, $isexception, $options{title}, $options{description});
     $self->{'exception_holidays'}->{"$options{year}/$options{month}/$options{day}"}{title} = $options{title};
     $self->{'exception_holidays'}->{"$options{year}/$options{month}/$options{day}"}{description} = $options{description};
 
     # changed the 'single_holidays' table, lets force/reset its cache
-    my $cache = Koha::Cache->get_instance();
+    my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'single_holidays') ;
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'exception_holidays') ;
 
@@ -422,7 +422,7 @@ UPDATE special_holidays SET title = ?, description = ?
     $self->{'single_holidays'}->{"$options{year}/$options{month}/$options{day}"}{description} = $options{description};
 
     # changed the 'single_holidays' table, lets force/reset its cache
-    my $cache = Koha::Cache->get_instance();
+    my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'single_holidays') ;
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'exception_holidays') ;
 
@@ -465,7 +465,7 @@ UPDATE special_holidays SET title = ?, description = ?
     $self->{'exception_holidays'}->{"$options{year}/$options{month}/$options{day}"}{description} = $options{description};
 
     # changed the 'single_holidays' table, lets force/reset its cache
-    my $cache = Koha::Cache->get_instance();
+    my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'single_holidays') ;
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'exception_holidays') ;
 
@@ -546,7 +546,7 @@ sub delete_holiday {
     }
 
     # changed the 'single_holidays' table, lets force/reset its cache
-    my $cache = Koha::Cache->get_instance();
+    my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'single_holidays') ;
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'exception_holidays') ;
 
@@ -577,7 +577,7 @@ sub delete_holiday_range {
     $sth->execute($self->{branchcode}, $options{day}, $options{month}, $options{year});
 
     # changed the 'single_holidays' table, lets force/reset its cache
-    my $cache = Koha::Cache->get_instance();
+    my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'single_holidays') ;
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'exception_holidays') ;
 
@@ -631,7 +631,7 @@ sub delete_exception_holiday_range {
     $sth->execute($self->{branchcode}, $options{day}, $options{month}, $options{year});
 
     # changed the 'single_holidays' table, lets force/reset its cache
-    my $cache = Koha::Cache->get_instance();
+    my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'single_holidays') ;
     $cache->clear_from_cache( $self->{branchcode} . '_' . 'exception_holidays') ;
 }
@@ -735,18 +735,18 @@ sub copy_to_branch {
 =cut
 
 sub copy_to_group {
-    my ($self, $target_branchgroup) = @_;
+    my ($self, $targetgroup) = @_;
 
     (defined($self) && defined($self->{branchcode})) or croak "No branchcode assigned.  Create the object using C4::Calendar->new(branchcode => \$branchcode)";
-    croak "No target_branchgroup" unless $target_branchgroup;
+    croak "No targetgroup" unless $targetgroup;
     
-    my $dbh = C4::Context->dbh();
-    my $sth = $dbh->prepare("SELECT branchcode,categorycode FROM branchrelations WHERE categorycode = ?");
-    $sth->execute($target_branchgroup);
+    my $group = Koha::Library::Groups->find($targetgroup);
     
-    while ( my $branch = $sth->fetchrow_hashref ) {
-        if ( $branch->{branchcode} ne $self->{branchcode} ) {
-            $self->copy_to_branch($branch->{branchcode});
+    if ( $group ) {
+        foreach my $library( $group->all_libraries ) {
+            if ( $library->branchcode ne $self->{branchcode} ) {
+                $self->copy_to_branch($library->branchcode);
+            }
         }
     }
 

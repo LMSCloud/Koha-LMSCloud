@@ -33,6 +33,7 @@ __PACKAGE__->table("authorised_values");
 
   data_type: 'varchar'
   default_value: (empty string)
+  is_foreign_key: 1
   is_nullable: 0
   size: 32
 
@@ -67,7 +68,13 @@ __PACKAGE__->add_columns(
   "id",
   { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "category",
-  { data_type => "varchar", default_value => "", is_nullable => 0, size => 32 },
+  {
+    data_type => "varchar",
+    default_value => "",
+    is_foreign_key => 1,
+    is_nullable => 0,
+    size => 32,
+  },
   "authorised_value",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 80 },
   "lib",
@@ -107,25 +114,25 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 items_search_fields
+=head2 category
 
-Type: has_many
+Type: belongs_to
 
-Related object: L<Koha::Schema::Result::ItemsSearchField>
+Related object: L<Koha::Schema::Result::AuthorisedValueCategory>
 
 =cut
 
-__PACKAGE__->has_many(
-  "items_search_fields",
-  "Koha::Schema::Result::ItemsSearchField",
-  { "foreign.authorised_values_category" => "self.category" },
-  { cascade_copy => 0, cascade_delete => 0 },
+__PACKAGE__->belongs_to(
+  "category",
+  "Koha::Schema::Result::AuthorisedValueCategory",
+  { category_name => "category" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2015-02-05 15:20:11
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:GS7UBpk66HAhBptwrpKR7Q
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-04-26 16:13:07
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:YwvGOd/jzk71ekWfO56xrw
 
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

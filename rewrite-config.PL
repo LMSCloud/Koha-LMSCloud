@@ -44,7 +44,7 @@ The following configuration keywords are available:
 
 PREFIX,
 BASE_DIR, CGI_DIR, LOG_DIR, PLUGINS_DIR, INSTALL_BASE,
-DB_TYPE, DB_HOST, DB_PORT, DB_NAME, DB_PASS, DB_USER, WEBMASTER_EMAIL, WEBSERVER_DOMAIN,
+DB_TYPE, DB_HOST, DB_PORT, DB_NAME, DB_PASS, DB_USER, DB_USE_TLS, DB_TLS_CA_CERT, DB_TLS_CLIENT_KEY, DB_TLS_CLIENT_CERT, WEBMASTER_EMAIL, WEBSERVER_DOMAIN,
 WEBSERVER_HOST, WEBSERVER_IP, WEBSERVER_PORT, WEBSERVER_PORT_LIBRARIAN, ZEBRA_PASS, ZEBRA_USER
 
 =head1 EXAMPLES
@@ -89,6 +89,10 @@ $prefix = $ENV{'INSTALL_BASE'} || "/usr";
   "__DB_PORT__" => "3306",
   "__DB_USER__" => "kohaadmin",
   "__DB_PASS__" => "katikoan",
+  "__DB_USE_TLS__" => "no",
+  "__DB_TLS_CA_CERTIFICATE__" => "",
+  "__DB_TLS_CLIENT_CERTIFICATE__" => "",
+  "__DB_TLS_CLIENT_KEY__"=>"",
   "__WEBMASTER_EMAIL__" => 'webmaster@'.$mydomain,
   "__WEBSERVER_DOMAIN__" => $mydomain,
   "__WEBSERVER_HOST__" => $myhost,
@@ -145,10 +149,11 @@ $prefix = $ENV{'INSTALL_BASE'} || "/usr";
   "__BIB_INDEX_MODE__" => 'grs1',
   "__RUN_DATABASE_TESTS__" => 'no',
   "__PATH_TO_ZEBRA__" => "",
-  "__USE_MEMCACHED__" => 'no',
+  "__USE_MEMCACHED__" => 'yes',
   "__MEMCACHED_SERVERS__" => "",
   "__MEMCACHED_NAMESPACE__" => "",
   "__FONT_DIR__" => "/usr/share/fonts/truetype/ttf-dejavu",
+  "__TEMPLATE_CACHE_DIR__" => "/tmp/koha"
 );
 
 # Override configuration from the environment

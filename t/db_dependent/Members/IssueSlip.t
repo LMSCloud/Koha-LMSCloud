@@ -18,18 +18,20 @@
 
 use Modern::Perl;
 
+use Data::Dumper; # REMOVEME with diag
 use Test::More tests => 3;
 use Test::MockModule;
+use Test::MockTime qw( set_fixed_time );
 use t::lib::TestBuilder;
 
 use C4::Biblio;
 use C4::Items;
 use C4::Members;
-use C4::Category;
 use C4::Circulation;
 
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Library;
+use Koha::Patrons;
 use DateTime::Duration;
 
 use MARC::Record;
@@ -41,12 +43,12 @@ my $dbh = C4::Context->dbh;
 $dbh->do(q|DELETE FROM issues|);
 $dbh->do(q|DELETE FROM borrowers|);
 $dbh->do(q|DELETE FROM items|);
-$dbh->do(q|DELETE FROM branches|);
 $dbh->do(q|DELETE FROM biblio|);
 $dbh->do(q|DELETE FROM categories|);
 $dbh->do(q|DELETE FROM letter|);
 
 my $builder = t::lib::TestBuilder->new;
+set_fixed_time(CORE::time());
 
 my $branchcode   = $builder->build({ source => 'Branch' })->{ branchcode };
 my $categorycode = $builder->build({ source => 'Category' })->{ categorycode };
@@ -118,7 +120,7 @@ my $itemnumber2 =
 
 my $borrowernumber =
   AddMember( categorycode => $categorycode, branchcode => $branchcode );
-my $borrower = GetMember( borrowernumber => $borrowernumber );
+my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 
 my $module = new Test::MockModule('C4::Context');
 $module->mock( 'userenv', sub { { branch => $branchcode } } );
@@ -158,6 +160,11 @@ EOS
         $date_due = $today_daily;
         $issue_date = $yesterday_daily;
         AddIssue( $borrower, $barcode2, $date_due, undef, $issue_date );
+
+        # Set timestamps to the same value to avoid a different order
+        Koha::Checkouts->search(
+            { borrowernumber => $borrower->{borrowernumber} }
+        )->update( { timestamp => dt_from_string } );
 
         $expected_slip = <<EOS;
 Checked out:
@@ -224,6 +231,11 @@ EOS
         $issue_date = $yesterday->clone;
         AddIssue( $borrower, $barcode2, $date_due_in_time, undef, $issue_date );
 
+        # Set timestamps to the same value to avoid a different order
+        Koha::Checkouts->search(
+            { borrowernumber => $borrower->{borrowernumber} }
+        )->update( { timestamp => dt_from_string } );
+
         $expected_slip = <<EOS;
 Checked out:
 
@@ -241,7 +253,8 @@ Overdues:
 
 EOS
         $slip = IssueSlip( $branchcode, $borrowernumber );
-        is( $slip->{content}, $expected_slip, 'IssueSlip should return a slip with 2 checkouts' );
+        is( $slip->{content}, $expected_slip, 'IssueSlip should return a slip with 2 checkouts' )
+            or diag(Dumper(Koha::Checkouts->search({borrowernumber => $borrower->{borrowernumber}})->unblessed));
 
         AddReturn( $barcode1, $branchcode );
         AddReturn( $barcode2, $branchcode );
@@ -398,22 +411,10 @@ EOS
 };
 
 subtest 'bad calls' => sub {
-    plan tests => 2;
-    AddIssue( $borrower, $barcode1, $today, undef, $yesterday );
+    plan tests => 1;
     my $slip = IssueSlip();
-    isnt( $slip, undef, 'IssueSlip should return if no param passed FIXME, should return undef' );
-    my $empty_slip = <<EOS;
-Checked out:
-
-
-Overdues:
-
-EOS
-
-    $slip = IssueSlip(undef, $borrowernumber+1);
-    is( $slip->{content}, $empty_slip, 'IssueSlip should not return an empty slip if the borrowernumber passed in param does not exist. But it is what it does for now (FIXME)' );
+    is( $slip, undef, 'IssueSlip should return if no valid borrowernumber is passed' );
 };
 
 $schema->storage->txn_rollback;
 
-1;

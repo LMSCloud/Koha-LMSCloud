@@ -20,17 +20,54 @@ use Modern::Perl;
 use Carp;
 
 use Koha::Database;
+use Koha::Account::Lines;
 
 use base qw(Koha::Object);
 
 =head1 NAME
+
 Koha::Account::Offset - Koha account offset Object class
+
 Account offsets are used to track the changes in account lines
+
 =head1 API
+
 =head2 Internal methods
+
 =cut
 
+=head3 debit
+
+my $debit = $account_offset->debit;
+
+Returns the related accountline that increased the amount owed by the patron.
+
+=cut
+
+sub debit {
+    my ( $self ) = @_;
+    my $debit_rs = $self->_result->debit;
+    return unless $debit_rs;
+    return Koha::Account::Line->_new_from_dbic( $debit_rs );
+}
+
+=head3 credit
+
+my $credit = $account_offset->credit;
+
+Returns the related accountline that decreased the amount owed by the patron.
+
+=cut
+
+sub credit {
+    my ( $self ) = @_;
+    my $credit_rs = $self->_result->credit;
+    return unless $credit_rs;
+    return Koha::Account::Line->_new_from_dbic( $credit_rs );
+}
+
 =head3 _type
+
 =cut
 
 sub _type {

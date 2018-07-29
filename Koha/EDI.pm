@@ -36,6 +36,8 @@ use Koha::Edifact;
 use Log::Log4perl;
 use Text::Unidecode;
 use Koha::Plugins::Handler;
+use Koha::Acquisition::Baskets;
+use Koha::Acquisition::Booksellers;
 
 our $VERSION = 1.1;
 our @EXPORT_OK =
@@ -544,11 +546,11 @@ sub quote_item {
     my ( $item, $quote, $basketno ) = @_;
 
     my $schema = Koha::Database->new()->schema();
-
-    # create biblio record
     my $logger = Log::Log4perl->get_logger();
-    if ( !$basketno ) {
-        $logger->error('Skipping order creation no basketno');
+
+    my $basket = Koha::Acquisition::Baskets->find( $basketno );
+    unless ( $basket ) {
+        $logger->error('Skipping order creation no valid basketno');
         return;
     }
     $logger->trace( 'Checking db for matches with ', $item->item_number_id() );
@@ -577,7 +579,7 @@ sub quote_item {
         }
         $order_quantity = 1;    # attempts to create an orderline for each gir
     }
-    my $vendor = $schema->resultset('Aqbookseller')->find( $quote->vendor_id );
+    my $vendor = Koha::Acquisition::Booksellers->find( $quote->vendor_id );
 
     # database definitions should set some of these defaults but dont
     my $order_hash = {
@@ -594,7 +596,7 @@ sub quote_item {
         uncertainprice => 0,
         sort1          => q{},
         sort2          => q{},
-        currency       => $vendor->listprice->currency,
+        currency       => $vendor->listprice(),
     };
 
     # suppliers references
@@ -796,7 +798,7 @@ sub quote_item {
                     );
                 }
 
-                if ( C4::Context->preference('AcqCreateItem') eq 'ordering' ) {
+                if ( $basket->effective_create_item eq 'ordering' ) {
                     my $new_item = {
                         notforloan       => -1,
                         cn_sort          => q{},

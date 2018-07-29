@@ -1,123 +1,39 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Overdue notice/status triggers</title>
 [% INCLUDE 'doc-head-close.inc' %]
-
-<script type="text/javascript">
-//<![CDATA[
-
-var tab_map = { "1" : _("First"), "2" : _("Second"), "3" : _("Third"), "4" : _("Fourth"), "5" : _("Fifth")};
-
-function clear_edit(){
-    $('#default-claiming-rules td').removeClass('highlighted-row');
-    var edit_row = $("#edit_row");
-    $(edit_row).find("input").each(function(){
-        var type = $(this).attr("type");
-        if (type != "button" && type != "submit" ) {
-            $(this).val("");
-            $(this).prop('disabled', false);
-        }
-        if ( type == "checkbox" ) {
-            $(this).prop('checked', true);
-        }
-    });
-    $(edit_row).find("select").prop('disabled', false);
-    $(edit_row).find("select option:selected").prop('selected', false);
-    $(edit_row).find("select option:first").attr("selected", "selected");
-    $(edit_row).find("td:last input[name='clear']").remove();
-}
-
-
-$(document).ready(function() {
-    $('#selectlibrary').find("input:submit").hide();
-    $('#branch').change(function() {
-            $('#selectlibrary').submit();
-    });
-    $('#claimlibrary').find("input:submit").hide();
-    $('#claimbranch').change(function() {
-            $('#claimlibrary').submit();
-    });
-    $("li>a.tab").each( function(){
-        var id = $(this).attr("data-number");
-        $(this).html(tab_map[id]);
-    } );
-    $('#rulestabs').tabs();
-    
-        $(".delete").on("click",function(){
-        return confirmDelete(MSG_CONFIRM_DELETE);
-    });
-
-    $(".editrule").click(function(){
-	if ( $(edit_row).find("input[type='text'][value!='']").length > 0 ) {
-	    var edit = confirm(_("Are you sure you want to edit another rule?"));
-	    if (!edit) return false;
-	}
-	$('#default-claiming-rules td').removeClass('highlighted-row');
-
-	$(this).parent().parent().find("td").each(function (i) {
-	    $(this).addClass('highlighted-row');
-	    itm = $(this).text();
-	    itm = itm.replace(/^\s*|\s*$/g,'');
-	    var current_column = $("#edit_row td:eq("+i+")");
-
-	    $(current_column).find("input[type='number']").val(itm);
-	    // select the corresponding option
-	    $(current_column).find("select option").each(function(){
-		opt = $(this).text().toLowerCase();
-		opt = opt.replace(/^\s*|\s*$/g,'');
-		if ( opt == itm.toLowerCase() ) {
-		    $(this).attr('selected', 'selected');
-		}
-	    });
-	    if ( i == 0 || i == 1 ) {
-		// Disable the 2 first columns, we cannot update them.
-		var val = $(current_column).find("select option:selected").val();
-		var name = "categorycode";
-		if ( i == 1 ) {
-		    name="itemtype";
-		}
-		// Remove potential previous input added
-		$(current_column).find("input").remove();
-		$(current_column).append("<input type='hidden' name='"+name+"' value='"+val+"' />");
-	    }
-
-	});
-	return false;
-    });
-});
-//]]>
-</script>
-
 </head>
+
 <body id="tools_overduerules" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
+
+[% branches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
+[% IF ( Koha.Preference("BookMobileSupportEnabled") and Koha.Preference("BookMobileStationOverdueRulesActive") ) %]
+    [% branches = Branches.all( selected => branch ) %]
+[% END %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Overdue notice/status triggers</div>
 
 <div id="doc3" class="yui-t2">
 <div id="bd">
     <div id="yui-main">
-        <div class="yui-b">
+    <div class="yui-b">
 
-            <h1>Defining [% IF ( branch ) %]overdue actions for [% Branches.GetName( branch ) %][% ELSE %]default overdue actions[% END %]</h1>
-            <div class="help">
-                <p>Delay is the number of days after a checkout is due before an action is triggered. </p>
-                <p>If you want Koha to trigger an action (send a letter or restrict a member), a delay value is required.</p>
-                <p>Columns must be filled left to right: if the first column is blank, other columns will be ignored. </p>
-            </div>
+        <h1>Defining [% IF ( branch ) %]overdue actions for [% Branches.GetName( branch ) %][% ELSE %]default overdue actions[% END %]</h1>
+        <div class="help">
+            <p>Delay is the number of days after a checkout is due before an action is triggered. </p>
+            <p>If you want Koha to trigger an action (send a letter or restrict a member), a delay value is required.</p>
+            <p>Columns must be filled left to right: if the first column is blank, other columns will be ignored. </p>
+        </div>
             <form method="post" action="/cgi-bin/koha/tools/overduerules.pl" id="selectlibrary">
                 <label for="branch">Select a library:</label>
                 <select id="branch" name="branch">
                     <option value="">Default</option>
-                    [% FOREACH branchloo IN branchloop %]
-                        [% IF ( branchloo.selected ) %]
-                            <option value="[% branchloo.value %]" selected="selected">[% branchloo.branchname %]</option>
-                        [% ELSE %]
-                            <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
-                        [% END %]
-                    [% END %]
+                    [% PROCESS options_for_libraries libraries => branches %]
                 </select>
                 <input type="submit" value="Select" />
             </form>
@@ -143,7 +59,7 @@ $(document).ready(function() {
                 <input type="hidden" name="op" value="save" />
                 <input type="hidden" name="branch" value="[% branch %]" />
                 <h3>Rules for overdue actions: [% IF ( branch ) %][% Branches.GetName( branch ) %][% ELSE %] default library [% END %]</h3>
-                [% IF ( datasaved ) %]<div class="dialog message">Changes saved.</div> [% END %]
+                    [% IF ( datasaved ) %]<div class="dialog message">Changes saved.</div> [% END %]
 
                 <div id="rulestabs" class="toptabs">
                     <ul class="ui-tabs-nav">
@@ -236,10 +152,10 @@ $(document).ready(function() {
             [% END %]
         
         
-        <div id="holds-policy-by-patron-category" class="container">
+        <div id="overdue-fines-policy" class="container">
 	    <h3 class="parameters">
-		[% IF ( humanbranch ) %]
-		    Rules for overdue fines: "[% humanbranch %]"
+		[% IF ( branch && branch != '*' ) %]
+		    Rules for overdue fines: "[% Branches.getName( branch ) | html %]"
 		[% ELSE %]
 		    Rules for overdue fines: all libraries
 		[% END %]
@@ -264,17 +180,16 @@ $(document).ready(function() {
 		    <form method="get" action="/cgi-bin/koha/tools/overduerules.pl" id="claimlibrary">
 		    Select a library :
 			<select name="branch" id="claimbranch" style="width:20em;">
-			    <option value="*">All libraries</option>
-			    [% FOREACH branchloo IN branchloop %]
-				[% IF ( branchloo.selected ) %]<option value="[% branchloo.value %]" selected="selected">[% branchloo.branchname %]</option>
-				[% ELSE %]<option value="[% branchloo.value %]">[% branchloo.branchname %]</option>[% END %]
-			    [% END %]
+			    <option value="*">Default</option>
+			    [% PROCESS options_for_libraries libraries => branches %]
 			</select>
 		    </form>
 		    [% IF ( definedbranch ) %]
 		    <form action="/cgi-bin/koha/tools/overduerules.pl" method="post">
 			<label for="tobranch"><strong>Clone these rules to:</strong></label><input type="hidden" name="frombranch" value="[% current_branch %]" /><input type="hidden" name="op" value="cloneRules" />
-			<select name="tobranch" id="tobranch">[% FOREACH branchloo IN branchloop %]<option value="[% branchloo.value %]">[% branchloo.branchname %]</option>[% END %]</select> <input type="submit" value="Clone" />
+			<select name="tobranch" id="tobranch">
+                [% PROCESS options_for_libraries libraries => branches %]
+            </select> <input type="submit" value="Clone" />
 		    </form>
 		    [% END %]
 		</p>
@@ -339,8 +254,8 @@ $(document).ready(function() {
 				    [% rule.claim_fee_level5 %]
 				</td>
 				<td class="actions">
-				    <a href="#" class="editrule btn btn-mini"><i class="fa fa-pencil"></i> Edit</a>
-				    <a class="btn btn-mini delete" href="/cgi-bin/koha/tools/overduerules.pl?op=deleteRule&amp;itemtype=[% rule.itemtype %]&amp;categorycode=[% rule.categorycode %]&amp;branch=[% rule.current_branch %]"><i class="fa fa-trash"></i> Delete</a>
+				    <a href="#" class="editrule btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+				    <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/tools/overduerules.pl?op=deleteRule&amp;itemtype=[% rule.itemtype %]&amp;categorycode=[% rule.categorycode %]&amp;branch=[% rule.current_branch %]"><i class="fa fa-trash"></i> Delete</a>
 				</td>
 			     </tr>
 			    [% END %]
@@ -378,8 +293,8 @@ $(document).ready(function() {
 				</td>
 				<td class="actions">
 				    <input type="hidden" name="branch" value="[% current_branch %]"/>
-				    <button type="submit" class="btn btn-mini"><i class="fa fa-save"></i> Save</button>
-				    <button name="cancel" onclick="clear_edit();return false;" class="btn btn-mini"><i class="fa fa-undo"></i> Clear</button>
+				    <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-save"></i> Save</button>
+				    <button name="cancel" onclick="clear_edit();return false;" class="clear_edit btn btn-default btn-xs"><i class="fa fa-undo"></i> Clear</button>
 				</td>
 			    </tr>
 			</tbody>
@@ -392,5 +307,91 @@ $(document).ready(function() {
     <div class="yui-b noprint">
         [% INCLUDE 'tools-menu.inc' %]
     </div>
-</div><!-- bd -->
+</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    <script type="text/javascript">
+        var tab_map = { "1" : _("First"), "2" : _("Second"), "3" : _("Third"), "4" : _("Fourth"), "5" : _("Fifth")};
+
+        function clear_edit(){
+            $('#default-claiming-rules td').removeClass('highlighted-row');
+            var edit_row = $("#edit_row");
+            $(edit_row).find("input").each(function(){
+                var type = $(this).attr("type");
+                if (type != "button" && type != "submit" ) {
+                    $(this).val("");
+                    $(this).prop('disabled', false);
+                }
+                if ( type == "checkbox" ) {
+                    $(this).prop('checked', true);
+                }
+            });
+            $(edit_row).find("select").prop('disabled', false);
+            $(edit_row).find("select option:selected").prop('selected', false);
+            $(edit_row).find("select option:first").attr("selected", "selected");
+            $(edit_row).find("td:last input[name='clear']").remove();
+        }
+
+
+        $(document).ready(function() {
+            $('#selectlibrary').find("input:submit").hide();
+            $('#branch').change(function() {
+                    $('#selectlibrary').submit();
+            });
+            $('#claimlibrary').find("input:submit").hide();
+            $('#claimbranch').change(function() {
+                    $('#claimlibrary').submit();
+            });
+            $("li>a.tab").each( function(){
+                var id = $(this).attr("data-number");
+                $(this).html(tab_map[id]);
+            } );
+            $('#rulestabs').tabs();
+            
+                $(".delete").on("click",function(){
+                return confirmDelete(MSG_CONFIRM_DELETE);
+            });
+
+            $(".editrule").click(function(){
+            if ( $(edit_row).find("input[type='text'][value!='']").length > 0 ) {
+                var edit = confirm(_("Are you sure you want to edit another rule?"));
+                if (!edit) return false;
+            }
+            $('#default-claiming-rules td').removeClass('highlighted-row');
+
+            $(this).parent().parent().find("td").each(function (i) {
+                $(this).addClass('highlighted-row');
+                itm = $(this).text();
+                itm = itm.replace(/^\s*|\s*$/g,'');
+                var current_column = $("#edit_row td:eq("+i+")");
+
+                $(current_column).find("input[type='number']").val(itm);
+                // select the corresponding option
+                $(current_column).find("select option").each(function(){
+                opt = $(this).text().toLowerCase();
+                opt = opt.replace(/^\s*|\s*$/g,'');
+                if ( opt == itm.toLowerCase() ) {
+                    $(this).attr('selected', 'selected');
+                }
+                });
+                if ( i == 0 || i == 1 ) {
+                // Disable the 2 first columns, we cannot update them.
+                var val = $(current_column).find("select option:selected").val();
+                var name = "categorycode";
+                if ( i == 1 ) {
+                    name="itemtype";
+                }
+                // Remove potential previous input added
+                $(current_column).find("input").remove();
+                $(current_column).append("<input type='hidden' name='"+name+"' value='"+val+"' />");
+                }
+
+            });
+            return false;
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

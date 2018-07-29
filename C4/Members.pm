@@ -28,6 +28,8 @@ use String::Random qw( random_string );
 use Scalar::Util qw( looks_like_number );
 use Date::Calc qw/Today Add_Delta_YM check_date Date_to_Days/;
 use Locale::Currency::Format 1.28;
+use List::MoreUtils qw( uniq );
+use JSON qw(to_json);
 use C4::Log; # logaction
 use C4::Overdues;
 use C4::Reserves;
@@ -39,9 +41,9 @@ use C4::NewsChannels; #get slip news
 use DateTime;
 use Koha::Database;
 use Koha::DateUtils;
-use Koha::Patron::Debarments qw(IsDebarred);
 use Text::Unaccent qw( unac_string );
 use Koha::AuthUtils qw(hash_password);
+use Koha::Acquisition::Currencies;
 use Koha::Database;
 use Koha::Holds;
 use Koha::List::Patron;
@@ -63,46 +65,12 @@ BEGIN {
     @ISA = qw(Exporter);
     #Get data
     push @EXPORT, qw(
-        &Search
-        &GetMemberDetails
-        &GetMember
 
-        &GetMemberIssuesAndFines
-        &GetPendingIssues
         &GetAllIssues
 
-        &GetFirstValidEmailAddress
-        &GetNoticeEmailAddress
-
-        &GetAge
-        &GetMemberAge
-        &GetSortDetails
-        &GetFamilyCardId
-        &IsFamilyCard
-
-        &GetHideLostItemsPreference
-
-        &IsMemberBlocked
-        &GetMemberAccountRecords
-        &GetBorNotifyAcctRecord
-
-        &GetborCatFromCatType
-        &GetBorrowercategory
-        GetBorrowerCategorycode
-        &GetBorrowercategoryList
-
         &GetBorrowersToExpunge
-        &GetBorrowersWhoHaveNeverBorrowed
-        &GetBorrowersWithIssuesHistoryOlderThan
-
-        &GetExpiryDate
-        &GetUpcomingMembershipExpires
 
         &IssueSlip
-        GetBorrowersWithEmail
-
-        HasOverdues
-        GetOverduesForPatron
     );
 
     #Modify data
@@ -111,25 +79,16 @@ BEGIN {
         &changepassword
     );
 
-    #Delete data
-    push @EXPORT, qw(
-        &DelMember
-    );
-
     #Insert data
     push @EXPORT, qw(
         &AddMember
+    &AddMember_Auto
         &AddMember_Opac
-        &MoveMemberToDeleted
-        &ExtendMemberSubscriptionTo
     );
 
     #Check data
     push @EXPORT, qw(
-        &checkuniquemember
         &checkuserpassword
-        &Check_Userid
-        &Generate_Userid
         &fixup_cardnumber
         &checkcardnumber
     );
@@ -148,107 +107,6 @@ use C4::Members;
 This module contains routines for adding, modifying and deleting members/patrons/borrowers 
 
 =head1 FUNCTIONS
-
-=head2 GetMemberDetails
-
-($borrower) = &GetMemberDetails($borrowernumber, $cardnumber);
-
-Looks up a patron and returns information about him or her. If
-C<$borrowernumber> is true (nonzero), C<&GetMemberDetails> looks
-up the borrower by number; otherwise, it looks up the borrower by card
-number.
-
-C<$borrower> is a reference-to-hash whose keys are the fields of the
-borrowers table in the Koha database. In addition,
-C<$borrower-E<gt>{flags}> is a hash giving more detailed information
-about the patron. Its keys act as flags :
-
-    if $borrower->{flags}->{LOST} {
-        # Patron's card was reported lost
-    }
-
-If the state of a flag means that the patron should not be
-allowed to borrow any more books, then it will have a C<noissues> key
-with a true value.
-
-See patronflags for more details.
-
-C<$borrower-E<gt>{authflags}> is a hash giving more detailed information
-about the top-level permissions flags set for the borrower.  For example,
-if a user has the "editcatalogue" permission,
-C<$borrower-E<gt>{authflags}-E<gt>{editcatalogue}> will exist and have
-the value "1".
-
-=cut
-
-sub GetMemberDetails {
-    my ( $borrowernumber, $cardnumber ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $query;
-    my $sth;
-    if ($borrowernumber) {
-        $sth = $dbh->prepare("
-            SELECT borrowers.*,
-                   category_type,
-                   categories.description,
-                   categories.BlockExpiredPatronOpacActions,
-                   reservefee,
-                   enrolmentperiod
-            FROM borrowers
-            LEFT JOIN categories ON borrowers.categorycode=categories.categorycode
-            WHERE borrowernumber = ?
-        ");
-        $sth->execute($borrowernumber);
-    }
-    elsif ($cardnumber) {
-        $sth = $dbh->prepare("
-            SELECT borrowers.*,
-                   category_type,
-                   categories.description,
-                   categories.BlockExpiredPatronOpacActions,
-                   reservefee,
-                   enrolmentperiod
-            FROM borrowers
-            LEFT JOIN categories ON borrowers.categorycode = categories.categorycode
-            WHERE cardnumber = ?
-        ");
-        $sth->execute($cardnumber);
-    }
-    else {
-        return;
-    }
-    my $borrower = $sth->fetchrow_hashref;
-    return unless $borrower;
-    my ($amount) = GetMemberAccountRecords($borrower->{borrowernumber});
-    $borrower->{'amountoutstanding'} = $amount;
-    # FIXME - patronflags calls GetMemberAccountRecords... just have patronflags return $amount
-    my $flags = patronflags( $borrower);
-    my $accessflagshash;
-
-    $sth = $dbh->prepare("select bit,flag from userflags");
-    $sth->execute;
-    while ( my ( $bit, $flag ) = $sth->fetchrow ) {
-        if ( $borrower->{'flags'} && $borrower->{'flags'} & 2**$bit ) {
-            $accessflagshash->{$flag} = 1;
-        }
-    }
-    $borrower->{'flags'}     = $flags;
-    $borrower->{'authflags'} = $accessflagshash;
-
-    # Handle setting the true behavior for BlockExpiredPatronOpacActions
-    $borrower->{'BlockExpiredPatronOpacActions'} =
-      C4::Context->preference('BlockExpiredPatronOpacActions')
-      if ( $borrower->{'BlockExpiredPatronOpacActions'} == -1 );
-
-    $borrower->{'is_expired'} = 0;
-    $borrower->{'is_expired'} = 1 if
-      defined($borrower->{dateexpiry}) &&
-      $borrower->{'dateexpiry'} ne '0000-00-00' &&
-      Date_to_Days( Today() ) >
-      Date_to_Days( split /-/, $borrower->{'dateexpiry'} );
-
-    return ($borrower);    #, $flags, $accessflagshash);
-}
 
 =head2 patronflags
 
@@ -313,11 +171,14 @@ The "message" field that comes from the DB is OK.
 
 # TODO: use {anonymous => hashes} instead of a dozen %flaginfo
 # FIXME rename this function.
+# DEPRECATED Do not use this subroutine!
 sub patronflags {
     my %flags;
     my ( $patroninformation) = @_;
     my $dbh=C4::Context->dbh;
-    my ($balance, $owing) = GetMemberAccountBalance( $patroninformation->{'borrowernumber'});
+    my $patron = Koha::Patrons->find( $patroninformation->{borrowernumber} );
+    my $account = $patron->account;
+    my $owing = $account->non_issues_charges;
     if ( $owing > 0 ) {
         my %flaginfo;
         my $noissuescharge = C4::Context->preference("noissuescharge") || 5;
@@ -328,7 +189,7 @@ sub patronflags {
         }
         $flags{'CHARGES'} = \%flaginfo;
     }
-    elsif ( $balance < 0 ) {
+    elsif ( ( my $balance = $account->balance ) < 0 ) {
         my %flaginfo;
         $flaginfo{'message'} = sprintf 'Patron has credit of %.02f', -$balance;
         $flaginfo{'amount'}  = sprintf "%.02f", $balance;
@@ -343,8 +204,7 @@ sub patronflags {
         my @guarantees = $p->guarantees();
         my $guarantees_non_issues_charges;
         foreach my $g ( @guarantees ) {
-            my ( $b, $n, $o ) = C4::Members::GetMemberAccountBalance( $g->id );
-            $guarantees_non_issues_charges += $n;
+            $guarantees_non_issues_charges += $g->account->non_issues_charges;
         }
 
         if ( $guarantees_non_issues_charges > $no_issues_charge_guarantees ) {
@@ -400,276 +260,17 @@ sub patronflags {
         }
         $flags{'ODUES'} = \%flaginfo;
     }
-    my @itemswaiting = C4::Reserves::GetReservesFromBorrowernumber( $patroninformation->{'borrowernumber'},'W' );
-    my $nowaiting = scalar @itemswaiting;
+
+    my $waiting_holds = $patron->holds->search({ found => 'W' });
+    my $nowaiting = $waiting_holds->count;
     if ( $nowaiting > 0 ) {
         my %flaginfo;
         $flaginfo{'message'}  = "Reserved items available";
-        $flaginfo{'itemlist'} = \@itemswaiting;
+        $flaginfo{'itemlist'} = $waiting_holds->unblessed;
         $flags{'WAITING'}     = \%flaginfo;
     }
     return ( \%flags );
 }
-
-
-=head2 GetMember
-
-  $borrower = &GetMember(%information);
-
-Retrieve the first patron record meeting on criteria listed in the
-C<%information> hash, which should contain one or more
-pairs of borrowers column names and values, e.g.,
-
-   $borrower = GetMember(borrowernumber => id);
-
-C<&GetBorrower> returns a reference-to-hash whose keys are the fields of
-the C<borrowers> table in the Koha database.
-
-FIXME: GetMember() is used throughout the code as a lookup
-on a unique key such as the borrowernumber, but this meaning is not
-enforced in the routine itself.
-
-=cut
-
-#'
-sub GetMember {
-    my ( %information ) = @_;
-    if (exists $information{borrowernumber} && !defined $information{borrowernumber}) {
-        #passing mysql's kohaadmin?? Makes no sense as a query
-        return;
-    }
-    my $dbh = C4::Context->dbh;
-    my $select =
-    q{SELECT borrowers.*, categories.category_type, categories.description
-    FROM borrowers 
-    LEFT JOIN categories on borrowers.categorycode=categories.categorycode WHERE };
-    my $more_p = 0;
-    my @values = ();
-    for (keys %information ) {
-        if ($more_p) {
-            $select .= ' AND ';
-        }
-        else {
-            $more_p++;
-        }
-
-        if (defined $information{$_}) {
-            $select .= "$_ = ?";
-            push @values, $information{$_};
-        }
-        else {
-            $select .= "$_ IS NULL";
-        }
-    }
-    $debug && warn $select, " ",values %information;
-    my $sth = $dbh->prepare("$select");
-    $sth->execute(@values);
-    my $data = $sth->fetchall_arrayref({});
-    #FIXME interface to this routine now allows generation of a result set
-    #so whole array should be returned but bowhere in the current code expects this
-    if (@{$data} ) {
-        return $data->[0];
-    }
-
-    return;
-}
-
-=head2 IsMemberBlocked
-
-  my ($block_status, $count) = IsMemberBlocked( $borrowernumber );
-
-Returns whether a patron is restricted or has overdue items that may result
-in a block of circulation privileges.
-
-C<$block_status> can have the following values:
-
-1 if the patron is currently restricted, in which case
-C<$count> is the expiration date (9999-12-31 for indefinite)
-
--1 if the patron has overdue items, in which case C<$count> is the number of them
-
-0 if the patron has no overdue items or outstanding fine days, in which case C<$count> is 0
-
-Existing active restrictions are checked before current overdue items.
-
-=cut
-
-sub IsMemberBlocked {
-    my $borrowernumber = shift;
-    my $dbh            = C4::Context->dbh;
-
-    my $blockeddate = Koha::Patron::Debarments::IsDebarred($borrowernumber);
-
-    return ( 1, $blockeddate ) if $blockeddate;
-
-    # if he have late issues
-    my $sth = $dbh->prepare(
-        "SELECT COUNT(*) as latedocs
-         FROM issues
-         WHERE borrowernumber = ?
-         AND date_due < now()"
-    );
-    $sth->execute($borrowernumber);
-    my $latedocs = $sth->fetchrow_hashref->{'latedocs'};
-
-    return ( -1, $latedocs ) if $latedocs > 0;
-
-    return ( 0, 0 );
-}
-
-=head2 GetMemberIssuesAndFines
-
-  ($overdue_count, $issue_count, $total_fines) = &GetMemberIssuesAndFines($borrowernumber);
-
-Returns aggregate data about items borrowed by the patron with the
-given borrowernumber.
-
-C<&GetMemberIssuesAndFines> returns a three-element array.  C<$overdue_count> is the
-number of overdue items the patron currently has borrowed. C<$issue_count> is the
-number of books the patron currently has borrowed.  C<$total_fines> is
-the total fine currently due by the borrower.
-
-=cut
-
-sub GetMemberIssuesAndFines {
-    my ( $borrowernumber ) = @_;
-    my $dbh   = C4::Context->dbh;
-    my $query = "SELECT COUNT(*) FROM issues WHERE borrowernumber = ?";
-
-    $debug and warn $query."\n";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($borrowernumber);
-    my $issue_count = $sth->fetchrow_arrayref->[0];
-
-    $sth = $dbh->prepare(
-        "SELECT COUNT(*) FROM issues 
-         WHERE borrowernumber = ? 
-         AND date_due < now()"
-    );
-    $sth->execute($borrowernumber);
-    my $overdue_count = $sth->fetchrow_arrayref->[0];
-
-    $sth = $dbh->prepare("SELECT SUM(amountoutstanding) FROM accountlines WHERE borrowernumber = ?");
-    $sth->execute($borrowernumber);
-    my $total_fines = $sth->fetchrow_arrayref->[0];
-
-    return ($overdue_count, $issue_count, $total_fines);
-}
-
-
-=head2 GetFamilyCardMemberIssuesAndFines
-
-  ($overdue_count, $issue_count, $total_fines) = &GetMemberIssuesAndFines($borrowernumber);
-
-Returns aggregate data about items borrowed by all members of a family card with the
-given borrowernumber.
-
-C<&GetFamilyCardMemberIssuesAndFines> returns a three-element array.  C<$overdue_count> is the
-number of overdue items the patron currently has borrowed. C<$issue_count> is the
-number of books the patron currently has borrowed.  C<$total_fines> is
-the total fine currently due by the borrower.
-
-=cut
-
-sub GetFamilyCardMemberIssuesAndFines {
-    my ($checkborrowernumber, $branchcode ) = @_;
-    
-    my $dbh = C4::Context->dbh;
-    
-    my ($borrowernumber) = $dbh->selectrow_array("SELECT IF(IFNULL(c.family_card,0)=0,o.borrowernumber,b.borrowernumber) AS borrowernumber
-                                   FROM borrowers o
-                                       LEFT JOIN borrowers b ON b.borrowernumber = o.guarantorid
-                                       LEFT JOIN categories c ON (c.categorycode = b.categorycode AND c.family_card = 1)
-                                   WHERE o.borrowernumber = ?",undef,($checkborrowernumber));
-                 
-    my @parameter = ($borrowernumber, $borrowernumber);
-    push(@parameter,$branchcode,$branchcode) if ($branchcode);
-    
-    my $query = "SELECT COUNT(*) FROM issues i, branches r
-        WHERE i.branchcode = r.branchcode 
-        AND (i.borrowernumber = ? 
-        OR i.borrowernumber IN 
-            (SELECT DISTINCT b.borrowernumber 
-             FROM borrowers b, categories c, borrowers o
-             WHERE b.guarantorid = ?
-             AND o.borrowernumber = b.guarantorid
-             AND c.categorycode = o.categorycode
-             AND c.family_card = 1))";
-    $query .= " AND (r.branchcode = ? OR r.mobilebranch = ?)" if ($branchcode);
-    $debug and warn $query."\n";
-    my $sth = $dbh->prepare($query);
-    $sth->execute(@parameter);
-    my $issue_count = $sth->fetchrow_arrayref->[0];
-
-    $query = "SELECT COUNT(*) FROM issues i, branches r
-         WHERE i.branchcode = r.branchcode 
-         AND (i.borrowernumber = ?
-         OR i.borrowernumber IN 
-            (SELECT DISTINCT b.borrowernumber 
-             FROM borrowers b, categories c, borrowers o
-             WHERE b.guarantorid = ?
-             AND o.borrowernumber = b.guarantorid
-             AND c.categorycode = o.categorycode
-             AND c.family_card = 1)) 
-         AND i.date_due < now()";
-    $query .= " AND (r.branchcode = ? OR r.mobilebranch = ?)" if ($branchcode);
-    $sth = $dbh->prepare($query);
-    $sth->execute(@parameter);
-    my $overdue_count = $sth->fetchrow_arrayref->[0];
-
-    $query = "SELECT SUM(amountoutstanding) 
-         FROM accountlines a, branches r
-         WHERE a.branchcode = r.branchcode
-         AND (a.borrowernumber = ?
-         OR a.borrowernumber IN 
-            (SELECT DISTINCT b.borrowernumber 
-             FROM borrowers b, categories c, borrowers o
-             WHERE b.guarantorid = ?
-             AND o.borrowernumber = b.guarantorid
-             AND c.categorycode = o.categorycode
-             AND c.family_card = 1))";
-    $query .= " AND (r.branchcode = ? OR r.mobilebranch = ?)" if ($branchcode);
-    $sth = $dbh->prepare($query);
-    $sth->execute(@parameter);
-    my $total_fines = $sth->fetchrow_arrayref->[0];
-
-    return ($overdue_count, $issue_count, $total_fines);
-}
-
-=head2 columns
-
-  my @columns = C4::Member::columns();
-
-Returns an array of borrowers' table columns on success,
-and an empty array on failure.
-
-=cut
-
-sub columns {
-
-    # Pure ANSI SQL goodness.
-    my $sql = 'SELECT * FROM borrowers WHERE 1=0;';
-
-    # Get the database handle.
-    my $dbh = C4::Context->dbh;
-
-    # Run the SQL statement to load STH's readonly properties.
-    my $sth = $dbh->prepare($sql);
-    my $rv = $sth->execute();
-
-    # This only fails if the table doesn't exist.
-    # This will always be called AFTER an install or upgrade,
-    # so borrowers will exist!
-    my @data;
-    if ($sth->{NUM_OF_FIELDS}>0) {
-        @data = @{$sth->{NAME}};
-    }
-    else {
-        @data = ();
-    }
-    return @data;
-}
-
 
 =head2 ModMember
 
@@ -685,6 +286,14 @@ true on success, or false on failure
 
 sub ModMember {
     my (%data) = @_;
+
+    # trim whitespace from data which has some non-whitespace in it.
+    foreach my $field_name (keys(%data)) {
+        if ( defined $data{$field_name} && $data{$field_name} =~ /\S/ ) {
+            $data{$field_name} =~ s/^\s*|\s*$//g;
+        }
+    }
+
     # test to know if you must update or not the borrower password
     if (exists $data{password}) {
         if ($data{password} eq '****' or $data{password} eq '') {
@@ -698,32 +307,50 @@ sub ModMember {
         }
     }
 
-    my $old_categorycode = GetBorrowerCategorycode( $data{borrowernumber} );
+    my $old_categorycode = Koha::Patrons->find( $data{borrowernumber} )->categorycode;
 
     # get only the columns of a borrower
     my $schema = Koha::Database->new()->schema;
     my @columns = $schema->source('Borrower')->columns;
     my $new_borrower = { map { join(' ', @columns) =~ /$_/ ? ( $_ => $data{$_} ) : () } keys(%data) };
-    delete $new_borrower->{flags};
 
     $new_borrower->{dateofbirth}     ||= undef if exists $new_borrower->{dateofbirth};
     $new_borrower->{dateenrolled}    ||= undef if exists $new_borrower->{dateenrolled};
     $new_borrower->{dateexpiry}      ||= undef if exists $new_borrower->{dateexpiry};
     $new_borrower->{debarred}        ||= undef if exists $new_borrower->{debarred};
     $new_borrower->{sms_provider_id} ||= undef if exists $new_borrower->{sms_provider_id};
+    $new_borrower->{guarantorid}     ||= undef if exists $new_borrower->{guarantorid};
 
-    my $rs = $schema->resultset('Borrower')->search({
-        borrowernumber => $new_borrower->{borrowernumber},
-     });
+    my $patron = Koha::Patrons->find( $new_borrower->{borrowernumber} );
+
+    my $borrowers_log = C4::Context->preference("BorrowersLog");
+    if ( $borrowers_log && $patron->cardnumber ne $new_borrower->{cardnumber} )
+    {
+        logaction(
+            "MEMBERS",
+            "MODIFY",
+            $data{'borrowernumber'},
+            to_json(
+                {
+                    cardnumber_replaced => {
+                        previous_cardnumber => $patron->cardnumber,
+                        new_cardnumber      => $new_borrower->{cardnumber},
+                    }
+                },
+                { utf8 => 1, pretty => 1 }
+            )
+        );
+    }
 
     delete $new_borrower->{userid} if exists $new_borrower->{userid} and not $new_borrower->{userid};
 
-    my $execute_success = $rs->update($new_borrower);
-    if ($execute_success ne '0E0') { # only proceed if the update was a success
+    my $execute_success = $patron->store if $patron->set($new_borrower);
+
+    if ($execute_success) { # only proceed if the update was a success
         # If the patron changes to a category with enrollment fee, we add a fee
         if ( $data{categorycode} and $data{categorycode} ne $old_categorycode ) {
             if ( C4::Context->preference('FeeOnChangePatronCategory') ) {
-                AddEnrolmentFeeIfNeeded( $data{categorycode}, $data{borrowernumber} );
+                $patron->add_enrolment_fee_if_needed;
             }
         }
         
@@ -750,7 +377,7 @@ sub ModMember {
             Koha::NorwegianPatronDB::NLSync({ 'borrowernumber' => $data{'borrowernumber'} });
         }
 
-        logaction("MEMBERS", "MODIFY", $data{'borrowernumber'}, "UPDATE (executed w/ arg: $data{'borrowernumber'})") if C4::Context->preference("BorrowersLog");
+        logaction("MEMBERS", "MODIFY", $data{'borrowernumber'}, "UPDATE (executed w/ arg: $data{'borrowernumber'})") if $borrowers_log;
     }
     return $execute_success;
 }
@@ -777,30 +404,50 @@ sub AddMember {
     my $dbh = C4::Context->dbh;
     my $schema = Koha::Database->new()->schema;
 
+    my $category = Koha::Patron::Categories->find( $data{categorycode} );
+    unless ($category) {
+        Koha::Exceptions::Object::FKConstraint->throw(
+            broken_fk => 'categorycode',
+            value     => $data{categorycode},
+        );
+    }
+
+    # trim whitespace from data which has some non-whitespace in it.
+    foreach my $field_name (keys(%data)) {
+        if ( defined $data{$field_name} && $data{$field_name} =~ /\S/ ) {
+            $data{$field_name} =~ s/^\s*|\s*$//g;
+        }
+    }
+
+    my $p = Koha::Patron->new( { userid => $data{userid}, firstname => $data{firstname}, surname => $data{surname} } );
     # generate a proper login if none provided
-    $data{'userid'} = Generate_Userid( $data{'borrowernumber'}, $data{'firstname'}, $data{'surname'} )
-      if ( $data{'userid'} eq '' || !Check_Userid( $data{'userid'} ) );
+    $data{'userid'} = $p->generate_userid
+      if ( $data{'userid'} eq '' || ! $p->has_valid_userid );
 
     # add expiration date if it isn't already there
-    if ( $data{'guarantorid'} && IsFamilyCard($data{'guarantorid'}) ) {
-        my $guarantor = GetMember(borrowernumber => $data{'guarantorid'});
-        $data{'dateexpiry'} = $guarantor->{'dateexpiry'};
+    # if it is a new family card member copy the expiration date from the guarantor
+    if ( $data{guarantorid} ) {
+        my $guarantor = Koha::Patrons->find( $data{guarantorid} );
+        $data{dateexpiry} = $guarantor->dateexpiry if ( $guarantor && $guarantor->is_family_card() );
     }
-    unless ( $data{'dateexpiry'} ) {
-        $data{'dateexpiry'} = GetExpiryDate( $data{'categorycode'}, output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } ) );
-    }
+    $data{dateexpiry} ||= $category->get_expiry_date;
 
     # add enrollment date if it isn't already there
     unless ( $data{'dateenrolled'} ) {
         $data{'dateenrolled'} = output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } );
     }
 
-    my $patron_category = $schema->resultset('Category')->find( $data{'categorycode'} );
+    if ( C4::Context->preference("autoMemberNum") ) {
+        if ( not exists $data{cardnumber} or not defined $data{cardnumber} or $data{cardnumber} eq '' ) {
+            $data{cardnumber} = fixup_cardnumber( $data{cardnumber} );
+        }
+    }
+
     $data{'privacy'} =
-        $patron_category->default_privacy() eq 'default' ? 1
-      : $patron_category->default_privacy() eq 'never'   ? 2
-      : $patron_category->default_privacy() eq 'forever' ? 0
-      :                                                    undef;
+        $category->default_privacy() eq 'default' ? 1
+      : $category->default_privacy() eq 'never'   ? 2
+      : $category->default_privacy() eq 'forever' ? 0
+      :                                             undef;
 
     $data{'privacy_guarantor_checkouts'} = 0 unless defined( $data{'privacy_guarantor_checkouts'} );
 
@@ -814,14 +461,17 @@ sub AddMember {
     $data{'dateofbirth'}     = undef if ( not $data{'dateofbirth'} );
     $data{'debarred'}        = undef if ( not $data{'debarred'} );
     $data{'sms_provider_id'} = undef if ( not $data{'sms_provider_id'} );
+    $data{'guarantorid'}     = undef if ( not $data{'guarantorid'} );
 
     # get only the columns of Borrower
+    # FIXME Do we really need this check?
     my @columns = $schema->source('Borrower')->columns;
     my $new_member = { map { join(' ',@columns) =~ /$_/ ? ( $_ => $data{$_} )  : () } keys(%data) } ;
+
     delete $new_member->{borrowernumber};
 
-    my $rs = $schema->resultset('Borrower');
-    $data{borrowernumber} = $rs->create($new_member)->id;
+    my $patron = Koha::Patron->new( $new_member )->store;
+    $data{borrowernumber} = $patron->borrowernumber;
 
     # If NorwegianPatronDBEnable is enabled, we set syncstatus to something that a
     # cronjob will use for syncing with NL
@@ -835,105 +485,12 @@ sub AddMember {
         });
     }
 
-    # mysql_insertid is probably bad.  not necessarily accurate and mysql-specific at best.
     logaction("MEMBERS", "CREATE", $data{'borrowernumber'}, "") if C4::Context->preference("BorrowersLog");
 
-    AddEnrolmentFeeIfNeeded( $data{categorycode}, $data{borrowernumber} );
+    $patron->add_enrolment_fee_if_needed;
 
     return $data{borrowernumber};
 }
-
-=head2 Check_Userid
-
-    my $uniqueness = Check_Userid($userid,$borrowernumber);
-
-    $borrowernumber is optional (i.e. it can contain a blank value). If $userid is passed with a blank $borrowernumber variable, the database will be checked for all instances of that userid (i.e. userid=? AND borrowernumber != '').
-
-    If $borrowernumber is provided, the database will be checked for every instance of that userid coupled with a different borrower(number) than the one provided.
-
-    return :
-        0 for not unique (i.e. this $userid already exists)
-        1 for unique (i.e. this $userid does not exist, or this $userid/$borrowernumber combination already exists)
-
-=cut
-
-sub Check_Userid {
-    my ( $uid, $borrowernumber ) = @_;
-
-    return 0 unless ($uid); # userid is a unique column, we should assume NULL is not unique
-
-    return 0 if ( $uid eq C4::Context->config('user') );
-
-    my $rs = Koha::Database->new()->schema()->resultset('Borrower');
-
-    my $params;
-    $params->{userid} = $uid;
-    $params->{borrowernumber} = { '!=' => $borrowernumber } if ($borrowernumber);
-
-    my $count = $rs->count( $params );
-
-    return $count ? 0 : 1;
-}
-
-=head2 Generate_Userid
-
-    my $newuid = Generate_Userid($borrowernumber, $firstname, $surname);
-
-    Generate a userid using the $surname and the $firstname (if there is a value in $firstname).
-
-    $borrowernumber is optional (i.e. it can contain a blank value). A value is passed when generating a new userid for an existing borrower. When a new userid is created for a new borrower, a blank value is passed to this sub.
-
-    return :
-        new userid ($firstname.$surname if there is a $firstname, or $surname if there is no value in $firstname) plus offset (0 if the $newuid is unique, or a higher numeric value if Check_Userid finds an existing match for the $newuid in the database).
-
-=cut
-
-sub Generate_Userid {
-  my ($borrowernumber, $firstname, $surname) = @_;
-  my $newuid;
-  my $offset = 0;
-  #The script will "do" the following code and increment the $offset until Check_Userid = 1 (i.e. until $newuid comes back as unique)
-  do {
-    $firstname =~ s/[[:digit:][:space:][:blank:][:punct:][:cntrl:]]//g;
-    $surname =~ s/[[:digit:][:space:][:blank:][:punct:][:cntrl:]]//g;
-    $newuid = lc(($firstname)? "$firstname.$surname" : $surname);
-    $newuid = unac_string('utf-8',$newuid);
-    $newuid .= $offset unless $offset == 0;
-    $offset++;
-
-   } while (!Check_Userid($newuid,$borrowernumber));
-
-   return $newuid;
-}
-
-sub changepassword {
-    my ( $uid, $member, $digest ) = @_;
-    my $dbh = C4::Context->dbh;
-
-#Make sure the userid chosen is unique and not theirs if non-empty. If it is not,
-#Then we need to tell the user and have them create a new one.
-    my $resultcode;
-    my $sth =
-      $dbh->prepare(
-        "SELECT * FROM borrowers WHERE userid=? AND borrowernumber != ?");
-    $sth->execute( $uid, $member );
-    if ( ( $uid ne '' ) && ( my $row = $sth->fetchrow_hashref ) ) {
-        $resultcode=0;
-    }
-    else {
-        #Everything is good so we can update the information.
-        $sth =
-          $dbh->prepare(
-            "update borrowers set userid=?, password=? where borrowernumber=?");
-        $sth->execute( $uid, $digest, $member );
-        $resultcode=1;
-    }
-    
-    logaction("MEMBERS", "CHANGE PASS", $member, "") if C4::Context->preference("BorrowersLog");
-    return $resultcode;    
-}
-
-
 
 =head2 fixup_cardnumber
 
@@ -941,9 +498,6 @@ Warning: The caller is responsible for locking the members table in write
 mode, to avoid database corruption.
 
 =cut
-
-use vars qw( @weightings );
-my @weightings = ( 8, 4, 6, 3, 5, 2, 1 );
 
 sub fixup_cardnumber {
     my ($cardnumber) = @_;
@@ -953,143 +507,15 @@ sub fixup_cardnumber {
     # automatically. Should be either "1" or something else.
     # Defaults to "0", which is interpreted as "no".
 
-    #     if ($cardnumber !~ /\S/ && $autonumber_members) {
     ($autonumber_members) or return $cardnumber;
-    my $checkdigit = C4::Context->preference('checkdigit');
     my $dbh = C4::Context->dbh;
-    if ( $checkdigit and $checkdigit eq 'katipo' ) {
 
-        # if checkdigit is selected, calculate katipo-style cardnumber.
-        # otherwise, just use the max()
-        # purpose: generate checksum'd member numbers.
-        # We'll assume we just got the max value of digits 2-8 of member #'s
-        # from the database and our job is to increment that by one,
-        # determine the 1st and 9th digits and return the full string.
-        my $sth = $dbh->prepare(
-            "select max(substring(borrowers.cardnumber,2,7)) as new_num from borrowers"
-        );
-        $sth->execute;
-        my $data = $sth->fetchrow_hashref;
-        $cardnumber = $data->{new_num};
-        if ( !$cardnumber ) {    # If DB has no values,
-            $cardnumber = 1000000;    # start at 1000000
-        } else {
-            $cardnumber += 1;
-        }
-
-        my $sum = 0;
-        for ( my $i = 0 ; $i < 8 ; $i += 1 ) {
-            # read weightings, left to right, 1 char at a time
-            my $temp1 = $weightings[$i];
-
-            # sequence left to right, 1 char at a time
-            my $temp2 = substr( $cardnumber, $i, 1 );
-
-            # mult each char 1-7 by its corresponding weighting
-            $sum += $temp1 * $temp2;
-        }
-
-        my $rem = ( $sum % 11 );
-        $rem = 'X' if $rem == 10;
-
-        return "V$cardnumber$rem";
-     } else {
-
-        my $sth = $dbh->prepare(
-            'SELECT MAX( CAST( cardnumber AS SIGNED ) ) FROM borrowers WHERE cardnumber REGEXP "^-?[0-9]+$"'
-        );
-        $sth->execute;
-        my ($result) = $sth->fetchrow;
-        return $result + 1;
-    }
-    return $cardnumber;     # just here as a fallback/reminder 
-}
-
-=head2 GetPendingIssues
-
-  my $issues = &GetPendingIssues(@borrowernumber);
-
-Looks up what the patron with the given borrowernumber has borrowed.
-
-C<&GetPendingIssues> returns a
-reference-to-array where each element is a reference-to-hash; the
-keys are the fields from the C<issues>, C<biblio>, and C<items> tables.
-The keys include C<biblioitems> fields except marc and marcxml.
-
-=cut
-
-sub GetPendingIssues {
-    my @borrowernumbers = @_;
-
-    unless (@borrowernumbers ) { # return a ref_to_array
-        return \@borrowernumbers; # to not cause surprise to caller
-    }
-
-    # Borrowers part of the query
-    my $bquery = '';
-    for (my $i = 0; $i < @borrowernumbers; $i++) {
-        $bquery .= ' issues.borrowernumber = ?';
-        if ($i < $#borrowernumbers ) {
-            $bquery .= ' OR';
-        }
-    }
-
-    # must avoid biblioitems.* to prevent large marc and marcxml fields from killing performance
-    # FIXME: namespace collision: each table has "timestamp" fields.  Which one is "timestamp" ?
-    # FIXME: circ/ciculation.pl tries to sort by timestamp!
-    # FIXME: namespace collision: other collisions possible.
-    # FIXME: most of this data isn't really being used by callers.
-    my $query =
-   "SELECT issues.*,
-            items.*,
-           biblio.*,
-           biblioitems.volume,
-           biblioitems.number,
-           biblioitems.itemtype,
-           biblioitems.isbn,
-           biblioitems.issn,
-           biblioitems.publicationyear,
-           biblioitems.publishercode,
-           biblioitems.volumedate,
-           biblioitems.volumedesc,
-           biblioitems.lccn,
-           biblioitems.url,
-           borrowers.firstname,
-           borrowers.surname,
-           borrowers.cardnumber,
-           issues.timestamp AS timestamp,
-           issues.renewals  AS renewals,
-           issues.borrowernumber AS borrowernumber,
-            items.renewals  AS totalrenewals
-    FROM   issues
-    LEFT JOIN items       ON items.itemnumber       =      issues.itemnumber
-    LEFT JOIN biblio      ON items.biblionumber     =      biblio.biblionumber
-    LEFT JOIN biblioitems ON items.biblioitemnumber = biblioitems.biblioitemnumber
-    LEFT JOIN borrowers ON issues.borrowernumber = borrowers.borrowernumber
-    WHERE
-      $bquery
-    ORDER BY issues.issuedate"
-    ;
-
-    my $sth = C4::Context->dbh->prepare($query);
-    $sth->execute(@borrowernumbers);
-    my $data = $sth->fetchall_arrayref({});
-    my $today = dt_from_string;
-    foreach (@{$data}) {
-        if ($_->{issuedate}) {
-            $_->{issuedate} = dt_from_string($_->{issuedate}, 'sql');
-        }
-        $_->{date_due_sql} = $_->{date_due};
-        # FIXME no need to have this value
-        $_->{date_due} or next;
-        $_->{date_due_sql} = $_->{date_due};
-        # FIXME no need to have this value
-        $_->{date_due} = dt_from_string($_->{date_due}, 'sql');
-        if ( DateTime->compare($_->{date_due}, $today) == -1 ) {
-            $_->{overdue} = 1;
-        }
-    }
-    return $data;
+    my $sth = $dbh->prepare(
+        'SELECT MAX( CAST( cardnumber AS SIGNED ) ) FROM borrowers WHERE cardnumber REGEXP "^-?[0-9]+$"'
+    );
+    $sth->execute;
+    my ($result) = $sth->fetchrow;
+    return $result + 1;
 }
 
 =head2 GetAllIssues
@@ -1143,169 +569,6 @@ sub GetAllIssues {
     return $sth->fetchall_arrayref( {} );
 }
 
-
-=head2 GetMemberAccountRecords
-
-  ($total, $acctlines, $count) = &GetMemberAccountRecords($borrowernumber);
-
-Looks up accounting data for the patron with the given borrowernumber.
-
-C<&GetMemberAccountRecords> returns a three-element array. C<$acctlines> is a
-reference-to-array, where each element is a reference-to-hash; the
-keys are the fields of the C<accountlines> table in the Koha database.
-C<$count> is the number of elements in C<$acctlines>. C<$total> is the
-total amount outstanding for all of the account lines.
-
-=cut
-
-sub GetMemberAccountRecords {
-    my ($borrowernumber) = @_;
-    my $dbh = C4::Context->dbh;
-    my @acctlines;
-    my $numlines = 0;
-    my $strsth      = qq(
-                        SELECT * 
-                        FROM accountlines 
-                        WHERE borrowernumber=?);
-    $strsth.=" ORDER BY accountlines_id desc";
-    my $sth= $dbh->prepare( $strsth );
-    $sth->execute( $borrowernumber );
-
-    my $total = 0;
-    while ( my $data = $sth->fetchrow_hashref ) {
-        if ( $data->{itemnumber} ) {
-            my $biblio = GetBiblioFromItemNumber( $data->{itemnumber} );
-            $data->{biblionumber} = $biblio->{biblionumber};
-            $data->{title}        = $biblio->{title};
-        }
-        $acctlines[$numlines] = $data;
-        $numlines++;
-        $total += sprintf "%.0f", 1000*$data->{amountoutstanding}; # convert float to integer to avoid round-off errors
-    }
-    $total /= 1000;
-    return ( $total, \@acctlines,$numlines);
-}
-
-=head2 GetMemberAccountBalance
-
-  ($total_balance, $non_issue_balance, $other_charges) = &GetMemberAccountBalance($borrowernumber);
-
-Calculates amount immediately owing by the patron - non-issue charges.
-Based on GetMemberAccountRecords.
-Charges exempt from non-issue are:
-* Res (reserves)
-* Rent (rental) if RentalsInNoissuesCharge syspref is set to false
-* Manual invoices if ManInvInNoissuesCharge syspref is set to false
-
-=cut
-
-sub GetMemberAccountBalance {
-    my ($borrowernumber) = @_;
-
-    my $ACCOUNT_TYPE_LENGTH = 5; # this is plain ridiculous...
-
-    my @not_fines;
-    push @not_fines, 'Res' unless C4::Context->preference('HoldsInNoissuesCharge');
-    push @not_fines, 'Rent' unless C4::Context->preference('RentalsInNoissuesCharge');
-    unless ( C4::Context->preference('ManInvInNoissuesCharge') ) {
-        my $dbh = C4::Context->dbh;
-        my $man_inv_types = $dbh->selectcol_arrayref(qq{SELECT authorised_value FROM authorised_values WHERE category = 'MANUAL_INV'});
-        push @not_fines, map substr($_, 0, $ACCOUNT_TYPE_LENGTH), @$man_inv_types;
-    }
-    my %not_fine = map {$_ => 1} @not_fines;
-
-    my ($total, $acctlines) = GetMemberAccountRecords($borrowernumber);
-    my $other_charges = 0;
-    foreach (@$acctlines) {
-        $other_charges += $_->{amountoutstanding} if $not_fine{ substr($_->{accounttype}, 0, $ACCOUNT_TYPE_LENGTH) };
-    }
-
-    return ( $total, $total - $other_charges, $other_charges);
-}
-
-=head2 GetBorNotifyAcctRecord
-
-  ($total, $acctlines, $count) = &GetBorNotifyAcctRecord($params,$notifyid);
-
-Looks up accounting data for the patron with the given borrowernumber per file number.
-
-C<&GetBorNotifyAcctRecord> returns a three-element array. C<$acctlines> is a
-reference-to-array, where each element is a reference-to-hash; the
-keys are the fields of the C<accountlines> table in the Koha database.
-C<$count> is the number of elements in C<$acctlines>. C<$total> is the
-total amount outstanding for all of the account lines.
-
-=cut
-
-sub GetBorNotifyAcctRecord {
-    my ( $borrowernumber, $notifyid ) = @_;
-    my $dbh = C4::Context->dbh;
-    my @acctlines;
-    my $numlines = 0;
-    my $sth = $dbh->prepare(
-            "SELECT * 
-                FROM accountlines 
-                WHERE borrowernumber=? 
-                    AND notify_id=? 
-                    AND amountoutstanding != '0' 
-                ORDER BY notify_id,accounttype
-                ");
-
-    $sth->execute( $borrowernumber, $notifyid );
-    my $total = 0;
-    while ( my $data = $sth->fetchrow_hashref ) {
-        if ( $data->{itemnumber} ) {
-            my $biblio = GetBiblioFromItemNumber( $data->{itemnumber} );
-            $data->{biblionumber} = $biblio->{biblionumber};
-            $data->{title}        = $biblio->{title};
-        }
-        $acctlines[$numlines] = $data;
-        $numlines++;
-        $total += int(100 * $data->{'amountoutstanding'});
-    }
-    $total /= 100;
-    return ( $total, \@acctlines, $numlines );
-}
-
-=head2 checkuniquemember (OUEST-PROVENCE)
-
-  ($result,$categorycode)  = &checkuniquemember($collectivity,$surname,$firstname,$dateofbirth);
-
-Checks that a member exists or not in the database.
-
-C<&result> is nonzero (=exist) or 0 (=does not exist)
-C<&categorycode> is from categorycode table
-C<&collectivity> is 1 (= we add a collectivity) or 0 (= we add a physical member)
-C<&surname> is the surname
-C<&firstname> is the firstname (only if collectivity=0)
-C<&dateofbirth> is the date of birth in ISO format (only if collectivity=0)
-
-=cut
-
-# FIXME: This function is not legitimate.  Multiple patrons might have the same first/last name and birthdate.
-# This is especially true since first name is not even a required field.
-
-sub checkuniquemember {
-    my ( $collectivity, $surname, $firstname, $dateofbirth ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $request = ($collectivity) ?
-        "SELECT borrowernumber,categorycode FROM borrowers WHERE surname=? " :
-            ($dateofbirth) ?
-            "SELECT borrowernumber,categorycode FROM borrowers WHERE surname=? and firstname=?  and dateofbirth=?" :
-            "SELECT borrowernumber,categorycode FROM borrowers WHERE surname=? and firstname=?";
-    my $sth = $dbh->prepare($request);
-    if ($collectivity) {
-        $sth->execute( uc($surname) );
-    } elsif($dateofbirth){
-        $sth->execute( uc($surname), ucfirst($firstname), $dateofbirth );
-    }else{
-        $sth->execute( uc($surname), ucfirst($firstname));
-    }
-    my @data = $sth->fetchrow;
-    ( $data[0] ) and return $data[0], $data[1];
-    return 0;
-}
-
 sub checkcardnumber {
     my ( $cardnumber, $borrowernumber ) = @_;
 
@@ -1343,7 +606,9 @@ database column.
 =cut
 
 sub get_cardnumber_length {
-    my ( $min, $max ) = ( 0, 16 ); # borrowers.cardnumber is a nullable varchar(16)
+    my $borrower = Koha::Schema->resultset('Borrower');
+    my $field_size = $borrower->result_source->column_info('cardnumber')->{size};
+    my ( $min, $max ) = ( 0, $field_size ); # borrowers.cardnumber is a nullable varchar(20)
     $min = 1 if C4::Context->preference('BorrowerMandatoryField') =~ /cardnumber/;
     if ( my $cardnumber_length = C4::Context->preference('CardnumberLength') ) {
         # Is integer and length match
@@ -1359,637 +624,8 @@ sub get_cardnumber_length {
         }
 
     }
-    my $borrower = Koha::Schema->resultset('Borrower');
-    my $field_size = $borrower->result_source->column_info('cardnumber')->{size};
-    $min = $field_size if $min > $field_size;
+    $min = $max if $min > $max;
     return ( $min, $max );
-}
-
-=head2 GetFirstValidEmailAddress
-
-  $email = GetFirstValidEmailAddress($borrowernumber);
-
-Return the first valid email address for a borrower, given the borrowernumber.  For now, the order 
-is defined as email, emailpro, B_email.  Returns the empty string if the borrower has no email 
-addresses.
-
-=cut
-
-sub GetFirstValidEmailAddress {
-    my $borrowernumber = shift;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare( "SELECT email, emailpro, B_email FROM borrowers where borrowernumber = ? ");
-    $sth->execute( $borrowernumber );
-    my $data = $sth->fetchrow_hashref;
-
-    if ($data->{'email'}) {
-       return $data->{'email'};
-    } elsif ($data->{'emailpro'}) {
-       return $data->{'emailpro'};
-    } elsif ($data->{'B_email'}) {
-       return $data->{'B_email'};
-    } else {
-       return '';
-    }
-}
-
-=head2 GetNoticeEmailAddress
-
-  $email = GetNoticeEmailAddress($borrowernumber);
-
-Return the email address of borrower used for notices, given the borrowernumber.
-Returns the empty string if no email address.
-
-=cut
-
-sub GetNoticeEmailAddress {
-    my $borrowernumber = shift;
-
-    my $which_address = C4::Context->preference("AutoEmailPrimaryAddress");
-    # if syspref is set to 'first valid' (value == OFF), look up email address
-    if ( $which_address eq 'OFF' ) {
-        return GetFirstValidEmailAddress($borrowernumber);
-    }
-    # specified email address field
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare( qq{
-        SELECT $which_address AS primaryemail
-        FROM borrowers
-        WHERE borrowernumber=?
-    } );
-    $sth->execute($borrowernumber);
-    my $data = $sth->fetchrow_hashref;
-    return $data->{'primaryemail'} || '';
-}
-
-=head2 GetExpiryDate 
-
-  $expirydate = GetExpiryDate($categorycode, $dateenrolled);
-
-Calculate expiry date given a categorycode and starting date.  Date argument must be in ISO format.
-Return date is also in ISO format.
-
-=cut
-
-sub GetExpiryDate {
-    my ( $categorycode, $dateenrolled ) = @_;
-    my $enrolments;
-    if ($categorycode) {
-        my $dbh = C4::Context->dbh;
-        my $sth = $dbh->prepare("SELECT enrolmentperiod,enrolmentperioddate FROM categories WHERE categorycode=?");
-        $sth->execute($categorycode);
-        $enrolments = $sth->fetchrow_hashref;
-    }
-    # die "GetExpiryDate: for enrollmentperiod $enrolmentperiod (category '$categorycode') starting $dateenrolled.\n";
-    my @date = split (/-/,$dateenrolled);
-    if($enrolments->{enrolmentperiod}){
-        return sprintf("%04d-%02d-%02d", Add_Delta_YM(@date,0,$enrolments->{enrolmentperiod}));
-    }else{
-        return $enrolments->{enrolmentperioddate};
-    }
-}
-
-=head2 GetUpcomingMembershipExpires
-
-    my $expires = GetUpcomingMembershipExpires({
-        branch => $branch, before => $before, after => $after,
-    });
-
-    $branch is an optional branch code.
-    $before/$after is an optional number of days before/after the date that
-    is set by the preference MembershipExpiryDaysNotice.
-    If the pref would be 14, before 2 and after 3, you will get all expires
-    from 12 to 17 days.
-
-=cut
-
-sub GetUpcomingMembershipExpires {
-    my ( $params ) = @_;
-    my $before = $params->{before} || 0;
-    my $after  = $params->{after} || 0;
-    my $branch = $params->{branch};
-
-    my $dbh = C4::Context->dbh;
-    my $days = C4::Context->preference("MembershipExpiryDaysNotice") || 0;
-    my $date1 = dt_from_string->add( days => $days - $before );
-    my $date2 = dt_from_string->add( days => $days + $after );
-    $date1= output_pref({ dt => $date1, dateformat => 'iso', dateonly => 1 });
-    $date2= output_pref({ dt => $date2, dateformat => 'iso', dateonly => 1 });
-
-    my $query = q|
-        SELECT borrowers.*, categories.description,
-        branches.branchname, branches.branchemail FROM borrowers
-        LEFT JOIN branches USING (branchcode)
-        LEFT JOIN categories USING (categorycode)
-    |;
-    if( $branch ) {
-        $query.= 'WHERE branchcode=? AND dateexpiry BETWEEN ? AND ?';
-    } else {
-        $query.= 'WHERE dateexpiry BETWEEN ? AND ?';
-    }
-
-    my $sth = $dbh->prepare( $query );
-    my @pars = $branch? ( $branch ): ();
-    push @pars, $date1, $date2;
-    $sth->execute( @pars );
-    my $results = $sth->fetchall_arrayref( {} );
-    
-    # add branchemail
-    $sth = $dbh->prepare("SELECT branchcode, branchemail, mobilebranch FROM branches");
-    $sth->execute();
-    my $branchdata = $sth->fetchall_arrayref({});
-    
-    my %branchmail;
-    # if it is not a mobilebook station add the branchemail
-    foreach my $branch( @$branchdata ) {
-        $branchmail{$branch->{branchcode}} = $branch->{branchemail} if (! $branch->{mobilebranch} );
-    }
-    # if it is a mobilebook station add the branchemail of the mobilebook branch
-    foreach my $branch( @$branchdata ) {
-        $branchmail{$branch->{branchcode}} = $branchmail{$branch->{mobilebranch}} if ( $branch->{mobilebranch} && exists($branchmail{$branch->{mobilebranch}}) );
-    }
-    # now add the branchemail to the data
-    foreach my $result ( @$results ) {
-        $result->{branchemail} = '';
-        $result->{branchemail} = $branchmail{$result->{branchcode}} if (defined($branchmail{$result->{branchcode}}));
-    }
-    
-    return $results;
-}
-
-=head2 GetborCatFromCatType
-
-  ($codes_arrayref, $labels_hashref) = &GetborCatFromCatType();
-
-Looks up the different types of borrowers in the database. Returns two
-elements: a reference-to-array, which lists the borrower category
-codes, and a reference-to-hash, which maps the borrower category codes
-to category descriptions.
-
-=cut
-
-#'
-sub GetborCatFromCatType {
-    my ( $category_type, $action, $no_branch_limit ) = @_;
-
-    my $branch_limit = $no_branch_limit
-        ? 0
-        : C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
-
-    # FIXME - This API  seems both limited and dangerous.
-    my $dbh     = C4::Context->dbh;
-
-    my $request = qq{
-        SELECT DISTINCT categories.categorycode, categories.description
-        FROM categories
-    };
-    $request .= qq{
-        LEFT JOIN categories_branches ON categories.categorycode = categories_branches.categorycode
-    } if $branch_limit;
-    if($action) {
-        $request .= " $action ";
-        $request .= " AND (branchcode = ? OR branchcode IS NULL)" if $branch_limit;
-    } else {
-        $request .= " WHERE branchcode = ? OR branchcode IS NULL" if $branch_limit;
-    }
-    $request .= " ORDER BY categorycode";
-
-    my $sth = $dbh->prepare($request);
-    $sth->execute(
-        $action ? $category_type : (),
-        $branch_limit ? $branch_limit : ()
-    );
-
-    my %labels;
-    my @codes;
-
-    while ( my $data = $sth->fetchrow_hashref ) {
-        push @codes, $data->{'categorycode'};
-        $labels{ $data->{'categorycode'} } = $data->{'description'};
-    }
-    $sth->finish;
-    return ( \@codes, \%labels );
-}
-
-=head2 GetBorrowercategory
-
-  $hashref = &GetBorrowercategory($categorycode);
-
-Given the borrower's category code, the function returns the corresponding
-data hashref for a comprehensive information display.
-
-=cut
-
-sub GetBorrowercategory {
-    my ($catcode) = @_;
-    my $dbh       = C4::Context->dbh;
-    if ($catcode){
-        my $sth       =
-        $dbh->prepare(
-    "SELECT description,dateofbirthrequired,upperagelimit,category_type 
-    FROM categories 
-    WHERE categorycode = ?"
-        );
-        $sth->execute($catcode);
-        my $data =
-        $sth->fetchrow_hashref;
-        return $data;
-    } 
-    return;  
-}    # sub getborrowercategory
-
-
-=head2 GetBorrowerCategorycode
-
-    $categorycode = &GetBorrowerCategoryCode( $borrowernumber );
-
-Given the borrowernumber, the function returns the corresponding categorycode
-
-=cut
-
-sub GetBorrowerCategorycode {
-    my ( $borrowernumber ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare( qq{
-        SELECT categorycode
-        FROM borrowers
-        WHERE borrowernumber = ?
-    } );
-    $sth->execute( $borrowernumber );
-    return $sth->fetchrow;
-}
-
-=head2 GetBorrowercategoryList
-
-  $arrayref_hashref = &GetBorrowercategoryList;
-If no category code provided, the function returns all the categories.
-
-=cut
-
-sub GetBorrowercategoryList {
-    my $no_branch_limit = @_ ? shift : 0;
-    my $branch_limit = $no_branch_limit
-        ? 0
-        : C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
-    my $dbh       = C4::Context->dbh;
-    my $query = "SELECT categories.* FROM categories";
-    $query .= qq{
-        LEFT JOIN categories_branches ON categories.categorycode = categories_branches.categorycode
-        WHERE branchcode = ? OR branchcode IS NULL GROUP BY description
-    } if $branch_limit;
-    $query .= " ORDER BY description";
-    my $sth = $dbh->prepare( $query );
-    $sth->execute( $branch_limit ? $branch_limit : () );
-    my $data = $sth->fetchall_arrayref( {} );
-    $sth->finish;
-    return $data;
-}    # sub getborrowercategory
-
-=head2 GetAge
-
-  $dateofbirth,$date = &GetAge($date);
-
-this function return the borrowers age with the value of dateofbirth
-
-=cut
-
-#'
-sub GetAge{
-    my ( $date, $date_ref ) = @_;
-
-    if ( not defined $date_ref ) {
-        $date_ref = sprintf( '%04d-%02d-%02d', Today() );
-    }
-
-    my ( $year1, $month1, $day1 ) = split /-/, $date;
-    my ( $year2, $month2, $day2 ) = split /-/, $date_ref;
-
-    my $age = $year2 - $year1;
-    if ( $month1 . $day1 > $month2 . $day2 ) {
-        $age--;
-    }
-
-    return $age;
-}    # sub get_age
-
-
-=head2 GetMemberAge
-
-  my $age = &GetMemberAge($borrowernumber);
-
-this function returns the borrowers age 
-
-=cut
-
-sub GetMemberAge {
-    my ($borrowernumber) = @_;
-    
-    my $borrower = GetMember(borrowernumber => $borrowernumber);
-    
-    return GetAge($borrower->{'dateofbirth'});
-}
-
-=head2 SetAge
-
-  $borrower = C4::Members::SetAge($borrower, $datetimeduration);
-  $borrower = C4::Members::SetAge($borrower, '0015-12-10');
-  $borrower = C4::Members::SetAge($borrower, $datetimeduration, $datetime_reference);
-
-  eval { $borrower = C4::Members::SetAge($borrower, '015-1-10'); };
-  if ($@) {print $@;} #Catch a bad ISO Date or kill your script!
-
-This function sets the borrower's dateofbirth to match the given age.
-Optionally relative to the given $datetime_reference.
-
-@PARAM1 koha.borrowers-object
-@PARAM2 DateTime::Duration-object as the desired age
-        OR a ISO 8601 Date. (To make the API more pleasant)
-@PARAM3 DateTime-object as the relative date, defaults to now().
-RETURNS The given borrower reference @PARAM1.
-DIES    If there was an error with the ISO Date handling.
-
-=cut
-
-#'
-sub SetAge{
-    my ( $borrower, $datetimeduration, $datetime_ref ) = @_;
-    $datetime_ref = DateTime->now() unless $datetime_ref;
-
-    if ($datetimeduration && ref $datetimeduration ne 'DateTime::Duration') {
-        if ($datetimeduration =~ /^(\d{4})-(\d{2})-(\d{2})/) {
-            $datetimeduration = DateTime::Duration->new(years => $1, months => $2, days => $3);
-        }
-        else {
-            die "C4::Members::SetAge($borrower, $datetimeduration), datetimeduration not a valid ISO 8601 Date!\n";
-        }
-    }
-
-    my $new_datetime_ref = $datetime_ref->clone();
-    $new_datetime_ref->subtract_duration( $datetimeduration );
-
-    $borrower->{dateofbirth} = $new_datetime_ref->ymd();
-
-    return $borrower;
-}    # sub SetAge
-
-=head2 GetSortDetails (OUEST-PROVENCE)
-
-  ($lib) = &GetSortDetails($category,$sortvalue);
-
-Returns the authorized value  details
-C<&$lib>return value of authorized value details
-C<&$sortvalue>this is the value of authorized value 
-C<&$category>this is the value of authorized value category
-
-=cut
-
-sub GetSortDetails {
-    my ( $category, $sortvalue ) = @_;
-    my $dbh   = C4::Context->dbh;
-    my $query = qq|SELECT lib 
-        FROM authorised_values 
-        WHERE category=?
-        AND authorised_value=? |;
-    my $sth = $dbh->prepare($query);
-    $sth->execute( $category, $sortvalue );
-    my $lib = $sth->fetchrow;
-    return ($lib) if ($lib);
-    return ($sortvalue) unless ($lib);
-}
-
-=head2 MoveMemberToDeleted
-
-  $result = &MoveMemberToDeleted($borrowernumber);
-
-Copy the record from borrowers to deletedborrowers table.
-The routine returns 1 for success, undef for failure.
-
-=cut
-
-sub MoveMemberToDeleted {
-    my ($member) = shift or return;
-
-    my $schema       = Koha::Database->new()->schema();
-    my $borrowers_rs = $schema->resultset('Borrower');
-    $borrowers_rs->result_class('DBIx::Class::ResultClass::HashRefInflator');
-    my $borrower = $borrowers_rs->find($member);
-    return unless $borrower;
-
-    delete $borrower->{updated_on};
-
-    my $deleted = $schema->resultset('Deletedborrower')->create($borrower);
-
-    return $deleted ? 1 : undef;
-}
-
-=head2 DelMember
-
-    DelMember($borrowernumber);
-
-This function remove directly a borrower whitout writing it on deleteborrower.
-+ Deletes reserves for the borrower
-
-=cut
-
-sub DelMember {
-    my $dbh            = C4::Context->dbh;
-    my $borrowernumber = shift;
-    #warn "in delmember with $borrowernumber";
-    return unless $borrowernumber;    # borrowernumber is mandatory.
-    # Delete Patron's holds
-    my @holds = Koha::Holds->search({ borrowernumber => $borrowernumber });
-    $_->delete for @holds;
-
-    my $query = "
-       DELETE
-       FROM borrowers
-       WHERE borrowernumber = ?
-   ";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($borrowernumber);
-    logaction("MEMBERS", "DELETE", $borrowernumber, "") if C4::Context->preference("BorrowersLog");
-    return $sth->rows;
-}
-
-=head2 HandleDelBorrower
-
-     HandleDelBorrower($borrower);
-
-When a member is deleted (DelMember in Members.pm), you should call me first.
-This routine deletes/moves lists and entries for the deleted member/borrower.
-Lists owned by the borrower are deleted, but entries from the borrower to
-other lists are kept.
-
-=cut
-
-sub HandleDelBorrower {
-    my ($borrower)= @_;
-    my $query;
-    my $dbh = C4::Context->dbh;
-
-    #Delete all lists and all shares of this borrower
-    #Consistent with the approach Koha uses on deleting individual lists
-    #Note that entries in virtualshelfcontents added by this borrower to
-    #lists of others will be handled by a table constraint: the borrower
-    #is set to NULL in those entries.
-    $query="DELETE FROM virtualshelves WHERE owner=?";
-    $dbh->do($query,undef,($borrower));
-
-    #NOTE:
-    #We could handle the above deletes via a constraint too.
-    #But a new BZ report 11889 has been opened to discuss another approach.
-    #Instead of deleting we could also disown lists (based on a pref).
-    #In that way we could save shared and public lists.
-    #The current table constraints support that idea now.
-    #This pref should then govern the results of other routines/methods such as
-    #Koha::Virtualshelf->new->delete too.
-}
-
-=head2 ExtendMemberSubscriptionTo (OUEST-PROVENCE)
-
-    $date = ExtendMemberSubscriptionTo($borrowerid, $date);
-
-Extending the subscription to a given date or to the expiry date calculated on ISO date.
-Returns ISO date.
-
-=cut
-
-sub ExtendMemberSubscriptionTo {
-    my ( $borrowerid,$date) = @_;
-    my $dbh = C4::Context->dbh;
-    my $borrower = GetMember('borrowernumber'=>$borrowerid);
-    unless ($date){
-      $date = (C4::Context->preference('BorrowerRenewalPeriodBase') eq 'dateexpiry') ?
-                                        eval { output_pref( { dt => dt_from_string( $borrower->{'dateexpiry'}  ), dateonly => 1, dateformat => 'iso' } ); }
-                                        :
-                                        output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } );
-      $date = GetExpiryDate( $borrower->{'categorycode'}, $date );
-    }
-    my $result = $dbh->do("UPDATE borrowers SET dateexpiry = ? WHERE borrowernumber = ?", undef, $date, $borrowerid);
-
-    AddEnrolmentFeeIfNeeded( $borrower->{categorycode}, $borrower->{borrowernumber} );
-
-    logaction("MEMBERS", "RENEW", $borrower->{'borrowernumber'}, "Membership renewed") if C4::Context->preference("BorrowersLog");
-
-    UpdateFamilyCardMembers($borrowerid,$date);
-    
-    return $date if ($result);
-    return 0;
-}
-
-=head2 UpdateFamilyCardMembers
-
-  &UpdateFamilyCardMembers($borrowernumber,$date);
-
-Update family card member subscriptions to a given date if the borrowers category is family card category.
-
-=cut
-
-sub UpdateFamilyCardMembers {
-    my ($borrowerid,$date) = @_;
-    
-    my $dbh = C4::Context->dbh;
-    
-    my $query = q{
-        SELECT l.borrowernumber as borrowernumber
-        FROM borrowers b, borrowers l, categories c
-        WHERE     b.borrowernumber = ? 
-              AND c.family_card = 1 
-              AND l.guarantorid = b.borrowernumber
-              AND c.categorycode = b.categorycode};
-    $query =~ s/^\s+/ /mg; 
-    my $sth = $dbh->prepare($query);
-    
-    $sth->execute($borrowerid);
-    while (my $row = $sth->fetchrow_hashref) {
-        $dbh->do("UPDATE borrowers SET dateexpiry = ? WHERE borrowernumber = ?", undef, $date, $row->{borrowernumber});
-        logaction("MEMBERS", "RENEW", $row->{borrowernumber}, "Membership renewed with family card") if C4::Context->preference("BorrowersLog");
-    }
-    $sth->finish;
-}
-
-=head2 GetFamilyCardId
-
-  &GetFamilyCardId($borrowernumber);
-
-Get information about the linked family card if the borrower belongs to a family card subscription.
-
-=cut
-
-sub GetFamilyCardId {
-    my ($borrowerid) = @_;
-    my $familyCardNumber = undef;
-    
-    my $dbh = C4::Context->dbh;
-    
-    my $query = q{
-        SELECT distinct b.borrowernumber as borrowernumber
-        FROM borrowers b, borrowers l, categories c
-        WHERE     l.borrowernumber = ? 
-              AND c.family_card = 1 
-              AND l.guarantorid = b.borrowernumber
-              AND c.categorycode = b.categorycode};
-    $query =~ s/^\s+/ /mg; 
-    my $sth = $dbh->prepare($query);
-    
-    $sth->execute($borrowerid);
-    while (my $row = $sth->fetchrow_hashref) {
-        $familyCardNumber = $row->{borrowernumber};
-    }
-    $sth->finish;
-    
-    return $familyCardNumber;
-}
-
-=head2 IsFamilyCard
-
-  &IsFamilyCard($borrowernumber);
-
-Return true if the card is a family card. The borrower category must have set the rlated flag if true.
-
-=cut
-
-sub IsFamilyCard {
-    my ($borrowerid) = @_;
-    my $familyCard = 0;
-    
-    my $dbh = C4::Context->dbh;
-    
-    my $query = q{
-        SELECT b.borrowernumber
-        FROM borrowers b, categories c
-        WHERE     b.borrowernumber = ?
-              AND c.categorycode = b.categorycode
-              AND c.family_card = 1};
-    $query =~ s/^\s+/ /mg; 
-    my $sth = $dbh->prepare($query);
-    
-    $sth->execute($borrowerid);
-    if (my $row = $sth->fetchrow_hashref) {
-        $familyCard = 1;
-    }
-    $sth->finish;
-    
-    return $familyCard;
-}
-
-=head2 GetHideLostItemsPreference
-
-  $hidelostitemspref = &GetHideLostItemsPreference($borrowernumber);
-
-Returns the HideLostItems preference for the patron category of the supplied borrowernumber
-C<&$hidelostitemspref>return value of function, 0 or 1
-
-=cut
-
-sub GetHideLostItemsPreference {
-    my ($borrowernumber) = @_;
-    my $dbh = C4::Context->dbh;
-    my $query = "SELECT hidelostitems FROM borrowers,categories WHERE borrowers.categorycode = categories.categorycode AND borrowernumber = ?";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($borrowernumber);
-    my $hidelostitems = $sth->fetchrow;    
-    return $hidelostitems;    
 }
 
 =head2 GetBorrowersToExpunge
@@ -2011,6 +647,7 @@ sub GetBorrowersToExpunge {
     my $params = shift;
     my $filterdate       = $params->{'not_borrowed_since'};
     my $filterexpiry     = $params->{'expired_before'};
+    my $filterlastseen   = $params->{'last_seen'};
     my $filtercategory   = $params->{'category_code'};
     my $filterbranch     = $params->{'branchcode'} ||
                         ((C4::Context->preference('IndependentBranches')
@@ -2023,25 +660,27 @@ sub GetBorrowersToExpunge {
 
     my $dbh   = C4::Context->dbh;
     my $query = q|
-        SELECT borrowers.borrowernumber,
-               MAX(old_issues.timestamp) AS latestissue,
-               MAX(issues.timestamp) AS currentissue
-        FROM   borrowers
-        JOIN   categories USING (categorycode)
-        LEFT JOIN (
-            SELECT guarantorid
-            FROM borrowers
-            WHERE guarantorid IS NOT NULL
-                AND guarantorid <> 0
-        ) as tmp ON borrowers.borrowernumber=tmp.guarantorid
-        LEFT JOIN old_issues USING (borrowernumber)
-        LEFT JOIN issues USING (borrowernumber)|;
+        SELECT *
+        FROM (
+            SELECT borrowers.borrowernumber,
+                   MAX(old_issues.timestamp) AS latestissue,
+                   MAX(issues.timestamp) AS currentissue
+            FROM   borrowers
+            JOIN   categories USING (categorycode)
+            LEFT JOIN (
+                SELECT guarantorid
+                FROM borrowers
+                WHERE guarantorid IS NOT NULL
+                    AND guarantorid <> 0
+            ) as tmp ON borrowers.borrowernumber=tmp.guarantorid
+            LEFT JOIN old_issues USING (borrowernumber)
+            LEFT JOIN issues USING (borrowernumber)|;
     if ( $filterpatronlist  ){
         $query .= q| LEFT JOIN patron_list_patrons USING (borrowernumber)|;
     }
     $query .= q| WHERE  category_type <> 'S'
         AND tmp.guarantorid IS NULL
-   |;
+    |;
     my @query_params;
     if ( $filterbranch && $filterbranch ne "" ) {
         $query.= " AND borrowers.branchcode = ? ";
@@ -2051,6 +690,10 @@ sub GetBorrowersToExpunge {
         $query .= " AND dateexpiry < ? ";
         push( @query_params, $filterexpiry );
     }
+    if ( $filterlastseen ) {
+        $query .= ' AND lastseen < ? ';
+        push @query_params, $filterlastseen;
+    }
     if ( $filtercategory ) {
         $query .= " AND categorycode = ? ";
         push( @query_params, $filtercategory );
@@ -2059,11 +702,14 @@ sub GetBorrowersToExpunge {
         $query.=" AND patron_list_id = ? ";
         push( @query_params, $filterpatronlist );
     }
-    $query.=" GROUP BY borrowers.borrowernumber HAVING currentissue IS NULL ";
+    $query .= " GROUP BY borrowers.borrowernumber";
+    $query .= q|
+        ) xxx WHERE currentissue IS NULL|;
     if ( $filterdate ) {
         $query.=" AND ( latestissue < ? OR latestissue IS NULL ) ";
         push @query_params,$filterdate;
     }
+
     warn $query if $debug;
 
     my $sth = $dbh->prepare($query);
@@ -2079,124 +725,6 @@ sub GetBorrowersToExpunge {
         push @results, $data;
     }
     return \@results;
-}
-
-=head2 GetBorrowersWhoHaveNeverBorrowed
-
-  $results = &GetBorrowersWhoHaveNeverBorrowed
-
-This function get all borrowers who have never borrowed.
-
-I<$result> is a ref to an array which all elements are a hasref.
-
-=cut
-
-sub GetBorrowersWhoHaveNeverBorrowed {
-    my $filterbranch = shift || 
-                        ((C4::Context->preference('IndependentBranches')
-                             && C4::Context->userenv 
-                             && !C4::Context->IsSuperLibrarian()
-                             && C4::Context->userenv->{branch})
-                         ? C4::Context->userenv->{branch}
-                         : "");  
-    my $dbh   = C4::Context->dbh;
-    my $query = "
-        SELECT borrowers.borrowernumber,max(timestamp) as latestissue
-        FROM   borrowers
-          LEFT JOIN issues ON borrowers.borrowernumber = issues.borrowernumber
-        WHERE issues.borrowernumber IS NULL
-   ";
-    my @query_params;
-    if ($filterbranch && $filterbranch ne ""){ 
-        $query.=" AND borrowers.branchcode= ?";
-        push @query_params,$filterbranch;
-    }
-    warn $query if $debug;
-  
-    my $sth = $dbh->prepare($query);
-    if (scalar(@query_params)>0){  
-        $sth->execute(@query_params);
-    } 
-    else {
-        $sth->execute;
-    }      
-    
-    my @results;
-    while ( my $data = $sth->fetchrow_hashref ) {
-        push @results, $data;
-    }
-    return \@results;
-}
-
-=head2 GetBorrowersWithIssuesHistoryOlderThan
-
-  $results = &GetBorrowersWithIssuesHistoryOlderThan($date)
-
-this function get all borrowers who has an issue history older than I<$date> given on input arg.
-
-I<$result> is a ref to an array which all elements are a hashref.
-This hashref is containt the number of time this borrowers has borrowed before I<$date> and the borrowernumber.
-
-=cut
-
-sub GetBorrowersWithIssuesHistoryOlderThan {
-    my $dbh  = C4::Context->dbh;
-    my $date = shift ||POSIX::strftime("%Y-%m-%d",localtime());
-    my $filterbranch = shift || 
-                        ((C4::Context->preference('IndependentBranches')
-                             && C4::Context->userenv 
-                             && !C4::Context->IsSuperLibrarian()
-                             && C4::Context->userenv->{branch})
-                         ? C4::Context->userenv->{branch}
-                         : "");  
-    my $query = "
-       SELECT count(borrowernumber) as n,borrowernumber
-       FROM old_issues
-       WHERE returndate < ?
-         AND borrowernumber IS NOT NULL 
-    "; 
-    my @query_params;
-    push @query_params, $date;
-    if ($filterbranch){
-        $query.="   AND branchcode = ?";
-        push @query_params, $filterbranch;
-    }    
-    $query.=" GROUP BY borrowernumber ";
-    warn $query if $debug;
-    my $sth = $dbh->prepare($query);
-    $sth->execute(@query_params);
-    my @results;
-
-    while ( my $data = $sth->fetchrow_hashref ) {
-        push @results, $data;
-    }
-    return \@results;
-}
-
-=head2 GetBorrowersNamesAndLatestIssue
-
-  $results = &GetBorrowersNamesAndLatestIssueList(@borrowernumbers)
-
-this function get borrowers Names and surnames and Issue information.
-
-I<@borrowernumbers> is an array which all elements are borrowernumbers.
-This hashref is containt the number of time this borrowers has borrowed before I<$date> and the borrowernumber.
-
-=cut
-
-sub GetBorrowersNamesAndLatestIssue {
-    my $dbh  = C4::Context->dbh;
-    my @borrowernumbers=@_;  
-    my $query = "
-       SELECT surname,lastname, phone, email,max(timestamp)
-       FROM borrowers 
-         LEFT JOIN issues ON borrowers.borrowernumber=issues.borrowernumber
-       GROUP BY borrowernumber
-   ";
-    my $sth = $dbh->prepare($query);
-    $sth->execute;
-    my $results = $sth->fetchall_arrayref({});
-    return $results;
 }
 
 =head2 IssueSlip
@@ -2243,7 +771,7 @@ sub GetBorrowersNamesAndLatestIssue {
          <<issues.*>>
       </checkedout>
 
-  NOTE: Not all table fields are available, pleasee see GetPendingIssues for a list of available fields.
+  NOTE: Fields from tables issues, items, biblio and biblioitems are available
 
 =cut
 
@@ -2252,70 +780,108 @@ sub IssueSlip {
 
     # FIXME Check callers before removing this statement
     #return unless $borrowernumber;
-
+    
     my $active_currency = Koha::Acquisition::Currencies->get_active;
     my $currency_format;
     $currency_format = $active_currency->currency if defined($active_currency);
 
-    my @issues = @{ GetPendingIssues($borrowernumber) };
-    my ($amountoutstanding) = GetMemberAccountRecords($borrowernumber);
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return unless $patron;
 
-    for my $issue (@issues) {
-        $issue->{date_due} = $issue->{date_due_sql};
-        if ($quickslip) {
-            my $today = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
-            if ( substr( $issue->{issuedate}, 0, 10 ) eq $today
-                or substr( $issue->{lastreneweddate}, 0, 10 ) eq $today ) {
-                  $issue->{now} = 1;
+    my $pending_checkouts = $patron->pending_checkouts; # Should be $patron->checkouts->pending?
+
+    my ($letter_code, %repeat, %loops);
+    my $checkoutcount = 0;
+    if ( $quickslip ) {
+        my $today_start = dt_from_string->set( hour => 0, minute => 0, second => 0 );
+        my $today_end = dt_from_string->set( hour => 23, minute => 59, second => 0 );
+        $today_start = Koha::Database->new->schema->storage->datetime_parser->format_datetime( $today_start );
+        $today_end = Koha::Database->new->schema->storage->datetime_parser->format_datetime( $today_end );
+        $letter_code = 'ISSUEQSLIP';
+
+        # issue date or lastreneweddate is today
+        my $todays_checkouts = $pending_checkouts->search(
+            {
+                -or => {
+                    issuedate => {
+                        '>=' => $today_start,
+                        '<=' => $today_end,
+                    },
+                    lastreneweddate =>
+                      { '>=' => $today_start, '<=' => $today_end, }
+                }
+            },
+            { order_by => ['date_due', 'timestamp', 'issuedate' ] }
+        );
+        my @checkouts;
+        while ( my $c = $todays_checkouts->next ) {
+            my $all = $c->unblessed_all_relateds;
+            push @checkouts, {
+                biblio      => $all,
+                items       => $all,
+                biblioitems => $all,
+                issues      => $all,
             };
         }
-    }
 
-    # Sort on date_due then on issuedate 
-    @issues = sort {
-           $a->{date_due} cmp $b->{date_due}
-        or $b->{timestamp} <=> $a->{timestamp}
-        or $b->{issuedate} <=> $a->{issuedate}
-    } @issues;
-
-    my ($letter_code, %repeat, %substitute);
-    if ( $quickslip ) {
-        $letter_code = 'ISSUEQSLIP';
         %repeat =  (
-            'checkedout' => [ map {
-                'biblio'       => $_,
-                'items'        => $_,
-                'biblioitems'  => $_,
-                'issues'       => $_,
-            }, grep { $_->{'now'} } @issues ],
+            checkedout => \@checkouts, # Historical syntax
         );
+        %loops = (
+            issues => [ map { $_->{issues}{itemnumber} } @checkouts ], # TT syntax
+        );
+        $checkoutcount = scalar @checkouts;
     }
     else {
+        my $today = Koha::Database->new->schema->storage->datetime_parser->format_datetime( dt_from_string );
+        # Checkouts due in the future
+        my $checkouts = $pending_checkouts->search({ date_due => { '>' => $today } }, { order_by => ['date_due', 'timestamp', 'issuedate' ] } );
+        my @checkouts; my @overdues;
+        while ( my $c = $checkouts->next ) {
+            my $all = $c->unblessed_all_relateds;
+            push @checkouts, {
+                biblio      => $all,
+                items       => $all,
+                biblioitems => $all,
+                issues      => $all,
+            };
+        }
+
+        # Checkouts due in the past are overdues
+        my $overdues = $pending_checkouts->search({ date_due => { '<=' => $today } }, { order_by => ['date_due', 'timestamp', 'issuedate' ] } );
+        while ( my $o = $overdues->next ) {
+            my $all = $o->unblessed_all_relateds;
+            push @overdues, {
+                biblio      => $all,
+                items       => $all,
+                biblioitems => $all,
+                issues      => $all,
+            };
+        }
+        my $news = GetNewsToDisplay( "slip", $branch );
+        my @news = map {
+            $_->{'timestamp'} = $_->{'newdate'};
+            { opac_news => $_ }
+        } @$news;
         $letter_code = 'ISSUESLIP';
-        %repeat =  (
-            'checkedout' => [ map {
-                'biblio'       => $_,
-                'items'        => $_,
-                'biblioitems'  => $_,
-                'issues'       => $_,
-            }, grep { !$_->{'overdue'} } @issues ],
-
-            'overdue' => [ map {
-                'biblio'       => $_,
-                'items'        => $_,
-                'biblioitems'  => $_,
-                'issues'       => $_,
-            }, grep { $_->{'overdue'} } @issues ],
-
-            'news' => [ map {
-                $_->{'timestamp'} = $_->{'newdate'};
-                { opac_news => $_ }
-            } @{ GetNewsToDisplay("slip",$branch) } ],
+        %repeat      = (
+            checkedout => \@checkouts,
+            overdue    => \@overdues,
+            news       => \@news,
         );
+        %loops = (
+            issues => [ map { $_->{issues}{itemnumber} } @checkouts ],
+            overdues   => [ map { $_->{issues}{itemnumber} } @overdues ],
+            opac_news => [ map { $_->{opac_news}{idnew} } @news ],
+        );
+        
+        $checkoutcount = scalar @checkouts;
+        $checkoutcount += scalar @overdues;
     }
-    %substitute =  (
-        'issues_count' => scalar @issues
+    my %substitute =  (
+        'issues_count' => $checkoutcount
     );
+    my $amountoutstanding = $patron->account->balance;
     $substitute{'fines'} = currency_format($currency_format, "$amountoutstanding", FMT_SYMBOL);
     $substitute{'fines'} = sprintf('%.2f', $amountoutstanding) unless $substitute{'fines'};
 
@@ -2323,40 +889,29 @@ sub IssueSlip {
         module => 'circulation',
         letter_code => $letter_code,
         branchcode => $branch,
+        lang => $patron->lang,
         tables => {
             'branches'    => $branch,
             'borrowers'   => $borrowernumber,
         },
         substitute => \%substitute,
         repeat => \%repeat,
+        loops => \%loops,
     );
 }
 
-=head2 GetBorrowersWithEmail
-
-    ([$borrnum,$userid], ...) = GetBorrowersWithEmail('me@example.com');
-
-This gets a list of users and their basic details from their email address.
-As it's possible for multiple user to have the same email address, it provides
-you with all of them. If there is no userid for the user, there will be an
-C<undef> there. An empty list will be returned if there are no matches.
+=head2 AddMember_Auto
 
 =cut
 
-sub GetBorrowersWithEmail {
-    my $email = shift;
+sub AddMember_Auto {
+    my ( %borrower ) = @_;
 
-    my $dbh = C4::Context->dbh;
+    $borrower{'cardnumber'} ||= fixup_cardnumber();
 
-    my $query = "SELECT borrowernumber, userid FROM borrowers WHERE email=?";
-    my $sth=$dbh->prepare($query);
-    $sth->execute($email);
-    my @result = ();
-    while (my $ref = $sth->fetch) {
-        push @result, $ref;
-    }
-    die "Failure searching for borrowers by email address: $sth->errstr" if $sth->err;
-    return @result;
+    $borrower{'borrowernumber'} = AddMember(%borrower);
+
+    return ( %borrower );
 }
 
 =head2 AddMember_Opac
@@ -2374,57 +929,9 @@ sub AddMember_Opac {
         $borrower{'password'} = $password;
     }
 
-    $borrower{'cardnumber'} = fixup_cardnumber( $borrower{'cardnumber'} );
+    %borrower = AddMember_Auto(%borrower);
 
-    my $borrowernumber = AddMember(%borrower);
-
-    return ( $borrowernumber, $borrower{'password'} );
-}
-
-=head2 AddEnrolmentFeeIfNeeded
-
-    AddEnrolmentFeeIfNeeded( $borrower->{categorycode}, $borrower->{borrowernumber} );
-
-Add enrolment fee for a patron if needed.
-
-=cut
-
-sub AddEnrolmentFeeIfNeeded {
-    my ( $categorycode, $borrowernumber ) = @_;
-    
-    return if ( GetFamilyCardId($borrowernumber) );
-    # check for enrollment fee & add it if needed
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare(q{
-        SELECT enrolmentfee
-        FROM categories
-        WHERE categorycode=?
-    });
-    $sth->execute( $categorycode );
-    if ( $sth->err ) {
-        warn sprintf('Database returned the following error: %s', $sth->errstr);
-        return;
-    }
-    my ($enrolmentfee) = $sth->fetchrow;
-    if ($enrolmentfee && $enrolmentfee > 0) {
-        # insert fee in patron debts
-        C4::Accounts::manualinvoice( $borrowernumber, '', '', 'A', $enrolmentfee );
-    }
-}
-
-=head2 HasOverdues
-
-=cut
-
-sub HasOverdues {
-    my ( $borrowernumber ) = @_;
-
-    my $sql = "SELECT COUNT(*) FROM issues WHERE date_due < NOW() AND borrowernumber = ?";
-    my $sth = C4::Context->dbh->prepare( $sql );
-    $sth->execute( $borrowernumber );
-    my ( $count ) = $sth->fetchrow_array();
-
-    return $count;
+    return ( $borrower{'borrowernumber'}, $borrower{'password'} );
 }
 
 =head2 DeleteExpiredOpacRegistrations
@@ -2451,7 +958,7 @@ WHERE categorycode = ? AND DATEDIFF( NOW(), dateenrolled ) > ? |;
     $sth->execute( $category_code, $delay );
     my $cnt=0;
     while ( my ($borrowernumber) = $sth->fetchrow_array() ) {
-        DelMember($borrowernumber);
+        Koha::Patrons->find($borrowernumber)->delete;
         $cnt++;
     }
     return $cnt;
@@ -2472,25 +979,6 @@ DELETE FROM borrower_modifications
 WHERE borrowernumber = 0 AND DATEDIFF( NOW(), timestamp ) > ?|;
     my $cnt=$dbh->do($sql, undef, ($days) );
     return $cnt eq '0E0'? 0: $cnt;
-}
-
-sub GetOverduesForPatron {
-    my ( $borrowernumber ) = @_;
-
-    my $sql = "
-        SELECT *
-        FROM issues, items, biblio, biblioitems
-        WHERE items.itemnumber=issues.itemnumber
-          AND biblio.biblionumber   = items.biblionumber
-          AND biblio.biblionumber   = biblioitems.biblionumber
-          AND issues.borrowernumber = ?
-          AND date_due < NOW()
-    ";
-
-    my $sth = C4::Context->dbh->prepare( $sql );
-    $sth->execute( $borrowernumber );
-
-    return $sth->fetchall_arrayref({});
 }
 
 END { }    # module clean-up code here (global destructor)

@@ -1,147 +1,16 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Price %]
 [% USE currency = format('%.2f') -%]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; [% IF ( date ) %]
             Receipt summary for [% name %] [% IF ( invoice ) %]invoice [% invoice %][% END %] on [% datereceived | $KohaDates %][% ELSE %]Receive orders from [% name %][% END %]</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.dataTables.columnFilter.js"></script>
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.cookie.min.js"></script>
-<style type="text/css">#dataPreview { width : 80%; margin-left : -40%; } @media (max-width: 767px) { #dataPreview { margin: 0; width : auto; } }</style>
-<script type="text/javascript">
-//<![CDATA[
-
-    dt_overwrite_html_sorting_localeCompare();
-
-    var sticky_filters = [% sticky_filters %];
-
-    $(document).ready(function(){
-      if ( $("#pendingt").length ) {
-        var pendingt = $("#pendingt").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "bStateSave": true,
-            "iCookieDuration": 60*60*24*1000, // 1000 days
-            "iDisplayLength": 10,
-            "aLengthMenu": [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, _("All")]],
-            "aoColumnDefs": [
-                { "aTargets": [ 4, 9, 10 ], "bSortable": false, "bSearchable": false },
-            ],
-            "aoColumns": [
-                { "sType": "html" },
-                { "sType": "html" },
-                { "sType": "num-html" },
-                { "sType": "anti-the" },
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-            ],
-            'bAutoWidth': false,
-            "sPaginationType": "four_button"
-        } )
-        ).columnFilter({
-            sPlaceHolder: "head:after",
-            aoColumns: [
-                { type: "text" },
-                { type: "text" },
-                { type: "text" },
-                { type: "text" },
-                null,
-                { type: "text" },
-                { type: "text" },
-                { type: "text" },
-                { type: "text" },
-                null,
-                null
-            ]
-        });
-      }
-
-      if ( $("#receivedt").length ) {
-        var receivedt = $("#receivedt").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "bStateSave": true,
-            "iCookieDuration": 60*60*24*1000, // 1000 days
-            "iDisplayLength": 10,
-            "aLengthMenu": [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, _("All")]],
-            "aoColumnDefs": [
-                { "aTargets": [ 5, -1 ], "bSortable": false, "bSearchable": false },
-            ],
-            "aoColumns": [
-                { "sType": "html" },
-                { "sType": "html" },
-                { "sType": "html" },
-                { "sType": "num-html" },
-                { "sType": "anti-the" },
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-            ],
-            "sPaginationType": "four_button"
-        } ) );
-      }
-
-      // Keep filters from finishreceive.pl to parcel.pl
-      $.cookie("filter_parcel_summary", $("#summaryfilter").val());
-      $.cookie("filter_parcel_basketname", $("#basketfilter").val());
-      $.cookie("filter_parcel_orderno", $("#orderfilter").val());
-      $.cookie("filter_parcel_basketgroupname", $("#basketgroupnamefilter").val());
-      $.cookie("filter_parcel_ean", $("#eanfilter").val());
-
-      $("#filterform").on('submit', function(){
-        $.cookie("filter_parcel_summary", $("#summaryfilter").val());
-        $.cookie("filter_parcel_basketname", $("#basketfilter").val());
-        $.cookie("filter_parcel_orderno", $("#orderfilter").val());
-        $.cookie("filter_parcel_basketgroupname", $("#basketgroupnamefilter").val());
-        $.cookie("filter_parcel_ean", $("#eanfilter").val());
-      });
-
-        $(".previewData").on("click", function(e){
-            e.preventDefault();
-            var ltitle = $(this).text();
-            var page = $(this).attr("href");
-            $("#dataPreviewLabel").text(ltitle);
-            $("#dataPreview .modal-body").load(page + " div");
-            $('#dataPreview').modal({show:true});
-        });
-        $("#dataPreview").on("hidden", function(){
-            $("#dataPreviewLabel").html("");
-            $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/loading-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
-        });
-
-    });
-
-     // Case-insensitive version of jquery's contains function
-     jQuery.extend(jQuery.expr[':'], {
-	    icontains : "jQuery(a).text().toUpperCase().indexOf(m[3].toUpperCase())>=0"
-     });
-
-     // Contains exactly function
-     jQuery.extend(jQuery.expr[':'], {
-          containsExactly: "$(a).text() == m[3]"
-     });
-
-//]]>
-</script>
-<script type="text/javascript">
-//<![CDATA[
-            function transfer_order_popup(ordernumber) {
-                var url = "/cgi-bin/koha/acqui/transferorder.pl?"
-                    + "ordernumber=" + ordernumber
-                window.open(url, 'TransferOrder');
-            }
-
-//]]>
-</script>
 </head>
+
 <body id="acq_parcel" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
@@ -150,7 +19,7 @@
     [% IF datereceived %]
         Receipt summary for <i>[% name %]</i>
         [% IF ( invoice ) %]
-            <i>[ [% invoice %] ]</i>
+            <i>[ [% invoice |html %] ]</i>
         [% END %]
         on <i>[% datereceived | $KohaDates %]</i>
     [% ELSE %]
@@ -175,7 +44,7 @@
 	[% END %]
     <h1>
         [% IF datereceived %]
-            Receipt summary for <i>[% name %]</i> [% IF ( invoice ) %] <i> [ [% invoice %] ] </i>[% END %] on <i>[% datereceived | $KohaDates %]</i>
+            Receipt summary for <i>[% name %]</i> [% IF ( invoice ) %] <i> [ [% invoice |html %] ] </i>[% END %] on <i>[% datereceived | $KohaDates %]</i>
         [% ELSE %]
             Receive orders from [% name %]
         [% END %]
@@ -218,7 +87,7 @@
 
 [% UNLESS no_orders_to_display %]
 <div id="acqui_receive_summary">
-<p><strong>Invoice number:</strong> [% invoice %] <strong>Received by:</strong> [% loggedinusername %] <strong>On:</strong> [% datereceived | $KohaDates %]</p>
+<p><strong>Invoice number:</strong> [% invoice |html %] <strong>Received by:</strong> [% loggedinusername %] <strong>On:</strong> [% datereceived | $KohaDates %]</p>
 </div>
 [% UNLESS (invoiceclosedate) %]
   <div id="acqui_receive_search">
@@ -270,7 +139,12 @@
                   <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% loop_order.biblionumber %]">[% loop_order.title |html %]</a>
                 [% IF ( loop_order.author ) %] by [% loop_order.author %][% END %]
                 [% IF ( loop_order.isbn ) %] &ndash; [% loop_order.isbn %][% END %]
-                [% IF ( loop_order.publishercode ) %]<br />Publisher:[% loop_order.publishercode %][% END %]
+                [% IF ( loop_order.publishercode ) %]
+                    <br />Publisher: [% loop_order.publishercode %]
+                    [%- IF    ( loop_order.publicationyear > 0) -%], [% loop_order.publicationyear %]
+                    [%- ELSIF ( loop_order.copyrightdate   > 0) -%] [% loop_order.copyrightdate %]
+                    [% END %]
+                [% END %]
                 [% IF ( loop_order.suggestionid ) %]
                     <br/>
                     Suggested by: [% loop_order.surnamesuggestedby %][% IF ( loop_order.firstnamesuggestedby ) %], [% loop_order.firstnamesuggestedby %] [% END %]
@@ -346,7 +220,7 @@
           <th>Basket</th>
           <th>Basket group</th>
           <th>Order line</th>
-          <th>Holds</th>
+          <th title="Item holds / Total holds">Holds</th>
           <th>Summary</th>
           <th>View record</th>
           <th>Quantity</th>
@@ -365,7 +239,7 @@
                 [% ELSE %]
                     <td colspan="6" class="total">(Tax exc.)</td>
                 [% END %]
-                <td colspan="2"><i>Subtotal for</i> [% funds.$key.budget_name %]</td>
+                <td colspan="2"><i>Subtotal for</i> [% key %]</td>
                 <td>[% subtotal_for_funds.$key.ecost | $Price %]</td>
                 <td>[% subtotal_for_funds.$key.unitprice | $Price  %]</td>
                 <td>&nbsp;</td>
@@ -374,19 +248,19 @@
         [% END %]
         <tr>
             <th colspan="10" class="total">Total tax exc.</th>
-            <th>[% total_gste | $Price %]</th>
+            <th>[% total_tax_excluded | $Price %]</th>
             <th></th>
         </tr>
         [% FOREACH book_foot IN book_foot_loop %]
             <tr>
-                <th colspan="10">Total (GST [% book_foot.gstrate * 100 %]%)</th>
-                <th>[% book_foot.gstvalue | $Price %]</th>
+                <th colspan="10">Total (GST [% book_foot.tax_rate * 100 %]%)</th>
+                <th>[% book_foot.tax_value | $Price %]</th>
                 <th></th>
             </tr>
         [% END %]
         <tr>
             <th colspan="10" class="total">Total tax inc.</th>
-            <th>[% total_gsti | $Price %]</th>
+            <th>[% total_tax_included | $Price %]</th>
             <th></th>
         </tr>
     </tfoot>
@@ -408,8 +282,14 @@
                   [% END %]
                 </td>
                 <td>
-                  [% IF order.holds > 0 %]
-                    <span class="error"><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% order.biblionumber %]">[% order.holds %]</a></span>
+                  [% IF order.total_holds > 0 %]
+                    [% IF order.item_holds > 0 %]
+                      <span class="error"><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% order.biblionumber %]">[% order.item_holds %]</a></span>
+                    [% ELSE %]
+                      0
+                    [% END %]
+                    /
+                    <span class="error"><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% order.biblionumber %]">[% order.total_holds %]</a></span>
                   [% ELSE %]
                     0
                   [% END %]
@@ -417,7 +297,12 @@
                 <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% order.biblionumber %]">[% order.title |html %]</a>
                 [% IF ( order.author ) %] / [% order.author %][% END %]
                 [% IF ( order.isbn ) %] - [% order.isbn %][% END %]
-                [% IF ( order.publishercode ) %]<br />Publisher :[% order.publishercode %][% END %]
+                [% IF ( order.publishercode ) %]
+                    <br />Publisher: [% order.publishercode %]
+                    [%- IF    ( order.publicationyear > 0) -%], [% order.publicationyear %]
+                    [%- ELSIF ( order.copyrightdate   > 0) -%] [% order.copyrightdate %]
+                    [% END %]
+                [% END %]
                 [% IF ( order.suggestionid ) %]
                     <br/>
                     Suggested by: [% order.surnamesuggestedby %][% IF ( order.firstnamesuggestedby ) %], [% order.firstnamesuggestedby %] [% END %]
@@ -431,7 +316,7 @@
                 <td>[% order.unitprice | $Price %]</td>
                 <td>[% order.total | $Price %]</td>
                 <td>
-                    [% IF loop_receive.cannot_cancel or ( Koha.Preference("AcqCreateItem") == "receiving" and loop_receive.holds > 0 ) %]
+                    [% IF loop_receive.cannot_cancel or ( order.basket.effective_create_items == "receiving" and loop_receive.holds > 0 ) %]
                       [% IF loop_receive.cannot_cancel %]
                         [% span_title = BLOCK %]
                             Cannot cancel receipt of this order line because it
@@ -463,16 +348,20 @@
 	[% ELSE %]There are no received orders.[% END %]
 </div>
 
-<div id="dataPreview" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+<div id="dataPreview" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
     <div class="modal-header">
         <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
         <h3 id="dataPreviewLabel">MARC preview</h3>
     </div>
     <div class="modal-body">
-        <div id="loading"> <img src="[% interface %]/[% theme %]/img/loading-small.gif" alt="" /> Loading </div>
+        <div id="loading"> <img src="[% interface %]/[% theme %]/img/spinner-small.gif" alt="" /> Loading </div>
     </div>
     <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+    </div>
+    </div>
     </div>
 </div>
 
@@ -532,4 +421,135 @@
 [% INCLUDE 'acquisitions-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery.dataTables.columnFilter.js") %]
+    [% Asset.js("lib/jquery/plugins/jquery.cookie.min.js") %]
+    <style type="text/css">#dataPreview { width : 80%; } @media (max-width: 767px) { #dataPreview { margin: 0; width : auto; } }</style>
+    <script type="text/javascript">
+
+        dt_overwrite_html_sorting_localeCompare();
+        var sticky_filters = [% sticky_filters %];
+
+        $(document).ready(function(){
+            if ( $("#pendingt").length ) {
+                var pendingt = $("#pendingt").dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "bStateSave": true,
+                    "iCookieDuration": 60*60*24*1000, // 1000 days
+                    "iDisplayLength": 10,
+                    "aLengthMenu": [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, _("All")]],
+                    "aoColumnDefs": [
+                        { "aTargets": [ 4, 9, 10 ], "bSortable": false, "bSearchable": false },
+                    ],
+                    "aoColumns": [
+                        { "sType": "html" },
+                        { "sType": "html" },
+                        { "sType": "num-html" },
+                        { "sType": "anti-the" },
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                    ],
+                    'bAutoWidth': false,
+                    "sPaginationType": "four_button"
+                })
+                ).columnFilter({
+                    sPlaceHolder: "head:after",
+                    aoColumns: [
+                        { type: "text" },
+                        { type: "text" },
+                        { type: "text" },
+                        { type: "text" },
+                        null,
+                        { type: "text" },
+                        { type: "text" },
+                        { type: "text" },
+                        { type: "text" },
+                        null,
+                        null
+                    ]
+                });
+            }
+
+            if ( $("#receivedt").length ) {
+                var receivedt = $("#receivedt").dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "bStateSave": true,
+                    "iCookieDuration": 60*60*24*1000, // 1000 days
+                    "iDisplayLength": 10,
+                    "aLengthMenu": [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, _("All")]],
+                    "aoColumnDefs": [
+                        { "aTargets": [ 5, -1 ], "bSortable": false, "bSearchable": false },
+                    ],
+                    "aoColumns": [
+                        { "sType": "html" },
+                        { "sType": "html" },
+                        { "sType": "html" },
+                        { "sType": "num-html" },
+                        { "sType": "anti-the" },
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    ],
+                    "sPaginationType": "four_button"
+                }));
+            }
+
+            // Keep filters from finishreceive.pl to parcel.pl
+            $.cookie("filter_parcel_summary", $("#summaryfilter").val());
+            $.cookie("filter_parcel_basketname", $("#basketfilter").val());
+            $.cookie("filter_parcel_orderno", $("#orderfilter").val());
+            $.cookie("filter_parcel_basketgroupname", $("#basketgroupnamefilter").val());
+            $.cookie("filter_parcel_ean", $("#eanfilter").val());
+
+            $("#filterform").on('submit', function(){
+                $.cookie("filter_parcel_summary", $("#summaryfilter").val());
+                $.cookie("filter_parcel_basketname", $("#basketfilter").val());
+                $.cookie("filter_parcel_orderno", $("#orderfilter").val());
+                $.cookie("filter_parcel_basketgroupname", $("#basketgroupnamefilter").val());
+                $.cookie("filter_parcel_ean", $("#eanfilter").val());
+            });
+
+            $(".previewData").on("click", function(e){
+                e.preventDefault();
+                var ltitle = $(this).text();
+                var page = $(this).attr("href");
+                $("#dataPreviewLabel").text(ltitle);
+                $("#dataPreview .modal-body").load(page + " div");
+                $('#dataPreview').modal({show:true});
+            });
+            $("#dataPreview").on("hidden", function(){
+                $("#dataPreviewLabel").html("");
+                $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
+            });
+
+        });
+
+        // Case-insensitive version of jquery's contains function
+        jQuery.extend(jQuery.expr[':'], {
+            icontains : "jQuery(a).text().toUpperCase().indexOf(m[3].toUpperCase())>=0"
+        });
+
+         // Contains exactly function
+        jQuery.extend(jQuery.expr[':'], {
+            containsExactly: "$(a).text() == m[3]"
+        });
+
+        function transfer_order_popup(ordernumber) {
+            var url = "/cgi-bin/koha/acqui/transferorder.pl?"
+                + "ordernumber=" + ordernumber
+                window.open(url, 'TransferOrder');
+        }
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

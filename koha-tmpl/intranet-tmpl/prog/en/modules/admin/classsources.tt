@@ -1,3 +1,5 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Classification sources
 [% IF ( class_source_form ) %]
@@ -21,7 +23,7 @@
 
 <body id="admin_classsources" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs">
          <a href="/cgi-bin/koha/mainpage.pl">Home</a>
@@ -185,8 +187,8 @@
 [% IF ( display_lists ) %]
 
 <div id="toolbar" class="btn-toolbar">
-    <a class="btn btn-small" id="newsource" href="[% script_name %]?op=add_source"><i class="fa fa-plus"></i> New classification source</a>
-    <a class="btn btn-small" id="newrule" href="[% script_name %]?op=add_sort_rule"><i class="fa fa-plus"></i> New filing rule</a>
+    <a class="btn btn-default btn-sm" id="newsource" href="[% script_name %]?op=add_source"><i class="fa fa-plus"></i> New classification source</a>
+    <a class="btn btn-default btn-sm" id="newrule" href="[% script_name %]?op=add_sort_rule"><i class="fa fa-plus"></i> New filing rule</a>
 </div>
 
 <h2>Classification sources</h2>
@@ -199,6 +201,9 @@
 [% IF ( deleted_source ) %]
 <div class="dialog message">Deleted classification source [% deleted_source %]</div>
 [% END %]
+[% IF ( failed_add_source ) %]
+<div class="dialog message">Failed to add classification source [% failed_add_source %]. Perhaps the code already exists?</div>
+[% END %]
 <table>
   <tr>
     <th>Code</th>
@@ -210,12 +215,12 @@
   [% FOREACH class_source IN class_sources %]
   <tr>
     <td>[% class_source.code %]</td>
-    <td>[% class_source.description %]</td>
+    <td>[% class_source.description |html %]</td>
     <td>[% IF ( class_source.used ) %]Yes[% ELSE %]No[% END %]</td>
     <td>[% class_source.sortrule %]</td>
     <td class="actions">
-      <a class="btn btn-mini" href="[% class_source.script_name %]?op=edit_source&amp;class_source=[% class_source.code |html %]"><i class="fa fa-pencil"></i> Edit</a>
-      <a class="btn btn-mini" href="[% class_source.script_name %]?op=delete_source&amp;class_source=[% class_source.code |html %]"><i class="fa fa-trash"></i> Delete</a>
+      <a class="btn btn-default btn-xs" href="[% class_source.script_name %]?op=edit_source&amp;class_source=[% class_source.code |html %]"><i class="fa fa-pencil"></i> Edit</a>
+      <a class="btn btn-default btn-xs" href="[% class_source.script_name %]?op=delete_source&amp;class_source=[% class_source.code |html %]"><i class="fa fa-trash"></i> Delete</a>
     </td>
   </tr>
   [% END %]
@@ -231,6 +236,9 @@
 [% IF ( deleted_rule ) %]
 <div class="dialog message">Deleted filing rule [% deleted_rule %]</div>
 [% END %]
+[% IF ( failed_add_rule ) %]
+<div class="dialog message">Failed to add filing rule [% failed_add_rule %]. Perhaps the code already exists?</div>
+[% END %]
 <table>
   <tr>
     <th>Code</th>
@@ -241,11 +249,11 @@
   [% FOREACH class_sort_rule IN class_sort_rules %]
   <tr>
     <td>[% class_sort_rule.rule %]</td>
-    <td>[% class_sort_rule.description %]</td>
+    <td>[% class_sort_rule.description |html %]</td>
     <td>[% class_sort_rule.sort_routine %]</td>
     <td class="actions">
-      <a class="btn btn-mini" href="[% class_sort_rule.script_name %]?op=edit_sort_rule&amp;sort_rule=[% class_sort_rule.rule |html %]"><i class="fa fa-pencil"></i> Edit</a>
-      <a class="btn btn-mini" href="[% class_sort_rule.script_name %]?op=delete_sort_rule&amp;sort_rule=[% class_sort_rule.rule |html %]"><i class="fa fa-trash"></i> Delete</a>
+      <a class="btn btn-default btn-xs" href="[% class_sort_rule.script_name %]?op=edit_sort_rule&amp;sort_rule=[% class_sort_rule.rule |html %]"><i class="fa fa-pencil"></i> Edit</a>
+      <a class="btn btn-default btn-xs" href="[% class_sort_rule.script_name %]?op=delete_sort_rule&amp;sort_rule=[% class_sort_rule.rule |html %]"><i class="fa fa-trash"></i> Delete</a>
     </td>
   </tr>
   [% END %]
@@ -259,4 +267,8 @@
 [% INCLUDE 'admin-menu.inc' %]
   </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

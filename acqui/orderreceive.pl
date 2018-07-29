@@ -58,24 +58,25 @@ The biblionumber of this order.
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Koha;   # GetKohaAuthorisedValues GetItemTypes
 use C4::Acquisition;
 use C4::Auth;
 use C4::Output;
 use C4::Budgets qw/ GetBudget GetBudgetHierarchy CanUserUseBudget GetBudgetPeriods /;
 use C4::Members;
-use C4::Branch;    # GetBranches
 use C4::Items;
 use C4::Biblio;
 use C4::Suggestions;
+use C4::Koha;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 use Koha::DateUtils qw( dt_from_string );
+use Koha::ItemTypes;
+use Koha::Patrons;
 
 my $input      = new CGI;
 
@@ -86,7 +87,7 @@ my $booksellerid   = $invoice->{booksellerid};
 my $freight      = $invoice->{shipmentcost};
 my $ordernumber  = $input->param('ordernumber');
 
-my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 my $results;
 $results = SearchOrders({
     ordernumber => $ordernumber
@@ -110,14 +111,15 @@ unless ( $results and @$results) {
 
 # prepare the form for receiving
 my $order = $results->[0];
+my $basket = Koha::Acquisition::Orders->find( $ordernumber )->basket;
 
 # Check if ACQ framework exists
-my $acq_fw = GetMarcStructure(1, 'ACQ');
+my $acq_fw = GetMarcStructure( 1, 'ACQ', { unsafe => 1 } );
 unless($acq_fw) {
     $template->param('NoACQframework' => 1);
 }
 
-my $AcqCreateItem = C4::Context->preference('AcqCreateItem');
+my $AcqCreateItem = $basket->effective_create_items;
 if ($AcqCreateItem eq 'receiving') {
     $template->param(
         AcqCreateItemReceiving => 1,
@@ -129,70 +131,75 @@ if ($AcqCreateItem eq 'receiving') {
     my @items;
     foreach (@itemnumbers) {
         my $item = GetItem($_);
-        if($item->{homebranch}) {
-            $item->{homebranchname} = GetBranchName($item->{homebranch});
+        my $descriptions;
+        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $fw, kohafield => 'items.notforloan', authorised_value => $item->{notforloan} });
+        $item->{notforloan} = $descriptions->{lib} // '';
+
+        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $fw, kohafield => 'items.restricted', authorised_value => $item->{restricted} });
+        $item->{restricted} = $descriptions->{lib} // '';
+
+        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $fw, kohafield => 'items.location', authorised_value => $item->{location} });
+        $item->{location} = $descriptions->{lib} // '';
+
+        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $fw, kohafield => 'items.collection', authorised_value => $item->{collection} });
+        $item->{collection} = $descriptions->{lib} // '';
+
+        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $fw, kohafield => 'items.materials', authorised_value => $item->{materials} });
+        $item->{materials} = $descriptions->{lib} // '';
+
+        my $itemtype = Koha::ItemTypes->find( $item->{itype} );
+        if (defined $itemtype) {
+            $item->{itemtype} = $itemtype->description; # FIXME Should not it be translated_description?
         }
-        if($item->{holdingbranch}) {
-            $item->{holdingbranchname} = GetBranchName($item->{holdingbranch});
-        }
-        if(my $code = GetAuthValCode("items.notforloan", $fw)) {
-            $item->{notforloan} = GetKohaAuthorisedValueLib($code, $item->{notforloan});
-        }
-        if(my $code = GetAuthValCode("items.restricted", $fw)) {
-            $item->{restricted} = GetKohaAuthorisedValueLib($code, $item->{restricted});
-        }
-        if(my $code = GetAuthValCode("items.location", $fw)) {
-            $item->{location} = GetKohaAuthorisedValueLib($code, $item->{location});
-        }
-        if(my $code = GetAuthValCode("items.ccode", $fw)) {
-            $item->{collection} = GetKohaAuthorisedValueLib($code, $item->{ccode});
-        }
-        if(my $code = GetAuthValCode("items.materials", $fw)) {
-            $item->{materials} = GetKohaAuthorisedValueLib($code, $item->{materials});
-        }
-        my $itemtype = getitemtypeinfo($item->{itype});
-        $item->{itemtype} = $itemtype->{description};
         push @items, $item;
     }
     $template->param(items => \@items);
 }
 
 $order->{quantityreceived} = '' if $order->{quantityreceived} == 0;
-$order->{unitprice} = '' if $order->{unitprice} == 0;
 
-my $rrp;
-my $ecost;
-my $unitprice;
-if ( $bookseller->{listincgst} ) {
-    if ( $bookseller->{invoiceincgst} ) {
-        $rrp = $order->{rrp};
-        $ecost = $order->{ecost};
-        $unitprice = $order->{unitprice};
-    } else {
-        $rrp = $order->{rrp} / ( 1 + $order->{gstrate} );
-        $ecost = $order->{ecost} / ( 1 + $order->{gstrate} );
-        $unitprice = $order->{unitprice} / ( 1 + $order->{gstrate} );
+my $unitprice = $order->{unitprice};
+my ( $rrp, $ecost );
+if ( $bookseller->invoiceincgst ) {
+    $rrp = $order->{rrp_tax_included};
+    $ecost = $order->{ecost_tax_included};
+    unless ( $unitprice != 0 and defined $unitprice) {
+        $unitprice = $order->{ecost_tax_included};
     }
 } else {
-    if ( $bookseller->{invoiceincgst} ) {
-        $rrp = $order->{rrp} * ( 1 + $order->{gstrate} );
-        $ecost = $order->{ecost} * ( 1 + $order->{gstrate} );
-        $unitprice = $order->{unitprice} * ( 1 + $order->{gstrate} );
-    } else {
-        $rrp = $order->{rrp};
-        $ecost = $order->{ecost};
-        $unitprice = $order->{unitprice};
+    $rrp = $order->{rrp_tax_excluded};
+    $ecost = $order->{ecost_tax_excluded};
+    unless ( $unitprice != 0 and defined $unitprice) {
+        $unitprice = $order->{ecost_tax_excluded};
     }
- }
+}
+
+my $tax_rate;
+if( defined $order->{tax_rate_on_receiving} ) {
+    $tax_rate = $order->{tax_rate_on_receiving} + 0.0;
+} else {
+    $tax_rate = $order->{tax_rate_on_ordering} + 0.0;
+}
 
 my $suggestion = GetSuggestionInfoFromBiblionumber($order->{biblionumber});
 
 my $authorisedby = $order->{authorisedby};
-my $member = GetMember( borrowernumber => $authorisedby );
+my $authorised_patron = Koha::Patrons->find( $authorisedby );
+if ( $authorised_patron ) { # This should not happen unless there was a migration issue (or very old install?)
+    $template->param(
+        memberfirstname  => $authorised_patron->firstname || "",
+        membersurname    => $authorised_patron->surname || "",
+    );
+}
 
 my $budget = GetBudget( $order->{budget_id} );
 
 my $datereceived = $order->{datereceived} ? dt_from_string( $order->{datereceived} ) : dt_from_string;
+
+# get option values for gist syspref
+my @gst_values = map {
+    option => $_ + 0.0
+}, split( '\|', C4::Context->preference("gist") );
 
 $template->param(
     AcqCreateItem         => $AcqCreateItem,
@@ -202,7 +209,7 @@ $template->param(
     subscriptionid        => $order->{subscriptionid},
     booksellerid          => $order->{'booksellerid'},
     freight               => $freight,
-    name                  => $bookseller->{'name'},
+    name                  => $bookseller->name,
     title                 => $order->{'title'},
     author                => $order->{'author'},
     copyrightdate         => $order->{'copyrightdate'},
@@ -212,10 +219,10 @@ $template->param(
     quantity              => $order->{'quantity'},
     quantityreceivedplus1 => $order->{'quantityreceived'} + 1,
     quantityreceived      => $order->{'quantityreceived'},
-    rrp                   => sprintf( "%.2f", $rrp ),
-    ecost                 => sprintf( "%.2f", $ecost ),
-    memberfirstname       => $member->{firstname} || "",
-    membersurname         => $member->{surname} || "",
+    rrp                   => $rrp,
+    ecost                 => $ecost,
+    unitprice             => $unitprice,
+    tax_rate              => $tax_rate,
     invoiceid             => $invoice->{invoiceid},
     invoice               => $invoice->{invoicenumber},
     datereceived          => $datereceived,
@@ -224,9 +231,10 @@ $template->param(
     suggestionid          => $suggestion->{suggestionid},
     surnamesuggestedby    => $suggestion->{surnamesuggestedby},
     firstnamesuggestedby  => $suggestion->{firstnamesuggestedby},
+    gst_values            => \@gst_values,
 );
 
-my $borrower = GetMember( 'borrowernumber' => $loggedinuser );
+my $patron = Koha::Patrons->find( $loggedinuser )->unblessed;
 my @budget_loop;
 my $periods = GetBudgetPeriods( );
 foreach my $period (@$periods) {
@@ -237,7 +245,7 @@ foreach my $period (@$periods) {
     my $budget_hierarchy = GetBudgetHierarchy( $period->{'budget_period_id'} );
     my @funds;
     foreach my $r ( @{$budget_hierarchy} ) {
-        next unless ( CanUserUseBudget( $borrower, $r, $userflags ) );
+        next unless ( CanUserUseBudget( $patron, $r, $userflags ) );
         if ( !defined $r->{budget_amount} || $r->{budget_amount} == 0 ) {
             next;
         }
@@ -260,15 +268,6 @@ foreach my $period (@$periods) {
 }
 
 $template->{'VARS'}->{'budget_loop'} = \@budget_loop;
-
-# regardless of the content of $unitprice e.g 0 or '' or any string will return in these cases 0.00
-# and the 'IF' in the .tt will show 0.00 and not 'ecost' (see BZ 7129)
-# So if $unitprice == 0 we don't create unitprice
-if ( $unitprice != 0) {
-    $template->param(
-        unitprice             => sprintf( "%.2f", $unitprice),
-    );
-}
 
 my $op = $input->param('op');
 if ($op and $op eq 'edit'){

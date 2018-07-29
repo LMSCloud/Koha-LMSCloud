@@ -18,15 +18,14 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 #
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Context;
 use C4::Output;
 use C4::Koha;
-use C4::Matcher;
+use C4::Matcher qw/valid_normalization_routines/;
 
 my $script_name = "/cgi-bin/koha/admin/matching-rules.pl";
 
@@ -47,8 +46,12 @@ $template->param(script_name => $script_name);
 
 my $matcher_id = $input->param("matcher_id");
 
-$template->param(max_matchpoint => 0);
-$template->param(max_matchcheck => 0);
+$template->param( max_matchpoint => 0 );
+$template->param( max_matchcheck => 0 );
+my @valid_norms = C4::Matcher::valid_normalization_routines();
+unshift @valid_norms, 'none';
+$template->param( valid_norms => \@valid_norms );
+
 my $display_list = 0;
 if ($op eq "edit_matching_rule") {
     edit_matching_rule_form($template, $matcher_id);

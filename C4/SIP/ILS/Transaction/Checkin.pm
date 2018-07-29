@@ -67,7 +67,7 @@ sub do_checkin {
                    . substr( $return_date, 16, 2 );
 
     $debug and warn "do_checkin() calling AddReturn($barcode, $branch)";
-    my ($return, $messages, $iteminformation, $borrower) = AddReturn($barcode, $branch, undef, undef, $return_date);
+    my ($return, $messages, $issue, $borrower) = AddReturn($barcode, $branch, undef, undef, $return_date);
     $self->alert(!$return);
     # ignoring messages: IsPermanent, WasLost, WasTransfered
 
@@ -86,6 +86,9 @@ sub do_checkin {
             $self->screen_msg("Item not checked out") unless $checked_in_ok;
         }
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - item not checked out");
+    }
+    if( $messages->{DataCorrupted} ) {
+        $self->alert_type('98');
     }
     if ($messages->{BadBarcode}) {
         $self->alert_type('99');
@@ -115,7 +118,7 @@ sub do_checkin {
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - needs transfer");
     }
     if ($messages->{WasTransfered}) { # set into transit so tell unit
-        $self->{item}->destination_loc($iteminformation->{homebranch});
+        $self->{item}->destination_loc($issue->item->homebranch);
         $self->alert_type('04');            # send to other branch
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - was transfered");
     }

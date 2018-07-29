@@ -29,7 +29,6 @@ use C4::Languages;
 use C4::Search;
 use C4::Output;
 use C4::Koha;
-use C4::Branch;
 use C4::Circulation;
 use Date::Manip;
 
@@ -48,9 +47,6 @@ if ( ! C4::Context->preference('OpacTopissue') ) {
     print $input->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
-
-my $branches = GetBranches();
-my $itemtypes = GetItemTypes();
 
 my ($template, $borrowernumber, $cookie) = get_template_and_user(
     {
@@ -95,11 +91,9 @@ my @results = GetTopIssues($params);
 
 $template->param(
     limit => $limit,
-    branch => $branches->{$branch}->{branchname},
+    branch => $branch,
     timeLimit => $timeLimit,
     results => \@results,
 );
-
-$template->param(branchloop => GetBranchesLoop($branch));
 
 output_html_with_http_headers $input, $cookie, $template->output;

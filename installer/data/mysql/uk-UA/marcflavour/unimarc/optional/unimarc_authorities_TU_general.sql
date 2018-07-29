@@ -1,5 +1,6 @@
 DELETE FROM auth_types WHERE authtypecode='TU';
-INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (230, 'TU', 'Titre Uniforme', '[230a][. 230i][. 230h][. 230m][. 230q][. 230k][ -- 230x][ -- 230y][ -- 230z][ -- 230l]');
+-- INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (230, 'TU', 'Titre Uniforme', '[230a][. 230i][. 230h][. 230m][. 230q][. 230k][ -- 230x][ -- 230y][ -- 230z][ -- 230l]');
+INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (230, 'TU', 'Уніфікований заголовок', '[230a][. 230i][. 230h][. 230m][. 230q][. 230k][ -- 230x][ -- 230y][ -- 230z][ -- 230l]');
 DELETE FROM auth_tag_structure WHERE authtypecode='TU';
 DELETE FROM auth_subfield_structure WHERE authtypecode='TU';
 
@@ -351,3 +352,6 @@ INSERT INTO  auth_subfield_structure (frameworkcode, authtypecode, tagfield, tag
  ('', 'TU', '886', '2', 0, 0, 'Системний код', 'Системний код',         -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'TU', '886', 'a', 0, 1, 'Тег поля початкового формату', 'Тег поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'TU', '886', 'b', 0, 1, 'Індикатори та підполя поля початкового формату', 'Індикатори та підполя поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0);
+
+-- Replace nonzero hidden values like -5, 1 or 8 by 1
+UPDATE auth_subfield_structure SET hidden=1 WHERE hidden<>0

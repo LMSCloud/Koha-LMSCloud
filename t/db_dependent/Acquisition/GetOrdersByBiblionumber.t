@@ -5,10 +5,9 @@ use Modern::Perl;
 use Test::More;
 use C4::Acquisition;
 use C4::Biblio;
-use C4::Bookseller;
 use C4::Budgets;
 use Koha::Database;
-use Koha::Acquisition::Order;
+use Koha::Acquisition::Orders;
 
 use MARC::Record;
 
@@ -18,23 +17,23 @@ $schema->storage->txn_begin();
 my $dbh = C4::Context->dbh;
 $dbh->{RaiseError} = 1;
 
-my $booksellerid = C4::Bookseller::AddBookseller(
+my $bookseller = Koha::Acquisition::Bookseller->new(
     {
         name => "my vendor",
         address1 => "bookseller's address",
         phone => "0123456",
         active => 1
     }
-);
+)->store;
 
 my $basketno = C4::Acquisition::NewBasket(
-    $booksellerid
+    $bookseller->id
 );
 
 my $budgetid = C4::Budgets::AddBudget(
     {
-        budget_code => "budget_code_test_getordersbybib",
-        budget_name => "budget_name_test_getordersbybib",
+        budget_code => "budget_code_test",
+        budget_name => "budget_name_test",
     }
 );
 
@@ -49,8 +48,8 @@ my $order1 = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber1,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber1 = $order1->{ordernumber};
+)->store;
+my $ordernumber1 = $order1->ordernumber;
 
 my $order2 = Koha::Acquisition::Order->new(
     {
@@ -59,8 +58,8 @@ my $order2 = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber2,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber2 = $order1->{ordernumber};
+)->store;
+my $ordernumber2 = $order2->ordernumber;
 
 my $order3 = Koha::Acquisition::Order->new(
     {
@@ -69,8 +68,8 @@ my $order3 = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber2,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber3 = $order1->{ordernumber};
+)->store;
+my $ordernumber3 = $order3->ordernumber;
 
 my @orders = GetOrdersByBiblionumber();
 is(scalar(@orders), 0, 'GetOrdersByBiblionumber : no argument, return undef');

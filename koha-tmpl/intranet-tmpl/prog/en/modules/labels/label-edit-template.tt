@@ -77,14 +77,24 @@
                                  <label for="units">Units:</label>
                                  <select id="units" name="units">
                                  [% FOREACH unit IN units %]
+                                     [% IF ( unit.selected ) %]
+                                     <option value="[% unit.type %]" selected="selected">
+                                     [% ELSE %]
+                                     <option value="[% unit.type %]">
+                                     [% END %]
 
-									[% IF ( unit.selected ) %]
-									<option value="[% unit.type %]" selected="selected">
-									[% ELSE %]
-									<option value="[% unit.type %]">
-									[% END %]
-
-                                 [% unit.desc %]
+                                     [% SWITCH unit.type %]
+                                     [%   CASE 'POINT' %]
+                                     <span>PostScript Points</span>
+                                     [%   CASE 'AGATE' %]
+                                     <span>Adobe Agates</span>
+                                     [%   CASE 'INCH' %]
+                                     <span>US Inches</span>
+                                     [%   CASE 'MM' %]
+                                     <span>SI Millimeters</span>
+                                     [%   CASE 'CM' %]
+                                     <span>SI Centimeters</span>
+                                     [% END %]
                                  </option>
                                  [% END %]
                                  </select>

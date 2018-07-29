@@ -100,7 +100,26 @@ $(document).ready(function() {
                     },
                     {
                         "mDataProp": function( oObj ) {
-                            return oObj.branchcode || "";
+                            if( oObj.branches.length > 1 && oObj.found !== 'W' && oObj.found !== 'T' ){
+                                var branchSelect='<select priority='+oObj.priority+' class="hold_location_select" reserve_id="'+oObj.reserve_id+'" name="pick-location">';
+                                for ( var i=0; i < oObj.branches.length; i++ ){
+                                    var selectedbranch;
+                                    var setbranch;
+                                    if( oObj.branches[i].selected ){
+
+                                        selectedbranch = " selected='selected' ";
+                                        setbranch = CURRENT;
+                                    }
+                                    else{
+                                        selectedbranch = '';
+                                        setbranch = '';
+                                    }
+                                    branchSelect += '<option value="'+ oObj.branches[i].branchcode +'"'+selectedbranch+'>'+oObj.branches[i].branchname+setbranch+'</option>';
+                                }
+                                branchSelect +='</select>';
+                                return branchSelect;
+                            }
+                            else { return oObj.branchcode || ""; }
                         }
                     },
                     { "mDataProp": "expirationdate_formatted" },
@@ -133,10 +152,10 @@ $(document).ready(function() {
                             if ( oObj.found ) {
                                 return "";
                             } else if ( oObj.suspend == 1 ) {
-                                return "<a class='hold-resume btn btn-mini' id='resume" + oObj.reserve_id + "'>"
+                                return "<a class='hold-resume btn btn-default btn-xs' id='resume" + oObj.reserve_id + "'>"
                                      + "<i class='fa fa-play'></i> " + RESUME + "</a>";
                             } else {
-                                return "<a class='hold-suspend btn btn-mini' id='suspend" + oObj.reserve_id + "'>"
+                                return "<a class='hold-suspend btn btn-default btn-xs' id='suspend" + oObj.reserve_id + "'>"
                                      + "<i class='fa fa-pause'></i> " + SUSPEND + "</a>";
                             }
                         }
@@ -176,6 +195,28 @@ $(document).ready(function() {
                       }
                     });
                 });
+
+                $(".hold_location_select").change(function(){
+                    $(this).prop("disabled",true);
+                    var cur_select = $(this);
+                    var res_id = $(this).attr('reserve_id');
+                    $(this).after('<div id="updating_reserveno'+res_id+'" class="waiting"><img src="/intranet-tmpl/prog/img/spinner-small.gif" alt="" /><span class="waiting_msg"></span></div>');
+                    var api_url = '/api/v1/holds/'+res_id;
+                    var update_info = JSON.stringify({ branchcode: $(this).val(), priority: parseInt($(this).attr("priority"),10) });
+                    $.ajax({
+                        method: "PUT",
+                        url: api_url,
+                        data: update_info ,
+                        success: function( data ){ holdsTable.api().ajax.reload(); },
+                        error: function( jqXHR, textStatus, errorThrown) {
+                            alert('There was an error:'+textStatus+" "+errorThrown);
+                            cur_select.prop("disabled",false);
+                            $("#updating_reserveno"+res_id).remove();
+                            cur_select.val( cur_select.children('option[selected="selected"]').val() );
+                        },
+                    });
+                });
+
             });
 
             if ( $("#holds-table").length ) {
@@ -188,7 +229,9 @@ $(document).ready(function() {
     }
 
     $("body").append("\
-        <div id='suspend-modal' class='modal hide fade' tabindex='-1' role='dialog' aria-hidden='true'>\
+        <div id='suspend-modal' class='modal fade' tabindex='-1' role='dialog' aria-hidden='true'>\
+            <div class='modal-dialog'>\
+            <div class='modal-content'>\
             <form id='suspend-modal-form' class='form-inline'>\
                 <div class='modal-header'>\
                     <button type='button' class='closebtn' data-dismiss='modal' aria-hidden='true'>×</button>\
@@ -198,7 +241,7 @@ $(document).ready(function() {
                 <div class='modal-body'>\
                     <input type='hidden' id='suspend-modal-reserve_id' name='reserve_id' />\
 \
-                    <label for='suspend-modal-until'>Suspend until:</label>\
+                    <label for='suspend-modal-until'>" + SUSPEND_UNTIL + "</label>\
                     <input name='suspend_until' id='suspend-modal-until' class='suspend-until' size='10' />\
 \
                     <p/><a class='btn btn-link' id='suspend-modal-clear-date' >" + CLEAR_DATE_TO_SUSPEND_INDEFINITELY + "</a></p>\
@@ -210,6 +253,8 @@ $(document).ready(function() {
                     <a href='#' data-dismiss='modal' aria-hidden='true' class='cancel'>" + CANCEL + "</a>\
                 </div>\
             </form>\
+            </div>\
+            </div>\
         </div>\
     ");
 

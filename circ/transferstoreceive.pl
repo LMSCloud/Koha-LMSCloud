@@ -18,14 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output;
-use C4::Branch;     # GetBranches
 use C4::Auth;
-use Koha::DateUtils;
 use C4::Biblio;
 use C4::Circulation;
 use C4::Members;
@@ -37,11 +34,17 @@ use Date::Calc qw(
 
 use C4::Koha;
 use C4::Reserves;
+use Koha::Items;
+use Koha::ItemTypes;
+use Koha::Libraries;
+use Koha::DateUtils;
+use Koha::BiblioFrameworks;
+use Koha::Patrons;
 
 my $input = new CGI;
 my $itemnumber = $input->param('itemnumber');
 
-my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "circ/transferstoreceive.tt",
         query           => $input,
@@ -56,18 +59,18 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $default = C4::Context->userenv->{'branch'};
 
 # get the all the branches for reference
-my $branches = GetBranches();
+my $libraries = Koha::Libraries->search({}, { order_by => 'branchname' });
 my @branchesloop;
 my $latetransfers;
-foreach my $br ( keys %$branches ) {
+while ( my $library = $libraries->next ) {
     my @transferloop;
     my %branchloop;
     my @gettransfers =
-      GetTransfersFromTo( $branches->{$br}->{'branchcode'}, $default );
+      GetTransfersFromTo( $library->branchcode, $default );
 
     if (@gettransfers) {
-        $branchloop{'branchname'} = $branches->{$br}->{'branchname'};
-        $branchloop{'branchcode'} = $branches->{$br}->{'branchcode'};
+        $branchloop{'branchname'} = $library->branchname;
+        $branchloop{'branchcode'} = $library->branchcode;
         foreach my $num (@gettransfers) {
             my %getransf;
 
@@ -86,27 +89,32 @@ foreach my $br ( keys %$branches ) {
                 $getransf{'messcompa'} = 1;
 				$getransf{'diff'} = $diff;
             }
-            my $gettitle     = GetBiblioFromItemNumber( $num->{'itemnumber'} );
-            my $itemtypeinfo = getitemtypeinfo( (C4::Context->preference('item-level_itypes')) ? $gettitle->{'itype'} : $gettitle->{'itemtype'} );
+
+            my $item = Koha::Items->find( $num->{itemnumber} );
+            my $biblio = $item->biblio;
+            my $itemtype = Koha::ItemTypes->find( $item->effective_itemtype );
 
             $getransf{'datetransfer'} = $num->{'datesent'};
-            $getransf{'itemtype'} = $itemtypeinfo ->{'description'};
-			foreach (qw(title author biblionumber itemnumber barcode homebranch holdingbranch itemcallnumber)) {
-            	$getransf{$_} = $gettitle->{$_};
-			}
+            $getransf{'itemtype'} = $itemtype->description; # FIXME Should not it be translated_description?
+            %getransf = (
+                %getransf,
+                title          => $biblio->title,
+                author         => $biblio->author,
+                biblionumber   => $biblio->biblionumber,
+                itemnumber     => $item->itemnumber,
+                barcode        => $item->barcode,
+                homebranch     => $item->homebranch,
+                holdingbranch  => $item->holdingbranch,
+                itemcallnumber => $item->itemcallnumber,
+            );
 
-            my $record = GetMarcBiblio($gettitle->{'biblionumber'});
-            $getransf{'subtitle'} = GetRecordValue('subtitle', $record, GetFrameworkCode($gettitle->{'biblionumber'}));
+            my $record = GetMarcBiblio({ biblionumber => $biblio->biblionumber });
+            $getransf{'subtitle'} = GetRecordValue('subtitle', $record, $biblio->frameworkcode);
 
             # we check if we have a reserv for this transfer
-            my @checkreserv = GetReservesFromItemnumber($num->{'itemnumber'});
-            if ( $checkreserv[0] ) {
-                my $getborrower = C4::Members::GetMember( borrowernumber => $checkreserv[1] );
-                $getransf{'borrowernum'}       = $getborrower->{'borrowernumber'};
-                $getransf{'borrowername'}      = $getborrower->{'surname'};
-                $getransf{'borrowerfirstname'} = $getborrower->{'firstname'};
-                $getransf{'borrowermail'}      = $getborrower->{'email'} if $getborrower->{'email'};
-                $getransf{'borrowerphone'}     = $getborrower->{'phone'};
+            my $holds = $item->current_holds;
+            if ( my $first_hold = $holds->next ) {
+                $getransf{patron} = Koha::Patrons->find( $first_hold->borrowernumber );
             }
             push( @transferloop, \%getransf );
         }
@@ -123,6 +131,9 @@ $template->param(
 	TransfersMaxDaysWarning => C4::Context->preference('TransfersMaxDaysWarning'),
 	latetransfers => $latetransfers ? 1 : 0,
 );
+
+# Checking if there is a Fast Cataloging Framework
+$template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 
 output_html_with_http_headers $input, $cookie, $template->output;
 

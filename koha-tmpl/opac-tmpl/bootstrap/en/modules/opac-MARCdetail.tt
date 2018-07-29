@@ -1,6 +1,6 @@
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo;  MARC details for record no. [% biblionumber %]</title>
+<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo;  MARC details for record no. [% biblio.biblionumber %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -20,14 +20,14 @@
                         <div id="catalogue_detail_biblio">
 
                             <div id="views">
-                                <span class="view"><a id="Normalview" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber %]">Normal view</a></span>
+                                <span class="view"><a id="Normalview" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblio.biblionumber %]">Normal view</a></span>
                                 <span class="view current-view"><span id="MARCview">MARC view</span></span>
-                                [% IF ( ISBD ) %]<span class="view"><a id="ISBDview"  href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=[% biblionumber %]">ISBD view</a></span>[% END %]
+                                [% IF ( ISBD ) %]<span class="view"><a id="ISBDview"  href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=[% biblio.biblionumber %]">ISBD view</a></span>[% END %]
                             </div>
-                            <h1 class="title">[% bibliotitle %] (Record no. [% biblionumber %])</h1>
+                            <h1 class="title">[% bibliotitle %] (Record no. [% biblio.biblionumber %])</h1>
 
                             [% IF ( OPACXSLTDetailsDisplay ) %]
-                                <div id="switchview_div">[ <a id="switchview" href="/cgi-bin/koha/opac-showmarc.pl?id=[% biblionumber %]&amp;viewas=html">view plain</a> ]</div>
+                                <div id="switchview_div">[ <a id="switchview" href="/cgi-bin/koha/opac-showmarc.pl?id=[% biblio.biblionumber %]&amp;viewas=html">view plain</a> ]</div>
                                 <div id="plainmarc"></div>
                             [% END %]
 
@@ -136,11 +136,14 @@
                             [% IF ( item_header_loop ) %]
                                 <table id="items" class="table table-bordered table-condensed table-striped">
                                     <caption>Holdings</caption>
+                                    <thead>
                                         <tr>
                                             [% FOREACH header IN item_header_loop %]
                                                 <th>[% header %]</th>
                                             [% END %]
                                         </tr>
+                                    </thead>
+                                    <tbody>
                                         [% FOREACH item IN item_loop %]
                                             <tr>
                                                 [% FOREACH sf_code IN item_subfield_codes %]
@@ -148,6 +151,7 @@
                                                 [% END %]
                                             </tr>
                                         [% END %]
+                                    </tbody>
                                 </table>
                             [% ELSE %]
                                 <p>No items available.</p>
@@ -165,7 +169,7 @@
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
-<script type="text/javascript">
+<script>
 //<![CDATA[
 [% IF ( OPACXSLTDetailsDisplay ) %]
 $(document).ready(function(){
@@ -190,7 +194,7 @@ $(document).ready(function(){
             $(this).text(_("view labeled"));
             $("#labeledmarc").hide();
             if(!loaded){
-                $("#plainmarc").show().html("<div style=\"margin:1em;padding:1em;border:1px solid #EEE;font-size:150%;\"><img src=\"[% interface %]/[% theme %]/images/loading.gif\" /> "+_("Loading")+"...</div>").load("/cgi-bin/koha/opac-showmarc.pl","id=[% biblionumber %]&viewas=html");
+                $("#plainmarc").show().html("<div style=\"margin:1em;padding:1em;border:1px solid #EEE;font-size:150%;\"><img src=\"[% interface %]/[% theme %]/images/loading.gif\" /> "+_("Loading")+"...</div>").load("/cgi-bin/koha/opac-showmarc.pl","id=[% biblio.biblionumber %]&viewas=html");
                 loaded = 1;
             } else {
                 $("#plainmarc").show();

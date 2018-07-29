@@ -32,7 +32,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1 },
+        flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
@@ -43,5 +43,10 @@ my $message_id     = $input->param('message_id');
 my $message = Koha::Patron::Messages->find($message_id);
 $message->delete if $message;
 
-print $input->redirect(
-    "/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
+if ( $input->param('from') eq  "moremember" ) {
+    print $input->redirect(
+        "/cgi-bin/koha/members/moremember.pl?borrowernumber=$borrowernumber");
+} else {
+    print $input->redirect(
+        "/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
+}

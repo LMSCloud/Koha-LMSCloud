@@ -22,13 +22,15 @@ use CGI qw ( -utf8 );
 use Encode qw( encode );
 use C4::Auth;    # get_template_and_user
 use C4::Members;
-use C4::Branch;
 use C4::Koha;
 use C4::Output;
 use C4::Suggestions;
 use C4::Koha;
 use C4::Scrubber;
+
+use Koha::AuthorisedValues;
 use Koha::Libraries;
+use Koha::Patrons;
 
 use Koha::DateUtils qw( dt_from_string );
 
@@ -112,32 +114,53 @@ if ( $op eq 'else' ) {
     }
 }
 
-my $suggestions_loop =
-  &SearchSuggestion( $suggestion);
+my $patrons_pending_suggestions_count = 0;
+if ( $borrowernumber && C4::Context->preference("MaxOpenSuggestions") ne '' ) {
+    $patrons_pending_suggestions_count = scalar @{ SearchSuggestion( { suggestedby => $borrowernumber, STATUS => 'ASKED' } ) } ;
+}
+
+my $suggestions_loop = &SearchSuggestion($suggestion);
 if ( $op eq "add_confirm" ) {
-	if (@$suggestions_loop>=1){
-		#some suggestion are answering the request Donot Add
-        for my $suggestion ( @$suggestions_loop ) {
-            push @messages, { type => 'error', code => 'already_exists', id => $suggestion->{suggestionid} };
+    if ( C4::Context->preference("MaxOpenSuggestions") ne '' && $patrons_pending_suggestions_count >= C4::Context->preference("MaxOpenSuggestions") ) #only check limit for signed in borrowers
+    {
+        push @messages, { type => 'error', code => 'too_many' };
+    }
+    elsif ( @$suggestions_loop >= 1 ) {
+
+        #some suggestion are answering the request Donot Add
+        for my $suggestion (@$suggestions_loop) {
+            push @messages,
+              {
+                type => 'error',
+                code => 'already_exists',
+                id   => $suggestion->{suggestionid}
+              };
             last;
         }
-	}
-	else {
-		my $scrubber = C4::Scrubber->new();
-		foreach my $suggest (keys %$suggestion){
+    }
+    else {
+        my $scrubber = C4::Scrubber->new();
+        foreach my $suggest ( keys %$suggestion ) {
+
             # Don't know why the encode is needed for Perl v5.10 here
-            $suggestion->{$suggest} = Encode::encode("utf8", $scrubber->scrub($suggestion->{$suggest}) );
-		}
+            $suggestion->{$suggest} = Encode::encode( "utf8",
+                $scrubber->scrub( $suggestion->{$suggest} ) );
+        }
         $suggestion->{suggesteddate} = dt_from_string;
         $suggestion->{branchcode} = $input->param('branchcode') || C4::Context->userenv->{"branch"};
 
-		&NewSuggestion($suggestion);
-		# empty fields, to avoid filter in "SearchSuggestion"
-		$$suggestion{$_}='' foreach qw<title author publishercode copyrightdate place collectiontitle isbn STATUS>;
-		$suggestions_loop =
-		   &SearchSuggestion( $suggestion );
+        &NewSuggestion($suggestion);
+        $patrons_pending_suggestions_count++;
+
+        # delete empty fields, to avoid filter in "SearchSuggestion"
+        foreach my $field ( qw( title author publishercode copyrightdate place collectiontitle isbn STATUS ) ) {
+            delete $suggestion->{$field}; #clear search filters (except borrower related) to show all suggestions after placing a new one
+        }
+        $suggestions_loop = &SearchSuggestion($suggestion);
+
         push @messages, { type => 'info', code => 'success_on_inserted' };
-	}
+
+    }
     $op = 'else';
 }
 
@@ -169,7 +192,8 @@ foreach my $suggestion(@$suggestions_loop) {
         $suggestion->{'showcheckbox'} = 0;
     }
     if($suggestion->{'patronreason'}){
-        $suggestion->{'patronreason'} = GetKohaAuthorisedValueLib("OPAC_SUG",$suggestion->{'patronreason'},1);
+        my $av = Koha::AuthorisedValues->search({ category => 'OPAC_SUG', authorised_value => $suggestion->{patronreason} });
+        $suggestion->{'patronreason'} = $av->count ? $av->next->opac_description : '';
     }
 }
 
@@ -177,29 +201,36 @@ my $patron_reason_loop = GetAuthorisedValues("OPAC_SUG");
 
 # Is the person allowed to choose their branch
 if ( C4::Context->preference("AllowPurchaseSuggestionBranchChoice") ) {
-    my ( $borr ) = GetMemberDetails( $borrowernumber );
+    my $branchcode = $input->param('branchcode') || q{};
 
-# pass the pickup branch along....
-    my $userbranch = '';
-    if (C4::Context->userenv && C4::Context->userenv->{'branch'}) {
-        $userbranch = C4::Context->userenv->{'branch'};
+    if ( !$branchcode
+        && C4::Context->userenv
+        && C4::Context->userenv->{branch} )
+    {
+        $branchcode = C4::Context->userenv->{branch};
     }
-    my $branchcode = $input->param('branchcode') || $borr->{'branchcode'} || $userbranch || '' ;
 
-# make branch selection options...
-    my $branchloop = GetBranchesLoopWithoutMobileStations($branchcode);
-    $template->param( branchloop => $branchloop );
+    $template->param( branchcode => $branchcode );
+}
+
+my $mandatoryfields = '';
+{
+    last unless ($op eq 'add');
+    my $fldsreq_sp = C4::Context->preference("OPACSuggestionMandatoryFields") || 'title';
+    $mandatoryfields = join(', ', (map { '"'.$_.'"'; } sort split(/\s*\,\s*/, $fldsreq_sp)));
 }
 
 $template->param(
-	%$suggestion,
-    suggestions_loop => $suggestions_loop,
-    patron_reason_loop => $patron_reason_loop,
-    "op_$op"         => 1,
-    $op => 1,
-    messages => \@messages,
-    suggestionsview => 1,
-    suggested_by_anyone => $suggested_by_anyone,
+    %$suggestion,
+    suggestions_loop      => $suggestions_loop,
+    patron_reason_loop    => $patron_reason_loop,
+    "op_$op"              => 1,
+    $op                   => 1,
+    messages              => \@messages,
+    suggestionsview       => 1,
+    suggested_by_anyone   => $suggested_by_anyone,
+    mandatoryfields       => $mandatoryfields,
+    patrons_pending_suggestions_count => $patrons_pending_suggestions_count,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

@@ -1,69 +1,12 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% PROCESS 'authorities-search-results.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Batch record deletion</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.checkboxes.min.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-var MSG_CANNOT_BE_DELETED = _("This record cannot be deleted, at least one item is currently checked out.");
-$(document).ready(function() {
-  $("#selectall").click(function(e){
-    e.preventDefault();
-    $(".records").checkCheckboxes();
-  });
-  $("#clearall").click(function(e){
-    e.preventDefault();
-    $(".records").unCheckCheckboxes();
-  });
-  $("#selectwithoutitems").click(function(e){
-    e.preventDefault();
-    $("#biblios").checkCheckboxes(":input[data-items='0']:not(:disabled)");
-  });
-  $("#selectnotreserved").click(function(e){
-    e.preventDefault();
-    $("#biblios").checkCheckboxes(":input[data-reserves='0']:not(:disabled)");
-
-  });
-  $("#clearlinkedtobiblio").click(function(e){
-    e.preventDefault();
-    $("#authorities").unCheckCheckboxes(":not(input[data-usage='0'])");
-  });
-  $("#selectall").click();
-
-  [% IF recordtype == 'biblio' %]
-    $(".records input:checkbox[data-issues!='0']").each(function(){
-      $(this).attr('title', MSG_CANNOT_BE_DELETED)
-      $(this).prop('disabled', true);
-      $(this).prop('checked', false);
-      $(this).parents('tr').find('td').css('background-color', '#ffff99');
-    });
-  [% END %]
-
-  $("table#biblios").dataTable($.extend(true, {}, dataTablesDefaults, {
-    "aoColumnDefs": [
-      { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
-      { "aTargets": [ 3, 4 ], "sType": "num-html" }
-    ],
-    "sDom": 't',
-    "aaSorting": [],
-    "bPaginate": false
-  }));
-
-  $("table#authorities").dataTable($.extend(true, {}, dataTablesDefaults, {
-    "aoColumnDefs": [
-      { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
-      { "aTargets": [ 3 ], "sType": "num-html" }
-    ],
-    "sDom": 't',
-    "aaSorting": [],
-    "bPaginate": false
-  }));
-});
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="tools_batch_delete_records" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -88,9 +31,9 @@ $(document).ready(function() {
       <div class="dialog error" style="margin:auto;">
     [% END %]
     [% IF message.code == 'biblio_not_exists' %]
-      The biblionumber [% message.biblionumber %] does not exist in the database.
+      The biblionumber [% message.biblionumber |html %] does not exist in the database.
     [% ELSIF message.code == 'authority_not_exists' %]
-      The authority id [% message.authid %] does not exist in the database.
+      The authority id [% message.authid |html %] does not exist in the database.
     [% ELSIF message.code == 'item_issued' %]
       At least one item is checked out on bibliographic record [% message.biblionumber %].
     [% ELSIF message.code == 'reserve_not_cancelled' %]
@@ -130,7 +73,7 @@ $(document).ready(function() {
         <legend>Or enter a list of record numbers</legend>
         <ol>
           <li>
-            <label for="recordnumber_list">Record number list (one per line): </label>
+            <label for="recordnumber_list">List of biblionumbers or authority ids (one per line): </label>
             <textarea rows="10" cols="30" id="recordnumber_list" name="recordnumber_list"></textarea>
           </li>
         </ol>
@@ -150,7 +93,7 @@ $(document).ready(function() {
           | <a id="selectwithoutitems" href="#">Select without items</a>
           | <a id="selectnotreserved" href="#">Select without holds</a>
         </div>
-        <form action="/cgi-bin/koha/tools/batch_delete_records.pl" method="post">
+        <form action="/cgi-bin/koha/tools/batch_delete_records.pl" method="post" id="selectrecords">
           <table id="biblios" class="records">
             <thead>
               <tr>
@@ -165,11 +108,11 @@ $(document).ready(function() {
             <tbody>
               [% FOR biblio IN records %]
                 <tr>
-                  <td><input type="checkbox" name="record_id" id="record_id_[% biblio.biblionumber %]" value="[% biblio.biblionumber %]" data-items="[% biblio.itemnumbers.size %]" data-issues="[% biblio.issues_count %]" data-reserves="[% biblio.reserves.size %]" /></td>
+                  <td><input type="checkbox" name="record_id" id="record_id_[% biblio.biblionumber %]" value="[% biblio.biblionumber %]" data-items="[% biblio.itemnumbers.size %]" data-issues="[% biblio.issues_count %]" data-reserves="[% biblio.holds_count %]" /></td>
                   <td><label for="record_id_[% biblio.biblionumber %]">[% biblio.biblionumber %]</label></td>
                   <td>[% INCLUDE 'biblio-default-view.inc' biblionumber=biblio.biblionumber %][% biblio.title %][% IF ( biblio.subtitle ) %][% FOREACH subtitle IN biblio.subtitle %] [% subtitle.subfield |html %][% END %][% END %]</a></td>
                   <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.itemnumbers.size %]</a></td>
-                  <td><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.reserves.size %]</a></td>
+                  <td><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.holds_count %]</a></td>
                   <td><a href="/cgi-bin/koha/catalogue/issuehistory.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.issues_count %]</a></td>
                 </tr>
               [% END %]
@@ -182,7 +125,7 @@ $(document).ready(function() {
           | <a id="clearall" href="#"><i class="fa fa-remove"></i> Clear all</a>
           | <a id="clearlinkedtobiblio" href="#">Clear used authorities</a>
         </div>
-        <form action="/cgi-bin/koha/tools/batch_delete_records.pl" method="post">
+        <form action="/cgi-bin/koha/tools/batch_delete_records.pl" method="post" id="selectauths">
           <table id="authorities" class="records">
             <thead>
               <tr>
@@ -233,4 +176,83 @@ $(document).ready(function() {
   [% INCLUDE 'tools-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
+    <script type="text/javascript">
+        var MSG_CANNOT_BE_DELETED = _("This record cannot be deleted, at least one item is currently checked out.");
+        $(document).ready(function() {
+          $("#selectall").click(function(e){
+            e.preventDefault();
+            $(".records").checkCheckboxes(":input[type='checkbox']:not(:disabled)");
+          });
+          $("#clearall").click(function(e){
+            e.preventDefault();
+            $(".records").unCheckCheckboxes(":input[type='checkbox']:not(:disabled)");
+          });
+          $("#selectwithoutitems").click(function(e){
+            e.preventDefault();
+            $("#biblios").checkCheckboxes(":input[data-items='0']:not(:disabled)");
+          });
+          $("#selectnotreserved").click(function(e){
+            e.preventDefault();
+            $("#biblios").checkCheckboxes(":input[data-reserves='0']:not(:disabled)");
+
+          });
+          $("#clearlinkedtobiblio").click(function(e){
+            e.preventDefault();
+            $("#authorities").unCheckCheckboxes(":not(input[data-usage='0'])");
+          });
+          $("#selectall").click();
+
+          [% IF recordtype == 'biblio' %]
+            $(".records input:checkbox[data-issues!='0']").each(function(){
+              $(this).attr('title', MSG_CANNOT_BE_DELETED)
+              $(this).prop('disabled', true);
+              $(this).prop('checked', false);
+              $(this).parents('tr').find('td').css('background-color', '#ffff99');
+            });
+          [% END %]
+
+          $("table#biblios").dataTable($.extend(true, {}, dataTablesDefaults, {
+            "aoColumnDefs": [
+              { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
+              { "aTargets": [ 3, 4 ], "sType": "num-html" }
+            ],
+            "sDom": 't',
+            "aaSorting": [],
+            "bPaginate": false
+          }));
+
+          $("table#authorities").dataTable($.extend(true, {}, dataTablesDefaults, {
+            "aoColumnDefs": [
+              { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
+              { "aTargets": [ 3 ], "sType": "num-html" }
+            ],
+            "sDom": 't',
+            "aaSorting": [],
+            "bPaginate": false
+          }));
+
+          $("#selectrecords").on("submit",function(){
+            var nb_checked = $("#selectrecords").find("input[type='checkbox'][name='record_id']:checked").size();
+            if (nb_checked == 0){
+              alert(_("No records have been selected."));
+              return false;
+            }
+          });
+
+          $("#selectauths").on("submit",function(){
+            var checked = $("#selectauths").find("input[type='checkbox'][name='record_id']:checked").size();
+            if (checked == 0) {
+              alert(_("No authorities have been selected."));
+              return false;
+            }
+          });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

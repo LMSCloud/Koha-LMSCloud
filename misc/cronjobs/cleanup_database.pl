@@ -40,10 +40,11 @@ use C4::Search::History;
 use Getopt::Long;
 use C4::Log;
 use C4::Accounts;
+use Koha::UploadedFiles;
 
 sub usage {
     print STDERR <<USAGE;
-Usage: $0 [-h|--help] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueue DAYS] [-m|--mail] [--merged] [--import DAYS] [--logs DAYS] [--searchhistory DAYS] [--restrictions DAYS] [--all-restrictions] [--fees DAYS]
+Usage: $0 [-h|--help] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueue DAYS] [-m|--mail] [--merged] [--import DAYS] [--logs DAYS] [--searchhistory DAYS] [--restrictions DAYS] [--all-restrictions] [--fees DAYS] [--temp-uploads] [--temp-uploads-days DAYS] [--uploads-missing 0|1 ]
 
    -h --help          prints this help message, and exits, ignoring all
                       other options
@@ -65,9 +66,6 @@ Usage: $0 [-h|--help] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueu
                       amountoutstanding is 0 or NULL.
                       In the case of --fees, DAYS must be greater than
                       or equal to 1.
-                      WARNING: Fees and payments may not be deleted together.
-                      This will not affect the account balance but may be
-                      confusing to staff.
    --logs DAYS        purge entries from action_logs older than DAYS days.
                       Defaults to 180 days if no days specified.
    --searchhistory DAYS  purge entries from search_history older than DAYS days.
@@ -78,7 +76,12 @@ Usage: $0 [-h|--help] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueu
                          Defaults to 30 days if no days specified.
     --all-restrictions   purge all expired patrons restrictions.
    --del-exp-selfreg  Delete expired self registration accounts
-   --del-unv-selfreg DAYS  Delete unverified self registrations older than DAYS
+   --del-unv-selfreg  DAYS  Delete unverified self registrations older than DAYS
+   --unique-holidays DAYS  Delete all unique holidays older than DAYS
+   --temp-uploads     Delete temporary uploads.
+   --temp-uploads-days DAYS Override the corresponding preference value.
+   --uploads-missing FLAG Delete upload records for missing files when FLAG is true, count them otherwise
+   --oauth-tokens     Delete expired OAuth2 tokens
 USAGE
     exit $_[0];
 }
@@ -100,25 +103,35 @@ my $allDebarments;
 my $pExpSelfReg;
 my $pUnvSelfReg;
 my $fees_days;
+my $special_holidays_days;
+my $temp_uploads;
+my $temp_uploads_days;
+my $uploads_missing;
+my $oauth_tokens;
 
 GetOptions(
-    'h|help'          => \$help,
-    'sessions'        => \$sessions,
-    'sessdays:i'      => \$sess_days,
-    'v|verbose'       => \$verbose,
-    'm|mail:i'        => \$mail,
-    'zebraqueue:i'    => \$zebraqueue_days,
-    'merged'          => \$purge_merged,
-    'import:i'        => \$pImport,
-    'z3950'           => \$pZ3950,
-    'logs:i'          => \$pLogs,
-    'fees:i'          => \$fees_days,
-    'searchhistory:i' => \$pSearchhistory,
-    'list-invites:i'  => \$pListShareInvites,
-    'restrictions:i'  => \$pDebarments,
-    'all-restrictions' => \$allDebarments,
-    'del-exp-selfreg' => \$pExpSelfReg,
-    'del-unv-selfreg' => \$pUnvSelfReg,
+    'h|help'            => \$help,
+    'sessions'          => \$sessions,
+    'sessdays:i'        => \$sess_days,
+    'v|verbose'         => \$verbose,
+    'm|mail:i'          => \$mail,
+    'zebraqueue:i'      => \$zebraqueue_days,
+    'merged'            => \$purge_merged,
+    'import:i'          => \$pImport,
+    'z3950'             => \$pZ3950,
+    'logs:i'            => \$pLogs,
+    'fees:i'            => \$fees_days,
+    'searchhistory:i'   => \$pSearchhistory,
+    'list-invites:i'    => \$pListShareInvites,
+    'restrictions:i'    => \$pDebarments,
+    'all-restrictions'  => \$allDebarments,
+    'del-exp-selfreg'   => \$pExpSelfReg,
+    'del-unv-selfreg'   => \$pUnvSelfReg,
+    'unique-holidays:i' => \$special_holidays_days,
+    'temp-uploads'      => \$temp_uploads,
+    'temp-uploads-days:i' => \$temp_uploads_days,
+    'uploads-missing:i' => \$uploads_missing,
+    'oauth-tokens'      => \$oauth_tokens,
 ) || usage(1);
 
 # Use default values
@@ -149,6 +162,10 @@ unless ( $sessions
     || $allDebarments
     || $pExpSelfReg
     || $pUnvSelfReg
+    || $special_holidays_days
+    || $temp_uploads
+    || defined $uploads_missing
+    || $oauth_tokens
 ) {
     print "You did not specify any cleanup work for the script to do.\n\n";
     usage(1);
@@ -294,6 +311,39 @@ if( $pUnvSelfReg ) {
     DeleteUnverifiedSelfRegs( $pUnvSelfReg );
 }
 
+if ($special_holidays_days) {
+    DeleteSpecialHolidays( abs($special_holidays_days) );
+}
+
+if( $temp_uploads ) {
+    # Delete temporary uploads, governed by a pref (unless you override)
+    print "Purging temporary uploads.\n" if $verbose;
+    Koha::UploadedFiles->delete_temporary({
+        defined($temp_uploads_days)
+            ? ( override_pref => $temp_uploads_days )
+            : ()
+    });
+    print "Done purging temporary uploads.\n" if $verbose;
+}
+
+if( defined $uploads_missing ) {
+    print "Looking for missing uploads\n" if $verbose;
+    my $keep = $uploads_missing == 1 ? 0 : 1;
+    my $count = Koha::UploadedFiles->delete_missing({ keep_record => $keep });
+    if( $keep ) {
+        print "Counted $count missing uploaded files\n";
+    } else {
+        print "Removed $count records for missing uploads\n";
+    }
+}
+
+if ($oauth_tokens) {
+    require Koha::OAuthAccessTokens;
+
+    my $count = int Koha::OAuthAccessTokens->search({ expires => { '<=', time } })->delete;
+    say "Removed $count expired OAuth2 tokens" if $verbose;
+}
+
 exit(0);
 
 sub RemoveOldSessions {
@@ -390,4 +440,15 @@ sub DeleteExpiredSelfRegs {
 sub DeleteUnverifiedSelfRegs {
     my $cnt= C4::Members::DeleteUnverifiedOpacRegistrations( $_[0] );
     print "Removed $cnt unverified self-registrations\n" if $verbose;
+}
+
+sub DeleteSpecialHolidays {
+    my ( $days ) = @_;
+
+    my $sth = $dbh->prepare(q{
+        DELETE FROM special_holidays
+        WHERE DATE( CONCAT( year, '-', month, '-', day ) ) < DATE_SUB( CAST(NOW() AS DATE), INTERVAL ? DAY );
+    });
+    my $count = $sth->execute( $days ) + 0;
+    print "Removed $count unique holidays\n" if $verbose;
 }

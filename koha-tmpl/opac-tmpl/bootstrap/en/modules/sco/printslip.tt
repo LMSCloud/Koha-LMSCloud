@@ -1,20 +1,23 @@
+[% USE Asset %]
+[% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] &rsaquo; Self checkout &rsaquo; Print Receipt for [% borrowernumber %]</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="shortcut icon" href="[% IF ( OpacFavicon  ) %][% OpacFavicon  %][% ELSE %][% interface %]/[% theme %]/images/favicon.ico[% END %]" type="image/x-icon" />
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/print.css" />
+[% Asset.css("css/print.css") %]
 [% IF stylesheet %]
 <link rel="stylesheet" type="text/css" href="[% stylesheet %]" />
 [% END %]
-<script type="text/javascript">
-    function printThenClose() {
-        window.print();
-        setTimeout('window.close()', 1);
-    }
-</script>
+
+<!-- JavaScript includes -->
+[% Asset.js("lib/jquery/jquery.js") %]
+[% Asset.js("js/global.js") %]
+
+[% INCLUDE 'slip-print.inc' %]
+
 </head>
 
-<body id="circ_printslip" class="circ" onload="printThenClose();">
+<body id="circ_printslip" class="circ">
     <div id="receipt">
         [% IF plain %]
             <pre>

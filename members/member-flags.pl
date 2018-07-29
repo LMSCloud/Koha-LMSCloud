@@ -4,29 +4,36 @@
 # Written by Steve Tonnesen
 # July 26, 2002 (my birthday!)
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Output;
 use C4::Auth qw(:DEFAULT :EditPermissions);
 use C4::Context;
 use C4::Members;
-use C4::Branch;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 #use C4::Acquisitions;
 
+use Koha::Patron::Categories;
+use Koha::Patrons;
+
 use C4::Output;
-use Koha::Patron::Images;
 use Koha::Token;
 
 my $input = new CGI;
 
 my $flagsrequired = { permissions => 1 };
 my $member=$input->param('member');
-my $bor = GetMemberDetails( $member,'');
-if( $bor->{'category_type'} eq 'S' )  {
-	$flagsrequired->{'staffaccess'} = 1;
+my $patron = Koha::Patrons->find( $member );
+unless ( $patron ) {
+    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$member");
+    exit;
+}
+
+my $category_type = $patron->category->category_type;
+my $bor = $patron->unblessed;
+if( $category_type eq 'S' )  { # FIXME Is this really needed?
+    $flagsrequired->{'staffaccess'} = 1;
 }
 my ($template, $loggedinuser, $cookie) = get_template_and_user({
         template_name   => "members/member-flags.tt",
@@ -37,6 +44,8 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
         debug           => 1,
 });
 
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
 my %member2;
 $member2{'borrowernumber'}=$member;
@@ -75,8 +84,13 @@ if ($input->param('newflags')) {
     }
     
     $sth = $dbh->prepare("UPDATE borrowers SET flags=? WHERE borrowernumber=?");
+    my $old_flags = $patron->flags // 0;
+    if( ( $old_flags == 1 || $module_flags == 1 ) &&
+      $old_flags != $module_flags ) {
+        die "Non-superlibrarian is changing superlibrarian privileges" if !C4::Context->IsSuperLibrarian && C4::Context->preference('ProtectSuperlibrarianPrivileges'); # Interface should not allow this, so we can just die here
+    }
     $sth->execute($module_flags, $member);
-    
+
     # deal with subpermissions
     $sth = $dbh->prepare("DELETE FROM user_permissions WHERE borrowernumber = ?");
     $sth->execute($member); 
@@ -93,24 +107,33 @@ if ($input->param('newflags')) {
     
     print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$member");
 } else {
-#     my ($bor,$flags,$accessflags)=GetMemberDetails($member,'');
-    my $flags = $bor->{'flags'};
-    my $accessflags = $bor->{'authflags'};
-    my $dbh=C4::Context->dbh();
+
+    my $accessflags;
+    my $dbh = C4::Context->dbh();
+    # FIXME This needs to be improved to avoid doing the same query
+    my $sth = $dbh->prepare("select bit,flag from userflags");
+    $sth->execute;
+    while ( my ( $bit, $flag ) = $sth->fetchrow ) {
+        if ( $bor->{flags} && $bor->{flags} & 2**$bit ) {
+            $accessflags->{$flag} = 1;
+        }
+    }
+
     my $all_perms  = get_all_subpermissions();
     my $user_perms = get_user_subpermissions($bor->{'userid'});
-    my $sth=$dbh->prepare("SELECT bit, flag FROM userflags ORDER BY bit");
+    $sth = $dbh->prepare("SELECT bit, flag FROM userflags ORDER BY bit");
     $sth->execute;
     my @loop;
-    while (my ($bit, $flag) = $sth->fetchrow) {
-	    my $checked='';
-	    if ($accessflags->{$flag}) {
-	        $checked= 1;
-	    }
 
-	    my %row = ( bit => $bit,
-		    flag => $flag,
-		    checked => $checked,
+    while (my ($bit, $flag) = $sth->fetchrow) {
+        my $checked='';
+        if ($accessflags->{$flag}) {
+            $checked= 1;
+        }
+
+        my %row = ( bit => $bit,
+            flag => $flag,
+            checked => $checked,
         );
 
         my @sub_perm_loop = ();
@@ -156,19 +179,14 @@ if ($input->param('newflags')) {
         if ($#sub_perm_loop > -1) {
             $row{sub_perm_loop} = \@sub_perm_loop;
         }
-	    push @loop, \%row;
+        push @loop, \%row;
     }
 
-    if ( $bor->{'category_type'} eq 'C') {
-        my  ( $catcodes, $labels ) =  GetborCatFromCatType( 'A', 'WHERE category_type = ?' );
-        my $cnt = scalar(@$catcodes);
-        $template->param( 'CATCODE_MULTI' => 1) if $cnt > 1;
-        $template->param( 'catcode' =>    $catcodes->[0])  if $cnt == 1;
+    if ( $patron->is_child ) {
+        my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
+        $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
+        $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
     }
-	
-$template->param( adultborrower => 1 ) if ( $bor->{'category_type'} eq 'A' || $bor->{'category_type'} eq 'I' );
-    my $patron_image = Koha::Patron::Images->find($bor->{borrowernumber});
-    $template->param( picture => 1 ) if $patron_image;
 
 if (C4::Context->preference('ExtendedPatronAttributes')) {
     my $attributes = GetBorrowerAttributes($bor->{'borrowernumber'});
@@ -179,33 +197,12 @@ if (C4::Context->preference('ExtendedPatronAttributes')) {
 }
 
 $template->param(
-		borrowernumber => $bor->{'borrowernumber'},
-    cardnumber => $bor->{'cardnumber'},
-		surname => $bor->{'surname'},
-		firstname => $bor->{'firstname'},
-        othernames => $bor->{'othernames'},
-		categorycode => $bor->{'categorycode'},
-		category_type => $bor->{'category_type'},
-		categoryname => $bor->{'description'},
-        address => $bor->{address},
-		address2 => $bor->{'address2'},
-        streettype => $bor->{streettype},
-		city => $bor->{'city'},
-        state => $bor->{'state'},
-		zipcode => $bor->{'zipcode'},
-		country => $bor->{'country'},
-		phone => $bor->{'phone'},
-        phonepro => $bor->{'phonepro'},
-        mobile => $bor->{'mobile'},
-		email => $bor->{'email'},
-        emailpro => $bor->{'emailpro'},
-		branchcode => $bor->{'branchcode'},
-		branchname => GetBranchName($bor->{'branchcode'}),
-		loop => \@loop,
-		is_child        => ($bor->{'category_type'} eq 'C'),
-        RoutingSerials => C4::Context->preference('RoutingSerials'),
-        csrf_token => Koha::Token->new->generate_csrf( { session_id => scalar $input->cookie('CGISESSID'), } ),
-		);
+    patron         => $patron,
+    loop           => \@loop,
+    csrf_token =>
+        Koha::Token->new->generate_csrf( { session_id => scalar $input->cookie('CGISESSID'), } ),
+    disable_superlibrarian_privs => C4::Context->preference('ProtectSuperlibrarianPrivileges') ? !C4::Context->IsSuperLibrarian : 0,
+);
 
     output_html_with_http_headers $input, $cookie, $template->output;
 

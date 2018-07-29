@@ -76,15 +76,15 @@ BEGIN {
       &ReNewSubscription  &GetLateOrMissingIssues
       &GetSerialInformation                   &AddItem2Serial
       &PrepareSerialsData &GetNextExpected    &ModNextExpected
+      &GetPreviousSerialid
 
-      &GetSuppliersWithLateIssues             &getsupplierbyserialid
+      &GetSuppliersWithLateIssues
       &GetDistributedTo   &SetDistributedTo
       &getroutinglist     &delroutingmember   &addroutingmember
       &reorder_members
       &check_routing &updateClaim
       &CountIssues
       HasItems
-      &GetSubscriptionsFromBorrower
       &subscriptionCurrentlyOnOrder
 
     );
@@ -184,7 +184,6 @@ sub GetSerialStatusFromSerialId {
 
 =head2 GetSerialInformation
 
-
 $data = GetSerialInformation($serialid);
 returns a hash_ref containing :
   items : items marcrecord (can be an array)
@@ -265,7 +264,7 @@ sub AddItem2Serial {
 $subs = GetSubscription($subscriptionid)
 this function returns the subscription which has $subscriptionid as id.
 return :
-a hashref. This hash containts
+a hashref. This hash contains
 subscription, subscriptionhistory, aqbooksellers.name, biblio.title
 
 =cut
@@ -813,6 +812,39 @@ sub GetLatestSerials {
     return \@serials;
 }
 
+=head2 GetPreviousSerialid
+
+$serialid = GetPreviousSerialid($subscriptionid, $nth)
+get the $nth's previous serial for the given subscriptionid
+return :
+the serialid
+
+=cut
+
+sub GetPreviousSerialid {
+    my ( $subscriptionid, $nth ) = @_;
+    $nth ||= 1;
+    my $dbh = C4::Context->dbh;
+    my $return = undef;
+
+    # Status 2: Arrived
+    my $strsth = "SELECT   serialid
+                        FROM     serial
+                        WHERE    subscriptionid = ?
+                        AND      status = 2
+                        ORDER BY serialid DESC LIMIT $nth,1
+                ";
+    my $sth = $dbh->prepare($strsth);
+    $sth->execute($subscriptionid);
+    my @serials;
+    my $line = $sth->fetchrow_hashref;
+    $return = $line->{'serialid'} if ($line);
+
+    return $return;
+}
+
+
+
 =head2 GetDistributedTo
 
 $distributedto=GetDistributedTo($subscriptionid)
@@ -1314,7 +1346,8 @@ sub ModSubscription {
     $lastvalue2, $innerloop2, $lastvalue3, $innerloop3, $status,
     $biblionumber, $callnumber, $notes, $letter, $manualhistory,
     $internalnotes, $serialsadditems, $staffdisplaycount, $opacdisplaycount,
-    $graceperiod, $location, $enddate, $subscriptionid, $skip_serialseq
+    $graceperiod, $location, $enddate, $subscriptionid, $skip_serialseq,
+    $itemtype, $previousitemtype
     ) = @_;
 
     my $dbh   = C4::Context->dbh;
@@ -1327,7 +1360,7 @@ sub ModSubscription {
             callnumber=?, notes=?, letter=?, manualhistory=?,
             internalnotes=?, serialsadditems=?, staffdisplaycount=?,
             opacdisplaycount=?, graceperiod=?, location = ?, enddate=?,
-            skip_serialseq=?
+            skip_serialseq=?, itemtype=?, previousitemtype=?
         WHERE subscriptionid = ?";
 
     my $sth = $dbh->prepare($query);
@@ -1341,6 +1374,7 @@ sub ModSubscription {
         $letter,          ($manualhistory ? $manualhistory : 0),
         $internalnotes, $serialsadditems, $staffdisplaycount, $opacdisplaycount,
         $graceperiod,     $location,       $enddate,        $skip_serialseq,
+        $itemtype,        $previousitemtype,
         $subscriptionid
     );
     my $rows = $sth->rows;
@@ -1356,7 +1390,8 @@ $subscriptionid = &NewSubscription($auser,branchcode,$aqbooksellerid,$cost,$aqbu
     $lastvalue1,$innerloop1,$lastvalue2,$innerloop2,$lastvalue3,$innerloop3,
     $status, $notes, $letter, $firstacquidate, $irregularity, $numberpattern,
     $locale, $callnumber, $manualhistory, $internalnotes, $serialsadditems,
-    $staffdisplaycount, $opacdisplaycount, $graceperiod, $location, $enddate, $skip_serialseq);
+    $staffdisplaycount, $opacdisplaycount, $graceperiod, $location, $enddate,
+    $skip_serialseq, $itemtype, $previousitemtype);
 
 Create a new subscription with value given on input args.
 
@@ -1373,7 +1408,7 @@ sub NewSubscription {
     $innerloop3, $status, $notes, $letter, $firstacquidate, $irregularity,
     $numberpattern, $locale, $callnumber, $manualhistory, $internalnotes,
     $serialsadditems, $staffdisplaycount, $opacdisplaycount, $graceperiod,
-    $location, $enddate, $skip_serialseq
+    $location, $enddate, $skip_serialseq, $itemtype, $previousitemtype
     ) = @_;
     my $dbh = C4::Context->dbh;
 
@@ -1386,8 +1421,9 @@ sub NewSubscription {
             lastvalue3, innerloop3, status, notes, letter, firstacquidate,
             irregularity, numberpattern, locale, callnumber,
             manualhistory, internalnotes, serialsadditems, staffdisplaycount,
-            opacdisplaycount, graceperiod, location, enddate, skip_serialseq)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            opacdisplaycount, graceperiod, location, enddate, skip_serialseq,
+            itemtype, previousitemtype)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         |;
     my $sth = $dbh->prepare($query);
     $sth->execute(
@@ -1397,7 +1433,8 @@ sub NewSubscription {
         $lastvalue3, $innerloop3, $status, $notes, $letter,
         $firstacquidate, $irregularity, $numberpattern, $locale, $callnumber,
         $manualhistory, $internalnotes, $serialsadditems, $staffdisplaycount,
-        $opacdisplaycount, $graceperiod, $location, $enddate, $skip_serialseq
+        $opacdisplaycount, $graceperiod, $location, $enddate, $skip_serialseq,
+        $itemtype, $previousitemtype
     );
 
     my $subscriptionid = $dbh->{'mysql_insertid'};
@@ -1415,8 +1452,8 @@ sub NewSubscription {
     # then create the 1st expected number
     $query = qq(
         INSERT INTO subscriptionhistory
-            (biblionumber, subscriptionid, histstartdate)
-        VALUES (?,?,?)
+            (biblionumber, subscriptionid, histstartdate, missinglist, recievedlist)
+        VALUES (?,?,?, '', '')
         );
     $sth = $dbh->prepare($query);
     $sth->execute( $biblionumber, $subscriptionid, $startdate);
@@ -1445,14 +1482,14 @@ sub NewSubscription {
     logaction( "SERIAL", "ADD", $subscriptionid, "" ) if C4::Context->preference("SubscriptionLog");
 
     #set serial flag on biblio if not already set.
-    my $bib = GetBiblio($biblionumber);
-    if ( $bib and !$bib->{'serial'} ) {
-        my $record = GetMarcBiblio($biblionumber);
-        my ( $tag, $subf ) = GetMarcFromKohaField( 'biblio.serial', $bib->{'frameworkcode'} );
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    if ( $biblio and !$biblio->serial ) {
+        my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+        my ( $tag, $subf ) = GetMarcFromKohaField( 'biblio.serial', $biblio->frameworkcode );
         if ($tag) {
             eval { $record->field($tag)->update( $subf => 1 ); };
         }
-        ModBiblio( $record, $biblionumber, $bib->{'frameworkcode'} );
+        ModBiblio( $record, $biblionumber, $biblio->frameworkcode );
     }
     return $subscriptionid;
 }
@@ -1491,6 +1528,9 @@ sub ReNewSubscription {
             }
         );
     }
+
+    $numberlength ||= 0; # Should not we raise an exception instead?
+    $weeklength   ||= 0;
 
     # renew subscription
     $query = qq|
@@ -1882,33 +1922,6 @@ sub updateClaim {
         {}, CLAIMED, @$serialids );
 }
 
-=head2 getsupplierbyserialid
-
-$result = getsupplierbyserialid($serialid)
-
-this function is used to find the supplier id given a serial id
-
-return :
-hashref containing serialid, subscriptionid, and aqbooksellerid
-
-=cut
-
-sub getsupplierbyserialid {
-    my ($serialid) = @_;
-    my $dbh        = C4::Context->dbh;
-    my $sth        = $dbh->prepare(
-        "SELECT serialid, serial.subscriptionid, aqbooksellerid
-         FROM serial 
-            LEFT JOIN subscription ON serial.subscriptionid = subscription.subscriptionid
-            WHERE serialid = ?
-        "
-    );
-    $sth->execute($serialid);
-    my $line   = $sth->fetchrow_hashref;
-    my $result = $line->{'aqbooksellerid'};
-    return $result;
-}
-
 =head2 check_routing
 
 $result = &check_routing($subscriptionid)
@@ -2184,41 +2197,6 @@ sub in_array {    # used in next sub down
     return 0;
 }
 
-=head2 GetSubscriptionsFromBorrower
-
-($count,@routinglist) = GetSubscriptionsFromBorrower($borrowernumber)
-
-this gets the info from subscriptionroutinglist for each $subscriptionid
-
-return :
-a count of the serial subscription routing lists to which a patron belongs,
-with the titles of those serial subscriptions as an array. Each element of the array
-contains a hash_ref with subscriptionID and title of subscription.
-
-=cut
-
-sub GetSubscriptionsFromBorrower {
-    my ($borrowernumber) = @_;
-    my $dbh              = C4::Context->dbh;
-    my $sth              = $dbh->prepare(
-        "SELECT subscription.subscriptionid, biblio.title
-            FROM subscription
-            JOIN biblio ON biblio.biblionumber = subscription.biblionumber
-            JOIN subscriptionroutinglist USING (subscriptionid)
-            WHERE subscriptionroutinglist.borrowernumber = ? ORDER BY title ASC
-                               "
-    );
-    $sth->execute($borrowernumber);
-    my @routinglist;
-    my $count = 0;
-    while ( my $line = $sth->fetchrow_hashref ) {
-        $count++;
-        push( @routinglist, $line );
-    }
-    return ( $count, @routinglist );
-}
-
-
 =head2 GetFictiveIssueNumber
 
 $issueno = GetFictiveIssueNumber($subscription, $publishedate);
@@ -2232,6 +2210,11 @@ depending on how many rows are in serial table.
 The issue number calculation is based on subscription frequency, first acquisition
 date, and $publisheddate.
 
+Returns undef when called for irregular frequencies.
+
+The routine is used to skip irregularities when calculating the next issue
+date (in GetNextDate) or the next issue number (in GetNextSeq).
+
 =cut
 
 sub GetFictiveIssueNumber {
@@ -2239,118 +2222,144 @@ sub GetFictiveIssueNumber {
 
     my $frequency = GetSubscriptionFrequency($subscription->{'periodicity'});
     my $unit = $frequency->{unit} ? lc $frequency->{'unit'} : undef;
-    my $issueno = 0;
+    return if !$unit;
+    my $issueno;
 
-    if($unit) {
-        my ($year, $month, $day) = split /-/, $publisheddate;
-        my ($fa_year, $fa_month, $fa_day) = split /-/, $subscription->{'firstacquidate'};
-        my $wkno;
-        my $delta;
+    my ( $year, $month, $day ) = split /-/, $publisheddate;
+    my ( $fa_year, $fa_month, $fa_day ) = split /-/, $subscription->{'firstacquidate'};
+    my $delta = _delta_units( [$fa_year, $fa_month, $fa_day], [$year, $month, $day], $unit );
 
-        if($unit eq 'day') {
-            $delta = Delta_Days($fa_year, $fa_month, $fa_day, $year, $month, $day);
-        } elsif($unit eq 'week') {
-            ($wkno, $year) = Week_of_Year($year, $month, $day);
-            my ($fa_wkno, $fa_yr) = Week_of_Year($fa_year, $fa_month, $fa_day);
-            $delta = ($fa_yr == $year) ? ($wkno - $fa_wkno) : ( ($year-$fa_yr-1)*52 + (52-$fa_wkno+$wkno) );
-        } elsif($unit eq 'month') {
-            $delta = ($fa_year == $year)
-                   ? ($month - $fa_month)
-                   : ( ($year-$fa_year-1)*12 + (12-$fa_month+$month) );
-        } elsif($unit eq 'year') {
-            $delta = $year - $fa_year;
-        }
-        if($frequency->{'unitsperissue'} == 1) {
-            $issueno = $delta * $frequency->{'issuesperunit'} + $subscription->{'countissuesperunit'};
-        } else {
-            # Assuming issuesperunit == 1
-            $issueno = int( ($delta + $frequency->{'unitsperissue'}) / $frequency->{'unitsperissue'} );
-        }
+    if( $frequency->{'unitsperissue'} == 1 ) {
+        $issueno = $delta * $frequency->{'issuesperunit'} + $subscription->{'countissuesperunit'};
+    } else { # issuesperunit == 1
+        $issueno = 1 + int( $delta / $frequency->{'unitsperissue'} );
     }
     return $issueno;
+}
+
+sub _delta_units {
+    my ( $date1, $date2, $unit ) = @_;
+    # date1 and date2 are array refs in the form [ yy, mm, dd ]
+
+    if( $unit eq 'day' ) {
+        return Delta_Days( @$date1, @$date2 );
+    } elsif( $unit eq 'week' ) {
+        return int( Delta_Days( @$date1, @$date2 ) / 7 );
+    }
+
+    # In case of months or years, this is a wrapper around N_Delta_YMD.
+    # Note that N_Delta_YMD returns 29 days between e.g. 22-2-72 and 22-3-72
+    # while we expect 1 month.
+    my @delta = N_Delta_YMD( @$date1, @$date2 );
+    if( $delta[2] > 27 ) {
+        # Check if we could add a month
+        my @jump = Add_Delta_YM( @$date1, $delta[0], 1 + $delta[1] );
+        if( Delta_Days( @jump, @$date2 ) >= 0 ) {
+            $delta[1]++;
+        }
+    }
+    if( $delta[1] >= 12 ) {
+        $delta[0]++;
+        $delta[1] -= 12;
+    }
+    # if unit is year, we only return full years
+    return $unit eq 'month' ? $delta[0] * 12 + $delta[1] : $delta[0];
 }
 
 sub _get_next_date_day {
     my ($subscription, $freqdata, $year, $month, $day) = @_;
 
-    if ($subscription->{countissuesperunit} + 1 > $freqdata->{issuesperunit}){
-        ($year,$month,$day) = Add_Delta_Days($year,$month, $day , $freqdata->{unitsperissue} );
-        $subscription->{countissuesperunit} = 1;
-    } else {
-        $subscription->{countissuesperunit}++;
-    }
+    my @newissue; # ( yy, mm, dd )
+    # We do not need $delta_days here, since it would be zero where used
 
-    return ($year, $month, $day);
+    if( $freqdata->{issuesperunit} == 1 ) {
+        # Add full days
+        @newissue = Add_Delta_Days(
+            $year, $month, $day, $freqdata->{"unitsperissue"} );
+    } elsif ( $subscription->{countissuesperunit} < $freqdata->{issuesperunit} ) {
+        # Add zero days
+        @newissue = ( $year, $month, $day );
+        $subscription->{countissuesperunit}++;
+    } else {
+        # We finished a cycle of issues within a unit.
+        # No subtraction of zero needed, just add one day
+        @newissue = Add_Delta_Days( $year, $month, $day, 1 );
+        $subscription->{countissuesperunit} = 1;
+    }
+    return @newissue;
 }
 
 sub _get_next_date_week {
     my ($subscription, $freqdata, $year, $month, $day) = @_;
 
-    my ($wkno, $yr) = Week_of_Year($year, $month, $day);
-    my $fa_dow = Day_of_Week(split /-/, $subscription->{firstacquidate});
+    my @newissue; # ( yy, mm, dd )
+    my $delta_days = int( 7 / $freqdata->{issuesperunit} );
 
-    if ($subscription->{countissuesperunit} + 1 > $freqdata->{issuesperunit}){
-        $subscription->{countissuesperunit} = 1;
-        $wkno += $freqdata->{unitsperissue};
-        if($wkno > 52){
-            $wkno = $wkno % 52;
-            $yr++;
-        }
-        ($year,$month,$day) = Monday_of_Week($wkno, $yr);
-        ($year,$month,$day) = Add_Delta_Days($year, $month, $day, $fa_dow - 1);
-    } else {
-        # Try to guess the next day of week
-        my $delta_days = int((7 - ($fa_dow - 1)) / $freqdata->{issuesperunit});
-        ($year,$month,$day) = Add_Delta_Days($year, $month, $day, $delta_days);
+    if( $freqdata->{issuesperunit} == 1 ) {
+        # Add full weeks (of 7 days)
+        @newissue = Add_Delta_Days(
+            $year, $month, $day, 7 * $freqdata->{"unitsperissue"} );
+    } elsif ( $subscription->{countissuesperunit} < $freqdata->{issuesperunit} ) {
+        # Add rounded number of days based on frequency.
+        @newissue = Add_Delta_Days( $year, $month, $day, $delta_days );
         $subscription->{countissuesperunit}++;
+    } else {
+        # We finished a cycle of issues within a unit.
+        # Subtract delta * (issues - 1), add 1 week
+        @newissue = Add_Delta_Days( $year, $month, $day,
+            -$delta_days * ($freqdata->{issuesperunit} - 1) );
+        @newissue = Add_Delta_Days( @newissue, 7 );
+        $subscription->{countissuesperunit} = 1;
     }
-
-    return ($year, $month, $day);
+    return @newissue;
 }
 
 sub _get_next_date_month {
     my ($subscription, $freqdata, $year, $month, $day) = @_;
 
-    my $fa_day;
-    (undef, undef, $fa_day) = split /-/, $subscription->{firstacquidate};
+    my @newissue; # ( yy, mm, dd )
+    my $delta_days = int( 30 / $freqdata->{issuesperunit} );
 
-    if ($subscription->{countissuesperunit} + 1 > $freqdata->{issuesperunit}){
-        $subscription->{countissuesperunit} = 1;
-        ($year,$month,$day) = Add_Delta_YM($year,$month,$day, 0,
-            $freqdata->{unitsperissue});
-        my $days_in_month = Days_in_Month($year, $month);
-        $day = $fa_day <= $days_in_month ? $fa_day : $days_in_month;
-    } else {
-        # Try to guess the next day in month
-        my $days_in_month = Days_in_Month($year, $month);
-        my $delta_days = int(($days_in_month - ($fa_day - 1)) / $freqdata->{issuesperunit});
-        ($year,$month,$day) = Add_Delta_Days($year, $month, $day, $delta_days);
+    if( $freqdata->{issuesperunit} == 1 ) {
+        # Add full months
+        @newissue = Add_Delta_YM(
+            $year, $month, $day, 0, $freqdata->{"unitsperissue"} );
+    } elsif ( $subscription->{countissuesperunit} < $freqdata->{issuesperunit} ) {
+        # Add rounded number of days based on frequency.
+        @newissue = Add_Delta_Days( $year, $month, $day, $delta_days );
         $subscription->{countissuesperunit}++;
+    } else {
+        # We finished a cycle of issues within a unit.
+        # Subtract delta * (issues - 1), add 1 month
+        @newissue = Add_Delta_Days( $year, $month, $day,
+            -$delta_days * ($freqdata->{issuesperunit} - 1) );
+        @newissue = Add_Delta_YM( @newissue, 0, 1 );
+        $subscription->{countissuesperunit} = 1;
     }
-
-    return ($year, $month, $day);
+    return @newissue;
 }
 
 sub _get_next_date_year {
     my ($subscription, $freqdata, $year, $month, $day) = @_;
 
-    my ($fa_year, $fa_month, $fa_day) = split /-/, $subscription->{firstacquidate};
+    my @newissue; # ( yy, mm, dd )
+    my $delta_days = int( 365 / $freqdata->{issuesperunit} );
 
-    if ($subscription->{countissuesperunit} + 1 > $freqdata->{issuesperunit}){
-        $subscription->{countissuesperunit} = 1;
-        ($year) = Add_Delta_YM($year,$month,$day, $freqdata->{"unitsperissue"},0);
-        $month = $fa_month;
-        my $days_in_month = Days_in_Month($year, $month);
-        $day = $fa_day <= $days_in_month ? $fa_day : $days_in_month;
-    } else {
-        # Try to guess the next day in year
-        my $days_in_year = Days_in_Year($year,12); #Sum the days of all the months of this year
-        my $delta_days = int(($days_in_year - ($fa_day - 1)) / $freqdata->{issuesperunit});
-        ($year,$month,$day) = Add_Delta_Days($year, $month, $day, $delta_days);
+    if( $freqdata->{issuesperunit} == 1 ) {
+        # Add full years
+        @newissue = Add_Delta_YM( $year, $month, $day, $freqdata->{"unitsperissue"}, 0 );
+    } elsif ( $subscription->{countissuesperunit} < $freqdata->{issuesperunit} ) {
+        # Add rounded number of days based on frequency.
+        @newissue = Add_Delta_Days( $year, $month, $day, $delta_days );
         $subscription->{countissuesperunit}++;
+    } else {
+        # We finished a cycle of issues within a unit.
+        # Subtract delta * (issues - 1), add 1 year
+        @newissue = Add_Delta_Days( $year, $month, $day, -$delta_days * ($freqdata->{issuesperunit} - 1) );
+        @newissue = Add_Delta_YM( @newissue, 1, 0 );
+        $subscription->{countissuesperunit} = 1;
     }
-
-    return ($year, $month, $day);
+    return @newissue;
 }
 
 =head2 GetNextDate
@@ -2460,7 +2469,9 @@ sub GetNextDate {
 _numeration returns the string corresponding to $value in the num_type
 num_type can take :
     -dayname
+    -dayabrv
     -monthname
+    -monthabrv
     -season
     -seasonabrv
 
@@ -2472,7 +2483,7 @@ sub _numeration {
     $num_type //= '';
     $locale ||= 'en';
     my $string;
-    if ( $num_type =~ /^dayname$/ ) {
+    if ( $num_type =~ /^dayname$/ or $num_type =~ /^dayabrv$/ ) {
         # 1970-11-01 was a Sunday
         $value = $value % 7;
         my $dt = DateTime->new(
@@ -2481,19 +2492,27 @@ sub _numeration {
             day     => $value + 1,
             locale  => $locale,
         );
-        $string = $dt->strftime("%A");
-    } elsif ( $num_type =~ /^monthname$/ ) {
+        $string = $num_type =~ /^dayname$/
+            ? $dt->strftime("%A")
+            : $dt->strftime("%a");
+    } elsif ( $num_type =~ /^monthname$/ or $num_type =~ /^monthabrv$/ ) {
         $value = $value % 12;
         my $dt = DateTime->new(
             year    => 1970,
             month   => $value + 1,
             locale  => $locale,
         );
-        $string = $dt->strftime("%B");
+        $string = $num_type =~ /^monthname$/
+            ? $dt->strftime("%B")
+            : $dt->strftime("%b");
     } elsif ( $num_type =~ /^season$/ ) {
         my @seasons= qw( Spring Summer Fall Winter );
         $value = $value % 4;
         $string = $seasons[$value];
+    } elsif ( $num_type =~ /^seasonabrv$/ ) {
+        my @seasonsabrv= qw( Spr Sum Fal Win );
+        $value = $value % 4;
+        $string = $seasonsabrv[$value];
     } else {
         $string = $value;
     }

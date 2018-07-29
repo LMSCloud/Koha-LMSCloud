@@ -22,6 +22,8 @@ use Modern::Perl;
 use Carp;
 
 use Koha::Database;
+use Koha::Biblios;
+use Koha::Acquisition::Booksellers;
 
 use base qw(Koha::Object);
 
@@ -34,6 +36,75 @@ Koha::Subscription - Koha Subscription Object class
 =head2 Class Methods
 
 =cut
+
+=head3 biblio
+
+Returns the biblio linked to this subscription as a Koha::Biblio object
+
+=cut
+
+sub biblio {
+    my ($self) = @_;
+
+    return scalar Koha::Biblios->find($self->biblionumber);
+}
+
+=head3 vendor
+
+Returns the vendor/supplier linked to this subscription as a Koha::Acquisition::Bookseller object
+
+=cut
+
+sub vendor {
+    my ($self) = @_;
+    return scalar Koha::Acquisition::Booksellers->find($self->aqbooksellerid);
+}
+
+=head3 subscribers
+
+my $subscribers = $subscription->subscribers;
+
+return a Koha::Patrons object
+
+=cut
+
+sub subscribers {
+    my ($self) = @_;
+    my $schema = Koha::Database->new->schema;
+    my @borrowernumbers = $schema->resultset('Alert')->search({ externalid => $self->subscriptionid })->get_column( 'borrowernumber' )->all;
+    return Koha::Patrons->search({ borrowernumber => {-in => \@borrowernumbers } });
+}
+
+=head3 add_subscriber
+
+$subscription->add_subscriber( $patron );
+
+Add a new subscriber (Koha::Patron) to this subscription
+
+=cut
+
+sub add_subscriber {
+    my ( $self, $patron )  = @_;
+    my $schema = Koha::Database->new->schema;
+    my $rs = $schema->resultset('Alert');
+    $rs->create({ externalid => $self->subscriptionid, borrowernumber => $patron->borrowernumber });
+}
+
+=head3 remove_subscriber
+
+$subscription->remove_subscriber( $subscriber );
+
+Remove a subscriber (Koha::Patron) from this subscription
+
+=cut
+
+sub remove_subscriber {
+    my ($self, $patron) = @_;
+    my $schema = Koha::Database->new->schema;
+    my $rs = $schema->resultset('Alert');
+    my $subscriber = $rs->find({ externalid => $self->subscriptionid, borrowernumber => $patron->borrowernumber });
+    $subscriber->delete if $subscriber;
+}
 
 =head3 type
 

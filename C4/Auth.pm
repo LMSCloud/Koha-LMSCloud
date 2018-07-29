@@ -29,12 +29,14 @@ require Exporter;
 use C4::Context;
 use C4::Templates;    # to get the template
 use C4::Languages;
-use C4::Branch;       # GetBranches
 use C4::Search::History;
 use Koha;
+use Koha::Caches;
 use Koha::AuthUtils qw(get_script_name hash_password);
-use Koha::LibraryCategories;
+use Koha::DateUtils qw(dt_from_string);
+use Koha::Library::Groups;
 use Koha::Libraries;
+use Koha::Patrons;
 use POSIX qw/strftime/;
 use List::MoreUtils qw/ any /;
 use Encode qw( encode is_utf8);
@@ -54,7 +56,7 @@ BEGIN {
     @ISA       = qw(Exporter);
     @EXPORT    = qw(&checkauth &get_template_and_user &haspermission &get_user_subpermissions);
     @EXPORT_OK = qw(&check_api_auth &get_session &check_cookie_auth &checkpw &checkpw_internal &checkpw_hash
-      &get_all_subpermissions &get_user_subpermissions
+      &get_all_subpermissions &get_user_subpermissions track_login_daily
     );
     %EXPORT_TAGS = ( EditPermissions => [qw(get_all_subpermissions get_user_subpermissions)] );
     $ldap      = C4::Context->config('useldapserver') || 0;
@@ -85,7 +87,7 @@ BEGIN {
         }
     }
     if ($cas) {
-        import C4::Auth_with_cas qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url);
+        import C4::Auth_with_cas qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url logout_if_required);
     }
 
 }
@@ -160,15 +162,13 @@ sub get_template_and_user {
 
     C4::Context->interface( $in->{type} );
 
-    my $safe_chars = 'a-zA-Z0-9_\-\/';
-    die "bad template path" unless $in->{'template_name'} =~ m/^[$safe_chars]+\.tt$/ig; #sanitize input
-
     $in->{'authnotrequired'} ||= 0;
+
+    # the following call includes a bad template check; might croak
     my $template = C4::Templates::gettemplate(
         $in->{'template_name'},
         $in->{'type'},
         $in->{'query'},
-        $in->{'is_plugin'}
     );
 
     if ( $in->{'template_name'} !~ m/maintenance/ ) {
@@ -180,12 +180,40 @@ sub get_template_and_user {
         );
     }
 
+    if ( $in->{type} eq 'opac' && $user ) {
+        my $kick_out;
 
-    # If the user logged in is the SCO user and he tries to go out the SCO module, log the user out removing the CGISESSID cookie
-    if ( $in->{type} eq 'opac' and $in->{template_name} !~ m|sco/| ) {
-        if ( $user && C4::Context->preference('AutoSelfCheckID') && $user eq C4::Context->preference('AutoSelfCheckID') ) {
-            $template = C4::Templates::gettemplate( 'opac-auth.tt', 'opac', $in->{query} );
-            my $cookie = $in->{query}->cookie(
+        if (
+# If the user logged in is the SCO user and they try to go out of the SCO module,
+# log the user out removing the CGISESSID cookie
+               $in->{template_name} !~ m|sco/|
+            && C4::Context->preference('AutoSelfCheckID')
+            && $user eq C4::Context->preference('AutoSelfCheckID')
+          )
+        {
+            $kick_out = 1;
+        }
+        elsif (
+# If the user logged in is the SCI user and they try to go out of the SCI module,
+# kick them out unless it is SCO with a valid permission
+# or they are a superlibrarian
+               $in->{template_name} !~ m|sci/|
+            && haspermission( $user, { self_check => 'self_checkin_module' } )
+            && !(
+                $in->{template_name} =~ m|sco/| && haspermission(
+                    $user, { self_check => 'self_checkout_module' }
+                )
+            )
+            && $flags && $flags->{superlibrarian} != 1
+          )
+        {
+            $kick_out = 1;
+        }
+
+        if ($kick_out) {
+            $template = C4::Templates::gettemplate( 'opac-auth.tt', 'opac',
+                $in->{query} );
+            $cookie = $in->{query}->cookie(
                 -name     => 'CGISESSID',
                 -value    => '',
                 -expires  => '',
@@ -196,43 +224,46 @@ sub get_template_and_user {
                 loginprompt => 1,
                 script_name => get_script_name(),
             );
+
             print $in->{query}->header(
-                {   type              => 'text/html',
+                {
+                    type              => 'text/html',
                     charset           => 'utf-8',
                     cookie            => $cookie,
                     'X-Frame-Options' => 'SAMEORIGIN'
                 }
               ),
-            $template->output;
+              $template->output;
             safe_exit;
         }
     }
 
     my $borrowernumber;
     if ($user) {
-        require C4::Members;
 
         # It's possible for $user to be the borrowernumber if they don't have a
         # userid defined (and are logging in through some other method, such
         # as SSL certs against an email address)
-        my $borrower;
+        my $patron;
         $borrowernumber = getborrowernumber($user) if defined($user);
         if ( !defined($borrowernumber) && defined($user) ) {
-            $borrower = C4::Members::GetMember( borrowernumber => $user );
-            if ($borrower) {
+            $patron = Koha::Patrons->find( $user );
+            if ($patron) {
                 $borrowernumber = $user;
 
                 # A bit of a hack, but I don't know there's a nicer way
                 # to do it.
-                $user = $borrower->{firstname} . ' ' . $borrower->{surname};
+                $user = $patron->firstname . ' ' . $patron->surname;
             }
         } else {
-            $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber );
+            $patron = Koha::Patrons->find( $borrowernumber );
+            # FIXME What to do if $patron does not exist?
         }
 
         # user info
-        $template->param( loggedinusername   => $user );
-        $template->param( loggedinusernumber => $borrowernumber );
+        $template->param( loggedinusername   => $user ); # FIXME Should be replaced with something like patron-title.inc
+        $template->param( loggedinusernumber => $borrowernumber ); # FIXME Should be replaced with logged_in_user.borrowernumber
+        $template->param( logged_in_user     => $patron );
         $template->param( sessionID          => $sessionID );
 
         if ( $in->{'type'} eq 'opac' ) {
@@ -254,12 +285,12 @@ sub get_template_and_user {
             );
         }
 
-        $template->param( "USER_INFO" => $borrower );
+        $template->param( "USER_INFO" => $patron->unblessed ) if $borrowernumber != 0;
 
         my $all_perms = get_all_subpermissions();
 
         my @flagroots = qw(circulate catalogue parameters borrowers permissions reserveforothers borrow
-          editcatalogue updatecharges management tools editauthorities serials reports acquisition);
+          editcatalogue updatecharges management tools editauthorities serials reports acquisition clubs);
 
         # We are going to use the $flags returned by checkauth
         # to create the template's parameters that will indicate
@@ -282,8 +313,10 @@ sub get_template_and_user {
             $template->param( CAN_user_staffaccess      => 1 );
             $template->param( CAN_user_plugins          => 1 );
             $template->param( CAN_user_coursereserves   => 1 );
-            foreach my $module ( keys %$all_perms ) {
+            $template->param( CAN_user_clubs            => 1 );
+            $template->param( CAN_user_ill              => 1 );
 
+            foreach my $module ( keys %$all_perms ) {
                 foreach my $subperm ( keys %{ $all_perms->{$module} } ) {
                     $template->param( "CAN_user_${module}_${subperm}" => 1 );
                 }
@@ -329,31 +362,33 @@ sub get_template_and_user {
                 # We show the link in opac
                 $template->param( EnableOpacSearchHistory => 1 );
             }
+            if (C4::Context->preference('LoadSearchHistoryToTheFirstLoggedUser'))
+            {
+                # And if there are searches performed when the user was not logged in,
+                # we add them to the logged-in search history
+                my @recentSearches = C4::Search::History::get_from_session( { cgi => $in->{'query'} } );
+                if (@recentSearches) {
+                    my $dbh   = C4::Context->dbh;
+                    my $query = q{
+                        INSERT INTO search_history(userid, sessionid, query_desc, query_cgi, type,  total, time )
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    };
+                    my $sth = $dbh->prepare($query);
+                    $sth->execute( $borrowernumber,
+                        $in->{query}->cookie("CGISESSID"),
+                        $_->{query_desc},
+                        $_->{query_cgi},
+                        $_->{type} || 'biblio',
+                        $_->{total},
+                        $_->{time},
+                    ) foreach @recentSearches;
 
-            # And if there are searches performed when the user was not logged in,
-            # we add them to the logged-in search history
-            my @recentSearches = C4::Search::History::get_from_session( { cgi => $in->{'query'} } );
-            if (@recentSearches) {
-                my $dbh   = C4::Context->dbh;
-                my $query = q{
-                    INSERT INTO search_history(userid, sessionid, query_desc, query_cgi, type,  total, time )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                };
+                    # clear out the search history from the session now that
+                    # we've saved it to the database
+                 }
+              }
+              C4::Search::History::set_to_session( { cgi => $in->{'query'}, search_history => [] } );
 
-                my $sth = $dbh->prepare($query);
-                $sth->execute( $borrowernumber,
-                    $in->{query}->cookie("CGISESSID"),
-                    $_->{query_desc},
-                    $_->{query_cgi},
-                    $_->{type} || 'biblio',
-                    $_->{total},
-                    $_->{time},
-                ) foreach @recentSearches;
-
-                # clear out the search history from the session now that
-                # we've saved it to the database
-                C4::Search::History::set_to_session( { cgi => $in->{'query'}, search_history => [] } );
-            }
         } elsif ( $in->{type} eq 'intranet' and C4::Context->preference('EnableSearchHistory') ) {
             $template->param( EnableSearchHistory => 1 );
         }
@@ -415,6 +450,8 @@ sub get_template_and_user {
     my $https = $in->{query}->https();
     my $using_https = ( defined $https and $https ne 'OFF' ) ? 1 : 0;
 
+    my $minPasswordLength = C4::Context->preference('minPasswordLength');
+    $minPasswordLength = 3 if not $minPasswordLength or $minPasswordLength < 3;
     $template->param(
         "BiblioDefaultView" . C4::Context->preference("BiblioDefaultView") => 1,
         EnhancedMessagingPreferences                                       => C4::Context->preference('EnhancedMessagingPreferences'),
@@ -425,7 +462,6 @@ sub get_template_and_user {
         LoginFirstname  => ( C4::Context->userenv ? C4::Context->userenv->{"firstname"} : "Bel" ),
         LoginSurname    => C4::Context->userenv ? C4::Context->userenv->{"surname"}      : "Inconnu",
         emailaddress    => C4::Context->userenv ? C4::Context->userenv->{"emailaddress"} : undef,
-        loggedinpersona => C4::Context->userenv ? C4::Context->userenv->{"persona"}      : undef,
         TagsEnabled     => C4::Context->preference("TagsEnabled"),
         hide_marc       => C4::Context->preference("hide_marc"),
         item_level_itypes  => C4::Context->preference('item-level_itypes'),
@@ -436,8 +472,8 @@ sub get_template_and_user {
         using_https        => $using_https,
         noItemTypeImages   => C4::Context->preference("noItemTypeImages"),
         marcflavour        => C4::Context->preference("marcflavour"),
-        persona            => C4::Context->preference("persona"),
         OPACBaseURL        => C4::Context->preference('OPACBaseURL'),
+        minPasswordLength  => $minPasswordLength,
     );
     if ( $in->{'type'} eq "intranet" ) {
         $template->param(
@@ -470,7 +506,7 @@ sub get_template_and_user {
             EnableBorrowerFiles                                                        => C4::Context->preference('EnableBorrowerFiles'),
             UseKohaPlugins                                                             => C4::Context->preference('UseKohaPlugins'),
             UseCourseReserves                                                          => C4::Context->preference("UseCourseReserves"),
-            useDischarge                                                               => C4::Context->preference('useDischarge'),
+            useDischarge                                                               => C4::Context->preference('useDischarge')
         );
     }
     else {
@@ -512,12 +548,11 @@ sub get_template_and_user {
             $opac_name = C4::Context->userenv->{'branch'};
         }
 
-        my $library_categories = Koha::LibraryCategories->search({categorytype => 'searchdomain', show_in_pulldown => 1}, { order_by => ['categorytype', 'categorycode']});
+        my @search_groups = Koha::Library::Groups->get_search_groups({ interface => 'opac' });
         $template->param(
             OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
             AnonSuggestions                       => "" . C4::Context->preference("AnonSuggestions"),
-            BranchesLoop                          => GetBranchesLoopWithoutMobileStations($opac_name),
-            BranchCategoriesLoop                  => $library_categories,
+            LibrarySearchGroups                   => \@search_groups,
             opac_name                             => $opac_name,
             LibraryName                           => "" . C4::Context->preference("LibraryName"),
             LibraryNameTitle                      => "" . $LibraryNameTitle,
@@ -747,12 +782,11 @@ sub _timeout_syspref {
 sub checkauth {
     my $query = shift;
     $debug and warn "Checking Auth";
-
     # $authnotrequired will be set for scripts which will run without authentication
     my $authnotrequired = shift;
     my $flagsrequired   = shift;
     my $type            = shift;
-    my $persona         = shift;
+    my $emailaddress    = shift;
     $type = 'opac' unless $type;
 
     my $dbh     = C4::Context->dbh;
@@ -767,11 +801,13 @@ sub checkauth {
     my $logout = $query->param('logout.x');
 
     my $anon_search_history;
-
+    my $cas_ticket = '';
     # This parameter is the name of the CAS server we want to authenticate against,
     # when using authentication against multiple CAS servers, as configured in Auth_cas_servers.yaml
     my $casparam = $query->param('cas');
     my $q_userid = $query->param('userid') // '';
+
+    my $session;
 
     # Basic authentication is incompatible with the use of Shibboleth,
     # as Shibboleth may return REMOTE_USER as a Shibboleth attribute,
@@ -793,13 +829,12 @@ sub checkauth {
         );
         $loggedin = 1;
     }
-    elsif ($persona) {
-
-        # we don't want to set a session because we are being called by a persona callback
+    elsif ( $emailaddress) {
+        # the Google OpenID Connect passes an email address
     }
     elsif ( $sessionID = $query->cookie("CGISESSID") )
     {    # assignment, not comparison
-        my $session = get_session($sessionID);
+        $session = get_session($sessionID);
         C4::Context->_new_userenv($sessionID);
         my ( $ip, $lasttime, $sessiontype );
         my $s_userid = '';
@@ -811,8 +846,7 @@ sub checkauth {
                 $session->param('surname'),      $session->param('branch'),
                 $session->param('branchname'),   $session->param('flags'),
                 $session->param('emailaddress'), $session->param('branchprinter'),
-                $session->param('persona'),      $session->param('shibboleth'),
-                $session->param('branchcategory')
+                $session->param('shibboleth'),   $session->param('branchcategory')
             );
             C4::Context::set_shelves_userenv( 'bar', $session->param('barshelves') );
             C4::Context::set_shelves_userenv( 'pub', $session->param('pubshelves') );
@@ -908,7 +942,6 @@ sub checkauth {
         }
     }
     unless ( $userid || $sessionID ) {
-
         #we initiate a session prior to checking for a username to allow for anonymous sessions...
         my $session = get_session("") or die "Auth ERROR: Cannot get_session()";
 
@@ -935,11 +968,10 @@ sub checkauth {
             || $q_userid
             || ( $shib && $shib_login )
             || $pki_field ne 'None'
-            || $persona )
+            || $emailaddress )
         {
             my $password    = $query->param('password');
             my $shibSuccess = 0;
-
             my ( $return, $cardnumber );
 
             # If shib is enabled and we have a shib login, does the login match a valid koha user
@@ -957,27 +989,26 @@ sub checkauth {
             unless ($shibSuccess) {
                 if ( $cas && $query->param('ticket') ) {
                     my $retuserid;
-                    ( $return, $cardnumber, $retuserid ) =
+                    ( $return, $cardnumber, $retuserid, $cas_ticket ) =
                       checkpw( $dbh, $userid, $password, $query, $type );
                     $userid = $retuserid;
                     $info{'invalidCasLogin'} = 1 unless ($return);
                 }
 
-                elsif ($persona) {
-                    my $value = $persona;
+                elsif ( $emailaddress ) {
+                    my $value = $emailaddress;
 
                     # If we're looking up the email, there's a chance that the person
                     # doesn't have a userid. So if there is none, we pass along the
                     # borrower number, and the bits of code that need to know the user
                     # ID will have to be smart enough to handle that.
-                    require C4::Members;
-                    my @users_info = C4::Members::GetBorrowersWithEmail($value);
-                    if (@users_info) {
+                    my $patrons = Koha::Patrons->search({ email => $value });
+                    if ($patrons->count) {
 
                         # First the userid, then the borrowernum
-                        $value = $users_info[0][1] || $users_info[0][0];
-                    }
-                    else {
+                        my $patron = $patrons->next;
+                        $value = $patron->userid || $patron->borrowernumber;
+                    } else {
                         undef $value;
                     }
                     $return = $value ? 1 : 0;
@@ -1001,12 +1032,12 @@ sub checkauth {
                         # doesn't have a userid. So if there is none, we pass along the
                         # borrower number, and the bits of code that need to know the user
                         # ID will have to be smart enough to handle that.
-                        require C4::Members;
-                        my @users_info = C4::Members::GetBorrowersWithEmail($value);
-                        if (@users_info) {
+                        my $patrons = Koha::Patrons->search({ email => $value });
+                        if ($patrons->count) {
 
                             # First the userid, then the borrowernum
-                            $value = $users_info[0][1] || $users_info[0][0];
+                            my $patron = $patrons->next;
+                            $value = $patron->userid || $patron->borrowernumber;
                         } else {
                             undef $value;
                         }
@@ -1018,14 +1049,14 @@ sub checkauth {
                 }
                 else {
                     my $retuserid;
-                    ( $return, $cardnumber, $retuserid ) =
+                    ( $return, $cardnumber, $retuserid, $cas_ticket ) =
                       checkpw( $dbh, $q_userid, $password, $query, $type );
                     $userid = $retuserid if ($retuserid);
                     $info{'invalid_username_or_password'} = 1 unless ($return);
                 }
             }
 
-            # $return: 1 = valid user, 2 = superlibrarian
+            # $return: 1 = valid user
             if ($return) {
 
                 #_session_log(sprintf "%20s from %16s logged in  at %30s.\n", $userid,$ENV{'REMOTE_ADDR'},(strftime '%c', localtime));
@@ -1080,9 +1111,9 @@ sub checkauth {
                     # if they specify at login, use that
                     if ( $query->param('branch') ) {
                         $branchcode = $query->param('branch');
-                        $branchname = GetBranchName($branchcode);
+                        my $library = Koha::Libraries->find($branchcode);
+                        $branchname = $library? $library->branchname: '';
                     }
-
                     my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
                     if ( $type ne 'opac' and C4::Context->boolean_preference('AutoLocation') ) {
 
@@ -1100,7 +1131,6 @@ sub checkauth {
                         }
                     }
 
-                    my @branchesloop;
                     foreach my $br ( keys %$branches ) {
 
                         #     now we work with the treatment of ip
@@ -1127,33 +1157,14 @@ sub checkauth {
                     $session->param( 'shibboleth',   $shibSuccess );
                     $debug and printf STDERR "AUTH_4: (%s)\t%s %s - %s\n", map { $session->param($_) } qw(cardnumber firstname surname branch);
                 }
-                elsif ( $return == 2 ) {
-
-                    #We suppose the user is the superlibrarian
-                    $borrowernumber = 0;
-                    $session->param( 'number',       0 );
-                    $session->param( 'id',           C4::Context->config('user') );
-                    $session->param( 'cardnumber',   C4::Context->config('user') );
-                    $session->param( 'firstname',    C4::Context->config('user') );
-                    $session->param( 'surname',      C4::Context->config('user') );
-                    $session->param( 'branch',       'NO_LIBRARY_SET' );
-                    $session->param( 'branchname',   'NO_LIBRARY_SET' );
-                    $session->param( 'flags',        1 );
-                    $session->param( 'emailaddress', C4::Context->preference('KohaAdminEmailAddress') );
-                    $session->param( 'ip',           $session->remote_addr() );
-                    $session->param( 'lasttime',     time() );
-                }
-                if ($persona) {
-                    $session->param( 'persona', 1 );
-                }
+                $session->param('cas_ticket', $cas_ticket) if $cas_ticket;
                 C4::Context->set_userenv(
                     $session->param('number'),       $session->param('id'),
                     $session->param('cardnumber'),   $session->param('firstname'),
                     $session->param('surname'),      $session->param('branch'),
                     $session->param('branchname'),   $session->param('flags'),
                     $session->param('emailaddress'), $session->param('branchprinter'),
-                    $session->param('persona'),      $session->param('shibboleth'),
-                    $session->param('branchcategory')
+                    $session->param('shibboleth'),   $session->param('branchcategory')
                 );
 
             }
@@ -1194,6 +1205,9 @@ sub checkauth {
                 -HttpOnly => 1
             );
         }
+
+        track_login_daily( $userid );
+
         return ( $userid, $cookie, $sessionID, $flags );
     }
 
@@ -1211,6 +1225,8 @@ sub checkauth {
         push @inputs, { name => $name, value => $value };
     }
 
+    my $patron = Koha::Patrons->find({ userid => $q_userid }); # Not necessary logged in!
+
     my $LibraryNameTitle = C4::Context->preference("LibraryName");
     $LibraryNameTitle =~ s/<(?:\/?)(?:br|p)\s*(?:\/?)>/ /sgi;
     $LibraryNameTitle =~ s/<(?:[^<>'"]|'(?:[^']*)'|"(?:[^"]*)")*>//sg;
@@ -1218,7 +1234,6 @@ sub checkauth {
     my $template_name = ( $type eq 'opac' ) ? 'opac-auth.tt' : 'auth.tt';
     my $template = C4::Templates::gettemplate( $template_name, $type, $query );
     $template->param(
-        branchloop                            => GetBranchesLoop(),
         OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
         opaclayoutstylesheet                  => C4::Context->preference("opaclayoutstylesheet"),
         login                                 => 1,
@@ -1260,11 +1275,12 @@ sub checkauth {
         wrongip                               => $info{'wrongip'},
         PatronSelfRegistration                => C4::Context->preference("PatronSelfRegistration"),
         PatronSelfRegistrationDefaultCategory => C4::Context->preference("PatronSelfRegistrationDefaultCategory"),
-        persona                               => C4::Context->preference("Persona"),
         opac_css_override                     => $ENV{'OPAC_CSS_OVERRIDE'},
+        too_many_login_attempts               => ( $patron and $patron->account_locked )
     );
 
     $template->param( SCO_login => 1 ) if ( $query->param('sco_user_login') );
+    $template->param( SCI_login => 1 ) if ( $query->param('sci_user_login') );
     $template->param( OpacPublic => C4::Context->preference("OpacPublic") );
     $template->param( loginprompt => 1 ) unless $info{'nopermission'};
 
@@ -1370,9 +1386,9 @@ Possible return values in C<$status> are:
 =cut
 
 sub check_api_auth {
+
     my $query         = shift;
     my $flagsrequired = shift;
-
     my $dbh     = C4::Context->dbh;
     my $timeout = _timeout_syspref();
 
@@ -1466,7 +1482,7 @@ sub check_api_auth {
         # new login
         my $userid   = $query->param('userid');
         my $password = $query->param('password');
-        my ( $return, $cardnumber );
+        my ( $return, $cardnumber, $cas_ticket );
 
         # Proxy CAS auth
         if ( $cas && $query->param('PT') ) {
@@ -1475,7 +1491,7 @@ sub check_api_auth {
 
             # In case of a CAS authentication, we use the ticket instead of the password
             my $PT = $query->param('PT');
-            ( $return, $cardnumber, $userid ) = check_api_auth_cas( $dbh, $PT, $query );    # EXTERNAL AUTH
+            ( $return, $cardnumber, $userid, $cas_ticket ) = check_api_auth_cas( $dbh, $PT, $query );    # EXTERNAL AUTH
         } else {
 
             # User / password auth
@@ -1484,7 +1500,8 @@ sub check_api_auth {
                 # caller did something wrong, fail the authenticateion
                 return ( "failed", undef, undef );
             }
-            ( $return, $cardnumber ) = checkpw( $dbh, $userid, $password, $query );
+            my $newuserid;
+            ( $return, $cardnumber, $newuserid, $cas_ticket ) = checkpw( $dbh, $userid, $password, $query );
         }
 
         if ( $return and haspermission( $userid, $flagsrequired ) ) {
@@ -1540,10 +1557,10 @@ sub check_api_auth {
                 # if they specify at login, use that
                 if ( $query->param('branch') ) {
                     $branchcode = $query->param('branch');
-                    $branchname = GetBranchName($branchcode);
+                    my $library = Koha::Libraries->find($branchcode);
+                    $branchname = $library? $library->branchname: '';
                 }
-                my $branches = GetBranches();
-                my @branchesloop;
+                my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
                 foreach my $br ( keys %$branches ) {
 
                     #     now we work with the treatment of ip
@@ -1556,34 +1573,20 @@ sub check_api_auth {
                         $branchname    = $branches->{$br}->{'branchname'};
                     }
                 }
-                $session->param( 'number',         $borrowernumber );
-                $session->param( 'id',             $userid );
-                $session->param( 'cardnumber',     $cardnumber );
-                $session->param( 'firstname',      $firstname );
-                $session->param( 'surname',        $surname );
-                $session->param( 'branch',         $branchcode );
-                $session->param( 'branchname',     $branchname );
+                $session->param( 'number',       $borrowernumber );
+                $session->param( 'id',           $userid );
+                $session->param( 'cardnumber',   $cardnumber );
+                $session->param( 'firstname',    $firstname );
+                $session->param( 'surname',      $surname );
+                $session->param( 'branch',       $branchcode );
+                $session->param( 'branchname',   $branchname );
                 $session->param( 'branchcategory', '*' );
-                $session->param( 'flags',          $userflags );
-                $session->param( 'emailaddress',   $emailaddress );
-                $session->param( 'ip',             $session->remote_addr() );
-                $session->param( 'lasttime',       time() );
-            } elsif ( $return == 2 ) {
-
-                #We suppose the user is the superlibrarian
-                $session->param( 'number',         0 );
-                $session->param( 'id',             C4::Context->config('user') );
-                $session->param( 'cardnumber',     C4::Context->config('user') );
-                $session->param( 'firstname',      C4::Context->config('user') );
-                $session->param( 'surname',        C4::Context->config('user') );
-                $session->param( 'branch',         'NO_LIBRARY_SET' );
-                $session->param( 'branchname',     'NO_LIBRARY_SET' );
-                $session->param( 'branchcategory', '*' );
-                $session->param( 'flags',          1 );
-                $session->param( 'emailaddress',   C4::Context->preference('KohaAdminEmailAddress') );
-                $session->param( 'ip',             $session->remote_addr() );
-                $session->param( 'lasttime',       time() );
+                $session->param( 'flags',        $userflags );
+                $session->param( 'emailaddress', $emailaddress );
+                $session->param( 'ip',           $session->remote_addr() );
+                $session->param( 'lasttime',     time() );
             }
+            $session->param( 'cas_ticket', $cas_ticket);
             C4::Context->set_userenv(
                 $session->param('number'),       $session->param('id'),
                 $session->param('cardnumber'),   $session->param('firstname'),
@@ -1628,7 +1631,9 @@ Possible return values in C<$status> are:
 sub check_cookie_auth {
     my $cookie        = shift;
     my $flagsrequired = shift;
+    my $params        = shift;
 
+    my $remote_addr = $params->{remote_addr} || $ENV{REMOTE_ADDR};
     my $dbh     = C4::Context->dbh;
     my $timeout = _timeout_syspref();
 
@@ -1685,7 +1690,7 @@ sub check_cookie_auth {
             $userid    = undef;
             $sessionID = undef;
             return ("expired", undef);
-        } elsif ( C4::Context->preference('SessionRestrictionByIP') && $ip ne $ENV{'REMOTE_ADDR'} ) {
+        } elsif ( C4::Context->preference('SessionRestrictionByIP') && $ip ne $remote_addr ) {
 
             # IP address changed
             $session->delete();
@@ -1728,27 +1733,32 @@ will be created.
 
 =cut
 
-sub get_session {
-    my $sessionID      = shift;
+sub _get_session_params {
     my $storage_method = C4::Context->preference('SessionStorage');
-    my $dbh            = C4::Context->dbh;
-    my $session;
     if ( $storage_method eq 'mysql' ) {
-        $session = new CGI::Session( "driver:MySQL;serializer:yaml;id:md5", $sessionID, { Handle => $dbh } );
+        my $dbh = C4::Context->dbh;
+        return { dsn => "driver:MySQL;serializer:yaml;id:md5", dsn_args => { Handle => $dbh } };
     }
     elsif ( $storage_method eq 'Pg' ) {
-        $session = new CGI::Session( "driver:PostgreSQL;serializer:yaml;id:md5", $sessionID, { Handle => $dbh } );
+        my $dbh = C4::Context->dbh;
+        return { dsn => "driver:PostgreSQL;serializer:yaml;id:md5", dsn_args => { Handle => $dbh } };
     }
-    elsif ( $storage_method eq 'memcached' && C4::Context->ismemcached ) {
-        $session = new CGI::Session( "driver:memcached;serializer:yaml;id:md5", $sessionID, { Memcached => C4::Context->memcached } );
+    elsif ( $storage_method eq 'memcached' && Koha::Caches->get_instance->memcached_cache ) {
+        my $memcached = Koha::Caches->get_instance()->memcached_cache;
+        return { dsn => "driver:memcached;serializer:yaml;id:md5", dsn_args => { Memcached => $memcached } };
     }
     else {
         # catch all defaults to tmp should work on all systems
         my $dir = File::Spec->tmpdir;
         my $instance = C4::Context->config( 'database' ); #actually for packages not exactly the instance name, but generally safer to leave it as it is
-        $session = new CGI::Session( "driver:File;serializer:yaml;id:md5", $sessionID, { Directory => "$dir/cgisess_$instance" } );
+        return { dsn => "driver:File;serializer:yaml;id:md5", dsn_args => { Directory => "$dir/cgisess_$instance" } };
     }
-    return $session;
+}
+
+sub get_session {
+    my $sessionID      = shift;
+    my $params = _get_session_params();
+    return new CGI::Session( $params->{dsn}, $sessionID, $params->{dsn_args} );
 }
 
 
@@ -1759,28 +1769,46 @@ sub get_session {
 sub checkpw {
     my ( $dbh, $userid, $password, $query, $type, $no_set_userenv ) = @_;
     $type = 'opac' unless $type;
-    if ($ldap) {
+
+    my @return;
+    my $patron = Koha::Patrons->find({ userid => $userid });
+    my $check_internal_as_fallback = 0;
+    my $passwd_ok = 0;
+    # Note: checkpw_* routines returns:
+    # 1 if auth is ok
+    # 0 if auth is nok
+    # -1 if user bind failed (LDAP only)
+
+    if ( $patron and $patron->account_locked ) {
+        # Nothing to check, account is locked
+    } elsif ($ldap && defined($password)) {
         $debug and print STDERR "## checkpw - checking LDAP\n";
         my ( $retval, $retcard, $retuserid ) = checkpw_ldap(@_);    # EXTERNAL AUTH
-        return 0 if $retval == -1;                                  # Incorrect password for LDAP login attempt
-        ($retval) and return ( $retval, $retcard, $retuserid );
-    }
+        if ( $retval == 1 ) {
+            @return = ( $retval, $retcard, $retuserid );
+            $passwd_ok = 1;
+        }
+        $check_internal_as_fallback = 1 if $retval == 0;
 
-    if ( $cas && $query && $query->param('ticket') ) {
+    } elsif ( $cas && $query && $query->param('ticket') ) {
         $debug and print STDERR "## checkpw - checking CAS\n";
 
         # In case of a CAS authentication, we use the ticket instead of the password
         my $ticket = $query->param('ticket');
         $query->delete('ticket');                                   # remove ticket to come back to original URL
-        my ( $retval, $retcard, $retuserid ) = checkpw_cas( $dbh, $ticket, $query, $type );    # EXTERNAL AUTH
-        ($retval) and return ( $retval, $retcard, $retuserid );
-        return 0;
+        my ( $retval, $retcard, $retuserid, $cas_ticket ) = checkpw_cas( $dbh, $ticket, $query, $type );    # EXTERNAL AUTH
+        if ( $retval ) {
+            @return = ( $retval, $retcard, $retuserid, $cas_ticket );
+        } else {
+            @return = (0);
+        }
+        $passwd_ok = $retval;
     }
 
     # If we are in a shibboleth session (shibboleth is enabled, and a shibboleth match attribute is present)
     # Check for password to asertain whether we want to be testing against shibboleth or another method this
     # time around.
-    if ( $shib && $shib_login && !$password ) {
+    elsif ( $shib && $shib_login && !$password ) {
 
         $debug and print STDERR "## checkpw - checking Shibboleth\n";
 
@@ -1791,13 +1819,29 @@ sub checkpw {
         # Then, we check if it matches a valid koha user
         if ($shib_login) {
             my ( $retval, $retcard, $retuserid ) = C4::Auth_with_shibboleth::checkpw_shib($shib_login);    # EXTERNAL AUTH
-            ($retval) and return ( $retval, $retcard, $retuserid );
-            return 0;
+            if ( $retval ) {
+                @return = ( $retval, $retcard, $retuserid );
+            }
+            $passwd_ok = $retval;
         }
+    } else {
+        $check_internal_as_fallback = 1;
     }
 
     # INTERNAL AUTH
-    return checkpw_internal( $dbh, $userid, $password, $no_set_userenv);
+    if ( $check_internal_as_fallback ) {
+        @return = checkpw_internal( $dbh, $userid, $password, $no_set_userenv);
+        $passwd_ok = 1 if $return[0] > 0; # 1 or 2
+    }
+
+    if( $patron ) {
+        if ( $passwd_ok ) {
+            $patron->update({ login_attempts => 0 });
+        } else {
+            $patron->update({ login_attempts => $patron->login_attempts + 1 });
+        }
+    }
+    return @return;
 }
 
 sub checkpw_internal {
@@ -1805,18 +1849,6 @@ sub checkpw_internal {
 
     $password = Encode::encode( 'UTF-8', $password )
       if Encode::is_utf8($password);
-
-    if ( $userid && $userid eq C4::Context->config('user') ) {
-        if ( $password && $password eq C4::Context->config('pass') ) {
-
-            # Koha superuser account
-            #     C4::Context->set_userenv(0,0,C4::Context->config('user'),C4::Context->config('user'),C4::Context->config('user'),"",1);
-            return 2;
-        }
-        else {
-            return 0;
-        }
-    }
 
     my $sth =
       $dbh->prepare(
@@ -1851,15 +1883,6 @@ sub checkpw_internal {
                 $firstname, $surname, $branchcode, $branchname, $flags ) unless $no_set_userenv;
             return 1, $cardnumber, $userid;
         }
-    }
-    if ( $userid && $userid eq 'demo'
-        && "$password" eq 'demo'
-        && C4::Context->config('demo') )
-    {
-
-        # DEMO => the demo user is allowed to do everything (if demo set to 1 in koha.conf
-        # some features won't be effective : modify systempref, modify MARC structure,
-        return 2;
     }
     return 0;
 }
@@ -2012,16 +2035,6 @@ sub haspermission {
     $sth->execute($userid);
     my $row = $sth->fetchrow();
     my $flags = getuserflags( $row, $userid );
-    if ( $userid eq C4::Context->config('user') ) {
-
-        # Super User Account from /etc/koha.conf
-        $flags->{'superlibrarian'} = 1;
-    }
-    elsif ( $userid eq 'demo' && C4::Context->config('demo') ) {
-
-        # Demo user that can do "anything" (demo=1 in /etc/koha.conf)
-        $flags->{'superlibrarian'} = 1;
-    }
 
     return $flags if $flags->{superlibrarian};
 
@@ -2062,6 +2075,30 @@ sub getborrowernumber {
         }
     }
     return 0;
+}
+
+=head2 track_login_daily
+
+    track_login_daily( $userid );
+
+Wraps the call to $patron->track_login, the method used to update borrowers.lastseen. We only call track_login once a day.
+
+=cut
+
+sub track_login_daily {
+    my $userid = shift;
+    return if !$userid || !C4::Context->preference('TrackLastPatronActivity');
+
+    my $cache     = Koha::Caches->get_instance();
+    my $cache_key = "track_login_" . $userid;
+    my $cached    = $cache->get_from_cache($cache_key);
+    my $today = dt_from_string()->ymd;
+    return if $cached && $cached eq $today;
+
+    my $patron = Koha::Patrons->find({ userid => $userid });
+    return unless $patron;
+    $patron->track_login;
+    $cache->set_in_cache( $cache_key, $today );
 }
 
 END { }    # module clean-up code here (global destructor)

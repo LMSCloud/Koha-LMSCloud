@@ -19,15 +19,15 @@ use Modern::Perl;
 use C4::Biblio;
 use C4::Context;
 use C4::Items;
-use C4::Branch;
 use C4::Circulation;
 use Koha::Database;
 use Koha::DateUtils;
 use DateTime::Duration;
+use Koha::Item::Transfers;
 
 use t::lib::TestBuilder;
 
-use Test::More tests => 22;
+use Test::More tests => 24;
 use Test::Deep;
 
 BEGIN {
@@ -126,7 +126,7 @@ is(CreateBranchTransferLimit(undef,$branchcode_2),undef,
 my @transfers = GetTransfers($item_id1);
 cmp_deeply(
     \@transfers,
-    [ re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'), $branchcode_1, $branchcode_2 ],
+    [ re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'), $branchcode_1, $branchcode_2, re('[0-9]*') ],
     "Transfers of the item1"
 );    #NOTE: Only the first transfer is returned
 @transfers = GetTransfers;
@@ -143,14 +143,16 @@ cmp_deeply(
     \@transferfrom1to2,
     [
         {
-            itemnumber => $item_id1,
-            datesent   => re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'),
-            frombranch => $branchcode_1
+            branchtransfer_id => re('[0-9]*'),
+            itemnumber        => $item_id1,
+            datesent          => re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'),
+            frombranch        => $branchcode_1
         },
         {
-            itemnumber => $item_id2,
-            datesent   => re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'),
-            frombranch => $branchcode_1
+            branchtransfer_id => re('[0-9]*'),
+            itemnumber        => $item_id2,
+            datesent          => re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'),
+            frombranch        => $branchcode_1
         }
     ],
     "Item1 and Item2 has been transferred from branch1 to branch2"
@@ -191,6 +193,21 @@ cmp_deeply(
     "Barcode and itemnumber for same item both generate same TransferSlip"
     );
 
+$dbh->do("DELETE FROM branchtransfers");
+ModItemTransfer(
+    $item_id1,
+    $branchcode_1,
+    $branchcode_2
+);
+my $transfer = Koha::Item::Transfers->search()->next();
+ModItemTransfer(
+    $item_id1,
+    $branchcode_1,
+    $branchcode_2
+);
+$transfer->{_result}->discard_changes;
+ok( $transfer->datearrived, 'Date arrived is set when new transfer is initiated' );
+is( $transfer->comments, "Canceled, new transfer from $branchcode_1 to $branchcode_2 created", 'Transfer comment is set as expected when new transfer is initiated' );
+
 $schema->storage->txn_rollback;
 
-1;

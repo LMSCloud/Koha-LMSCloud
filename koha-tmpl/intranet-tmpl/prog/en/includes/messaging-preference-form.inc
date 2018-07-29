@@ -1,28 +1,5 @@
 [% USE Koha %]
 <!-- snippet for form to set borrower and patron category messaging preferences -->
-<script type="text/javascript">//<![CDATA[
-$(document).ready(function(){
-    $(".none").click(function(){
-        if($(this).prop("checked")){
-            var rowid = $(this).attr("id");
-            newid = Number(rowid.replace("none",""));
-            $("#sms"+newid).prop("checked", false);
-            $("#email"+newid).prop("checked", false);
-            $("#phone"+newid).prop("checked", false);
-            $("#digest"+newid).prop("checked", false);
-            $("#rss"+newid).prop("checked", false);
-        }
-    });
-    $(".active_notify").on("change",function(){
-        var attr_id = $(this).data("attr-id");
-        if( $(this).prop("checked") ){
-            $("#none" + attr_id ).prop("checked", false);
-        }
-    });
-    $("#info_digests").tooltip();
-});
-//]]>
-</script>
 
 <input type="hidden" name="modify" value="yes" />
 <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
@@ -32,7 +9,7 @@ $(document).ready(function(){
         [% IF Koha.Preference('SMSSendDriver') %]<th>SMS</th>[% END %]
         [% IF Koha.Preference('TalkingTechItivaPhoneNotification') %]<th>Phone</th>[% END %]
         <th>Email</th>
-        <th>Digests only <i id="info_digests" data-toggle="tooltip" title="You can ask for a digest to reduce the number of messages. Messages will be saved and sent as a single message." data-placement="right" class="icon fa fa-info-sign"></i></th>
+        <th>Digests only <i id="info_digests" data-toggle="tooltip" title="You can ask for a digest to reduce the number of messages. Messages will be saved and sent as a single message." data-placement="right" class="fa fa-info-circle"></i></th>
         <!-- <th>RSS</th> -->
         [% UNLESS ( messaging_form_inactive ) %]<th>Do not notify</th>[% END %]
     </tr>
@@ -63,7 +40,9 @@ $(document).ready(function(){
       <td>-</td>
       [% END %]
 
-      [% IF Koha.Preference('SMSSendDriver') %]<td>
+      [% IF Koha.Preference('SMSSendDriver') %]
+        [% IF ( messaging_preference.transport_sms ) %]
+          <td>
           [% IF ( messaging_form_inactive ) %]
               [% IF ( messaging_preference.transports_sms ) %]
                  <input type="checkbox"
@@ -89,9 +68,15 @@ $(document).ready(function(){
                  value="sms" class="active_notify" data-attr-id="[% messaging_preference.message_attribute_id %]" />
               [% END %]
           [% END %]
-      </td>[% END %]
+          </td>
+        [% ELSE %]
+          <td>-</td>
+        [% END %]
+      [% END %]
 
-      [% IF Koha.Preference('TalkingTechItivaPhoneNotification') %]<td>
+      [% IF Koha.Preference('TalkingTechItivaPhoneNotification') %]
+        [% IF ( messaging_preference.transport_phone ) %]
+          <td>
           [% IF ( messaging_form_inactive ) %]
               [% IF ( messaging_preference.transports_phone ) %]
                  <input type="checkbox"
@@ -117,7 +102,11 @@ $(document).ready(function(){
                  value="phone" class="active_notify" data-attr-id="[% messaging_preference.message_attribute_id %]" />
               [% END %]
           [% END %]
-      </td>[% END %]
+          </td>
+        [% ELSE %]
+          <td>-</td>
+        [% END %]
+      [% END %]
 
       [% IF ( messaging_preference.transport_email ) %]
       <td>

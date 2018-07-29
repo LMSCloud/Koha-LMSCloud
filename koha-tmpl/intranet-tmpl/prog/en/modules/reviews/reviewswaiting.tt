@@ -1,3 +1,5 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Comments &rsaquo; [% IF ( status ) %] Approved comments[% ELSE %] Comments awaiting moderation[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -44,7 +46,7 @@
     <tbody>[% FOREACH review IN reviews %]
     <tr>
         <td>
-            [% IF ( review.borrowernumber ) %]<a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% review.borrowernumber %]">[% review.surname %], [% review.firstname %]</a>[% ELSE %](deleted patron)[% END %]
+            [% IF ( review.borrowernumber ) %]<a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% review.borrowernumber %]">[% review.patron.surname %], [% review.patron.firstname %]</a>[% ELSE %](deleted patron)[% END %]
         </td>
         <td>
             <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% review.biblionumber %]">[% review.bibliotitle %]</a>
@@ -53,8 +55,8 @@
             [% review.review |html %]
         </td>
         <td>
-            [% IF ( status ) %]<a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=unapprove&amp;reviewid=[% review.reviewid %]" class="btn btn-mini"><i class="fa fa-remove"></i> Unapprove</a>[% ELSE %]<a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=approve&amp;reviewid=[% review.reviewid %]" class="btn btn-mini"><i class="fa fa-check"></i> Approve</a>[% END %]
-            <a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=delete&amp;reviewid=[% review.reviewid %]" class="btn btn-mini"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+            [% IF ( status ) %]<a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=unapprove&amp;reviewid=[% review.reviewid %]" class="btn btn-default btn-xs"><i class="fa fa-remove"></i> Unapprove</a>[% ELSE %]<a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=approve&amp;reviewid=[% review.reviewid %]" class="btn btn-default btn-xs"><i class="fa fa-check"></i> Approve</a>[% END %]
+            <a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=delete&amp;reviewid=[% review.reviewid %]" class="btn btn-default btn-xs"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
         </td>
     </tr>
     [% END %]</tbody>
@@ -72,4 +74,9 @@
 [% INCLUDE 'tools-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

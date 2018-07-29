@@ -22,29 +22,29 @@ use strict;
 #use warnings; FIXME - Bug 2505
 use C4::Context;
 use C4::Stats;
-use C4::Members;
-use C4::Circulation qw(ReturnLostItem);
+# use C4::Members;
 use C4::CashRegisterManagement;
 use C4::Log qw(logaction);
+use Koha::Account;
+use Koha::Account::Lines;
+use Koha::Account::Offsets;
+use Koha::Items;
 
 use Data::Dumper qw(Dumper);
 
 use vars qw(@ISA @EXPORT);
 
 BEGIN {
-	require Exporter;
-	@ISA    = qw(Exporter);
-	@EXPORT = qw(
-		&manualinvoice
-		&getnextacctno
-		&getcharges
-		&ModNote
-		&getcredits
-		&getrefunds
-		&chargelostitem
-		&ReversePayment
-        &purge_zero_balance_fees
-	);
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT = qw(
+      &manualinvoice
+      &getnextacctno
+      &getcharges
+      &chargelostitem
+      &ReversePayment
+      &purge_zero_balance_fees
+    );
 }
 
 =head1 NAME
@@ -114,6 +114,18 @@ sub fixaccounts {
 EOT
 	# FIXME: exceedingly bad form.  Use prepare with placholders ("?") in query and execute args.
 }
+
+=cut
+
+=head2 chargelostitem
+
+In a default install of Koha the following lost values are set
+1 = Lost
+2 = Long overdue
+3 = Lost and paid for
+
+FIXME: itemlost should be set to 3 after payment is made, should be a warning to the interface that a charge has been added
+FIXME : if no replacement price, borrower just doesn't get charged?
 
 =cut
 
@@ -245,7 +257,7 @@ should be the empty string.
 
 #'
 # FIXME: In Koha 3.0 , the only account adjustment 'types' passed to this function
-# are :  
+# are:
 # 		'C' = CREDIT
 # 		'FOR' = FORGIVEN  (Formerly 'F', but 'F' is taken to mean 'FINE' elsewhere)
 # 		'N' = New Card fee
@@ -309,67 +321,19 @@ sub manualinvoice {
 }
 
 sub getcharges {
-	my ( $borrowerno, $timestamp, $accountno ) = @_;
-	my $dbh        = C4::Context->dbh;
-	my $timestamp2 = $timestamp - 1;
-	my $query      = "";
-	my $sth = $dbh->prepare(
-			"SELECT * FROM accountlines WHERE borrowernumber=? AND accountno = ?"
+    my ( $borrowerno, $timestamp, $accountno ) = @_;
+    my $dbh        = C4::Context->dbh;
+    my $timestamp2 = $timestamp - 1;
+    my $query      = "";
+    my $sth = $dbh->prepare(
+            "SELECT * FROM accountlines WHERE borrowernumber=? AND accountno = ?"
           );
-	$sth->execute( $borrowerno, $accountno );
-	
-    my @results;
-    while ( my $data = $sth->fetchrow_hashref ) {
-		push @results,$data;
-	}
-    return (@results);
-}
-
-sub ModNote {
-    my ( $accountlines_id, $note ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare('UPDATE accountlines SET note = ? WHERE accountlines_id = ?');
-    $sth->execute( $note, $accountlines_id );
-}
-
-sub getcredits {
-	my ( $date, $date2 ) = @_;
-	my $dbh = C4::Context->dbh;
-	my $sth = $dbh->prepare(
-			        "SELECT * FROM accountlines,borrowers
-      WHERE amount < 0 AND accounttype not like 'Pay%' AND accountlines.borrowernumber = borrowers.borrowernumber
-	  AND timestamp >=TIMESTAMP(?) AND timestamp < TIMESTAMP(?)"
-      );  
-
-    $sth->execute( $date, $date2 );                                                                                                              
-    my @results;          
-    while ( my $data = $sth->fetchrow_hashref ) {
-		$data->{'date'} = $data->{'timestamp'};
-		push @results,$data;
-	}
-    return (@results);
-} 
-
-
-sub getrefunds {
-	my ( $date, $date2 ) = @_;
-	my $dbh = C4::Context->dbh;
-	
-	my $sth = $dbh->prepare(
-			        "SELECT *,timestamp AS datetime                                                                                      
-                  FROM accountlines,borrowers
-                  WHERE (accounttype = 'REF'
-					  AND accountlines.borrowernumber = borrowers.borrowernumber
-					                  AND date  >=?  AND date  <?)"
-    );
-
-    $sth->execute( $date, $date2 );
+    $sth->execute( $borrowerno, $accountno );
 
     my @results;
     while ( my $data = $sth->fetchrow_hashref ) {
-		push @results,$data;
-		
-	}
+        push @results,$data;
+    }
     return (@results);
 }
 
@@ -462,9 +426,18 @@ sub purge_zero_balance_fees {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(
         q{
-            DELETE FROM accountlines
-            WHERE date < date_sub(curdate(), INTERVAL ? DAY)
-              AND ( amountoutstanding = 0 or amountoutstanding IS NULL );
+            DELETE a1 FROM accountlines a1
+
+            LEFT JOIN account_offsets credit_offset ON ( a1.accountlines_id = credit_offset.credit_id )
+            LEFT JOIN accountlines a2 ON ( credit_offset.debit_id = a2.accountlines_id )
+
+            LEFT JOIN account_offsets debit_offset ON ( a1.accountlines_id = debit_offset.debit_id )
+            LEFT JOIN accountlines a3 ON ( debit_offset.credit_id = a3.accountlines_id )
+
+            WHERE a1.date < date_sub(curdate(), INTERVAL ? DAY)
+              AND ( a1.amountoutstanding = 0 OR a1.amountoutstanding IS NULL )
+              AND ( a2.amountoutstanding = 0 OR a2.amountoutstanding IS NULL )
+              AND ( a3.amountoutstanding = 0 OR a3.amountoutstanding IS NULL )
         }
     );
     $sth->execute($days) or die $dbh->errstr;

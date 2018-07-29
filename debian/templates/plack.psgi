@@ -17,24 +17,22 @@
 
 use Modern::Perl;
 
-use lib("/usr/share/koha/lib");
-use lib("/usr/share/koha/lib/installer");
-
 use Plack::Builder;
 use Plack::App::CGIBin;
 use Plack::App::Directory;
 use Plack::App::URLMap;
+use Plack::Request;
+
+use Mojo::Server::PSGI;
 
 # Pre-load libraries
 use C4::Boolean;
-use C4::Branch;
-use C4::Category;
 use C4::Koha;
 use C4::Languages;
 use C4::Letters;
 use C4::Members;
 use C4::XSLT;
-use Koha::Cache;
+use Koha::Caches;
 use Koha::Cache::Memory::Lite;
 use Koha::Database;
 use Koha::DateUtils;
@@ -46,30 +44,35 @@ use CGI qw(-utf8 ); # we will loose -utf8 under plack, otherwise
     *CGI::new = sub {
         my $q = $old_new->( @_ );
         $CGI::PARAM_UTF8 = 1;
-        Koha::Cache->flush_L1_cache();
+        Koha::Caches->flush_L1_caches();
         Koha::Cache::Memory::Lite->flush();
         return $q;
     };
 }
 
+my $home = $ENV{KOHA_HOME};
 my $intranet = Plack::App::CGIBin->new(
-    root => '/usr/share/koha/intranet/cgi-bin'
+    root => $ENV{DEV_INSTALL}? $home: "$home/intranet/cgi-bin"
 )->to_app;
 
 my $opac = Plack::App::CGIBin->new(
-    root => '/usr/share/koha/opac/cgi-bin/opac'
+    root => $ENV{DEV_INSTALL}? "$home/opac": "$home/opac/cgi-bin/opac"
 )->to_app;
 
-# my $api  = Plack::App::CGIBin->new(
-#     root => '/usr/share/koha/api/'
-# )->to_app;
+my $apiv1  = builder {
+    my $server = Mojo::Server::PSGI->new;
+    $server->load_app("$home/api/v1/app.pl");
+    $server->to_psgi_app;
+};
 
 builder {
-
     enable "ReverseProxy";
     enable "Plack::Middleware::Static";
+    # + is required so Plack doesn't try to prefix Plack::Middleware::
+    enable "+Koha::Middleware::SetEnv";
 
-    mount '/opac'     => $opac;
-    mount '/intranet' => $intranet;
-    # mount '/api'       => $api;
+    mount '/opac'          => $opac;
+    mount '/intranet'      => $intranet;
+    mount '/api/v1/app.pl' => $apiv1;
+
 };

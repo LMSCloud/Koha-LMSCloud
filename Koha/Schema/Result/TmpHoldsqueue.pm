@@ -41,17 +41,17 @@ __PACKAGE__->table("tmp_holdsqueue");
 
 =head2 surname
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 0
 
 =head2 firstname
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 phone
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 borrowernumber
@@ -63,7 +63,7 @@ __PACKAGE__->table("tmp_holdsqueue");
 
   data_type: 'varchar'
   is_nullable: 1
-  size: 16
+  size: 32
 
 =head2 reservedate
 
@@ -73,7 +73,7 @@ __PACKAGE__->table("tmp_holdsqueue");
 
 =head2 title
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 itemcallnumber
@@ -96,7 +96,7 @@ __PACKAGE__->table("tmp_holdsqueue");
 
 =head2 notes
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 item_level_request
@@ -115,19 +115,19 @@ __PACKAGE__->add_columns(
   "barcode",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "surname",
-  { data_type => "mediumtext", is_nullable => 0 },
+  { data_type => "longtext", is_nullable => 0 },
   "firstname",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "phone",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "borrowernumber",
   { data_type => "integer", is_nullable => 0 },
   "cardnumber",
-  { data_type => "varchar", is_nullable => 1, size => 16 },
+  { data_type => "varchar", is_nullable => 1, size => 32 },
   "reservedate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "title",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "itemcallnumber",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "holdingbranch",
@@ -135,14 +135,14 @@ __PACKAGE__->add_columns(
   "pickbranch",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "notes",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "item_level_request",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2013-10-14 20:56:21
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ZD6xOAdXuMjglFtNa+DMEQ
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:1Wa4h3u3FePOhGPD8SHEWg
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

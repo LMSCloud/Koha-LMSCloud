@@ -32,7 +32,6 @@ BEGIN {
 	@ISA    = qw(Exporter);
 	@EXPORT = qw(
 		&UpdateStats
-		&TotalPaid
 	);
 }
 
@@ -84,7 +83,7 @@ sub UpdateStats {
 # make some controls
     return () if ! defined $params;
 # change these arrays if new types of transaction or new parameters are allowed
-    my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber accountno ccode);
+    my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber accountno ccode location);
     my @allowed_circulation_types = qw (renew issue localuse return onsite_checkout);
     my @allowed_accounts_types = qw (writeoff payment cancelfee);
     my @circulation_mandatory_keys = qw (type branch borrowernumber itemnumber ccode itemtype);
@@ -118,73 +117,29 @@ sub UpdateStats {
 # get the parameters
     my $branch            = $params->{branch};
     my $type              = $params->{type};
-    my $borrowernumber    = exists $params->{borrowernumber} ? $params->{borrowernumber} :'';
-    my $itemnumber        = exists $params->{itemnumber}     ? $params->{itemnumber} :'';
-    my $amount            = exists $params->{amount}         ? $params->{amount} :'';
-    my $other             = exists $params->{other}          ? $params->{other} :'';
-    my $itemtype          = exists $params->{itemtype}       ? $params->{itemtype} :'';
-    my $accountno         = exists $params->{accountno}      ? $params->{accountno} :'';
-    my $ccode             = exists $params->{ccode}          ? $params->{ccode} :'';
+    my $borrowernumber    = exists $params->{borrowernumber} ? $params->{borrowernumber} : '';
+    my $itemnumber        = exists $params->{itemnumber}     ? $params->{itemnumber}     : undef;
+    my $amount            = exists $params->{amount}         ? $params->{amount}         : 0;
+    my $other             = exists $params->{other}          ? $params->{other}          : '';
+    my $itemtype          = exists $params->{itemtype}       ? $params->{itemtype}       : '';
+    my $location          = exists $params->{location}       ? $params->{location}       : undef;
+    my $accountno         = exists $params->{accountno}      ? $params->{accountno}      : '';
+    my $ccode             = exists $params->{ccode}          ? $params->{ccode}          : '';
 
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(
         "INSERT INTO statistics
         (datetime,
          branch,          type,        value,
-         other,           itemnumber,  itemtype,
+         other,           itemnumber,  itemtype, location,
          borrowernumber,  proccode,    ccode)
-         VALUES (now(),?,?,?,?,?,?,?,?,?)"
+         VALUES (now(),?,?,?,?,?,?,?,?,?,?)"
     );
     $sth->execute(
-        $branch,         $type,        $amount,
-        $other,          $itemnumber,  $itemtype,
-        $borrowernumber, $accountno,   $ccode
+        $branch,     $type,     $amount,   $other,
+        $itemnumber, $itemtype, $location, $borrowernumber,
+        $accountno,  $ccode
     );
-}
-
-=head2 TotalPaid
-
-  @total = &TotalPaid ( $time, [$time2], [$spreadsheet ]);
-
-Returns an array containing the payments and writeoffs made between two dates
-C<$time> and C<$time2>, or on a specific one, or from C<$time> onwards.
-
-C<$time> param is mandatory.
-If C<$time> eq 'today', returns are limited to the current day
-If C<$time2> eq '', results are returned from C<$time> onwards.
-If C<$time2> is undef, returns are limited to C<$time>
-C<$spreadsheet> param is optional and controls the sorting of the results.
-
-Returns undef if no param is given
-
-=cut
-
-sub TotalPaid {
-    my ( $time, $time2, $spreadsheet ) = @_;
-    return () unless (defined $time);
-    $time2 = $time unless $time2;
-    my $dbh   = C4::Context->dbh;
-    my $query = "SELECT * FROM statistics 
-  LEFT JOIN borrowers ON statistics.borrowernumber= borrowers.borrowernumber
-  WHERE (statistics.type='payment' OR statistics.type='writeoff') ";
-    if ( $time eq 'today' ) {
-# FIXME wrong condition. Now() will not get all the payments of the day but of a specific timestamp
-        $query .= " AND datetime = now()";
-    } else {
-        $query .= " AND datetime > '$time'";    # FIXME: use placeholders
-    }
-    if ( $time2 ne '' ) {
-        $query .= " AND datetime < '$time2'";   # FIXME: use placeholders
-    }
-# FIXME if $time2 is undef, query will be "AND datetime > $time AND AND datetime < $time"
-# Operators should probably be <= and >=
-    if ($spreadsheet) {
-        $query .= " ORDER BY branch, type";
-    }
-    $debug and warn "TotalPaid query: $query";
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-    return @{$sth->fetchall_arrayref({})};
 }
 
 1;

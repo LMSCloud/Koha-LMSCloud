@@ -33,6 +33,7 @@ use C4::Items;
 use C4::Output;
 use C4::Members;
 use Koha::Email;
+use Koha::Patrons;
 use Koha::Virtualshelves;
 
 my $query = new CGI;
@@ -86,10 +87,12 @@ if ( $email ) {
     my @results;
 
     while ( my $content = $contents->next ) {
-        my $biblionumber = $content->biblionumber->biblionumber;
+        my $biblionumber = $content->biblionumber;
         my $fw               = GetFrameworkCode($biblionumber);
         my $dat              = GetBiblioData($biblionumber);
-        my $record           = GetMarcBiblio($biblionumber, 1);
+        my $record           = GetMarcBiblio({
+            biblionumber => $biblionumber,
+            embed_items  => 1 });
         my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
         my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
         my $subtitle         = GetRecordValue('subtitle', $record, $fw);
@@ -109,14 +112,14 @@ if ( $email ) {
         push( @results, $dat );
     }
 
-    my $user = GetMember(borrowernumber => $borrowernumber);
+    my $patron = Koha::Patrons->find( $borrowernumber );
 
     $template2->param(
         BIBLIO_RESULTS => \@results,
         comment        => $comment,
         shelfname      => $shelf->shelfname,
-        firstname      => $user->{firstname},
-        surname        => $user->{surname},
+        firstname      => $patron->firstname,
+        surname        => $patron->surname,
     );
 
     # Getting template result

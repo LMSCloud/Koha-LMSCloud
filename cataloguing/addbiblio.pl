@@ -19,8 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
+
 use CGI q(-utf8);
 use C4::Output;
 use C4::Auth;
@@ -31,12 +31,16 @@ use C4::Context;
 use MARC::Record;
 use C4::Log;
 use C4::Koha;
-use C4::Branch;
 use C4::ClassSource;
 use C4::ImportBatch;
 use C4::Charset;
 use Koha::BiblioFrameworks;
 use Koha::DateUtils;
+
+use Koha::ItemTypes;
+use Koha::Libraries;
+
+use Koha::BiblioFrameworks;
 
 use Date::Calc qw(Today);
 use MARC::File::USMARC;
@@ -103,7 +107,6 @@ sub MARCfindbreeding {
             {
                 my ( $tag, $subfield ) = GetMarcFromKohaField("biblio.author", '');
 
- #                 my $summary = C4::Context->preference("z3950authortemplate");
                 my $auth_fields =
                   C4::Context->preference("z3950AuthorAuthFields");
                 my @auth_fields = split /,/, $auth_fields;
@@ -112,7 +115,6 @@ sub MARCfindbreeding {
                 if ( $record->field($tag) ) {
                     foreach my $tmpfield ( $record->field($tag)->subfields ) {
 
-       #                        foreach my $subfieldcode ($tmpfield->subfields){
                         my $subfieldcode  = shift @$tmpfield;
                         my $subfieldvalue = shift @$tmpfield;
                         if ($field) {
@@ -136,16 +138,12 @@ sub MARCfindbreeding {
                     my $title     = $record->field($fieldtag)->subfield('c');
                     my $number    = $record->field($fieldtag)->subfield('d');
                     if ($title) {
-
-#                         $field->add_subfields("$subfield"=>"[ ".ucfirst($title).ucfirst($firstname)." ".$number." ]");
                         $field->add_subfields(
                                 "$subfield" => ucfirst($title) . " "
                               . ucfirst($firstname) . " "
                               . $number );
                     }
                     else {
-
-#                       $field->add_subfields("$subfield"=>"[ ".ucfirst($firstname).", ".ucfirst($lastname)." ]");
                         $field->add_subfields(
                             "$subfield" => ucfirst($firstname) . ", "
                               . ucfirst($lastname) );
@@ -173,18 +171,11 @@ sub build_authorized_values_list {
 
     #---- branch
     if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "branches" ) {
-        #Use GetBranches($onlymine)
-        my $onlymine =
-             C4::Context->preference('IndependentBranches')
-          && C4::Context->userenv
-          && !C4::Context->IsSuperLibrarian()
-          && C4::Context->userenv->{branch};
-        my $branches = GetBranches($onlymine);
-        foreach my $thisbranch ( sort keys %$branches ) {
-            push @authorised_values, $thisbranch;
-            $authorised_lib{$thisbranch} = $branches->{$thisbranch}->{'branchname'};
+        my $libraries = Koha::Libraries->search_filtered({}, {order_by => ['branchname']});
+        while ( my $l = $libraries->next ) {
+            push @authorised_values, $l->branchcode;;
+            $authorised_lib{$l->branchcode} = $l->branchname;
         }
-
     }
     elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "itemtypes" ) {
         push @authorised_values, ""
@@ -192,10 +183,10 @@ sub build_authorized_values_list {
             && ( $value || $tagslib->{$tag}->{$subfield}->{defaultvalue} ) );
 
         my $itemtype;
-        my $itemtypes = GetItemTypes( style => 'array' );
-        for my $itemtype ( @$itemtypes ) {
-            push @authorised_values, $itemtype->{itemtype};
-            $authorised_lib{$itemtype->{itemtype}} = $itemtype->{translated_description};
+        my $itemtypes = Koha::ItemTypes->search_with_localization;
+        while ( $itemtype = $itemtypes->next ) {
+            push @authorised_values, $itemtype->itemtype;
+            $authorised_lib{$itemtype->itemtype} = $itemtype->translated_description;
         }
         $value = $itemtype unless ($value);
     }
@@ -256,7 +247,7 @@ sub CreateKey {
 
 =head2 GetMandatoryFieldZ3950
 
-    This function return an hashref which containts all mandatory field
+    This function returns a hashref which contains all mandatory field
     to search with z3950 server.
 
 =cut
@@ -293,7 +284,7 @@ sub create_input {
 
     # if there is no value provided but a default value in parameters, get it
     if ( $value eq '' ) {
-        $value = $tagslib->{$tag}->{$subfield}->{defaultvalue};
+        $value = $tagslib->{$tag}->{$subfield}->{defaultvalue} // q{};
 
         # get today date & replace <<YYYY>>, <<MM>>, <<DD>> if provided in the default value
         my $today_dt = dt_from_string;
@@ -666,8 +657,8 @@ sub build_tabs {
                         tag_lib          => $tagslib->{$tag}->{lib},
                         repeatable       => $tagslib->{$tag}->{repeatable},
                         mandatory       => $tagslib->{$tag}->{mandatory},
-                        indicator1       => $indicator1,
-                        indicator2       => $indicator2,
+                        indicator1       => ( $indicator1 || $tagslib->{$tag}->{ind1_defaultvalue} ), #if not set, try to load the default value
+                        indicator2       => ( $indicator2 || $tagslib->{$tag}->{ind2_defaultvalue} ), #use short-circuit operator for efficiency
                         subfield_loop    => \@subfields_data,
                         tagfirstsubfield => $subfields_data[0],
                         fixedfield       => $tag < 10?1:0,
@@ -697,7 +688,7 @@ my $biblionumber  = $input->param('biblionumber'); # if biblionumber exists, it'
 my $parentbiblio  = $input->param('parentbiblionumber');
 my $breedingid    = $input->param('breedingid');
 my $z3950         = $input->param('z3950');
-my $op            = $input->param('op');
+my $op            = $input->param('op') // q{};
 my $mode          = $input->param('mode');
 my $frameworkcode = $input->param('frameworkcode');
 my $redirect      = $input->param('redirect');
@@ -714,7 +705,7 @@ my $fa_duedatespec        = $input->param('duedatespec');
 
 my $userflags = 'edit_catalogue';
 
-my $changed_framework = $input->param('changed_framework');
+my $changed_framework = $input->param('changed_framework') // q{};
 $frameworkcode = &GetFrameworkCode($biblionumber)
   if ( $biblionumber and not( defined $frameworkcode) and $op ne 'addbiblio' );
 
@@ -733,6 +724,14 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+if ($biblionumber){
+    my $does_bib_exist = Koha::Biblios->find($biblionumber);
+    if (!defined $does_bib_exist){
+        $biblionumber = undef;
+        $template->param( bib_doesnt_exist => 1 );
+    }
+}
+
 if ($frameworkcode eq 'FA'){
     # We need to grab and set some variables in the template for use on the additems screen
     $template->param(
@@ -750,9 +749,11 @@ if ($frameworkcode eq 'FA'){
     exit;
 }
 
-my $frameworkcodeloop = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] });
-$template->param( frameworkcodeloop => $frameworkcodeloop ,
-	breedingid => $breedingid );
+my $frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] });
+$template->param(
+    frameworks => $frameworks,
+    breedingid => $breedingid,
+);
 
 # ++ Global
 $tagslib         = &GetMarcStructure( 1, $frameworkcode );
@@ -771,7 +772,7 @@ my (
 );
 
 if (($biblionumber) && !($breedingid)){
-	$record = GetMarcBiblio($biblionumber);
+    $record = GetMarcBiblio({ biblionumber => $biblionumber });
 }
 if ($breedingid) {
     ( $record, $encoding ) = MARCfindbreeding( $breedingid ) ;
@@ -799,7 +800,7 @@ if ($parentbiblio) {
 }
 
 $is_a_modif = 0;
-    
+
 if ($biblionumber) {
     $is_a_modif = 1;
     my $title = C4::Context->preference('marcflavour') eq "UNIMARC" ? $record->subfield('200', 'a') : $record->title;
@@ -839,7 +840,6 @@ if ( $op eq "addbiblio" ) {
             BiblioAutoLink( $record, $frameworkcode );
         } 
         if ( $is_a_modif ) {
-            ModBiblioframework( $biblionumber, $frameworkcode ); 
             ModBiblio( $record, $biblionumber, $frameworkcode );
         }
         else {

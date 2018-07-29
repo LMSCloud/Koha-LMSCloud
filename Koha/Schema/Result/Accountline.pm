@@ -67,12 +67,12 @@ __PACKAGE__->table("accountlines");
 
 =head2 description
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 dispute
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 accounttype
@@ -80,6 +80,12 @@ __PACKAGE__->table("accountlines");
   data_type: 'varchar'
   is_nullable: 1
   size: 5
+
+=head2 payment_type
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 80
 
 =head2 amountoutstanding
 
@@ -100,21 +106,9 @@ __PACKAGE__->table("accountlines");
   default_value: current_timestamp
   is_nullable: 0
 
-=head2 notify_id
-
-  data_type: 'integer'
-  default_value: 0
-  is_nullable: 0
-
-=head2 notify_level
-
-  data_type: 'integer'
-  default_value: 0
-  is_nullable: 0
-
 =head2 note
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 manager_id
@@ -153,11 +147,13 @@ __PACKAGE__->add_columns(
   "amount",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "description",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "dispute",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "accounttype",
   { data_type => "varchar", is_nullable => 1, size => 5 },
+  "payment_type",
+  { data_type => "varchar", is_nullable => 1, size => 80 },
   "amountoutstanding",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "lastincrement",
@@ -169,12 +165,8 @@ __PACKAGE__->add_columns(
     default_value => \"current_timestamp",
     is_nullable => 0,
   },
-  "notify_id",
-  { data_type => "integer", default_value => 0, is_nullable => 0 },
-  "notify_level",
-  { data_type => "integer", default_value => 0, is_nullable => 0 },
   "note",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "manager_id",
   { data_type => "integer", is_nullable => 1 },
   "branchcode",
@@ -302,8 +294,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-12-17 13:48:38
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:uOZeXFtMLkYDUFbe1VIO3A
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-04-19 12:18:02
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:FUX/e/s202yrUtP3c13lfw
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

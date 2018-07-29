@@ -20,8 +20,7 @@
 #written 20/02/2002 by paul.poulain@free.fr
 # This software is placed under the gnu General Public License, v2 (http://www.gnu.org/licenses/gpl.html)
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use List::Util qw/min/;
 use Date::Calc qw/Delta_YMD Easter_Sunday Today Decode_Date_EU/;
@@ -37,7 +36,7 @@ use C4::Auth;
 use C4::Debug;
 use Koha::Acquisition::Currencies;
 
-my $input = new CGI;
+our $input = new CGI;
 ####  $input
 
 my $dbh = C4::Context->dbh;
@@ -58,16 +57,18 @@ my $budget_period_id = $input->param('budget_period_id');
 my $period = GetBudgetPeriod($budget_period_id);
 my $count  = GetPeriodsCount();
 my $active_currency = Koha::Acquisition::Currencies->get_active;
-$template->param( symbol => $active_currency->symbol,
-                  currency => $active_currency->currency,
-               );
+if ( $active_currency ) {
+    $template->param( symbol => $active_currency->symbol,
+                      currency => $active_currency->currency,
+                   );
+}
 $template->param( period_button_only => 1 ) if $count == 0;
 
 
 
 # authcats_loop populates the YUI planning button
 my $auth_cats_loop            = GetBudgetAuthCats($budget_period_id);
-my $budget_period_id          = $period->{'budget_period_id'};
+$budget_period_id          = $period->{'budget_period_id'};
 my $budget_period_startdate   = $period->{'budget_period_startdate'};
 my $budget_period_enddate     = $period->{'budget_period_enddate'};
 my $budget_period_locked      = $period->{'budget_period_locked'};
@@ -87,12 +88,12 @@ my $borrower_id         = $template->{VARS}->{'USER_INFO'}->{'borrowernumber'};
 my $borrower_branchcode = $template->{VARS}->{'USER_INFO'}->{'branchcode'};
 
 my $authcat      = $input->param('authcat');
-my $show_active  = $input->param('show_active');
+my $show_active  = $input->param('show_active') // 0;
 my $show_actual  = $input->param('show_actual');
 my $show_percent = $input->param('show_percent');
-my $output       = $input->param("output");
-my $basename     = $input->param("basename");
-my $del          = $input->param("sep");
+my $output       = $input->param("output") // q{};
+our $basename     = $input->param("basename");
+our $del          = $input->param("sep");
 
 my $show_mine       = $input->param('show_mine') ;
 
@@ -105,7 +106,7 @@ if ( $budget_period_locked == 1  && not defined  $show_actual ) {
 $authcat = 'Asort1' if  not defined $authcat; # defaults to Asort if no authcat given
 
 my $budget_id = $input->param('budget_id');
-my $op        = $input->param("op");
+my $op        = $input->param("op") // q{};
 
 my $budgets_ref = GetBudgetHierarchy( $budget_period_id, $show_mine?$template->{VARS}->{'USER_INFO'}->{'branchcode'}:'', $show_mine?$template->{VARS}->{'USER_INFO'}->{'borrowernumber'}:'' );
 
@@ -215,7 +216,7 @@ elsif ( $authcat eq 'MONTHS' && $budget_period_startdate && $budget_period_endda
 
     #calc number of months between
     my $months      = ( $Dy * 12 ) + $Dm;
-    my $start_month = @start_date[1];
+    my $start_month = $start_date[1];
     my $end_month   = ( $Dy * 12 ) + $Dm;
 
     for my $mth ( 0 ... $months ) {
@@ -349,8 +350,8 @@ foreach my $budget (@budgets) {
         );
 
         my ( $actual, $estimated, $display ) = GetBudgetsPlanCell( \%cell, $period, $budget );
-        $cell{actual_amount}    = sprintf( "%.2f", $actual );
-        $cell{estimated_amount} = sprintf( "%.2f", $estimated );
+        $cell{actual_amount}    = sprintf( "%.2f", $actual // 0 );
+        $cell{estimated_amount} = sprintf( "%.2f", $estimated // 0 );
         $cell{display}          = $authvals_row[$i]{display};
         $cell{colnum}           = $i;
 
@@ -394,7 +395,6 @@ if ( $output eq "file" ) {
     exit(1);
 }
 
-my $branchloop = C4::Branch::GetBranchesLoopWithoutMobileStations();
 $template->param(
     authvals_row              => \@authvals_row,
     budget_lines              => \@budget_lines,
@@ -411,7 +411,6 @@ $template->param(
 
     authvals              => \@authvals_row,
     hide_cols_loop              => \@hide_cols,
-    branchloop                => $branchloop,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

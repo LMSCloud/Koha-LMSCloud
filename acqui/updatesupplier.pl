@@ -39,23 +39,23 @@ Here is the list :
 supplier, id, company, company_postal, physical, company_phone,
 physical, company_phone, company_fax, website, company_email, notes,
 status, publishers_imprints, list_currency, gst, list_gst, invoice_gst,
-discount, gstrate, contact_name, contact_position, contact_phone,
+discount, tax_rate, contact_name, contact_position, contact_phone,
 contact_altphone, contact_fax, contact_email, contact_notes,
 contact_claimacquisition, contact_claimissues, contact_acqprimary,
 contact_serialsprimary.
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use List::Util;
 use C4::Context;
 use C4::Auth;
 
-use C4::Bookseller qw( ModBookseller AddBookseller );
-use C4::Bookseller::Contact;
 use C4::Biblio;
 use C4::Output;
+
+use Koha::Acquisition::Bookseller::Contacts;
+use Koha::Acquisition::Booksellers;
 use CGI qw ( -utf8 );
 
 my $input=new CGI;
@@ -90,33 +90,45 @@ $data{'gstreg'}=$input->param('gst');
 $data{'listincgst'}=$input->param('list_gst');
 $data{'invoiceincgst'}=$input->param('invoice_gst');
 #have to transform this into fraction so it's easier to use
-$data{'gstrate'} = $input->param('gstrate');
+$data{'tax_rate'} = $input->param('tax_rate');
 $data{'discount'} = $input->param('discount');
 $data{deliverytime} = $input->param('deliverytime');
 $data{'active'}=$input->param('status');
 my @contacts;
 my %contact_info;
 
-foreach (qw(id name position phone altphone fax email notes claimacquisition claimissues acqprimary serialsprimary)) {
-    $contact_info{$_} = [ $input->param('contact_' . $_) ];
+foreach (qw(id name position phone altphone fax email notes orderacquisition claimacquisition claimissues acqprimary serialsprimary)) {
+    $contact_info{$_} = [ $input->multi_param('contact_' . $_) ];
 }
 
 for my $cnt (0..scalar(@{$contact_info{'id'}})) {
     my %contact;
     my $real_contact;
-    foreach (qw(id name position phone altphone fax email notes claimacquisition claimissues acqprimary serialsprimary)) {
+    foreach (qw(id name position phone altphone fax email notes orderacquisition claimacquisition claimissues acqprimary serialsprimary)) {
         $contact{$_} = $contact_info{$_}->[$cnt];
         $real_contact = 1 if $contact{$_};
     }
-    push @contacts, C4::Bookseller::Contact->new(\%contact) if $real_contact;
+    push @contacts, \%contact if $real_contact;
 }
 
 if($data{'name'}) {
-	if ($data{'id'}){
-        ModBookseller(\%data, \@contacts);
-	} else {
-        $data{id}=AddBookseller(\%data, \@contacts);
-	}
+    if ( $data{id} ) {
+        # Update
+        my $bookseller = Koha::Acquisition::Booksellers->find( $data{id} )->set(\%data)->store;
+        # Delete existing contacts
+        $bookseller->contacts->delete;
+    } else {
+        # Insert
+        delete $data{id}; # Remove the key if exists
+        my $bookseller = Koha::Acquisition::Bookseller->new( \%data )->store;
+        $data{id} = $bookseller->id;
+    }
+    # Insert contacts
+    for my $contact ( @contacts ) {
+        $contact->{booksellerid} = $data{id};
+        Koha::Acquisition::Bookseller::Contact->new( $contact )->store
+    }
+
     #redirect to booksellers.pl
     print $input->redirect("booksellers.pl?booksellerid=".$data{id});
 } else {

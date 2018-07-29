@@ -25,6 +25,30 @@ It's a simple HTTP POST request with two parameters sent (userid and password) a
 which tells whether the authentication call was successful or not. Using the authentication interface, the onleihe 
 validates user logins against the origin ILS system.
 
+Returns the follwoing response:
+
+<?xml version=”1.0” encoding=”UTF-8”?>
+<response>
+    <status>[status]</status>
+    <fsk>[fsk]</fsk>
+    <cardid>[cardid]</cardid>
+    <userid>[userid]</userid>
+</response>
+
+status can be one of the following:
+-4  => user is not permitted to loan digital documents
+-3  => the user account is expired
+-2  => wrong password
+-1  => wrong credentials
+ 0  => user account deleted
+ 1  => user debarred
+ 2  => test user
+ 3  => valid user account 
+ 4  => user debarred due to blocking fines
+
+the return value for fsk specifies an age level which can be
+0, 6, 12, 16 or 18
+
 =cut
 
 use strict;
@@ -38,7 +62,7 @@ use C4::Auth;
 use C4::Context;
 use C4::Output;
 use CGI qw ( -utf8 );
-use C4::Members;
+use Koha::Patrons;
 use Koha::AuthUtils qw(hash_password);
 use C4::Auth qw(&checkpw_hash);
 use C4::Log qw( logaction );
@@ -82,7 +106,7 @@ my $borrowernumber = $query->param("sno") || '';
 my $password       = $query->param("pwd") || '';
 
 
-my ($borrower, $age, $checkpw);
+my ($patron, $age, $checkpw);
 
 # initialize a default response structure
 my $response = {
@@ -92,45 +116,41 @@ my $response = {
 		'userid'   => ''                                           # mandatory
 		};
 
-# Check the borrower with the internal borrower number
-$borrower = &GetMemberDetails($borrowernumber);
-if ( $borrower ) {
-    $checkpw = $borrower->{'password'};
+# Check the patron with the internal borrower number
+$patron = Koha::Patrons->find( $borrowernumber );
+if ( $patron ) {
+    $checkpw = $patron->password;
     if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
-        $borrower = undef;
+        $patron = undef;
     }
 }
 
-# if we did not find the borrower by borrower number, we check with
+# if we did not find the patron by borrowernumber, we check with
 # users' barcode instead
-if (! $borrower ) { 
-	$borrower = &GetMemberDetails('',$borrowernumber);
-	if ( $borrower ) {
-        $checkpw = $borrower->{'password'};
+if (! $patron ) { 
+	$patron = Koha::Patrons->find({ cardnumber => $borrowernumber} );
+	if ( $patron ) {
+        $checkpw = $patron->password;
         if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
-            $borrower = undef;
+            $patron = undef;
         }
     }
 }
 
-# finally let test the userid 
-if (! $borrower ) { 
-    $borrower = &GetMember( userid => $borrowernumber );
-    if ( $borrower ) {
-        # we need to read the member details, thats why we read the member record again
-        $borrower = &GetMemberDetails($borrower->{'borrowernumber'});
-    }
+# finally lets test the userid 
+if (! $patron ) { 
+    $patron = Koha::Patrons->find({ userid => $borrowernumber} );
 }
 
 # if the borrower was found
-if ( $borrower ) { 
+if ( $patron ) { 
 	
 	# we read the age to return the appropriate age level 
 	# which is used by onleihe to provide appropriate material
-	$age = &GetAge($borrower->{'dateofbirth'});
+	$age = $patron->get_age;
 	
 	# read the encrypted password
-	$checkpw = $borrower->{'password'};
+	$checkpw = $patron->password;
 	
 	# we check the password 
 	# Due to the fact that there are two different uses of the authentication interface
@@ -146,40 +166,32 @@ if ( $borrower ) {
 		$response->{'status'} = 3; # online user access permitted
 		
 		my $amountlimit = C4::Context->preference("noissuescharge");
-		my ($balance, $non_issue_charges, $other_charges) =
-			C4::Members::GetMemberAccountBalance( $borrower->{'borrowernumber'} );
-			
-		my ($blocktype, $count) = C4::Members::IsMemberBlocked($borrower->{'borrowernumber'});
-		if ($blocktype == -1) {
-			## patron has outstanding overdue loans
-			if ( C4::Context->preference("OverduesBlockCirc") eq 'block'){
-				$response->{'status'} = 1; # patron debarred, no access
-			}
-			elsif ( C4::Context->preference("OverduesBlockCirc") eq 'confirmation'){
-				$response->{'status'} = 1; # patron debarred, no access
-			}
-		} elsif($blocktype == 1) {
-			# patron has accrued fine days or has a restriction. $count is a date
-			if ($count eq '9999-12-31') {
-				$response->{'status'} = 1; # patron debarred, no access
-			}
+		my $non_issue_charges =
+			$patron->account->non_issues_charges;
+
+		my $num_overdues = $patron->has_overdues;
+		
+		if ( $num_overdues && ( C4::Context->preference("OverduesBlockCirc") eq 'block' || C4::Context->preference("OverduesBlockCirc") eq 'confirmation' ) ) {
+            $response->{'status'} = 1; # patron blocked due to overdues
 		}
-
-
-		if ( $borrower->{'is_expired'} ) {
+		elsif ( my $debarred_date = $patron->is_debarred ) {
+            # patron has accrued fine days or has a restriction. $count is a date
+            $response->{'status'} = 1; # patron debarred, no access
+        }
+		elsif ( $patron->is_expired ) {
 			$response->{'status'} = -3; # account expired
 		}
-		elsif ( $borrower->{'flags'}->{'DBARRED'} ) {
-			$response->{'status'} = 1; # patron debarred, no access
-		}
-		elsif ( $borrower->{'flags'}->{'GNA'} ) {
+		elsif ( $patron->gonenoaddress == 1 ) {
 			$response->{'status'} = 1; # patron has no valid address, no access
 		}
-		elsif ( $borrower->{flags}->{LOST} ) {
+		elsif ( $patron->lost == 1 ) {
 			$response->{'status'} = 1; # account expired (due to a lost card)
 		}
 		elsif ( $non_issue_charges > $amountlimit ) {
 			$response->{'status'} = 4; # user debarred due to too much fines
+		}
+		elsif ( $patron->account_locked ) {
+            $response->{'status'} = 1; # patron blocked because he/she/it has reached the maximum number of login attempts
 		}
 	
 	    # determine the the correct age level
@@ -199,17 +211,21 @@ if ( $borrower ) {
 		    $response->{'fsk'} = 18;
 	    }
 	    
-	    $response->{'cardid'} = $borrower->{'cardnumber'};
-	    $response->{'userid'} = $borrower->{'borrowernumber'};
+	    $response->{'cardid'} = $patron->cardnumber;
+	    $response->{'userid'} = $patron->borrowernumber;
+	    
+	    $patron->update({ login_attempts => 0 });
+	    $patron->track_login if ( C4::Context->preference('TrackLastPatronActivity') );
 	}
 	else {
 		$response->{'status'} = -2; # wrong password
+		$patron->update({ login_attempts => $patron->login_attempts + 1 });
 	}
 	if ( C4::Context->preference("DivibibLog") ) {
         my $dumper = Data::Dumper->new( [{ request_userid => $borrowernumber, requester_ip => $ENV{'REMOTE_ADDR'}, response => $response }]);
         logaction(  "DIVIBIB", 
                     "AUTHENTICATION", 
-                    $borrower->{'borrowernumber'}, 
+                    $patron->borrowernumber, 
                     $dumper->Terse(1)->Dump
                 );
     }

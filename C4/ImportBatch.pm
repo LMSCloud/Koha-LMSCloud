@@ -352,8 +352,8 @@ sub ModAuthInBatch {
 
 ( $batch_id, $num_records, $num_items, @invalid_records ) =
   BatchStageMarcRecords(
-    $encoding,                   $marc_records,
-    $file_name,                  $to_marc_plugin,
+    $record_type,                $encoding,
+    $marc_records,               $file_name,
     $marc_modification_template, $comments,
     $branch_code,                $parse_items,
     $leave_as_staging,           $progress_interval,
@@ -367,7 +367,6 @@ sub BatchStageMarcRecords {
     my $encoding = shift;
     my $marc_records = shift;
     my $file_name = shift;
-    my $to_marc_plugin = shift;
     my $marc_modification_template = shift;
     my $comments = shift;
     my $branch_code = shift;
@@ -399,13 +398,6 @@ sub BatchStageMarcRecords {
         SetImportBatchItemAction($batch_id, 'ignore');
     }
 
-    $marc_records = Koha::Plugins::Handler->run(
-        {
-            class  => $to_marc_plugin,
-            method => 'to_marc',
-            params => { data => $marc_records }
-        }
-    ) if $to_marc_plugin;
 
     my $marc_type = C4::Context->preference('marcflavour');
     $marc_type .= 'AUTH' if ($marc_type eq 'UNIMARC' && $record_type eq 'auth');
@@ -414,24 +406,17 @@ sub BatchStageMarcRecords {
     my $num_items = 0;
     # FIXME - for now, we're dealing only with bibs
     my $rec_num = 0;
-    foreach my $marc_blob (split(/\x1D/, $marc_records)) {
-        $marc_blob =~ s/^\s+//g;
-        $marc_blob =~ s/\s+$//g;
-        next unless $marc_blob;
+    foreach my $marc_record (@$marc_records) {
         $rec_num++;
         if ($progress_interval and (0 == ($rec_num % $progress_interval))) {
             &$progress_callback($rec_num);
         }
-        my ($marc_record, $charset_guessed, $char_errors) =
-            MarcToUTF8Record($marc_blob, $marc_type, $encoding);
-
-        $encoding = $charset_guessed unless $encoding;
 
         ModifyRecordWithTemplate( $marc_modification_template, $marc_record ) if ( $marc_modification_template );
 
         my $import_record_id;
         if (scalar($marc_record->fields()) == 0) {
-            push @invalid_records, $marc_blob;
+            push @invalid_records, $marc_record;
         } else {
 
             # Normalize the record so it doesn't have separated diacritics
@@ -669,7 +654,7 @@ sub BatchCommitRecords {
             $recordid = $record_match;
             my $oldxml;
             if ($record_type eq 'biblio') {
-                my $oldbiblio = GetBiblio($recordid);
+                my $oldbiblio = Koha::Biblios->find( $recordid );
                 $oldxml = GetXmlBiblio($recordid);
 
                 # remove item fields so that they don't get
@@ -681,7 +666,7 @@ sub BatchCommitRecords {
                 }
                 $oldxml = $old_marc->as_xml($marc_type);
 
-                ModBiblio($marc_record, $recordid, $oldbiblio->{'frameworkcode'});
+                ModBiblio($marc_record, $recordid, $oldbiblio->frameworkcode);
                 $query = "UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?";
 
                 if ($item_result eq 'create_new' || $item_result eq 'replace') {
@@ -859,7 +844,7 @@ sub BatchRevertRecords {
                 $num_items_deleted += BatchRevertItems($rowref->{'import_record_id'}, $rowref->{'matched_biblionumber'});
                 $error = DelBiblio($rowref->{'matched_biblionumber'});
             } else {
-                my $deletedauthid = DelAuthority($rowref->{'matched_authid'});
+                DelAuthority({ authid => $rowref->{'matched_authid'} });
             }
             if (defined $error) {
                 $num_errors++;
@@ -872,13 +857,13 @@ sub BatchRevertRecords {
             my $old_record = MARC::Record->new_from_xml(StripNonXmlChars($rowref->{'marcxml_old'}), 'UTF-8', $rowref->{'encoding'}, $marc_type);
             if ($record_type eq 'biblio') {
                 my $biblionumber = $rowref->{'matched_biblionumber'};
-                my $oldbiblio = GetBiblio($biblionumber);
+                my $oldbiblio = Koha::Biblios->find( $biblionumber );
 
                 $logger->info("C4::ImportBatch::BatchRevertRecords: Biblio record $biblionumber does not exist, restoration of this record was skipped") unless $oldbiblio;
                 next unless $oldbiblio; # Record has since been deleted. Deleted records should stay deleted.
 
                 $num_items_deleted += BatchRevertItems($rowref->{'import_record_id'}, $rowref->{'matched_biblionumber'});
-                ModBiblio($old_record, $biblionumber, $oldbiblio->{'frameworkcode'});
+                ModBiblio($old_record, $biblionumber, $oldbiblio->frameworkcode);
             } else {
                 my $authid = $rowref->{'matched_authid'};
                 ModAuthority($authid, $old_record, GuessAuthTypeCode($old_record));
@@ -926,7 +911,7 @@ sub BatchRevertItems {
     $sth->bind_param(1, $import_record_id);
     $sth->execute();
     while (my $row = $sth->fetchrow_hashref()) {
-        my $error = DelItemCheck($dbh, $biblionumber, $row->{'itemnumber'});
+        my $error = DelItemCheck( $biblionumber, $row->{'itemnumber'});
         if ($error == 1){
             my $updsth = $dbh->prepare("UPDATE import_items SET status = ? WHERE import_items_id = ?");
             $updsth->bind_param(1, 'reverted');
@@ -1064,18 +1049,23 @@ sub GetImportBatchRangeDesc {
 =cut
 
 sub GetItemNumbersFromImportBatch {
-	my ($batch_id) = @_;
- 	my $dbh = C4::Context->dbh;
-	my $sth = $dbh->prepare("SELECT itemnumber FROM import_batches,import_records,import_items WHERE import_batches.import_batch_id=import_records.import_batch_id AND import_records.import_record_id=import_items.import_record_id AND import_batches.import_batch_id=?");
-	$sth->execute($batch_id);
-	my @items ;
-	while ( my ($itm) = $sth->fetchrow_array ) {
-		push @items, $itm;
-	}
-	return @items;
+    my ($batch_id) = @_;
+    my $dbh = C4::Context->dbh;
+    my $sql = q|
+SELECT itemnumber FROM import_items
+INNER JOIN items USING (itemnumber)
+INNER JOIN import_records USING (import_record_id)
+WHERE import_batch_id = ?|;
+    my  $sth = $dbh->prepare( $sql );
+    $sth->execute($batch_id);
+    my @items ;
+    while ( my ($itm) = $sth->fetchrow_array ) {
+        push @items, $itm;
+    }
+    return @items;
 }
 
-=head2 GetNumberOfImportBatches 
+=head2 GetNumberOfImportBatches
 
   my $count = GetNumberOfImportBatches();
 
@@ -1128,7 +1118,7 @@ sub GetImportRecordsRange {
     ( $order_by ) = grep( /^$order_by$/, qw( import_record_id title status overlay_status ) ) ? $order_by : 'import_record_id';
 
     my $order_by_direction =
-      uc( $parameters->{order_by_direction} ) eq 'DESC' ? 'DESC' : 'ASC';
+      uc( $parameters->{order_by_direction} // 'ASC' ) eq 'DESC' ? 'DESC' : 'ASC';
 
     $order_by .= " $order_by_direction, authorized_heading" if $order_by eq 'title';
 
@@ -1469,7 +1459,6 @@ sub GetImportRecordMatches {
     
 }
 
-
 =head2 SetImportRecordMatches
 
   SetImportRecordMatches($import_record_id, @matches);
@@ -1492,6 +1481,113 @@ sub SetImportRecordMatches {
     }
 }
 
+=head2 RecordsFromISO2709File
+
+    my ($errors, $records) = C4::ImportBatch::RecordsFromISO2709File($input_file, $record_type, $encoding);
+
+Reads ISO2709 binary porridge from the given file and creates MARC::Record-objects out of it.
+
+@PARAM1, String, absolute path to the ISO2709 file.
+@PARAM2, String, see stage_file.pl
+@PARAM3, String, should be utf8
+
+Returns two array refs.
+
+=cut
+
+sub RecordsFromISO2709File {
+    my ($input_file, $record_type, $encoding) = @_;
+    my @errors;
+
+    my $marc_type = C4::Context->preference('marcflavour');
+    $marc_type .= 'AUTH' if ($marc_type eq 'UNIMARC' && $record_type eq 'auth');
+
+    open IN, "<$input_file" or die "$0: cannot open input file $input_file: $!\n";
+    my @marc_records;
+    $/ = "\035";
+    while (<IN>) {
+        s/^\s+//;
+        s/\s+$//;
+        next unless $_; # skip if record has only whitespace, as might occur
+                        # if file includes newlines between each MARC record
+        my ($marc_record, $charset_guessed, $char_errors) = MarcToUTF8Record($_, $marc_type, $encoding);
+        push @marc_records, $marc_record;
+        if ($charset_guessed ne $encoding) {
+            push @errors,
+                "Unexpected charset $charset_guessed, expecting $encoding";
+        }
+    }
+    close IN;
+    return ( \@errors, \@marc_records );
+}
+
+=head2 RecordsFromMARCXMLFile
+
+    my ($errors, $records) = C4::ImportBatch::RecordsFromMARCXMLFile($input_file, $encoding);
+
+Creates MARC::Record-objects out of the given MARCXML-file.
+
+@PARAM1, String, absolute path to the ISO2709 file.
+@PARAM2, String, should be utf8
+
+Returns two array refs.
+
+=cut
+
+sub RecordsFromMARCXMLFile {
+    my ( $filename, $encoding ) = @_;
+    my $batch = MARC::File::XML->in( $filename );
+    my ( @marcRecords, @errors, $record );
+    do {
+        eval { $record = $batch->next( $encoding ); };
+        if ($@) {
+            push @errors, $@;
+        }
+        push @marcRecords, $record if $record;
+    } while( $record );
+    return (\@errors, \@marcRecords);
+}
+
+=head2 RecordsFromMarcPlugin
+
+    Converts text of input_file into array of MARC records with to_marc plugin
+
+=cut
+
+sub RecordsFromMarcPlugin {
+    my ($input_file, $plugin_class, $encoding) = @_;
+    my ( $text, @return );
+    return \@return if !$input_file || !$plugin_class;
+
+    # Read input file
+    open IN, "<$input_file" or die "$0: cannot open input file $input_file: $!\n";
+    $/ = "\035";
+    while (<IN>) {
+        s/^\s+//;
+        s/\s+$//;
+        next unless $_;
+        $text .= $_;
+    }
+    close IN;
+
+    # Convert to large MARC blob with plugin
+    $text = Koha::Plugins::Handler->run({
+        class  => $plugin_class,
+        method => 'to_marc',
+        params => { data => $text },
+    }) if $text;
+
+    # Convert to array of MARC records
+    if( $text ) {
+        my $marc_type = C4::Context->preference('marcflavour');
+        foreach my $blob ( split(/\x1D/, $text) ) {
+            next if $blob =~ /^\s*$/;
+            my ($marcrecord) = MarcToUTF8Record($blob, $marc_type, $encoding);
+            push @return, $marcrecord;
+        }
+    }
+    return \@return;
+}
 
 # internal functions
 
@@ -1499,10 +1595,10 @@ sub _create_import_record {
     my ($batch_id, $record_sequence, $marc_record, $record_type, $encoding, $z3950random, $marc_type) = @_;
 
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("INSERT INTO import_records (import_batch_id, record_sequence, marc, marcxml, 
+    my $sth = $dbh->prepare("INSERT INTO import_records (import_batch_id, record_sequence, marc, marcxml, marcxml_old,
                                                          record_type, encoding, z3950random)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $sth->execute($batch_id, $record_sequence, $marc_record->as_usmarc(), $marc_record->as_xml($marc_type),
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $sth->execute($batch_id, $record_sequence, $marc_record->as_usmarc(), $marc_record->as_xml($marc_type), '',
                   $record_type, $encoding, $z3950random);
     my $import_record_id = $dbh->{'mysql_insertid'};
     $sth->finish();

@@ -27,6 +27,8 @@ Koha::Cache - Handling caching of html and Objects for Koha
   use Koha::Cache;
   my $cache = Koha::Cache->new({cache_type => $cache_type, %params});
 
+  # see also Koha::Caches->get_instance;
+
 =head1 DESCRIPTION
 
 Koha caching routines. This class provides two interfaces for cache access.
@@ -35,12 +37,16 @@ The first, traditional OO interface provides the following functions:
 =head1 FUNCTIONS
 
 =cut
+
 use strict;
 use warnings;
 use Carp;
-use Storable qw(freeze thaw);
 use Module::Load::Conditional qw(can_load);
+use Sereal::Encoder;
+use Sereal::Decoder;
+
 use Koha::Cache::Object;
+use Koha::Config;
 
 use base qw(Class::Accessor);
 
@@ -48,23 +54,8 @@ __PACKAGE__->mk_ro_accessors(
     qw( cache memcached_cache fastmmap_cache memory_cache ));
 
 our %L1_cache;
-
-=head2 get_instance
-
-    my $cache = Koha::Cache->get_instance();
-
-This gets a shared instance of the cache, set up in a very default way. This is
-the recommended way to fetch a cache object. If possible, it'll be
-persistent across multiple instances.
-
-=cut
-
-our $singleton_cache;
-sub get_instance {
-    my ($class) = @_;
-    $singleton_cache = $class->new() unless $singleton_cache;
-    return $singleton_cache;
-}
+our $L1_encoder = Sereal::Encoder->new;
+our $L1_decoder = Sereal::Decoder->new;
 
 =head2 new
 
@@ -73,20 +64,31 @@ Create a new Koha::Cache object. This is required for all cache-related function
 =cut
 
 sub new {
-    my ( $class, $self ) = @_;
+    my ( $class, $self, $params ) = @_;
     $self->{'default_type'} =
          $self->{cache_type}
-      || $ENV{CACHING_SYSTEM}
+      || $ENV{CACHING_SYSTEM} # DELME What about this?
       || 'memcached';
+
+    my $subnamespace = $params->{subnamespace} // '';
 
     $ENV{DEBUG} && carp "Default caching system: $self->{'default_type'}";
 
     $self->{'timeout'}   ||= 0;
-    $self->{'namespace'} ||= $ENV{MEMCACHED_NAMESPACE} || 'koha';
+    # Should we continue to support MEMCACHED ENV vars?
+    $self->{'namespace'} ||= $ENV{MEMCACHED_NAMESPACE};
+    my @servers = split /,/, $ENV{MEMCACHED_SERVERS} || '';
+    unless ( $self->{namespace} and @servers ) {
+        my $koha_config = Koha::Config->read_from_file( Koha::Config->guess_koha_conf() );
+        $self->{namespace} ||= $koha_config->{config}{memcached_namespace} || 'koha';
+        @servers = split /,/, $koha_config->{config}{memcached_servers} // ''
+            unless @servers;
+    }
+    $self->{namespace} .= ":$subnamespace:";
 
     if ( $self->{'default_type'} eq 'memcached'
         && can_load( modules => { 'Cache::Memcached::Fast' => undef } )
-        && _initialize_memcached($self)
+        && _initialize_memcached($self, @servers)
         && defined( $self->{'memcached_cache'} ) )
     {
         $self->{'cache'} = $self->{'memcached_cache'};
@@ -118,12 +120,9 @@ sub new {
 }
 
 sub _initialize_memcached {
-    my ($self) = @_;
-    my @servers =
-      split /,/, $self->{'cache_servers'}
-      ? $self->{'cache_servers'}
-      : ($ENV{MEMCACHED_SERVERS} || '');
-    return if !@servers;
+    my ($self, @servers) = @_;
+
+    return unless @servers;
 
     $ENV{DEBUG}
       && carp "Memcached server settings: "
@@ -140,9 +139,13 @@ sub _initialize_memcached {
             utf8               => 1,
         }
     );
+
     # Ensure we can actually talk to the memcached server
     my $ismemcached = $memcached->set('ismemcached','1');
-    return $self unless $ismemcached;
+    unless ($ismemcached) {
+        warn "\nConnection to the memcached servers '@servers' failed. Are the unix socket permissions set properly? Is the host reachable?\nIf you ignore this warning, you will face performance issues\n";
+        return $self;
+    }
     $self->{'memcached_cache'} = $memcached;
     return $self;
 }
@@ -238,14 +241,9 @@ instance of C<Cache::*> and follow the same interface as L<Cache::Memcache>.
 =cut
 
 sub set_in_cache {
-    my ( $self, $key, $value, $options, $_cache) = @_;
-    # This is a bit of a hack to support the old API in case things still use it
-    if (defined $options && (ref($options) ne 'HASH')) {
-        my $new_options;
-        $new_options->{expiry} = $options;
-        $new_options->{cache} = $_cache if defined $_cache;
-        $options = $new_options;
-    }
+    my ( $self, $key, $value, $options ) = @_;
+
+    my $unsafe = $options->{unsafe} || 0;
 
     # the key mustn't contain whitespace (or control characters) for memcache
     # but shouldn't be any harm in applying it globally.
@@ -262,18 +260,21 @@ sub set_in_cache {
 
     my $flag = '-CF0'; # 0: scalar, 1: frozen data structure
     if (ref($value)) {
-        # Set in L1 cache as a data structure, initially only in frozen form (for performance reasons)
-        $value = freeze($value);
-        $L1_cache{$key}->{frozen} = $value;
+        # Set in L1 cache as a data structure
+        # We only save the frozen form: we do want to save $value in L1
+        # directly in order to protect it. And thawing now may not be
+        # needed, so improves performance.
+        $value = $L1_encoder->encode($value);
+        $L1_cache{$self->{namespace}}{$key}->{frozen} = $value;
         $flag = '-CF1';
     } else {
         # Set in L1 cache as a scalar; exit if we are caching an undef
-        $L1_cache{$key} = $value;
+        $L1_cache{$self->{namespace}}{$key} = $value;
         return if !defined $value;
     }
 
     $value .= $flag;
-    # We consider an expiry of 0 to be inifinite
+    # We consider an expiry of 0 to be infinite
     if ( $expiry ) {
         return $set_sub
           ? $set_sub->( $key, $value, $expiry )
@@ -322,17 +323,18 @@ sub get_from_cache {
     return unless ( $self->{$cache} && ref( $self->{$cache} ) =~ m/^Cache::/ );
 
     # Return L1 cache value if exists
-    if ( exists $L1_cache{$key} ) {
-        if (ref($L1_cache{$key})) {
+    if ( exists $L1_cache{$self->{namespace}}{$key} ) {
+        if (ref($L1_cache{$self->{namespace}}{$key})) {
             if ($unsafe) {
-                $L1_cache{$key}->{thawed} ||= thaw($L1_cache{$key}->{frozen});
-                return $L1_cache{$key}->{thawed};
+                # ONLY use thawed for unsafe calls !!!
+                $L1_cache{$self->{namespace}}{$key}->{thawed} ||= $L1_decoder->decode($L1_cache{$self->{namespace}}{$key}->{frozen});
+                return $L1_cache{$self->{namespace}}{$key}->{thawed};
             } else {
-                return thaw($L1_cache{$key}->{frozen});
+                return $L1_decoder->decode($L1_cache{$self->{namespace}}{$key}->{frozen});
             }
         } else {
             # No need to thaw if it's a scalar
-            return $L1_cache{$key};
+            return $L1_cache{$self->{namespace}}{$key};
         }
     }
 
@@ -345,15 +347,16 @@ sub get_from_cache {
     my $flag = substr($L2_value, -4, 4, '');
     if ($flag eq '-CF0') {
         # it's a scalar
-        $L1_cache{$key} = $L2_value;
+        $L1_cache{$self->{namespace}}{$key} = $L2_value;
         return $L2_value;
     } elsif ($flag eq '-CF1') {
         # it's a frozen data structure
         my $thawed;
-        eval { $thawed = thaw($L2_value); };
+        eval { $thawed = $L1_decoder->decode($L2_value); };
         return if $@;
-        $L1_cache{$key}->{frozen} = $L2_value;
-        $L1_cache{$key}->{thawed} = $thawed if $unsafe;
+        $L1_cache{$self->{namespace}}{$key}->{frozen} = $L2_value;
+        # ONLY save thawed for unsafe calls !!!
+        $L1_cache{$self->{namespace}}{$key}->{thawed} = $thawed if $unsafe;
         return $thawed;
     }
 
@@ -377,7 +380,7 @@ sub clear_from_cache {
     return unless ( $self->{$cache} && ref( $self->{$cache} ) =~ m/^Cache::/ );
 
     # Clear from L1 cache
-    delete $L1_cache{$key};
+    delete $L1_cache{$self->{namespace}}{$key};
 
     return $self->{$cache}->delete($key)
       if ( ref( $self->{$cache} ) =~ m'^Cache::Memcached' );
@@ -406,7 +409,7 @@ sub flush_all {
 
 sub flush_L1_cache {
     my( $self ) = @_;
-    %L1_cache = ();
+    delete $L1_cache{$self->{namespace}};
 }
 
 =head1 TIED INTERFACE

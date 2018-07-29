@@ -4,21 +4,20 @@
 #by chris@katipo.co.nz
 #converted to using templates 3/16/03 by mwhansen@hmc.edu
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use C4::Auth;
 use Koha::AuthUtils;
 use C4::Output;
 use C4::Context;
 use C4::Members;
-use C4::Branch;
 use C4::Circulation;
 use CGI qw ( -utf8 );
 use C4::Members::Attributes qw(GetBorrowerAttributes);
-use Koha::Patron::Images;
+use Koha::AuthUtils;
 use Koha::Token;
 
+use Koha::Patrons;
 use Koha::Patron::Categories;
 
 my $input = new CGI;
@@ -33,13 +32,10 @@ my ( $template, $loggedinuser, $cookie, $staffflags ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1 },
+        flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
-
-my $flagsrequired;
-$flagsrequired->{borrowers} = 1;
 
 my $member      = $input->param('member');
 my $cardnumber  = $input->param('cardnumber');
@@ -49,9 +45,14 @@ my $newpassword2 = $input->param('newpassword2');
 
 my @errors;
 
-my ($bor) = GetMember( 'borrowernumber' => $member );
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $patron = Koha::Patrons->find( $member );
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
-if ( ( $member ne $loggedinuser ) && ( $bor->{'category_type'} eq 'S' ) ) {
+my $category_type = $patron->category->category_type;
+my $bor = $patron->unblessed;
+
+if ( ( $member ne $loggedinuser ) && ( $category_type eq 'S' ) ) {
     push( @errors, 'NOPERMISSION' )
       unless ( $staffflags->{'superlibrarian'} || $staffflags->{'staffaccess'} );
 
@@ -60,10 +61,16 @@ if ( ( $member ne $loggedinuser ) && ( $bor->{'category_type'} eq 'S' ) ) {
 
 push( @errors, 'NOMATCH' ) if ( ( $newpassword && $newpassword2 ) && ( $newpassword ne $newpassword2 ) );
 
-my $minpw = C4::Context->preference('minPasswordLength');
-push( @errors, 'SHORTPASSWORD' ) if ( $newpassword && $minpw && ( length($newpassword) < $minpw ) );
+if ( $newpassword and not @errors ) {
+    my ( $is_valid, $error ) = Koha::AuthUtils::is_password_valid( $newpassword );
+    unless ( $is_valid ) {
+        push @errors, 'ERROR_password_too_short' if $error eq 'too_short';
+        push @errors, 'ERROR_password_too_weak' if $error eq 'too_weak';
+        push @errors, 'ERROR_password_has_whitespaces' if $error eq 'has_whitespaces';
+    }
+}
 
-if ( $newpassword && !scalar(@errors) ) {
+if ( $newpassword and not @errors) {
 
     die "Wrong CSRF token"
         unless Koha::Token->new->check_csrf({
@@ -74,7 +81,7 @@ if ( $newpassword && !scalar(@errors) ) {
     my $digest = Koha::AuthUtils::hash_password( scalar $input->param('newpassword') );
     my $uid    = $input->param('newuserid') || $bor->{userid};
     my $dbh    = C4::Context->dbh;
-    if ( changepassword( $uid, $member, $digest ) ) {
+    if ( Koha::Patrons->find( $member )->update_password($uid, $digest) ) {
         $template->param( newpassword => $newpassword );
         if ( $destination eq 'circ' ) {
             print $input->redirect("/cgi-bin/koha/circ/circulation.pl?findborrower=$cardnumber");
@@ -87,30 +94,12 @@ if ( $newpassword && !scalar(@errors) ) {
         push( @errors, 'BADUSERID' );
     }
 }
-else {
-    my $userid = $bor->{'userid'};
 
-    my $chars              = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    my $length             = int( rand(2) ) + C4::Context->preference("minPasswordLength");
-    my $defaultnewpassword = '';
-    for ( my $i = 0 ; $i < $length ; $i++ ) {
-        $defaultnewpassword .= substr( $chars, int( rand( length($chars) ) ), 1 );
-    }
-
-    $template->param( defaultnewpassword => $defaultnewpassword );
+if ( $patron->is_child ) {
+    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
+    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
+    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
 }
-
-if ( $bor->{'category_type'} eq 'C' ) {
-    my ( $catcodes, $labels ) = GetborCatFromCatType( 'A', 'WHERE category_type = ?' );
-    my $cnt = scalar(@$catcodes);
-    $template->param( 'CATCODE_MULTI' => 1 ) if $cnt > 1;
-    $template->param( 'catcode' => $catcodes->[0] ) if $cnt == 1;
-}
-
-$template->param( adultborrower => 1 ) if ( $bor->{'category_type'} eq 'A' || $bor->{'category_type'} eq 'I' );
-
-my $patron_image = Koha::Patron::Images->find($bor->{borrowernumber});
-$template->param( picture => 1 ) if $patron_image;
 
 if ( C4::Context->preference('ExtendedPatronAttributes') ) {
     my $attributes = GetBorrowerAttributes( $bor->{'borrowernumber'} );
@@ -121,33 +110,8 @@ if ( C4::Context->preference('ExtendedPatronAttributes') ) {
 }
 
 $template->param(
-    othernames                 => $bor->{'othernames'},
-    surname                    => $bor->{'surname'},
-    firstname                  => $bor->{'firstname'},
-    borrowernumber             => $bor->{'borrowernumber'},
-    cardnumber                 => $bor->{'cardnumber'},
-    categorycode               => $bor->{'categorycode'},
-    category_type              => $bor->{'category_type'},
-    categoryname               => $bor->{'description'},
-    address                    => $bor->{address},
-    address2                   => $bor->{'address2'},
-    streettype                 => $bor->{streettype},
-    city                       => $bor->{'city'},
-    state                      => $bor->{'state'},
-    zipcode                    => $bor->{'zipcode'},
-    country                    => $bor->{'country'},
-    phone                      => $bor->{'phone'},
-    phonepro                   => $bor->{'phonepro'},
-    mobile                     => $bor->{'mobile'},
-    email                      => $bor->{'email'},
-    emailpro                   => $bor->{'emailpro'},
-    branchcode                 => $bor->{'branchcode'},
-    branchname                 => GetBranchName( $bor->{'branchcode'} ),
-    userid                     => $bor->{'userid'},
+    patron                     => $patron,
     destination                => $destination,
-    is_child                   => ( $bor->{'category_type'} eq 'C' ),
-    minPasswordLength          => $minpw,
-    RoutingSerials             => C4::Context->preference('RoutingSerials'),
     csrf_token                 => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID'), }),
 );
 

@@ -19,11 +19,11 @@ package C4::Biblio;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use Carp;
 
 use Encode qw( decode is_utf8 );
+use List::MoreUtils qw( uniq );
 use MARC::Record;
 use MARC::File::USMARC;
 use MARC::File::XML;
@@ -39,10 +39,15 @@ use C4::Linker;
 use C4::OAI::Sets;
 use C4::Debug;
 
-use Koha::Cache;
+use Koha::Caches;
 use Koha::Authority::Types;
 use Koha::Acquisition::Currencies;
+use Koha::Biblio::Metadata;
+use Koha::Biblio::Metadatas;
+use Koha::Holds;
+use Koha::ItemTypes;
 use Koha::SearchEngine;
+use Koha::Libraries;
 
 use vars qw(@ISA @EXPORT);
 use vars qw($debug $cgi_debug);
@@ -60,19 +65,10 @@ BEGIN {
 
     # to get something
     push @EXPORT, qw(
-      GetBiblio
       GetBiblioData
       GetMarcBiblio
-      GetBiblioItemData
-      GetBiblioItemInfosOf
-      GetBiblioItemByBiblioNumber
-      GetBiblioFromItemNumber
-      GetBiblionumberFromItemnumber
 
       &GetRecordValue
-      &GetFieldMapping
-      &SetFieldMapping
-      &DeleteFieldMapping
 
       &GetISBDView
 
@@ -103,14 +99,11 @@ BEGIN {
 
       &CountItemsIssued
       &CountBiblioInOrders
-      &GetSubscriptionsId
-      &GetHolds
     );
 
     # To modify something
     push @EXPORT, qw(
       &ModBiblio
-      &ModBiblioframework
       &ModZebra
       &UpdateTotalIssues
       &RemoveAllNsb
@@ -159,11 +152,11 @@ Biblio.pm contains functions for managing storage and editing of bibliographic d
 
 =item 2. as raw MARC in the Zebra index and storage engine
 
-=item 3. as raw MARC the biblioitems.marc and biblioitems.marcxml
+=item 3. as MARC XML in biblio_metadata.metadata
 
 =back
 
-In the 3.0 version of Koha, the authoritative record-level information is in biblioitems.marcxml
+In the 3.0 version of Koha, the authoritative record-level information is in biblio_metadata.metadata
 
 Because the data isn't completely normalized there's a chance for information to get out of sync. The design choice to go with a un-normalized schema was driven by performance and stability concerns. However, if this occur, it can be considered as a bug : The API is (or should be) complete & the only entry point for all biblio/items managements.
 
@@ -183,7 +176,7 @@ Because of this design choice, the process of managing storage and editing is a 
 
 =item 2. _koha_* - low-level internal functions for managing the koha tables
 
-=item 3. Marc management function : as the MARC record is stored in biblioitems.marc(xml), some subs dedicated to it's management are in this package. They should be used only internally by Biblio.pm, the only official entry points being AddBiblio, AddItem, ModBiblio, ModItem.
+=item 3. Marc management function : as the MARC record is stored in biblio_metadata.metadata, some subs dedicated to it's management are in this package. They should be used only internally by Biblio.pm, the only official entry points being AddBiblio, AddItem, ModBiblio, ModItem.
 
 =item 4. Zebra functions used to update the Zebra index
 
@@ -191,7 +184,7 @@ Because of this design choice, the process of managing storage and editing is a 
 
 =back
 
-The MARC record (in biblioitems.marcxml) contains the complete marc record, including items. It also contains the biblionumber. That is the reason why it is not stored directly by AddBiblio, with all other fields . To save a biblio, we need to :
+The MARC record (in biblio_metadata.metadata) contains the complete marc record, including items. It also contains the biblionumber. That is the reason why it is not stored directly by AddBiblio, with all other fields . To save a biblio, we need to :
 
 =over 4
 
@@ -200,20 +193,6 @@ The MARC record (in biblioitems.marcxml) contains the complete marc record, incl
 =item 2. add the biblionumber and biblioitemnumber into the MARC records
 
 =item 3. save the marc record
-
-=back
-
-When dealing with items, we must :
-
-=over 4
-
-=item 1. save the item in items table, that gives us an itemnumber
-
-=item 2. add the itemnumber to the item MARC field
-
-=item 3. overwrite the MARC record (with the added item) into biblioitems.marc(xml)
-
-When modifying a biblio or an item, the behaviour is quite similar.
 
 =back
 
@@ -232,8 +211,8 @@ framework code.
 This function also accepts a third, optional argument: a hashref
 to additional options.  The only defined option is C<defer_marc_save>,
 which if present and mapped to a true value, causes C<AddBiblio>
-to omit the call to save the MARC in C<bibilioitems.marc>
-and C<biblioitems.marcxml>  This option is provided B<only>
+to omit the call to save the MARC in C<biblio_metadata.metadata>
+This option is provided B<only>
 for the use of scripts such as C<bulkmarcimport.pl> that may need
 to do some manipulation of the MARC record for item parsing before
 saving it and which cannot afford the performance hit of saving
@@ -312,7 +291,7 @@ sub ModBiblio {
     }
 
     if ( C4::Context->preference("CataloguingLog") ) {
-        my $newrecord = GetMarcBiblio($biblionumber);
+        my $newrecord = GetMarcBiblio({ biblionumber => $biblionumber });
         logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $newrecord->as_formatted );
     }
 
@@ -386,22 +365,6 @@ sub _strip_item_fields {
     }
 }
 
-=head2 ModBiblioframework
-
-   ModBiblioframework($biblionumber,$frameworkcode);
-
-Exported function to modify a biblio framework
-
-=cut
-
-sub ModBiblioframework {
-    my ( $biblionumber, $frameworkcode ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare( "UPDATE biblio SET frameworkcode=? WHERE biblionumber=?" );
-    $sth->execute( $frameworkcode, $biblionumber );
-    return 1;
-}
-
 =head2 DelBiblio
 
   my $error = &DelBiblio($biblionumber);
@@ -439,10 +402,10 @@ sub DelBiblio {
     }
 
     # We delete any existing holds
-    require C4::Reserves;
-    my $reserves = C4::Reserves::GetReservesFromBiblionumber({ biblionumber => $biblionumber });
-    foreach my $res ( @$reserves ) {
-        C4::Reserves::CancelReserve({ reserve_id => $res->{'reserve_id'} });
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    my $holds = $biblio->holds;
+    while ( my $hold = $holds->next ) {
+        $hold->cancel;
     }
 
     # Delete in Zebra. Be careful NOT to move this line after _koha_delete_biblio
@@ -460,6 +423,7 @@ sub DelBiblio {
         $error = _koha_delete_biblioitems( $dbh, $biblioitemnumber );
         return $error if $error;
     }
+
 
     # delete biblio from Koha tables and save in deletedbiblio
     # must do this *after* _koha_delete_biblioitems, otherwise
@@ -602,6 +566,11 @@ sub LinkBibHeadingsToAuthorities {
 # of change to a core API just before the 3.0 release.
 
                     if ( C4::Context->preference('marcflavour') eq 'MARC21' ) {
+                        my $userenv = C4::Context->userenv;
+                        my $library;
+                        if ( $userenv && $userenv->{'branch'} ) {
+                            $library = Koha::Libraries->find( $userenv->{'branch'} );
+                        }
                         $marcrecordauth->insert_fields_ordered(
                             MARC::Field->new(
                                 '667', '', '',
@@ -616,7 +585,7 @@ sub LinkBibHeadingsToAuthorities {
                         $cite =~ s/[\s\,]*$//;
                         $cite =
                             "Work cat.: ("
-                          . C4::Context->preference('MARCOrgCode') . ")"
+                          . ( $library ? $library->get_effective_marcorgcode : C4::Context->preference('MARCOrgCode') ) . ")"
                           . $bib->subfield( '999', 'c' ) . ": "
                           . $cite;
                         $marcrecordauth->insert_fields_ordered(
@@ -715,66 +684,6 @@ sub GetRecordValue {
     return \@result;
 }
 
-=head2 SetFieldMapping
-
-  SetFieldMapping($framework, $field, $fieldcode, $subfieldcode);
-
-Set a Field to MARC mapping value, if it already exists we don't add a new one.
-
-=cut
-
-sub SetFieldMapping {
-    my ( $framework, $field, $fieldcode, $subfieldcode ) = @_;
-    my $dbh = C4::Context->dbh;
-
-    my $sth = $dbh->prepare('SELECT * FROM fieldmapping WHERE fieldcode = ? AND subfieldcode = ? AND frameworkcode = ? AND field = ?');
-    $sth->execute( $fieldcode, $subfieldcode, $framework, $field );
-    if ( not $sth->fetchrow_hashref ) {
-        my @args;
-        $sth = $dbh->prepare('INSERT INTO fieldmapping (fieldcode, subfieldcode, frameworkcode, field) VALUES(?,?,?,?)');
-
-        $sth->execute( $fieldcode, $subfieldcode, $framework, $field );
-    }
-}
-
-=head2 DeleteFieldMapping
-
-  DeleteFieldMapping($id);
-
-Delete a field mapping from an $id.
-
-=cut
-
-sub DeleteFieldMapping {
-    my ($id) = @_;
-    my $dbh = C4::Context->dbh;
-
-    my $sth = $dbh->prepare('DELETE FROM fieldmapping WHERE id = ?');
-    $sth->execute($id);
-}
-
-=head2 GetFieldMapping
-
-  GetFieldMapping($frameworkcode);
-
-Get all field mappings for a specified frameworkcode
-
-=cut
-
-sub GetFieldMapping {
-    my ($framework) = @_;
-    my $dbh = C4::Context->dbh;
-
-    my $sth = $dbh->prepare('SELECT * FROM fieldmapping where frameworkcode = ?');
-    $sth->execute($framework);
-
-    my @return;
-    while ( my $row = $sth->fetchrow_hashref ) {
-        push @return, $row;
-    }
-    return \@return;
-}
-
 =head2 GetBiblioData
 
   $data = &GetBiblioData($biblionumber);
@@ -810,129 +719,31 @@ sub GetBiblioData {
     return ($data);
 }    # sub GetBiblioData
 
-=head2 &GetBiblioItemData
-
-  $itemdata = &GetBiblioItemData($biblioitemnumber);
-
-Looks up the biblioitem with the given biblioitemnumber. Returns a
-reference-to-hash. The keys are the fields from the C<biblio>,
-C<biblioitems>, and C<itemtypes> tables in the Koha database, except
-that C<biblioitems.notes> is given as C<$itemdata-E<gt>{bnotes}>.
-
-=cut
-
-#'
-sub GetBiblioItemData {
-    my ($biblioitemnumber) = @_;
-    my $dbh                = C4::Context->dbh;
-    my $query              = "SELECT *,biblioitems.notes AS bnotes
-        FROM biblio LEFT JOIN biblioitems on biblio.biblionumber=biblioitems.biblionumber ";
-    unless ( C4::Context->preference('item-level_itypes') ) {
-        $query .= "LEFT JOIN itemtypes on biblioitems.itemtype=itemtypes.itemtype ";
-    }
-    $query .= " WHERE biblioitemnumber = ? ";
-    my $sth = $dbh->prepare($query);
-    my $data;
-    $sth->execute($biblioitemnumber);
-    $data = $sth->fetchrow_hashref;
-    $sth->finish;
-    return ($data);
-}    # sub &GetBiblioItemData
-
-=head2 GetBiblioItemByBiblioNumber
-
-NOTE : This function has been copy/paste from C4/Biblio.pm from head before zebra integration.
-
-=cut
-
-sub GetBiblioItemByBiblioNumber {
-    my ($biblionumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare("Select * FROM biblioitems WHERE biblionumber = ?");
-    my $count          = 0;
-    my @results;
-
-    $sth->execute($biblionumber);
-
-    while ( my $data = $sth->fetchrow_hashref ) {
-        push @results, $data;
-    }
-
-    $sth->finish;
-    return @results;
-}
-
-=head2 GetBiblionumberFromItemnumber
-
-
-=cut
-
-sub GetBiblionumberFromItemnumber {
-    my ($itemnumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare("Select biblionumber FROM items WHERE itemnumber = ?");
-
-    $sth->execute($itemnumber);
-    my ($result) = $sth->fetchrow;
-    return ($result);
-}
-
-=head2 GetBiblioFromItemNumber
-
-  $item = &GetBiblioFromItemNumber($itemnumber,$barcode);
-
-Looks up the item with the given itemnumber. if undef, try the barcode.
-
-C<&itemnodata> returns a reference-to-hash whose keys are the fields
-from the C<biblio>, C<biblioitems>, and C<items> tables in the Koha
-database.
-
-=cut
-
-#'
-sub GetBiblioFromItemNumber {
-    my ( $itemnumber, $barcode ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth;
-    if ($itemnumber) {
-        $sth = $dbh->prepare(
-            "SELECT * FROM items 
-            LEFT JOIN biblio ON biblio.biblionumber = items.biblionumber
-            LEFT JOIN biblioitems ON biblioitems.biblioitemnumber = items.biblioitemnumber
-             WHERE items.itemnumber = ?"
-        );
-        $sth->execute($itemnumber);
-    } else {
-        $sth = $dbh->prepare(
-            "SELECT * FROM items 
-            LEFT JOIN biblio ON biblio.biblionumber = items.biblionumber
-            LEFT JOIN biblioitems ON biblioitems.biblioitemnumber = items.biblioitemnumber
-             WHERE items.barcode = ?"
-        );
-        $sth->execute($barcode);
-    }
-    my $data = $sth->fetchrow_hashref;
-    $sth->finish;
-    return ($data);
-}
-
 =head2 GetISBDView 
 
-  $isbd = &GetISBDView($biblionumber);
+  $isbd = &GetISBDView({
+      'record'    => $marc_record,
+      'template'  => $interface, # opac/intranet
+      'framework' => $framework,
+  });
 
 Return the ISBD view which can be included in opac and intranet
 
 =cut
 
 sub GetISBDView {
-    my ( $biblionumber, $template ) = @_;
-    my $record   = GetMarcBiblio($biblionumber, 1);
-    $template ||= '';
-    my $sysprefname = $template eq 'opac' ? 'opacisbd' : 'isbd';
+    my ( $params ) = @_;
+
+    # Expecting record WITH items.
+    my $record    = $params->{record};
     return unless defined $record;
-    my $itemtype = &GetFrameworkCode($biblionumber);
+
+    my $template  = $params->{template} // q{};
+    my $sysprefname = $template eq 'opac' ? 'opacisbd' : 'isbd';
+    my $framework = $params->{framework};
+    my $itemtype  = $framework;
     my ( $holdingbrtagf, $holdingbrtagsubf ) = &GetMarcFromKohaField( "items.holdingbranch", $itemtype );
-    my $tagslib = &GetMarcStructure( 1, $itemtype );
+    my $tagslib = &GetMarcStructure( 1, $itemtype, { unsafe => 1 } );
 
     my $ISBD = C4::Context->preference($sysprefname);
     my $bloc = $ISBD;
@@ -1044,46 +855,6 @@ sub GetISBDView {
     return $res;
 }
 
-=head2 GetBiblio
-
-  my $biblio = &GetBiblio($biblionumber);
-
-=cut
-
-sub GetBiblio {
-    my ($biblionumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare("SELECT * FROM biblio WHERE biblionumber = ?");
-    my $count          = 0;
-    my @results;
-    $sth->execute($biblionumber);
-    if ( my $data = $sth->fetchrow_hashref ) {
-        return $data;
-    }
-    return;
-}    # sub GetBiblio
-
-=head2 GetBiblioItemInfosOf
-
-  GetBiblioItemInfosOf(@biblioitemnumbers);
-
-=cut
-
-sub GetBiblioItemInfosOf {
-    my @biblioitemnumbers = @_;
-
-    my $biblioitemnumber_values = @biblioitemnumbers ? join( ',', @biblioitemnumbers ) : "''";
-
-    my $query = "
-        SELECT biblioitemnumber,
-            publicationyear,
-            itemtype
-        FROM biblioitems
-        WHERE biblioitemnumber IN ($biblioitemnumber_values)
-    ";
-    return get_infos_of( $query, 'biblioitemnumber' );
-}
-
 =head1 FUNCTIONS FOR HANDLING MARC MANAGEMENT
 
 =head2 IsMarcStructureInternal
@@ -1109,39 +880,47 @@ sub IsMarcStructureInternal {
 
 =head2 GetMarcStructure
 
-  $res = GetMarcStructure($forlibrarian,$frameworkcode);
+  $res = GetMarcStructure($forlibrarian, $frameworkcode, [ $params ]);
 
 Returns a reference to a big hash of hash, with the Marc structure for the given frameworkcode
 $forlibrarian  :if set to 1, the MARC descriptions are the librarians ones, otherwise it's the public (OPAC) ones
 $frameworkcode : the framework code to read
+$params allows you to pass { unsafe => 1 } for better performance.
+
+Note: If you call GetMarcStructure with unsafe => 1, do not modify or
+even autovivify its contents. It is a cached/shared data structure. Your
+changes c/would be passed around in subsequent calls.
 
 =cut
 
 sub GetMarcStructure {
-    my ( $forlibrarian, $frameworkcode ) = @_;
+    my ( $forlibrarian, $frameworkcode, $params ) = @_;
     $frameworkcode = "" unless $frameworkcode;
 
     $forlibrarian = $forlibrarian ? 1 : 0;
-    my $cache = Koha::Cache->get_instance();
+    my $unsafe = ($params && $params->{unsafe})? 1: 0;
+    my $cache = Koha::Caches->get_instance();
     my $cache_key = "MarcStructure-$forlibrarian-$frameworkcode";
-    my $cached = $cache->get_from_cache($cache_key);
+    my $cached = $cache->get_from_cache($cache_key, { unsafe => $unsafe });
     return $cached if $cached;
 
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(
-        "SELECT tagfield,liblibrarian,libopac,mandatory,repeatable 
+        "SELECT tagfield,liblibrarian,libopac,mandatory,repeatable,ind1_defaultvalue,ind2_defaultvalue
         FROM marc_tag_structure 
         WHERE frameworkcode=? 
         ORDER BY tagfield"
     );
     $sth->execute($frameworkcode);
-    my ( $liblibrarian, $libopac, $tag, $res, $tab, $mandatory, $repeatable );
+    my ( $liblibrarian, $libopac, $tag, $res, $tab, $mandatory, $repeatable, $ind1_defaultvalue, $ind2_defaultvalue );
 
-    while ( ( $tag, $liblibrarian, $libopac, $mandatory, $repeatable ) = $sth->fetchrow ) {
+    while ( ( $tag, $liblibrarian, $libopac, $mandatory, $repeatable, $ind1_defaultvalue, $ind2_defaultvalue ) = $sth->fetchrow ) {
         $res->{$tag}->{lib}        = ( $forlibrarian or !$libopac ) ? $liblibrarian : $libopac;
         $res->{$tag}->{tab}        = "";
         $res->{$tag}->{mandatory}  = $mandatory;
         $res->{$tag}->{repeatable} = $repeatable;
+    $res->{$tag}->{ind1_defaultvalue} = $ind1_defaultvalue;
+    $res->{$tag}->{ind2_defaultvalue} = $ind2_defaultvalue;
     }
 
     $sth = $dbh->prepare(
@@ -1200,7 +979,7 @@ in tab 0-9. (used field)
 
   my $results = GetUsedMarcStructure($frameworkcode);
 
-C<$results> is a ref to an array which each case containts a ref
+C<$results> is a ref to an array which each case contains a ref
 to a hash which each keys is the columns from marc_subfield_structure
 
 C<$frameworkcode> is the framework code. 
@@ -1230,67 +1009,97 @@ sub GetMarcSubfieldStructure {
 
     $frameworkcode //= '';
 
-    my $cache     = Koha::Cache->get_instance();
+    my $cache     = Koha::Caches->get_instance();
     my $cache_key = "MarcSubfieldStructure-$frameworkcode";
     my $cached    = $cache->get_from_cache($cache_key);
     return $cached if $cached;
 
     my $dbh = C4::Context->dbh;
-    my $subfield_structure = $dbh->selectall_hashref( q|
+    # We moved to selectall_arrayref since selectall_hashref does not
+    # keep duplicate mappings on kohafield (like place in 260 vs 264)
+    my $subfield_aref = $dbh->selectall_arrayref( q|
         SELECT *
         FROM marc_subfield_structure
         WHERE frameworkcode = ?
         AND kohafield > ''
-    |, 'kohafield', {}, $frameworkcode );
-
+        ORDER BY frameworkcode,tagfield,tagsubfield
+    |, { Slice => {} }, $frameworkcode );
+    # Now map the output to a hash structure
+    my $subfield_structure = {};
+    foreach my $row ( @$subfield_aref ) {
+        push @{ $subfield_structure->{ $row->{kohafield} }}, $row;
+    }
     $cache->set_in_cache( $cache_key, $subfield_structure );
     return $subfield_structure;
 }
 
 =head2 GetMarcFromKohaField
 
-  ($MARCfield,$MARCsubfield)=GetMarcFromKohaField($kohafield,$frameworkcode);
+    ( $field,$subfield ) = GetMarcFromKohaField( $kohafield );
+    @fields = GetMarcFromKohaField( $kohafield );
+    $field = GetMarcFromKohaField( $kohafield );
 
-Returns the MARC fields & subfields mapped to the koha field 
-for the given frameworkcode or default framework if $frameworkcode is missing
+    Returns the MARC fields & subfields mapped to $kohafield.
+    Since the Default framework is considered as authoritative for such
+    mappings, the former frameworkcode parameter is obsoleted.
+
+    In list context all mappings are returned; there can be multiple
+    mappings. Note that in the above example you could miss a second
+    mappings in the first call.
+    In scalar context only the field tag of the first mapping is returned.
 
 =cut
 
 sub GetMarcFromKohaField {
-    my ( $kohafield, $frameworkcode ) = @_;
-    return (0, undef) unless $kohafield;
-    my $mss = GetMarcSubfieldStructure( $frameworkcode );
-    return ( $mss->{$kohafield}{tagfield}, $mss->{$kohafield}{tagsubfield} );
+    my ( $kohafield ) = @_;
+    return unless $kohafield;
+    # The next call uses the Default framework since it is AUTHORITATIVE
+    # for all Koha to MARC mappings.
+    my $mss = GetMarcSubfieldStructure( '' ); # Do not change framework
+    my @retval;
+    foreach( @{ $mss->{$kohafield} } ) {
+        push @retval, $_->{tagfield}, $_->{tagsubfield};
+    }
+    return wantarray ? @retval : ( @retval ? $retval[0] : undef );
 }
 
 =head2 GetMarcSubfieldStructureFromKohaField
 
-    my $subfield_structure = &GetMarcSubfieldStructureFromKohaField($kohafield, $frameworkcode);
+    my $str = GetMarcSubfieldStructureFromKohaField( $kohafield );
 
-Returns a hashref where keys are marc_subfield_structure column names for the
-row where kohafield=$kohafield for the given framework code.
-
-$frameworkcode is optional. If not given, then the default framework is used.
+    Returns marc subfield structure information for $kohafield.
+    The Default framework is used, since it is authoritative for kohafield
+    mappings.
+    In list context returns a list of all hashrefs, since there may be
+    multiple mappings. In scalar context the first hashref is returned.
 
 =cut
 
 sub GetMarcSubfieldStructureFromKohaField {
-    my ( $kohafield, $frameworkcode ) = @_;
+    my ( $kohafield ) = @_;
 
     return unless $kohafield;
 
-    my $mss = GetMarcSubfieldStructure( $frameworkcode );
-    return exists $mss->{$kohafield}
-        ? $mss->{$kohafield}
-        : undef;
+    # The next call uses the Default framework since it is AUTHORITATIVE
+    # for all Koha to MARC mappings.
+    my $mss = GetMarcSubfieldStructure(''); # Do not change framework
+    return unless $mss->{$kohafield};
+    return wantarray ? @{$mss->{$kohafield}} : $mss->{$kohafield}->[0];
 }
 
 =head2 GetMarcBiblio
 
-  my $record = GetMarcBiblio($biblionumber, [$embeditems], [$opac]);
+  my $record = GetMarcBiblio({
+      biblionumber => $biblionumber,
+      embed_items  => $embeditems,
+      opac         => $opac });
 
 Returns MARC::Record representing a biblio record, or C<undef> if the
 biblionumber doesn't exist.
+
+Both embed_items and opac are optional.
+If embed_items is passed and is 1, items are embedded.
+If opac is passed and is 1, the record is filtered as needed.
 
 =over 4
 
@@ -1312,9 +1121,16 @@ OpacHiddenItems to be applied.
 =cut
 
 sub GetMarcBiblio {
-    my $biblionumber = shift;
-    my $embeditems   = shift || 0;
-    my $opac         = shift || 0;
+    my ($params) = @_;
+
+    if (not defined $params) {
+        carp 'GetMarcBiblio called without parameters';
+        return;
+    }
+
+    my $biblionumber = $params->{biblionumber};
+    my $embeditems   = $params->{embed_items} || 0;
+    my $opac         = $params->{opac} || 0;
 
     if (not defined $biblionumber) {
         carp 'GetMarcBiblio called with undefined biblionumber';
@@ -1322,11 +1138,12 @@ sub GetMarcBiblio {
     }
 
     my $dbh          = C4::Context->dbh;
-    my $sth          = $dbh->prepare("SELECT biblioitemnumber, marcxml FROM biblioitems WHERE biblionumber=? ");
+    my $sth          = $dbh->prepare("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber=? ");
     $sth->execute($biblionumber);
     my $row     = $sth->fetchrow_hashref;
     my $biblioitemnumber = $row->{'biblioitemnumber'};
-    my $marcxml = StripNonXmlChars( $row->{'marcxml'} );
+    my $marcxml = GetXmlBiblio( $biblionumber );
+    $marcxml = StripNonXmlChars( $marcxml );
     my $frameworkcode = GetFrameworkCode($biblionumber);
     MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
     my $record = MARC::Record->new();
@@ -1355,17 +1172,24 @@ sub GetMarcBiblio {
 
   my $marcxml = GetXmlBiblio($biblionumber);
 
-Returns biblioitems.marcxml of the biblionumber passed in parameter.
+Returns biblio_metadata.metadata/marcxml of the biblionumber passed in parameter.
 The XML should only contain biblio information (item information is no longer stored in marcxml field)
 
 =cut
 
 sub GetXmlBiblio {
     my ($biblionumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare("SELECT marcxml FROM biblioitems WHERE biblionumber=? ");
-    $sth->execute($biblionumber);
-    my ($marcxml) = $sth->fetchrow;
+    my $dbh = C4::Context->dbh;
+    return unless $biblionumber;
+    my ($marcxml) = $dbh->selectrow_array(
+        q|
+        SELECT metadata
+        FROM biblio_metadata
+        WHERE biblionumber=?
+            AND format='marcxml'
+            AND marcflavour=?
+    |, undef, $biblionumber, C4::Context->preference('marcflavour')
+    );
     return $marcxml;
 }
 
@@ -1492,9 +1316,9 @@ sub GetCOinSBiblio {
             $isbn      = $record->subfield( '773', 'z' ) || '';
             $issn      = $record->subfield( '773', 'x' ) || '';
             if ($mtx eq 'journal') {
-                $title    .= "&amp;rft.title=" . (($record->subfield( '773', 't' ) || $record->subfield( '773', 'a')));
+                $title    .= "&amp;rft.title=" . ( $record->subfield( '773', 't' ) || $record->subfield( '773', 'a') || q{} );
             } else {
-                $title    .= "&amp;rft.btitle=" . (($record->subfield( '773', 't' ) || $record->subfield( '773', 'a')) || '');
+                $title    .= "&amp;rft.btitle=" . ( $record->subfield( '773', 't' ) || $record->subfield( '773', 'a') || q{} );
             }
             foreach my $rel ($record->subfield( '773', 'g' )) {
                 if ($pages) {
@@ -1564,6 +1388,7 @@ sub GetMarcPrice {
 =head2 MungeMarcPrice
 
 Return the best guess at what the actual price is from a price field.
+
 =cut
 
 sub MungeMarcPrice {
@@ -1691,12 +1516,13 @@ sub GetAuthorisedValueDesc {
 
         #---- branch
         if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "branches" ) {
-            return C4::Branch::GetBranchName($value);
+            return Koha::Libraries->find($value)->branchname;
         }
 
         #---- itemtypes
         if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "itemtypes" ) {
-            return getitemtypeinfo($value)->{translated_description};
+            my $itemtype = Koha::ItemTypes->find( $value );
+            return $itemtype ? $itemtype->translated_description : q||;
         }
 
         #---- "true" authorized value
@@ -1810,7 +1636,7 @@ sub GetMarcISSN {
 
     Get all notes from the MARC record and returns them in an array.
     The notes are stored in different fields depending on MARC flavour.
-    MARC21 field 555 gets special attention for the $u subfields.
+    MARC21 5XX $u subfields receive special attention as they are URIs.
 
 =cut
 
@@ -1828,12 +1654,16 @@ sub GetMarcNotes {
     foreach my $field ( $record->field($scope) ) {
         my $tag = $field->tag();
         next if $blacklist{ $tag };
-        if( $marcflavour ne 'UNIMARC' && $tag =~ /555/ ) {
-            # Field 555$u contains URLs
-            # We first push the regular subfields and all $u's separately
-            # Leave further actions to the template
-            push @marcnotes, { marcnote => $field->as_string('abcd') };
+        if( $marcflavour ne 'UNIMARC' && $field->subfield('u') ) {
+            # Field 5XX$u always contains URI
+            # Examples: 505u, 506u, 510u, 514u, 520u, 530u, 538u, 540u, 542u, 552u, 555u, 561u, 563u, 583u
+            # We first push the other subfields, then all $u's separately
+            # Leave further actions to the template (see e.g. opac-detail)
+            my $othersub =
+                join '', ( 'a' .. 't', 'v' .. 'z', '0' .. '9' ); # excl 'u'
+            push @marcnotes, { marcnote => $field->as_string($othersub) };
             foreach my $sub ( $field->subfield('u') ) {
+                $sub =~ s/^\s+|\s+$//g; # trim
                 push @marcnotes, { marcnote => $sub };
             }
         } else {
@@ -1926,7 +1756,7 @@ sub GetMarcSubjects {
         push @marcsubjects, {
             MARCSUBJECT_SUBFIELDS_LOOP => \@subfields_loop,
             authoritylink => $authoritylink,
-        };
+        } if $authoritylink || @subfields_loop;
 
     }
     return \@marcsubjects;
@@ -1949,10 +1779,11 @@ sub GetMarcAuthors {
     }
     my ( $mintag, $maxtag, $fields_filter );
 
-    # tagslib useful for UNIMARC author reponsabilities
-    my $tagslib =
-      &GetMarcStructure( 1, '' );    # FIXME : we don't have the framework available, we take the default framework. May be buggy on some setups, will be usually correct.
+    # tagslib useful only for UNIMARC author responsibilities
+    my $tagslib;
     if ( $marcflavour eq "UNIMARC" ) {
+        # FIXME : we don't have the framework available, we take the default framework. May be buggy on some setups, will be usually correct.
+        $tagslib = GetMarcStructure( 1, '', { unsafe => 1 });
         $mintag = "700";
         $maxtag = "712";
         $fields_filter = '7..';
@@ -2054,6 +1885,7 @@ sub GetMarcUrls {
         }
         my @urls = $field->subfield('u');
         foreach my $url (@urls) {
+            $url =~ s/^\s+|\s+$//g; # trim
             my $marcurl;
             if ( $marcflavour eq 'MARC21' ) {
                 my $s3   = $field->subfield('3');
@@ -2267,42 +2099,51 @@ sub GetFrameworkCode {
 
 =head2 TransformKohaToMarc
 
-    $record = TransformKohaToMarc( $hash )
+    $record = TransformKohaToMarc( $hash [, $params ]  )
 
-This function builds partial MARC::Record from a hash
-Hash entries can be from biblio or biblioitems.
+This function builds a (partial) MARC::Record from a hash.
+Hash entries can be from biblio, biblioitems or items.
+The params hash includes the parameter no_split used in C4::Items.
 
 This function is called in acquisition module, to create a basic catalogue
-entry from user entry
+entry from user entry.
 
 =cut
 
 
 sub TransformKohaToMarc {
-    my $hash = shift;
+    my ( $hash, $params ) = @_;
     my $record = MARC::Record->new();
     SetMarcUnicodeFlag( $record, C4::Context->preference("marcflavour") );
-    # FIXME Do not we want to get the marc subfield structure for the biblio framework?
-    my $mss = GetMarcSubfieldStructure();
+
+    # In the next call we use the Default framework, since it is considered
+    # authoritative for Koha to Marc mappings.
+    my $mss = GetMarcSubfieldStructure( '' ); # do not change framework
     my $tag_hr = {};
     while ( my ($kohafield, $value) = each %$hash ) {
-        next unless exists $mss->{$kohafield};
-        next unless $mss->{$kohafield};
-        my $tagfield    = $mss->{$kohafield}{tagfield} . '';
-        my $tagsubfield = $mss->{$kohafield}{tagsubfield};
-        foreach my $value ( split(/\s?\|\s?/, $value, -1) ) {
-            next if $value eq '';
-            $tag_hr->{$tagfield} //= [];
-            push @{$tag_hr->{$tagfield}}, [($tagsubfield, $value)];
+        foreach my $fld ( @{ $mss->{$kohafield} } ) {
+            my $tagfield    = $fld->{tagfield};
+            my $tagsubfield = $fld->{tagsubfield};
+            next if !$tagfield;
+            my @values = $params->{no_split}
+                ? ( $value )
+                : split(/\s?\|\s?/, $value, -1);
+            foreach my $value ( @values ) {
+                next if $value eq '';
+                $tag_hr->{$tagfield} //= [];
+                push @{$tag_hr->{$tagfield}}, [($tagsubfield, $value)];
+            }
         }
     }
     foreach my $tag (sort keys %$tag_hr) {
         my @sfl = @{$tag_hr->{$tag}};
         @sfl = sort { $a->[0] cmp $b->[0]; } @sfl;
         @sfl = map { @{$_}; } @sfl;
-        $record->insert_fields_ordered(
-            MARC::Field->new($tag, " ", " ", @sfl)
-        );
+        # Special care for control fields: remove the subfield indication @
+        # and do not insert indicators.
+        my @ind = $tag < 10 ? () : ( " ", " " );
+        @sfl = grep { $_ ne '@' } @sfl if $tag < 10;
+        $record->insert_fields_ordered( MARC::Field->new($tag, @ind, @sfl) );
     }
     return $record;
 }
@@ -2320,7 +2161,7 @@ sub PrepHostMarcField {
     $marcflavour ||="MARC21";
     
     require C4::Items;
-    my $hostrecord = GetMarcBiblio($hostbiblionumber);
+    my $hostrecord = GetMarcBiblio({ biblionumber => $hostbiblionumber });
 	my $item = C4::Items::GetItem($hostitemnumber);
 	
 	my $hostmarcfield;
@@ -2424,6 +2265,7 @@ sub TransformHtmlToXml {
     my $prevtag = -1;
     my $first   = 1;
     my $j       = -1;
+    my $close_last_tag;
     for ( my $i = 0 ; $i < @$tags ; $i++ ) {
 
         if ( C4::Context->preference('marcflavour') eq 'UNIMARC' and @$tags[$i] eq "100" and @$subfields[$i] eq "a" ) {
@@ -2444,6 +2286,7 @@ sub TransformHtmlToXml {
         @$values[$i] =~ s/'/&apos;/g;
 
         if ( ( @$tags[$i] ne $prevtag ) ) {
+            $close_last_tag = 0;
             $j++ unless ( @$tags[$i] eq "" );
             my $indicator1 = eval { substr( @$indicator[$j], 0, 1 ) };
             my $indicator2 = eval { substr( @$indicator[$j], 1, 1 ) };
@@ -2462,6 +2305,7 @@ sub TransformHtmlToXml {
                     $xml .= "<datafield tag=\"@$tags[$i]\" ind1=\"$ind1\" ind2=\"$ind2\">\n";
                     $xml .= "<subfield code=\"@$subfields[$i]\">@$values[$i]</subfield>\n";
                     $first = 0;
+                    $close_last_tag = 1;
                 } else {
                     $first = 1;
                 }
@@ -2481,6 +2325,7 @@ sub TransformHtmlToXml {
                         $xml .= "<datafield tag=\"@$tags[$i]\" ind1=\"$ind1\" ind2=\"$ind2\">\n";
                         $xml .= "<subfield code=\"@$subfields[$i]\">@$values[$i]</subfield>\n";
                         $first = 0;
+                        $close_last_tag = 1;
                     }
                 }
             }
@@ -2500,13 +2345,14 @@ sub TransformHtmlToXml {
                 if ($first) {
                     $xml .= "<datafield tag=\"@$tags[$i]\" ind1=\"$ind1\" ind2=\"$ind2\">\n";
                     $first = 0;
+                    $close_last_tag = 1;
                 }
                 $xml .= "<subfield code=\"@$subfields[$i]\">@$values[$i]</subfield>\n";
             }
         }
         $prevtag = @$tags[$i];
     }
-    $xml .= "</datafield>\n" if $xml =~ m/<datafield/;
+    $xml .= "</datafield>\n" if $close_last_tag;
     if ( C4::Context->preference('marcflavour') eq 'UNIMARC' and !$unimarc_and_100_exist ) {
 
         #     warn "SETTING 100 for $auth_type";
@@ -2544,7 +2390,7 @@ sub _default_ind_to_space {
 =head2 TransformHtmlToMarc
 
     L<$record> = TransformHtmlToMarc(L<$cgi>)
-    L<$cgi> is the CGI object which containts the values for subfields
+    L<$cgi> is the CGI object which contains the values for subfields
     {
         'tag_010_indicator1_531951' ,
         'tag_010_indicator2_531951' ,
@@ -2662,119 +2508,44 @@ sub TransformHtmlToMarc {
 
 =head2 TransformMarcToKoha
 
-  $result = TransformMarcToKoha( $record, $frameworkcode )
+    $result = TransformMarcToKoha( $record, undef, $limit )
 
 Extract data from a MARC bib record into a hashref representing
-Koha biblio, biblioitems, and items fields. 
+Koha biblio, biblioitems, and items fields.
 
 If passed an undefined record will log the error and return an empty
-hash_ref
+hash_ref.
 
 =cut
 
 sub TransformMarcToKoha {
     my ( $record, $frameworkcode, $limit_table ) = @_;
+    # FIXME  Parameter $frameworkcode is obsolete and will be removed
+    $limit_table //= q{};
 
     my $result = {};
     if (!defined $record) {
         carp('TransformMarcToKoha called with undefined record');
         return $result;
     }
-    $limit_table = $limit_table || 0;
-    $frameworkcode = '' unless defined $frameworkcode;
 
-    my $inverted_field_map = _get_inverted_marc_field_map($frameworkcode);
-
-    my %tables = ();
-    if ( defined $limit_table && $limit_table eq 'items' ) {
-        $tables{'items'} = 1;
-    } else {
-        $tables{'items'}       = 1;
-        $tables{'biblio'}      = 1;
-        $tables{'biblioitems'} = 1;
+    my %tables = ( biblio => 1, biblioitems => 1, items => 1 );
+    if( $limit_table eq 'items' ) {
+        %tables = ( items => 1 );
     }
 
-    # traverse through record
-  MARCFIELD: foreach my $field ( $record->fields() ) {
-        my $tag = $field->tag();
-        next MARCFIELD unless exists $inverted_field_map->{$tag};
-        if ( $field->is_control_field() ) {
-            my $kohafields = $inverted_field_map->{$tag}->{list};
-          ENTRY: foreach my $entry ( @{$kohafields} ) {
-                my ( $subfield, $table, $column ) = @{$entry};
-                next ENTRY unless exists $tables{$table};
-                my $key = _disambiguate( $table, $column );
-                if ( $result->{$key} ) {
-                    unless ( ( $key eq "biblionumber" or $key eq "biblioitemnumber" ) and ( $field->data() eq "" ) ) {
-                        $result->{$key} .= " | " . $field->data();
-                    }
-                } else {
-                    $result->{$key} = $field->data();
-                }
-            }
-        } else {
-
-            # deal with subfields
-          MARCSUBFIELD: foreach my $sf ( $field->subfields() ) {
-                my $code = $sf->[0];
-                next MARCSUBFIELD unless exists $inverted_field_map->{$tag}->{sfs}->{$code};
-                my $value = $sf->[1];
-              SFENTRY: foreach my $entry ( @{ $inverted_field_map->{$tag}->{sfs}->{$code} } ) {
-                    my ( $table, $column ) = @{$entry};
-                    next SFENTRY unless exists $tables{$table};
-                    my $key = _disambiguate( $table, $column );
-                    if ( $result->{$key} ) {
-                        unless ( ( $key eq "biblionumber" or $key eq "biblioitemnumber" ) and ( $value eq "" ) ) {
-                            $result->{$key} .= " | " . $value;
-                        }
-                    } else {
-                        $result->{$key} = $value;
-                    }
-                }
-            }
-        }
-    }
-
-    # modify copyrightdate to keep only the 1st year found
-    if ( exists $result->{'copyrightdate'} ) {
-        my $temp = $result->{'copyrightdate'};
-        $temp =~ m/c(\d\d\d\d)/;
-        if ( $temp =~ m/c(\d\d\d\d)/ and $1 > 0 ) {    # search cYYYY first
-            $result->{'copyrightdate'} = $1;
-        } else {                                       # if no cYYYY, get the 1st date.
-            $temp =~ m/(\d\d\d\d)/;
-            $result->{'copyrightdate'} = $1;
-        }
-    }
-
-    # modify publicationyear to keep only the 1st year found
-    if ( exists $result->{'publicationyear'} ) {
-        my $temp = $result->{'publicationyear'};
-        if ( $temp =~ m/c(\d\d\d\d)/ and $1 > 0 ) {    # search cYYYY first
-            $result->{'publicationyear'} = $1;
-        } else {                                       # if no cYYYY, get the 1st date.
-            $temp =~ m/(\d\d\d\d)/;
-            $result->{'publicationyear'} = $1;
-        }
-    }
-
-    return $result;
-}
-
-sub _get_inverted_marc_field_map {
-    my ( $frameworkcode ) = @_;
-    my $field_map = {};
-    my $mss = GetMarcSubfieldStructure( $frameworkcode );
-
+    # The next call acknowledges Default as the authoritative framework
+    # for Koha to MARC mappings.
+    my $mss = GetMarcSubfieldStructure(''); # Do not change framework
     foreach my $kohafield ( keys %{ $mss } ) {
-        next unless exists $mss->{$kohafield};    # not all columns are mapped to MARC tag & subfield
-        my $tag      = $mss->{$kohafield}{tagfield};
-        my $subfield = $mss->{$kohafield}{tagsubfield};
         my ( $table, $column ) = split /[.]/, $kohafield, 2;
-        push @{ $field_map->{$tag}->{list} }, [ $subfield, $table, $column ];
-        push @{ $field_map->{$tag}->{sfs}->{$subfield} }, [ $table, $column ];
+        next unless $tables{$table};
+        my $val = TransformMarcToKohaOneField( $kohafield, $record );
+        next if !defined $val;
+        my $key = _disambiguate( $table, $column );
+        $result->{$key} = $val;
     }
-    return $field_map;
+    return $result;
 }
 
 =head2 _disambiguate
@@ -2806,15 +2577,6 @@ more.
 
 =cut
 
-sub CountItemsIssued {
-    my ($biblionumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare('SELECT COUNT(*) as issuedCount FROM items, issues WHERE items.itemnumber = issues.itemnumber AND items.biblionumber = ?');
-    $sth->execute($biblionumber);
-    my $row = $sth->fetchrow_hashref();
-    return $row->{'issuedCount'};
-}
-
 sub _disambiguate {
     my ( $table, $column ) = @_;
     if ( $column eq "cn_sort" or $column eq "cn_source" ) {
@@ -2825,117 +2587,82 @@ sub _disambiguate {
 
 }
 
-=head2 get_koha_field_from_marc
-
-  $result->{_disambiguate($table, $field)} = 
-     get_koha_field_from_marc($table,$field,$record,$frameworkcode);
-
-Internal function to map data from the MARC record to a specific non-MARC field.
-FIXME: this is meant to replace TransformMarcToKohaOneField after more testing.
-
-=cut
-
-sub get_koha_field_from_marc {
-    my ( $koha_table, $koha_column, $record, $frameworkcode ) = @_;
-    my ( $tagfield, $subfield ) = GetMarcFromKohaField( $koha_table . '.' . $koha_column, $frameworkcode );
-    my $kohafield;
-    foreach my $field ( $record->field($tagfield) ) {
-        if ( $field->tag() < 10 ) {
-            if ($kohafield) {
-                $kohafield .= " | " . $field->data();
-            } else {
-                $kohafield = $field->data();
-            }
-        } else {
-            if ( $field->subfields ) {
-                my @subfields = $field->subfields();
-                foreach my $subfieldcount ( 0 .. $#subfields ) {
-                    if ( $subfields[$subfieldcount][0] eq $subfield ) {
-                        if ($kohafield) {
-                            $kohafield .= " | " . $subfields[$subfieldcount][1];
-                        } else {
-                            $kohafield = $subfields[$subfieldcount][1];
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return $kohafield;
-}
-
 =head2 TransformMarcToKohaOneField
 
-  $result = TransformMarcToKohaOneField( $kohatable, $kohafield, $record, $result, $frameworkcode )
+    $val = TransformMarcToKohaOneField( 'biblio.title', $marc );
+
+    Note: The authoritative Default framework is used implicitly.
 
 =cut
 
 sub TransformMarcToKohaOneField {
+    my ( $kohafield, $marc ) = @_;
 
-    # FIXME ? if a field has a repeatable subfield that is used in old-db,
-    # only the 1st will be retrieved...
-    my ( $kohatable, $kohafield, $record, $result, $frameworkcode ) = @_;
-    my $res = "";
-    my ( $tagfield, $subfield ) = GetMarcFromKohaField( $kohatable . "." . $kohafield, $frameworkcode );
-    foreach my $field ( $record->field($tagfield) ) {
-        if ( $field->tag() < 10 ) {
-            if ( $result->{$kohafield} ) {
-                $result->{$kohafield} .= " | " . $field->data();
+    my ( @rv, $retval );
+    my @mss = GetMarcSubfieldStructureFromKohaField($kohafield);
+    foreach my $fldhash ( @mss ) {
+        my $tag = $fldhash->{tagfield};
+        my $sub = $fldhash->{tagsubfield};
+        foreach my $fld ( $marc->field($tag) ) {
+            if( $sub eq '@' || $fld->is_control_field ) {
+                push @rv, $fld->data if $fld->data;
             } else {
-                $result->{$kohafield} = $field->data();
-            }
-        } else {
-            if ( $field->subfields ) {
-                my @subfields = $field->subfields();
-                foreach my $subfieldcount ( 0 .. $#subfields ) {
-                    if ( $subfields[$subfieldcount][0] eq $subfield ) {
-                        if ( $result->{$kohafield} ) {
-                            $result->{$kohafield} .= " | " . $subfields[$subfieldcount][1];
-                        } else {
-                            $result->{$kohafield} = $subfields[$subfieldcount][1];
-                        }
-                    }
-                }
+                push @rv, grep { $_ } $fld->subfield($sub);
             }
         }
     }
-    return $result;
+    return unless @rv;
+    $retval = join ' | ', uniq(@rv);
+
+    # Additional polishing for individual kohafields
+    if( $kohafield =~ /copyrightdate|publicationyear/ ) {
+        $retval = _adjust_pubyear( $retval );
+    }
+
+    return $retval;
 }
 
+=head2 _adjust_pubyear
 
-#"
+    Helper routine for TransformMarcToKohaOneField
 
-#
-# true ModZebra commented until indexdata fixes zebraDB crashes (it seems they occur on multiple updates
-# at the same time
-# replaced by a zebraqueue table, that is filled with ModZebra to run.
-# the table is emptied by misc/cronjobs/zebraqueue_start.pl script
-# =head2 ModZebrafiles
-#
-# &ModZebrafiles( $dbh, $biblionumber, $record, $folder, $server );
-#
-# =cut
-#
-# sub ModZebrafiles {
-#
-#     my ( $dbh, $biblionumber, $record, $folder, $server ) = @_;
-#
-#     my $op;
-#     my $zebradir =
-#       C4::Context->zebraconfig($server)->{directory} . "/" . $folder . "/";
-#     unless ( opendir( DIR, "$zebradir" ) ) {
-#         warn "$zebradir not found";
-#         return;
-#     }
-#     closedir DIR;
-#     my $filename = $zebradir . $biblionumber;
-#
-#     if ($record) {
-#         open( OUTPUT, ">", $filename . ".xml" );
-#         print OUTPUT $record;
-#         close OUTPUT;
-#     }
-# }
+=cut
+
+sub _adjust_pubyear {
+    my $retval = shift;
+    # modify return value to keep only the 1st year found
+    if( $retval =~ m/c(\d\d\d\d)/ and $1 > 0 ) { # search cYYYY first
+        $retval = $1;
+    } elsif( $retval =~ m/(\d\d\d\d)/ && $1 > 0 ) {
+        $retval = $1;
+    } elsif( $retval =~ m/
+             (?<year>\d)[-]?[.Xx?]{3}
+            |(?<year>\d{2})[.Xx?]{2}
+            |(?<year>\d{3})[.Xx?]
+            |(?<year>\d)[-]{3}\?
+            |(?<year>\d\d)[-]{2}\?
+            |(?<year>\d{3})[-]\?
+    /xms ) { # the form 198-? occurred in Dutch ISBD rules
+        my $digits = $+{year};
+        $retval = $digits * ( 10 ** ( 4 - length($digits) ));
+    }
+    return $retval;
+}
+
+=head2 CountItemsIssued
+
+    my $count = CountItemsIssued( $biblionumber );
+
+=cut
+
+sub CountItemsIssued {
+    my ($biblionumber) = @_;
+    my $dbh            = C4::Context->dbh;
+    my $sth            = $dbh->prepare('SELECT COUNT(*) as issuedCount FROM items, issues WHERE items.itemnumber = issues.itemnumber AND items.biblionumber = ?');
+    $sth->execute($biblionumber);
+    my $row = $sth->fetchrow_hashref();
+    return $row->{'issuedCount'};
+}
 
 =head2 ModZebra
 
@@ -2969,7 +2696,9 @@ sub ModZebra {
         );
         if ( $op eq 'specialUpdate' ) {
             unless ($record) {
-                $record = GetMarcBiblio($biblionumber, 1);
+                $record = GetMarcBiblio({
+                    biblionumber => $biblionumber,
+                    embed_items  => 1 });
             }
             my $records = [$record];
             $indexer->update_index_background( [$biblionumber], [$record] );
@@ -3219,9 +2948,6 @@ sub _koha_modify_biblio {
 
   my ($biblioitemnumber,$error) = _koha_modify_biblioitem_nonmarc( $dbh, $biblioitem );
 
-Updates biblioitems row except for marc and marcxml, which should be changed
-via ModBiblioMarc
-
 =cut
 
 sub _koha_modify_biblioitem_nonmarc {
@@ -3317,7 +3043,6 @@ sub _koha_add_biblioitem {
         size            = ?,
         place           = ?,
         lccn            = ?,
-        marc            = ?,
         url             = ?,
         cn_source       = ?,
         cn_class        = ?,
@@ -3335,7 +3060,7 @@ sub _koha_add_biblioitem {
         $biblioitem->{'volumedate'},       $biblioitem->{'volumedesc'},       $biblioitem->{'collectiontitle'},       $biblioitem->{'collectionissn'},
         $biblioitem->{'collectionvolume'}, $biblioitem->{'editionstatement'}, $biblioitem->{'editionresponsibility'}, $biblioitem->{'illus'},
         $biblioitem->{'pages'},            $biblioitem->{'bnotes'},           $biblioitem->{'size'},                  $biblioitem->{'place'},
-        $biblioitem->{'lccn'},             $biblioitem->{'marc'},             $biblioitem->{'url'},                   $biblioitem->{'biblioitems.cn_source'},
+        $biblioitem->{'lccn'},             $biblioitem->{'url'},                   $biblioitem->{'biblioitems.cn_source'},
         $biblioitem->{'cn_class'},         $biblioitem->{'cn_item'},          $biblioitem->{'cn_suffix'},             $cn_sort,
         $biblioitem->{'totalissues'},      $biblioitem->{'ean'},              $biblioitem->{'agerestriction'}
     );
@@ -3370,6 +3095,8 @@ sub _koha_delete_biblio {
     my $sth = $dbh->prepare("SELECT * FROM biblio WHERE biblionumber=?");
     $sth->execute($biblionumber);
 
+    # FIXME There is a transaction in _koha_delete_biblio_metadata
+    # But actually all the following should be done inside a single transaction
     if ( my $data = $sth->fetchrow_hashref ) {
 
         # save the record in deletedbiblio
@@ -3386,6 +3113,8 @@ sub _koha_delete_biblio {
         my $bkup_sth = $dbh->prepare($query);
         $bkup_sth->execute(@bind);
         $bkup_sth->finish;
+
+        _koha_delete_biblio_metadata( $biblionumber );
 
         # delete the biblio
         my $sth2 = $dbh->prepare("DELETE FROM biblio WHERE biblionumber=?");
@@ -3448,13 +3177,38 @@ sub _koha_delete_biblioitems {
     return;
 }
 
+=head2 _koha_delete_biblio_metadata
+
+  $error = _koha_delete_biblio_metadata($biblionumber);
+
+C<$biblionumber> - the biblionumber of the biblio metadata to be deleted
+
+=cut
+
+sub _koha_delete_biblio_metadata {
+    my ($biblionumber) = @_;
+
+    my $dbh    = C4::Context->dbh;
+    my $schema = Koha::Database->new->schema;
+    $schema->txn_do(
+        sub {
+            $dbh->do( q|
+                INSERT INTO deletedbiblio_metadata (biblionumber, format, marcflavour, metadata)
+                SELECT biblionumber, format, marcflavour, metadata FROM biblio_metadata WHERE biblionumber=?
+            |,  undef, $biblionumber );
+            $dbh->do( q|DELETE FROM biblio_metadata WHERE biblionumber=?|,
+                undef, $biblionumber );
+        }
+    );
+}
+
 =head1 UNEXPORTED FUNCTIONS
 
 =head2 ModBiblioMarc
 
   &ModBiblioMarc($newrec,$biblionumber,$frameworkcode);
 
-Add MARC data for a biblio to koha 
+Add MARC XML data for a biblio to koha
 
 Function exported, but should NOT be used, unless you really know what you're doing
 
@@ -3462,7 +3216,7 @@ Function exported, but should NOT be used, unless you really know what you're do
 
 sub ModBiblioMarc {
     # pass the MARC::Record to this function, and it will create the records in
-    # the marc field
+    # the marcxml field
     my ( $record, $biblionumber, $frameworkcode ) = @_;
     if ( !$record ) {
         carp 'ModBiblioMarc passed an undefined record';
@@ -3509,9 +3263,22 @@ sub ModBiblioMarc {
       $f005->update(sprintf("%4d%02d%02d%02d%02d%04.1f",@a)) if $f005;
     }
 
-    $sth = $dbh->prepare("UPDATE biblioitems SET marc=?,marcxml=? WHERE biblionumber=?");
-    $sth->execute( $record->as_usmarc(), $record->as_xml_record($encoding), $biblionumber );
-    $sth->finish;
+    my $metadata = {
+        biblionumber => $biblionumber,
+        format       => 'marcxml',
+        marcflavour  => C4::Context->preference('marcflavour'),
+    };
+    $record->as_usmarc; # Bug 20126/10455 This triggers field length calculation
+
+    # FIXME To replace with ->find_or_create?
+    if ( my $m_rs = Koha::Biblio::Metadatas->find($metadata) ) {
+        $m_rs->metadata( $record->as_xml_record($encoding) );
+        $m_rs->store;
+    } else {
+        my $m_rs = Koha::Biblio::Metadata->new($metadata);
+        $m_rs->metadata( $record->as_xml_record($encoding) );
+        $m_rs->store;
+    }
     ModZebra( $biblionumber, "specialUpdate", "biblioserver", $record );
     return $biblionumber;
 }
@@ -3536,46 +3303,6 @@ sub CountBiblioInOrders {
     return ($count);
 }
 
-=head2 GetSubscriptionsId
-
-    $subscriptions = &GetSubscriptionsId($biblionumber);
-
-This function return an array of subscriptionid with $biblionumber
-
-=cut
-
-sub GetSubscriptionsId {
- my ($biblionumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $query          = "SELECT subscriptionid
-          FROM  subscription
-          WHERE biblionumber=?";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($biblionumber);
-    my @subscriptions = $sth->fetchrow_array;
-    return (@subscriptions);
-}
-
-=head2 GetHolds
-
-    $holds = &GetHolds($biblionumber);
-
-This function return the count of holds with $biblionumber
-
-=cut
-
-sub GetHolds {
- my ($biblionumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $query          = "SELECT count(*)
-          FROM  reserves
-          WHERE biblionumber=?";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($biblionumber);
-    my $holds = $sth->fetchrow;
-    return ($holds);
-}
-
 =head2 prepare_host_field
 
 $marcfield = prepare_host_field( $hostbiblioitem, $marcflavour );
@@ -3586,7 +3313,7 @@ Generate the host item entry for an analytic child entry
 sub prepare_host_field {
     my ( $hostbiblio, $marcflavour ) = @_;
     $marcflavour ||= C4::Context->preference('marcflavour');
-    my $host = GetMarcBiblio($hostbiblio);
+    my $host = GetMarcBiblio({ biblionumber => $hostbiblio });
     # unfortunately as_string does not 'do the right thing'
     # if field returns undef
     my %sfd;
@@ -3724,17 +3451,18 @@ sub UpdateTotalIssues {
     my ($biblionumber, $increase, $value) = @_;
     my $totalissues;
 
-    my $record = GetMarcBiblio($biblionumber);
+    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
     unless ($record) {
         carp "UpdateTotalIssues could not get biblio record";
         return;
     }
-    my $data = GetBiblioData($biblionumber);
-    unless ($data) {
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    unless ($biblio) {
         carp "UpdateTotalIssues could not get datas of biblio";
         return;
     }
-    my ($totalissuestag, $totalissuessubfield) = GetMarcFromKohaField('biblioitems.totalissues', $data->{'frameworkcode'});
+    my $biblioitem = $biblio->biblioitem;
+    my ($totalissuestag, $totalissuessubfield) = GetMarcFromKohaField('biblioitems.totalissues', $biblio->frameworkcode);
     unless ($totalissuestag) {
         return 1; # There is nothing to do
     }
@@ -3742,7 +3470,7 @@ sub UpdateTotalIssues {
     if (defined $value) {
         $totalissues = $value;
     } else {
-        $totalissues = $data->{'totalissues'} + $increase;
+        $totalissues = $biblioitem->totalissues + $increase;
     }
 
      my $field = $record->field($totalissuestag);
@@ -3754,7 +3482,7 @@ sub UpdateTotalIssues {
          $record->insert_grouped_field($field);
      }
 
-     return ModBiblio($record, $biblionumber, $data->{'frameworkcode'});
+     return ModBiblio($record, $biblionumber, $biblio->frameworkcode);
 }
 
 =head2 RemoveAllNsb

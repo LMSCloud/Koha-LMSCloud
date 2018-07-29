@@ -57,7 +57,9 @@ use C4::Members::Messaging;
 use C4::Overdues;
 use Koha::DateUtils;
 use C4::Log;
+use Koha::Items;
 use Koha::Libraries;
+use Koha::Patrons;
 
 =head1 NAME
 
@@ -161,6 +163,7 @@ any field from the branches table
 
 The F<misc/cronjobs/overdue_notices.pl> program allows you to send
 messages to patrons when their messages are overdue.
+
 =cut
 
 binmode( STDOUT, ':encoding(UTF-8)' );
@@ -186,7 +189,7 @@ GetOptions(
             'itemscontent=s' => \$itemscontent,
        )or pod2usage(2);
 pod2usage(1) if $help;
-pod2usage( -verbose => 2 ) if $man;;
+pod2usage( -verbose => 2 ) if $man;
 
 # Since advance notice options are not visible in the web-interface
 # unless EnhancedMessagingPreferences is on, let the user know that
@@ -250,23 +253,21 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             $due_digest->{ $upcoming->{borrowernumber} }->{email} = $from_address;
             $due_digest->{ $upcoming->{borrowernumber} }->{count}++;
         } else {
-            my $biblio = C4::Biblio::GetBiblioFromItemNumber( $upcoming->{'itemnumber'} );
+            my $item = Koha::Items->find( $upcoming->{itemnumber} );
             my $letter_type = 'DUE';
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},'0');
             my $titles = "";
             my @items = ();
             while ( my $item_info = $sth->fetchrow_hashref()) {
-              my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
-              $titles .= join("\t",@item_info) . "\n";
-              push @items, $item_info;
+                $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
             }
 
             ## Get branch info for borrowers home library.
             foreach my $transport ( keys %{$borrower_preferences->{'transports'}} ) {
                 my $letter = parse_letter( { letter_code    => $letter_type,
                                       borrowernumber => $upcoming->{'borrowernumber'},
-                                      branchcode     => Koha::Libraries->get_effective_branch($upcoming->{'branchcode'}),
-                                      biblionumber   => $biblio->{'biblionumber'},
+                                      branchcode     =>  Koha::Libraries->get_effective_branch($upcoming->{'branchcode'}),
+                                      biblionumber   => $item->biblionumber,
                                       itemnumber     => $upcoming->{'itemnumber'},
                                       items          => \@items,
                                       substitute     => { 'items.content' => $titles },
@@ -287,15 +288,13 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             $upcoming_digest->{ $upcoming->{borrowernumber} }->{email} = $from_address;
             $upcoming_digest->{ $upcoming->{borrowernumber} }->{count}++;
         } else {
-            my $biblio = C4::Biblio::GetBiblioFromItemNumber( $upcoming->{'itemnumber'} );
+            my $item = Koha::Items->find( $upcoming->{itemnumber} );
             my $letter_type = 'PREDUE';
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},$borrower_preferences->{'days_in_advance'});
             my $titles = "";
             my @items = ();
             while ( my $item_info = $sth->fetchrow_hashref()) {
-              my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
-              $titles .= join("\t",@item_info) . "\n";
-              push @items, $item_info;
+                $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
             }
 
             ## Get branch info for borrowers home library.
@@ -303,7 +302,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
                 my $letter = parse_letter( { letter_code    => $letter_type,
                                       borrowernumber => $upcoming->{'borrowernumber'},
                                       branchcode     => Koha::Libraries->get_effective_branch($upcoming->{'branchcode'}),
-                                      biblionumber   => $biblio->{'biblionumber'},
+                                      biblionumber   => $item->biblionumber,
                                       itemnumber     => $upcoming->{'itemnumber'},
                                       items          => \@items,
                                       substitute     => { 'items.content' => $titles },
@@ -363,9 +362,7 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$upcoming_digest ) {
     my $titles = "";
     my @items = ();
     while ( my $item_info = $sth->fetchrow_hashref()) {
-      my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
-      $titles .= join("\t",@item_info) . "\n";
-      push @items, $item_info;
+        $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
     }
 
     ## Get branch info for borrowers home library.
@@ -424,9 +421,7 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$due_digest ) {
     my $titles = "";
     my @items = ();
     while ( my $item_info = $sth->fetchrow_hashref()) {
-      my @item_info = map { $_ =~ /^date|date$/ ? format_date($item_info->{$_}) : $item_info->{$_} || '' } @item_content_fields;
-      $titles .= join("\t",@item_info) . "\n";
-      push @items, $item_info;
+        $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
     }
 
     ## Get branch info for borrowers home library.
@@ -486,6 +481,9 @@ sub parse_letter {
     my $substitute = $params->{'substitute'} || {};
     $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
 
+    my $patron = Koha::Patrons->find( $params->{borrowernumber} );
+
+
     my %table_params = ( 'borrowers' => $params->{'borrowernumber'} );
 
     if ( my $p = $params->{'branchcode'} ) {
@@ -523,16 +521,11 @@ sub parse_letter {
         letter_code => $params->{'letter_code'},
         branchcode => $table_params{'branches'},
         substitute => $substitute,
+        lang => $patron->lang,
         tables     => \%table_params,
         repeat => { item => \@item_tables },
         message_transport_type => $params->{message_transport_type},
     );
-}
-
-sub format_date {
-    my $date_string = shift;
-    my $dt=dt_from_string($date_string);
-    return output_pref($dt);
 }
 
 =head2 get_branch_info
@@ -543,9 +536,8 @@ sub get_branch_info {
     my ( $borrowernumber ) = @_;
 
     ## Get branch info for borrowers home library.
-    my $borrower_details = C4::Members::GetMember( borrowernumber => $borrowernumber );
-    my $borrower_branchcode = Koha::Libraries->get_effective_branch($borrower_details->{'branchcode'});
-    my $branch = Koha::Libraries->find( $borrower_branchcode )->unblessed;
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    my $branch = Koha::Libraries->find( Koha::Libraries->get_effective_branch(patron->branchcode) )->unblessed;
     my %branch_info;
     foreach my $key( keys %$branch ) {
         $branch_info{"branches.$key"} = $branch->{$key};

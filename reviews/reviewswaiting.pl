@@ -15,16 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Context;
-use C4::Review;
-use C4::Members;
 use C4::Biblio;
+use Koha::Biblios;
+use Koha::Patrons;
+use Koha::Reviews;
 
 my $query = new CGI;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -43,29 +43,40 @@ my $status   = $query->param('status') || 0;
 my $reviewid = $query->param('reviewid');
 my $page     = $query->param('page') || 1;
 my $count    = C4::Context->preference('numSearchResults') || 20;
-my $offset   = ($page-1) * $count;
-my $total    = numberofreviews($status);
+my $total    = Koha::Reviews->search_limited({ approved => $status })->count;
 
 if ( $op eq 'approve' ) {
-    approvereview($reviewid);
+    my $review = Koha::Reviews->find( $reviewid );
+    $review->approve if $review;
 }
 elsif ( $op eq 'unapprove' ) {
-    unapprovereview($reviewid);
+    my $review = Koha::Reviews->find( $reviewid );
+    $review->unapprove if $review;
 }
 elsif ( $op eq 'delete' ) {
-    deletereview($reviewid);
+    my $review = Koha::Reviews->find( $reviewid );
+    $review->delete if $review;
 }
 
-my $reviews = getallreviews($status,$offset,$count);
+my $reviews = Koha::Reviews->search_limited(
+    { approved => $status },
+    {
+        rows => $count,
+        page => $page,
+        order_by => { -desc => 'datereviewed' },
+    }
+)->unblessed;
 
-foreach ( @$reviews ) {
-    my $borrowernumber = $_->{borrowernumber};
-    my $borrowerData   = GetMember('borrowernumber' => $borrowernumber);
-    my $biblioData     = GetBiblioData($_->{biblionumber});
+for my $review ( @$reviews ) {
+    my $biblio         = Koha::Biblios->find( $review->{biblionumber} );
     # setting some borrower info into this hash
-    $_->{bibliotitle} = $biblioData->{'title'};
-    $_->{surname}     = $borrowerData->{'surname'};
-    $_->{firstname}   = $borrowerData->{'firstname'};
+    $review->{bibliotitle} = $biblio->title;
+
+    my $borrowernumber = $review->{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber);
+    if ( $patron ) {
+        $review->{patron} = $patron;
+    }
 }
 
 my $url = "/cgi-bin/koha/reviews/reviewswaiting.pl?status=$status";

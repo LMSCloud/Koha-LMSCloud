@@ -52,6 +52,7 @@ BEGIN {
     );
     push @EXPORT, qw(
         &output_html_with_http_headers &output_ajax_with_http_headers &output_with_http_headers
+        &output_and_exit_if_error
     );
 
 }
@@ -316,15 +317,54 @@ sub is_ajax {
     return ( $x_req and $x_req =~ /XMLHttpRequest/i ) ? 1 : 0;
 }
 
+=item output_and_exit_if_error
+
+    output_and_exit_if_error( $query, $cookie, $template, $params );
+
+To executed at the beginning of scripts to stop the script at this point if
+some errors are found.
+
+Tests for module 'members':
+* patron is not defined (we are looking for a patron that does no longer exist/never existed)
+* The logged in user cannot see patron's infos (feature 'cannot_see_patron_infos')
+
+Others will be added here depending on the needs (for instance biblio does not exist will be useful).
+
+=cut
+
+sub output_and_exit_if_error {
+    my ( $query, $cookie, $template, $params ) = @_;
+    my $error;
+    if ( $params and exists $params->{module} ) {
+        if ( $params->{module} eq 'members' ) {
+            my $logged_in_user = $params->{logged_in_user};
+            my $current_patron = $params->{current_patron};
+            if ( not $current_patron ) {
+                $error = 'unknown_patron';
+            }
+            elsif( not $logged_in_user->can_see_patron_infos( $current_patron ) ) {
+                $error = 'cannot_see_patron_infos';
+            }
+        }
+    }
+
+    if ( $error ) {
+        $template->param( blocking_error => $error );
+        output_html_with_http_headers ( $query, $cookie, $template->output );
+        exit;
+    }
+    return;
+}
+
 sub parametrized_url {
     my $url = shift || ''; # ie page.pl?ln={LANG}
     my $vars = shift || {}; # ie { LANG => en }
     my $ret = $url;
     while ( my ($key,$val) = each %$vars) {
-        my $val_url = URI::Escape::uri_escape_utf8($val);
+        my $val_url = URI::Escape::uri_escape_utf8( $val // q{} );
         $ret =~ s/\{$key\}/$val_url/g;
     }
-    $ret =~ s/\{[^\{]*\}//g; # remove not defined vars
+    $ret =~ s/\{[^\{]*\}//g; # remove remaining vars
     return $ret;
 }
 

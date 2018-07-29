@@ -24,6 +24,7 @@ use CGI qw ( -utf8 );
 use C4::Context;
 
 use Koha::Authority::Types;
+use Koha::AuthorisedValueCategories;
 
 use List::MoreUtils qw( uniq );
 
@@ -64,7 +65,8 @@ my $tagfield      = $input->param('tagfield');
 my $tagsubfield   = $input->param('tagsubfield');
 my $frameworkcode = $input->param('frameworkcode');
 my $pkfield       = "tagfield";
-my $offset        = $input->param('offset') || 0;
+my $offset        = $input->param('offset');
+$offset = 0 if not defined $offset or $offset < 0;
 my $script_name   = "/cgi-bin/koha/admin/marc_subfields_structure.pl";
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -77,7 +79,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         debug           => 1,
     }
 );
-my $cache = Koha::Cache->get_instance();
+my $cache = Koha::Caches->get_instance();
 
 my $op       = $input->param('op') || "";
 $tagfield =~ s/\,//g;
@@ -128,14 +130,8 @@ if ( $op eq 'add_form' ) {
     $sth2->finish;
     $sth2 = $dbh->prepare("select distinct category from authorised_values");
     $sth2->execute;
-    my @authorised_values;
-    push @authorised_values, "";
-    while ( ( my $category ) = $sth2->fetchrow_array ) {
-        push @authorised_values, $category;
-    }
-    push( @authorised_values, "branches" );
-    push( @authorised_values, "itemtypes" );
-    push( @authorised_values, "cn_source" );
+    my @av_cat = Koha::AuthorisedValueCategories->search;
+    my @authorised_values = map { $_->category_name } @av_cat;
 
     # build thesaurus categories list
     my @authtypes = uniq( "", map { $_->authtypecode } Koha::Authority::Types->search );
@@ -285,56 +281,58 @@ elsif ( $op eq 'add_validate' ) {
         my $maxlength = $maxlength[$i] ? $maxlength[$i] : 9999;
         
         if (defined($liblibrarian) && $liblibrarian ne "") {
-            my $is_demo = C4::Context->config('demo') || '';
-            if ( $is_demo ne '1' ) {
-                if (marc_subfield_structure_exists($tagfield, $tagsubfield, $frameworkcode)) {
-                    $sth_update->execute(
+            if (marc_subfield_structure_exists($tagfield, $tagsubfield, $frameworkcode)) {
+                $sth_update->execute(
+                    $tagfield,
+                    $tagsubfield,
+                    $liblibrarian,
+                    $libopac,
+                    $repeatable,
+                    $mandatory,
+                    $kohafield,
+                    $tab,
+                    $seealso,
+                    $authorised_value,
+                    $authtypecode,
+                    $value_builder,
+                    $hidden,
+                    $isurl,
+                    $frameworkcode,
+                    $link,
+                    $defaultvalue,
+                    $maxlength,
+                    (
                         $tagfield,
                         $tagsubfield,
-                        $liblibrarian,
-                        $libopac,
-                        $repeatable,
-                        $mandatory,
-                        $kohafield,
-                        $tab,
-                        $seealso,
-                        $authorised_value,
-                        $authtypecode,
-                        $value_builder,
-                        $hidden,
-                        $isurl,
                         $frameworkcode,
-                        $link,
-                        $defaultvalue,
-                        $maxlength,
-                        (
-                            $tagfield,
-                            $tagsubfield,
-                            $frameworkcode,
-                        ),
-                    );
-                } else {
-                    $sth_insert->execute(
-                        $tagfield,
-                        $tagsubfield,
-                        $liblibrarian,
-                        $libopac,
-                        $repeatable,
-                        $mandatory,
-                        $kohafield,
-                        $tab,
-                        $seealso,
-                        $authorised_value,
-                        $authtypecode,
-                        $value_builder,
-                        $hidden,
-                        $isurl,
-                        $frameworkcode,
-                        $link,
-                        $defaultvalue,
-                        $maxlength,
-                    );
+                    )
+                );
+            } else {
+                if( $frameworkcode ne q{} ) {
+                    # BZ 19096: Overwrite kohafield from Default when adding a new record
+                     my $rec = Koha::MarcSubfieldStructures->find( q{}, $tagfield, $tagsubfield );
+                    $kohafield = $rec->kohafield if $rec;
                 }
+                $sth_insert->execute(
+                    $tagfield,
+                    $tagsubfield,
+                    $liblibrarian,
+                    $libopac,
+                    $repeatable,
+                    $mandatory,
+                    $kohafield,
+                    $tab,
+                    $seealso,
+                    $authorised_value,
+                    $authtypecode,
+                    $value_builder,
+                    $hidden,
+                    $isurl,
+                    $frameworkcode,
+                    $link,
+                    $defaultvalue,
+                    $maxlength,
+                );
             }
         }
     }
@@ -342,7 +340,7 @@ elsif ( $op eq 'add_validate' ) {
     $sth_update->finish;
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-$frameworkcode");
+    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
     print $input->redirect("/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=$tagfield&amp;frameworkcode=$frameworkcode");
@@ -377,18 +375,15 @@ elsif ( $op eq 'delete_confirm' ) {
 }
 elsif ( $op eq 'delete_confirmed' ) {
     my $dbh = C4::Context->dbh;
-    my $is_demo = C4::Context->config('demo') || '';
-    if ( $is_demo ne '1' ) {
-        my $sth =
-          $dbh->prepare(
+    my $sth =
+      $dbh->prepare(
 "delete from marc_subfield_structure where tagfield=? and tagsubfield=? and frameworkcode=?"
-          );
-        $sth->execute( $tagfield, $tagsubfield, $frameworkcode );
-        $sth->finish;
-    }
+      );
+    $sth->execute( $tagfield, $tagsubfield, $frameworkcode );
+    $sth->finish;
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-$frameworkcode");
+    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
     print $input->redirect("/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=$tagfield&amp;frameworkcode=$frameworkcode");
     exit;

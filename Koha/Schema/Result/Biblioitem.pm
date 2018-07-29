@@ -38,12 +38,12 @@ __PACKAGE__->table("biblioitems");
 
 =head2 volume
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 number
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 itemtype
@@ -54,23 +54,22 @@ __PACKAGE__->table("biblioitems");
 
 =head2 isbn
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 issn
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 ean
 
-  data_type: 'varchar'
+  data_type: 'longtext'
   is_nullable: 1
-  size: 13
 
 =head2 publicationyear
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 publishercode
@@ -87,32 +86,32 @@ __PACKAGE__->table("biblioitems");
 
 =head2 volumedesc
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 collectiontitle
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 collectionissn
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 collectionvolume
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 editionstatement
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 editionresponsibility
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 timestamp
@@ -136,7 +135,7 @@ __PACKAGE__->table("biblioitems");
 
 =head2 notes
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 size
@@ -157,14 +156,9 @@ __PACKAGE__->table("biblioitems");
   is_nullable: 1
   size: 25
 
-=head2 marc
-
-  data_type: 'longblob'
-  is_nullable: 1
-
 =head2 url
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 cn_source
@@ -208,11 +202,6 @@ __PACKAGE__->table("biblioitems");
   data_type: 'integer'
   is_nullable: 1
 
-=head2 marcxml
-
-  data_type: 'longtext'
-  is_nullable: 1
-
 =cut
 
 __PACKAGE__->add_columns(
@@ -226,35 +215,35 @@ __PACKAGE__->add_columns(
     is_nullable    => 0,
   },
   "volume",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "number",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "itemtype",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "isbn",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "issn",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "ean",
-  { data_type => "varchar", is_nullable => 1, size => 13 },
+  { data_type => "longtext", is_nullable => 1 },
   "publicationyear",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "publishercode",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "volumedate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "volumedesc",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "collectiontitle",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "collectionissn",
-  { data_type => "text", is_nullable => 1 },
-  "collectionvolume",
   { data_type => "mediumtext", is_nullable => 1 },
+  "collectionvolume",
+  { data_type => "longtext", is_nullable => 1 },
   "editionstatement",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "editionresponsibility",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "timestamp",
   {
     data_type => "timestamp",
@@ -267,17 +256,15 @@ __PACKAGE__->add_columns(
   "pages",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "notes",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "size",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "place",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "lccn",
   { data_type => "varchar", is_nullable => 1, size => 25 },
-  "marc",
-  { data_type => "longblob", is_nullable => 1 },
   "url",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "cn_source",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "cn_class",
@@ -292,8 +279,6 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "totalissues",
   { data_type => "integer", is_nullable => 1 },
-  "marcxml",
-  { data_type => "longtext", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -341,8 +326,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2015-02-24 14:19:57
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:A/4lKYlKWWd8TcMVzMRtCg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ogVRTKNaUQSI3BE2xC2lww
 
 __PACKAGE__->belongs_to( biblio => "Koha::Schema::Result::Biblio", "biblionumber" );
 

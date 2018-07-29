@@ -1,125 +1,11 @@
 [% USE KohaDates %]
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Reports &rsaquo; Aggregated statistics[% IF ( add_form or copy_form ) %][% IF ( modify ) %] &rsaquo; Modify aggregated statistics[% ELSE %] &rsaquo; Add aggregated statistics[% END %][% END %][% IF ( add_validate or copy_validate) %] &rsaquo; Aggregated statistics added[% END %][% IF ( delete_confirm ) %] &rsaquo; Confirm deletion[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% INCLUDE 'greybox.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-[% INCLUDE 'calendar.inc' %]
-
-<script type="text/javascript">
-//<![CDATA[
-$(document).ready(function() {
-
-    $("#hitstable").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-            { "bSortable": false, "bSearchable": false, 'aTargets': [ 'nosort' ] },
-            { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
-        ],
-        "order": [[ 2, "desc" ], [ 0, "asc" ]],
-        "bPaginate": true,
-        "sPaginationType": "four_button",
-        "pageLength": 20,
-        "stateSave": true,
-        "stateDuration": -1
-    } ));
-
-    [% IF no_op_set %]
-      $('#astype').change(function() {
-            $('#op').val("");
-            $('#selectstatisticstype').submit();
-      });
-      $('#newaggregatedstatistics').click(function() {
-            $('#op').val("add_form");
-            return true;
-      });
-    [% END %]
-
-    $("#submit_form").click( function(event) {
-        event.preventDefault();
-        var at_least_one_is_empty = 0;
-        var name = $('#name').val();
-        var description = $('#description').val();
-        var startdate = $('#startdate').val();
-        var enddate = $('#enddate').val();
-
-        if (
-            name.length == 0 ||
-            description.length  == 0 ||
-            startdate.length  == 0 ||
-            enddate.length  == 0
-           ) {
-            at_least_one_is_empty = 1;
-        }
-        if ( at_least_one_is_empty ) {
-            alert( _("Please fill in all required fields.") );
-            return false;
-        }
-
-        // Test if aggregated statistics record with same type and name already exists in DB
-        var new_statisticstype = $("#astype").val();
-        var new_name = $("#name").val();
-        [% IF ( add_form and name ) # if edit, not if add or copy %]
-          if ( new_name != '[% name %]' ) {
-        [% END %]
-          $.ajax({
-            data: { type: new_statisticstype, name: new_name },
-            type: 'GET',
-            url: '/cgi-bin/koha/svc/aggregated_statistics',
-            success: function (data) {
-              if ( data.aggregatedStatistics.length > 0 ) {
-alert( _("An aggregated statistics of type '%s' with the same new name '%s' already exists. Please choose a name that is not used already.").format(new_statisticstype, new_name) );
-                return false;
-              } else {
-//alert( _("An aggregated statistics of type '%s' with the same new name '%s' NOT already exists.").format(new_statisticstype, new_name) );
-                $("#add_aggregated_statistics").submit();
-              }
-            },
-          });
-        [% IF ( add_form and name ) # if edit, not if add or copy %]
-          } else {
-//alert( _("Storing aggregated statistics of type '%s' with original name '%s': NO problem, overwriting by design.").format(new_statisticstype, new_name) );
-            $("#add_aggregated_statistics").submit();
-          }
-        [% END %]
-    });
-});
-
-[% IF add_form or copy_form %]
-    function cancel(f) {
-        $('#op').val("");
-        f.method = "get";
-        f.submit();
-    }
-[% END %]
-//]]>
-</script>
-
-<script type="text/javascript" src="[% interface %]/lib/tiny_mce/tiny_mce.js"></script>
-<script type="text/javascript">//<![CDATA[
-tinyMCE.init({
-    mode : "textareas",
-    theme : "advanced",
-    convert_urls : false,
-    relative_urls : false,
-    content_css : "[% interface %]/[% theme %]/css/tinymce.css",
-    plugins : "table,save,advhr,advlink,searchreplace,print,contextmenu",
-    theme_advanced_buttons1 : "save,|,bold,italic,|,cut,copy,paste,|,search,replace,|,justifyleft,justifycenter,justifyright,justifyfull,|,formatselect,|,link,unlink,anchor,cleanup,help,code,advhr,|,print",
-    theme_advanced_buttons2 : "tablecontrols,|,bullist,numlist,|,outdent,indent,|,undo,redo,|,removeformat,|,visualaid,|,sub,sup,|,charmap",
-    theme_advanced_buttons3 : "",
-    theme_advanced_toolbar_location : "top",
-    theme_advanced_toolbar_align : "left",
-    theme_advanced_path_location : "bottom",
-    theme_advanced_resizing : true,
-    plugin_insertdate_dateFormat : "%Y-%m-%d",
-    plugin_insertdate_timeFormat : "%H:%M:%S",
-    apply_source_formatting : true,
-    height : "300",
-    width : "700"
-//]]>
-});
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="rep_aggregated_statistics" class="rep">
@@ -147,7 +33,7 @@ tinyMCE.init({
         <div id="toolbar" class="btn-toolbar">
           <input type="hidden" id="op" name="op" value="add_form" >
           <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
-          <button type="submit" class="btn btn-small" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value %]</button>
+          <button type="submit" class="btn btn-default btn-xs" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value %]</button>
         </div>
       </form>
 
@@ -180,7 +66,7 @@ tinyMCE.init({
                         <input type="hidden" name="description" value="[% hit.description %]" />
                         <input type="hidden" name="startdate" value="[% hit.startdate %]" />
                         <input type="hidden" name="enddate" value="[% hit.enddate %]" />
-                        <button class="btn btn-mini"><i class="fa fa-clone"></i> Copy</button>
+                        <button class="btn btn-default btn-xs"><i class="fa fa-clone"></i> Copy</button>
                       </form>
 
                       <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
@@ -190,10 +76,10 @@ tinyMCE.init({
                         <input type="hidden" name="description" value="[% hit.description %]" />
                         <input type="hidden" name="startdate" value="[% hit.startdate %]" />
                         <input type="hidden" name="enddate" value="[% hit.enddate %]" />
-                        <button class="btn btn-mini"><i class="fa fa-gears"></i> Parameters</button>
+                        <button class="btn btn-default btn-xs"><i class="fa fa-gears"></i> Parameters</button>
                       </form>
 
-                      <a class="btn btn-mini" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type %]&amp;name=[% hit.name %]"><i class="fa fa-trash"></i> Delete</a>
+                      <a class="btn btn-default btn-xs" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type %]&amp;name=[% hit.name %]"><i class="fa fa-trash"></i> Delete</a>
 
                       <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
                         <input type="hidden" name="op" value="eval_form" />
@@ -203,7 +89,7 @@ tinyMCE.init({
                         <input type="hidden" name="description" value="[% hit.description %]" />
                         <input type="hidden" name="startdate" value="[% hit.startdate %]" />
                         <input type="hidden" name="enddate" value="[% hit.enddate %]" />
-                        <button class="btn btn-mini"><i class="fa fa-pencil"></i> Edit</button>
+                        <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
                       </form>
                   </td>
                 </tr>
@@ -277,7 +163,7 @@ tinyMCE.init({
         </fieldset>
 
 [% IF ( statisticstype == 'DBS' ) %]
-[% INCLUDE 'aggregated-statistics-parameters-DBS.inc' %]
+[% PROCESS 'aggregated-statistics-parameters-DBS.inc' %]
 [% END %]
 
         <fieldset class="action"><input type="submit" id="submit_form" value="Submit" class="button" /> <a class="cancel" href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype %]">Cancel</a></fieldset>
@@ -328,4 +214,117 @@ tinyMCE.init({
     </div>
 [% END %]
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("lib/tiny_mce/tiny_mce.js") %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+
+            $("#hitstable").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "bSortable": false, "bSearchable": false, 'aTargets': [ 'nosort' ] },
+                    { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
+                ],
+                "order": [[ 2, "desc" ], [ 0, "asc" ]],
+                "bPaginate": true,
+                "sPaginationType": "four_button",
+                "pageLength": 20,
+                "stateSave": true,
+                "stateDuration": -1
+            } ));
+
+            [% IF no_op_set %]
+              $('#astype').change(function() {
+                    $('#op').val("");
+                    $('#selectstatisticstype').submit();
+              });
+              $('#newaggregatedstatistics').click(function() {
+                    $('#op').val("add_form");
+                    return true;
+              });
+            [% END %]
+
+            $("#submit_form").click( function(event) {
+                event.preventDefault();
+                var at_least_one_is_empty = 0;
+                var name = $('#name').val();
+                var description = $('#description').val();
+                var startdate = $('#startdate').val();
+                var enddate = $('#enddate').val();
+
+                if (
+                    name.length == 0 ||
+                    description.length  == 0 ||
+                    startdate.length  == 0 ||
+                    enddate.length  == 0
+                   ) {
+                    at_least_one_is_empty = 1;
+                }
+                if ( at_least_one_is_empty ) {
+                    alert( _("Please fill in all required fields.") );
+                    return false;
+                }
+
+                // Test if aggregated statistics record with same type and name already exists in DB
+                var new_statisticstype = $("#astype").val();
+                var new_name = $("#name").val();
+                [% IF ( add_form and name ) # if edit, not if add or copy %]
+                  if ( new_name != '[% name %]' ) {
+                [% END %]
+                  $.ajax({
+                    data: { type: new_statisticstype, name: new_name },
+                    type: 'GET',
+                    url: '/cgi-bin/koha/svc/aggregated_statistics',
+                    success: function (data) {
+                      if ( data.aggregatedStatistics.length > 0 ) {
+        alert( _("An aggregated statistics of type '%s' with the same new name '%s' already exists. Please choose a name that is not used already.").format(new_statisticstype, new_name) );
+                        return false;
+                      } else {
+        //alert( _("An aggregated statistics of type '%s' with the same new name '%s' NOT already exists.").format(new_statisticstype, new_name) );
+                        $("#add_aggregated_statistics").submit();
+                      }
+                    },
+                  });
+                [% IF ( add_form and name ) # if edit, not if add or copy %]
+                  } else {
+        //alert( _("Storing aggregated statistics of type '%s' with original name '%s': NO problem, overwriting by design.").format(new_statisticstype, new_name) );
+                    $("#add_aggregated_statistics").submit();
+                  }
+                [% END %]
+            });
+        });
+
+        [% IF add_form or copy_form %]
+            function cancel(f) {
+                $('#op').val("");
+                f.method = "get";
+                f.submit();
+            }
+        [% END %]
+
+        tinyMCE.init({
+            mode : "textareas",
+            theme : "advanced",
+            convert_urls : false,
+            relative_urls : false,
+            content_css : "[% interface %]/[% theme %]/css/tinymce.css",
+            plugins : "table,save,advhr,advlink,searchreplace,print,contextmenu",
+            theme_advanced_buttons1 : "save,|,bold,italic,|,cut,copy,paste,|,search,replace,|,justifyleft,justifycenter,justifyright,justifyfull,|,formatselect,|,link,unlink,anchor,cleanup,help,code,advhr,|,print",
+            theme_advanced_buttons2 : "tablecontrols,|,bullist,numlist,|,outdent,indent,|,undo,redo,|,removeformat,|,visualaid,|,sub,sup,|,charmap",
+            theme_advanced_buttons3 : "",
+            theme_advanced_toolbar_location : "top",
+            theme_advanced_toolbar_align : "left",
+            theme_advanced_path_location : "bottom",
+            theme_advanced_resizing : true,
+            plugin_insertdate_dateFormat : "%Y-%m-%d",
+            plugin_insertdate_timeFormat : "%H:%M:%S",
+            apply_source_formatting : true,
+            height : "300",
+            width : "700"
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

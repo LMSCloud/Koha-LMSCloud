@@ -27,8 +27,14 @@ use C4::Members;
 use C4::Output;
 use C4::XSLT;
 
+use Koha::Biblios;
+use Koha::Biblioitems;
+use Koha::ItemTypes;
 use Koha::CsvProfiles;
+use Koha::Patrons;
 use Koha::Virtualshelves;
+
+use constant ANYONE => 2;
 
 my $query = new CGI;
 
@@ -47,14 +53,15 @@ my $category = $query->param('category') || 1;
 my ( $shelf, $shelfnumber, @messages );
 
 if ( $op eq 'add_form' ) {
-    # Nothing to do
+    # Only pass default
+    $shelf = { allow_change_from_owner => 1 };
 } elsif ( $op eq 'edit_form' ) {
     $shelfnumber = $query->param('shelfnumber');
     $shelf       = Koha::Virtualshelves->find($shelfnumber);
 
     if ( $shelf ) {
         $category = $shelf->category;
-        my $patron = GetMember( 'borrowernumber' => $shelf->owner );
+        my $patron = Koha::Patrons->find( $shelf->owner )->unblessed;
         $template->param( owner => $patron, );
         unless ( $shelf->can_be_managed( $loggedinuser ) ) {
             push @messages, { type => 'alert', code => 'unauthorized_on_update' };
@@ -64,14 +71,14 @@ if ( $op eq 'add_form' ) {
         push @messages, { type => 'alert', code => 'does_not_exist' };
     }
 } elsif ( $op eq 'add' ) {
+    my $allow_changes_from = $query->param('allow_changes_from');
     eval {
         $shelf = Koha::Virtualshelf->new(
             {   shelfname          => scalar $query->param('shelfname'),
                 sortfield          => scalar $query->param('sortfield'),
                 category           => scalar $query->param('category'),
-                allow_add          => scalar $query->param('allow_add'),
-                allow_delete_own   => scalar $query->param('allow_delete_own'),
-                allow_delete_other => scalar $query->param('allow_delete_other'),
+                allow_change_from_owner => $allow_changes_from > 0,
+                allow_change_from_others => $allow_changes_from == ANYONE,
                 owner              => scalar $query->param('owner'),
             }
         );
@@ -98,9 +105,9 @@ if ( $op eq 'add_form' ) {
         if ( $shelf->can_be_managed( $loggedinuser ) ) {
             $shelf->shelfname( scalar $query->param('shelfname') );
             $shelf->sortfield( $sortfield );
-            $shelf->allow_add( scalar $query->param('allow_add') );
-            $shelf->allow_delete_own( scalar $query->param('allow_delete_own') );
-            $shelf->allow_delete_other( scalar $query->param('allow_delete_other') );
+            my $allow_changes_from = $query->param('allow_changes_from');
+            $shelf->allow_change_from_owner( $allow_changes_from > 0 );
+            $shelf->allow_change_from_others( $allow_changes_from == ANYONE );
             $shelf->category( scalar $query->param('category') );
             eval { $shelf->store };
 
@@ -138,24 +145,52 @@ if ( $op eq 'add_form' ) {
     $shelfnumber = $query->param('shelfnumber');
     $shelf = Koha::Virtualshelves->find($shelfnumber);
     if ($shelf) {
-        if( my $barcode = $query->param('barcode') ) {
-            my $item = GetItem( 0, $barcode);
-            if (defined $item && $item->{itemnumber}) {
-                my $biblio = GetBiblioFromItemNumber( $item->{itemnumber} );
-                if ( $shelf->can_biblios_be_added( $loggedinuser ) ) {
-                    my $added = eval { $shelf->add_biblio( $biblio->{biblionumber}, $loggedinuser ); };
-                    if ($@) {
-                        push @messages, { type => 'alert', code => ref($@), msg => $@ };
-                    } elsif ( $added ) {
-                        push @messages, { type => 'message', code => 'success_on_add_biblio' };
+        if( my $barcodes = $query->param('barcodes') ) {
+            if ( $shelf->can_biblios_be_added( $loggedinuser ) ) {
+                my @barcodes = split /\n/, $barcodes; # Entries are effectively passed in as a <cr> separated list
+                foreach my $barcode (@barcodes){
+                    $barcode =~ s/\r$//; # strip any naughty return chars
+                    next if $barcode eq '';
+                    my $item = GetItem( 0, $barcode);
+                    if (defined $item && $item->{itemnumber}) {
+                        my $added = eval { $shelf->add_biblio( $item->{biblionumber}, $loggedinuser ); };
+                        if ($@) {
+                            push @messages, { item_barcode => $barcode, type => 'alert', code => ref($@), msg => $@ };
+                        } elsif ( $added ) {
+                            push @messages, { item_barcode => $barcode, type => 'message', code => 'success_on_add_biblio' };
+                        } else {
+                            push @messages, { item_barcode => $barcode, type => 'message', code => 'error_on_add_biblio' };
+                        }
                     } else {
-                        push @messages, { type => 'message', code => 'error_on_add_biblio' };
+                        push @messages, { item_barcode => $barcode, type => 'alert', code => 'item_does_not_exist' };
                     }
-                } else {
-                    push @messages, { type => 'alert', code => 'unauthorized_on_add_biblio' };
                 }
             } else {
-                push @messages, { type => 'alert', code => 'item_does_not_exist' };
+                push @messages, { type => 'alert', code => 'unauthorized_on_add_biblio' };
+            }
+        }
+        if ( my $biblionumbers = $query->param('biblionumbers') ) {
+            if ( $shelf->can_biblios_be_added( $loggedinuser ) ) {
+                my @biblionumbers = split /\n/, $biblionumbers;
+                foreach my $biblionumber (@biblionumbers) {
+                    $biblionumber =~ s/\r$//; # strip any naughty return chars
+                    next if $biblionumber eq '';
+                    my $biblio = Koha::Biblios->find($biblionumber);
+                    if (defined $biblio) {
+                        my $added = eval { $shelf->add_biblio( $biblionumber, $loggedinuser ); };
+                        if ($@) {
+                            push @messages, { bibnum => $biblionumber, type => 'alert', code => ref($@), msg => $@ };
+                        } elsif ( $added ) {
+                            push @messages, { bibnum => $biblionumber, type => 'message', code => 'success_on_add_biblio' };
+                        } else {
+                            push @messages, { bibnum => $biblionumber, type => 'message', code => 'error_on_add_biblio' };
+                        }
+                    } else {
+                        push @messages, { bibnum => $biblionumber, type => 'alert', code => 'item_does_not_exist' };
+                    }
+                }
+            } else {
+                push @messages, { type => 'alert', code => 'unauthorized_on_add_biblio' };
             }
         }
     } else {
@@ -218,31 +253,31 @@ if ( $op eq 'view' ) {
                 }
             );
 
-            my $borrower = GetMember( borrowernumber => $loggedinuser );
-
-            my $xslfile = C4::Context->preference('XSLTResultsDisplay');
+            my $xslfile = C4::Context->preference('XSLTListsDisplay');
             my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
             my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
 
             my @items;
             while ( my $content = $contents->next ) {
                 my $this_item;
-                my $biblionumber = $content->biblionumber->biblionumber;
-                my $record       = GetMarcBiblio($biblionumber);
+                my $biblionumber = $content->biblionumber;
+                my $record       = GetMarcBiblio({ biblionumber => $biblionumber });
 
                 if ( $xslfile ) {
-                    $this_item->{XSLTBloc} = XSLTParse4Display( $biblionumber, $record, "XSLTResultsDisplay",
+                    $this_item->{XSLTBloc} = XSLTParse4Display( $biblionumber, $record, "XSLTListsDisplay",
                                                                 1, undef, $sysxml, $xslfile, $lang);
                 }
 
                 my $marcflavour = C4::Context->preference("marcflavour");
-                my $itemtypeinfo = getitemtypeinfo( $content->biblionumber->biblioitems->first->itemtype, 'intranet' );
-                $this_item->{title}             = $content->biblionumber->title;
-                $this_item->{author}            = $content->biblionumber->author;
+                my $itemtype = Koha::Biblioitems->search({ biblionumber => $content->biblionumber })->next->itemtype;
+                $itemtype = Koha::ItemTypes->find( $itemtype );
+                my $biblio = Koha::Biblios->find( $content->biblionumber );
+                $this_item->{title}             = $biblio->title;
+                $this_item->{author}            = $biblio->author;
                 $this_item->{dateadded}         = $content->dateadded;
-                $this_item->{imageurl}          = $itemtypeinfo->{imageurl};
-                $this_item->{description}       = $itemtypeinfo->{description};
-                $this_item->{notforloan}        = $itemtypeinfo->{notforloan};
+                $this_item->{imageurl}          = $itemtype ? C4::Koha::getitemtypeimagelocation( 'intranet', $itemtype->imageurl ) : q{};
+                $this_item->{description}       = $itemtype ? $itemtype->description : q{}; #FIXME Should this be translated_description ?
+                $this_item->{notforloan}        = $itemtype->notforloan if $itemtype;
                 $this_item->{'coins'}           = GetCOinSBiblio($record);
                 $this_item->{'subtitle'}        = GetRecordValue( 'subtitle', $record, GetFrameworkCode( $biblionumber ) );
                 $this_item->{'normalized_upc'}  = GetNormalizedUPC( $record, $marcflavour );
@@ -315,7 +350,7 @@ $template->param(
     messages => \@messages,
     category => $category,
     print    => scalar $query->param('print') || 0,
-    csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc' }) ],
+    csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ],
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

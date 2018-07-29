@@ -1,101 +1,11 @@
+[% USE Asset %]
 [% USE KohaDates %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Circulation &rsaquo; Cash register management</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.insertatcaret.js"></script>
-
-<script type="text/javascript">
-$(document).ready( function() {
-    $("#cashregjournal").dataTable($.extend(true, {}, dataTablesDefaults, {
-        'pagingType': 'full_numbers',
-        'bAutoWidth': true,
-        'sPaginationType': 'full_numbers',
-        'aoColumnDefs': [
-            { "bSortable": true, "bSearchable": true, 'aTargets': ["_all"] },
-            { "aTargets": [ 0 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "aTargets": [ 1,6 ], "asSorting": [ "asc","desc" ]  },
-            { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
-        ],
-        "aoColumns": [ { "sType": 'natural' }, null, null , null, null, null, null, null, null ],
-        "iDisplayLength": 100,
-        "iDisplayStart": 0,
-        "order": [[ 0, "desc" ]],
-        'bSort' : true,
-        "bPaginate": false,
-        'serverSide': false,
-        'oLanguage': {
-            'sEmptyTable': _("No cash register transactions during the selected period.")
-        }
-    }));
-    
-    $('.cashregisterlink').click(function(){
-        var journalfrom = $('#journalfrom').val();
-        var journalto = $('#journalto').val();
-        if ( this.href.indexOf('?') < 0 ) this.href += '?';
-        if ( journalfrom ) this.href += '&journalfrom=' + journalfrom;
-        if ( journalto ) this.href += '&journalto=' + journalto;
-    });
-    
-    $('#cash_payment').on("keyup change", function() {
-        var amount = parseFloat($('#cash_payment').val()).toFixed(2);
-        var maxval =  parseFloat($('#cash_balance_val').val()).toFixed(2);
-        if(isNaN(amount) || !isFinite(amount) ){
-            $('#cash_payment').val(parseFloat(0.00).toFixed(2));
-            $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
-        }
-        else if ( (maxval - amount) < 0.00 ) {
-             $('#cash_payment').val(parseFloat(maxval).toFixed(2));
-             $('#new_balance').val(parseFloat(0.00).toFixed(2));
-        }
-        else {
-            $('#new_balance').val(parseFloat(maxval - amount).toFixed(2));
-        }
-    });
-    
-    $('#cash_deposit').on("keyup change", function() {
-        var amount = parseFloat($('#cash_deposit').val()).toFixed(2);
-        var currval = parseFloat($('#cash_balance_val').val()).toFixed(2);
-        if(isNaN(amount) || !isFinite(amount) || amount < 0.0 ){
-            $('#cash_deposit').val(parseFloat(0.00).toFixed(2));
-            $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
-        }
-        else {
-            amount = parseFloat(currval) + parseFloat(amount);
-            $('#new_balance').val(amount.toFixed(2));
-        }
-    });
-    
-
-    $('#cash_adjustment').on("keyup change", function() {
-        var val = $('#cash_adjustment').val();
-        var amount = parseFloat($('#cash_adjustment').val()).toFixed(2);
-        if ( val == '' || val == '-' ) {
-            return;
-        }
-        var maxval =  parseFloat($('#cash_balance_val').val()).toFixed(2);
-        if(isNaN(amount) || !isFinite(amount) ){
-            $('#cash_adjustment').val(parseFloat(0.00).toFixed(2));
-            $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
-            return;
-        }
-        amount *= -1;
-        if ( maxval >= 0.00 && (maxval - amount) < 0.00) {
-             $('#cash_adjustment').val(parseFloat(maxval*-1).toFixed(2));
-             $('#new_balance').val(parseFloat(0.00).toFixed(2));
-        }
-        else if (maxval < 0.00 && amount > 0.00) {
-            $('#cash_adjustment').val(parseFloat(0.00).toFixed(2));
-            $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
-        }
-        else {
-            $('#new_balance').val(parseFloat(maxval - amount).toFixed(2));
-        }
-    });
-});
-</script>
+[% Asset.css("css/datatables.css") %]
 
 <style type="text/css">
     #closecashregister .cash-amount, #payoutcashregister .cash-amount, #adjustcashregister .cash-amount {
@@ -103,6 +13,7 @@ $(document).ready( function() {
     }
 </style>
 </head>
+
 <body id="circ_managecashregister" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
@@ -149,8 +60,8 @@ $(document).ready( function() {
                         </div><!-- help-->
                         [% END %]
                         <div id="toolbar" class="btn-toolbar">
-                            <a id="closecashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
-                            <a id="finesreport" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
+                            <a id="closecashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
+                            <a id="finesreport" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                         </div>
                         [% END %]
                         
@@ -171,22 +82,22 @@ $(document).ready( function() {
                             <input type="hidden" name="op" value="open" />
                             <input id="journalfrom" type="hidden" name="journalfrom" value="[% journalfrom %]">
                             <input id="journalto" type="hidden" name="journalto" value="[% journalto %]">
-                            &nbsp;&nbsp;<button class="btn btn-small" submit=""><i class="fa fa-money"></i> Open cash register</button>
+                            &nbsp;&nbsp;<button class="btn btn-default btn-xs" submit=""><i class="fa fa-money"></i> Open cash register</button>
                         </form>
                         <div id="toolbar" class="btn-toolbar">
-                            <a id="linkfinesreport" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
+                            <a id="linkfinesreport" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                         </div>
                         [% END %]
                         
                         [% IF status == 'manage' %]
                             <div id="toolbar" class="btn-toolbar">
-                                <a id="linkclosecashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
-                                <a id="linkpayoutcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dopayout"><i class="fa fa-money"></i> Cash payment</a>
-                                <a id="linkdepositcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dodeposit"><i class="fa fa-gift"></i> Deposit</a>
-                                <a id="linkadjustcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa fa-adjust"></i> Difference posting</a>
-                                <a id="linkshowcashregister" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa fa-list"></i> Cash journal</a>
-                                <a id="linkcashregisteroverview" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Cash register overview</a>
-                                <a id="linkfinesreport" class="btn btn-small cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
+                                <a id="linkclosecashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doclose"><i class="fa fa-times"></i> Close</a>
+                                <a id="linkpayoutcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dopayout"><i class="fa fa-money"></i> Cash payment</a>
+                                <a id="linkdepositcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dodeposit"><i class="fa fa-gift"></i> Deposit</a>
+                                <a id="linkadjustcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa fa-adjust"></i> Difference posting</a>
+                                <a id="linkshowcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa fa-list"></i> Cash journal</a>
+                                <a id="linkcashregisteroverview" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Cash register overview</a>
+                                <a id="linkfinesreport" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                             </div>
                             [% IF manageaction == 'payout' %]
                                 <h3>Cash payment</h3>
@@ -245,7 +156,7 @@ $(document).ready( function() {
                                     </ol>
                                 </fieldset>
                                 <fieldset class="action">
-                                    <input type="submit" value="Payout"></input>
+                                    <input type="submit" value="Payout" class="btn btn-default btn-xs"></input>
                                     <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
                                 </fieldset>
                                 </form>
@@ -306,7 +217,7 @@ $(document).ready( function() {
                                     </ol>
                                 </fieldset>
                                 <fieldset class="action">
-                                    <input type="submit" value="Deposit"></input>
+                                    <input type="submit" value="Deposit" class="btn btn-default btn-xs"></input>
                                     <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
                                 </fieldset>
                                 </form>
@@ -367,7 +278,7 @@ $(document).ready( function() {
                                     </ol>
                                 </fieldset>
                                 <fieldset class="action">
-                                    <input type="submit" value="Adjust"></input>
+                                    <input type="submit" value="Adjust" class="btn btn-default btn-xs"></input>
                                     <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
                                 </fieldset>
                                 </form>
@@ -414,7 +325,7 @@ $(document).ready( function() {
                                     </ol>
                                 </fieldset>
                                 <fieldset class="action">
-                                    <input type="submit" value="Confirm closing"></input>
+                                    <input type="submit" value="Confirm closing" class="btn btn-default btn-xs"></input>
                                     <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
                                 </fieldset>
                                 </form>
@@ -426,10 +337,10 @@ $(document).ready( function() {
                                             <li>
                                                 Journal from <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
                                                 to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
-                                                <button type="submit" name="allFromOpening" value="0">Select</button>
+                                                <button type="submit" name="allFromOpening" value="0" class="btn btn-default btn-xs">Select</button>
                                             </li>
                                             <li>
-                                                All transactions since previous cash register opening <button type="submit" name="allFromOpening" value="1">List</button>
+                                                All transactions since previous cash register opening <button type="submit" name="allFromOpening" value="1" class="btn btn-default btn-xs">List</button>
                                             </li>
                                         </ol>
                                                                         
@@ -477,7 +388,7 @@ $(document).ready( function() {
                             [% END %]
                         [% END %]
                         [% IF ( manageaction == 'dayview' || manageaction == 'finesreport') %]
-                            [% INCLUDE 'cashregister-fines-overview.inc' used_perl_script="circ/managecashregister.pl" %]
+                            [% PROCESS 'cashregister-fines-overview.inc' used_perl_script="circ/managecashregister.pl" %]
                         [% END %]
                         [% IF status == 'close' && manageaction == 'close' %]
                             <h3>Close cash register</h3>
@@ -522,7 +433,7 @@ $(document).ready( function() {
                                 </ol>
                             </fieldset>
                             <fieldset class="action">
-                                <input type="submit" value="Confirm closing"></input>
+                                <input type="submit" value="Confirm closing" class="btn btn-default btn-xs"></input>
                                 <a class="cancel" href="/cgi-bin/koha/circ/managecashregister.pl">Cancel</a>
                             </fieldset>
                             </form>
@@ -538,11 +449,7 @@ $(document).ready( function() {
             <div class="cashregisterinfo">
                 <h5>[% cash_register.cash_register_name %]</h5>
                 <ul>
-                    [% FOREACH lbranch IN branchloop %]
-                    [% IF (lbranch.branchcode == cash_register.cash_register_branchcode) %]
-                    <li class="cashregisterinfo">Library: [% lbranch.branchname %]</li>
-                    [% END %]
-                    [% END %]
+                    <li class="cashregisterinfo">Library: [% Branches.GetName(cash_register.cash_register_branchcode) %]</li>
                     <li class="cashregisterimportantinfo">Cash balance: [% cash_register.cash_register_balance_formatted %]</li>
                     <li class="cashregisterinfo">Opened on: [% cash_register_info.opening_booking_time %]</li>
                     <li class="cashregisterinfo">Opened by: [% cash_register_info.opening_manager %]</li>
@@ -566,4 +473,100 @@ $(document).ready( function() {
         </div>
     </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") %]
+
+    <script type="text/javascript">
+        $(document).ready( function() {
+            $("#cashregjournal").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'pagingType': 'full_numbers',
+                'bAutoWidth': true,
+                'sPaginationType': 'full_numbers',
+                'aoColumnDefs': [
+                    { "bSortable": true, "bSearchable": true, 'aTargets': ["_all"] },
+                    { "aTargets": [ 0 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+                    { "aTargets": [ 1,6 ], "asSorting": [ "asc","desc" ]  },
+                    { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
+                ],
+                "aoColumns": [ { "sType": 'natural' }, null, null , null, null, null, null, null, null ],
+                "iDisplayLength": 100,
+                "iDisplayStart": 0,
+                "order": [[ 0, "desc" ]],
+                'bSort' : true,
+                "bPaginate": false,
+                'serverSide': false,
+                'oLanguage': {
+                    'sEmptyTable': _("No cash register transactions during the selected period.")
+                }
+            }));
+            
+            $('.cashregisterlink').click(function(){
+                var journalfrom = $('#journalfrom').val();
+                var journalto = $('#journalto').val();
+                if ( this.href.indexOf('?') < 0 ) this.href += '?';
+                if ( journalfrom ) this.href += '&journalfrom=' + journalfrom;
+                if ( journalto ) this.href += '&journalto=' + journalto;
+            });
+            
+            $('#cash_payment').on("keyup change", function() {
+                var amount = parseFloat($('#cash_payment').val()).toFixed(2);
+                var maxval =  parseFloat($('#cash_balance_val').val()).toFixed(2);
+                if(isNaN(amount) || !isFinite(amount) ){
+                    $('#cash_payment').val(parseFloat(0.00).toFixed(2));
+                    $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
+                }
+                else if ( (maxval - amount) < 0.00 ) {
+                     $('#cash_payment').val(parseFloat(maxval).toFixed(2));
+                     $('#new_balance').val(parseFloat(0.00).toFixed(2));
+                }
+                else {
+                    $('#new_balance').val(parseFloat(maxval - amount).toFixed(2));
+                }
+            });
+            
+            $('#cash_deposit').on("keyup change", function() {
+                var amount = parseFloat($('#cash_deposit').val()).toFixed(2);
+                var currval = parseFloat($('#cash_balance_val').val()).toFixed(2);
+                if(isNaN(amount) || !isFinite(amount) || amount < 0.0 ){
+                    $('#cash_deposit').val(parseFloat(0.00).toFixed(2));
+                    $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
+                }
+                else {
+                    amount = parseFloat(currval) + parseFloat(amount);
+                    $('#new_balance').val(amount.toFixed(2));
+                }
+            });
+            
+
+            $('#cash_adjustment').on("keyup change", function() {
+                var val = $('#cash_adjustment').val();
+                var amount = parseFloat($('#cash_adjustment').val()).toFixed(2);
+                if ( val == '' || val == '-' ) {
+                    return;
+                }
+                var maxval =  parseFloat($('#cash_balance_val').val()).toFixed(2);
+                if(isNaN(amount) || !isFinite(amount) ){
+                    $('#cash_adjustment').val(parseFloat(0.00).toFixed(2));
+                    $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
+                    return;
+                }
+                amount *= -1;
+                if ( maxval >= 0.00 && (maxval - amount) < 0.00) {
+                     $('#cash_adjustment').val(parseFloat(maxval*-1).toFixed(2));
+                     $('#new_balance').val(parseFloat(0.00).toFixed(2));
+                }
+                else if (maxval < 0.00 && amount > 0.00) {
+                    $('#cash_adjustment').val(parseFloat(0.00).toFixed(2));
+                    $('#new_balance').val(parseFloat($('#cash_balance_val').val()).toFixed(2));
+                }
+                else {
+                    $('#new_balance').val(parseFloat(maxval - amount).toFixed(2));
+                }
+            });
+        });
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

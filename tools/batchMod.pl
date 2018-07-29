@@ -19,8 +19,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use CGI qw ( -utf8 );
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use C4::Auth;
 use C4::Output;
 use C4::Biblio;
@@ -28,14 +27,18 @@ use C4::Items;
 use C4::Circulation;
 use C4::Context;
 use C4::Koha;
-use C4::Branch;
 use C4::BackgroundJob;
 use C4::ClassSource;
 use C4::Debug;
 use C4::Members;
 use MARC::File::XML;
 use List::MoreUtils qw/uniq/;
+
+use Koha::Biblios;
 use Koha::DateUtils;
+use Koha::Items;
+use Koha::ItemTypes;
+use Koha::Patrons;
 
 my $input = new CGI;
 my $dbh = C4::Context->dbh;
@@ -71,7 +74,7 @@ my ($template, $loggedinuser, $cookie)
                  });
 
 # Does the user have a restricted item edition permission?
-my $uid = $loggedinuser ? GetMember( borrowernumber => $loggedinuser )->{userid} : undef;
+my $uid = $loggedinuser ? Koha::Patrons->find( $loggedinuser )->userid : undef;
 my $restrictededition = $uid ? haspermission($uid,  {'tools' => 'items_batchmod_restricted'}) : undef;
 # In case user is a superlibrarian, edition is not restricted
 $restrictededition = 0 if ($restrictededition != 0 && C4::Context->IsSuperLibrarian());
@@ -119,7 +122,15 @@ if ($op eq "action") {
 	    $items_display_hashref=BuildItemsData(@itemnumbers);
 	} else {
 	    # Else, we only display the barcode
-	    my @simple_items_display = map {{ itemnumber => $_, barcode => (GetBarcodeFromItemnumber($_) or ""), biblionumber => (GetBiblionumberFromItemnumber($_) or "") }} @itemnumbers;
+        my @simple_items_display = map {
+            my $itemnumber = $_;
+            my $item = Koha::Items->find($itemnumber);
+            {
+                itemnumber   => $itemnumber,
+                barcode      => $item ? ( $item->barcode // q{} ) : q{},
+                biblionumber => $item ? $item->biblio->biblionumber : q{},
+            };
+        } @itemnumbers;
 	    $template->param("simple_items_display" => \@simple_items_display);
 	}
 
@@ -166,7 +177,7 @@ if ($op eq "action") {
 		$job->progress($i) if $runinbackground;
 		my $itemdata = GetItem($itemnumber);
         if ( $del ){
-			my $return = DelItemCheck(C4::Context->dbh, $itemdata->{'biblionumber'}, $itemdata->{'itemnumber'});
+            my $return = DelItemCheck( $itemdata->{'biblionumber'}, $itemdata->{'itemnumber'});
 			if ($return == 1) {
 			    $deleted_items++;
 			} else {
@@ -182,7 +193,7 @@ if ($op eq "action") {
 
 			# If there are no items left, delete the biblio
 			if ( $del_records ) {
-                            my $itemscount = GetItemsCount($itemdata->{'biblionumber'});
+                            my $itemscount = Koha::Biblios->find( $itemdata->{'biblionumber'} )->items->count;
                             if ( $itemscount == 0 ) {
 			        my $error = DelBiblio($itemdata->{'biblionumber'});
 			        $deleted_records++ unless ( $error );
@@ -196,7 +207,7 @@ if ($op eq "action") {
                 if ( $modified ) {
                     eval {
                         if ( my $item = ModItemFromMarc( $localmarcitem, $itemdata->{biblionumber}, $itemnumber ) ) {
-                            LostItem($itemnumber, 'MARK RETURNED') if $item->{itemlost} and not $itemdata->{itemlost};
+                            LostItem($itemnumber, 'batchmod') if $item->{itemlost} and not $itemdata->{itemlost};
                         }
                     };
                 }
@@ -231,6 +242,7 @@ if ($op eq "show"){
             push @contentlist, $content if $content;
         }
 
+        @contentlist = uniq @contentlist;
         if ($filecontent eq 'barcode_file') {
             foreach my $barcode (@contentlist) {
 
@@ -292,11 +304,11 @@ $query  .= qq{ AND ( branchcode = ? OR branchcode IS NULL ) } if $branch_limit;
 $query  .= qq{ GROUP BY lib ORDER BY lib, lib_opac};
 my $authorised_values_sth = $dbh->prepare( $query );
 
-my $branches = GetBranchesLoop();  # build once ahead of time, instead of multiple times later.
+my $libraries = Koha::Libraries->search({}, { order_by => ['branchname'] })->unblessed;# build once ahead of time, instead of multiple times later.
 
 # Adding a default choice, in case the user does not want to modify the branch
 my $nochange_branch = { branchname => '', value => '', selected => 1 };
-unshift (@$branches, $nochange_branch);
+unshift (@$libraries, $nochange_branch);
 
 my $pref_itemcallnumber = C4::Context->preference('itemcallnumber');
 
@@ -304,7 +316,7 @@ my $pref_itemcallnumber = C4::Context->preference('itemcallnumber');
 my $subfieldsToAllowForBatchmod = C4::Context->preference('SubfieldsToAllowForRestrictedBatchmod');
 my $allowAllSubfields = (
     not defined $subfieldsToAllowForBatchmod
-      or $subfieldsToAllowForBatchmod == q||
+      or $subfieldsToAllowForBatchmod eq q||
 ) ? 1 : 0;
 my @subfieldsToAllow = split(/ /, $subfieldsToAllowForBatchmod);
 
@@ -350,20 +362,20 @@ foreach my $tag (sort keys %{$tagslib}) {
 	my @authorised_values;
 	my %authorised_lib;
 	# builds list, depending on authorised value...
-  
-	if ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "branches" ) {
-	    foreach my $thisbranch (@$branches) {
-		push @authorised_values, $thisbranch->{value};
-		$authorised_lib{$thisbranch->{value}} = $thisbranch->{branchname};
-	    }
+
+    if ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "branches" ) {
+        foreach my $library (@$libraries) {
+            push @authorised_values, $library->{branchcode};
+            $authorised_lib{$library->{branchcode}} = $library->{branchname};
+        }
         $value = "";
-	}
+    }
     elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "itemtypes" ) {
         push @authorised_values, "";
-        my $itemtypes = GetItemTypes( style => 'array' );
-        for my $itemtype ( @$itemtypes ) {
-            push @authorised_values, $itemtype->{itemtype};
-            $authorised_lib{$itemtype->{itemtype}} = $itemtype->{translated_description};
+        my $itemtypes = Koha::ItemTypes->search_with_localization;
+        while ( my $itemtype = $itemtypes->next ) {
+            push @authorised_values, $itemtype->itemtype;
+            $authorised_lib{$itemtype->itemtype} = $itemtype->translated_description;
         }
         $value = "";
 
@@ -564,11 +576,11 @@ sub BuildItemsData{
 
             # grab title, author, and ISBN to identify bib that the item
             # belongs to in the display
-			 my $biblio=GetBiblioData($$itemdata{biblionumber});
-            $this_row{title} = $biblio->{title};
-            $this_row{author} = $biblio->{author};
-            $this_row{isbn} = $biblio->{isbn};
-            $this_row{biblionumber} = $biblio->{biblionumber};
+            my $biblio = Koha::Biblios->find( $itemdata->{biblionumber} );
+            $this_row{title}        = $biblio->title;
+            $this_row{author}       = $biblio->author;
+            $this_row{isbn}         = $biblio->biblioitem->isbn;
+            $this_row{biblionumber} = $biblio->biblionumber;
 
 			if (%this_row) {
 				push(@big_array, \%this_row);

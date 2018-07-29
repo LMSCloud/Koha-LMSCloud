@@ -22,7 +22,7 @@ use Modern::Perl;
 use utf8;
 
 use C4::Context;
-use C4::Members;
+use Koha::Patrons;
 
 use LWP::UserAgent;
 use XML::Simple;
@@ -195,9 +195,9 @@ sub simpleSearch {
     my $munzingerKey = '';
     
     if ( $userid ) {
-        my $borrower = &GetMember( userid => $userid );
-        if ( $borrower ) {
-            $user = $borrower->{'cardnumber'};
+        my $patron = Koha::Patrons->find({ userid => $userid } );
+        if ( $patron ) {
+            $user = $patron->cardnumber;
         }
     }
     

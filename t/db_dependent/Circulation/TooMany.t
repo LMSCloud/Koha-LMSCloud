@@ -15,12 +15,11 @@
 # with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 6;
+use Test::More tests => 7;
 use C4::Context;
 
 use C4::Biblio;
 use C4::Members;
-use C4::Branch;
 use C4::Circulation;
 use C4::Items;
 use C4::Context;
@@ -51,6 +50,7 @@ $dbh->do(q|DELETE FROM default_branch_item_rules|);
 $dbh->do(q|DELETE FROM issuingrules|);
 
 my $builder = t::lib::TestBuilder->new();
+t::lib::Mocks::mock_preference('item-level_itypes', 1); # Assuming the item type is defined at item level
 
 my $branch = $builder->build({
     source => 'Branch',
@@ -158,6 +158,59 @@ subtest '1 Issuingrule exist 0 0: no issue allowed' => sub {
 
     teardown();
 };
+
+subtest '1 Issuingrule exist with onsiteissueqty=unlimited' => sub {
+    plan tests => 4;
+    my $issuingrule = $builder->build({
+        source => 'Issuingrule',
+        value => {
+            branchcode         => $branch->{branchcode},
+            categorycode       => $category->{categorycode},
+            itemtype           => '*',
+            maxissueqty        => 1,
+            maxonsiteissueqty  => undef,
+        },
+    });
+    my $issue = C4::Circulation::AddIssue( $patron, $item->{barcode}, dt_from_string() );
+    t::lib::Mocks::mock_preference('ConsiderOnSiteCheckoutsAsNormalCheckouts', 0);
+    is_deeply(
+        C4::Circulation::TooMany( $patron, $biblio->{biblionumber}, $item ),
+        {
+            reason => 'TOO_MANY_CHECKOUTS',
+            count => 1,
+            max_allowed => 1,
+        },
+        'CO should not be allowed if ConsiderOnSiteCheckoutsAsNormalCheckouts == 0'
+    );
+    is(
+        C4::Circulation::TooMany( $patron, $biblio->{biblionumber}, $item, { onsite_checkout => 1 } ),
+        undef,
+        'OSCO should be allowed if ConsiderOnSiteCheckoutsAsNormalCheckouts == 0'
+    );
+
+    t::lib::Mocks::mock_preference('ConsiderOnSiteCheckoutsAsNormalCheckouts', 1);
+    is_deeply(
+        C4::Circulation::TooMany( $patron, $biblio->{biblionumber}, $item ),
+        {
+            reason => 'TOO_MANY_CHECKOUTS',
+            count => 1,
+            max_allowed => 1,
+        },
+        'CO should not be allowed if ConsiderOnSiteCheckoutsAsNormalCheckouts == 1'
+    );
+    is_deeply(
+        C4::Circulation::TooMany( $patron, $biblio->{biblionumber}, $item, { onsite_checkout => 1 } ),
+        {
+            reason => 'TOO_MANY_CHECKOUTS',
+            count => 1,
+            max_allowed => 1,
+        },
+        'OSCO should not be allowed if ConsiderOnSiteCheckoutsAsNormalCheckouts == 1'
+    );
+
+    teardown();
+};
+
 
 subtest '1 Issuingrule exist 1 1: issue is allowed' => sub {
     plan tests => 4;
@@ -413,4 +466,3 @@ sub teardown {
     $dbh->do(q|DELETE FROM issuingrules|);
 }
 
-1;

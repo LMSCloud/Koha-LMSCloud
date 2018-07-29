@@ -26,8 +26,7 @@ use C4::Context;
 use C4::Output;
 use C4::Log;
 use C4::Debug;
-use C4::Branch;
-use C4::Members;
+use Koha::Patrons;
 use Koha::Patron::Discharge;
 use Koha::DateUtils;
 
@@ -38,7 +37,7 @@ unless ( C4::Context->preference('useDischarge') ) {
     exit;
 }
 
-my $op = $input->param("op");
+my $op = $input->param("op") || '';
 
 # Getting the template and auth
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
@@ -47,6 +46,11 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
     type          => "opac",
     debug         => 1,
 });
+
+my $can_be_discharged = Koha::Patron::Discharge::can_be_discharged({ borrowernumber => $loggedinuser });
+if ($can_be_discharged == 0) {
+    $template->param( has_checkouts => 1 );
+}
 
 if ( $op eq 'request' ) {
     my $success = Koha::Patron::Discharge::request({
@@ -64,10 +68,10 @@ elsif ( $op eq 'get' ) {
     eval {
 
         # Getting member data
-        my $data = GetMember( borrowernumber => $loggedinuser );
+        my $patron = Koha::Patrons->find( $loggedinuser );
         my $pdf_path = Koha::Patron::Discharge::generate_as_pdf({
             borrowernumber => $loggedinuser,
-            branchcode => $data->{'branchcode'},
+            branchcode => $patron->branchcode,
         });
 
         binmode(STDOUT);
@@ -93,7 +97,7 @@ else {
         pending        => 1,
     });
     # FIXME looks like $available is not needed
-    # If a patron is discharged he has a validated discharge available
+    # If a user is discharged they have a validated discharge available
     my $available = Koha::Patron::Discharge::count({
         borrowernumber => $loggedinuser,
         validated      => 1,

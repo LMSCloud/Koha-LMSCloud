@@ -26,8 +26,7 @@
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use URI::Escape;
 use C4::Context;
@@ -42,7 +41,9 @@ use C4::Overdues;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Patrons;
-use Koha::Patron::Images;
+
+use Koha::Patron::Categories;
+use URI::Escape;
 
 use Koha::Patron::Categories;
 use URI::Escape;
@@ -55,7 +56,7 @@ our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1, updatecharges => $updatecharges_permissions },
+        flagsrequired   => { borrowers => 'edit_borrowers', updatecharges => $updatecharges_permissions },
         debug           => 1,
     }
 );
@@ -68,15 +69,10 @@ if ( !$borrowernumber ) {
 }
 
 # get borrower details
-my $patron = Koha::Patrons->find( $borrowernumber );
-unless ( $patron ) {
-    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
-    exit;
-}
-my $category = $patron->category;
-our $borrower = $patron->unblessed;
-$borrower->{description} = $category->description;
-$borrower->{category_type} = $category->category_type;
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+our $patron         = Koha::Patrons->find($borrowernumber);
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
+
 our $user = $input->remote_user;
 $user ||= q{};
 
@@ -104,18 +100,30 @@ if ($writeoff_all || $cancel_all) {
     my $accountlines_id = $input->param('accountlines_id');
     my $amount       = $input->param('amountwrittenoff');
     my $payment_note = $input->param("payment_note");
-    my $description  = $input->param("description");
-    
-    Koha::Account->new( { patron_id => $borrowernumber } )->pay(
-        {
-            amount     => $amount,
-            lines      => [ scalar Koha::Account::Lines->find($accountlines_id) ],
-            type       => $writeoff_item ? 'writeoff' : 'cancelfee',
-            note       => $payment_note,
-            library_id => $branch,
-            description => $description,
-        }
-    );
+
+    my $accountline = Koha::Account::Lines->find( $accountlines_id );
+
+    if ( $amount > $accountline->amountoutstanding ) {
+        print $input->redirect( "/cgi-bin/koha/members/paycollect.pl?"
+              . "borrowernumber=$borrowernumber"
+              . "&amount=" . $accountline->amount
+              . "&amountoutstanding=" . $accountline->amountoutstanding
+              . "&accounttype=" . $accountline->accounttype
+              . "&accountlines_id=" . $accountlines_id
+              . "&writeoff_individual=1"
+              . "&error_over=1" );
+
+    } else {
+        Koha::Account->new( { patron_id => $borrowernumber } )->pay(
+            {
+                amount     => $amount,
+                lines      => [ scalar Koha::Account::Lines->find($accountlines_id) ],
+                type       => 'writeoff',
+                note       => $payment_note,
+                library_id => $branch,
+            }
+        );
+    }
 }
 
 for (@names) {
@@ -133,8 +141,6 @@ for (@names) {
 
 $template->param(
     finesview => 1,
-    checkCashRegisterFailed => (! $checkCashRegisterOk),
-    RoutingSerials => C4::Context->preference('RoutingSerials'),
 );
 
 add_accounts_to_template();
@@ -143,8 +149,9 @@ output_html_with_http_headers $input, $cookie, $template->output;
 
 sub add_accounts_to_template {
 
-    my ( $total, undef, undef ) = GetMemberAccountRecords($borrowernumber);
-    my $account_lines = Koha::Account::Lines->search({ borrowernumber => $borrowernumber, amountoutstanding => { '!=' => 0 } }, { order_by => ['accounttype'] });
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    my $account_lines = $patron->account->outstanding_debits;
+    my $total = $account_lines->total_outstanding;
     my @accounts;
     while ( my $account_line = $account_lines->next ) {
         $account_line = $account_line->unblessed;
@@ -156,16 +163,11 @@ sub add_accounts_to_template {
         }
         push @accounts, $account_line;
     }
-    borrower_add_additional_fields($borrower);
+    borrower_add_additional_fields($patron->unblessed);
 
-    $template->param(%$borrower);
-
-    my $patron_image = Koha::Patron::Images->find($borrower->{borrowernumber});
-    $template->param( picture => 1 ) if $patron_image;
     $template->param(
+        patron   => $patron,
         accounts => \@accounts,
-        borrower => $borrower,
-        categoryname => $borrower->{'description'},
         total    => $total,
     );
     return;
@@ -251,9 +253,7 @@ sub borrower_add_additional_fields {
     if ( $b_ref->{category_type} eq 'C' ) {
         my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
         $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-        $template->param( 'catcode' => $patron_categories->next )  if $patron_categories->count == 1;
-    } elsif ( $b_ref->{category_type} eq 'A' || $b_ref->{category_type} eq 'I' ) {
-        $b_ref->{adultborrower} = 1;
+        $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
     }
 
     if (C4::Context->preference('ExtendedPatronAttributes')) {
@@ -279,7 +279,7 @@ sub payselected {
     }
     $amt = '&amt=' . $amt;
     my $sel = '&selected=' . join ',', @lines_to_pay;
-    my $notes = '&notes=' . join("%0A", map { my $notetxt;  ($notetxt = scalar $input->param("payment_note_$_")) ? $notetxt : () } @lines_to_pay );
+    my $notes = '&notes=' . join("%0A", map { scalar $input->param("payment_note_$_") } @lines_to_pay );
     my $redirect =
         "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber"
       . $amt

@@ -33,8 +33,7 @@ This script needs a biblionumber as parameter
 
 =cut
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 
 use HTML::Entities;
 use C4::Auth;
@@ -44,13 +43,13 @@ use CGI qw ( -utf8 );
 use C4::Koha;
 use C4::Biblio;
 use C4::Items;
-use C4::Members; # to use GetMember
 use C4::Serials;    # CountSubscriptionFromBiblionumber
 use C4::Search;		# enabled_staff_search_views
 use C4::Acquisition qw(GetOrdersByBiblionumber);
 
-
-#---- Internal function
+use Koha::Biblios;
+use Koha::Patrons;
+use Koha::RecordProcessor;
 
 
 my $query = new CGI;
@@ -70,28 +69,57 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $res = GetISBDView($biblionumber, "intranet");
-if ( not defined $res ) {
+if ( not defined $biblionumber ) {
        # biblionumber invalid -> report and exit
        $template->param( unknownbiblionumber => 1,
-                               biblionumber => $biblionumber
+                                biblionumber => $biblionumber
        );
        output_html_with_http_headers $query, $cookie, $template->output;
        exit;
 }
 
+my $record = GetMarcBiblio({
+    biblionumber => $biblionumber,
+    embed_items  => 1 });
+
+if ( not defined $record ) {
+       # biblionumber invalid -> report and exit
+       $template->param( unknownbiblionumber => 1,
+                                biblionumber => $biblionumber
+       );
+       output_html_with_http_headers $query, $cookie, $template->output;
+       exit;
+}
+
+my $biblio = Koha::Biblios->find( $biblionumber );
+my $framework = GetFrameworkCode( $biblionumber );
+my $record_processor = Koha::RecordProcessor->new({
+    filters => 'ViewPolicy',
+    options => {
+        interface => 'intranet',
+        frameworkcode => 'ACQ'
+    },
+});
+$record_processor->process($record);
+
+my $res = GetISBDView({
+    'record'    => $record,
+    'template'  => 'intranet',
+    'framework' => $framework,
+});
+
 if($query->cookie("holdfor")){ 
-    my $holdfor_patron = GetMember('borrowernumber' => $query->cookie("holdfor"));
+    my $holdfor_patron = Koha::Patrons->find( $query->cookie("holdfor") );
     $template->param(
         holdfor => $query->cookie("holdfor"),
-        holdfor_surname => $holdfor_patron->{'surname'},
-        holdfor_firstname => $holdfor_patron->{'firstname'},
-        holdfor_cardnumber => $holdfor_patron->{'cardnumber'},
+        holdfor_surname => $holdfor_patron->surname,
+        holdfor_firstname => $holdfor_patron->firstname,
+        holdfor_cardnumber => $holdfor_patron->cardnumber,
     );
 }
 
 # count of item linked with biblio
-my $itemcount = GetItemsCount($biblionumber);
+my $itemcount = $biblio->items->count;
 $template->param( count => $itemcount);
 my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
  
@@ -103,7 +131,6 @@ if ($subscriptionsnumber) {
         subscriptiontitle   => $subscriptiontitle,
     );
 }
-my $record = GetMarcBiblio($biblionumber);
 
 $template->param (
     ISBD                => $res,
@@ -143,9 +170,8 @@ $template->param (countorders => $count_orders_using_biblio);
 my $count_deletedorders_using_biblio = scalar @deletedorders_using_biblio ;
 $template->param (countdeletedorders => $count_deletedorders_using_biblio);
 
-my $holds = C4::Reserves::GetReservesFromBiblionumber({ biblionumber => $biblionumber, all_dates => 1 });
-my $holdcount = scalar( @$holds );
-$template->param( holdcount => scalar ( @$holds ) );
+my $holds = $biblio->holds;
+$template->param( holdcount => $holds->count );
 
 output_html_with_http_headers $query, $cookie, $template->output;
 

@@ -1,66 +1,17 @@
+[% USE Asset %]
 [% USE Koha %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Run batch jobs</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.fixFloat.js"></script>
-[% INCLUDE 'calendar.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-
-function start(func) {
-    document.getElementById('jobcmd').value = func;
-    document.runJob.submit();
-}
-
-$(document).ready(function() {
-        $("#delete_patrons_not_borrowed_since").datepicker( 
-            { 
-                autoclose: true, 
-                maxDate: -1 ,
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-        $("#delete_patrons_expired_before").datepicker( 
-            { 
-                autoclose: true, 
-                maxDate: -1 ,
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-        $("#overdue_notices_senddate").datepicker( 
-            { 
-                autoclose: true, 
-                maxDate: +100 ,
-                minDate: 0,
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-});
-//]]>
-</script>
-
 </head>
+
 <body id="tools_runbatchjob" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
+
+[% branches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Run batch jobs</div>
 
@@ -133,7 +84,7 @@ $(document).ready(function() {
                                         </tr>
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('advance_notices')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('advance_notices')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
 
                             <tr>
@@ -149,9 +100,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                             <td>
                                                 <select id="membership_expiry_branch" name="membership_expiry_branch">
                                                     <option value="" selected="selected">All</option>
-                                                    [% FOREACH branchloo IN branches %]
-                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
-                                                    [% END %]
+                                                    [% PROCESS options_for_libraries libraries => branches %]
                                                 </select>
                                             </td>
                                         </tr>
@@ -180,7 +129,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('membership_expiry')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('membership_expiry')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
 
                             <tr>
@@ -207,9 +156,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                             <td>
                                                 <select id="overdue_notices_branch" name="overdue_notices_branch">
                                                     <option value="" selected="selected">All</option>
-                                                    [% FOREACH branchloo IN branches %]
-                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
-                                                    [% END %]
+                                                    [% PROCESS options_for_libraries libraries => branches %]
                                                 </select>
                                             </td>
                                         </tr>
@@ -249,7 +196,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('overdue_notices')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('overdue_notices')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
                             
                             <tr>
@@ -263,7 +210,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                 <td>
                                 
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('fines')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('fines')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
                             
                             
@@ -274,7 +221,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                 </td>
                                 <td>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('process_message_queue')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('process_message_queue')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
                             
                             
@@ -318,7 +265,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('gather_print_notices')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('gather_print_notices')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
 
 
@@ -335,7 +282,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('batch_anonymise')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('batch_anonymise')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
                             
                             
@@ -351,9 +298,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                             <td>
                                                 <select id="delete_patrons_branch" name="delete_patrons_branch">
                                                     <option value="" selected="selected">All</option>
-                                                    [% FOREACH branchloo IN branches %]
-                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
-                                                    [% END %]
+                                                    [% PROCESS options_for_libraries libraries => branches %]
                                                 </select>
                                             </td>
                                         </tr>
@@ -378,7 +323,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('delete_patrons')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('delete_patrons')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
                             
                             
@@ -396,9 +341,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                             <td>
                                                 <select id="juv2adult_branch" name="juv2adult_branch">
                                                     <option value="" selected="selected">All</option>
-                                                    [% FOREACH branchloo IN branches %]
-                                                        <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
-                                                    [% END %]
+                                                    [% PROCESS options_for_libraries libraries => branches %]
                                                 </select>
                                             </td>
                                         </tr>
@@ -430,7 +373,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('juv2adult')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('juv2adult')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
                             
                             <tr>
@@ -448,7 +391,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                     </table>
                                 </td>
-                                <td><input type="button" value="Start" onclick="start('notice_unprocessed_suggestions')"></button></td>
+                                <td><button class="btn btn-default btn-sm" onclick="start('notice_unprocessed_suggestions')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
                             
                             
@@ -463,4 +406,60 @@ produced by other features of Koha. The message queue must be processed regularl
             [% INCLUDE 'tools-menu.inc' %]
         </div>
     </div><!-- bd -->
+    
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("lib/jquery/plugins/jquery.fixFloat.js") %]
+    [% INCLUDE 'calendar.inc' %]
+        <script type="text/javascript">
+        function start(func) {
+            document.getElementById('jobcmd').value = func;
+            document.runJob.submit();
+        }
+
+        $(document).ready(function() {
+                $("#delete_patrons_not_borrowed_since").datepicker( 
+                    { 
+                        autoclose: true, 
+                        maxDate: -1 ,
+                        showOn: "both",
+                        changeMonth: true,
+                        changeYear: true,
+                        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+                        buttonImageOnly: true,
+                        showButtonPanel: true,
+                        showOtherMonths: true,
+                        selectOtherMonths: true
+                    });
+                $("#delete_patrons_expired_before").datepicker( 
+                    { 
+                        autoclose: true, 
+                        maxDate: -1 ,
+                        showOn: "both",
+                        changeMonth: true,
+                        changeYear: true,
+                        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+                        buttonImageOnly: true,
+                        showButtonPanel: true,
+                        showOtherMonths: true,
+                        selectOtherMonths: true
+                    });
+                $("#overdue_notices_senddate").datepicker( 
+                    { 
+                        autoclose: true, 
+                        maxDate: +100 ,
+                        minDate: 0,
+                        showOn: "both",
+                        changeMonth: true,
+                        changeYear: true,
+                        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
+                        buttonImageOnly: true,
+                        showButtonPanel: true,
+                        showOtherMonths: true,
+                        selectOtherMonths: true
+                    });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

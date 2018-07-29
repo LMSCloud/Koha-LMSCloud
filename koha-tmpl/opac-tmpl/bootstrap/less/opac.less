@@ -70,6 +70,10 @@ a {
             color : #FFF;
         }
     }
+    &.login-link {
+        color: #A6D8ED;
+        font-weight: bold;
+    }
 }
 
 .ui-widget-content a,
@@ -184,14 +188,14 @@ td {
         color : #EEE;
     }
     a {
-        color: #A6D8ED;
-        font-weight: bold;
         &.logout {
             color : #E8583C;
+            font-weight: bold;
             padding : 0 .3em 0 .3em;
         }
     }
 }
+
 #koha_url p {
         color: #666666;
         float : right;
@@ -261,6 +265,14 @@ td {
         &.hold {
             background-image : url("../images/sprite.png"); /* Place hold small */
             background-position : -5px -542px;
+            background-repeat: no-repeat;
+            margin-right : 1em;
+            padding-left : 21px;
+            text-decoration : none;
+        }
+        &.article_request {
+            background-image : url("../images/sprite.png"); /* Place hold small */
+            background-position : -2px -26px;
             background-repeat: no-repeat;
             margin-right : 1em;
             padding-left : 21px;
@@ -644,30 +656,6 @@ ul.ui-tabs-nav li {
 }
 
 /* end jQueryUI core */
-
-/* jQueryUI autocomplete */
-
-.ui-autocomplete {
-    position: absolute;
-    cursor: default;
-    .shadowed;
-}
-.ui-autocomplete.ui-widget-content .ui-state-hover {
-    border: 1px solid #AAA;
-    background: #E6F0F2 none;
-    font-weight: normal;
-    color: #212121;
-}
-.ui-autocomplete-loading {
-    background: #FFF url("../../img/loading-small.gif") right center no-repeat;
-}
-.ui-menu li {
-    list-style:none;
-}
-
-/* end jQueryUI autocomplete */
-
-
 
 th {
     background-color: #ECEDE6;
@@ -1326,6 +1314,7 @@ a.deleteshelf.disabled,
 a.detail,
 a.download,
 a.editshelf,
+a.sharelist,
 a.empty,
 a.hide,
 a.highlight_toggle,
@@ -1338,6 +1327,7 @@ a.print-large,
 a.removeitems,
 a.removeitems.disabled,
 a.reserve,
+a.article_request,
 a.send,
 a.tag_add,
 a.removefromlist,
@@ -1390,6 +1380,12 @@ a.download {
 
 a.editshelf {
     background-position : 2px -348px; /* List edit */
+    padding-left : 26px;
+    text-decoration : none;
+}
+
+a.sharelist {
+    background-position : 2px -1148px; /* List share */
     padding-left : 26px;
     text-decoration : none;
 }
@@ -1466,6 +1462,11 @@ a.reserve {
     padding-left : 35px;
 }
 
+a.article_request {
+    background-position: 0px -24px; /* Place article request */
+    padding-left : 35px;
+}
+
 a.send {
     background-position : 2px -386px; /* Email */
     text-decoration : none;
@@ -1487,7 +1488,7 @@ input.hold {
 
 input.editshelf {
     background-color: transparent;
-    background-position : 2px -736px; /* List edit */
+    background-position : 2px -734px; /* List edit */
     border : 0;
     color : #006699;
     cursor : pointer;
@@ -1514,7 +1515,7 @@ input.editshelf {
 
 .deleteshelf {
     background-color: transparent;
-    background-position : 2px -690px; /* Delete */
+    background-position : 2px -687px; /* Delete */
     border : 0;
     color : #006699;
     cursor : pointer;
@@ -1721,10 +1722,16 @@ input.editshelf {
 #didyoumean {
     background-color: #EEE;
     border: 1px solid #E8E8E8;
-    margin: 0 0 0.5em;
+    box-sizing: border-box;
+    margin: .5em 1.5em;
     text-align: left;
     padding: 0.5em;
     .border-radius-all(3px);
+
+    &.dym-loaded {
+        border-color: #F4ECBE;
+        background-color: #FFFBEA;
+    }
 }
 
 .suggestionlabel {
@@ -1733,7 +1740,6 @@ input.editshelf {
 
 .searchsuggestion {
     padding: 0.2em 0.5em;
-    white-space: nowrap;
     display: inline-block;
 }
 
@@ -2214,7 +2220,7 @@ td img {
         line-height: 135%;
     }
 }
-.tags {
+.tags, .shelves {
     ul {
         display: inline;
         list-style: none;
@@ -2489,6 +2495,44 @@ a.reviewlink:visited {
     font-size: 90%;
 }
 
+#illrequests {
+    .illrequest-actions {
+        .btn,
+        .cancel {
+            margin-right: 5px;
+        }
+        padding-top: 20px;
+        margin-bottom: 20px;
+    }
+    #illrequests-create-button {
+        margin-bottom: 20px;
+    }
+    .bg-info {
+        overflow: auto;
+        position: relative;
+    }
+    .bg-info {
+        #search-summary {
+            -webkit-transform: translateY(-50%);
+            -ms-transform: translateY(-50%);
+            -o-transform: translateY(-50%);
+            transform: translateY(-50%);
+            position: absolute;
+            top: 50%;
+        }
+
+    }
+    #freeform-fields .custom-name {
+        float: left;
+        width: 8em;
+        margin-right: 1em;
+        text-align: right;
+    }
+    .dropdown:hover .dropdown-menu.nojs {
+        display: block;
+    }
+}
+
 #dc_fieldset {
     border: 1px solid #dddddd;
     border-width: 1px;
@@ -2502,5 +2546,79 @@ a.reviewlink:visited {
     margin: 0px;
     cursor: pointer;
 }
+
+.btn-danger {
+    color: white !important;
+}
+
+.count_label {
+    @base: #369;
+    background-color: @base;
+    border-radius: 5px;
+    color: #FFF;
+    display: inline-block;
+    font-weight: bold;
+    min-width: 1.5em;
+    padding: .2em;
+    text-align: center;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+
+    &:hover {
+        background-color: lighten( @base, 20% );
+    }
+}
+
+.user_checkouts_count {
+
+}
+
+.user_overdues_count,
+.user_fines_count {
+    background-color: #990000;
+    &:hover {
+        background-color: lighten( #990000, 10% );
+    }
+}
+
+.user_holds_pending_count {
+
+}
+
+.user_holds_waiting_count {
+    background-color: #538200;
+    &:hover {
+        background-color: lighten( #538200, 10% );
+    }
+}
+
+#user_summary {
+    border: 1px solid #EAEAE6;
+    border-radius: 7px;
+    margin-bottom: 1em;
+    padding-bottom: .5em;
+
+    h3 {
+        background-color: #EAEAE6;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        box-shadow: 0 1px 1px 0 rgba(0,0,0,0.2);
+        margin-top: 0;
+        padding: .2em 0;
+        text-align: center;
+    }
+
+    ul {
+        list-style-type: none;
+        margin: 0 0 .2em 0;
+
+        a {
+            display: block;
+            font-weight: bold;
+            padding: .2em 1em;
+        }
+    }
+}
+
+
 
 @import "responsive.less";

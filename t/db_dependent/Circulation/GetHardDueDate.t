@@ -78,17 +78,17 @@ Koha::Library->new($samplebranch2)->store;
 my $samplecat = {
     categorycode          => 'CAT1',
     description           => 'Description1',
-    enrolmentperiod       => 'Null',
-    enrolmentperioddate   => 'Null',
-    dateofbirthrequired   => 'Null',
-    finetype              => 'Null',
-    bulk                  => 'Null',
-    enrolmentfee          => 'Null',
-    overduenoticerequired => 'Null',
-    issuelimit            => 'Null',
-    reservefee            => 'Null',
+    enrolmentperiod       => undef,
+    enrolmentperioddate   => undef,
+    dateofbirthrequired   => undef,
+    finetype              => undef,
+    bulk                  => undef,
+    enrolmentfee          => undef,
+    overduenoticerequired => undef,
+    issuelimit            => undef,
+    reservefee            => undef,
     hidelostitems         => 0,
-    category_type         => 'Null'
+    category_type         => 'A',
 };
 my $query =
 "INSERT INTO categories (categorycode,description,enrolmentperiod,enrolmentperioddate,dateofbirthrequired ,finetype,bulk,enrolmentfee,overduenoticerequired,issuelimit ,reservefee ,hidelostitems ,category_type) VALUES( ?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -114,7 +114,7 @@ my $default = {
 #Test GetIssuingRule
 my $sampleissuingrule1 = {
     reservecharge      => '0.000000',
-    chargename         => 'Null',
+    chargename         => undef,
     restrictedtype     => 0,
     accountsent        => 0,
     maxissueqty        => 5,
@@ -132,7 +132,7 @@ my $sampleissuingrule1 = {
     hardduedate        => '2013-01-01',
     branchcode         => $samplebranch1->{branchcode},
     fine               => '0.000000',
-    hardduedatecompare => 5,
+    hardduedatecompare => 0,
     overduefinescap    => '0.000000',
     renewalsallowed    => 0,
     firstremind        => 0,
@@ -142,6 +142,11 @@ my $sampleissuingrule1 = {
     onshelfholds       => 0,
     opacitemholds      => 'N',
     cap_fine_to_replacement_price => 0,
+    holds_per_record   => 1,
+    article_requests   => 'yes',
+    no_auto_renewal_after => undef,
+    no_auto_renewal_after_hard_limit => undef,
+    suspension_chargeperiod => 1,
 };
 my $sampleissuingrule2 = {
     branchcode         => $samplebranch2->{branchcode},
@@ -149,30 +154,32 @@ my $sampleissuingrule2 = {
     itemtype           => 'BOOK',
     maxissueqty        => 2,
     maxonsiteissueqty  => 1,
-    renewalsallowed    => 'Null',
+    renewalsallowed    => 0,
     renewalperiod      => 2,
     norenewalbefore    => 7,
     auto_renew         => 0,
-    reservesallowed    => 'Null',
+    reservesallowed    => 0,
     issuelength        => 2,
     lengthunit         => 'days',
-    hardduedate        => 2,
-    hardduedatecompare => 'Null',
-    fine               => 'Null',
-    finedays           => 'Null',
-    firstremind        => 'Null',
-    chargeperiod       => 'Null',
+    hardduedate        => undef,
+    hardduedatecompare => 0,
+    fine               => undef,
+    finedays           => undef,
+    firstremind        => undef,
+    chargeperiod       => undef,
     chargeperiod_charge_at => 0,
     rentaldiscount     => 2.00,
-    overduefinescap    => 'Null',
-    accountsent        => 'Null',
-    reservecharge      => 'Null',
-    chargename         => 'Null',
-    restrictedtype     => 'Null',
+    overduefinescap    => undef,
+    accountsent        => undef,
+    reservecharge      => undef,
+    chargename         => undef,
+    restrictedtype     => undef,
     maxsuspensiondays  => 0,
     onshelfholds       => 1,
     opacitemholds      => 'Y',
     cap_fine_to_replacement_price => 0,
+    holds_per_record   => 1,
+    article_requests   => 'yes',
 };
 my $sampleissuingrule3 = {
     branchcode         => $samplebranch1->{branchcode},
@@ -180,30 +187,32 @@ my $sampleissuingrule3 = {
     itemtype           => 'DVD',
     maxissueqty        => 3,
     maxonsiteissueqty  => 2,
-    renewalsallowed    => 'Null',
+    renewalsallowed    => 0,
     renewalperiod      => 3,
     norenewalbefore    => 8,
     auto_renew         => 0,
-    reservesallowed    => 'Null',
+    reservesallowed    => 0,
     issuelength        => 3,
     lengthunit         => 'days',
-    hardduedate        => 3,
-    hardduedatecompare => 'Null',
-    fine               => 'Null',
-    finedays           => 'Null',
-    firstremind        => 'Null',
-    chargeperiod       => 'Null',
+    hardduedate        => undef,
+    hardduedatecompare => 0,
+    fine               => undef,
+    finedays           => undef,
+    firstremind        => undef,
+    chargeperiod       => undef,
     chargeperiod_charge_at => 0,
     rentaldiscount     => 3.00,
-    overduefinescap    => 'Null',
-    accountsent        => 'Null',
-    reservecharge      => 'Null',
-    chargename         => 'Null',
-    restrictedtype     => 'Null',
+    overduefinescap    => undef,
+    accountsent        => undef,
+    reservecharge      => undef,
+    chargename         => undef,
+    restrictedtype     => undef,
     maxsuspensiondays  => 0,
     onshelfholds       => 1,
     opacitemholds      => 'F',
     cap_fine_to_replacement_price => 0,
+    holds_per_record   => 1,
+    article_requests   => 'yes',
 };
 
 $query = 'INSERT INTO issuingrules (
@@ -235,8 +244,9 @@ $query = 'INSERT INTO issuingrules (
                 maxsuspensiondays,
                 onshelfholds,
                 opacitemholds,
-                cap_fine_to_replacement_price
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+                cap_fine_to_replacement_price,
+                article_requests
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
 my $sth = $dbh->prepare($query);
 $sth->execute(
     $sampleissuingrule1->{branchcode},
@@ -268,6 +278,7 @@ $sth->execute(
     $sampleissuingrule1->{onshelfholds},
     $sampleissuingrule1->{opacitemholds},
     $sampleissuingrule1->{cap_fine_to_replacement_price},
+    $sampleissuingrule1->{article_requests},
 );
 $sth->execute(
     $sampleissuingrule2->{branchcode},
@@ -299,6 +310,7 @@ $sth->execute(
     $sampleissuingrule2->{onshelfholds},
     $sampleissuingrule2->{opacitemholds},
     $sampleissuingrule2->{cap_fine_to_replacement_price},
+    $sampleissuingrule2->{article_requests},
 );
 $sth->execute(
     $sampleissuingrule3->{branchcode},
@@ -330,6 +342,7 @@ $sth->execute(
     $sampleissuingrule3->{onshelfholds},
     $sampleissuingrule3->{opacitemholds},
     $sampleissuingrule3->{cap_fine_to_replacement_price},
+    $sampleissuingrule3->{article_requests},
 );
 
 is_deeply(

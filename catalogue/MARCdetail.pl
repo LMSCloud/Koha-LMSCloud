@@ -43,8 +43,7 @@ the items attached to the biblio
 
 =cut
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use HTML::Entities;
 
@@ -56,9 +55,12 @@ use MARC::Record;
 use C4::Biblio;
 use C4::Items;
 use C4::Acquisition;
-use C4::Members; # to use GetMember
 use C4::Serials;    #uses getsubscriptionsfrombiblionumber GetSubscriptionsFromBiblionumber
 use C4::Search;		# enabled_staff_search_views
+
+use Koha::Biblios;
+use Koha::BiblioFrameworks;
+use Koha::Patrons;
 
 use List::MoreUtils qw( uniq );
 
@@ -85,7 +87,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $record = GetMarcBiblio($biblionumber, 1);
+my $record = GetMarcBiblio({
+    biblionumber => $biblionumber,
+    embed_items  => 1 });
 $template->param( ocoins => GetCOinSBiblio($record) );
 
 if ( not defined $record ) {
@@ -97,39 +101,30 @@ if ( not defined $record ) {
     exit;
 }
 
+my $biblio_object = Koha::Biblios->find( $biblionumber ); # FIXME Should replace $biblio
 my $tagslib = &GetMarcStructure(1,$frameworkcode);
 my $biblio = GetBiblioData($biblionumber);
 
 if($query->cookie("holdfor")){ 
-    my $holdfor_patron = GetMember('borrowernumber' => $query->cookie("holdfor"));
+    my $holdfor_patron = Koha::Patrons->find( $query->cookie("holdfor") );
     $template->param(
         holdfor => $query->cookie("holdfor"),
-        holdfor_surname => $holdfor_patron->{'surname'},
-        holdfor_firstname => $holdfor_patron->{'firstname'},
-        holdfor_cardnumber => $holdfor_patron->{'cardnumber'},
+        holdfor_surname => $holdfor_patron->surname,
+        holdfor_firstname => $holdfor_patron->firstname,
+        holdfor_cardnumber => $holdfor_patron->cardnumber,
     );
 }
 
 #count of item linked
-my $itemcount = GetItemsCount($biblionumber);
+my $itemcount = $biblio_object->items->count;
 $template->param( count => $itemcount,
 					bibliotitle => $biblio->{title}, );
 
-# Getting the list of all frameworks
-# get framework list
-my $frameworks = getframeworks;
-my @frameworkcodeloop;
-foreach my $thisframeworkcode ( keys %$frameworks ) {
-    my %row = (
-        value         => $thisframeworkcode,
-        frameworktext => $frameworks->{$thisframeworkcode}->{'frameworktext'},
-    );
-    if ($frameworkcode eq $thisframeworkcode){
-        $row{'selected'}= 1;
-        }
-    push @frameworkcodeloop, \%row;
-}
-$template->param( frameworkcodeloop => \@frameworkcodeloop, );
+my $frameworks = Koha::BiblioFrameworks->search( {}, { order_by => ['frameworktext'] } );
+$template->param(
+    frameworks    => $frameworks,
+    frameworkcode => $frameworkcode,
+);
 # fill arrays
 my @loop_data = ();
 
@@ -349,8 +344,8 @@ $template->param (countorders => $count_orders_using_biblio);
 my $count_deletedorders_using_biblio = scalar @deletedorders_using_biblio ;
 $template->param (countdeletedorders => $count_deletedorders_using_biblio);
 
-my $holds = C4::Reserves::GetReservesFromBiblionumber({ biblionumber => $biblionumber, all_dates => 1 });
-my $holdcount = scalar( @$holds );
-$template->param( holdcount => scalar ( @$holds ) );
+$biblio = Koha::Biblios->find( $biblionumber );
+my $holds = $biblio->holds;
+$template->param( holdcount => $holds->count );
 
 output_html_with_http_headers $query, $cookie, $template->output;

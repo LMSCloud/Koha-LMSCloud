@@ -5,7 +5,7 @@
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo;  Full subscription history for [% bibliotitle %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
-    <style type="text/css">
+    <style>
         #search-facets fieldset { border: 0; margin: 0;padding:0;}#search-facets ol{padding:.3em;}#search-facets li {list-style-type:none;padding:4px 4px;}#search-facets label{font-weight:bold;display:block;margin:.2em 0;}#search-facets fieldset.action {padding-left:4px;margin:.3em;}div.tabsub { clear:both;}#subtabs a { display:block;float:left;border:1px solid #CCC;padding:.2em .4em;margin:.3em;text-decoration:none;font-size:115%;}#subtabs strong { display:block; float: left; font-size:115%;padding:.2em .4em; margin: 0.3em 0;}#subtabs { margin-top : 1em; }a.currentsubtab { background-color:#FFC;}
     </style>
 [% END %]
@@ -16,7 +16,7 @@
     <div class="main">
         <ul class="breadcrumb">
             <li><a href="/cgi-bin/koha/opac-main.pl">Home</a> <span class="divider">&rsaquo;</span></li>
-            <li><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber %]">Details for [% bibliotitle %]</a> <span class="divider">&rsaquo;</span></li>
+            <li><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | html %]">Details for [% bibliotitle %]</a> <span class="divider">&rsaquo;</span></li>
             <li><a href="#">Full subscription history</a></li>
         </ul>
 
@@ -48,8 +48,8 @@
                         [% UNLESS ( popup ) %]
                             <h2>Full subscription history for [% bibliotitle %]</h2>
                             <div id="views">
-                                <span class="view"><a id="Normalview" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber %]">Normal view</a></span>
-                                <span class="view"><a id="Briefhistory" href="/cgi-bin/koha/opac-serial-issues.pl?biblionumber=[% biblionumber %]&amp;selectview=small">Brief history</a></span>
+                                <span class="view"><a id="Normalview" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | html %]">Normal view</a></span>
+                                <span class="view"><a id="Briefhistory" href="/cgi-bin/koha/opac-serial-issues.pl?biblionumber=[% biblionumber | html %]&amp;selectview=small">Brief history</a></span>
                                 <span class="view"><span id="Fullhistory">Full history</span></span>
                             </div>
                         [% END %]
@@ -137,7 +137,7 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
 [% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
+<script>
     //<![CDATA[
         $(document).ready(function(){
             showlayer([% yearmin %]);

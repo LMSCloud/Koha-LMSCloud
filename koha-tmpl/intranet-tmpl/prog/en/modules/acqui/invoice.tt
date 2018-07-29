@@ -1,57 +1,12 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Price %]
-
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; Invoice</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-    function updateColumnsVisibility(visible) {
-        if ( visible ) {
-            $("table .gste, .gsti").show();
-        } else {
-            [% IF ( invoiceincgst ) %]
-                $("table .gste").hide();
-            [% ELSE %]
-                $("table .gsti").hide();
-            [% END %]
-        }
-    }
-
-    $(document).ready(function() {
-        $("#orderst").dataTable($.extend(true, {}, dataTablesDefaults, {
-            bInfo: false,
-            bPaginate: false,
-            bFilter: false,
-            sDom: "t",
-            "aoColumnDefs": [
-                { "sType": "anti-the", "aTargets": [ "anti-the" ] }
-            ]
-        }));
-[% IF ( (Koha.Preference('AcqEnableFiles')) && files ) %]
-        $("#invoice_files_table").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumnDefs": [
-                { "aTargets": [ "title-string" ], "sType": "title-string" }
-            ],
-            bInfo: false,
-            bPaginate: false,
-            bFilter: false,
-            sDom: "t"
-        }));
-[% END %]
-        $("#show_all_details").click(function(){
-            updateColumnsVisibility( $(this).is(":checked") );
-        });
-
-        $("#show_all_details").prop('checked', false);
-        updateColumnsVisibility(false);
-    });
-//]]>
-</script>
 </head>
 
 <body id="acq_invoice" class="acq">
@@ -73,9 +28,15 @@
       <h1>Invoice: [% invoicenumber %]</h1>
 
       <p>Vendor: <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% suppliername %]</a></p>
-        <form action="/cgi-bin/koha/acqui/invoice.pl" method="post">
+        <form action="/cgi-bin/koha/acqui/invoice.pl" method="post" class="validated">
         <fieldset class="rows">
             <ol>
+            <li>
+                <label for="shipmentdate" class="required">Invoice number:</label>
+                <input type="text" id="invoicenumber" name="invoicenumber" value="[% invoicenumber %]" class="required" required="required"/>
+                <span class="required">Required</span>
+            </li>
+
             <li><label for="shipmentdate">Shipment date:</label>
                     <input type="text" size="10" id="shipmentdate" name="shipmentdate" value="[% shipmentdate | $KohaDates %]" class="datepicker" /></li>
 
@@ -117,7 +78,7 @@
         <fieldset class="action">
             <input type="submit" value="Save" />
             [% UNLESS orders_loop.size %]
-            <a href="invoice.pl?op=delete&invoiceid=[% invoiceid %]">Delete</a>
+            <a href="invoice.pl?op=delete&invoiceid=[% invoiceid %]" id="delete">Delete</a>
             [% END %]
         </fieldset>
       </form>
@@ -136,11 +97,11 @@
               <tr>
                 <th class="anti-the">Summary</th>
                 <th>Library</th>
-                <th class="gste">Actual cost tax exc.</th>
-                <th class="gsti">Actual cost tax inc.</th>
+                <th class="tax_excluded">Actual cost tax exc.</th>
+                <th class="tax_included">Actual cost tax inc.</th>
                 <th>Qty.</th>
-                <th class="gste">Total tax exc. ([% currency.symbol %])</th>
-                <th class="gsti">Total tax inc. ([% currency.symbol %])</th>
+                <th class="tax_excluded">Total tax exc. ([% currency.symbol %])</th>
+                <th class="tax_included">Total tax inc. ([% currency.symbol %])</th>
                 <th>GST %</th>
                 <th>GST</th>
                 <th>Fund</th>
@@ -151,30 +112,28 @@
                 <tr>
                   <td>
                     [% IF order.biblionumber %]
-                      <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% order.biblionumber %]">[% order.title %]</a>
+                      <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% order.biblionumber %]">[% order.title |html %]</a>
                       [% IF ( order.author ) %]
                         <br /><em>by</em> [% order.author %]
                       [% END %]
                     [% ELSE %]
                       <em>Deleted bibliographic record, can't find title</em>
                     [% END %]
+                    [% IF ( order.isbn ) %] &ndash; [% order.isbn %][% END %]
                     [% IF ( order.publishercode ) %]
                       <br/>[% order.publishercode %]
-                        [% IF order.publicationyear > 0 %]
-                          - [% order.publicationyear %]
-                        [% ELSIF ( order.copyrightdate > 0) %]
-                          - [% order.copyrightdate %]
-                        [% END %]
+                        [% IF order.publicationyear %], [% order.publicationyear %]
+                        [% ELSIF ( order.copyrightdate ) %][% order.copyrightdate %][% END %]
                     [% END %]
                   </td>
                   <td><p>[% order.branchcode %]</p></td>
-                  <td class="number gste">[% order.unitpricegste | $Price %]</td>
-                  <td class="number gsti">[% order.unitpricegsti | $Price %]</td>
+                  <td class="number tax_excluded">[% order.unitprice_tax_excluded | $Price %]</td>
+                  <td class="number tax_included">[% order.unitprice_tax_included | $Price %]</td>
                   <td class="number">[% order.quantity %]</td>
-                  <td class="number gste">[% order.totalgste | $Price %]</td>
-                  <td class="number gsti">[% order.totalgsti | $Price %]</td>
-                  <td class="number">[% order.gstrate * 100 %]</td>
-                  <td class="number">[% order.gstvalue | $Price %]</td>
+                  <td class="number tax_excluded">[% order.total_tax_excluded | $Price %]</td>
+                  <td class="number tax_included">[% order.total_tax_included | $Price %]</td>
+                  <td class="number">[% order.tax_rate * 100 %]</td>
+                  <td class="number">[% order.tax_value | $Price %]</td>
                   <td>[% order.budget_name %]</td>
                 </tr>
               [% END %]
@@ -182,35 +141,35 @@
             <tfoot>
               [% FOR tf IN foot_loop %]
                 <tr>
-                    <th colspan='2'>Total (GST [% tf.gstrate * 100 %] %)</th>
-                    <th class="gste"/><th class="gsti"/>
+                    <th colspan="2">Total (GST [% tf.tax_rate * 100 %] %)</th>
+                    <th class="tax_excluded"/><th class="tax_included"/>
                     <th>[% tf.quantity %]</th>
-                    <th class="gste">[% tf.totalgste | $Price %]</th>
-                    <th class="gsti">[% tf.totalgsti | $Price %]</th>
+                    <th class="tax_excluded">[% tf.total_tax_excluded | $Price %]</th>
+                    <th class="tax_included">[% tf.total_tax_included | $Price %]</th>
                     <th>&nbsp;</th>
-                    <th>[% tf.gstvalue | $Price %]</th>
+                    <th>[% tf.tax_value | $Price %]</th>
                     <th>&nbsp;</th>
                 </tr>
               [% END %]
               <tr>
                 <th colspan='2'>Total ([% currency.symbol %])</th>
-                <th class="gste"/><th class="gsti"/>
+                <th class="tax_excluded"/><th class="tax_included"/>
                 <th>[% total_quantity %]</th>
-                <th class="gste">[% total_gste | $Price %]</th>
-                <th class="gsti">[% total_gsti | $Price %]</th>
+                <th class="tax_excluded">[% total_tax_excluded | $Price %]</th>
+                <th class="tax_included">[% total_tax_included | $Price %]</th>
                 <th>&nbsp;</th>
-                <th>[% total_gstvalue | $Price %]</th>
+                <th>[% total_tax_value | $Price %]</th>
                 <th>&nbsp;</th>
               </tr>
               <tr>
                 <th colspan="2">Total + Shipment cost ([% currency.symbol %])</th>
-                <th class="gste"></th>
-                <th class="gsti"></th>
+                <th class="tax_excluded"></th>
+                <th class="tax_included"></th>
                 <th>[% total_quantity %]</th>
-                <th class="gste">[% total_gste_shipment | $Price %]</th>
-                <th class="gsti">[% total_gsti_shipment | $Price %]</th>
+                <th class="tax_excluded">[% total_tax_excluded_shipment | $Price %]</th>
+                <th class="tax_included">[% total_tax_included_shipment | $Price %]</th>
                 <th>&nbsp;</th>
-                <th>[% total_gstvalue | $Price %]</th>
+                <th>[% total_tax_value | $Price %]</th>
                 <th>&nbsp;</th>
               </tr>
             </tfoot>
@@ -250,4 +209,56 @@
     [% INCLUDE 'acquisitions-menu.inc' %]
   </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        function updateColumnsVisibility(visible) {
+            if ( visible ) {
+                $("table .tax_excluded, .tax_included").show();
+            } else {
+                [% IF ( invoiceincgst ) %]
+                    $("table .tax_excluded").hide();
+                [% ELSE %]
+                    $("table .tax_included").hide();
+                [% END %]
+            }
+        }
+
+        $(document).ready(function() {
+            $("#delete").click(function(){
+                return confirmDelete(_("Are you sure you want to delete this invoice?"));
+            });
+            $("#orderst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                bInfo: false,
+                bPaginate: false,
+                bFilter: false,
+                sDom: "t",
+                "aoColumnDefs": [
+                    { "sType": "anti-the", "aTargets": [ "anti-the" ] }
+                ]
+            }));
+            [% IF ( (Koha.Preference('AcqEnableFiles')) && files ) %]
+                $("#invoice_files_table").dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "aoColumnDefs": [
+                        { "aTargets": [ "title-string" ], "sType": "title-string" }
+                    ],
+                    bInfo: false,
+                    bPaginate: false,
+                    bFilter: false,
+                    sDom: "t"
+                }));
+            [% END %]
+            $("#show_all_details").click(function(){
+                updateColumnsVisibility( $(this).is(":checked") );
+            });
+
+            $("#show_all_details").prop('checked', false);
+            updateColumnsVisibility(false);
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

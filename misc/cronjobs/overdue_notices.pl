@@ -47,6 +47,7 @@ use Koha::Calendar;
 use Koha::Libraries;
 use Koha::Acquisition::Currencies;
 use Koha::OverdueIssue;
+use Koha::Patrons;
 
 =head1 NAME
 
@@ -504,6 +505,7 @@ foreach my $branchcode (@branches) {
     
     if ( C4::Context->preference('OverdueNoticeCalendar') || C4::Context->preference('OverdueNoticeSkipWhenClosed') ) {
         my $calendar = Koha::Calendar->new( branchcode => $branchcode );
+        $calendar = Koha::Calendar->new( branchcode => $branchcode );
         if ( $calendar->is_holiday($date_to_run) ) {
             next;
         }
@@ -535,6 +537,7 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(cla
     AND b.branchcode = issues.branchcode
     AND biblio.biblionumber   = biblioitems.biblionumber
     AND ( issues.borrowernumber = ? $familyCardMemberOverdueReceiverSelect )
+    AND items.itemlost = 0
     AND TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
     AND ( b.branchcode = ? $mobileselect )
 END_SQL
@@ -599,13 +602,15 @@ END_SQL
             my $borrower_sql = <<"END_SQL";
 SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, 
                 cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
-FROM   branches, borrowers, categories, issues
+FROM   branches, borrowers, categories, issues, items
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  issues.borrowernumber = borrowers.borrowernumber $exludeFamilyCardMembers
 AND    borrowers.categorycode=categories.categorycode
+AND    issues.itemnumber = items.itemnumber
+AND    items.itemlost = 0
 AND    categories.overduenoticerequired=1
 AND    branches.branchcode = issues.branchcode
-AND    issues.date_due <= $date
+AND    TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
 END_SQL
             my @borrower_parameters;
             if ($branchcode) {
@@ -626,16 +631,18 @@ END_SQL
 UNION
 SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, 
                 bo.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
-FROM   branches, borrowers bo, borrowers bb, categories, issues
+FROM   branches, borrowers bo, borrowers bb, categories, issues, items
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  categories.family_card = 1
 AND    issues.borrowernumber = bb.borrowernumber
 AND    bo.borrowernumber = bb.guarantorid 
 AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = bo.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)
 AND    bo.categorycode=categories.categorycode
+AND    issues.itemnumber = items.itemnumber
+AND    items.itemlost = 0
 AND    categories.overduenoticerequired=1 
 AND    branches.branchcode = issues.branchcode
-AND    issues.date_due <= $date
+AND    TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
 END_SQL
                 if ($branchcode) {
                     if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
@@ -710,19 +717,19 @@ END_SQL
                 $verbose
                   and warn "borrower $borr has items triggering level $i.";
 
+                my $patron = Koha::Patrons->find( $borrowernumber );
+                
                 # check whether the borrower is a family card member                
-                my $familyCardOwner = C4::Members::GetFamilyCardId($borrowernumber);
+                my $familyCardOwner = $patron->get_family_card_id;
 
                 @emails_to_use = ();
-                my $notice_email = 
-                    C4::Members::GetNoticeEmailAddress($borrowernumber);
+                 my $notice_email = $patron->notice_email_address;
                 $notice_email =~ s/^\s+// if ($notice_email);
                 $notice_email =~ s/\s+$// if ($notice_email);
                 
                 if ( !$notice_email && $familyCardOwner && GetMemberAge($borrowernumber) < 18 ) {
-                    $notice_email = C4::Members::GetNoticeEmailAddress($familyCardOwner);
+                    $notice_email = Koha::Patrons->find( $familyCardOwner )->notice_email_address;
                 }
-                
                 unless ($nomail) {
                     if (@emails) {
                         foreach (@emails) {
@@ -750,6 +757,7 @@ END_SQL
                 if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
                     push(@params,$branchcode);
                 }
+
                 $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber";
 
                 $sth2->execute(@params);
@@ -836,6 +844,7 @@ END_SQL
                                            $item_info->{$_} || '' } @item_content_fields;
                     $titleinfo = join("\t", @item_info) . "\n";
                     push @titles, $titleinfo;
+
                     $itemcount++;
                     push @items, $item_info;
                     

@@ -23,10 +23,9 @@ use warnings;
 use C4::Members;
 use C4::Items;
 use C4::Circulation;
-use C4::Branch;
 use C4::Accounts;
 use C4::Biblio;
-use C4::Reserves qw(AddReserve GetReservesFromBiblionumber GetReservesFromBorrowernumber CanBookBeReserved CanItemBeReserved IsAvailableForItemLevelRequest);
+use C4::Reserves qw(AddReserve CanBookBeReserved CanItemBeReserved IsAvailableForItemLevelRequest);
 use C4::Context;
 use C4::AuthoritiesMarc;
 use XML::Simple;
@@ -35,6 +34,12 @@ use CGI qw ( -utf8 );
 use DateTime;
 use C4::Auth;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
+use Koha::DateUtils;
+
+use Koha::Biblios;
+use Koha::Checkouts;
+use Koha::Libraries;
+use Koha::Patrons;
 
 =head1 NAME
 
@@ -43,27 +48,27 @@ C4::ILS-DI::Services - ILS-DI Services
 =head1 DESCRIPTION
 
 Each function in this module represents an ILS-DI service.
-They all takes a CGI instance as argument and most of them return a 
+They all takes a CGI instance as argument and most of them return a
 hashref that will be printed by XML::Simple in opac/ilsdi.pl
 
 =head1 SYNOPSIS
 
-	use C4::ILSDI::Services;
-	use XML::Simple;
-	use CGI qw ( -utf8 );
+    use C4::ILSDI::Services;
+    use XML::Simple;
+    use CGI qw ( -utf8 );
 
-	my $cgi = new CGI;
+    my $cgi = new CGI;
 
-	$out = LookupPatron($cgi);
+    $out = LookupPatron($cgi);
 
-	print CGI::header('text/xml');
-	print XMLout($out,
-		noattr => 1, 
-		noescape => 1,
-		nosort => 1,
+    print CGI::header('text/xml');
+    print XMLout($out,
+        noattr => 1,
+        noescape => 1,
+        nosort => 1,
                 xmldecl => '<?xml version="1.0" encoding="UTF-8" ?>',
-		RootName => 'LookupPatron', 
-		SuppressEmpty => 1);
+        RootName => 'LookupPatron',
+        SuppressEmpty => 1);
 
 =cut
 
@@ -71,7 +76,7 @@ hashref that will be printed by XML::Simple in opac/ilsdi.pl
 
 =head2 GetAvailability
 
-Given a set of biblionumbers or itemnumbers, returns a list with 
+Given a set of biblionumbers or itemnumbers, returns a list with
 availability of the items associated with the identifiers.
 
 Parameters:
@@ -82,7 +87,7 @@ list of either biblionumbers or itemnumbers
 
 =head3 id_type (Required)
 
-defines the type of record identifier being used in the request, 
+defines the type of record identifier being used in the request,
 possible values:
 
   - bib
@@ -90,7 +95,7 @@ possible values:
 
 =head3 return_type (Optional)
 
-requests a particular level of detail in reporting availability, 
+requests a particular level of detail in reporting availability,
 possible values:
 
   - bib
@@ -98,8 +103,8 @@ possible values:
 
 =head3 return_fmt (Optional)
 
-requests a particular format or set of formats in reporting 
-availability 
+requests a particular format or set of formats in reporting
+availability
 
 =cut
 
@@ -133,21 +138,31 @@ sub GetAvailability {
         } else {
             my $status;
             my $msg;
-            my $biblioitem = ( GetBiblioItemByBiblioNumber( $id, undef ) )[0];
-            if ($biblioitem) {
-
+            my $items = GetItemnumbersForBiblio($id);
+            if ($items) {
+                # Open XML
+                $out .= "  <dlf:record>\n";
+                $out .= "    <dlf:bibliographic id=\"" .$id. "\" />\n";
+                $out .= "    <dlf:items>\n";
+                # We loop over the items to clean them
+                foreach my $itemnumber (@$items) {
+                    my ( $biblionumber, $status, $msg, $location ) = _availability($itemnumber);
+                    $out .= "      <dlf:item id=\"" . $itemnumber . "\">\n";
+                    $out .= "        <dlf:simpleavailability>\n";
+                    $out .= "          <dlf:identifier>" . $itemnumber . "</dlf:identifier>\n";
+                    $out .= "          <dlf:availabilitystatus>" . $status . "</dlf:availabilitystatus>\n";
+                    if ($msg)      { $out .= "          <dlf:availabilitymsg>" . $msg . "</dlf:availabilitymsg>\n"; }
+                    if ($location) { $out .= "          <dlf:location>" . $location . "</dlf:location>\n"; }
+                    $out .= "        </dlf:simpleavailability>\n";
+                    $out .= "      </dlf:item>\n";
+                }
+                # Close XML
+                $out .= "    </dlf:items>\n";
+                $out .= "  </dlf:record>\n";
             } else {
                 $status = "unknown";
                 $msg    = "Error: could not retrieve availability for this ID";
             }
-            $out .= "  <dlf:record>\n";
-            $out .= "    <dlf:bibliographic id=\"" . $id . "\" />\n";
-            $out .= "    <dlf:simpleavailability>\n";
-            $out .= "      <dlf:identifier>" . $id . "</dlf:identifier>\n";
-            $out .= "      <dlf:availabilitystatus>" . $status . "</dlf:availabilitystatus>\n";
-            $out .= "      <dlf:availabilitymsg>" . $msg . "</dlf:availabilitymsg>\n";
-            $out .= "    </dlf:simpleavailability>\n";
-            $out .= "  </dlf:record>\n";
         }
     }
     $out .= "</dlf:collection>\n";
@@ -157,13 +172,13 @@ sub GetAvailability {
 
 =head2 GetRecords
 
-Given a list of biblionumbers, returns a list of record objects that 
+Given a list of biblionumbers, returns a list of record objects that
 contain bibliographic information, as well as associated holdings and item
-information. The caller may request a specific metadata schema for the 
+information. The caller may request a specific metadata schema for the
 record objects to be returned.
 
-This function behaves similarly to HarvestBibliographicRecords and 
-HarvestExpandedRecords in Data Aggregation, but allows quick, real time 
+This function behaves similarly to HarvestBibliographicRecords and
+HarvestExpandedRecords in Data Aggregation, but allows quick, real time
 lookup by bibliographic identifier.
 
 You can use OAI-PMH ListRecords instead of this service.
@@ -171,11 +186,11 @@ You can use OAI-PMH ListRecords instead of this service.
 Parameters:
 
   - id (Required)
-	list of system record identifiers
+    list of system record identifiers
   - id_type (Optional)
-	Defines the metadata schema in which the records are returned, 
-	possible values:
-  	  - MARCXML
+    Defines the metadata schema in which the records are returned,
+    possible values:
+        - MARCXML
 
 =cut
 
@@ -193,23 +208,26 @@ sub GetRecords {
     foreach my $biblionumber ( split( / /, $cgi->param('id') ) ) {
 
         # Get the biblioitem from the biblionumber
-        my $biblioitem = ( GetBiblioItemByBiblioNumber( $biblionumber, undef ) )[0];
-        if ( not $biblioitem->{'biblionumber'} ) {
+        my $biblio = Koha::Biblios->find( $biblionumber );
+        my $biblioitem = $biblio->biblioitem;
+        if ( $biblioitem ) {
+            $biblioitem = $biblioitem->unblessed;
+        } else {
             $biblioitem->{code} = "RecordNotFound";
+            # FIXME We should not need to process something else; next?
         }
 
         my $embed_items = 1;
-        my $record = GetMarcBiblio($biblionumber, $embed_items);
+        my $record = GetMarcBiblio({
+            biblionumber => $biblionumber,
+            embed_items  => $embed_items });
         if ($record) {
             $biblioitem->{marcxml} = $record->as_xml_record();
         }
 
-        # We don't want MARC to be displayed
-        delete $biblioitem->{'marc'};
-
         # Get most of the needed data
         my $biblioitemnumber = $biblioitem->{'biblioitemnumber'};
-        my $reserves         = GetReservesFromBiblionumber({ biblionumber => $biblionumber });
+        my $holds  = $biblio->current_holds->unblessed;
         my $issues           = GetBiblioIssues($biblionumber);
         my $items            = GetItemsByBiblioitemnumber($biblioitemnumber);
 
@@ -220,13 +238,15 @@ sub GetRecords {
             delete $item->{'more_subfields_xml'};
 
             # Display branch names instead of branch codes
-            $item->{'homebranchname'}    = GetBranchName( $item->{'homebranch'} );
-            $item->{'holdingbranchname'} = GetBranchName( $item->{'holdingbranch'} );
+            my $home_library    = Koha::Libraries->find( $item->{homebranch} );
+            my $holding_library = Koha::Libraries->find( $item->{holdingbranch} );
+            $item->{'homebranchname'}    = $home_library    ? $home_library->branchname    : '';
+            $item->{'holdingbranchname'} = $holding_library ? $holding_library->branchname : '';
         }
 
         # Hashref building...
         $biblioitem->{'items'}->{'item'}       = $items;
-        $biblioitem->{'reserves'}->{'reserve'} = $reserves;
+        $biblioitem->{'reserves'}->{'reserve'} = $holds;
         $biblioitem->{'issues'}->{'issue'}     = $issues;
 
         push @records, $biblioitem;
@@ -237,8 +257,8 @@ sub GetRecords {
 
 =head2 GetAuthorityRecords
 
-Given a list of authority record identifiers, returns a list of record 
-objects that contain the authority records. The function user may request 
+Given a list of authority record identifiers, returns a list of record
+objects that contain the authority records. The function user may request
 a specific metadata schema for the record objects.
 
 Parameters:
@@ -278,36 +298,47 @@ Looks up a patron in the ILS by an identifier, and returns the borrowernumber.
 Parameters:
 
   - id (Required)
-	an identifier used to look up the patron in Koha
+    an identifier used to look up the patron in Koha
   - id_type (Optional)
-	the type of the identifier, possible values:
-	- cardnumber
-	- firstname
-	- userid
-	- borrowernumber
+    the type of the identifier, possible values:
+    - cardnumber
+    - userid
+        - email
+    - borrowernumber
+    - firstname
+        - surname
 
 =cut
 
 sub LookupPatron {
     my ($cgi) = @_;
 
-    # Get the borrower...
-    my $borrower = GetMember($cgi->param('id_type') => $cgi->param('id'));
-    if ( not $borrower->{'borrowernumber'} ) {
+    my $id      = $cgi->param('id');
+    if(!$id) {
         return { message => 'PatronNotFound' };
     }
 
-    # Build the hashref
-    my $patron->{'id'} = $borrower->{'borrowernumber'};
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patrons;
+    my $passed_id_type = $cgi->param('id_type');
+    if($passed_id_type) {
+        $patrons = Koha::Patrons->search( { $passed_id_type => $id } );
+    } else {
+        foreach my $id_type ('cardnumber', 'userid', 'email', 'borrowernumber',
+                     'surname', 'firstname') {
+            $patrons = Koha::Patrons->search( { $id_type => $id } );
+            last if($patrons->count);
+        }
+    }
+    unless ( $patrons->count ) {
+        return { message => 'PatronNotFound' };
+    }
 
-    # ...and return his ID
-    return $patron;
+    return { id => $patrons->next->borrowernumber };
 }
 
 =head2 AuthenticatePatron
 
-Authenticates a user's login credentials and returns the identifier for 
+Authenticates a user's login credentials and returns the identifier for
 the patron.
 
 Parameters:
@@ -326,9 +357,8 @@ sub AuthenticatePatron {
     my ($status, $cardnumber, $userid) = C4::Auth::checkpw( C4::Context->dbh, $username, $password );
     if ( $status ) {
         # Get the borrower
-        my $borrower = GetMember( cardnumber => $cardnumber );
-        my $patron->{'id'} = $borrower->{'borrowernumber'};
-        return $patron;
+        my $patron = Koha::Patrons->find( { cardnumber => $cardnumber } );
+        return { id => $patron->borrowernumber };
     }
     else {
         return { code => 'PatronNotFound' };
@@ -337,22 +367,22 @@ sub AuthenticatePatron {
 
 =head2 GetPatronInfo
 
-Returns specified information about the patron, based on options in the 
-request. This function can optionally return patron's contact information, 
+Returns specified information about the patron, based on options in the
+request. This function can optionally return patron's contact information,
 fine information, hold request information, and loan information.
 
 Parameters:
 
   - patron_id (Required)
-	the borrowernumber
+    the borrowernumber
   - show_contact (Optional, default 1)
-	whether or not to return patron's contact information in the response
+    whether or not to return patron's contact information in the response
   - show_fines (Optional, default 0)
-	whether or not to return fine information in the response
+    whether or not to return fine information in the response
   - show_holds (Optional, default 0)
-	whether or not to return hold request information in the response
+    whether or not to return hold request information in the response
   - show_loans (Optional, default 0)
-	whether or not to return loan information request information in the response 
+    whether or not to return loan information request information in the response
 
 =cut
 
@@ -361,13 +391,14 @@ sub GetPatronInfo {
 
     # Get Member details
     my $borrowernumber = $cgi->param('patron_id');
-    my $borrower = GetMemberDetails( $borrowernumber );
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return { code => 'PatronNotFound' } unless $patron;
 
     # Cleaning the borrower hashref
-    $borrower->{'charges'}    = $borrower->{'flags'}->{'CHARGES'}->{'amount'};
-    $borrower->{'branchname'} = GetBranchName( $borrower->{'branchcode'} );
-    delete $borrower->{'flags'};
+    my $borrower = $patron->unblessed;
+    $borrower->{charges} = sprintf "%.02f", $patron->account->non_issues_charges; # FIXME Formatting should not be done here
+    my $library = Koha::Libraries->find( $borrower->{branchcode} );
+    $borrower->{'branchname'} = $library ? $library->branchname : '';
     delete $borrower->{'userid'};
     delete $borrower->{'password'};
 
@@ -402,34 +433,47 @@ sub GetPatronInfo {
     if ( $cgi->param('show_holds') && $cgi->param('show_holds') eq "1" ) {
 
         # Get borrower's reserves
-        my @reserves = GetReservesFromBorrowernumber( $borrowernumber, undef );
-        foreach my $reserve (@reserves) {
+        my $holds = $patron->holds;
+        while ( my $hold = $holds->next ) {
 
+            my ( $item, $biblio, $biblioitem ) = ( {}, {}, {} );
             # Get additional informations
-            my $item = GetBiblioFromItemNumber( $reserve->{'itemnumber'}, undef );
-            my $branchname = GetBranchName( $reserve->{'branchcode'} );
+            if ( $hold->itemnumber ) {    # item level holds
+                $item       = Koha::Items->find( $hold->itemnumber );
+                $biblio     = $item->biblio;
+                $biblioitem = $biblio->biblioitem;
 
-            # Remove unwanted fields
-            delete $item->{'marc'};
-            delete $item->{'marcxml'};
-            delete $item->{'more_subfields_xml'};
+                # Remove unwanted fields
+                $item = $item->unblessed;
+                delete $item->{more_subfields_xml};
+                $biblio     = $biblio->unblessed;
+                $biblioitem = $biblioitem->unblessed;
+            }
 
             # Add additional fields
-            $reserve->{'item'}       = $item;
-            $reserve->{'branchname'} = $branchname;
-            $reserve->{'title'}      = GetBiblio( $reserve->{'biblionumber'} )->{'title'};
+            my $unblessed_hold = $hold->unblessed;
+            $unblessed_hold->{item}       = { %$item, %$biblio, %$biblioitem };
+            my $library = Koha::Libraries->find( $hold->branchcode );
+            my $branchname = $library ? $library->branchname : '';
+            $unblessed_hold->{branchname} = $branchname;
+            $biblio = Koha::Biblios->find( $hold->biblionumber ); # Should be $hold->get_biblio
+            $unblessed_hold->{title} = $biblio ? $biblio->title : ''; # Just in case, but should not be needed
+
+            push @{ $borrower->{holds}{hold} }, $unblessed_hold;
+
         }
-        $borrower->{'holds'}->{'hold'} = \@reserves;
     }
 
     # Issues management
     if ( $cgi->param('show_loans') && $cgi->param('show_loans') eq "1" ) {
-        my $issues = GetPendingIssues($borrowernumber);
-        foreach my $issue ( @$issues ){
-            $issue->{'issuedate'} = $issue->{'issuedate'}->strftime('%Y-%m-%d %H:%M');
-            $issue->{'date_due'} = $issue->{'date_due'}->strftime('%Y-%m-%d %H:%M');
+        my $pending_checkouts = $patron->pending_checkouts;
+        my @checkouts;
+        while ( my $c = $pending_checkouts->next ) {
+            # FIXME We should only retrieve what is needed in the template
+            my $issue = $c->unblessed_all_relateds;
+            push @checkouts, $issue
         }
-        $borrower->{'loans'}->{'loan'} = $issues;
+        $borrower->{'loans'}->{'loan'} = \@checkouts;
     }
 
     if ( $cgi->param('show_attributes') eq "1" ) {
@@ -447,7 +491,7 @@ Returns a patron's status information.
 Parameters:
 
   - patron_id (Required)
-	the borrower ID
+    the borrower ID
 
 =cut
 
@@ -456,28 +500,29 @@ sub GetPatronStatus {
 
     # Get Member details
     my $borrowernumber = $cgi->param('patron_id');
-    my $borrower = GetMemberDetails( $borrowernumber );
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return { code => 'PatronNotFound' } unless $patron;
 
     # Return the results
     return {
-        type   => $$borrower{categorycode},
+        type   => $patron->categorycode,
         status => 0, # TODO
-        expiry => $$borrower{dateexpiry},
+        expiry => $patron->dateexpiry,
     };
 }
 
 =head2 GetServices
 
-Returns information about the services available on a particular item for 
+Returns information about the services available on a particular item for
 a particular patron.
 
 Parameters:
 
   - patron_id (Required)
-	a borrowernumber
+    a borrowernumber
   - item_id (Required)
-	an itemnumber
+    an itemnumber
+
 =cut
 
 sub GetServices {
@@ -485,9 +530,10 @@ sub GetServices {
 
     # Get the member, or return an error code if not found
     my $borrowernumber = $cgi->param('patron_id');
-    my $borrower = GetMemberDetails( $borrowernumber );
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return { code => 'PatronNotFound' } unless $patron;
 
+    my $borrower = $patron->unblessed;
     # Get the item, or return an error code if not found
     my $itemnumber = $cgi->param('item_id');
     my $item = GetItem( $itemnumber );
@@ -507,10 +553,10 @@ sub GetServices {
     }
 
     # Reserve cancellation management
-    my @reserves = GetReservesFromBorrowernumber( $borrowernumber, undef );
+    my $holds = $patron->holds;
     my @reserveditems;
-    foreach my $reserve (@reserves) {
-        push @reserveditems, $reserve->{'itemnumber'};
+    while ( my $hold = $holds->next ) { # FIXME This could be improved
+        push @reserveditems, $hold->itemnumber;
     }
     if ( grep { $itemnumber eq $_ } @reserveditems ) {
         push @availablefor, 'hold cancellation';
@@ -526,7 +572,7 @@ sub GetServices {
     my $barcode = $item->{'barcode'} || '';
     $barcode = barcodedecode($barcode) if ( $barcode && C4::Context->preference('itemBarcodeInputFilter') );
     if ($barcode) {
-        my ( $issuingimpossible, $needsconfirmation ) = CanBookBeIssued( $borrower, $barcode );
+        my ( $issuingimpossible, $needsconfirmation ) = CanBookBeIssued( $patron, $barcode );
 
         # TODO push @availablefor, 'loan';
     }
@@ -544,11 +590,11 @@ Extends the due date for a borrower's existing issue.
 Parameters:
 
   - patron_id (Required)
-	a borrowernumber
+    a borrowernumber
   - item_id (Required)
-	an itemnumber
+    an itemnumber
   - desired_due_date (Required)
-	the date the patron would like the item returned by 
+    the date the patron would like the item returned by
 
 =cut
 
@@ -557,8 +603,8 @@ sub RenewLoan {
 
     # Get borrower infos or return an error code
     my $borrowernumber = $cgi->param('patron_id');
-    my $borrower = GetMemberDetails( $borrowernumber );
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return { code => 'PatronNotFound' } unless $patron;
 
     # Get the item, or return an error code
     my $itemnumber = $cgi->param('item_id');
@@ -569,12 +615,12 @@ sub RenewLoan {
     my @renewal = CanBookBeRenewed( $borrowernumber, $itemnumber );
     if ( $renewal[0] ) { AddRenewal( $borrowernumber, $itemnumber ); }
 
-    my $issue = GetItemIssue($itemnumber);
+    my $issue = Koha::Checkouts->find( { itemnumber => $itemnumber } ) or return; # FIXME should be handled
 
     # Hashref building
     my $out;
-    $out->{'renewals'} = $issue->{'renewals'};
-    $out->{date_due}   = $issue->{date_due}->strftime('%Y-%m-%d %H:%S');
+    $out->{'renewals'} = $issue->renewals;
+    $out->{date_due}   = dt_from_string($issue->date_due)->strftime('%Y-%m-%d %H:%S');
     $out->{'success'}  = $renewal[0];
     $out->{'error'}    = $renewal[1];
 
@@ -588,17 +634,17 @@ Creates, for a borrower, a biblio-level hold reserve.
 Parameters:
 
   - patron_id (Required)
-	a borrowernumber
+    a borrowernumber
   - bib_id (Required)
-	a biblionumber
+    a biblionumber
   - request_location (Required)
-	IP address where the end user request is being placed
+    IP address where the end user request is being placed
   - pickup_location (Optional)
-	a branch code indicating the location to which to deliver the item for pickup
+    a branch code indicating the location to which to deliver the item for pickup
   - needed_before_date (Optional)
-	date after which hold request is no longer needed
+    date after which hold request is no longer needed
   - pickup_expiry_date (Optional)
-	date after which item returned to shelf if item is not picked up 
+    date after which item returned to shelf if item is not picked up
 
 =cut
 
@@ -607,15 +653,15 @@ sub HoldTitle {
 
     # Get the borrower or return an error code
     my $borrowernumber = $cgi->param('patron_id');
-    my $borrower = GetMemberDetails( $borrowernumber );
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return { code => 'PatronNotFound' } unless $patron;
 
     # Get the biblio record, or return an error code
     my $biblionumber = $cgi->param('bib_id');
-    my $biblio = GetBiblio( $biblionumber );
-    return { code => 'RecordNotFound' } unless $$biblio{biblionumber};
-    
-    my $title = $$biblio{title};
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    return { code => 'RecordNotFound' } unless $biblio;
+
+    my $title = $biblio ? $biblio->title : '';
 
     # Check if the biblio can be reserved
     return { code => 'NotHoldable' } unless CanBookBeReserved( $borrowernumber, $biblionumber ) eq 'OK';
@@ -625,10 +671,9 @@ sub HoldTitle {
     # Pickup branch management
     if ( $cgi->param('pickup_location') ) {
         $branch = $cgi->param('pickup_location');
-        my $branches = GetBranches;
-        return { code => 'LocationNotFound' } unless $$branches{$branch};
+        return { code => 'LocationNotFound' } unless Koha::Libraries->find($branch);
     } else { # if the request provide no branch, use the borrower's branch
-        $branch = $$borrower{branchcode};
+        $branch = $patron->branchcode;
     }
 
     # Add the reserve
@@ -641,7 +686,8 @@ sub HoldTitle {
     # Hashref building
     my $out;
     $out->{'title'}           = $title;
-    $out->{'pickup_location'} = GetBranchName($branch);
+    my $library = Koha::Libraries->find( $branch );
+    $out->{'pickup_location'} = $library ? $library->branchname : '';
 
     # TODO $out->{'date_available'}  = '';
 
@@ -650,23 +696,23 @@ sub HoldTitle {
 
 =head2 HoldItem
 
-Creates, for a borrower, an item-level hold request on a specific item of 
+Creates, for a borrower, an item-level hold request on a specific item of
 a bibliographic record in Koha.
 
 Parameters:
 
   - patron_id (Required)
-	a borrowernumber
+    a borrowernumber
   - bib_id (Required)
-	a biblionumber
+    a biblionumber
   - item_id (Required)
-	an itemnumber
+    an itemnumber
   - pickup_location (Optional)
-	a branch code indicating the location to which to deliver the item for pickup
+    a branch code indicating the location to which to deliver the item for pickup
   - needed_before_date (Optional)
-	date after which hold request is no longer needed
+    date after which hold request is no longer needed
   - pickup_expiry_date (Optional)
-	date after which item returned to shelf if item is not picked up 
+    date after which item returned to shelf if item is not picked up
 
 =cut
 
@@ -675,15 +721,15 @@ sub HoldItem {
 
     # Get the borrower or return an error code
     my $borrowernumber = $cgi->param('patron_id');
-    my $borrower = GetMemberDetails( $borrowernumber );
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return { code => 'PatronNotFound' } unless $patron;
 
     # Get the biblio or return an error code
     my $biblionumber = $cgi->param('bib_id');
-    my $biblio = GetBiblio($biblionumber);
-    return { code => 'RecordNotFound' } unless $$biblio{biblionumber};
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    return { code => 'RecordNotFound' } unless $biblio;
 
-    my $title = $$biblio{title};
+    my $title = $biblio ? $biblio->title : '';
 
     # Get the item or return an error code
     my $itemnumber = $cgi->param('item_id');
@@ -691,7 +737,7 @@ sub HoldItem {
     return { code => 'RecordNotFound' } unless $$item{itemnumber};
 
     # If the biblio does not match the item, return an error code
-    return { code => 'RecordNotFound' } if $$item{biblionumber} ne $$biblio{biblionumber};
+    return { code => 'RecordNotFound' } if $$item{biblionumber} ne $biblio->biblionumber;
 
     # Check for item disponibility
     my $canitembereserved = C4::Reserves::CanItemBeReserved( $borrowernumber, $itemnumber );
@@ -702,10 +748,9 @@ sub HoldItem {
     my $branch;
     if ( $cgi->param('pickup_location') ) {
         $branch = $cgi->param('pickup_location');
-        my $branches = GetBranches();
-        return { code => 'LocationNotFound' } unless $$branches{$branch};
+        return { code => 'LocationNotFound' } unless Koha::Libraries->find($branch);
     } else { # if the request provide no branch, use the borrower's branch
-        $branch = $$borrower{branchcode};
+        $branch = $patron->branchcode;
     }
 
     # Add the reserve
@@ -717,7 +762,8 @@ sub HoldItem {
 
     # Hashref building
     my $out;
-    $out->{'pickup_location'} = GetBranchName($branch);
+    my $library = Koha::Libraries->find( $branch );
+    $out->{'pickup_location'} = $library ? $library->branchname : '';
 
     # TODO $out->{'date_available'} = '';
 
@@ -742,16 +788,16 @@ sub CancelHold {
 
     # Get the borrower or return an error code
     my $borrowernumber = $cgi->param('patron_id');
-    my $borrower = GetMemberDetails( $borrowernumber );
-    return { code => 'PatronNotFound' } unless $$borrower{borrowernumber};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    return { code => 'PatronNotFound' } unless $patron;
 
     # Get the reserve or return an error code
     my $reserve_id = $cgi->param('item_id');
-    my $reserve = C4::Reserves::GetReserve($reserve_id);
-    return { code => 'RecordNotFound' } unless $reserve;
-    return { code => 'RecordNotFound' } unless ($reserve->{borrowernumber} == $borrowernumber);
+    my $hold = Koha::Holds->find( $reserve_id );
+    return { code => 'RecordNotFound' } unless $hold;
+    return { code => 'RecordNotFound' } unless ($hold->borrowernumber == $borrowernumber);
 
-    C4::Reserves::CancelReserve({reserve_id => $reserve_id});
+    $hold->cancel;
 
     return { code => 'Canceled' };
 }
@@ -773,7 +819,8 @@ sub _availability {
     }
 
     my $biblionumber = $item->{'biblioitemnumber'};
-    my $location     = GetBranchName( $item->{'holdingbranch'} );
+    my $library = Koha::Libraries->find( $item->{holdingbranch} );
+    my $location = $library ? $library->branchname : '';
 
     if ( $item->{'notforloan'} ) {
         return ( $biblionumber, 'not available', 'Not for loan', $location );

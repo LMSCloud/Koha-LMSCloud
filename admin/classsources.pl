@@ -18,8 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 #
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Context;
@@ -34,7 +33,7 @@ my $input = new CGI;
 my $op          = $input->param('op') || '';
 my $source_code = $input->param('class_source');
 my $rule_code   = $input->param('sort_rule');
-
+my $sort_routine = $input->param('sort_routine');
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "admin/classsources.tt",
                  query => $input,
@@ -46,15 +45,16 @@ my ($template, $loggedinuser, $cookie)
 
 $template->param(script_name => $script_name);
 $template->param($op => 1) if $op;
-
+my $description = $input->param('description');
+my $used = $input->param('used');
 my $display_lists = 0;
 if ($op eq "add_source") {
     add_class_source_form($template);
 } elsif ($op eq "add_source_confirmed") {
     add_class_source($template,
                      $source_code,
-                     $input->param('description'),
-                     $input->param('used') eq "used" ? 1 : 0,
+                     $description,
+                     $used eq "used" ? 1 : 0,
                      $rule_code);
     $display_lists = 1;
 } elsif ($op eq "delete_source") {
@@ -67,8 +67,8 @@ if ($op eq "add_source") {
 } elsif ($op eq "edit_source_confirmed") {
     edit_class_source($template,
                      $source_code,
-                     $input->param('description'),
-                     $input->param('used') eq "used" ? 1 : 0,
+                     $description,
+                     $used eq "used" ? 1 : 0,
                      $rule_code);
     $display_lists = 1;
 } elsif ($op eq "add_sort_rule") {
@@ -76,8 +76,8 @@ if ($op eq "add_source") {
 } elsif ($op eq "add_sort_rule_confirmed") {
     add_class_sort_rule($template,
                         $rule_code,
-                        $input->param('description'),
-                        $input->param('sort_routine'));
+                        $description,
+                        $sort_routine);
     $display_lists = 1;
 } elsif ($op eq "delete_sort_rule") {
     delete_sort_rule_form($template, $rule_code);
@@ -89,8 +89,8 @@ if ($op eq "add_source") {
 } elsif ($op eq "edit_sort_rule_confirmed") {
     edit_class_sort_rule($template,
                          $rule_code,
-                         $input->param('description'),
-                         $input->param('sort_routine'));
+                         $description,
+                         $sort_routine);
     $display_lists = 1;
 } else {
     $display_lists = 1;
@@ -118,8 +118,12 @@ sub add_class_source_form {
 
 sub add_class_source {
     my ($template, $source_code, $description, $used, $sort_rule) = @_;
-    AddClassSource($source_code, $description, $used, $sort_rule);
-    $template->param(added_source => $source_code);
+    my $success = AddClassSource($source_code, $description, $used, $sort_rule);
+    if ($success > 0) {
+        $template->param(added_source => $source_code);
+    } else {
+        $template->param(failed_add_source => $source_code);
+    }
 }
 
 sub edit_class_source_form {
@@ -189,8 +193,12 @@ sub add_class_sort_rule_form {
 
 sub add_class_sort_rule {
     my ($template, $rule_code, $description, $sort_routine) = @_;
-    AddClassSortRule($rule_code, $description, $sort_routine);
-    $template->param(added_rule => $rule_code);
+    my $success = AddClassSortRule($rule_code, $description, $sort_routine);
+    if ($success > 0) {
+        $template->param(added_rule => $rule_code);
+    } else {
+        $template->param(failed_add_rule => $rule_code);
+    }
 }
 
 sub delete_sort_rule_form {

@@ -17,8 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use warnings;
-use strict;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 
 use C4::Auth qw(:DEFAULT check_cookie_auth);
@@ -62,7 +61,7 @@ else {
         my $taglist = get_tag_rows( { term => $tag } );
         for ( @{$taglist} ) {
             my $dat    = &GetBiblioData( $_->{biblionumber} );
-            my $record = &GetMarcBiblio( $_->{biblionumber} );
+            my $record = &GetMarcBiblio({ biblionumber => $_->{biblionumber} });
             $dat->{'subtitle'} =
               GetRecordValue( 'subtitle', $record,
                 GetFrameworkCode( $_->{biblionumber} ) );

@@ -31,16 +31,18 @@ This script allows to do 2 things.
 
 =cut
 
-use strict;
+use Modern::Perl;
 
-#use warnings; FIXME - Bug 2505
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
-use C4::Members;        # GetBorrowersWhoHavexxxBorrowed.
+use C4::Members;
 use C4::Circulation;    # AnonymiseIssueHistory.
 use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Patron::Categories;
+use Koha::Patrons;
 use Date::Calc qw/Today Add_Delta_YM/;
+use Koha::Patrons;
 use Koha::List::Patron;
 
 my $cgi = new CGI;
@@ -64,6 +66,10 @@ my $borrower_dateexpiry =
   $params->{borrower_dateexpiry}
   ? dt_from_string $params->{borrower_dateexpiry}
   : undef;
+my $borrower_lastseen =
+  $params->{borrower_lastseen}
+  ? dt_from_string $params->{borrower_lastseen}
+  : undef;
 my $patron_list_id = $params->{patron_list_id};
 
 my $borrower_categorycode = $params->{'borrower_categorycode'} || q{};
@@ -78,6 +84,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+my $branch = $params->{ branch } || '*';
+$template->param( current_branch => $branch );
+$template->param( OnlyMine => C4::Context->only_my_library );
+
 if ( $step == 2 ) {
 
     my %checkboxes = map { $_ => 1 } split /\0/, $params->{'checkbox'};
@@ -88,22 +98,26 @@ if ( $step == 2 ) {
              _get_selection_params(
                   $not_borrowed_since,
                   $borrower_dateexpiry,
+                  $borrower_lastseen,
                   $borrower_categorycode,
                   $patron_list_id,
+                  $branch
              )
         );
     }
     _skip_borrowers_with_nonzero_balance($patrons_to_delete);
 
-    my $members_to_anonymize;
-    if ( $checkboxes{issue} ) {
-        $members_to_anonymize = GetBorrowersWithIssuesHistoryOlderThan($last_issue_date);
-    }
+    my $patrons_to_anonymize =
+        $checkboxes{issue}
+      ? $branch eq '*'
+          ? Koha::Patrons->search_patrons_to_anonymise( { before => $last_issue_date } )
+          : Koha::Patrons->search_patrons_to_anonymise( { before => $last_issue_date, library => $branch } )
+      : undef;
 
     $template->param(
         patrons_to_delete    => $patrons_to_delete,
-        patrons_to_anonymize => $members_to_anonymize,
-        patron_list_id          => $patron_list_id,
+        patrons_to_anonymize => $patrons_to_anonymize,
+        patron_list_id       => $patron_list_id,
     );
 }
 
@@ -117,8 +131,12 @@ elsif ( $step == 3 ) {
     if ($do_delete) {
         my $patrons_to_delete = GetBorrowersToExpunge(
                 _get_selection_params(
-                    $not_borrowed_since, $borrower_dateexpiry,
-                    $borrower_categorycode, $patron_list_id
+                    $not_borrowed_since,
+                    $borrower_dateexpiry,
+                    $borrower_lastseen,
+                    $borrower_categorycode,
+                    $patron_list_id,
+                    $branch
                 )
             );
         _skip_borrowers_with_nonzero_balance($patrons_to_delete);
@@ -128,9 +146,9 @@ elsif ( $step == 3 ) {
         for ( my $i = 0 ; $i < $totalDel ; $i++ ) {
             $radio eq 'testrun' && last;
             my $borrowernumber = $patrons_to_delete->[$i]->{'borrowernumber'};
-            $radio eq 'trash' && MoveMemberToDeleted($borrowernumber);
-            C4::Members::HandleDelBorrower($borrowernumber);
-            DelMember($borrowernumber);
+            my $patron = Koha::Patrons->find($borrowernumber);
+            $radio eq 'trash' && $patron->move_to_deleted;
+            $patron->delete;
         }
         $template->param(
             do_delete => '1',
@@ -141,9 +159,9 @@ elsif ( $step == 3 ) {
     # Anonymising all members
     if ($do_anonym) {
         #FIXME: anonymisation errors are not handled
-        ($totalAno,my $anonymisation_error) = AnonymiseIssueHistory($last_issue_date);
+        my $rows = Koha::Patrons->search_patrons_to_anonymise( { before => $last_issue_date } )->anonymise_issue_history( { before => $last_issue_date } );
         $template->param(
-            do_anonym   => '1',
+            do_anonym   => $rows,
         );
     }
 
@@ -161,12 +179,15 @@ elsif ( $step == 3 ) {
     $template->param( patron_lists => [ @non_empty_lists ] );
 }
 
+my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
+
 $template->param(
     step                   => $step,
     not_borrowed_since   => $not_borrowed_since,
     borrower_dateexpiry    => $borrower_dateexpiry,
+    borrower_lastseen      => $borrower_lastseen,
     last_issue_date        => $last_issue_date,
-    borrower_categorycodes => GetBorrowercategoryList(),
+    borrower_categorycodes => $patron_categories,
     borrower_categorycode  => $borrower_categorycode,
 );
 
@@ -177,13 +198,15 @@ sub _skip_borrowers_with_nonzero_balance {
     my $borrowers = shift;
     my $balance;
     @$borrowers = map {
-        (undef, undef, $balance) = GetMemberIssuesAndFines( $_->{borrowernumber} );
-        ($balance != 0) ? (): ($_);
+        my $patron = Koha::Patrons->find( $_->{borrowernumber} );
+        my $balance = $patron->account->balance;
+        (defined $balance && $balance != 0) ? (): ($_);
     } @$borrowers;
 }
 
 sub _get_selection_params {
-    my ($not_borrowed_since, $borrower_dateexpiry, $borrower_categorycode, $patron_list_id) = @_;
+    my ($not_borrowed_since, $borrower_dateexpiry, $borrower_lastseen,
+        $borrower_categorycode, $patron_list_id, $branch) = @_;
 
     my $params = {};
     $params->{not_borrowed_since} = output_pref({
@@ -196,8 +219,17 @@ sub _get_selection_params {
         dateformat => 'iso',
         dateonly   => 1
     }) if $borrower_dateexpiry;
+    $params->{last_seen} = output_pref({
+        dt         => $borrower_lastseen,
+        dateformat => 'iso',
+        dateonly   => 1
+    }) if $borrower_lastseen;
     $params->{category_code} = $borrower_categorycode if $borrower_categorycode;
     $params->{patron_list_id} = $patron_list_id if $patron_list_id;
+
+    if ( defined $branch and $branch ne '*' ) {
+        $params->{ branchcode } = $branch;
+    }
 
     return $params;
 };

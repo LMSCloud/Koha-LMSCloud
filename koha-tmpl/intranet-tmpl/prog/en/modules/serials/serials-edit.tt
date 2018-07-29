@@ -1,18 +1,19 @@
+[% USE Asset %]
 [% USE AuthorisedValues %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Serials &rsaquo; Serial edition [% bibliotitle %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/cataloging.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/prevent_submit.js"></script>
+[% Asset.js("js/cataloging.js") %]
+[% Asset.js("js/prevent_submit.js") %]
 [% INCLUDE 'calendar.inc' %]
 <script language="JavaScript" type="text/javascript">
 //<![CDATA[
-function generateReceive() {
-    var subscriptionid =  document.getElementsByName("subscriptionid")[0].value;
-    if(nbissues=prompt(_("How many issues do you want to receive ?"))){
-        document.location = 'serials-collection.pl?op=gennext&subscriptionid='+subscriptionid+'&nbissues='+nbissues;
-    }
-}
+    $(document).ready(function() {
+        $('#multi_receiving').on('show', function () {
+           $(this).find(".modal-body").html($(".serials_multi_receiving")[0].outerHTML);
+        });
+    });
+
 function popup(subscriptionid) {
 	window.open("subscription-renew.pl?subscriptionid="+subscriptionid,"subscription_renewal",'width=700,height=400,toolbar=false,scrollbars=yes');
 }
@@ -28,9 +29,10 @@ function unHideItems(index,labelindex, serialId) {
     item_div = $("fieldset#" + index + " div.cataloguing_additem_itemlist div.items");
     // Getting subfield with enumcron mapping
     subfield_div = $(item_div).find("input[name='kohafield'][value='items.enumchron']").parent();
-    // Setting text field
-    $(subfield_div).children("input[type='text'][name='field_value']").val($("#serialseq" + serialId).val());
-
+    // Setting text field if no saved default value
+    if(! $(subfield_div).children("input[type='text'][name='field_value']").val() ){
+        $(subfield_div).children("input[type='text'][name='field_value']").val($("#serialseq" + serialId).val());
+    }
 }
 function HideItems(index,labelindex) {
 	subfield = document.getElementById(index);
@@ -88,6 +90,8 @@ $(document).ready(function() {
    <div id="bd">
 	<div id="yui-main">
 	<div class="yui-b">
+
+    [% INCLUDE 'modals/serials_multi_receiving.inc' %]
 
 <h1>Serial edition <i>[% bibliotitle %]</i>
     [% IF location %] ([% AuthorisedValues.GetByCode('LOC', location) %])[% END %]
@@ -421,8 +425,11 @@ $(document).ready(function() {
 
 </table>
     <fieldset class="action">
-       <input type="submit" value="Save"  class="button" accesskey="w" />
-       [% UNLESS ( serialsadditems ) %]&nbsp;&nbsp;<input type="button" onclick="javascript:generateReceive()" value="Multi receiving">[% END %]
+        <div class="btn-group"><input type="submit" value="Save" class="btn btn-default btn-sm"  accesskey="w" /></div>
+        [% UNLESS ( serialsadditems ) %]&nbsp;&nbsp;
+            <div class="btn-group"><a href="#multi_receiving" role="button" class="btn btn-default btn-sm" data-toggle="modal"><i class="fa fa-plus"></i> Multi receiving</a></div>
+        [% END %]
+
     </fieldset>
 </form>
 

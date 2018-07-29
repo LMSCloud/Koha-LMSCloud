@@ -35,7 +35,7 @@ BEGIN {
 }
 use C4::Context;
 use C4::Items;
-use C4::Circulation qw/LostItem/;
+use C4::Circulation qw/LostItem MarkIssueReturned/;
 use Getopt::Long;
 use C4::Log;
 use Pod::Usage;
@@ -44,7 +44,7 @@ use Koha::Patrons;
 my  $lost;  #  key=lost value,  value=num days.
 my ($charge, $verbose, $confirm, $quiet);
 my $endrange = 366;
-my $mark_returned = 0;
+my $mark_returned;
 my $borrower_category = [];
 my $skip_borrower_category = [];
 my $help=0;
@@ -142,6 +142,7 @@ Specifies the end of the range of overdue days to deal with (defaults to 366).  
 =item B<--mark-returned>
 
 When an item is marked lost, remove it from the borrowers issued items.
+If not provided, the value of the system preference 'MarkLostItemsAsReturned' will be used.
 
 =item B<--category>
 
@@ -308,7 +309,12 @@ foreach my $startrange (sort keys %$lost) {
             printf ("Due %s: item %5s from borrower %5s to lost: %s\n", $row->{date_due}, $row->{itemnumber}, $row->{borrowernumber}, $lostvalue) if($verbose);
             if($confirm) {
                 ModItem({ itemlost => $lostvalue }, $row->{'biblionumber'}, $row->{'itemnumber'});
-                LostItem($row->{'itemnumber'}, $mark_returned) if( $charge && $charge eq $lostvalue);
+                if ( $charge && $charge eq $lostvalue ) {
+                    LostItem( $row->{'itemnumber'}, 'cronjob', $mark_returned );
+                } elsif ( $mark_returned ) {
+                    my $patron = Koha::Patrons->find( $row->{borrowernumber} );
+                    MarkIssueReturned($row->{borrowernumber},$row->{itemnumber},undef,undef,$patron->privacy)
+                }
             }
             $count++;
         }

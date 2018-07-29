@@ -18,8 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Koha;
@@ -35,7 +34,8 @@ my $authtypecode         = $input->param('authtypecode')         || '';    # set
 my $existingauthtypecode = $input->param('existingauthtypecode') || '';    # set when we have to create a new framework (in authtype) by copying an old one (in existingauthtype)
 
 my $searchfield = $input->param('searchfield') || 0;
-my $offset      = $input->param('offset') || 0;
+my $offset      = $input->param('offset');
+$offset = 0 if not defined $offset or $offset < 0;
 my $op          = $input->param('op')     || '';
 $searchfield =~ s/\,//g;
 
@@ -92,13 +92,6 @@ if ($op eq 'add_form') {
         $data=$sth->fetchrow_hashref;
     }
 
-    my @authorised_values = @{C4::Koha::GetAuthorisedValueCategories()};    # function returns array ref, dereferencing
-    unshift @authorised_values, "";                                         # put empty value first
-    my $authorised_value = {
-        values  => \@authorised_values,
-        default => $data->{'authorised_value'},
-    };
-
     if ($searchfield) {
         $template->param('searchfield' => $searchfield);
         $template->param('heading_modify_tag_p' => 1);
@@ -110,7 +103,7 @@ if ($op eq 'add_form') {
                             libopac => $data->{'libopac'},
                             repeatable => "".$data->{'repeatable'},
                             mandatory => "".$data->{'mandatory'},
-                            authorised_value => $authorised_value,
+                            authorised_value => $data->{authorised_value},
                             authtypecode => $authtypecode,
                             );
                                                     # END $OP eq ADD_FORM
@@ -123,31 +116,29 @@ if ($op eq 'add_form') {
     my $repeatable       = $input->param('repeatable') ? 1 : 0;
     my $mandatory        = $input->param('mandatory')  ? 1 : 0;
     my $authorised_value = $input->param('authorised_value');
-    unless (C4::Context->config('demo') eq 1) {
-        if ($input->param('modif')) {
-            $sth=$dbh->prepare("UPDATE auth_tag_structure SET tagfield=?, liblibrarian=?, libopac=?, repeatable=?, mandatory=?, authorised_value=? WHERE authtypecode=? AND tagfield=?");
-            $sth->execute(
-                $tagfield,
-                $liblibrarian,
-                $libopac,
-                $repeatable,
-                $mandatory,
-                $authorised_value,
-                $authtypecode,
-                $tagfield,
-            );
-        } else {
-            $sth=$dbh->prepare("INSERT INTO auth_tag_structure (tagfield,liblibrarian,libopac,repeatable,mandatory,authorised_value,authtypecode) VALUES (?,?,?,?,?,?,?)");
-            $sth->execute(
-                $tagfield,
-                $liblibrarian,
-                $libopac,
-                $repeatable,
-                $mandatory,
-                $authorised_value,
-                $authtypecode
-           );
-        }
+    if ($input->param('modif')) {
+        $sth=$dbh->prepare("UPDATE auth_tag_structure SET tagfield=?, liblibrarian=?, libopac=?, repeatable=?, mandatory=?, authorised_value=? WHERE authtypecode=? AND tagfield=?");
+        $sth->execute(
+            $tagfield,
+            $liblibrarian,
+            $libopac,
+            $repeatable,
+            $mandatory,
+            $authorised_value,
+            $authtypecode,
+            $tagfield,
+        );
+    } else {
+        $sth=$dbh->prepare("INSERT INTO auth_tag_structure (tagfield,liblibrarian,libopac,repeatable,mandatory,authorised_value,authtypecode) VALUES (?,?,?,?,?,?,?)");
+        $sth->execute(
+            $tagfield,
+            $liblibrarian,
+            $libopac,
+            $repeatable,
+            $mandatory,
+            $authorised_value,
+            $authtypecode
+       );
     }
     print $input->redirect("/cgi-bin/koha/admin/auth_tag_structure.pl?searchfield=$tagfield&amp;authtypecode=$authtypecode");
     exit;
@@ -166,12 +157,8 @@ if ($op eq 'add_form') {
 ################## DELETE_CONFIRMED ##################################
 # called by delete_confirm, used to effectively confirm deletion of data in DB
 } elsif ($op eq 'delete_confirmed') {
-    unless (C4::Context->config('demo') eq 1) {
-        my $sth = $dbh->prepare("delete from auth_tag_structure where tagfield=? and authtypecode=?");
-        $sth->execute($searchfield,$authtypecode);
-        my $sth = $dbh->prepare("delete from auth_subfield_structure where tagfield=? and authtypecode=?");
-        $sth->execute($searchfield,$authtypecode);
-    }
+    $dbh->do(q|delete from auth_tag_structure where tagfield=? and authtypecode=?|, undef, $searchfield, $authtypecode);
+    $dbh->do(q|delete from auth_subfield_structure where tagfield=? and authtypecode=?|, undef, $searchfield, $authtypecode);
     my $tagfield = $input->param('tagfield');
     print $input->redirect("/cgi-bin/koha/admin/auth_tag_structure.pl?searchfield=$tagfield&amp;authtypecode=$authtypecode");
     exit;
@@ -255,6 +242,7 @@ sub StringSearch  {
 sub duplicate_auth_framework {
     my ($newauthtype,$oldauthtype) = @_;
 #   warn "TO $newauthtype FROM $oldauthtype";
+    my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("select tagfield,liblibrarian,libopac,repeatable,mandatory,authorised_value from auth_tag_structure where authtypecode=?");
     $sth->execute($oldauthtype);
     my $sth_insert = $dbh->prepare("insert into auth_tag_structure  (tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, authtypecode) values (?,?,?,?,?,?,?)");

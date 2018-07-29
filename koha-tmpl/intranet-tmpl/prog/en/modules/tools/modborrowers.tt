@@ -1,120 +1,14 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
-[% INCLUDE 'doc-head-open.inc'%]
+[% USE Branches %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Batch patron modification</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-        var patron_attributes_lib = new Array();
-        var patron_attributes_values = new Array();
-        $(document).ready(function() {
-            [% IF borrowers %]
-                $("#borrowerst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "sDom": 't',
-                    [% IF ( op == 'show_results' ) %]
-                        "aoColumnDefs": [
-                            { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
-                        ],
-                    [% ELSE %]
-                        "aoColumnDefs": [
-                            { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
-                            { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
-                        ],
-                    [% END %]
-                    "bPaginate": false
-                }));
-                $("#selectallbutton").click(function() {
-                    $("#borrowerst").find("input:checkbox").each(function() {
-                        $(this).prop("checked", true);
-                    });
-                    return false;
-                });
-                $("#clearallbutton").click(function() {
-                    $("#borrowerst").find("input:checkbox").each(function() {
-                        $(this).prop("checked", false);
-                    });
-                    return false;
-                });
-            [% END %]
-
-            var values = new Array();
-            var lib = new Array();
-            [% FOREACH pav IN patron_attributes_values %]
-                values = new Array();
-                lib = new Array();
-                [% FOREACH option IN pav.options %]
-                    values.push("[% option.lib %]");
-                    lib.push("[% option.authorised_value %]");
-                [% END %]
-                patron_attributes_lib["[% pav.attribute_code %]"] = values;
-                patron_attributes_values["[% pav.attribute_code %]"] = lib;
-            [% END %]
-
-            $('select[name="patron_attributes"]').change(function() {
-                updateAttrValues(this);
-            } );
-
-            $('select[name="patron_attributes"]').change();
-
-        } );
-
-        function updateAttrValues (select_attr) {
-            var attr_code = $(select_attr).val();
-            var type = $(select_attr).find("option:selected").attr('data-type');
-            var category = $(select_attr).find("option:selected").attr('data-category');
-            var span = $(select_attr).parent().parent().find('span.patron_attributes_value');
-            var information_category_node = $(select_attr).parent().parent().find('span.information_category');
-            information_category_node.html("");
-            if ( category.length > 0 ) {
-                information_category_node.html(_("This attribute will be only applied to the patron's category %s").format(category));
-            }
-            if ( type == 'select' ) {
-                var options = '<option value = ""></option>';
-                for ( var i = 0 ; i < patron_attributes_values[attr_code].length ; i++ ) {
-                    options += '<option value="'+patron_attributes_values[attr_code][i]+'">'+patron_attributes_lib[attr_code][i]+'</option>';
-                }
-                span.html('<select name="patron_attributes_value">' + options + '</select>');
-            } else {
-                span.html('<input type="text" name="patron_attributes_value"/>')
-            }
-        }
-
-        function add_attributes() {
-            var li_node = $("li.attributes:last");
-            var li_clone = $(li_node).clone();
-            if ( $(li_clone).find("a.delete").length == 0 ) {
-                $(li_clone).append('<a href="#" title="Delete" class="delete" onclick="del_attributes(this);return false;"><i class="fa fa-fw fa-trash"></i> Delete</a>');
-            }
-            $(li_clone).find('select[name="patron_attributes"]').change(function() {
-                updateAttrValues(this);
-            } );
-
-            $(li_clone).find('select[name="patron_attributes"]').change();
-
-            $("#fields_list>ol").append(li_clone);
-            update_attr_values();
-        }
-
-        function del_attributes(a_node) {
-            $(a_node).parent('li').remove();
-            update_attr_values();
-        }
-
-        function update_attr_values() {
-            $("li.attributes").each(function(i) {
-                $(this).find("input:checkbox").val("attr"+i+"_value");
-            });
-        }
-        function clearDate(nodeid) {
-            $("#"+nodeid).val("");
-        }
-
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="tools_modborrowers" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -267,8 +161,8 @@
                                                     <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrower.borrowernumber %]">[% borrower.cardnumber %]</a></td>
                                                     <td>[% borrower.surname %]</td>
                                                     <td>[% borrower.firstname %]</td>
-                                                    <td>[% borrower.branchname %]</td>
-                                                    <td>[% borrower.categorycode %]</td>
+                                                    <td>[% Branches.GetName( borrower.branchcode ) %]</td>
+                                                    <td>[% borrower.category_description %]</td>
                                                     <td>[% borrower.city %]</td>
                                                     <td>[% borrower.state %]</td>
                                                     <td>[% borrower.zipcode %]</td>
@@ -335,11 +229,6 @@
                                                 OPAC note:
                                             [% END %]
                                             </label>
-                                            [% IF field.mandatory %]
-                                                <input type="checkbox" title="This field is mandatory" name="disable_input" value="[% field.name %]" onclick="return false;" />
-                                            [% ELSE %]
-                                                <input type="checkbox" title="Check to delete this field" name="disable_input" value="[% field.name %]" />
-                                            [% END %]
                                             [% IF ( field.type == 'text' ) %]
                                                 <input type="text" name="[% field.name %]" value="" />
                                             [% END %]
@@ -356,10 +245,13 @@
                                             [% END %]
                                             [% IF ( field.type == 'date' ) %]
                                                 <input type="text" name="[% field.name %]" id="[% field.name %]" value="" size="10" maxlength="10" class="datepicker" />
-                                                <a href="#" onclick="clearDate('[% field.name %]');return false;"><i class="fa fa-fw fa-trash"></i> Clear</a>
+                                                <a href="#"  class="clear-date" id="clear-date-[% field.name %]" ><i class="fa fa-fw fa-trash"></i> Clear</a>
                                             [% END %]
                                             [% IF field.mandatory %]
+                                                <input type="checkbox" title="This field is mandatory" name="disable_input" value="[% field.name %]" disabled="disabled" readonly="readonly" />
                                                 <span class="required">Required fields cannot be cleared</span>
+                                            [% ELSE %]
+                                                <input type="checkbox" title="Check to delete this field" name="disable_input" value="[% field.name %]" />
                                             [% END %]
                                         </li>
                                         [% END %]
@@ -367,6 +259,7 @@
                                             <li class="attributes">
                                                 <label style="width:auto;">Attribute:
                                                     <select name="patron_attributes">
+                                                        <option value=""></option>
                                                         [% FOREACH pac IN patron_attributes_codes %]
                                                             <option value="[% pac.attribute_code %]" data-type="[% pac.type %]" data-category="[% pac.category_lib %]">[% pac.attribute_lib %]</option>
                                                         [% END %]
@@ -374,7 +267,7 @@
                                                 </label>
                                                 <input type="checkbox" title="check to delete this field" name="disable_input" value="attr0_value" />
                                                 <span class="patron_attributes_value"></span>
-                                                <a href="#" title="Add an attribute" onclick="add_attributes(); return false;"><i class="fa fa-fw fa-plus"></i> New</a>
+                                                <a href="#" class="add_attributes" title="Add an attribute"><i class="fa fa-fw fa-plus"></i> New</a>
                                                 <span class="information_category hint" style="width:25%;float:right;"></span>
                                             </li>
                                         [% END %]
@@ -400,4 +293,138 @@
                 [% INCLUDE 'tools-menu.inc' %]
             </div>
         </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("js/tools-menu.js") %]
+    <script type="text/javascript">
+        var patron_attributes_lib = new Array();
+        var patron_attributes_values = new Array();
+        $(document).ready(function() {
+            [% IF borrowers %]
+                $("#borrowerst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "sDom": 't',
+                    [% IF ( op == 'show_results' ) %]
+                        "aoColumnDefs": [
+                            { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
+                        ],
+                    [% ELSE %]
+                        "aoColumnDefs": [
+                            { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
+                            { 'sType': "title-string", 'aTargets' : [ 'title-string'] }
+                        ],
+                    [% END %]
+                    "bPaginate": false
+                }));
+                $("#selectallbutton").click(function() {
+                    $("#borrowerst").find("input:checkbox").each(function() {
+                        $(this).prop("checked", true);
+                    });
+                    return false;
+                });
+                $("#clearallbutton").click(function() {
+                    $("#borrowerst").find("input:checkbox").each(function() {
+                        $(this).prop("checked", false);
+                    });
+                    return false;
+                });
+            [% END %]
+
+            var values = new Array();
+            var lib = new Array();
+            [% FOREACH pav IN patron_attributes_values %]
+                values = new Array();
+                lib = new Array();
+                [% FOREACH option IN pav.options %]
+                    values.push("[% option.lib %]");
+                    lib.push("[% option.authorised_value %]");
+                [% END %]
+                patron_attributes_lib["[% pav.attribute_code %]"] = values;
+                patron_attributes_values["[% pav.attribute_code %]"] = lib;
+            [% END %]
+
+            $('select[name="patron_attributes"]').change(function() {
+                updateAttrValues(this);
+            } );
+
+            $('select[name="patron_attributes"]').change();
+
+            $(".clear-date").on("click",function(e){
+                e.preventDefault();
+                var fieldID = this.id.replace("clear-date-","");
+                $("#" + fieldID).val("");
+            });
+            $("#cataloguing_additem_newitem").on("click",".add_attributes",function(e){
+                e.preventDefault();
+                add_attributes();
+            });
+            $("#cataloguing_additem_newitem").on("click",".del_attributes",function(e){
+                e.preventDefault();
+                del_attributes(this);
+            });
+        });
+
+        function updateAttrValues (select_attr) {
+            var attr_code = $(select_attr).val();
+            var selected_option = $(select_attr).find("option:selected");
+            var type = $(selected_option).attr('data-type');
+            var category = $(selected_option).attr('data-category');
+            var li_node = $(select_attr).parent().parent();
+            var span = $(li_node).find('span.patron_attributes_value');
+            var information_category_node = $(li_node).find('span.information_category');
+            information_category_node.html("");
+
+            if ( category && category.length > 0 ) {
+                information_category_node.html(_("This attribute will be only applied to the patron's category %s").format(category));
+            }
+            var disable_input_node = $(li_node).find("input:checkbox[name='disable_input']");
+            if ( type == 'select' ) {
+                var options = '<option value = ""></option>';
+                for ( var i = 0 ; i < patron_attributes_values[attr_code].length ; i++ ) {
+                    options += '<option value="'+patron_attributes_values[attr_code][i]+'">'+patron_attributes_lib[attr_code][i]+'</option>';
+                }
+                span.html('<select name="patron_attributes_value">' + options + '</select>');
+                $(disable_input_node).show();
+            } else if ( $(selected_option).val() != "" ) {
+                span.html('<input type="text" name="patron_attributes_value"/>');
+                $(disable_input_node).show();
+            } else {
+                span.html('');
+                $(disable_input_node).hide();
+            }
+        }
+
+        function add_attributes() {
+            var li_node = $("li.attributes:last");
+            var li_clone = $(li_node).clone();
+            if ( $(li_clone).find("a.del_attributes").length == 0 ) {
+                $(li_clone).append('<a href="#" title="' + _("Delete") + '" class="del_attributes"><i class="fa fa-fw fa-trash"></i> ' + _("Delete") + '</a>');
+            }
+            $(li_clone).find('select[name="patron_attributes"]').change(function() {
+                updateAttrValues(this);
+            } );
+
+            $(li_clone).find('select[name="patron_attributes"]').change();
+
+            $("#fields_list>ol").append(li_clone);
+            update_attr_values();
+        }
+
+        function del_attributes(a_node) {
+            $(a_node).parent('li').remove();
+            update_attr_values();
+        }
+
+        function update_attr_values() {
+            $("li.attributes").each(function(i) {
+                $(this).find("input:checkbox").val("attr"+i+"_value");
+            });
+        }
+        function clearDate(nodeid) {
+            $("#"+nodeid).val("");
+        }
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -25,7 +25,6 @@ use C4::Context;
 use C4::Output;
 use C4::Auth qw/:DEFAULT get_session/;
 use C4::Koha;
-use C4::Branch;
 use Koha::DateUtils;
 use DateTime;
 use C4::CashRegisterManagement;
@@ -62,18 +61,6 @@ my $branch = $session->param('branch');
 
 my $status = '';
 my $debug = '';
-
-
-#########################################################
-#
-# Read branches
-#
-########################################
-my $branches = GetBranches();
-my @branchloop;
-for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-    push @branchloop, $branches->{$thisbranch};
-}
 
 
 ##########################################################
@@ -305,11 +292,9 @@ $template->param(
     status => $status,
     cash_registers => \@cash_registers,
     cash_register => $cash_register,
-    branchloop => \@branchloop,
     lastTransaction => $lastTransaction,
     sessionbranch => $branch,
     assignedmobilebranch => $effectiveBranchcode,
-    branchname => GetBranchName($effectiveBranchcode),
     wrongBranch => $wrongBranch,
     transactions => \@transactions,
     journalfrom => $journalfrom,

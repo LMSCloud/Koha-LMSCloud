@@ -32,7 +32,7 @@
 
 <p>If you checked out an item for on site use you will see that highlighted in red in the checkout summary.</p>
 
-<p>If you have set your ExportWithCsvProfile preference, you will also see the option to export the patron's current checkout information using a CSV Profile or ISO2709 (MARC21) format.</p>
+<p>If you have set your ExportCircHistory preference, you will also see the option to export the patron's current checkout information using a CSV Profile or ISO2709 (MARC21) format.</p>
 
 <p>Also at the bottom of the page is the list of items the patron has on hold</p>
 
@@ -162,6 +162,6 @@
 
 <p>Circulation messages meant for the patron will appear when they log into the OPAC.</p>
 
-<p><strong>See the full documentation for Checking Out in the <a href="http://manual.koha-community.org/[% helpVersion %]/en/circulation.html#checkingout">manual</a> (online).</strong></p>
+<p><strong>See the full documentation for Checking Out in the <a href="http://koha-community.org/manual/[% helpVersion %]/en/html/circulation.html#check-out-(issuing)">manual</a> (online).</strong></p>
 
 [% INCLUDE 'help-bottom.inc' %]

@@ -1,38 +1,22 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE AuthorisedValues %]
+[% USE Branches %]
 [% USE KohaDates %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Sent notices for [% INCLUDE 'patron-title.inc' %]</title>
+<title>Sent notices for [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-    $(document).ready(function() {
-    $("#noticestable").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aaSorting": [[ 3, "desc" ]],
-        "aoColumns": [ null,null,null,{ "sType": "title-string" } ],
-        "sPaginationType": "four_button"
-    }));
-
-        $("#noticestable").on("click", ".notice-title", function(e){
-            e.preventDefault();
-            var rowid = $(this).data("noticeid");
-            $("#notice"+rowid).toggle();
-            $("#resend_notice"+rowid).toggle();
-        });
-
-    });
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 <style type="text/css">
     .notice { display: none; }
     .notice-title { font-weight: bold; display: block; }
 </style>
 </head>
+
 <body id="pat_notices" class="pat">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'patron-search.inc' %]
+[% PROCESS 'patron-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Sent notices for [% INCLUDE 'patron-title.inc' %]</div>
 
@@ -59,7 +43,7 @@
 		<td>
             <a class="notice-title" data-noticeid="[% QUEUED_MESSAGE.message_id %]" href="#">[% QUEUED_MESSAGE.subject %]</a>
             <div id="notice[% QUEUED_MESSAGE.message_id %]" class="notice">
-                [% QUEUED_MESSAGE.content FILTER html_line_break %]
+                <iframe srcdoc="[% QUEUED_MESSAGE.content FILTER html_line_break FILTER html %]"></iframe>
             </div>
         </td>
 		<td>
@@ -82,7 +66,7 @@
                     <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
                     <input type="hidden" name="message_id" value="[% QUEUED_MESSAGE.message_id %]" />
                     <fieldset class="action">
-                        <button class="btn btn-mini" type="submit">Resend</button>
+                        <button class="btn btn-default btn-xs" type="submit">Resend</button>
                     </fieldset>
                 </form>
             </div>
@@ -104,4 +88,34 @@
 [% INCLUDE 'circ-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/members-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#noticestable").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aaSorting": [[ 3, "desc" ]],
+                "aoColumns": [ null,null,null,{ "sType": "title-string" } ],
+                "sPaginationType": "four_button"
+            }));
+
+            $("#noticestable").on("click", ".notice-title", function(e){
+                e.preventDefault();
+                var rowid = $(this).data("noticeid");
+                $("#notice"+rowid).toggle();
+                $("#resend_notice"+rowid).toggle();
+                var iframe = $("#notice"+rowid).children('iframe');
+                // Adding some padding to the height and width to remove scrollbars
+                var height = iframe.get(0).contentWindow.document.body.scrollHeight + 25;
+                var width = iframe.get(0).contentWindow.document.body.scrollWidth + 25;
+                iframe.css({
+                    'width':  width + 'px',
+                    'height': height + 'px'
+                });
+            });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

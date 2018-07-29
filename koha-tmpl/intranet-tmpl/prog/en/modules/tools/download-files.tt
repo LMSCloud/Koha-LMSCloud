@@ -1,11 +1,11 @@
 [% USE Koha %]
 [% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Notice fee rules</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>
-
 .downloadfilelist .listitem {
     margin:4px;
     padding: 2px;
@@ -48,31 +48,6 @@
 }
 
 </style>
-
-<script type="text/javascript">
-//<![CDATA[
-var dirs = new Array;
-[% FOREACH dir IN dirlist %]
-dirs.push( { displaydate: "[% dir.displaydate %]", sortdate: "[% dir.sortdate %]", files: ["[% dir.files.join('","') %]"]} );
-[% END %]
-
-function showfiles(index) {
-    var filelist = $("#filelist");
-    $(filelist).empty();
-    for (var k=0; k < dirs[index].files.length; k++) {
-        $('<a href="javascript:downloadfile(\'' + dirs[index].files[k] + '\',\'' + dirs[index].sortdate + '\')"><div class="listitem">' + dirs[index].files[k] + '</div>').appendTo(filelist);
-    }
-    $("#datelist .selectedlistitem").removeClass("selectedlistitem");
-    $("#datelist .listitem").eq(index).addClass("selectedlistitem");
-}
-
-function downloadfile(filename, date) {
-    document.downloadfile.elements['filename'].value=filename;
-    document.downloadfile.submit();
-}
-//]]>
-</script>
-
 </head>
 <body id="tools_notice_fee_rules" class="tools">
 [% INCLUDE 'header.inc' %]
@@ -127,4 +102,30 @@ function downloadfile(filename, date) {
             [% INCLUDE 'tools-menu.inc' %]
         </div>
     </div><!-- bd -->
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    <script type="text/javascript">
+        var dirs = new Array;
+        [% FOREACH dir IN dirlist %]
+        dirs.push( { displaydate: "[% dir.displaydate %]", sortdate: "[% dir.sortdate %]", files: ["[% dir.files.join('","') %]"]} );
+        [% END %]
+
+        function showfiles(index) {
+            var filelist = $("#filelist");
+            $(filelist).empty();
+            for (var k=0; k < dirs[index].files.length; k++) {
+                $('<a href="javascript:downloadfile(\'' + dirs[index].files[k] + '\',\'' + dirs[index].sortdate + '\')"><div class="listitem">' + dirs[index].files[k] + '</div>').appendTo(filelist);
+            }
+            $("#datelist .selectedlistitem").removeClass("selectedlistitem");
+            $("#datelist .listitem").eq(index).addClass("selectedlistitem");
+        }
+
+        function downloadfile(filename, date) {
+            document.downloadfile.elements['filename'].value=filename;
+            document.downloadfile.submit();
+        }
+    </script>
+[% END %]
+    
 [% INCLUDE 'intranet-bottom.inc' %]

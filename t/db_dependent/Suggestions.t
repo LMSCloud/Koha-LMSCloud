@@ -17,35 +17,35 @@
 
 use Modern::Perl;
 
+use DateTime::Duration;
+use Test::More tests => 103;
+use Test::Warn;
+
 use t::lib::Mocks;
+use t::lib::TestBuilder;
+
 use C4::Context;
 use C4::Members;
 use C4::Letters;
 use C4::Budgets qw( AddBudgetPeriod AddBudget );
-
-use Koha::DateUtils qw( dt_from_string );
+use Koha::Database;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Library;
 use Koha::Libraries;
-
-use DateTime::Duration;
-use Test::More tests => 106;
-use Test::Warn;
+use Koha::Suggestions;
 
 BEGIN {
     use_ok('C4::Suggestions');
-    use_ok('C4::Koha');
 }
 
+my $schema  = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-my $sql;
-
-# Start transaction
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
+my $builder = t::lib::TestBuilder->new;
 
 # Reset item types to only the default ones
 $dbh->do(q|DELETE FROM itemtypes;|);
-$sql = "
+my $sql = qq|
 INSERT INTO itemtypes (itemtype, description, rentalcharge, notforloan, imageurl, summary) VALUES
 ('BK', 'Books',5,0,'bridge/book.gif',''),
 ('MX', 'Mixed Materials',5,0,'bridge/kit.gif',''),
@@ -54,7 +54,7 @@ INSERT INTO itemtypes (itemtype, description, rentalcharge, notforloan, imageurl
 ('VM', 'Visual Materials',5,1,'bridge/dvd.gif',''),
 ('MU', 'Music',5,0,'bridge/sound.gif',''),
 ('CR', 'Continuing Resources',5,0,'bridge/periodical.gif',''),
-('REF', 'Reference',0,1,'bridge/reference.gif','');";
+('REF', 'Reference',0,1,'bridge/reference.gif','');|;
 $dbh->do($sql);
 $dbh->do(q|DELETE FROM suggestions|);
 $dbh->do(q|DELETE FROM issues|);
@@ -68,24 +68,12 @@ if (not defined Koha::Libraries->find('CPL')) {
     Koha::Library->new({ branchcode => 'CPL', branchname => 'Centerville' })->store;
 }
 
-my $sth = $dbh->prepare("SELECT * FROM categories WHERE categorycode='S';");
-$sth->execute();
-if (!$sth->fetchrow_hashref) {
-    $sql = "INSERT INTO categories
-                (categorycode,description,enrolmentperiod,upperagelimit,
-                 dateofbirthrequired,finetype,bulk,enrolmentfee,
-                 overduenoticerequired,issuelimit,reservefee,category_type)
-            VALUES
-                ('S','Staff',99,999,
-                 18,NULL,NULL,'0.000000',
-                 0,NULL,'0.000000','S');";
-    $dbh->do($sql);
-}
+my $patron_category = $builder->build({ source => 'Category' });
 
 my $member = {
     firstname => 'my firstname',
     surname => 'my surname',
-    categorycode => 'S',
+    categorycode => $patron_category->{categorycode},
     branchcode => 'CPL',
 };
 my $borrowernumber = AddMember(%$member);
@@ -349,17 +337,6 @@ $suggestions = GetSuggestionByStatus('CHECKED');
 is( @$suggestions, 1, 'DelSuggestion deletes one suggestion' );
 is( $suggestions->[0]->{title}, $del_suggestion->{title}, 'DelSuggestion deletes the correct suggestion' );
 
-## Bug 11466, making sure GetSupportList() returns itemtypes, even if AdvancedSearchTypes has multiple values
-t::lib::Mocks::mock_preference("AdvancedSearchTypes", 'itemtypes|loc|ccode');
-my $itemtypes1 = C4::Koha::GetSupportList();
-is(@$itemtypes1, 8, "Purchase suggestion itemtypes collected, multiple AdvancedSearchTypes");
-
-t::lib::Mocks::mock_preference("AdvancedSearchTypes", 'itemtypes');
-my $itemtypes2 = C4::Koha::GetSupportList();
-is(@$itemtypes2, 8, "Purchase suggestion itemtypes collected, default AdvancedSearchTypes");
-
-is_deeply($itemtypes1, $itemtypes2, 'same set of purchase suggestion formats retrieved');
-
 # Test budgetid fk
 $my_suggestion->{budgetid} = ''; # If budgetid == '', NULL should be set in DB
 my $my_suggestionid_test_budgetid = NewSuggestion($my_suggestion);
@@ -405,3 +382,37 @@ subtest 'GetUnprocessedSuggestions' => sub {
     $unprocessed_suggestions = C4::Suggestions::GetUnprocessedSuggestions(5);
     is( scalar(@$unprocessed_suggestions), 0, 'GetUnprocessedSuggestions should not return the suggestion, it has not been suggested 5 days ago' );
 };
+
+subtest 'DelSuggestionsOlderThan' => sub {
+    plan tests => 6;
+
+    Koha::Suggestions->delete;
+
+    # Add four suggestions; note that STATUS needs uppercase (FIXME)
+    my $d1 = output_pref({ dt => dt_from_string->add(days => -2), dateformat => 'sql' });
+    my $d2 = output_pref({ dt => dt_from_string->add(days => -4), dateformat => 'sql' });
+    my $sugg01 = $builder->build({ source => 'Suggestion', value => { date => $d1, STATUS => 'ASKED' }});
+    my $sugg02 = $builder->build({ source => 'Suggestion', value => { date => $d1, STATUS => 'CHECKED' }});
+    my $sugg03 = $builder->build({ source => 'Suggestion', value => { date => $d2, STATUS => 'ASKED' }});
+    my $sugg04 = $builder->build({ source => 'Suggestion', value => { date => $d2, STATUS => 'ACCEPTED' }});
+
+    # Test no parameter: should do nothing
+    C4::Suggestions::DelSuggestionsOlderThan();
+    is( Koha::Suggestions->count, 4, 'No suggestions deleted' );
+    # Test zero: should do nothing too
+    C4::Suggestions::DelSuggestionsOlderThan(0);
+    is( Koha::Suggestions->count, 4, 'No suggestions deleted again' );
+    # Test negative value
+    C4::Suggestions::DelSuggestionsOlderThan(-1);
+    is( Koha::Suggestions->count, 4, 'No suggestions deleted for -1' );
+
+    # Test positive values
+    C4::Suggestions::DelSuggestionsOlderThan(5);
+    is( Koha::Suggestions->count, 4, 'No suggestions>5d deleted' );
+    C4::Suggestions::DelSuggestionsOlderThan(3);
+    is( Koha::Suggestions->count, 3, '1 suggestions>3d deleted' );
+    C4::Suggestions::DelSuggestionsOlderThan(1);
+    is( Koha::Suggestions->count, 2, '1 suggestions>1d deleted' );
+};
+
+$schema->storage->txn_rollback;

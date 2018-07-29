@@ -23,15 +23,12 @@ use Test::More;
 use File::Spec;
 use File::Find;
 use English qw( -no_match_vars );
-use t::lib::Mocks;
 
 =head1 DESCRIPTION
 
 00-load.t: This script is called by the pre-commit git hook to test modules compile
 
 =cut
-
-my $context_module = t::lib::Mocks::mock_dbh;
 
 # Loop through the C4:: modules
 my $lib = File::Spec->rel2abs('C4');
@@ -89,6 +86,12 @@ sub is_testable {
     elsif ( $module_name =~ /Koha::SearchEngine::Elasticsearch::Search/xsm ) {
         @needed_module_names = ( 'Catmandu::Store::ElasticSearch' );
     }
+    elsif ( $module_name =~ /Koha::SearchEngine::Elasticsearch/xsm ) {
+        @needed_module_names = ( 'Search::Elasticsearch' );
+    }
+    elsif ( $module_name =~ /^Koha::ExternalContent/xsm ) {
+        @needed_module_names = ( 'WebService::ILS' );
+    }
     foreach my $current_name (@needed_module_names) {
         my $relative_pathname = $current_name;
         $relative_pathname =~ s/::/\//gxsm;
@@ -106,4 +109,3 @@ sub is_testable {
 
 done_testing();
 
-1;

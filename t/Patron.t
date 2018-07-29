@@ -17,15 +17,25 @@
 
 use Modern::Perl;
 
-use Test::More tests => 18;
+use Test::More;
 use Test::Warn;
 use t::lib::Mocks;
 
+use Module::Load::Conditional qw/check_install/;
+
 BEGIN {
-    t::lib::Mocks::mock_dbh;
+    if ( check_install( module => 'Test::DBIx::Class' ) ) {
+        plan tests => 11;
+    } else {
+        plan skip_all => "Need Test::DBIx::Class"
+    }
     use_ok('Koha::Object');
     use_ok('Koha::Patron');
 }
+
+use Test::DBIx::Class;
+my $db = Test::MockModule->new('Koha::Database');
+$db->mock( _new_schema => sub { return Schema(); } );
 
 my $object = Koha::Patron->new( { surname => 'Test Patron' } );
 is( $object->surname(), 'Test Patron', "Accessor returns correct value" );
@@ -42,22 +52,6 @@ $ret = $object2->set( { surname => "Test Patron Surname 3", firstname => "Test F
 ok( ref($ret) eq 'Koha::Patron', "Set returns object on success" );
 is( $object2->surname(),   "Test Patron Surname 3", "Set sets first field correctly" );
 is( $object2->firstname(), "Test Firstname",          "Set sets second field correctly" );
-
-warning_is { $ret = $object->set({ surname => "Test Patron Surname 4", bork => "bork" }) }
-            "No property bork!",
-            "Expected 'No property bork!' caught";
-is( $object2->surname(), "Test Patron Surname 3", "Bad Set does not set field" );
-is( $ret, 0, "Set returns 0 when passed a bad property" );
-
-warning_is { $ret = $object->bork() }
-            "No method bork!",
-            "Expected 'No method bork!' caught for getter.";
-ok( ! defined $ret, 'Bad getter returns undef' );
-
-warning_is { $ret = $object->bork('bork') }
-            "No method bork!",
-            "Expected 'No method bork!' caught for setter.";
-ok( ! defined $ret, 'Bad setter returns undef' );
 
 my $patron = Koha::Patron->new(
     {
@@ -344,4 +338,3 @@ subtest 'Set tests' => sub {
     is( $patron->privacy,             '667789',                           'privacy field set ok' );
 };
 
-1;

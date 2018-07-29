@@ -20,6 +20,7 @@ package Koha::Objects;
 use Modern::Perl;
 
 use Carp;
+use List::MoreUtils qw( none );
 
 use Koha::Database;
 
@@ -70,17 +71,25 @@ sub _new_from_dbic {
 
 =head3 Koha::Objects->find();
 
-my $object = Koha::Objects->find($id);
-my $object = Koha::Objects->find( { keypart1 => $keypart1, keypart2 => $keypart2 } );
+Similar to DBIx::Class::ResultSet->find this method accepts:
+    \%columns_values | @pk_values, { key => $unique_constraint, %attrs }?
+Strictly speaking, columns_values should only refer to columns under an
+unique constraint.
+
+my $object = Koha::Objects->find( { col1 => $val1, col2 => $val2 } );
+my $object = Koha::Objects->find( $id );
+my $object = Koha::Objects->find( $idpart1, $idpart2, $attrs ); # composite PK
 
 =cut
 
 sub find {
-    my ( $self, $id ) = @_;
+    my ( $self, @pars ) = @_;
 
-    return unless defined($id);
+    croak 'Cannot use "->find" in list context' if wantarray;
 
-    my $result = $self->_resultset()->find($id);
+    return if !@pars || none { defined($_) } @pars;
+
+    my $result = $self->_resultset()->find( @pars );
 
     return unless $result;
 
@@ -130,6 +139,37 @@ sub search {
     }
 }
 
+=head3 search_related
+
+    my @objects = Koha::Objects->search_related( $rel_name, $cond?, \%attrs? );
+    my $objects = Koha::Objects->search_related( $rel_name, $cond?, \%attrs? );
+
+Searches the specified relationship, optionally specifying a condition and attributes for matching records.
+
+=cut
+
+sub search_related {
+    my ( $self, $rel_name, @params ) = @_;
+
+    return if !$rel_name;
+    if (wantarray) {
+        my @dbic_rows = $self->_resultset()->search_related($rel_name, @params);
+        return if !@dbic_rows;
+        my $object_class = _get_objects_class( $dbic_rows[0]->result_class );
+
+        eval "require $object_class";
+        return _wrap( $object_class, @dbic_rows );
+
+    } else {
+        my $rs = $self->_resultset()->search_related($rel_name, @params);
+        return if !$rs;
+        my $object_class = _get_objects_class( $rs->result_class );
+
+        eval "require $object_class";
+        return _new_from_dbic( $object_class, $rs );
+    }
+}
+
 =head3 single
 
 my $object = Koha::Objects->search({}, { rows => 1 })->single
@@ -154,29 +194,6 @@ sub single {
     return $self->object_class()->_new_from_dbic($single);
 }
 
-=head3 Koha::Objects->count();
-
-my @objects = Koha::Objects->count($params);
-
-=cut
-
-sub count {
-    my ( $self, $params ) = @_;
-
-    return $self->_resultset()->count($params);
-}
-
-=head3 Koha::Objects->pager();
-
-my $pager = Koha::Objects->pager;
-
-=cut
-
-sub pager {
-    my ( $self ) = @_;
-    return $self->_resultset->pager;
-}
-
 =head3 Koha::Objects->next();
 
 my $object = Koha::Objects->next();
@@ -196,6 +213,30 @@ sub next {
 
     return $object;
 }
+
+=head3 Koha::Objects->last;
+
+my $object = Koha::Objects->last;
+
+Returns the last object that is part of this set.
+Returns undef if there are no object to return.
+
+=cut
+
+sub last {
+    my ( $self ) = @_;
+
+    my $count = $self->_resultset->count;
+    return unless $count;
+
+    my ( $result ) = $self->_resultset->slice($count - 1, $count - 1);
+
+    my $object = $self->object_class()->_new_from_dbic( $result );
+
+    return $object;
+}
+
+
 
 =head3 Koha::Objects->reset();
 
@@ -244,6 +285,29 @@ sub unblessed {
     return [ map { $_->unblessed } $self->as_list ];
 }
 
+=head3 Koha::Objects->get_column
+
+Return all the values of this set for a given column
+
+=cut
+
+sub get_column {
+    my ($self, $column_name) = @_;
+    return $self->_resultset->get_column( $column_name )->all;
+}
+
+=head3 Koha::Objects->TO_JSON
+
+Returns an unblessed representation of objects, suitable for JSON output.
+
+=cut
+
+sub TO_JSON {
+    my ($self) = @_;
+
+    return [ map { $_->TO_JSON } $self->as_list ];
+}
+
 =head3 Koha::Objects->_wrap
 
 wraps the DBIC object in a corresponding Koha object
@@ -253,7 +317,7 @@ wraps the DBIC object in a corresponding Koha object
 sub _wrap {
     my ( $self, @dbic_rows ) = @_;
 
-    my @objects = map { $self->object_class()->_new_from_dbic( $_ ) } @dbic_rows;
+    my @objects = map { $self->object_class->_new_from_dbic( $_ ) } @dbic_rows;
 
     return @objects;
 }
@@ -276,6 +340,64 @@ sub _resultset {
     else {
         return Koha::Database->new()->schema()->resultset( $self->_type() );
     }
+}
+
+sub _get_objects_class {
+    my ( $type ) = @_;
+    return unless $type;
+
+    if( $type->can('koha_objects_class') ) {
+        return $type->koha_objects_class;
+    }
+    $type =~ s|Schema::Result::||;
+    return "${type}s";
+}
+
+=head3 columns
+
+my @columns = Koha::Objects->columns
+
+Return the table columns
+
+=cut
+
+sub columns {
+    my ( $class ) = @_;
+    return Koha::Database->new->schema->resultset( $class->_type )->result_source->columns;
+}
+
+=head3 AUTOLOAD
+
+The autoload method is used call DBIx::Class method on a resultset.
+
+Important: If you plan to use one of the DBIx::Class methods you must provide
+relevant tests in t/db_dependent/Koha/Objects.t
+Currently count, pager, update and delete are covered.
+
+=cut
+
+sub AUTOLOAD {
+    my ( $self, @params ) = @_;
+
+    my @known_methods = qw( count is_paged pager update delete result_class single slice );
+    my $method = our $AUTOLOAD;
+    $method =~ s/.*:://;
+
+
+    unless ( grep { /^$method$/ } @known_methods ) {
+        my $class = ref($self) ? ref($self) : $self;
+        Koha::Exceptions::Object::MethodNotCoveredByTests->throw(
+            error      => sprintf("The method %s->%s is not covered by tests!", $class, $method),
+            show_trace => 1
+        );
+    }
+
+    my $r = eval { $self->_resultset->$method(@params) };
+    if ( $@ ) {
+        carp "No method $method found for " . ref($self) . " " . $@;
+        return
+    }
+    return $r;
 }
 
 =head3 _type

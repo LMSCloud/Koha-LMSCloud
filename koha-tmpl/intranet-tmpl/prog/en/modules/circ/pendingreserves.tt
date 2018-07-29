@@ -1,74 +1,17 @@
+[% USE Asset %]
+[% USE Koha %]
 [% USE KohaDates %]
+[% USE ColumnsSettings %]
 [% USE AuthorisedValues %]
 [%- USE Branches -%]
 [%- USE ItemTypes -%]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Circulation &rsaquo; Holds to pull</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<!-- Plugin datatables -->
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/JavaScript">
-//<![CDATA[
-$(document).ready(function() {
-  var holdst = $("#holdst").dataTable($.extend(true, {}, dataTablesDefaults, {
-    "aoColumnDefs": [
-        { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-        { "sType": "title-string", "aTargets" : [ "title-string" ] },
-        { "sType": "string", "aTargets": [ "string-sort" ] } //Target columns that use <br> separators and pull-down menus.
-    ],
-    "sPaginationType": "full_numbers"
-  }));
-  holdst.fnAddFilters("filter");
-  [%# add separateData function to cleanse jQuery select lists by breaking apart strings glued with BR tags and then de-duplicating any repeated library codes %]
-  function separateData ( ColumnData ){
-    var cD = ColumnData;
-    var new_array = new Array();
-    for ( j=0 ; j<cD.length ; j++ ) {
-        var split_array = cD[j].split(/<br>/gi);
-        for ( k=0 ; k<split_array.length ; k++ ){
-            var str = $.trim(split_array[k].replace(/[\n\r]/g, ''));
-            if ($.inArray(str, new_array) == -1 && str.length > 0 ) {
-                new_array.push(str);
-            }
-        }
-    }
-    new_array.sort();
-    return new_array;
-  }
-  [%# add SeparateData function into createSelect function, so that it does the createSelect on clean data %]
-  function createSelect( data ) {
-      data = separateData(data);
-      var r='<select style="width:99%"><option value="">' + _("None") + '</option>', i, len=data.length;
-      for ( i=0 ; i<len ; i++ ) {
-          r += '<option value="'+data[i]+'">'+data[i]+'</option>';
-      }
-      return r+'</select>';
-  }
-  $("#homebranchfilter").each( function () {
-      $(this).html( createSelect( holdst.fnGetColumnData(4) ) );
-      $('select', this).change( function () {
-          var filter_value = $(this).val();
-          holdst.fnFilter( filter_value, 4, true );
-      } );
-  } );
-  $("#itypefilter").each( function () {
-      $(this).html( createSelect( holdst.fnGetColumnData(8) ) );
-      $('select', this).change( function () {
-          holdst.fnFilter( $(this).val(), 8 );
-      } );
-  } );
-  $("#locationfilter").each( function () {
-      $(this).html( createSelect( holdst.fnGetColumnData(9) ) );
-      $('select', this).change( function () {
-          holdst.fnFilter( $(this).val(), 9 );
-      } );
-  } );
-});
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="circ_pendingreserves" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
@@ -81,9 +24,26 @@ $(document).ready(function() {
    <div id="bd">
     <div id="yui-main">
     <div class="yui-b">
+        [% FOR m IN messages %]
+            <div class="dialog [% m.type %]">
+                [% SWITCH m.code %]
+                [% CASE 'letter_enqueued' %]
+                    <span>The notice has been correctly enqueued.</span>
+                [% CASE 'no_email_address' %]
+                    <span>The patron does not have an email address defined.</span>
+                [% CASE 'no_template_notice' %]
+                    <span>There is no notice template with a code 'CANCEL_HOLD_ON_LOST' defined in your system.</span>
+                [% CASE 'hold_cancelled' %]
+                    <span>The hold has been correctly cancelled.</span>
+                [% CASE 'hold_placed_at_biblio_level' %]
+                    <span>The hold has been placed on biblio level. It is not possible to determine the item to mark as lost.</span>
+                [% CASE %]
+                    [% m.code %]
+                [% END %]
+            </div>
+        [% END %]
 
-<h2>Holds to pull[% IF ( run_report ) %] placed between [% from | $KohaDates %] and [% to | $KohaDates %][% END %]</h2>
-[% IF ( run_report ) %]
+<h2>Holds to pull placed between [% from | $KohaDates %] and [% to | $KohaDates %]</h2>
 <h3>Reported on [% todaysdate | $KohaDates %]</h3>
 <p>The following holds have not been filled. Please retrieve them and check them in.</p>
 <div class="searchresults">
@@ -94,14 +54,16 @@ $(document).ready(function() {
         <th>Pull this many items</th>
         <th>Items available</th>
         <th>Patrons with holds</th>
+        <th>First patron</td>
         <th class="anti-the">Title</th>
         <th class="string-sort">Libraries</th>
         <th>Available call numbers</th>
         <th>Available copy numbers</th>
         <th>Available enumeration</th>
-        <th class="string-sort">Available itypes</th>
+        <th class="string-sort">Available item types</th>
         <th class="string-sort">Available locations</th>
         <th class="title-string">Earliest hold date</th>
+        <th>Action</th>
         </tr>
     </thead>
     <tbody>
@@ -111,6 +73,7 @@ $(document).ready(function() {
             <td><p><b>[% reserveloo.pullcount %]</b></p></td>
             <td>[% reserveloo.count %]</td>
             <td>[% reserveloo.rcount %]</td>
+            <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reserveloo.borrowernumber %]">[% reserveloo.firstname %] [%reserveloo.surname %]</a></td>
             <td>
             <p>
                 [% INCLUDE 'biblio-default-view.inc' biblionumber = reserveloo.biblionumber %]
@@ -122,29 +85,56 @@ $(document).ready(function() {
             <td>"</td>
             <td>"</td>
             <td>"</td>
+            <td>"</td>
         [% END %]
         <td>
             [% FOREACH holdingbranch IN reserveloo.holdingbranches %]
-                [% Branches.GetName ( holdingbranch ) %]<br>
+                [% Branches.GetName ( holdingbranch ) %]
             [% END %]
         </td>
         <td><p>[% reserveloo.itemcallnumber %]</p></td>
         <td><p>[% reserveloo.copyno %]</p></td>
         <td><p>[% reserveloo.enumchron %]</p></td>
         <td>
-        [% FOREACH itype IN reserveloo.itypes %]
-            [% ItemTypes.GetDescription( itype ) %]
+        [% FOREACH itemType IN reserveloo.itemTypes %]
+            [% ItemTypes.GetDescription( itemType ) %]
         [% END %]
         </td>
         <td>
         [% FOREACH loc IN reserveloo.locations %]
-            [% AuthorisedValues.GetByCode('LOC', loc) %]<br>
+            [% AuthorisedValues.GetByCode('LOC', loc) %]
         [% END %]
         </td>
         <td>
             <span title="[% reserveloo.reservedate %]">[% reserveloo.reservedate | $KohaDates %] in [% Branches.GetName ( reserveloo.branch ) %]</span>
-            [% IF ( reserveloo.statusw ) %]<p>Waiting</p>[% END %][% IF ( reserveloo.statusf ) %]<p>Fulfilled</p>[% END %]
         </td>
+        <td>
+            <form name="cancelReserve" action="/cgi-bin/koha/circ/pendingreserves.pl" method="post">
+                <input type="hidden" name="op" value="cancel_reserve" />
+                <input type="hidden" name="reserve_id" value="[% reserveloo.reserve_id %]" />
+                [% IF reserveloo.holdingbranch != reserveloo.homebranch %]
+                    <input type="submit" value="Cancel hold and return to : [% Branches.GetName( reserveloo.homebranch ) %]" />
+                [% ELSE %]
+                    <input type="submit" value="Cancel hold" />
+                [% END %]
+            </form>
+
+        [% IF Koha.Preference('CanMarkHoldsToPullAsLost') != 'do_not_allow' %]
+            [% IF reserveloo.itemnumber %]
+                <form name="cancelReserve" action="/cgi-bin/koha/circ/pendingreserves.pl" method="post">
+                    <input type="hidden" name="reserve_id" value="[% reserveloo.reserve_id %]" />
+                    [% IF Koha.Preference('CanMarkHoldsToPullAsLost') == 'allow' %]
+                        <input type="hidden" name="op" value="mark_as_lost" />
+                        <input type="submit" value="Mark item as lost" />
+                    [% ELSIF Koha.Preference('CanMarkHoldsToPullAsLost') == 'allow_and_notify' %]
+                        <input type="hidden" name="op" value="mark_as_lost_and_notify" />
+                        <input type="submit" value="Mark lost and notify patron" />
+                    [% END %]
+                </form>
+            [% ELSE %]
+                <span>Biblio level hold.</span>
+            [% END %]
+        [% END %]
         </tr>
         [% END %]
     </tbody>
@@ -153,13 +143,15 @@ $(document).ready(function() {
         <td><input type="text" class="filter" data-column_num="0" placeholder="Pull this many items" style="width:95%"/></td>
         <td><input type="text" class="filter" data-column_num="1" placeholder="Items available" style="width:95%"/></td>
         <td><input type="text" class="filter" data-column_num="2" placeholder="Patron holds" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="3" placeholder="Title" style="width:95%"/></td>
+        <td><input type="text" class="filter" data-column_num="3" placeholder="Patron name" style="width:95%"/></td>
+        <td><input type="text" class="filter" data-column_num="4" placeholder="Title" style="width:95%"/></td>
         <td id="homebranchfilter"></td>
-        <td><input type="text" class="filter" data-column_num="5" placeholder="Call number" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="6" placeholder="Available copy" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="7" placeholder="Available enumeration" style="width:95%"/></td>
-        <td id="itypefilter"></td>
+        <td><input type="text" class="filter" data-column_num="6" placeholder="Call number" style="width:95%"/></td>
+        <td><input type="text" class="filter" data-column_num="7" placeholder="Available copy" style="width:95%"/></td>
+        <td><input type="text" class="filter" data-column_num="8" placeholder="Available enumeration" style="width:95%"/></td>
+        <td id="itemtype-filter"></td>
         <td id="locationfilter"></td>
+        <td></td>
         <td></td>
         </tr>
     </tfoot>
@@ -168,7 +160,6 @@ $(document).ready(function() {
         <b>No items found.</b>
     [% END %]
 </div>
-[% END %]
 
 </div>
 </div>
@@ -191,7 +182,13 @@ $(document).ready(function() {
 <input type="text" size="10" id="to" name="to" value="[% to | $KohaDates %]" class="datepickerto" />
 </li>
 </ol>
-<p><i>(Inclusive, default is [% HoldsToPullStartDate %] days ago to [% IF ( HoldsToPullEndDate ) %][% HoldsToPullEndDate %] days ahead[% ELSE %]today[% END %], set other date ranges as needed. )</i></p>
+
+[% IF ( HoldsToPullEndDate ) %]
+    <p><i>(Inclusive, default is [% HoldsToPullStartDate %] days ago to [% HoldsToPullEndDate %] days ahead. Set other date ranges as needed.)</i></p>
+[% ELSE %]
+    <p><i>(Inclusive, default is [% HoldsToPullStartDate %] days ago to today. Set other date ranges as needed.)</i></p>
+[% END %]
+
 <fieldset class="action"><input type="submit" name="run_report" value="Submit" class="submit"/></fieldset>
 </fieldset>
 </form>
@@ -199,4 +196,69 @@ $(document).ready(function() {
 </div>
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+          var columns_settings = [% ColumnsSettings.GetColumns('circ', 'holds', 'holds-to-pull', 'json') %];
+          var holdst = KohaTable("holdst", {
+            "aoColumnDefs": [
+                { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
+                { "sType": "title-string", "aTargets" : [ "title-string" ] },
+                { "sType": "string", "aTargets": [ "string-sort" ] }
+            ],
+            "sPaginationType": "full_numbers"
+          }, columns_settings);
+          holdst.fnAddFilters("filter");
+          [%# add separateData function to cleanse jQuery select lists by breaking apart strings glued with BR tags and then de-duplicating any repeated library codes %]
+          function separateData ( ColumnData ){
+            var cD = ColumnData;
+            var new_array = new Array();
+            for ( j=0 ; j<cD.length ; j++ ) {
+                var split_array = cD[j].split(/\n/gi);
+                for ( k=0 ; k<split_array.length ; k++ ){
+                    var str = $.trim(split_array[k].replace(/[\n\r]/g, ''));
+                    if ($.inArray(str, new_array) == -1 && str.length > 0 ) {
+                        new_array.push(str);
+                    }
+                }
+            }
+            new_array.sort();
+            return new_array;
+          }
+          [%# add SeparateData function into createSelect function, so that it does the createSelect on clean data %]
+          function createSelect( data ) {
+              data = separateData(data);
+              var r='<select style="width:99%"><option value="">' + _("None") + '</option>', i, len=data.length;
+              for ( i=0 ; i<len ; i++ ) {
+                  r += '<option value="'+data[i]+'">'+data[i]+'</option>';
+              }
+              return r+'</select>';
+          }
+          $("#homebranchfilter").each( function () {
+              $(this).html( createSelect( holdst.fnGetColumnData(5) ) );
+              $('select', this).change( function () {
+                  var filter_value = $(this).val();
+                  holdst.fnFilter( filter_value, 5, true );
+              });
+          });
+          $("#itemtype-filter").each( function () {
+              $(this).html( createSelect( holdst.fnGetColumnData(9) ) );
+              $('select', this).change( function () {
+                  holdst.fnFilter( $(this).val(), 9 );
+              });
+          });
+          $("#locationfilter").each( function () {
+              $(this).html( createSelect( holdst.fnGetColumnData(10) ) );
+              $('select', this).change( function () {
+                  holdst.fnFilter( $(this).val(), 10 );
+              });
+          });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

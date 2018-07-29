@@ -1,18 +1,14 @@
+[% USE Asset %]
 [% USE Koha %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Audio alerts</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript">
-    var MSG_AUDIO_EMPTY_SOUND = _("Please select or enter a sound.");
-    var MSG_AUDIO_CONFIRM_DELETE = _("Are you sure you want to delete the selected audio alerts?");
-    var MSG_AUDIO_CHECK_CHECKBOXES = _("Check the box next to the alert you want to delete.")
-</script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/audio_alerts.js"></script>
 </head>
 
 <body id="admin_audio_alerts" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; Audio alerts</div>
 
@@ -22,7 +18,7 @@
             <div class="yui-b">
 
                 <div id="toolbar" class="btn-toolbar">
-                    <a class="btn btn-small" id="newalert" href="/cgi-bin/koha/admin/audio_alerts.pl"><i class="fa fa-plus"></i> New alert</a>
+                    <a class="btn btn-default btn-sm" id="newalert" href="/cgi-bin/koha/admin/audio_alerts.pl"><i class="fa fa-plus"></i> New alert</a>
                 </div>
 
                 <form id="new-alert-form" action="audio_alerts.pl" method="post" class="validated">
@@ -39,7 +35,7 @@
                             <li>
                                 <label for="sound" class="required">Sound: </label>
                                 <input id="sound" name="sound" type="text" class="required input-large" placeholder="sound" />
-                                <button id="play-sound" class="btn btn-mini disabled"><i class="fa fa-play"></i> Play sound</button>
+                                <button id="play-sound" class="btn btn-default btn-xs disabled"><i class="fa fa-play"></i> Play sound</button>
                                  <span class="required">Required</span>
                             </li>
                             <li>
@@ -119,14 +115,14 @@
                                     <td>[% a.selector %]</td>
                                     <td>[% a.sound %]</td>
                                     <td>
-                                        <a class="btn btn-mini edit" data-soundid="[% a.id %]" data-precedence="[% a.precedence %]" data-selector="[% a.selector %]" data-sound="[% a.sound %]"><i class="fa fa-pencil"></i> Edit</a></td>
+                                        <a class="btn btn-default btn-xs edit" data-soundid="[% a.id %]" data-precedence="[% a.precedence %]" data-selector="[% a.selector %]" data-sound="[% a.sound %]"><i class="fa fa-pencil"></i> Edit</a></td>
                                 </tr>
                             [% END %]
                         </tbody>
                     </table>
 
                     <p>
-                        <button id="delete-alerts" type="submit" class="btn btn-small disabled"><i class="fa fa-trash"></i> Delete selected alerts</button>
+                        <button id="delete-alerts" type="submit" class="btn btn-default btn-sm disabled"><i class="fa fa-trash"></i> Delete selected alerts</button>
                     </p>
                 </form>
             </div>
@@ -135,4 +131,14 @@
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    <script type="text/javascript">
+        var MSG_AUDIO_EMPTY_SOUND = _("Please select or enter a sound.");
+        var MSG_AUDIO_CONFIRM_DELETE = _("Are you sure you want to delete the selected audio alerts?");
+        var MSG_AUDIO_CHECK_CHECKBOXES = _("Check the box next to the alert you want to delete.")
+    </script>
+    [% Asset.js("js/audio_alerts.js") %]
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

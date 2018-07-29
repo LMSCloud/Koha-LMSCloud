@@ -23,7 +23,6 @@ use warnings;
 use CGI qw ( -utf8 );
 use Data::Dumper;
 
-use C4::Branch;
 use C4::Auth;
 use C4::Output;
 
@@ -32,7 +31,7 @@ use parent qw(C4::AggregatedStatistics::AggregatedStatisticsBase);
 
 
 
-my $debug = 1;
+my $debug = 0;
 my @categories;
 my @branchloop;
 my $dbh = C4::Context->dbh;
@@ -209,11 +208,11 @@ $dbs_sql_statements->{'pat_active'} = q{
     select count(*) as res from borrowers
     where dateexpiry >=  (@startdatum := ?)
       and dateenrolled <=  (@enddatum := ?)
-      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
-            ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+            ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
             or
-            (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+            (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
           )
 };
 # DBS2017:10.1
@@ -221,11 +220,11 @@ $dbs_sql_statements->{'pat_active_to_12'} = q{
     select count(*) as res from borrowers
     where dateexpiry >=  (@startdatum := ?)
       and dateenrolled <=  (@enddatum := ?)
-      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
-            ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+            ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
             or
-            (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+            (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
           )
       and DATE_ADD(dateofbirth, INTERVAL 12 YEAR) > @startdatum
 };
@@ -234,11 +233,11 @@ $dbs_sql_statements->{'pat_active_from_60'} = q{
     select count(*) as res from borrowers
     where dateexpiry >=  (@startdatum := ?)
       and dateenrolled <=  (@enddatum := ?)
-      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
-            ((@branchcodeSelect0or1 :=?) COLLATE utf8_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+            ((@branchcodeSelect0or1 :=?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
             or
-            (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+            (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
           )
       and DATE_ADD(dateofbirth, INTERVAL 60 YEAR) <= @enddatum
 };
@@ -246,11 +245,11 @@ $dbs_sql_statements->{'pat_active_from_60'} = q{
 $dbs_sql_statements->{'pat_new_registrations'} = q{
     select count(*) as res from borrowers
     where dateenrolled >= (@startdatum := ?) and dateenrolled <= (@enddatum := ?)
-      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
-            ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+            ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
             or
-            (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+            (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
           )
 };
 # DBS2017:13
@@ -261,11 +260,11 @@ $dbs_sql_statements->{'med_tot_phys_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -274,11 +273,11 @@ $dbs_sql_statements->{'med_tot_phys_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         ) x
 };
@@ -294,29 +293,29 @@ $dbs_sql_statements->{'med_tot_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' )) 
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci)) 
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -336,29 +335,29 @@ $dbs_sql_statements->{'med_phys_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' )) 
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci)) 
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -374,11 +373,11 @@ $dbs_sql_statements->{'med_openaccess_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O' ) 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -387,11 +386,11 @@ $dbs_sql_statements->{'med_openaccess_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O' ) 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -407,29 +406,29 @@ $dbs_sql_statements->{'med_openaccess_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O' )) 
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci)) 
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -445,11 +444,11 @@ $dbs_sql_statements->{'med_stack_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -458,11 +457,11 @@ $dbs_sql_statements->{'med_stack_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -474,11 +473,11 @@ $dbs_sql_statements->{'med_print_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P' ) 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -487,11 +486,11 @@ $dbs_sql_statements->{'med_print_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P' ) 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -507,29 +506,29 @@ $dbs_sql_statements->{'med_print_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P' )) 
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci)) 
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -545,11 +544,11 @@ $dbs_sql_statements->{'med_nonfiction_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier = 'F_B_N' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -558,11 +557,11 @@ $dbs_sql_statements->{'med_nonfiction_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_N' 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -578,29 +577,29 @@ $dbs_sql_statements->{'med_nonfiction_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_N')
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier = 'F_B_N'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_N'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -616,11 +615,11 @@ select sum(cnt) as res from
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier = 'F_B_F' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -629,11 +628,11 @@ select sum(cnt) as res from
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_F' 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -649,29 +648,29 @@ select sum(cnt) as res from
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_F')
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier = 'F_B_F'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_F'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -687,11 +686,11 @@ $dbs_sql_statements->{'med_juvenile_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier = 'F_B_J' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -700,11 +699,11 @@ $dbs_sql_statements->{'med_juvenile_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_J' 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -720,29 +719,29 @@ $dbs_sql_statements->{'med_juvenile_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_J')
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier = 'F_B_J'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_J'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -758,11 +757,11 @@ $dbs_sql_statements->{'med_printissue_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier = 'F_B_P' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -771,11 +770,11 @@ $dbs_sql_statements->{'med_printissue_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_P' 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -791,29 +790,29 @@ $dbs_sql_statements->{'med_printissue_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_P')
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier = 'F_B_P'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_B_P'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -829,11 +828,11 @@ $dbs_sql_statements->{'med_nonbook_tot_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier IN ( 'F_N_A', 'F_N_O' ) 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -842,11 +841,11 @@ $dbs_sql_statements->{'med_nonbook_tot_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_A', 'F_N_O' ) 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -862,29 +861,29 @@ $dbs_sql_statements->{'med_nonbook_tot_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_A', 'F_N_O' ))
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_A', 'F_N_O' )
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_A', 'F_N_O' )
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -900,11 +899,11 @@ $dbs_sql_statements->{'med_nonbook_anadig_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier = 'F_N_A' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -913,11 +912,11 @@ $dbs_sql_statements->{'med_nonbook_anadig_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_N_A' 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -933,29 +932,29 @@ $dbs_sql_statements->{'med_nonbook_anadig_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_N_A')
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier = 'F_N_A'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_N_A'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -971,11 +970,11 @@ $dbs_sql_statements->{'med_nonbook_other_stock'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier = 'F_N_O' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
@@ -984,11 +983,11 @@ $dbs_sql_statements->{'med_nonbook_other_stock'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_N_O' 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -1004,29 +1003,29 @@ $dbs_sql_statements->{'med_nonbook_other_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_N_O')
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier = 'F_N_O'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier = 'F_N_O'
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                )
                       )
@@ -1041,22 +1040,22 @@ $dbs_sql_statements->{'med_access_units'} = q{
         where ( dateaccessioned >= (@startdatum := ?) ) 
           and ( dateaccessioned <= (@enddatum := ?) )
           and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) )
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems 
         where ( dateaccessioned >= @startdatum )
           and ( dateaccessioned <= @enddatum )
           and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) )
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -1068,22 +1067,22 @@ $dbs_sql_statements->{'med_withdrawal_units'} = q{
           and ( date(withdrawn_on) >= (@startdatum := ?) ) 
           and ( date(withdrawn_on) <= (@enddatum := ?) )
           and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) )
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
         union all
         select count(*) as cnt from deleteditems
         where ( date(timestamp) >= (@startdatum) ) 
           and ( date(timestamp) <= (@enddatum) )
           and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) )
-          and ( ((@branchgroupSelect0or1) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -1094,11 +1093,11 @@ $dbs_sql_statements->{'med_subscription_print'} = q{
         where ( s.subscriptionid = h.subscriptionid ) 
           and ( s.enddate >= (@startdatum := ?) ) 
           and ( h.histstartdate <= (@enddatum := ?) )
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -1110,11 +1109,11 @@ $dbs_sql_statements->{'mol_vehicles'} = q{
             (@enddatum := ?) as enddatum
         from branches 
         where mobilebranch > '' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -1126,11 +1125,11 @@ $dbs_sql_statements->{'mol_stop_stations'} = q{
             (@enddatum := ?) as enddatum 
         from branches 
         where mobilebranch > '' 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
     ) x
 };
@@ -1142,11 +1141,11 @@ $dbs_sql_statements->{'mol_stock_media_units'} = q{
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
           and ( exists ( select branchcode from branches where branches.branchcode = items.homebranch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
         union all
@@ -1156,11 +1155,11 @@ $dbs_sql_statements->{'mol_stock_media_units'} = q{
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
           and date(timestamp) >= @startdatum
-          and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
-                (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                 or
-                (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
           and ( exists ( select branchcode from branches where branches.branchcode = deleteditems.homebranch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
     ) x
@@ -1177,31 +1176,31 @@ $dbs_sql_statements->{'mol_media_unit_issues'} = q{
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' )) 
                       ) 
-                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch IN (select branchcode from branchrelations where categorycode = (@branchgroupSel := ?) COLLATE utf8_unicode_ci))
+                  and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
-                        ((@branchcodeSelect0or1 := ?) COLLATE utf8_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8_unicode_ci)
+                        ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                         or
-                        (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                        (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                       )
                   and ( exists ( select branchcode from branches where branches.branchcode = s.branch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
                   and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci))
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
-                                     (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                     (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                 and ( exists ( select branchcode from branches where branches.branchcode = i.homebranch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
                                )
                         or
                         exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O' ) 
-                                and ( (@branchgroupSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch IN (select branchcode from branchrelations where categorycode = @branchgroupSel COLLATE utf8_unicode_ci)) 
+                                and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
-                                      (@branchcodeSelect0or1 COLLATE utf8_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8_unicode_ci)
+                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
                                       or
-                                      (@branchgroupSelect0or1 COLLATE utf8_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8_unicode_ci != '1')
+                                      (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
                                     )
                                 and ( exists ( select branchcode from branches where branches.branchcode = d.homebranch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
                                )
@@ -1458,13 +1457,13 @@ sub read_categories_and_branches {
 
     # read library categories into variable @categories
     @categories = ();
-    for my $category ( Koha::LibraryCategories->search ) {    # fields used in template: category.categorycode and category.categoryname
-        push @categories, $category->unblessed();
-        print STDERR "C4::AggregatedStatistics::DBS::read_categories_and_branches category->unblessed categorycode:", $category->unblessed->{'categorycode'},  ": categoryname:", $category->unblessed->{'categoryname'}, ":\n" if $debug;
+    for my $category ( Koha::Library::Groups->get_search_groups( { interface => 'staff' } ) ) {    # fields used in template: category.id and category.categoryname
+        push @categories, { categorycode => $category->id, categoryname => $category->title };
+        print STDERR "C4::AggregatedStatistics::DBS::read_categories_and_branches category->unblessed categorycode:", $category->description,  ": categoryname:", $category->title, ":\n" if $debug;
     }
 
     # read branch information into variable @branchloop
-    my $branches = GetBranches();
+    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
     @branchloop = ();
     for my $loopbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
         push @branchloop, {
@@ -1522,10 +1521,12 @@ print STDERR "C4::AggregatedStatistics::DBS::eval_form Start self->statisticstyp
     $self->{'selectedgroup'}  = $branchgroup || '*';
     $self->{'selectedbranch'} = $branchcode || '*';
 
-    my $category = Koha::LibraryCategories->search( { 'categorycode' => $branchgroup } )->_resultset->first;
-print STDERR "C4::AggregatedStatistics::DBS::eval_form Dumper(category):", Dumper($category), ":\n" if $debug;
-    my $selectedgroupname = ($category && $category->{'_column_data'} && $category->{'_column_data'}->{'categoryname'}) ? $category->{'_column_data'}->{'categoryname'} : '*';
-    my $selectedbranchname = GetBranchName($branchcode);
+    my $group = Koha::Library::Groups->find( $branchgroup );
+    $group = $group->unblessed if ( $group );
+print STDERR "C4::AggregatedStatistics::DBS::eval_form Dumper(category):", Dumper($group), ":\n" if $debug;
+    my $selectedgroupname = ($group && $group->{title}) ? $group->{title} : '*';
+    my $library = Koha::Libraries->find($branchcode);
+    my $selectedbranchname = ($library && $library->branchname) ? $library->branchname : '';
 print STDERR "C4::AggregatedStatistics::DBS::eval_form branchcode:$branchcode: selectedbranchname:$selectedbranchname:\n" if $debug;
 
     # basic fields

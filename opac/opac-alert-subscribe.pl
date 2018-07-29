@@ -36,8 +36,8 @@ my $dbh   = C4::Context->dbh;
 
 my $sth;
 my ( $template, $loggedinuser, $cookie );
-my $externalid   = $query->param('externalid');
-my $alerttype    = $query->param('alerttype') || '';
+my $subscriptionid = $query->param('subscriptionid');
+my $referer      = $query->param('referer') || 'detail';
 my $biblionumber = $query->param('biblionumber');
 
 ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -51,41 +51,45 @@ my $biblionumber = $query->param('biblionumber');
     }
 );
 
+my $subscription = Koha::Subscriptions->find( $subscriptionid );
+my $logged_in_patron = Koha::Patrons->find( $loggedinuser );
+
 if ( $op eq 'alert_confirmed' ) {
-    addalert( $loggedinuser, $alerttype, $externalid );
-    if ( $alerttype eq 'issue' ) {
+    $subscription->add_subscriber( $logged_in_patron );
+    if ( $referer eq 'serial' ) {
         print $query->redirect(
             "opac-serial-issues.pl?biblionumber=$biblionumber");
+        exit;
+    } else {
+        print $query->redirect(
+            "opac-detail.pl?biblionumber=$biblionumber");
         exit;
     }
 }
 elsif ( $op eq 'cancel_confirmed' ) {
-    my $alerts = getalert( $loggedinuser, $alerttype, $externalid );
-    warn "CANCEL confirmed : $loggedinuser, $alerttype, $externalid".Data::Dumper::Dumper( $alerts );
-    foreach (@$alerts)
-    {    # we are supposed to have only 1 result, but just in case...
-        delalert( $_->{alertid} );
-    }
-    if ( $alerttype eq 'issue' ) {
+    $subscription->remove_subscriber( $logged_in_patron );
+    warn "CANCEL confirmed : $loggedinuser, $subscriptionid";
+    if ( $referer eq 'serial' ) {
         print $query->redirect(
             "opac-serial-issues.pl?biblionumber=$biblionumber");
         exit;
+    } else {
+        print $query->redirect(
+            "opac-detail.pl?biblionumber=$biblionumber");
+        exit;
     }
+
 
 }
 else {
-    if ( $alerttype eq 'issue' ) {    # alert for subscription issues
-        my $subscription = &GetSubscription($externalid);
-        $template->param(
-            "typeissue$op" => 1,
-            bibliotitle    => $subscription->{bibliotitle},
-            notes          => $subscription->{notes},
-            externalid     => $externalid,
-            biblionumber   => $biblionumber,
-        );
-    }
-    else {
-    }
-
+    my $subscription = &GetSubscription($subscriptionid);
+    $template->param(
+        referer        => $referer,
+        "typeissue$op" => 1,
+        bibliotitle    => $subscription->{bibliotitle},
+        notes          => $subscription->{notes},
+        subscriptionid     => $subscriptionid,
+        biblionumber   => $biblionumber,
+    );
 }
 output_html_with_http_headers $query, $cookie, $template->output;

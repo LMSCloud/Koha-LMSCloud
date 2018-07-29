@@ -17,8 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 
 use C4::Context;
@@ -26,15 +25,14 @@ use C4::Output;
 use C4::Auth qw/:DEFAULT get_session/;
 use C4::Print;  # GetPrinters
 use C4::Koha;
-use C4::Branch; # GetBranches GetBranchesLoop
-
-use Koha::LibraryCategories;
+use Koha::BiblioFrameworks;
+use Koha::Libraries;
 
 # this will be the script that chooses branch and printer settings....
 
 my $query = CGI->new();
 
-my ( $template, $borrowernumber, $cookie ) = get_template_and_user({
+my ( $template, $borrowernumber, $cookie, $flags ) = get_template_and_user({
     template_name   => "circ/selectbranchprinter.tt",
     query           => $query,
     type            => "intranet",
@@ -47,7 +45,6 @@ my $sessionID = $query->cookie("CGISESSID");
 my $session = get_session($sessionID);
 
 # try to get the branch and printer settings from http, fallback to userenv
-my $branches = GetBranches();
 my $printers = GetPrinters();
 my $branch   = $query->param('branch' );
 my $printer  = $query->param('printer');
@@ -63,9 +60,9 @@ my $branchcategory = $query->param('branchcategory' );
 my $userenv_branchcategory  = C4::Context->userenv->{'branchcategory'} || '';
 
 # $session lddines here are doing the updating
-if ($branch and $branches->{$branch}) {
+if ( $branch and my $library = Koha::Libraries->find($branch) ) {
     if (! $userenv_branch or $userenv_branch ne $branch ) {
-        my $branchname = GetBranchName($branch);
+        my $branchname = $library->branchname;
         $template->param(LoginBranchname => $branchname);   # update template for new branch
         $template->param(LoginBranchcode => $branch);       # update template for new branch
         $session->param('branchname', $branchname);         # update sesssion in DB
@@ -86,18 +83,19 @@ if ( C4::Context->preference('BookMobileSupportEnabled') and
 }
 
 ########################################
-#  Read library categories
+#  Read library groups
 ########################################
 if ( C4::Context->preference('BookMobileSupportEnabled') ) {
-    my @categories;
-    for my $category ( Koha::LibraryCategories->search ) {
-        push @categories, $category->unblessed();
-    }
+
+    my @search_groups =
+        Koha::Library::Groups->get_search_groups( { interface => 'staff' } );
+    @search_groups = sort { $a->title cmp $b->title } @search_groups;
+    
     $branchcategory = $userenv_branchcategory || '*' if ( !defined($branchcategory) || $branchcategory eq '' );
-    if ( scalar(@categories) ) {
-        $template->param( categoryselect => 1,
-                          categories => \@categories,
-                          selcateg => $branchcategory,
+    if ( scalar(@search_groups) ) {
+        $template->param( groupselect => 1,
+                          librarygroups => \@search_groups,
+                          selgroup => $branchcategory,
                           selbranch => $branch,
                            );
     }
@@ -122,10 +120,6 @@ if ($printer) {
 }
 
 $template->param(updated => \@updated) if (scalar @updated);
-
-unless ($branches->{$branch}) {
-    $branch = (keys %$branches)[0];  # if branch didn't really exist, then replace it w/ one that does
-}
 
 my @printkeys = sort keys %$printers;
 if (scalar(@printkeys) == 1 or not $printers->{$printer}) {
@@ -166,8 +160,11 @@ if (scalar @updated and not scalar @recycle_loop) {
 $template->param(
     referer     => $referer,
     printerloop => \@printerloop,
-    branchloop  => GetBranchesLoop($branch),
+    branch      => $branch,
     recycle_loop=> \@recycle_loop,
 );
+
+# Checking if there is a Fast Cataloging Framework
+$template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 
 output_html_with_http_headers $query, $cookie, $template->output;

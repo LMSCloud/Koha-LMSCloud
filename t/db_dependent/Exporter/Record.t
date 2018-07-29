@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::Warn;
 use t::lib::TestBuilder;
 
@@ -34,7 +34,7 @@ use Koha::Database;
 use Koha::Biblio;
 use Koha::Biblioitem;
 use Koha::Exporter::Record;
-use Koha::Biblioitems;
+use Koha::Biblio::Metadata;
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -59,7 +59,7 @@ $biblio_2->append_fields(
 my ($biblionumber_2, $biblioitemnumber_2) = AddBiblio($biblio_2, '');
 
 my $bad_biblio = Koha::Biblio->new()->store();
-my $bad_biblioitem = Koha::Biblioitem->new( { biblionumber => $bad_biblio->id, marcxml => 'something wrong' } )->store();
+Koha::Biblio::Metadata->new( { biblionumber => $bad_biblio->id, format => 'marcxml', metadata => 'something wrong', marcflavour => C4::Context->preference('marcflavour') } )->store();
 my $bad_biblionumber = $bad_biblio->id;
 
 my $builder = t::lib::TestBuilder->new;
@@ -211,6 +211,78 @@ subtest 'export without record_type' => sub {
     #Depending on your logger config, you might have a warn in your logs
 };
 
+subtest '_get_biblio_for_export' => sub {
+    plan tests => 4;
+
+    my $biblio = MARC::Record->new();
+    $biblio->leader('00266nam a22001097a 4500');
+    $biblio->append_fields(
+        MARC::Field->new( '100', ' ', ' ', a => 'Thurber, James' ),
+        MARC::Field->new( '245', ' ', ' ', a => "The 13 Clocks" ),
+    );
+    my ( $biblionumber, $biblioitemnumber ) = AddBiblio( $biblio, '' );
+    my $branch_a = $builder->build({source => 'Branch',});
+    my $branch_b = $builder->build({source => 'Branch',});
+    my $item_branch_a = $builder->build(
+        {
+            source => 'Item',
+            value  => {
+                biblionumber       => $biblionumber,
+                homebranch         => $branch_a->{branchcode},
+                more_subfields_xml => '',
+            }
+        }
+    );
+    my $item_branch_b = $builder->build(
+        {
+            source => 'Item',
+            value  => {
+                biblionumber       => $biblionumber,
+                homebranch         => $branch_b->{branchcode},
+                more_subfields_xml => '',
+            }
+        }
+    );
+
+    my $record = Koha::Exporter::Record::_get_biblio_for_export(
+        {
+            biblionumber                   => $biblionumber,
+            export_items                   => 1,
+            only_export_items_for_branches => undef
+        }
+    );
+    my @items = $record->field('952');
+    is( scalar @items, 2, "We should retrieve all items if we don't pass specific branches and request items" );
+
+    $record = Koha::Exporter::Record::_get_biblio_for_export(
+        {
+            biblionumber                   => $biblionumber,
+            export_items                   => 1,
+            only_export_items_for_branches => [ $branch_b->{branchcode} ]
+        }
+    );
+    @items = $record->field('952');
+    is( scalar @items, 1, "We should retrieve only item for branch_b item if we request items and pass branch" );
+    is(
+        $items[0]->subfield('a'),
+        $branch_b->{branchcode},
+        "And the homebranch for that item should be branch_b branchcode"
+    );
+
+    $record = Koha::Exporter::Record::_get_biblio_for_export(
+        {
+            biblionumber                   => $biblionumber,
+            export_items                   => 0,
+            only_export_items_for_branches => [ $branch_b->{branchcode} ]
+        }
+    );
+    @items = $record->field('952');
+    is( scalar @items, 0, "We should not have any items if we don't request items and pass a branch");
+
+};
+
+
+
+
 $schema->storage->txn_rollback;
 
-1;

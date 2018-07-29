@@ -21,34 +21,9 @@ use Test::More;
 use Test::MockModule;
 use Test::Warn;
 
-use Module::Load::Conditional qw/check_install/;
-
-BEGIN {
-    if ( check_install( module => 'Test::DBIx::Class' ) ) {
-        plan tests => 46;
-    } else {
-        plan skip_all => "Need Test::DBIx::Class"
-    }
-}
+plan tests => 47;
 
 use_ok('C4::Biblio');
-
-use Test::DBIx::Class {
-    schema_class => 'Koha::Schema',
-    connect_info => ['dbi:SQLite:dbname=:memory:','',''],
-    connect_opts => { name_sep => '.', quote_char => '`', },
-    fixture_class => '::Populate',
-}, 'Biblio' ;
-
-sub fixtures {
-    my ( $data ) = @_;
-    fixtures_ok [
-        Biblio => [
-            [ qw/ biblionumber datecreated timestamp  / ],
-            @$data,
-        ],
-    ], 'add fixtures';
-}
 
 my $db = Test::MockModule->new('Koha::Database');
 $db->mock( _new_schema => sub { return Schema(); } );
@@ -185,6 +160,10 @@ warning_is { $ret = RemoveAllNsb() }
 ok( !defined $ret, 'RemoveAllNsb returns undef if not passed rec');
 
 warning_is { $ret = GetMarcBiblio() }
+           { carped => 'GetMarcBiblio called without parameters'},
+           "GetMarcBiblio returns carped warning on no parameters";
+
+warning_is { $ret = GetMarcBiblio({ biblionumber => undef }) }
            { carped => 'GetMarcBiblio called with undefined biblionumber'},
            "GetMarcBiblio returns carped warning on undef biblionumber";
 
@@ -197,4 +176,3 @@ warnings_like { $ret = UpdateTotalIssues() }
 
 ok( !defined $ret, 'UpdateTotalIssues returns carped warning if biblio record does not exist');
 
-1;

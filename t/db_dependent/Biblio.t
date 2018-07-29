@@ -17,24 +17,29 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 9;
 use Test::MockModule;
-
 use List::MoreUtils qw( uniq );
 use MARC::Record;
+
 use t::lib::Mocks qw( mock_preference );
+use t::lib::TestBuilder;
+
+use Koha::Database;
+use Koha::Caches;
+use Koha::MarcSubfieldStructures;
 
 BEGIN {
     use_ok('C4::Biblio');
 }
 
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-# Start transaction
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
+Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
 
 subtest 'GetMarcSubfieldStructureFromKohaField' => sub {
-    plan tests => 23;
+    plan tests => 25;
 
     my @columns = qw(
         tagfield tagsubfield liblibrarian libopac repeatable mandatory kohafield tab
@@ -43,7 +48,7 @@ subtest 'GetMarcSubfieldStructureFromKohaField' => sub {
     );
 
     # biblio.biblionumber must be mapped so this should return something
-    my $marc_subfield_structure = GetMarcSubfieldStructureFromKohaField('biblio.biblionumber', '');
+    my $marc_subfield_structure = GetMarcSubfieldStructureFromKohaField('biblio.biblionumber');
 
     ok(defined $marc_subfield_structure, "There is a result");
     is(ref $marc_subfield_structure, "HASH", "Result is a hashref");
@@ -53,11 +58,69 @@ subtest 'GetMarcSubfieldStructureFromKohaField' => sub {
     is($marc_subfield_structure->{kohafield}, 'biblio.biblionumber', "Result is the good result");
     like($marc_subfield_structure->{tagfield}, qr/^\d{3}$/, "tagfield is a valid tagfield");
 
+    # Add a test for list context (BZ 10306)
+    my @results = GetMarcSubfieldStructureFromKohaField('biblio.biblionumber');
+    is( @results, 1, 'We expect only one mapping' );
+    is_deeply( $results[0], $marc_subfield_structure,
+        'The first entry should be the same hashref as we had before' );
+
     # foo.bar does not exist so this should return undef
-    $marc_subfield_structure = GetMarcSubfieldStructureFromKohaField('foo.bar', '');
+    $marc_subfield_structure = GetMarcSubfieldStructureFromKohaField('foo.bar');
     is($marc_subfield_structure, undef, "invalid kohafield returns undef");
+
 };
 
+subtest "GetMarcSubfieldStructure" => sub {
+    plan tests => 5;
+
+    # Add multiple Koha to Marc mappings
+    Koha::MarcSubfieldStructures->search({ frameworkcode => '', tagfield => '399', tagsubfield => [ 'a', 'b' ] })->delete;
+    Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '399', tagsubfield => 'a', kohafield => "mytable.nicepages" })->store;
+    Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '399', tagsubfield => 'b', kohafield => "mytable.nicepages" })->store;
+    Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
+    my $structure = C4::Biblio::GetMarcSubfieldStructure('');
+
+    is( @{ $structure->{"mytable.nicepages"} }, 2,
+        'GetMarcSubfieldStructure should return two entries for nicepages' );
+    is( $structure->{"mytable.nicepages"}->[0]->{tagfield}, '399',
+        'Check tagfield for first entry' );
+    is( $structure->{"mytable.nicepages"}->[0]->{tagsubfield}, 'a',
+        'Check tagsubfield for first entry' );
+    is( $structure->{"mytable.nicepages"}->[1]->{tagfield}, '399',
+        'Check tagfield for second entry' );
+    is( $structure->{"mytable.nicepages"}->[1]->{tagsubfield}, 'b',
+        'Check tagsubfield for second entry' );
+};
+
+subtest "GetMarcFromKohaField" => sub {
+    plan tests => 8;
+
+    #NOTE: We are building on data from the previous subtest
+    # With: field 399 / mytable.nicepages
+
+    # Check call in list context for multiple mappings
+    my @retval = C4::Biblio::GetMarcFromKohaField('mytable.nicepages');
+    is( @retval, 4, 'Should return two tags and subfields' );
+    is( $retval[0], '399', 'Check first tag' );
+    is( $retval[1], 'a', 'Check first subfield' );
+    is( $retval[2], '399', 'Check second tag' );
+    is( $retval[3], 'b', 'Check second subfield' );
+
+    # Check same call in scalar context
+    is( C4::Biblio::GetMarcFromKohaField('mytable.nicepages'), '399',
+        'GetMarcFromKohaField returns first tag in scalar context' );
+
+    # Bug 19096 Default is authoritative
+    # If we add a new empty framework, we should still get the mappings
+    # from Default. CAUTION: This test passes intentionally the obsoleted
+    # framework parameter.
+    my $new_fw = t::lib::TestBuilder->new->build({source => 'BiblioFramework'});
+    @retval = C4::Biblio::GetMarcFromKohaField(
+        'mytable.nicepages', $new_fw->{frameworkcode},
+    );
+    is( @retval, 4, 'Still got two pairs of tags/subfields' );
+    is( $retval[0].$retval[1], '399a', 'Including 399a' );
+};
 
 # Mocking variables
 my $biblio_module = new Test::MockModule('C4::Biblio');
@@ -66,29 +129,22 @@ $biblio_module->mock(
     sub {
         my ($self) = shift;
 
-        if (   C4::Context->preference('marcflavour') eq 'MARC21'
-            || C4::Context->preference('marcflavour') eq 'NORMARC' ) {
+        my ( $title_field,            $title_subfield )            = get_title_field();
+        my ( $isbn_field,             $isbn_subfield )             = get_isbn_field();
+        my ( $issn_field,             $issn_subfield )             = get_issn_field();
+        my ( $biblionumber_field,     $biblionumber_subfield )     = ( '999', 'c' );
+        my ( $biblioitemnumber_field, $biblioitemnumber_subfield ) = ( '999', '9' );
+        my ( $itemnumber_field,       $itemnumber_subfield )       = get_itemnumber_field();
 
-            return {
-                'biblio.title'                 => { tagfield => '245', tagsubfield => 'a' },
-                'biblio.biblionumber'          => { tagfield => '999', tagsubfield => 'c' },
-                'biblioitems.isbn'             => { tagfield => '020', tagsubfield => 'a' },
-                'biblioitems.issn'             => { tagfield => '022', tagsubfield => 'a' },
-                'biblioitems.biblioitemnumber' => { tagfield => '999', tagsubfield => 'd' },
-                'items.itemnumber'             => { tagfield => '952', tagsubfield => '9' },
-            };
-        } elsif ( C4::Context->preference('marcflavour') eq 'UNIMARC' ) {
-
-            return {
-                'biblio.title'                 => { tagfield => '200', tagsubfield => 'a' },
-                'biblio.biblionumber'          => { tagfield => '999', tagsubfield => 'c' },
-                'biblioitems.isbn'             => { tagfield => '010', tagsubfield => 'a' },
-                'biblioitems.issn'             => { tagfield => '011', tagsubfield => 'a' },
-                'biblioitems.biblioitemnumber' => { tagfield => '090', tagsubfield => 'a' },
-                'items.itemnumber'             => { tagfield => '995', tagsubfield => '9' },
-            };
-        }
-    }
+        return {
+            'biblio.title'                 => [ { tagfield => $title_field,            tagsubfield => $title_subfield } ],
+            'biblio.biblionumber'          => [ { tagfield => $biblionumber_field,     tagsubfield => $biblionumber_subfield } ],
+            'biblioitems.isbn'             => [ { tagfield => $isbn_field,             tagsubfield => $isbn_subfield } ],
+            'biblioitems.issn'             => [ { tagfield => $issn_field,             tagsubfield => $issn_subfield } ],
+            'biblioitems.biblioitemnumber' => [ { tagfield => $biblioitemnumber_field, tagsubfield => $biblioitemnumber_subfield } ],
+            'items.itemnumber'             => [ { tagfield => $itemnumber_subfield,    tagsubfield => $itemnumber_subfield } ],
+        };
+      }
 );
 
 my $currency = new Test::MockModule('Koha::Acquisition::Currencies');
@@ -115,8 +171,7 @@ sub run_tests {
 
     # Generate a record with just the ISBN
     my $marc_record = MARC::Record->new;
-    my $isbn_field  = create_isbn_field( $isbn, $marcflavour );
-    $marc_record->append_fields( $isbn_field );
+    $marc_record->append_fields( create_isbn_field( $isbn, $marcflavour ) );
 
     # Add the record to the DB
     my( $biblionumber, $biblioitemnumber ) = AddBiblio( $marc_record, '' );
@@ -126,6 +181,10 @@ sub run_tests {
     is( $data->{ title }, undef,
         '(GetBiblioData) Title field is empty in fresh biblio.');
 
+    my ( $isbn_field, $isbn_subfield ) = get_isbn_field();
+    my $marc = GetMarcBiblio({ biblionumber => $biblionumber });
+    is( $marc->subfield( $isbn_field, $isbn_subfield ), $isbn, );
+
     # Add title
     my $field = create_title_field( $title, $marcflavour );
     $marc_record->append_fields( $field );
@@ -134,11 +193,14 @@ sub run_tests {
     is( $data->{ title }, $title,
         'ModBiblio correctly added the title field, and GetBiblioData.');
     is( $data->{ isbn }, $isbn, '(ModBiblio) ISBN is still there after ModBiblio.');
+    $marc = GetMarcBiblio({ biblionumber => $biblionumber });
+    my ( $title_field, $title_subfield ) = get_title_field();
+    is( $marc->subfield( $title_field, $title_subfield ), $title, );
 
-    my $itemdata = GetBiblioItemData( $biblioitemnumber );
-    is( $itemdata->{ title }, $title,
-        'First test of GetBiblioItemData to get same result of previous two GetBiblioData tests.');
-    is( $itemdata->{ isbn }, $isbn,
+    my $biblioitem = Koha::Biblioitems->find( $biblioitemnumber );
+    is( $biblioitem->_result->biblio->title, $title, # Should be $biblioitem->biblio instead, but not needed elsewhere for now
+        'Do not know if this makes sense - compare result of previous two GetBiblioData tests.');
+    is( $biblioitem->isbn, $isbn,
         'Second test checking it returns the correct isbn.');
 
     my $success = 0;
@@ -246,14 +308,16 @@ sub run_tests {
     is( scalar @$isbns, 4, '(GetMarcISBN) The record contains 4 ISBNs');
     for my $i (0 .. $#more_isbns) {
         is( $isbns->[$i], $more_isbns[$i],
-            "(GetMarcISBN) Corretly retrieves ISBN #". ($i + 1));
+            "(GetMarcISBN) Correctly retrieves ISBN #". ($i + 1));
     }
 
     is( GetMarcPrice( $record_for_isbn, $marcflavour ), 100,
         "GetMarcPrice returns the correct value");
     my $newincbiblioitemnumber=$biblioitemnumber+1;
     $dbh->do("UPDATE biblioitems SET biblioitemnumber = ? WHERE biblionumber = ?;", undef, $newincbiblioitemnumber, $biblionumber );
-    my $updatedrecord = GetMarcBiblio($biblionumber, 0);
+    my $updatedrecord = GetMarcBiblio({
+        biblionumber => $biblionumber,
+        embed_items  => 0 });
     my $frameworkcode = GetFrameworkCode($biblionumber);
     my ( $biblioitem_tag, $biblioitem_subfield ) = GetMarcFromKohaField( "biblioitems.biblioitemnumber", $frameworkcode );
     die qq{No biblioitemnumber tag for framework "$frameworkcode"} unless $biblioitem_tag;
@@ -273,13 +337,44 @@ sub run_tests {
     is( ( $marcflavour eq 'UNIMARC' && @$a2 == @$a1 + 1 ) ||
         ( $marcflavour ne 'UNIMARC' && @$a2 == @$a1 + 3 ), 1,
         'Check the number of returned notes of GetMarcNotes' );
+
+    # test for GetMarcUrls
+    $marc_record->append_fields(
+        MARC::Field->new( '856', '', '', u => ' https://koha-community.org ' ),
+        MARC::Field->new( '856', '', '', u => 'koha-community.org' ),
+    );
+    my $marcurl = GetMarcUrls( $marc_record, $marcflavour );
+    is( @$marcurl, 2, 'GetMarcUrls returns two URLs' );
+    like( $marcurl->[0]->{MARCURL}, qr/^https/, 'GetMarcUrls did not stumble over a preceding space' );
+    ok( $marcflavour ne 'MARC21' || $marcurl->[1]->{MARCURL} =~ /^http:\/\//,
+        'GetMarcUrls prefixed a MARC21 URL with http://' );
+}
+
+sub get_title_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '200', 'a' ) : ( '245', 'a' );
+}
+
+sub get_isbn_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '010', 'a' ) : ( '020', 'a' );
+}
+
+sub get_issn_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '011', 'a' ) : ( '022', 'a' );
+}
+
+sub get_itemnumber_field {
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    return ( $marc_flavour eq 'UNIMARC' ) ? ( '995', '9' ) : ( '952', '9' );
 }
 
 sub create_title_field {
     my ( $title, $marcflavour ) = @_;
 
-    my $title_field = ( $marcflavour eq 'UNIMARC' ) ? '200' : '245';
-    my $field = MARC::Field->new( $title_field,'','','a' => $title);
+    my ( $title_field, $title_subfield ) = get_title_field();
+    my $field = MARC::Field->new( $title_field, '', '', $title_subfield => $title );
 
     return $field;
 }
@@ -287,10 +382,11 @@ sub create_title_field {
 sub create_isbn_field {
     my ( $isbn, $marcflavour ) = @_;
 
-    my $isbn_field = ( $marcflavour eq 'UNIMARC' ) ? '010' : '020';
-    my $field = MARC::Field->new( $isbn_field,'','','a' => $isbn);
+    my ( $isbn_field, $isbn_subfield ) = get_isbn_field();
+    my $field = MARC::Field->new( $isbn_field, '', '', $isbn_subfield => $isbn );
+
     # Add the price subfield
-    my $price_subfield = ( $marcflavour eq 'UNIMARC' ) ? 'd' : 'c' ;
+    my $price_subfield = ( $marcflavour eq 'UNIMARC' ) ? 'd' : 'c';
     $field->add_subfields( $price_subfield => '$100' );
 
     return $field;
@@ -299,32 +395,35 @@ sub create_isbn_field {
 sub create_issn_field {
     my ( $issn, $marcflavour ) = @_;
 
-    my $issn_field = ( $marcflavour eq 'UNIMARC' ) ? '011' : '022';
-    my $field = MARC::Field->new( $issn_field,'','','a' => $issn);
+    my ( $issn_field, $issn_subfield ) = get_issn_field();
+    my $field = MARC::Field->new( $issn_field, '', '', $issn_subfield => $issn );
 
     return $field;
 }
 
 subtest 'MARC21' => sub {
-    plan tests => 29;
+    plan tests => 34;
     run_tests('MARC21');
-    $dbh->rollback;
+    $schema->storage->txn_rollback;
+    $schema->storage->txn_begin;
 };
 
 subtest 'UNIMARC' => sub {
-    plan tests => 29;
+    plan tests => 34;
     run_tests('UNIMARC');
-    $dbh->rollback;
+    $schema->storage->txn_rollback;
+    $schema->storage->txn_begin;
 };
 
 subtest 'NORMARC' => sub {
-    plan tests => 29;
+    plan tests => 34;
     run_tests('NORMARC');
-    $dbh->rollback;
+    $schema->storage->txn_rollback;
+    $schema->storage->txn_begin;
 };
 
 subtest 'IsMarcStructureInternal' => sub {
-    plan tests => 6;
+    plan tests => 8;
     my $tagslib = GetMarcStructure();
     my @internals;
     for my $tag ( sort keys %$tagslib ) {
@@ -334,12 +433,28 @@ subtest 'IsMarcStructureInternal' => sub {
         }
     }
     @internals = uniq @internals;
-    is( scalar(@internals), 4, 'expect four internals');
+    is( scalar(@internals), 6, 'expect 6 internals');
     is( grep( /^lib$/, @internals ), 1, 'check lib' );
     is( grep( /^tab$/, @internals ), 1, 'check tab' );
     is( grep( /^mandatory$/, @internals ), 1, 'check mandatory' );
     is( grep( /^repeatable$/, @internals ), 1, 'check repeatable' );
     is( grep( /^a$/, @internals ), 0, 'no subfield a' );
+    is( grep( /^ind1_defaultvalue$/, @internals ), 1, 'check indicator 1 default value' );
+    is( grep( /^ind2_defaultvalue$/, @internals ), 1, 'check indicator 2 default value' );
 };
 
-1;
+subtest 'deletedbiblio_metadata' => sub {
+    plan tests => 2;
+
+    my ($biblionumber, $biblioitemnumber) = AddBiblio(MARC::Record->new, '');
+    my $biblio_metadata = C4::Biblio::GetXmlBiblio( $biblionumber );
+    C4::Biblio::DelBiblio( $biblionumber );
+    my ( $moved ) = $dbh->selectrow_array(q|SELECT biblionumber FROM deletedbiblio WHERE biblionumber=?|, undef, $biblionumber);
+    is( $moved, $biblionumber, 'Found in deletedbiblio' );
+    ( $moved ) = $dbh->selectrow_array(q|SELECT biblionumber FROM deletedbiblio_metadata WHERE biblionumber=?|, undef, $biblionumber);
+    is( $moved, $biblionumber, 'Found in deletedbiblio_metadata' );
+};
+
+# Cleanup
+Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
+$schema->storage->txn_rollback;

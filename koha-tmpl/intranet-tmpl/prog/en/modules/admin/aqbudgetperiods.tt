@@ -1,178 +1,44 @@
+[% USE Asset %]
 [% USE KohaDates %]
 [% USE Price %]
-
+[% SET footerjs = 1 %]
 [%- BLOCK action_menu %]
     <div class="dropdown">
-        <a class="btn btn-mini dropdown-toggle" id="budgetmenu_[% block_budget_id %]" role="button" data-toggle="dropdown" href="#">
+        <a class="btn btn-default btn-xs dropdown-toggle" id="budgetmenu_[% block_budget.budget_period_id %]" role="button" data-toggle="dropdown" href="#">
            Actions <b class="caret"></b>
         </a>
-        <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="budgetmenu_[% block_budget_id %]">
+        <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="budgetmenu_[% block_budget.budget_period_id %]">
               <li>
-                  <a href="[% script_name %]?op=add_form&amp;budget_period_id=[% block_budget_id |html %]"><i class="fa fa-pencil"></i> Edit</a>
+                  <a href="[% script_name %]?op=add_form&amp;budget_period_id=[% block_budget.budget_period_id |html %]"><i class="fa fa-pencil"></i> Edit</a>
+              </li>
+              [% IF block_budget.count %]
+                  <li class="disabled">
+                      <a data-toggle="tooltip" data-placement="left" title="[% block_budget.count %] fund(s) are attached to this budget. You must delete all attached funds before deleting this budget." href="#"><i class="fa fa-trash"></i> Delete</a>
+                  </li>
+              [% ELSE %]
+                  <li>
+                      <a href="[% script_name %]?op=delete_confirm&amp;budget_period_id=[% block_budget.budget_period_id %]"><i class="fa fa-trash"></i> Delete</a>
+                  </li>
+              [% END %]
+              <li>
+                  <a href="[% script_name %]?op=duplicate_form&amp;budget_period_id=[% block_budget.budget_period_id %]"><i class="fa fa-copy"></i> Duplicate</a>
               </li>
               <li>
-                  <a href="[% script_name %]?op=delete_confirm&amp;budget_period_id=[% block_budget_id %]"><i class="fa fa-trash"></i> Delete</a>
+                  <a href="[% script_name %]?op=close_form&amp;budget_period_id=[% block_budget.budget_period_id %]"><i class="fa fa-times-circle"></i> Close</a>
               </li>
               <li>
-                  <a href="[% script_name %]?op=duplicate_form&amp;budget_period_id=[% block_budget_id %]"><i class="fa fa-copy"></i> Duplicate</a>
-              </li>
-              <li>
-                  <a href="[% script_name %]?op=close_form&amp;budget_period_id=[% block_budget_id %]"><i class="fa fa-times-circle"></i> Close</a>
-              </li>
-              <li>
-                  <a href="/cgi-bin/koha/admin/aqbudgets.pl?op=add_form&amp;budget_period_id=[% block_budget_id %]"><i class="fa fa-plus"></i> Add fund</a>
+                  <a href="/cgi-bin/koha/admin/aqbudgets.pl?op=add_form&amp;budget_period_id=[% block_budget.budget_period_id %]"><i class="fa fa-plus"></i> Add fund</a>
               </li>
         </ul>
     </div>
 [% END -%]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-[% INCLUDE 'datatables.inc' %]
+[% Asset.css("css/datatables.css") %]
 [% IF close_form %]
-    <link href="[% interface %]/lib/jquery/plugins/treetable/stylesheets/jquery.treetable.css" rel="stylesheet" type="text/css" />
-    <script type="text/javascript" src="[% interface %]/lib/jquery/plugins/treetable/jquery.treetable.js"></script>
+    [% Asset.css("lib/jquery/plugins/treetable/stylesheets/jquery.treetable.css") %]
 [% END %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/acq.js"></script>
-<script type="text/javascript">
-// #################################################################################
-// Javascript
-// #################################################################################
-    function CheckDuplicateForm(f){
-            var ok=1;
-            var _alertString="";
-            var alertString="";
-            if(!(isNotNull(f.budget_period_startdate,1))){
-              _alertString += "\n- " + _("Start date missing");
-            }
-            if (!(isNotNull(f.budget_period_enddate,1))){
-              _alertString += "\n- " + _("End date missing");
-            }
-            if( f.budget_period_startdate > f.budget_period_enddate ) {
-              _alertString += "\n- " + _("Start date must be before end date");
-            }
-            if (!(isNotNull(f.budget_period_description,1))){
-              _alertString += "\n- " + _("Budget description missing");
-            }
-
-            if(_alertString.length==0){
-              f.submit();
-            } else {
-              alertString += _("Form not submitted because of the following problem(s)");
-              alertString += "\n-----------------------------------------\n";
-              alertString += _alertString;
-              alert(alertString);
-            }
-    }
-    function Check(f) {
-            var ok=1;
-            var _alertString="";
-            var alertString2;
-
-            if (!(isNotNull(f.budget_period_startdate,1))) {
-                    _alertString += "\n- " + _("Start date missing");
-            }
-
-            if (!(isNotNull(f.budget_period_enddate,1))) {
-                    _alertString += "\n- " + _("End date missing");
-            }
-
-            if ( f.budget_period_startdate >   f.budget_period_enddate )  {
-                    _alertString += "\n- " + _("Start date must be before end date");
-            }
-
-            if (!(isNotNull(f.budget_period_description,1))) {
-                    _alertString += "\n- " + _("Description missing");
-            }
-
-            if (!(isNum(f.budget_period_total))) {
-                    _alertString += "\n- " + _("Amount must be a valid number, or empty");
-            }
-
-/*
-			checkBudgetTotal(f) {
-			}
-*/
-
-            if (_alertString.length==0) {
-                    f.submit();
-            } else {
-                    alertString2  = _("Form not submitted because of the following problem(s)");
-                    alertString2 += "\n------------------------------------------------------------------------------------\n";
-                    alertString2 += _alertString;
-                    alert(alertString2);
-            }
-    }
-
-    $(document).ready(function() {
-        var tabs = $('#budgetsTabs').tabs();
-        [% IF ( tab ) %]
-            tabs.tabs("option", "active", [% tab %]);
-        [% END %]
-        $("#activeperiodst,#inactiveperiodst").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumnDefs": [
-                { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                { "sType": "title-string", "aTargets" : [ "title-string" ] }
-            ],
-            "sPaginationType": "four_button",
-            'bAutoWidth': false
-        } ) );
-
-        [% IF close_form %]
-          $("#budgeth").dataTable($.extend(true, {}, dataTablesDefaults, {
-            sDom: "t"
-          }));
-          $("#move_form").submit(function(){
-            var budget_from = "[% budget_period_description %]";
-            var budget_to = $("#to_budget_period_id").find("option:selected").html();
-            var alert_message = _("You have chosen to move all unreceived orders from '%s' to '%s'.").format(budget_from, budget_to);
-            alert_message += "\n" + _("This action cannot be reversed. Do you wish to continue?");
-            return confirm ( alert_message );
-          });
-        [% END %]
-        [% IF closed %]
-          var oTable = $("#closed_report").dataTable($.extend(true, {}, dataTablesDefaults, {
-            // The following is a c/p from aqbudgets.tt and is a candidate for refactoring.
-            "fnDrawCallback": function ( oSettings ) {
-                if ( oSettings.aiDisplay.length == 0 )
-                {
-                    return;
-                }
-
-                var nTrs = $('#closed_report tbody tr');
-                var iColspan = nTrs[1].getElementsByTagName('td').length;
-                var sLastGroup = "";
-                for ( var i=0 ; i<nTrs.length ; i++ )
-                {
-                    var iDisplayIndex = oSettings._iDisplayStart + i;
-                    var sGroup = oSettings.aoData[ oSettings.aiDisplay[iDisplayIndex] ]._aData[0];
-                    if ( sGroup != sLastGroup )
-                    {
-                        var nGroup = document.createElement( 'tr' );
-                        var nCell = document.createElement( 'td' );
-                        nCell.colSpan = iColspan;
-                        nCell.className = "group";
-                        nCell.innerHTML = sGroup;
-                        nGroup.appendChild( nCell );
-                        nTrs[i].parentNode.insertBefore( nGroup, nTrs[i] );
-                        sLastGroup = sGroup;
-                    }
-                }
-            },
-            "aoColumnDefs": [
-                { "bVisible": false, "aTargets": [ 0, 1 ] },
-                { "bSortable": false, "aTargets": ["_all"] }
-            ],
-            'bSort': true,
-            'aaSortingFixed': [[ 1, 'asc' ]],
-            "bAutoWidth": false,
-            "sPaginationType": "full_numbers"
-          }));
-        [% END %]
-    });
-</script>
 
 <title>
     Koha &rsaquo; Administration &rsaquo; Budgets
@@ -225,7 +91,7 @@
     [% END %]
     [% IF ( delete_confirm ) %]
         <a href="/cgi-bin/koha/admin/aqbudgetperiods.pl">Budgets</a> &rsaquo;
-        [% IF ( total ) %]
+        [% IF ( total || funds_exist ) %]
             <span>Cannot delete budget '[% budget_period_description %]'</span>
         [% ELSE %]
             <span>Delete budget '[% budget_period_description %]'?</span>
@@ -401,10 +267,13 @@
         <h3>Cannot delete budget</h3>
         <p><strong>This record is used [% total %] times</strong>
         . Deletion is not possible.</p>
+    [% ELSIF ( funds_exist ) %]
+        <div class="dialog message">
+        <h3>Cannot delete budget</h3>
+        <p>This budget has funds attached. You must delete all attached funds before you can delete this budget.</p>
     [% ELSE %]
         <div class="dialog alert">
         <h3>Delete budget '[% budget_period_description %]'?</h3>
-    [% END %]
 
     <!-- ############################################################# -->
     <!-- "delete" and "cancel" buttons    -->
@@ -418,6 +287,7 @@
     <form action="[% script_name %]" method="post">
         <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not delete</button>
     </form>
+    [% END %]
 
     </div>
 [% END %]
@@ -532,6 +402,10 @@
 [% IF ( else ) %]
   <h2>Budgets administration</h2>
 
+    [% IF ( failed_delete_funds_exist ) %]
+        <div class="dialog message">Failed to delete budget because funds exist.</div>
+    [% END %]
+
   [% INCLUDE 'budgets-active-currency.inc' %]
 
   <div id="budgetsTabs" class="toptabs">
@@ -566,7 +440,7 @@
                 </td>
                 <td class="data">[% period_active.budget_period_total | $Price %]</td>
                 <td>
-                    [% PROCESS action_menu block_budget_id=period_active.budget_period_id %]
+                    [% PROCESS action_menu block_budget=period_active %]
                 </td>
                 </tr>
               [% END %]
@@ -598,7 +472,7 @@
                   <td> [% IF ( period_loo.budget_period_locked ) %]<span style="color:green;">Locked</span>&nbsp;[% ELSE %][% END %] </td>
                   <td class="data">[% period_loo.budget_period_total | $Price %]</td>
                   <td>
-                        [% PROCESS action_menu block_budget_id=period_loo.budget_period_id %]
+                        [% PROCESS action_menu block_budget=period_loo %]
                   </td>
                   </tr>
               [% END %]
@@ -611,7 +485,6 @@
   </div>
 [% END %]
 
-
 </div>
 </div>
 <div class="yui-b">
@@ -619,4 +492,144 @@
 </div>
 </div>
 
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% IF close_form %]
+        [% Asset.js("lib/jquery/plugins/treetable/jquery.treetable.js") %]
+    [% END %]
+    [% Asset.js("js/acq.js") %]
+    <script type="text/javascript">
+    // #################################################################################
+    // Javascript
+    // #################################################################################
+        function CheckDuplicateForm(f){
+            var ok=1;
+            var _alertString="";
+            var alertString="";
+            if(!(isNotNull(f.budget_period_startdate,1))){
+              _alertString += "\n- " + _("Start date missing");
+            }
+            if (!(isNotNull(f.budget_period_enddate,1))){
+              _alertString += "\n- " + _("End date missing");
+            }
+            if( f.budget_period_startdate > f.budget_period_enddate ) {
+              _alertString += "\n- " + _("Start date must be before end date");
+            }
+            if (!(isNotNull(f.budget_period_description,1))){
+              _alertString += "\n- " + _("Budget description missing");
+            }
+
+            if(_alertString.length==0){
+              f.submit();
+            } else {
+              alertString += _("Form not submitted because of the following problem(s)");
+              alertString += "\n-----------------------------------------\n";
+              alertString += _alertString;
+              alert(alertString);
+            }
+        }
+        function Check(f) {
+            var ok=1;
+            var _alertString="";
+            var alertString2;
+
+            if (!(isNotNull(f.budget_period_startdate,1))) {
+                    _alertString += "\n- " + _("Start date missing");
+            }
+
+            if (!(isNotNull(f.budget_period_enddate,1))) {
+                    _alertString += "\n- " + _("End date missing");
+            }
+
+            if ( f.budget_period_startdate >   f.budget_period_enddate )  {
+                    _alertString += "\n- " + _("Start date must be before end date");
+            }
+
+            if (!(isNotNull(f.budget_period_description,1))) {
+                    _alertString += "\n- " + _("Description missing");
+            }
+
+            if (!(isNum(f.budget_period_total))) {
+                    _alertString += "\n- " + _("Amount must be a valid number, or empty");
+            }
+
+            if (_alertString.length==0) {
+                    f.submit();
+            } else {
+                    alertString2  = _("Form not submitted because of the following problem(s)");
+                    alertString2 += "\n------------------------------------------------------------------------------------\n";
+                    alertString2 += _alertString;
+                    alert(alertString2);
+            }
+        }
+
+        $(document).ready(function() {
+            var tabs = $('#budgetsTabs').tabs();
+            [% IF ( tab ) %]
+                tabs.tabs("option", "active", [% tab %]);
+            [% END %]
+            $("#activeperiodst,#inactiveperiodst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                ],
+                "sPaginationType": "four_button",
+                'bAutoWidth': false
+            } ) );
+
+            [% IF close_form %]
+              $("#budgeth").dataTable($.extend(true, {}, dataTablesDefaults, {
+                sDom: "t"
+              }));
+              $("#move_form").submit(function(){
+                var budget_from = "[% budget_period_description %]";
+                var budget_to = $("#to_budget_period_id").find("option:selected").html();
+                var alert_message = _("You have chosen to move all unreceived orders from '%s' to '%s'.").format(budget_from, budget_to);
+                alert_message += "\n" + _("This action cannot be reversed. Do you wish to continue?");
+                return confirm ( alert_message );
+              });
+            [% END %]
+            [% IF closed %]
+              var oTable = $("#closed_report").dataTable($.extend(true, {}, dataTablesDefaults, {
+                // The following is a c/p from aqbudgets.tt and is a candidate for refactoring.
+                "fnDrawCallback": function ( oSettings ) {
+                    if ( oSettings.aiDisplay.length == 0 )
+                    {
+                        return;
+                    }
+
+                    var nTrs = $('#closed_report tbody tr');
+                    var iColspan = nTrs[1].getElementsByTagName('td').length;
+                    var sLastGroup = "";
+                    for ( var i=0 ; i<nTrs.length ; i++ )
+                    {
+                        var iDisplayIndex = oSettings._iDisplayStart + i;
+                        var sGroup = oSettings.aoData[ oSettings.aiDisplay[iDisplayIndex] ]._aData[0];
+                        if ( sGroup != sLastGroup )
+                        {
+                            var nGroup = document.createElement( 'tr' );
+                            var nCell = document.createElement( 'td' );
+                            nCell.colSpan = iColspan;
+                            nCell.className = "group";
+                            nCell.innerHTML = sGroup;
+                            nGroup.appendChild( nCell );
+                            nTrs[i].parentNode.insertBefore( nGroup, nTrs[i] );
+                            sLastGroup = sGroup;
+                        }
+                    }
+                },
+                "aoColumnDefs": [
+                    { "bVisible": false, "aTargets": [ 0, 1 ] },
+                    { "bSortable": false, "aTargets": ["_all"] }
+                ],
+                'bSort': true,
+                'aaSortingFixed': [[ 1, 'asc' ]],
+                "bAutoWidth": false,
+                "sPaginationType": "full_numbers"
+              }));
+            [% END %]
+        });
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

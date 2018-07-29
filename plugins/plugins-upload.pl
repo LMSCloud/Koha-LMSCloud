@@ -16,8 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use Archive::Extract;
 use File::Temp;
@@ -47,7 +46,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $uploadfilename = $input->param('uploadfile');
 my $uploadfile     = $input->upload('uploadfile');
-my $op             = $input->param('op');
+my $op             = $input->param('op') || q{};
 
 my ( $total, $handled, @counts, $tempfile, $tfh );
 
@@ -56,6 +55,7 @@ my %errors;
 if ($plugins_enabled) {
     if ( ( $op eq 'Upload' ) && $uploadfile ) {
         my $plugins_dir = C4::Context->config("pluginsdir");
+        $plugins_dir = ref($plugins_dir) eq 'ARRAY' ? $plugins_dir->[0] : $plugins_dir;
 
         my $dirname = File::Temp::tempdir( CLEANUP => 1 );
         $debug and warn "dirname = $dirname";

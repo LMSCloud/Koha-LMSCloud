@@ -1,23 +1,14 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Catalog &rsaquo;
   [% IF ( unknownbiblionumber ) %]
     Unknown record
   [% ELSE %]
-    ISBD details for [% title | html %]
+    ISBD details
   [% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'browser-strings.inc' %]
-<!--[if lt IE 9]>
-<script type="text/javascript" src="[% interface %]/lib/shims/json2.min.js"></script>
-<![endif]-->
-<script type="text/javascript" src="[% interface %]/js/browser.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-    var browser = KOHA.browser('[% searchid %]', parseInt('[% biblionumber %]', 10));
-    browser.show();
-//]]>
-</script>
 </head>
 <body id="catalog_ISBDdetail" class="catalog">
 
@@ -28,7 +19,7 @@
   [% IF ( unknownbiblionumber ) %]
     Unknown record
   [% ELSE %]
-    ISBD details for <i>[% biblionumber %]</i>
+    ISBD details
   [% END %]
 </div>
 
@@ -55,5 +46,16 @@
       </div>
     </div>
 [% END %]
-</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'catalog-strings.inc' %]
+    [% Asset.js("js/catalog.js") %]
+    [% INCLUDE 'browser-strings.inc' %]
+    [% Asset.js("js/browser.js") %]
+    <script type="text/javascript">
+        var browser = KOHA.browser('[% searchid %]', parseInt('[% biblionumber %]', 10));
+        browser.show();
+    </script>
+[% END %]
+<!-- the main div is closed in intranet-bottom.inc -->
 [% INCLUDE 'intranet-bottom.inc' %]

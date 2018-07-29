@@ -25,9 +25,9 @@ use C4::Auth;
 use C4::Context;
 use C4::Output;
 
-use Koha::Acquisition::Bookseller;
-use Koha::Acquisition::Currency;
+use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Currencies;
+use Koha::Acquisition::Orders;
 
 my $input         = CGI->new;
 my $searchfield   = $input->param('searchfield') || $input->param('description') || q{};
@@ -57,6 +57,7 @@ if ( $op eq 'add_form' ) {
     my $isocode       = $input->param('isocode');
     my $rate          = $input->param('rate');
     my $active        = $input->param('active');
+    my $p_sep_by_space = $input->param('p_sep_by_space');
     my $is_a_modif    = $input->param('is_a_modif');
 
     if ($is_a_modif) {
@@ -65,6 +66,7 @@ if ( $op eq 'add_form' ) {
         $currency->isocode($isocode);
         $currency->rate($rate);
         $currency->active($active);
+        $currency->p_sep_by_space($p_sep_by_space);
         eval { $currency->store; };
         if ($@) {
             push @messages, { type => 'error', code => 'error_on_update' };
@@ -78,6 +80,7 @@ if ( $op eq 'add_form' ) {
                 isocode  => $isocode,
                 rate     => $rate,
                 active   => $active,
+                p_sep_by_space => $p_sep_by_space,
             }
         );
         eval { $currency->store; };
@@ -92,10 +95,8 @@ if ( $op eq 'add_form' ) {
 } elsif ( $op eq 'delete_confirm' ) {
     my $currency = Koha::Acquisition::Currencies->find($currency_code);
 
-    # TODO rewrite the following when Koha::Acquisition::Orders will use Koha::Objects
-    my $schema = Koha::Database->schema;
-    my $nb_of_orders = $schema->resultset('Aqorder')->search( { currency => $currency->currency } )->count;
-    my $nb_of_vendors = Koha::Acquisition::Bookseller->search( { -or => { listprice => $currency->currency, invoiceprice => $currency->currency } });
+    my $nb_of_orders = Koha::Acquisition::Orders->search( { currency => $currency->currency } )->count;
+    my $nb_of_vendors = Koha::Acquisition::Booksellers->search( { -or => { listprice => $currency->currency, invoiceprice => $currency->currency } })->count;
     $template->param(
         currency     => $currency,
         nb_of_orders => $nb_of_orders,

@@ -44,8 +44,7 @@ The bookseller who we want to display the baskets (and basketgroups) of.
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use Carp;
 
 use C4::Auth;
@@ -53,11 +52,12 @@ use C4::Output;
 use CGI qw ( -utf8 );
 
 use C4::Acquisition qw/CloseBasketgroup ReOpenBasketgroup GetOrders GetBasketsByBasketgroup GetBasketsByBookseller ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroups ModBasket GetBasketgroup GetBasket GetBasketGroupAsCSV/;
-use C4::Branch qw/GetBranches/;
-use C4::Members qw/GetMember/;
 use Koha::EDI qw/create_edi_order get_edifact_ean/;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Biblioitems;
+use Koha::Acquisition::Booksellers;
+use Koha::ItemTypes;
+use Koha::Patrons;
 
 our $input=new CGI;
 
@@ -76,13 +76,13 @@ sub BasketTotal {
     my $total = 0;
     my @orders = GetOrders($basketno);
     for my $order (@orders){
-        $total = $total + ( $order->{ecost} * $order->{quantity} );
-        if ($bookseller->{invoiceincgst} && ! $bookseller->{listincgst} && ( $bookseller->{gstrate} // C4::Context->preference("gist") )) {
-            my $gst = $bookseller->{gstrate} // C4::Context->preference("gist");
-            $total = $total * ( $gst / 100 +1);
+        # FIXME The following is wrong
+        if ( $bookseller->listincgst ) {
+            $total = $total + ( $order->{ecost_tax_included} * $order->{quantity} );
+        } else {
+            $total = $total + ( $order->{ecost_tax_excluded} * $order->{quantity} );
         }
     }
-    $total .= " " . ($bookseller->{invoiceprice} // 0);
     return $total;
 }
 
@@ -119,7 +119,7 @@ sub displaybasketgroups {
         }
     }
     $template->param(baskets => $baskets);
-    $template->param( booksellername => $bookseller ->{'name'});
+    $template->param( booksellername => $bookseller->name);
 }
 
 sub printbasketgrouppdf{
@@ -144,7 +144,7 @@ sub printbasketgrouppdf{
     }
     
     my $basketgroup = GetBasketgroup($basketgroupid);
-    my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $basketgroup->{booksellerid} });
+    my $bookseller = Koha::Acquisition::Booksellers->find( $basketgroup->{booksellerid} );
     my $baskets = GetBasketsByBasketgroup($basketgroupid);
     
     my %orders;
@@ -169,19 +169,23 @@ sub printbasketgrouppdf{
                 croak $@;
             }
 
-            $ord = C4::Acquisition::populate_order_with_prices({ order => $ord, booksellerid => $bookseller->{id}, ordering => 1 });
-            my $bib = GetBiblioData($ord->{biblionumber});
-            my $itemtypes = GetItemTypes();
+            $ord->{tax_value} = $ord->{tax_value_on_ordering};
+            $ord->{tax_rate} = $ord->{tax_rate_on_ordering};
+            $ord->{total_tax_included} = $ord->{ecost_tax_included} * $ord->{quantity};
+            $ord->{total_tax_excluded} = $ord->{ecost_tax_excluded} * $ord->{quantity};
+
+            my $biblioitem = Koha::Biblioitems->search({ biblionumber => $ord->{biblionumber} })->next;
 
             #FIXME DELETE ME
             # 0      1        2        3         4            5         6       7      8        9
-            #isbn, itemtype, author, title, publishercode, quantity, listprice ecost discount gstrate
+            #isbn, itemtype, author, title, publishercode, quantity, listprice ecost discount tax_rate
 
             # Editor Number
             my $cn;
             my $cna;
             my $en;
             my $edition;
+            $ord->{marcxml} = C4::Biblio::GetXmlBiblio( $ord->{biblionumber} );
             my $marcrecord=eval{MARC::Record::new_from_xml( $ord->{marcxml},'UTF-8' )};
             if ($marcrecord){
                 if ( C4::Context->preference("marcflavour") eq 'UNIMARC' ) {
@@ -195,9 +199,11 @@ sub printbasketgrouppdf{
                 }
             }
 
-            $ord->{cn} = $cn ? $cn : undef;
-            $ord->{cna} = $cna ? $cna : undef;
-            $ord->{itemtype} = ( $ord->{itemtype} and $bib->{itemtype} ) ? $itemtypes->{$bib->{itemtype}}->{description} : undef;
+            my $itemtype = ( $ord->{itemtype} and $biblioitem->itemtype )
+                ? Koha::ItemTypes->find( $biblioitem->itemtype )
+                : undef;
+            $ord->{itemtype} = $itemtype ? $itemtype->description : undef;
+
             $ord->{en} = $en ? $en : undef;
             $ord->{edition} = $edition ? $edition : undef;
 
@@ -209,7 +215,7 @@ sub printbasketgrouppdf{
         -type       => 'application/pdf',
         -attachment => ( $basketgroup->{name} || $basketgroupid ) . '.pdf'
     );
-    my $pdf = printpdf($basketgroup, $bookseller, $baskets, \%orders, $bookseller->{gstrate} // C4::Context->preference("gist")) || die "pdf generation failed";
+    my $pdf = printpdf($basketgroup, $bookseller, $baskets, \%orders, $bookseller->tax_rate // C4::Context->preference("gist")) || die "pdf generation failed";
     print $pdf;
 
 }
@@ -246,7 +252,7 @@ if ( $op eq "add" ) {
 # else, edit (if it is open) or display (if it is close) the basketgroup basketgroupid
 # the template will know if basketgroup must be displayed or edited, depending on the value of closed key
 #
-    my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+    my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
     my $basketgroupid = $input->param('basketgroupid');
     my $billingplace;
     my $deliveryplace;
@@ -275,14 +281,12 @@ if ( $op eq "add" ) {
         $template->param( closedbg => 0);
     }
     # determine default billing and delivery places depending on librarian homebranch and existing basketgroup data
-    my $borrower = GetMember( ( 'borrowernumber' => $loggedinuser ) );
-    $billingplace  = $billingplace  || $borrower->{'branchcode'};
-    $deliveryplace = $deliveryplace || $borrower->{'branchcode'};
+    my $patron = Koha::Patrons->find( $loggedinuser ); # FIXME Not needed if billingplace and deliveryplace are set
+    $billingplace  = $billingplace  || $patron->branchcode;
+    $deliveryplace = $deliveryplace || $patron->branchcode;
 
-    my $branches = C4::Branch::GetBranchesLoopWithoutMobileStations( $billingplace );
-    $template->param( billingplaceloop => $branches );
-    $branches = C4::Branch::GetBranchesLoopWithoutMobileStations( $deliveryplace );
-    $template->param( deliveryplaceloop => $branches );
+    $template->param( billingplace => $billingplace );
+    $template->param( deliveryplace => $deliveryplace );
     $template->param( booksellerid => $booksellerid );
 
     # the template will display a unique basketgroup
@@ -397,7 +401,7 @@ if ( $op eq "add" ) {
 }else{
 # no param : display the list of all basketgroups for a given vendor
     my $basketgroups = &GetBasketgroups($booksellerid);
-    my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+    my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
     my $baskets = &GetBasketsByBookseller($booksellerid);
 
     displaybasketgroups($basketgroups, $bookseller, $baskets);

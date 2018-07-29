@@ -20,6 +20,8 @@ use CGI qw ( -utf8 );
 use C4::Auth qw(&check_api_auth);
 use C4::Context;
 
+use Koha::Patron::Attributes;
+
 use UNIVERSAL::can;
 
 use vars qw(@ISA @EXPORT_OK);
@@ -421,7 +423,7 @@ sub build_patron_status {
 
         $resp .= patron_status_string($patron);
         $resp .= $lang . timestamp();
-        $resp .= add_field( FID_PERSONAL_NAME, $patron->name );
+        $resp .= add_field( FID_PERSONAL_NAME, $patron->name( $server->{account}->{ae_field_template} ) );
 
         # while the patron ID we got from the SC is valid, let's
         # use the one returned from the ILS, just in case...
@@ -459,6 +461,8 @@ sub build_patron_status {
         {
             $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
         }
+
+        $resp .= $patron->build_patron_attributes_string( $server );
 
     } else {
         # Invalid patron (cardnumber)
@@ -983,6 +987,7 @@ sub handle_patron_info {
 
     $resp = (PATRON_INFO_RESP);
     if ($patron) {
+        $patron->update_lastseen();
         $resp .= patron_status_string($patron);
         $resp .= ( defined($lang) and length($lang) == 3 ) ? $lang : $patron->language;
         $resp .= timestamp();
@@ -999,7 +1004,7 @@ sub handle_patron_info {
         # while the patron ID we got from the SC is valid, let's
         # use the one returned from the ILS, just in case...
         $resp .= add_field( FID_PATRON_ID,     $patron->id );
-        $resp .= add_field( FID_PERSONAL_NAME, $patron->name );
+        $resp .= add_field( FID_PERSONAL_NAME, $patron->name( $server->{account}->{ae_field_template} ) );
 
         # TODO: add code for the fields
         #   hold items limit
@@ -1012,6 +1017,9 @@ sub handle_patron_info {
 
             # If patron password was provided, report whether it was right or not.
             $password_rc = $patron->check_password($patron_pwd);
+            if ( $patron_pwd eq q{} && $server->{account}->{allow_empty_passwords} ) {
+                $password_rc = 1;
+            }
             $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $password_rc ) );
         }
 
@@ -1064,6 +1072,8 @@ sub handle_patron_info {
         {
             $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
         }
+
+        $resp .= $patron->build_patron_attributes_string( $server );
     } else {
 
         # Invalid patron ID:
@@ -1125,7 +1135,7 @@ sub handle_fee_paid {
     my ( $fee_id, $trans_id );
     my $status;
     my $resp = FEE_PAID_RESP;
-    
+
     my $disallow_overpayment  = $server->{account}->{disallow_overpayment};
     my $payment_type_writeoff = $server->{account}->{payment_type_writeoff} || q{};
 
@@ -1320,7 +1330,7 @@ sub handle_patron_enable {
         $resp .= $patron->language . timestamp();
 
         $resp .= add_field( FID_PATRON_ID,     $patron->id );
-        $resp .= add_field( FID_PERSONAL_NAME, $patron->name );
+        $resp .= add_field( FID_PERSONAL_NAME, $patron->name( $server->{account}->{ae_field_template} ) );
         if ( defined($patron_pwd) ) {
             $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $patron->check_password($patron_pwd) ) );
         }

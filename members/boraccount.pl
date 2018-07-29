@@ -22,18 +22,17 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use C4::Auth;
 use C4::Output;
 use CGI qw ( -utf8 );
 use C4::Members;
-use C4::Branch;
 use C4::Accounts;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
-use Koha::Patron::Images;
+use Koha::Patrons;
+use Koha::Patron::Categories;
 
 my $input=new CGI;
 
@@ -44,41 +43,60 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { borrowers     => 1,
+        flagsrequired   => { borrowers     => 'edit_borrowers',
                              updatecharges => 'remaining_permissions'},
         debug           => 1,
     }
 );
 
-my $borrowernumber=$input->param('borrowernumber');
+my $borrowernumber = $input->param('borrowernumber');
 my $action = $input->param('action') || '';
 
-#get borrower details
-my $data=GetMember('borrowernumber' => $borrowernumber);
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $patron = Koha::Patrons->find( $borrowernumber );
+unless ( $patron ) {
+    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
+    exit;
+}
+
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
 my $branch = C4::Context->userenv->{'branch'};
 my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 
-if ( $action eq 'reverse' && $checkCashRegisterOk ) {
-  ReversePayment( $input->param('accountlines_id') );
+if ( $action eq 'reverse' ) {
+  ReversePayment( scalar $input->param('accountlines_id') );
+}
+elsif ( $action eq 'void' ) {
+    my $payment_id = scalar $input->param('accountlines_id');
+    my $payment    = Koha::Account::Lines->find( $payment_id );
+    $payment->void();
 }
 
-if ( $data->{'category_type'} eq 'C') {
-   my  ( $catcodes, $labels ) =  GetborCatFromCatType( 'A', 'WHERE category_type = ?' );
-   my $cnt = scalar(@$catcodes);
-   $template->param( 'CATCODE_MULTI' => 1) if $cnt > 1;
-   $template->param( 'catcode' =>    $catcodes->[0])  if $cnt == 1;
+if ( $patron->is_child ) {
+    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
+    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
+    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
 }
 
 #get account details
-my ($total,$accts,undef)=GetMemberAccountRecords($borrowernumber);
+my $total = $patron->account->balance;
+
+my $accts = Koha::Account::Lines->search(
+    { borrowernumber => $patron->borrowernumber },
+    { order_by       => { -desc => 'accountlines_id' } }
+);
+
 my $totalcredit;
 if($total <= 0){
         $totalcredit = 1;
 }
 
 my $reverse_col = 0; # Flag whether we need to show the reverse column
-foreach my $accountline ( @{$accts}) {
+my @accountlines;
+while ( my $line = $accts->next ) {
+    # FIXME We should pass the $accts iterator to the template and do this formatting part there
+    my $accountline = $line->unblessed;
     $accountline->{amount} += 0.00;
     if ($accountline->{amount} <= 0 ) {
         $accountline->{amountcredit} = 1;
@@ -94,12 +112,13 @@ foreach my $accountline ( @{$accts}) {
         $accountline->{payment} = 1;
         $reverse_col = 1;
     }
+
+    if ( $accountline->{itemnumber} ) {
+        # Because we will not have access to the object from the template
+        $accountline->{item} = $line->item;
+    }
+    push @accountlines, $accountline;
 }
-
-$template->param( adultborrower => 1 ) if ( $data->{'category_type'} eq 'A' || $data->{'category_type'} eq 'I' );
-
-my $patron_image = Koha::Patron::Images->find($data->{borrowernumber});
-$template->param( picture => 1 ) if $patron_image;
 
 if (C4::Context->preference('ExtendedPatronAttributes')) {
     my $attributes = GetBorrowerAttributes($borrowernumber);
@@ -109,20 +128,14 @@ if (C4::Context->preference('ExtendedPatronAttributes')) {
     );
 }
 
-$template->param(%$data);
-
 $template->param(
+    patron              => $patron,
     finesview           => 1,
-    borrowernumber      => $borrowernumber,
-    branchname          => GetBranchName($data->{'branchcode'}),
     total               => sprintf("%.2f",$total),
     totalcredit         => $totalcredit,
-    is_child            => ($data->{'category_type'} eq 'C'),
     reverse_col         => $reverse_col,
-    accounts            => $accts,
     checkCashRegisterFailed => (! $checkCashRegisterOk),
-    activeBorrowerRelationship => (C4::Context->preference('borrowerRelationship') ne ''),
-    RoutingSerials => C4::Context->preference('RoutingSerials'),
+    accounts            => \@accountlines,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

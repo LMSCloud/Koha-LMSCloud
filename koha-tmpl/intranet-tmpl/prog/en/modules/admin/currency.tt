@@ -1,58 +1,23 @@
+[% USE Asset %]
 [% USE KohaDates %]
 [% USE ColumnsSettings %]
+[% USE HtmlTags %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Currencies &amp; Exchange rates &rsaquo;
 [% IF op == 'add_form' %][% IF currency %]Modify currency '[% currency.currency %]'[% ELSE %]New currency[% END %][% END %]
 [% IF op == 'delete_confirm' %]Confirm deletion of currency '[% currency.currency %]'[% END %]
 [% IF op == 'list' %]Currencies[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-[% INCLUDE 'columns_settings.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-
-    function check_currency(val) {
-        if ( val == 1.0 ) {
-            $("#active").prop('disabled', false);
-            $("#hint").html("");
-        } else {
-            $("#active").prop('checked', false);
-            $("#active").prop('disabled', true);
-            $("#hint").html(_("The active currency must have a rate of 1.0"));
-        }
-    }
-
-    $(document).ready(function() {
-        columns_settings = [% ColumnsSettings.GetColumns( 'admin', 'currency', 'currencies-table', 'json' ) %]
-        var issuest = KohaTable("#currencies-table", {
-            dom: 'B<"clearfix">t',
-            "columnDefs": [
-                { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                { "sType": "title-string", "aTargets" : [ "title-string" ] }
-                ],
-        }, columns_settings );
-
-        // prevents users to check active with a currency != 1
-        $("#rate").keyup(function() {
-            check_currency( $(this).val() );
-        });
-        check_currency( $("#rate").val() );
-        $("#currency_code").on("blur",function(){
-            toUC(this);
-        });
-    });
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="admin_currency" class="admin">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'currencies-admin-search.inc' %]
 
-
-
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo;  <a href="/cgi-bin/koha/admin/currency.pl">Currencies &amp; Exchange rates</a> &rsaquo; [% IF op == 'add_form' %][% IF currency %]Modify currency '[% currency.currency %]'[% ELSE %]New currency[% END %][% END %]
-[% IF op == 'delete_confirm' %]Confirm deletion of currency '[% '<span class="ex">' _ currency.currency _ '</span>' %]'
+[% IF op == 'delete_confirm' %]Confirm deletion of currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]
 [% ELSIF op == 'list' %]Currencies
 [% END %]
 </div>
@@ -64,7 +29,7 @@
     <div class="yui-b">
 [% IF op == 'list' %]
 <div id="toolbar" class="btn-toolbar">
-    <a class="btn btn-small" id="newcurrency" href="/cgi-bin/koha/admin/currency.pl?op=add_form"><i class="fa fa-plus"></i> New currency</a>
+    <a class="btn btn-default btn-sm" id="newcurrency" href="/cgi-bin/koha/admin/currency.pl?op=add_form"><i class="fa fa-plus"></i> New currency</a>
 </div>
 [% END %]
 
@@ -130,6 +95,14 @@
                 <span class="label">Last updated: </span>[% currency.timestamp | $KohaDates %]
             </li>
             <li>
+                <label for="p_sep_by_space">Space separation between symbol and value: </label>
+                [% IF currency.p_sep_by_space %]
+                    <input type="checkbox" id="p_sep_by_space" name="p_sep_by_space" value="1" checked="checked" />
+                [% ELSE %]
+                    <input type="checkbox" id="p_sep_by_space" name="p_sep_by_space" value="1" />
+                [% END %]
+            </li>
+            <li>
                 <label for="active">Active: </label>
                 [% IF currency.active %]
                 <input type="checkbox" id="active" name="active" value="1" checked="checked" />
@@ -152,7 +125,7 @@
 [% IF op =='delete_confirm' %]
     [% IF nb_of_orders or nb_of_vendors %]
     <div class="dialog alert">
-        <h3>Cannot delete currency '[% '<span class="ex">' _ currency.currency _ '</span>' %]'</h3>
+        <h3>Cannot delete currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]</h3>
         <p>
             [% IF nb_of_orders %]
                 This currency is used by [% nb_of_orders %] orders.
@@ -167,7 +140,7 @@
     </div>
     [% ELSE %]
     <div class="dialog alert">
-        <h3>Confirm deletion of currency '[% '<span class="ex">' _ currency.currency _ '</span>' %]'</h3>
+        <h3>Confirm deletion of currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]</h3>
         <table>
             <tr><th>Currency</th>
                 <td>[% currency.currency %]</td>
@@ -197,7 +170,7 @@
     [% END %]
 
     [% IF searchfield %]
-        You searched for [% searchfield %]</span>
+        You searched for [% searchfield |html %]</span>
     [% END %]
 
     <table id='currencies-table'>
@@ -224,8 +197,8 @@
             <td style="color:green;">[% IF currency.active %]✓[% END %]</td>
             <td>[% IF currency.archived %]Yes[% END %]</td>
             <td class="actions">
-              <a class="btn btn-mini" href="/cgi-bin/koha/admin/currency.pl?op=add_form&amp;currency_code=[% currency.currency %]"><i class="fa fa-pencil"></i> Edit</a>
-              <a class="btn btn-mini" href="/cgi-bin/koha/admin/currency.pl?op=delete_confirm&amp;currency_code=[% currency.currency %]"><i class="fa fa-trash"></i> Delete</a>
+              <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/currency.pl?op=add_form&amp;currency_code=[% currency.currency %]"><i class="fa fa-pencil"></i> Edit</a>
+              <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/currency.pl?op=delete_confirm&amp;currency_code=[% currency.currency %]"><i class="fa fa-trash"></i> Delete</a>
             </td>
           </tr>
         [% END %]
@@ -251,4 +224,44 @@
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    <script type="text/javascript">
+
+        function check_currency(val) {
+            if ( val == 1.0 ) {
+                $("#active").prop('disabled', false);
+                $("#hint").html("");
+            } else {
+                $("#active").prop('checked', false);
+                $("#active").prop('disabled', true);
+                $("#hint").html(_("The active currency must have a rate of 1.0"));
+            }
+        }
+
+        $(document).ready(function() {
+            columns_settings = [% ColumnsSettings.GetColumns( 'admin', 'currency', 'currencies-table', 'json' ) %]
+            var issuest = KohaTable("currencies-table", {
+                dom: 'B<"clearfix">t',
+                "columnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                    ],
+            }, columns_settings );
+
+            // prevents users to check active with a currency != 1
+            $("#rate").keyup(function() {
+                check_currency( $(this).val() );
+            });
+            check_currency( $("#rate").val() );
+            $("#currency_code").on("blur",function(){
+                toUC(this);
+            });
+        });
+
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

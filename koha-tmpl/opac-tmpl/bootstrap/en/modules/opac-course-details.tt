@@ -1,3 +1,4 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
@@ -7,7 +8,7 @@
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Course reserves for [% course.course_name %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+    [% Asset.css("css/datatables.css") %]
 [% END %]
 
 </head>
@@ -66,8 +67,8 @@
                         <tbody>
                             [% FOREACH cr IN course_reserves %]
                                 <tr>
-                                    <td><a href="opac-detail.pl?biblionumber=[% cr.item.biblionumber %]">[% cr.item.title %]</a></td>
-                                    <td>[% cr.item.author %]</td>
+                                    <td><a href="opac-detail.pl?biblionumber=[% cr.biblio.biblionumber %]">[% cr.biblio.title %]</a></td>
+                                    <td>[% cr.biblio.author %]</td>
                                     <td>[% ItemTypes.GetDescription( cr.item.itype ) %]</td>
                                     <td>[% Branches.GetName( cr.item.holdingbranch ) %] <br/> <i>[% AuthorisedValues.GetByCode( 'LOC', cr.item.location ) %]</i></td>
                                     <td>[% AuthorisedValues.GetByCode( 'CCODE', cr.item.ccode ) %]</td>
@@ -83,8 +84,8 @@
                                     </td>
                                     <td>[% IF (cr.item.uri) %]
                                             <a href="[% cr.item.uri %]">Item URI</a>
-                                        [% ELSIF (cr.item.url) %]
-                                            <a href="[% cr.item.url %]">Record URL</a>
+                                        [% ELSIF (cr.biblioitem.url) %]
+                                            <a href="[% cr.biblioitem.url %]">Record URL</a>
                                         [% END %]
                                     </td>
                                 </tr>
@@ -104,7 +105,7 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
+    <script>
     $(document).ready(function() {
         $("#course-items-table").dataTable($.extend(true, {}, dataTablesDefaults, {
             "sDom": '<"top"flp>rt<"clear">',

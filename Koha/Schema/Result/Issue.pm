@@ -65,12 +65,6 @@ __PACKAGE__->table("issues");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
-=head2 return
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 4
-
 =head2 renewals
 
   data_type: 'tinyint'
@@ -81,6 +75,12 @@ __PACKAGE__->table("issues");
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
+
+=head2 auto_renew_error
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 32
 
 =head2 timestamp
 
@@ -100,6 +100,17 @@ __PACKAGE__->table("issues");
   data_type: 'integer'
   default_value: 0
   is_nullable: 0
+
+=head2 note
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+=head2 notedate
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
 
 =cut
 
@@ -130,12 +141,12 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
-  "return",
-  { data_type => "varchar", is_nullable => 1, size => 4 },
   "renewals",
   { data_type => "tinyint", is_nullable => 1 },
   "auto_renew",
   { data_type => "tinyint", default_value => 0, is_nullable => 1 },
+  "auto_renew_error",
+  { data_type => "varchar", is_nullable => 1, size => 32 },
   "timestamp",
   {
     data_type => "timestamp",
@@ -151,6 +162,14 @@ __PACKAGE__->add_columns(
   },
   "onsite_checkout",
   { data_type => "integer", default_value => 0, is_nullable => 0 },
+  "note",
+  { data_type => "longtext", is_nullable => 1 },
+  "notedate",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -222,8 +241,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2015-11-04 12:00:58
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:kREecsHr6wZPiokS946BHw
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:skFfce3y1eEx3rSdFaLmPg
 
 __PACKAGE__->belongs_to(
     "borrower",

@@ -26,10 +26,9 @@ use Modern::Perl;
 use File::Spec;
 use CGI qw ( -utf8 );
 use C4::Auth;
-use C4::Branch;
 use C4::Koha;
 use C4::Output;
-use C4::Members;
+use Koha::Patron::Categories;
 use Time::HiRes qw(time);
 use DateTime;
 use Time::localtime;
@@ -341,11 +340,8 @@ if ( $runCmd ne '' ) {
 
 $template->param( logcmd => $logcmd ) if ( $logcmd );
 
-my $branches = GetBranchesLoop();
-$template->param( branches => $branches ) if ( $branches );
-
 # get the patron categories and pass them to the template
-my $categories = GetBorrowercategoryList();
+my $categories = Koha::Patron::Categories->search({}, {order_by => ['description']});
 $template->param( categories => $categories ) if ( $categories );
 
 my $printlettercodes = GetUsedLetterCodes();

@@ -34,11 +34,11 @@ use C4::Accounts;
 use C4::Log; # logaction
 use C4::Debug;
 use Koha::DateUtils;
-use Koha::Account::Line;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
 use Koha::IssuingRules;
-use Koha::Issues;
+use Koha::Checkouts;
+use Koha::Libraries;
 
 use vars qw(@ISA @EXPORT);
 
@@ -51,15 +51,10 @@ BEGIN {
       &CalcFine
       &Getoverdues
       &checkoverdues
-      &NumberNotifyId
-      &AmountNotify
       &UpdateFine
       &GetFine
       &get_chargeable_units
-      &CheckItemNotify
       &GetOverduesForBranch
-      &RemoveNotifyLine
-      &AddNotifyLine
       &GetOverdueMessageTransportTypes
       &parse_overdues_letter
     );
@@ -159,7 +154,6 @@ Returns a count and a list of overdueitems for a given borrowernumber
 
 sub checkoverdues {
     my $borrowernumber = shift or return;
-    # don't select biblioitems.marc or biblioitems.marcxml... too slow on large systems
     my $sth = C4::Context->dbh->prepare(
         "SELECT biblio.*, items.*, issues.*,
                 biblioitems.volume,
@@ -196,7 +190,6 @@ sub checkoverdues {
             WHERE issues.borrowernumber  = ?
             AND   issues.date_due < NOW()"
     );
-    # FIXME: SELECT * across 4 tables?  do we really need the marc AND marcxml blobs??
     $sth->execute($borrowernumber);
     my $results = $sth->fetchall_arrayref({});
     return ( scalar(@$results), $results);  # returning the count and the results is silly
@@ -252,11 +245,10 @@ sub CalcFine {
     # get issuingrules (fines part will be used)
     my $itemtype = $item->{itemtype} || $item->{itype};
     my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule({ categorycode => $bortype, itemtype => $itemtype, branchcode => $branchcode });
-    
+
     return unless $issuing_rule; # If not rule exist, there is no fine
-    
-    my $fine_unit = $issuing_rule->lengthunit;
-    $fine_unit ||= 'days';
+
+    my $fine_unit = $issuing_rule->lengthunit || 'days';
 
     my $chargeable_units = get_chargeable_units($fine_unit, $start_date, $end_date, $branchcode);
     my $units_minus_grace = $chargeable_units - $issuing_rule->firstremind;
@@ -598,7 +590,7 @@ sub UpdateFine {
                     accounttype   => 'FU',
                 }
             )->store();
-            
+
             Koha::Account::Offset->new(
                 {
                     debit_id => $accountline->id,
@@ -619,7 +611,7 @@ sub UpdateFine {
 
             my $desc = ( $type ? "$type " : '' ) . "$title $due";    # FIXEDME, avoid whitespace prefix on empty $type
 
-            my $issue = Koha::Issues->find({ issue_id => $issue_id });
+            my $issue = Koha::Checkouts->find( $issue_id );
             my $branchcode = undef;
             $branchcode  = $issue->branchcode() if ($issue);
             
@@ -639,6 +631,14 @@ sub UpdateFine {
                 }
             )->store();
             
+            Koha::Account::Offset->new(
+                {
+                    debit_id => $accountline->id,
+                    type     => 'Fine',
+                    amount   => $amount,
+                }
+            )->store();
+
             Koha::Account::Offset->new(
                 {
                     debit_id => $accountline->id,
@@ -666,7 +666,7 @@ Looks up a patron by borrower number.
 C<$borrower> is a reference-to-hash whose keys are all of the fields
 from the borrowers and categories tables of the Koha database. Thus,
 C<$borrower> contains all information about both the borrower and
-category he or she belongs to.
+category they belong to.
 
 =cut
 
@@ -716,58 +716,6 @@ sub GetFine {
         return $fine->{fineamount};
     }
     return 0;
-}
-
-=head2 NumberNotifyId
-
-    (@notify) = &NumberNotifyId($borrowernumber);
-
-Returns amount for all file per borrowers
-C<@notify> array contains all file per borrowers
-
-C<$notify_id> contains the file number for the borrower number nad item number
-
-=cut
-
-sub NumberNotifyId{
-    my ($borrowernumber)=@_;
-    my $dbh = C4::Context->dbh;
-    my $query=qq|    SELECT distinct(notify_id)
-            FROM accountlines
-            WHERE borrowernumber=?|;
-    my @notify;
-    my $sth = $dbh->prepare($query);
-    $sth->execute($borrowernumber);
-    while ( my ($numberofnotify) = $sth->fetchrow ) {
-        push( @notify, $numberofnotify );
-    }
-    return (@notify);
-}
-
-=head2 AmountNotify
-
-    ($totalnotify) = &AmountNotify($notifyid);
-
-Returns amount for all file per borrowers
-C<$notifyid> is the file number
-
-C<$totalnotify> contains amount of a file
-
-C<$notify_id> contains the file number for the borrower number and item number
-
-=cut
-
-sub AmountNotify{
-    my ($notifyid,$borrowernumber)=@_;
-    my $dbh = C4::Context->dbh;
-    my $query=qq|    SELECT sum(amountoutstanding)
-            FROM accountlines
-            WHERE notify_id=? AND borrowernumber = ?|;
-    my $sth=$dbh->prepare($query);
-	$sth->execute($notifyid,$borrowernumber);
-	my $totalnotify=$sth->fetchrow;
-    $sth->finish;
-    return ($totalnotify);
 }
 
 =head2 GetItems
@@ -849,36 +797,12 @@ sub GetBranchcodesWithOverdueRules {
     }
     if ( $branchcodes->[0] eq '' ) {
         # If a default rule exists, all branches should be returned
-        my $availbranches;
-        if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
-            $availbranches = C4::Branch::GetBranchesWithoutMobileStations();
-        } else {
-            $availbranches = C4::Branch::GetBranches();
-        }
-        return keys %$availbranches;
+        my $searchlibparams = {};
+        $searchlibparams = { -or => [ mobilebranch => undef, mobilebranch => '' ] }
+            if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive'));
+        return map { $_->branchcode } Koha::Libraries->search($searchlibparams, { order_by => 'branchname' });
     }
     return @$branchcodes;
-}
-
-=head2 CheckItemNotify
-
-Sql request to check if the document has alreday been notified
-this function is not exported, only used with GetOverduesForBranch
-
-=cut
-
-sub CheckItemNotify {
-    my ($notify_id,$notify_level,$itemnumber) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("
-    SELECT COUNT(*)
-     FROM notifys
-    WHERE notify_id    = ?
-     AND  notify_level = ? 
-     AND  itemnumber   = ? ");
-    $sth->execute($notify_id,$notify_level,$itemnumber);
-    my $notified = $sth->fetchrow;
-    return ($notified);
 }
 
 =head2 GetOverduesForBranch
@@ -916,8 +840,6 @@ sub GetOverduesForBranch {
                 items.location,
                 items.itemnumber,
             itemtypes.description,
-         accountlines.notify_id,
-         accountlines.notify_level,
          accountlines.amountoutstanding
     FROM  accountlines
     LEFT JOIN issues      ON    issues.itemnumber     = accountlines.itemnumber
@@ -933,78 +855,13 @@ sub GetOverduesForBranch {
       AND (issues.branchcode =  ?   )
       AND (issues.date_due  < NOW())
     ";
-    my @getoverdues;
-    my $i = 0;
-    my $sth;
     if ($location) {
-        $sth = $dbh->prepare("$select AND items.location = ? ORDER BY borrowers.surname, borrowers.firstname");
-        $sth->execute($branch, $location);
+        my $q = "$select AND items.location = ? ORDER BY borrowers.surname, borrowers.firstname";
+        return @{ $dbh->selectall_arrayref($q, { Slice => {} }, $branch, $location ) };
     } else {
-        $sth = $dbh->prepare("$select ORDER BY borrowers.surname, borrowers.firstname");
-        $sth->execute($branch);
+        my $q = "$select ORDER BY borrowers.surname, borrowers.firstname";
+        return @{ $dbh->selectall_arrayref($q, { Slice => {} }, $branch ) };
     }
-    while ( my $data = $sth->fetchrow_hashref ) {
-    #check if the document has already been notified
-        my $countnotify = CheckItemNotify($data->{'notify_id'}, $data->{'notify_level'}, $data->{'itemnumber'});
-        if ($countnotify eq '0') {
-            $getoverdues[$i] = $data;
-            $i++;
-        }
-    }
-    return (@getoverdues);
-}
-
-
-=head2 AddNotifyLine
-
-    &AddNotifyLine($borrowernumber, $itemnumber, $overduelevel, $method, $notifyId)
-
-Create a line into notify, if the method is phone, the notification_send_date is implemented to
-
-=cut
-
-sub AddNotifyLine {
-    my ( $borrowernumber, $itemnumber, $overduelevel, $method, $notifyId ) = @_;
-    my $dbh = C4::Context->dbh;
-    if ( $method eq "phone" ) {
-        my $sth = $dbh->prepare(
-            "INSERT INTO notifys (borrowernumber,itemnumber,notify_date,notify_send_date,notify_level,method,notify_id)
-        VALUES (?,?,now(),now(),?,?,?)"
-        );
-        $sth->execute( $borrowernumber, $itemnumber, $overduelevel, $method,
-            $notifyId );
-    }
-    else {
-        my $sth = $dbh->prepare(
-            "INSERT INTO notifys (borrowernumber,itemnumber,notify_date,notify_level,method,notify_id)
-        VALUES (?,?,now(),?,?,?)"
-        );
-        $sth->execute( $borrowernumber, $itemnumber, $overduelevel, $method,
-            $notifyId );
-    }
-    return 1;
-}
-
-=head2 RemoveNotifyLine
-
-    &RemoveNotifyLine( $borrowernumber, $itemnumber, $notify_date );
-
-Cancel a notification
-
-=cut
-
-sub RemoveNotifyLine {
-    my ( $borrowernumber, $itemnumber, $notify_date ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare(
-        "DELETE FROM notifys 
-            WHERE
-            borrowernumber=?
-            AND itemnumber=?
-            AND notify_date=?"
-    );
-    $sth->execute( $borrowernumber, $itemnumber, $notify_date );
-    return 1;
 }
 
 =head2 GetOverdueMessageTransportTypes
@@ -1062,8 +919,9 @@ sub parse_overdues_letter {
         return unless ( exists $params->{$required} && $params->{$required} );
     }
 
+    my $patron = Koha::Patrons->find( $params->{borrowernumber} );
+
     my $substitute = $params->{'substitute'} || {};
-    $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
 
     my %tables = ( 'borrowers' => $params->{'borrowernumber'}, 'account' => $params->{'borrowernumber'} );
     
@@ -1085,15 +943,9 @@ sub parse_overdues_letter {
     my @item_tables;
     my $fines_sum = 0.0;
     if ( my $i = $params->{'items'} ) {
-        my $item_format = '';
         foreach my $item (@$i) {
             my $fine = GetFine($item->{'itemnumber'}, $params->{'borrowernumber'});
-            if ( !$item_format and defined $params->{'letter'}->{'content'} ) {
-                $params->{'letter'}->{'content'} =~ m/(<item>.*<\/item>)/;
-                $item_format = $1;
-            }
             $fines_sum += $fine;
-
             $item->{'fine'} = currency_format($currency_format, "$fine", FMT_SYMBOL);
             # if active currency isn't correct ISO code fallback to sprintf
             $item->{'fine'} = sprintf('%.2f', $fine) unless $item->{'fine'};
@@ -1131,7 +983,11 @@ sub parse_overdues_letter {
         module => 'circulation',
         letter_code => $params->{'letter_code'},
         branchcode => $params->{'branchcode'},
+        lang => $patron->lang,
         tables => \%tables,
+        loops => {
+            overdues => [ map { $_->{items}->{itemnumber} } @item_tables ],
+        },
         substitute => $substitute,
         repeat => { item => \@item_tables },
         message_transport_type => $params->{message_transport_type},

@@ -1,76 +1,15 @@
+[% USE Branches %]
+[% USE Koha %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
+
 <title>Koha &rsaquo; Circulation &rsaquo; Set library</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style type="text/css">
     .noshow {display: none;}
 </style>
-
-[% IF ( categoryselect && !updated ) %]
-<script type="text/javascript">
-//<![CDATA[
-    var categories = {};
-    var selcateg = '[% selcateg | html %]';
-    [% FOREACH category IN categories %]
-    categories["[% category.categorycode | html %]"] = { name: "[% category.categoryname | html %]", libraries: []};
-    [% END %]
-    
-    var libraries = {};
-    var libcodes = new Array();
-    [% FOREACH branchloo IN branchloop %]
-    libraries["[% branchloo.value | html %]"] = { name: "[% branchloo.branchname | html %]", category: [] };
-    libcodes.push("[% branchloo.value | html %]");
-    [% FOREACH branchcategory IN branchloo.category.keys %]
-    libraries["[% branchloo.value | html %]"]["category"].push("[% branchcategory | html %]");
-    categories["[% branchcategory | html %]"]["libraries"].push("[% branchloo.value | html %]");
-    [% END %]
-    [% END %]
-    
-    function resetLibrarySelection() {
-        var selgroup = $( "#branchcategory" ).val();
-        var libs = new Array();
-        var libselect = $("#branch");
-        
-        if ( selgroup == '*' ) {
-            libcodes.forEach(function(library) {
-                libs.push([library,libraries[library].name]);
-            });
-        }
-        else {
-            categories[selgroup]['libraries'].forEach(function(library) {
-                libs.push([library,libraries[library].name]);
-            });
-        }
-        
-        $('#branch option[value!="*"]').remove();
-        
-        $.each(libs, function(idx, value) {
-            libselect.append($('<option></option>').val(value[0]).html(value[1]));
-        });
-    }
-    
-    $(document).ready(function() {
-        var sel = $('#branchcategory');
-        
-        $.each(categories, function(code, category) {
-            if ( category.libraries.length == 0 ) {
-                $('#branchcategory option[value="' + code + '"]').remove();
-            }
-        });
-        
-        $('#branchcategory option[value="[% selcateg | html %]"]').attr('selected','selected');
-        resetLibrarySelection();
-        $('#branch option[value="[% selbranch | html %]"]').attr('selected','selected');
-        
-        sel.on('change', function() {
-            resetLibrarySelection();
-        });
-    });
-    
-//]]>
-</script>
-[% END %]
-
 </head>
+
 <body id="circ_selectbranchprinter" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
@@ -81,7 +20,7 @@
 &rsaquo; <a href="/cgi-bin/koha/circ/selectbranchprinter.pl">Set library</a>
 </div>
 
-<div id="doc" class="yui-t7">
+[% IF Koha.Preference('CircSidebar') %]<div id="doc3" class="yui-t2">[% ELSE %]<div id="doc" class="yui-t7">[% END %]
   <div id="bd">
     <div id="yui-main">
       <div class="yui-b">
@@ -118,39 +57,20 @@ Updated:<ul>
     [% IF ( singleBranchMode && !CAN_user_superlibrarian ) %]
         <li>SingleBranchMode is ON.</li>
     [% ELSE %]
-        [% IF ( categoryselect ) %]
+        [% IF ( groupselect ) %]
             <li><label for="branch">Choose library group:</label>
             <select name="branchcategory" id="branchcategory">
-            <option value="*">All library categories</option>
-            [% FOREACH category IN categories %]
-                <option value="[% category.categorycode %]">[% category.categoryname %]</option>
+            <option value="*">All library groups</option>
+            [% FOREACH group IN librarygroups %]
+                <option value="[% group.id %]">[% group.title %]</option>
             [% END %]
             </select></li>
         [% END %]
         <li><label for="branch">Choose library:</label>
         <select name="branch" id="branch">
-        [% FOREACH branchloo IN branchloop %]
-            [% IF ( branchloo.selected ) %]
-            <option value="[% branchloo.value %]" selected="selected">[% branchloo.branchname %]</option>
-            [% ELSE %]
-            <option value="[% branchloo.value %]">[% branchloo.branchname %]</option>
-            [% END %]
-        [% END %]
+            [% PROCESS options_for_libraries libraries => Branches.all( selected => selbranch ) %]
         </select></li>
     [% END %]
-<!--
-    [% IF ( printerloop ) %]
-        <li><label for="printer">Choose a network printer:</label>
-        <select name="printer" id="printer">
-            [% FOREACH printerloo IN printerloop %]
-                [% IF ( printerloo.selected ) %]
-                    <option value="[% printerloo.value %]" selected="selected">[% printerloo.name %]</option>
-                [% ELSE %]
-                    <option value="[% printerloo.value %]">[% printerloo.name %]</option>
-                [% END %]
-            [% END %]
-        </select></li>
-    [% END %] -->
     </ol>
 </fieldset>
 <fieldset class="action">
@@ -169,5 +89,81 @@ Updated:<ul>
 
       </div>
     </div>
-  </div>
+[% IF Koha.Preference('CircSidebar') %]
+<div class="yui-b noprint">
+    [% INCLUDE 'circ-nav.inc' %]
+</div>
+[% END %]
+</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% IF ( groupselect && !updated ) %]
+        <script type="text/javascript">
+            var libraries = {};
+            var libcodes = new Array();
+            [% FOREACH branch IN Branches.all( unfiltered => 1 ) %]
+            libraries["[% branch.branchcode FILTER lower | html %]"] = { code: "[% branch.branchcode | html %]", name: "[% branch.branchname | html %]", category: [] };
+            libcodes.push("[% branch.branchcode FILTER lower | html %]");
+            [% END %]
+            
+            var categories = {};
+            var selcateg = '[% selgroup | html %]';
+            [% FOREACH group IN librarygroups %]
+                categories["[% group.id | html %]"] = { name: "[% group.title | html %]", libraries: [], sel: false};
+                [% FOREACH lib IN group.children %]
+                    [% IF lib.branchcode %]
+                        libraries["[% lib.branchcode FILTER lower | html %]"]["category"].push("[% group.id FILTER lower | html %]");
+                        categories["[% group.id FILTER lower | html %]"]["libraries"].push("[% lib.branchcode FILTER lower | html %]");
+                    [% END %]
+                [% END %]
+            [% END %]
+            if ( selcateg != '' && selcateg != '*' ) {
+                categories[selcateg]["sel"] = true;
+            }
+        
+            function resetLibrarySelection() {
+                var selgroup = $( "#branchcategory" ).val();
+                var libs = new Array();
+                var libselect = $("#branch");
+                
+                if ( selgroup == '*' ) {
+                    libcodes.forEach(function(library) {
+                        libs.push([libraries[library].code,libraries[library].name]);
+                    });
+                }
+                else {
+                    categories[selgroup]['libraries'].forEach(function(library) {
+                        libs.push([libraries[library].code,libraries[library].name]);
+                    });
+                }
+                
+                $('#branch option[value!="*"]').remove();
+                
+                $.each(libs, function(idx, value) {
+                    libselect.append($('<option></option>').val(value[0]).html(value[1]));
+                });
+            }
+            
+            $(document).ready(function() {
+                var sel = $('#branchcategory');
+                
+                $.each(categories, function(code, category) {
+                    if ( category.libraries.length == 0 ) {
+                        $('#branchcategory option[value="' + code + '"]').remove();
+                    }
+                });
+                
+                $('#branchcategory option[value="[% selgroup | html %]"]').attr('selected','selected');
+                resetLibrarySelection();
+                $('#branch option[value="[% selbranch | html %]"]').attr('selected','selected');
+                
+                sel.on('change', function() {
+                    resetLibrarySelection();
+                });
+            });
+            
+        </script>
+    [% END %]
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

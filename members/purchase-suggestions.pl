@@ -23,11 +23,10 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Context;
 use C4::Output;
-use C4::Branch;
 use C4::Members;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Suggestions;
-use Koha::Patron::Images;
+use Koha::Patrons;
 
 my $input = new CGI;
 
@@ -36,23 +35,21 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1 },
+        flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
 
 my $borrowernumber = $input->param('borrowernumber');
 
-# Set informations for the patron
-my $borrower = GetMemberDetails( $borrowernumber, 0 );
-foreach my $key ( keys %$borrower ) {
-    $template->param( $key => $borrower->{$key} );
-}
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $patron         = Koha::Patrons->find( $borrowernumber );
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
+
+my $category = $patron->category;
 $template->param(
+    patron => $patron,
     suggestionsview  => 1,
-    categoryname => $borrower->{'description'},
-    branchname   => GetBranchName( $borrower->{'branchcode'} ),
-    RoutingSerials => C4::Context->preference('RoutingSerials'),
 );
 
 if (C4::Context->preference('ExtendedPatronAttributes')) {
@@ -62,9 +59,6 @@ if (C4::Context->preference('ExtendedPatronAttributes')) {
         extendedattributes => $attributes
     );
 }
-
-my $patron_image = Koha::Patron::Images->find($borrowernumber);
-$template->param( picture => 1 ) if $patron_image;
 
 my $suggestions = SearchSuggestion( { suggestedby => $borrowernumber } );
 

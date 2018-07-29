@@ -1,3 +1,4 @@
+[% USE AuthorisedValues %]
 [% IF ( opacfacets && facets_loop && total ) %]
     [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
     <div id="encyclopedia-facets">
@@ -16,7 +17,7 @@
     <div id="search-facets">
         <h4><a href="#" class="menu-collapse-toggle">Refine your cataloge search</a></h4>
         <ul class="menu-collapse">
-            <li id="availability_facet">Availability
+            <li id="availability_facet"><h5 id="facet-availability">Availability</h5>
                 <ul>
                     <li>
                         [% IF ( available ) %]
@@ -39,9 +40,10 @@
                         [% IF facets_loo.type_label_Series %]<h5 id="facet-series">Series</h5>[% END %]
                         [% IF facets_loo.type_label_Years %]<h5 id="facet-years">Publication years</h5>[% END %]
                         [% IF facets_loo.type_label_ItemTypes %]<h5 id="facet-itemtypes">Item types</h5>[% END %]
+                        [% IF facets_loo.type_label_CollectionCodes %]<h5 id="facet-itemtypes">Collections</h5>[% END %]
                         [% UNLESS singleBranchMode %]
-                            [% IF ( facets_loo.type_label_HomeLibrary ) %]<span id="facet-home-libraries">Home libraries</span>[% END %]
-                            [% IF ( facets_loo.type_label_HoldingLibrary ) %]<span id="facet-holding-libraries">Holding libraries</span>[% END %]
+                            [% IF ( facets_loo.type_label_HomeLibrary ) %]<h5 id="facet-home-libraries">Home libraries</h5>[% END %]
+                            [% IF ( facets_loo.type_label_HoldingLibrary ) %]<h5 id="facet-holding-libraries">Holding libraries</h5>[% END %]
                         [% END %]
                         [% IF facets_loo.type_label_Location %]<h5 id="facet-locations">Locations</h5>[% END %]
                         <ul>
@@ -50,6 +52,7 @@
                               [% url = BLOCK %][% url %][% "&amp;sort_by=" _ sort_by |url %][% END %]
                             [% END %]
                             [% FOREACH facet IN facets_loo.facets %]
+                            [% IF facets_loo.type_label_CollectionCodes %][% SET facet.facet_label_value = AuthorisedValues.GetByCode('CCODE',facet.facet_label_value,1) || facet.facet_label_value %][% END %]
                                 <li>
                                   [% IF facet.active %]
                                     [% SET local_url = url _ "&amp;nolimit=" _ facet.type_link_value _ ":" _ facet.facet_link_value %]

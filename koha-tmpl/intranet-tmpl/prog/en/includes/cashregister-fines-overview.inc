@@ -1,213 +1,8 @@
 [% PROCESS 'cashregister-fines-macros.inc' %]
 [% USE KohaDates %]
 
-<script type="text/javascript">
-//<![CDATA[
-
-function number_format (number, decimals, dec_point, thousands_sep) {
-    var n = number, prec = decimals;
-
-    var toFixedFix = function (n,prec) {
-        var k = Math.pow(10,prec);
-        return (Math.round(n*k)/k).toString();
-    };
-
-    n = !isFinite(+n) ? 0 : +n;
-    prec = !isFinite(+prec) ? 0 : Math.abs(prec);
-    var sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep;
-    var dec = (typeof dec_point === 'undefined') ? '.' : dec_point;
-
-    var s = (prec > 0) ? toFixedFix(n, prec) : toFixedFix(Math.round(n), prec); 
-    //fix for IE parseFloat(0.55).toFixed(0) = 0;
-
-    var abs = toFixedFix(Math.abs(n), prec);
-    var _, i;
-
-    if (abs >= 1000) {
-        _ = abs.split(/\D/);
-        i = _[0].length % 3 || 3;
-
-        _[0] = s.slice(0,i + (n < 0)) +
-               _[0].slice(i).replace(/(\d{3})/g, sep+'$1');
-        s = _.join(dec);
-    } else {
-        s = s.replace('.', dec);
-    }
-
-    var decPos = s.indexOf(dec);
-    if (prec >= 1 && decPos !== -1 && (s.length-decPos-1) < prec) {
-        s += new Array(prec-(s.length-decPos-1)).join(0)+'0';
-    }
-    else if (prec >= 1 && decPos === -1) {
-        s += dec+new Array(prec).join(0)+'0';
-    }
-    return s; 
-}
-
-function money_format(number) {
-    return "[% currency_format.1 %]" + number_format(number,[% currency_format.2 %],"[% currency_format.3 %]","[% currency_format.4 %]");
-}
-
-$(document).ready( function() {
-
-    [% IF (finesstats.type == 'finesoverview') %]
-    $("#finesoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
-        'bAutoWidth': false,
-        'aoColumnDefs': [
-            { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-            { "aTargets": [ 4 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "aTargets": [ 0,1,2,4 ], "asSorting": [ "asc","desc" ]  },
-        ],
-        "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { sWidth: '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
-        "iDisplayLength": 1000,
-        "iDisplayStart": 0,
-        "order": [[ 0, "asc" ],[ 1, "asc" ],[ 2, "asc" ]],
-        "bSort" : true,
-        "bPaginate": false,
-        "serverSide": false,
-        "bFilter": false,
-        "bInfo" : false,
-        "autoWidth": true,
-        "oLanguage": {
-            "sEmptyTable": _("No paid fines during the selected period.")
-        }
-    }));
-    $("#finestypeoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
-        'bAutoWidth': false,
-        'aoColumnDefs': [
-            { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-            { "aTargets": [ 3 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "aTargets": [ 0,1,3 ], "asSorting": [ "asc","desc" ]  },
-        ],
-        "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
-        "iDisplayLength": 1000,
-        "iDisplayStart": 0,
-        "order": [[ 0, "asc" ],[ 1, "asc" ]],
-        "bSort" : true,
-        "bPaginate": false,
-        "serverSide": false,
-        "bFilter": false,
-        "bInfo" : false,
-        "autoWidth": true,
-        "oLanguage": {
-            "sEmptyTable": _("No paid fines during the selected period.")
-        }
-    }));
-    [% END %]
-    
-    [% IF (finesstats.type == 'inoutpaymentoverview' ) %]
-    $("#inpaymentoverview,#outpaymentoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
-        'bAutoWidth': true,
-        'aoColumnDefs': [
-            { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-            { "aTargets": [ 2 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "aTargets": [ 0,1 ], "asSorting": [ "asc","desc" ]  },
-        ],
-        "aoColumns": [ { "sType": 'natural' }, null, null],
-        "iDisplayLength": 100,
-        "iDisplayStart": 0,
-        "order": [[ 0, "asc" ]],
-        "bSort" : true,
-        "bPaginate": false,
-        "serverSide": false,
-        "bFilter": false,
-        "bInfo" : false,
-        "oLanguage": {
-            "sEmptyTable": _("No changes during the selected period.")
-        }
-    }));
-    [% END %]
-    
-    $("#finesoverview_wrapper .pager").removeClass("pager");
-    $("#finestypeoverview_wrapper .pager").removeClass("pager");
-
-    [% IF (finesstats && ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbytype' ||  finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbytype' ||  finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbytype' ||  finesstats.type == 'paymentsbymanager')) %]
-    [% IF    ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'finesbyday' || finesstats.type == 'paymentsbyday')     %][% groupcol = '0' %][% sortdir = 'desc' %]
-    [% ELSIF ( finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbytype')    %][% groupcol = '2' %][% sortdir = 'asc' %]
-    [% ELSIF ( finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbymanager') %][% groupcol = '5' %][% sortdir = 'asc' %]
-    [% END %]
-    $("#finesbydate").dataTable($.extend(true, {}, dataTablesDefaults, {
-        'bAutoWidth': true,
-        'aoColumnDefs': [
-            { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-            { "aTargets": [ 1 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-            { "visible": false, "aTargets": [[% groupcol %],6] }
-        ],
-        "aoColumns": [ { "sType": 'natural' }, null, null, null, null, null, null],
-        "iDisplayLength": 100,
-        "iDisplayStart": 0,
-        "order": [[[% groupcol %], "[% sortdir %]"],[3,"asc"]],
-        "bSort" : true,
-        "bPaginate": false,
-        "serverSide": false,
-        "bFilter": false,
-        "bInfo" : false,
-        "drawCallback": function ( settings ) {
-            var api = this.api();
-            var rows = api.rows( {order:'current'} ).nodes();
-            var count = api.rows( {order:'current'} ).count()-1;
-            var last = null;
-            var sum = 0.0;
-            var lastid = '';
-            var groupnum = 1;
- 
-            api.column([% groupcol %], { order:'current'} ).data().each( function ( group, i ) {
-                if ( last !== group ) {
-                    if ( lastid != '' ) {
-                        $("#"+lastid).text(money_format(sum));
-                    }
-                    var val = group;
-                    if ( val.trim() == "" ) {
-                        val = _("&lt;No value&gt;");
-                    }
-                    lastid = "finesgrouprow" + groupnum;
-                    $(rows).eq( i ).before(
-                        '<tr class="group"><td colspan="5" class="finesgroupsum">'+val+':&nbsp;&nbsp;<span id="'+ lastid + '"></span></td></tr>'
-                    );
-                    last = group;
-                    groupnum++;
-                    sum = 0.0;
-                    txt = '';
-                }
-                sum += parseFloat(api.cell($(rows).eq( i ),6,{order: 'current'} ).data());
-                if ( count == i && lastid != '' ) {
-                    $("#"+lastid).text(money_format(sum));
-                }
-            });
-        },
-        "oLanguage": {
-            "sEmptyTable": _("No fines during the selected period.")
-        }
-    }));
-    // Order by the grouping
-    $('#finesbydate tbody').on( 'click', 'tr.group', function () {
-        var currentOrder = table.order()[0];
-        if ( currentOrder[0] === [% groupcol %] && currentOrder[1] === 'asc' ) {
-            table.order( [ [% groupcol %], 'desc' ] ).draw();
-        }
-        else {
-            table.order( [ [% groupcol %], 'asc' ] ).draw();
-        }
-    } );
-    $("#finesbydate_wrapper .pager").removeClass("pager");
-    [% END %]
-    
-    $('#printview').on('click',function(ev){
-        ev.preventDefault();
-        $('#showfinesoverview input[name="printview"]').val('print');
-        $("#showfinesoverview").attr('target', '_blank').submit();
-    });
-    $('#noprintview').on('click',function(ev){
-        ev.preventDefault();
-        $('#showfinesoverview input[name="printview"]').val('');
-        $("#showfinesoverview").attr('target', '_self').submit();
-    });
-});
-
-</script>
-
 [% IF (finesstats.type == 'inoutpaymentoverview') %]
-    <h2>Cash register overview: [% branchname %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h2>
+    <h2>Cash register overview: [% Branches.GetName(sessionbranch) %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h2>
     <p>Manager: [% loggedinusername %], Date: [% datetimenow %]</p>
     [% IF (! printview) %]
     <form id="showfinesoverview" action="/cgi-bin/koha/[% used_perl_script %]" method="post">
@@ -320,13 +115,7 @@ $(document).ready( function() {
                         of library
                         <select name="reportbranch">
                             <option value="" selected="selected">All libraries</option>
-                            [% FOREACH branch IN branchloop %]
-                            [% IF (branch.branchcode == reportbranch) %]
-                                <option value="[% branch.branchcode %]" selected="selected">[% branch.branchname %]</option>
-                            [% ELSE %]
-                                <option value="[% branch.branchcode %]">[% branch.branchname %]</option>
-                            [% END %]
-                            [% END %]
+                            [% PROCESS options_for_libraries libraries => Branches.all( selected => reportbranch, restrict => 'NoMobileStations' ) %]
                         </select>
                         <button id="noprintview" type="submit" name="allFromOpening" value="0">Select</button>
                         <button id="printview" type="submit" name="printview" value="print"">Printview</button>
@@ -710,4 +499,208 @@ $(document).ready( function() {
             [% END %]
         </tbody>
     </table>
+[% END %]
+
+[% MACRO jsextrainclude BLOCK %]
+    <script type="text/javascript">
+        function number_format (number, decimals, dec_point, thousands_sep) {
+            var n = number, prec = decimals;
+
+            var toFixedFix = function (n,prec) {
+                var k = Math.pow(10,prec);
+                return (Math.round(n*k)/k).toString();
+            };
+
+            n = !isFinite(+n) ? 0 : +n;
+            prec = !isFinite(+prec) ? 0 : Math.abs(prec);
+            var sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep;
+            var dec = (typeof dec_point === 'undefined') ? '.' : dec_point;
+
+            var s = (prec > 0) ? toFixedFix(n, prec) : toFixedFix(Math.round(n), prec); 
+            //fix for IE parseFloat(0.55).toFixed(0) = 0;
+
+            var abs = toFixedFix(Math.abs(n), prec);
+            var _, i;
+
+            if (abs >= 1000) {
+                _ = abs.split(/\D/);
+                i = _[0].length % 3 || 3;
+
+                _[0] = s.slice(0,i + (n < 0)) +
+                       _[0].slice(i).replace(/(\d{3})/g, sep+'$1');
+                s = _.join(dec);
+            } else {
+                s = s.replace('.', dec);
+            }
+
+            var decPos = s.indexOf(dec);
+            if (prec >= 1 && decPos !== -1 && (s.length-decPos-1) < prec) {
+                s += new Array(prec-(s.length-decPos-1)).join(0)+'0';
+            }
+            else if (prec >= 1 && decPos === -1) {
+                s += dec+new Array(prec).join(0)+'0';
+            }
+            return s; 
+        }
+
+        function money_format(number) {
+            return "[% currency_format.1 %]" + number_format(number,[% currency_format.2 %],"[% currency_format.3 %]","[% currency_format.4 %]");
+        }
+
+        $(document).ready( function() {
+
+            [% IF (finesstats.type == 'finesoverview') %]
+            $("#finesoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'bAutoWidth': false,
+                'aoColumnDefs': [
+                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
+                    { "aTargets": [ 4 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+                    { "aTargets": [ 0,1,2,4 ], "asSorting": [ "asc","desc" ]  },
+                ],
+                "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { sWidth: '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
+                "iDisplayLength": 1000,
+                "iDisplayStart": 0,
+                "order": [[ 0, "asc" ],[ 1, "asc" ],[ 2, "asc" ]],
+                "bSort" : true,
+                "bPaginate": false,
+                "serverSide": false,
+                "bFilter": false,
+                "bInfo" : false,
+                "autoWidth": true,
+                "oLanguage": {
+                    "sEmptyTable": _("No paid fines during the selected period.")
+                }
+            }));
+            $("#finestypeoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'bAutoWidth': false,
+                'aoColumnDefs': [
+                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
+                    { "aTargets": [ 3 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+                    { "aTargets": [ 0,1,3 ], "asSorting": [ "asc","desc" ]  },
+                ],
+                "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
+                "iDisplayLength": 1000,
+                "iDisplayStart": 0,
+                "order": [[ 0, "asc" ],[ 1, "asc" ]],
+                "bSort" : true,
+                "bPaginate": false,
+                "serverSide": false,
+                "bFilter": false,
+                "bInfo" : false,
+                "autoWidth": true,
+                "oLanguage": {
+                    "sEmptyTable": _("No paid fines during the selected period.")
+                }
+            }));
+            [% END %]
+            
+            [% IF (finesstats.type == 'inoutpaymentoverview' ) %]
+            $("#inpaymentoverview,#outpaymentoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'bAutoWidth': true,
+                'aoColumnDefs': [
+                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
+                    { "aTargets": [ 2 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+                    { "aTargets": [ 0,1 ], "asSorting": [ "asc","desc" ]  },
+                ],
+                "aoColumns": [ { "sType": 'natural' }, null, null],
+                "iDisplayLength": 100,
+                "iDisplayStart": 0,
+                "order": [[ 0, "asc" ]],
+                "bSort" : true,
+                "bPaginate": false,
+                "serverSide": false,
+                "bFilter": false,
+                "bInfo" : false,
+                "oLanguage": {
+                    "sEmptyTable": _("No changes during the selected period.")
+                }
+            }));
+            [% END %]
+            
+            $("#finesoverview_wrapper .pager").removeClass("pager");
+            $("#finestypeoverview_wrapper .pager").removeClass("pager");
+
+            [% IF (finesstats && ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbytype' ||  finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbytype' ||  finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbytype' ||  finesstats.type == 'paymentsbymanager')) %]
+            [% IF    ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'finesbyday' || finesstats.type == 'paymentsbyday')     %][% groupcol = '0' %][% sortdir = 'desc' %]
+            [% ELSIF ( finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbytype')    %][% groupcol = '2' %][% sortdir = 'asc' %]
+            [% ELSIF ( finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbymanager') %][% groupcol = '5' %][% sortdir = 'asc' %]
+            [% END %]
+            $("#finesbydate").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'bAutoWidth': true,
+                'aoColumnDefs': [
+                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
+                    { "aTargets": [ 1 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
+                    { "visible": false, "aTargets": [[% groupcol %],6] }
+                ],
+                "aoColumns": [ { "sType": 'natural' }, null, null, null, null, null, null],
+                "iDisplayLength": 100,
+                "iDisplayStart": 0,
+                "order": [[[% groupcol %], "[% sortdir %]"],[3,"asc"]],
+                "bSort" : true,
+                "bPaginate": false,
+                "serverSide": false,
+                "bFilter": false,
+                "bInfo" : false,
+                "drawCallback": function ( settings ) {
+                    var api = this.api();
+                    var rows = api.rows( {order:'current'} ).nodes();
+                    var count = api.rows( {order:'current'} ).count()-1;
+                    var last = null;
+                    var sum = 0.0;
+                    var lastid = '';
+                    var groupnum = 1;
+         
+                    api.column([% groupcol %], { order:'current'} ).data().each( function ( group, i ) {
+                        if ( last !== group ) {
+                            if ( lastid != '' ) {
+                                $("#"+lastid).text(money_format(sum));
+                            }
+                            var val = group;
+                            if ( val.trim() == "" ) {
+                                val = _("&lt;No value&gt;");
+                            }
+                            lastid = "finesgrouprow" + groupnum;
+                            $(rows).eq( i ).before(
+                                '<tr class="group"><td colspan="5" class="finesgroupsum">'+val+':&nbsp;&nbsp;<span id="'+ lastid + '"></span></td></tr>'
+                            );
+                            last = group;
+                            groupnum++;
+                            sum = 0.0;
+                            txt = '';
+                        }
+                        sum += parseFloat(api.cell($(rows).eq( i ),6,{order: 'current'} ).data());
+                        if ( count == i && lastid != '' ) {
+                            $("#"+lastid).text(money_format(sum));
+                        }
+                    });
+                },
+                "oLanguage": {
+                    "sEmptyTable": _("No fines during the selected period.")
+                }
+            }));
+            // Order by the grouping
+            $('#finesbydate tbody').on( 'click', 'tr.group', function () {
+                var currentOrder = table.order()[0];
+                if ( currentOrder[0] === [% groupcol %] && currentOrder[1] === 'asc' ) {
+                    table.order( [ [% groupcol %], 'desc' ] ).draw();
+                }
+                else {
+                    table.order( [ [% groupcol %], 'asc' ] ).draw();
+                }
+            } );
+            $("#finesbydate_wrapper .pager").removeClass("pager");
+            [% END %]
+            
+            $('#printview').on('click',function(ev){
+                ev.preventDefault();
+                $('#showfinesoverview input[name="printview"]').val('print');
+                $("#showfinesoverview").attr('target', '_blank').submit();
+            });
+            $('#noprintview').on('click',function(ev){
+                ev.preventDefault();
+                $('#showfinesoverview input[name="printview"]').val('');
+                $("#showfinesoverview").attr('target', '_self').submit();
+            });
+        });
+    </script>
 [% END %]

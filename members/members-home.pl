@@ -16,69 +16,36 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Context;
 use C4::Members;
-use C4::Branch;
-use C4::Category;
 use Koha::Patron::Modifications;
 use Koha::Libraries;
 use Koha::List::Patron;
+use Koha::Patron::Categories;
 
 my $query = new CGI;
-my $branch = $query->param('branchcode');
 
-$branch = q{} unless defined $branch;
-
-my ($template, $loggedinuser, $cookie)
+my ($template, $loggedinuser, $cookie, $flags)
     = get_template_and_user({template_name => "members/member.tt",
                  query => $query,
                  type => "intranet",
                  authnotrequired => 0,
-                 flagsrequired => {borrowers => 1},
+                 flagsrequired => {borrowers => 'edit_borrowers'},
                  debug => 1,
                  });
 
-my $branches = GetBranches;
-my @branchloop;
-if ( C4::Branch::onlymine ) {
-    my $userenv = C4::Context->userenv;
-    my $library = Koha::Libraries->find( $userenv->{'branch'} );
-    push @branchloop, {
-        value => $library->id,
-        branchcode => $library->branchcode,
-        branchname => $library->branchname,
-        selected => 1
-    }
-} else {
-    foreach (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %{$branches}) {
-        my $selected = 0;
-        $selected = 1 if $branch and $branch eq $_;
-        push @branchloop, {
-            value => $_,
-            branchcode => $_,
-            branchname => $branches->{$_}->{branchname},
-            selected => $selected
-        };
-    }
-}
-
-my @categories;
 my $no_add = 0;
-if(scalar(@branchloop) < 1){
+if( Koha::Libraries->search->count < 1){
     $no_add = 1;
     $template->param(no_branches => 1);
-} 
-else {
-    $template->param(branchloop=>\@branchloop);
 }
 
-@categories=C4::Category->all;
+my @categories = Koha::Patron::Categories->search_limited;
 if(scalar(@categories) < 1){
     $no_add = 1;
     $template->param(no_categories => 1);
@@ -87,9 +54,14 @@ else {
     $template->param(categories=>\@categories);
 }
 
+my $branch =
+  (      C4::Context->preference("IndependentBranchesPatronModifications")
+      || C4::Context->preference("IndependentBranches") )
+  && !$flags->{'superlibrarian'}
+  ? C4::Context->userenv()->{'branch'}
+  : undef;
 
-my $pending_borrower_modifications =
-  Koha::Patron::Modifications->GetPendingModificationsCount( $branch );
+my $pending_borrower_modifications = Koha::Patron::Modifications->pending_count( $branch );
 
 $template->param( 
         no_add => $no_add,

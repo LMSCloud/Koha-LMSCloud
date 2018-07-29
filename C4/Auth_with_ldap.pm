@@ -23,11 +23,12 @@ use Carp;
 
 use C4::Debug;
 use C4::Context;
-use C4::Members qw(AddMember changepassword);
+use C4::Members qw(AddMember);
 use C4::Members::Attributes;
 use C4::Members::AttributeTypes;
 use C4::Members::Messaging;
 use C4::Auth qw(checkpw_internal);
+use Koha::Patrons;
 use Koha::AuthUtils qw(hash_password);
 use List::MoreUtils qw( any );
 use Net::LDAP;
@@ -59,6 +60,7 @@ my $prefhost  = $ldap->{hostname}	or die ldapserver_error('hostname');
 my $base      = $ldap->{base}		or die ldapserver_error('base');
 $ldapname     = $ldap->{user}		;
 $ldappassword = $ldap->{pass}		;
+$ldap->{anonymous_bind} = 1 unless $ldapname && $ldappassword;
 our %mapping  = %{$ldap->{mapping}}; # FIXME dpavlin -- don't die because of || (); from 6eaf8511c70eb82d797c941ef528f4310a15e9f9
 my @mapkeys = keys %mapping;
 $debug and print STDERR "Got ", scalar(@mapkeys), " ldap mapkeys (  total  ): ", join ' ', @mapkeys, "\n";
@@ -104,10 +106,10 @@ sub search_method {
 		warn sprintf("LDAP Auth rejected : %s gets %d hits\n", $filter->as_string, $count) . description($search);
 		return 0;
 	}
-	if ($count != 1) {
-		warn sprintf("LDAP Auth rejected : %s gets %d hits\n", $filter->as_string, $count);
-		return 0;
-	}
+    if ($count == 0) {
+        warn sprintf("LDAP Auth rejected : search with filter '%s' returns no hit\n", $filter->as_string);
+        return 0;
+    }
     return $search;
 }
 
@@ -123,6 +125,7 @@ sub checkpw_ldap {
 	#$debug and $db->debug(5);
     my $userldapentry;
 
+    # first, LDAP authentication
     if ( $ldap->{auth_by_bind} ) {
         my $principal_name;
         if ( $ldap->{anonymous_bind} ) {
@@ -174,19 +177,30 @@ sub checkpw_ldap {
             $userldapentry = $search->shift_entry;
         }
     } else {
-		my $res = ($config{anonymous}) ? $db->bind : $db->bind($ldapname, password=>$ldappassword);
+		my $res = ($ldap->{anonymous_bind}) ? $db->bind : $db->bind($ldapname, password=>$ldappassword);
 		if ($res->code) {		# connection refused
 			warn "LDAP bind failed as ldapuser " . ($ldapname || '[ANONYMOUS]') . ": " . description($res);
 			return 0;
 		}
         my $search = search_method($db, $userid) or return 0;   # warnings are in the sub
-        $userldapentry = $search->shift_entry;
-		my $cmpmesg = $db->compare( $userldapentry, attr=>'userpassword', value => $password );
-		if ($cmpmesg->code != 6) {
-			warn "LDAP Auth rejected : invalid password for user '$userid'. " . description($cmpmesg);
-			return -1;
-		}
-	}
+        # Handle multiple branches. Same login exists several times in different branches.
+        my $bind_ok = 0;
+        while (my $entry = $search->shift_entry) {
+            my $user_ldap_bind_ret = $db->bind($entry->dn, password => $password);
+            unless ($user_ldap_bind_ret->code) {
+                $userldapentry = $entry;
+                $bind_ok = 1;
+                last;
+            }
+        }
+
+        unless ($bind_ok) {
+            warn "LDAP Auth rejected : invalid password for user '$userid'.";
+            return -1;
+        }
+
+
+    }
 
     # To get here, LDAP has accepted our user's login attempt.
     # But we still have work to do.  See perldoc below for detailed breakdown.
@@ -334,7 +348,7 @@ sub _do_changepassword {
     my $digest = hash_password($password);
 
     $debug and print STDERR "changing local password for borrowernumber=$borrowerid to '$digest'\n";
-    changepassword($userid, $borrowerid, $digest);
+    Koha::Patrons->find($borrowerid)->update_password( $userid, $digest );
 
     my ($ok, $cardnum) = checkpw_internal(C4::Context->dbh, $userid, $password);
     return $cardnum if $ok;
@@ -349,7 +363,16 @@ sub update_local {
     my $borrowerid = shift or croak "No borrowerid";
     my $borrower   = shift or croak "No borrower record";
 
+    # skip extended patron attributes in 'borrowers' attribute update
     my @keys = keys %$borrower;
+    if (C4::Context->preference('ExtendedPatronAttributes')) {
+        foreach my $attribute_type ( C4::Members::AttributeTypes::GetAttributeTypes() ) {
+           my $code = $attribute_type->{code};
+           @keys = grep { $_ ne $code } @keys;
+           $debug and printf STDERR "ignoring extended patron attribute '%s' in update_local()\n", $code;
+        }
+    }
+
     my $dbh = C4::Context->dbh;
     my $query = "UPDATE  borrowers\nSET     " .
         join(',', map {"$_=?"} @keys) .

@@ -15,17 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
+use Modern::Perl;
 
-use strict;
-use warnings;
 use CGI qw ( -utf8 );
 use C4::Koha;
 use C4::Biblio;
-use C4::Branch;
 use C4::Items;
 use C4::Circulation;
 use C4::Auth;
 use C4::Output;
+use Koha::RecordProcessor;
+
+use Koha::AuthorisedValues;
 
 my $query = new CGI;
 
@@ -39,11 +40,9 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
 );
 
 my $bib_list     = $query->param('bib_list');
-my $print_basket = $query->param('print');
 my $verbose      = $query->param('verbose');
 
 if ($verbose)      { $template->param( verbose      => 1 ); }
-if ($print_basket) { $template->param( print_basket => 1 ); }
 
 my @bibs = split( /\//, $bib_list );
 my @results;
@@ -57,13 +56,20 @@ if (C4::Context->preference('TagsEnabled')) {
 	}
 }
 
-
+my $record_processor = Koha::RecordProcessor->new({ filters => 'ViewPolicy' });
 foreach my $biblionumber ( @bibs ) {
     $template->param( biblionumber => $biblionumber );
 
     my $dat              = &GetBiblioData($biblionumber);
     next unless $dat;
-    my $record           = &GetMarcBiblio($biblionumber);
+
+    my $record = &GetMarcBiblio({ biblionumber => $biblionumber });
+    my $framework = &GetFrameworkCode( $biblionumber );
+    $record_processor->options({
+        interface => 'opac',
+        frameworkcode => $framework
+    });
+    $record_processor->process($record);
     next unless $record;
     my $marcnotesarray   = GetMarcNotes( $record, $marcflavour );
     my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
@@ -77,8 +83,10 @@ foreach my $biblionumber ( @bibs ) {
     if($dat->{'author'} || @$marcauthorsarray) {
       $hasauthors = 1;
     }
-    my $collections =  GetKohaAuthorisedValues('items.ccode',$dat->{'frameworkcode'}, 'opac');
-    my $shelflocations =GetKohaAuthorisedValues('items.location',$dat->{'frameworkcode'}, 'opac');
+    my $collections =
+      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $dat->{frameworkcode}, kohafield => 'items.ccode' } ) };
+    my $shelflocations =
+      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $dat->{frameworkcode}, kohafield => 'items.location' } ) };
 
 	# COinS format FIXME: for books Only
         my $coins_format;
@@ -91,7 +99,6 @@ foreach my $biblionumber ( @bibs ) {
         $dat->{'even'} = 1;
     }
 
-my $branches = GetBranches();
     for my $itm (@items) {
         if ($itm->{'location'}){
             $itm->{'location_opac'} = $shelflocations->{$itm->{'location'} };
@@ -99,8 +106,8 @@ my $branches = GetBranches();
         my ( $transfertwhen, $transfertfrom, $transfertto ) = GetTransfers($itm->{itemnumber});
         if ( defined( $transfertwhen ) && $transfertwhen ne '' ) {
              $itm->{transfertwhen} = $transfertwhen;
-             $itm->{transfertfrom} = $branches->{$transfertfrom}{branchname};
-             $itm->{transfertto}   = $branches->{$transfertto}{branchname};
+             $itm->{transfertfrom} = $transfertfrom;
+             $itm->{transfertto}   = $transfertto;
         }
     }
     $num++;

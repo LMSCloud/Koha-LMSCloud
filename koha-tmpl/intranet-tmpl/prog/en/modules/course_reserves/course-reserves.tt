@@ -1,19 +1,13 @@
+[% USE Asset %]
 [% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Course reserves</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript" id="js">
-$(document).ready(function() {
-    $("#course_reserves_table").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "sPaginationType": "four_button"
-    }));
-});
-</script>
-
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="courses_course_reserves" class="course">
 
 [% INCLUDE 'header.inc' %]
@@ -21,18 +15,15 @@ $(document).ready(function() {
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a></div>
 
-<div id="doc2" class="yui-t7">
-    <div id="bd">
-        <div id="yui-main">
-            <div class="yui-b">
-                <div class="yui-g">
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+
                     [% IF CAN_user_coursereserves_add_reserves OR CAN_user_coursereserves_manage_courses OR CAN_user_coursereserves_manage_courses %]
                     <div id="toolbar">
-                        <ul class="toolbar">
-                            [% IF ( CAN_user_coursereserves_manage_courses ) %]
-                            <li><a class="btn btn-small" id="new_course" href="/cgi-bin/koha/course_reserves/course.pl"><i class="fa fa-plus"></i> New course</a></li>
-                            [% END %]
-                        </ul>
+                        [% IF ( CAN_user_coursereserves_manage_courses ) %]
+                            <a class="btn btn-default btn-sm" id="new_course" href="/cgi-bin/koha/course_reserves/course.pl"><i class="fa fa-plus"></i> New course</a>
+                        [% END %]
                     </div><!-- /toolbar -->
                     [% END %]
 
@@ -100,11 +91,19 @@ $(document).ready(function() {
                             [% END %]
                         </tbody>
                     </table>
-                </div>
+
             </div>
         </div>
-    </div>
-</div>
 
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    <script type="text/javascript" id="js">
+        $(document).ready(function() {
+            $("#course_reserves_table").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "sPaginationType": "four_button"
+            }));
+        });
+    </script>
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

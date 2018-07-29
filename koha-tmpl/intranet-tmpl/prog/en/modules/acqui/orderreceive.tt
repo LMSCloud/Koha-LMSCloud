@@ -1,129 +1,18 @@
+[% USE Asset %]
 [% USE KohaDates %]
+[% USE Branches %]
+[% USE Price %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Acquisitions &rsaquo; Receipt summary for : [% name %] [% IF ( invoice ) %]invoice, [% invoice %][% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-[% INCLUDE 'additem.js.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/additem.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/cataloging.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/prevent_submit.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-    function Check(form) {
-        [% IF (AcqCreateItemReceiving) %]
-            var total_errors = CheckMandatorySubfields(form);
-            if (total_errors != 0) {
-                var alertString = _("Form not submitted because of the following problem(s)");
-                alertString += "\n------------------------------------------------------------------------------------\n";
-                alertString += "\n- " + _("%s mandatory fields empty (highlighted)").format(total_errors);
-                alert(alertString);
-                return false;
-            }
-
-            if(check_additem('[% UniqueItemFields %]') == false){
-                alert(_("Duplicate values detected. Please correct the errors and resubmit.") );
-                return false;
-            };
-
-            // Remove last itemblock if it is not in items_list
-            var lastitemblock = $("#outeritemblock > div:last");
-            var tobedeleted = true;
-            var listitems = $("#items_list tr");
-            $(listitems).each(function(){
-                if($(this).attr('idblock') == $(lastitemblock).attr('id')){
-                    tobedeleted = false;
-                }
-            });
-            if(tobedeleted){
-                $(lastitemblock).remove();
-            }
-
-            if(check_additem('[% UniqueItemFields %]') == false){
-                alert(_("Duplicate values detected. Please correct the errors and resubmit.") );
-                if(tobedeleted) {
-                    $(lastitemblock).appendTo("#outeritemblock");
-                }
-                return false;
-            };
-        [% END %]
-
-        return true;
-    }
-
-    [% IF (AcqCreateItem == 'ordering') %]
-        var items_columns = [null, null, 'barcode', 'homebranchname',
-            'holdingbranchname', 'notforloan', 'restricted', 'location',
-            'itemcallnumber', 'copynumber', 'stocknumber', 'collection',
-            'itemtype', 'materials', 'itemnotes'];
-
-        function PopupEditPage(biblionumber, itemnumber) {
-            var url = "/cgi-bin/koha/cataloguing/additem.pl?op=edititem&biblionumber="
-                + biblionumber + "&itemnumber=" + itemnumber + "&popup=1#edititem";
-            var w = window.open(url);
-            var watchClose = setInterval(function() {
-                if (w.closed) {
-                    clearTimeout(watchClose);
-                    $.getJSON('/cgi-bin/koha/catalogue/getitem-ajax.pl',
-                        {
-                            'itemnumber': itemnumber
-                        },
-                        function(item) {
-                            var tds = $("#item_"+itemnumber+" td");
-                            for(var i=2; i<tds.length; i++) {
-                                var column = items_columns[i];
-                                var text = item[column];
-                                if ( text == null ) text = '';
-                                $(tds[i]).text(text);
-                            }
-                        }
-                    );
-                }
-            }, 500);
-        }
-
-        function CalcQtyToReceive() {
-            var qty = $("input[name='items_to_receive']:checked").length;
-            $("#quantity").val(qty);
-        }
-
-        function CheckNItems(n) {
-            $("input[name='items_to_receive']").each(function() {
-                $(this).prop('checked', false);
-            });
-            $("input[name='items_to_receive']:lt("+n+")").each(function () {
-                $(this).prop('checked', true);
-            });
-        }
-    [% END %]
-
-    $(document).ready(function() {
-        [% IF (AcqCreateItemReceiving) %]
-            cloneItemBlock(0, '[% UniqueItemFields %]');
-        [% ELSIF (AcqCreateItem == 'ordering') && not subscriptionid %]
-            $("input[name='items_to_receive']").change(function() {
-                CalcQtyToReceive();
-            });
-            CalcQtyToReceive();
-            $("#quantity").keyup(function() {
-                var qty = parseInt($("#quantity").val());
-                var qtyto = parseInt($("#quantity_to_receive").val());
-                if(qty > qtyto) {
-                    $("#qtyrecerror").show();
-                } else {
-                    $("#qtyrecerror").hide();
-                }
-                CheckNItems($(this).val());
-            });
-        [% END %]
-    });
-//]]>
-</script>
 </head>
+
 <body id="acq_orderreceive" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% name %]</a> &rsaquo; Receive items from : [% name %] [% IF ( invoice ) %][[% invoice %]][% END %] (order #[% ordernumber %])</div>
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% name %]</a> &rsaquo; Receive items from : [% name %] [% IF ( invoice ) %][[% invoice |html %]][% END %] (order #[% ordernumber %])</div>
 
 <div id="doc3" class="yui-t2">
    
@@ -131,7 +20,7 @@
 	<div id="yui-main">
 	<div class="yui-b">
 
-<h1>Receive items from : [% name %] [% IF ( invoice ) %][[% invoice %]] [% END %] (order #[% ordernumber %])</h1>
+<h1>Receive items from : [% name %] [% IF ( invoice ) %][[% invoice |html %]] [% END %] (order #[% ordernumber %])</h1>
 
 [% IF ( count ) %]
     <form action="/cgi-bin/koha/acqui/finishreceive.pl" method="post" onsubmit="return Check(this);">
@@ -238,8 +127,8 @@
                                 <td style="text-align:center"><input type="checkbox" name="items_to_receive" value="[% item.itemnumber %]" /></td>
                                 <td><a style="cursor:pointer" onclick="PopupEditPage([% item.biblionumber %],[% item.itemnumber %]);">Edit</a></td>
                                 <td>[% item.barcode %]</td>
-                                <td>[% item.homebranchname %]</td>
-                                <td>[% item.holdingbranchname %]</td>
+                                <td>[% Branches.GetName( item.homebranch )%]</td>
+                                <td>[% Branches.GetName( item.holdingbranch ) %]</td>
                                 <td>[% item.notforloan %]</td>
                                 <td>[% item.restricted %]</td>
                                 <td>[% item.location %]</td>
@@ -261,7 +150,6 @@
     <input type="hidden" name="invoiceid" value="[% invoiceid %]" />
     <input type="hidden" name="ordernumber" value="[% ordernumber %]" />
     <input type="hidden" name="booksellerid" value="[% booksellerid %]" />
-    <input type="hidden" name="gstrate" value="[% gstrate %]" />
 	</div>
 	<div class="yui-u">
     <fieldset class="rows">
@@ -327,14 +215,30 @@
             </div>
           [% END %][%# IF (AcqCreateItemReceiving) %]
 		</li>
-        <li><label for="rrp">Replacement cost: </label><input type="text" size="20" name="rrp" id="rrp" value="[% rrp %]" /></li>
-        <li><label for="ecost">Budgeted cost: </label><input type="text" size="20" name="ecost" id="ecost" value="[% ecost %]" /></li>
-        <li><label for="cost">Actual cost:</label>
-        [% IF ( unitprice ) %]
-         <input type="text" size="20" name="cost" id="cost" value="[% unitprice %]" />
+
+        [% IF ( gst_values ) %]
+            <li>
+                <label for="tax_rate">Tax rate: </label>
+                <select name="tax_rate" id="tax_rate">
+                [% FOREACH gst IN gst_values %]
+                    [% IF gst.option == tax_rate %]
+                        <option value="[% gst.option %]" selected="selected">[% gst.option * 100 %]%</option>
+                    [% ELSE %]
+                        <option value="[% gst.option %]">[% gst.option * 100 %]%</option>
+                    [% END %]
+                [% END %]
+                </select>
+            </li>
         [% ELSE %]
-            <input type="text" size="20" name="cost" id="cost" value="[% ecost %]" />
-        [% END %]</li>
+            <input type="hidden" name="tax_rate" value="0" />
+        [% END %]
+
+        <li><label for="rrp">Replacement cost: </label>[% rrp | $Price %]</li>
+        <li><label for="ecost">Budgeted cost: </label>[% ecost | $Price %]</li>
+        <li>
+            <label for="unitprice">Actual cost:</label>
+            <input type="text" size="20" name="unitprice" id="unitprice" value="[% unitprice | $Price on_editing => 1 %]" />
+        </li>
         <li><label for="order_internalnote">Internal note: </label><textarea name="order_internalnote" width="40" rows="8" >[% order_internalnote %]</textarea></li>
         [% IF order_vendornote %]
             <li><label for="order_vendornote">Vendor note: </label><span>[% order_vendornote %]</span></li>
@@ -357,4 +261,123 @@
 [% INCLUDE 'acquisitions-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") %]
+[% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'additem.js.inc' %]
+    [% Asset.js("js/additem.js") %]
+    [% Asset.js("js/cataloging.js") %]
+    [% Asset.js("js/prevent_submit.js") %]
+    <script type="text/javascript">
+        function Check(form) {
+            [% IF (AcqCreateItemReceiving) %]
+                var total_errors = CheckMandatorySubfields(form);
+                if (total_errors != 0) {
+                    var alertString = _("Form not submitted because of the following problem(s)");
+                    alertString += "\n------------------------------------------------------------------------------------\n";
+                    alertString += "\n- " + _("%s mandatory fields empty (highlighted)").format(total_errors);
+                    alert(alertString);
+                    return false;
+                }
+
+                if(check_additem('[% UniqueItemFields %]') == false){
+                    alert(_("Duplicate values detected. Please correct the errors and resubmit.") );
+                    return false;
+                };
+
+                // Remove last itemblock if it is not in items_list
+                var lastitemblock = $("#outeritemblock > div:last");
+                var tobedeleted = true;
+                var listitems = $("#items_list tr");
+                $(listitems).each(function(){
+                    if($(this).attr('idblock') == $(lastitemblock).attr('id')){
+                        tobedeleted = false;
+                    }
+                });
+                if(tobedeleted){
+                    $(lastitemblock).remove();
+                }
+
+                if(check_additem('[% UniqueItemFields %]') == false){
+                    alert(_("Duplicate values detected. Please correct the errors and resubmit.") );
+                    if(tobedeleted) {
+                        $(lastitemblock).appendTo("#outeritemblock");
+                    }
+                    return false;
+                };
+            [% END %]
+
+            return true;
+        }
+
+        [% IF (AcqCreateItem == 'ordering') %]
+            var items_columns = [null, null, 'barcode', 'homebranchname',
+                'holdingbranchname', 'notforloan', 'restricted', 'location',
+                'itemcallnumber', 'copynumber', 'stocknumber', 'collection',
+                'itemtype', 'materials', 'itemnotes'];
+
+            function PopupEditPage(biblionumber, itemnumber) {
+                var url = "/cgi-bin/koha/cataloguing/additem.pl?op=edititem&biblionumber="
+                    + biblionumber + "&itemnumber=" + itemnumber + "&popup=1#edititem";
+                var w = window.open(url);
+                var watchClose = setInterval(function() {
+                    if (w.closed) {
+                        clearTimeout(watchClose);
+                        $.getJSON('/cgi-bin/koha/catalogue/getitem-ajax.pl',
+                            {
+                                'itemnumber': itemnumber
+                            },
+                            function(item) {
+                                var tds = $("#item_"+itemnumber+" td");
+                                for(var i=2; i<tds.length; i++) {
+                                    var column = items_columns[i];
+                                    var text = item[column];
+                                    if ( text == null ) text = '';
+                                    $(tds[i]).text(text);
+                                }
+                            }
+                        );
+                    }
+                }, 500);
+            }
+
+            function CalcQtyToReceive() {
+                var qty = $("input[name='items_to_receive']:checked").length;
+                $("#quantity").val(qty);
+            }
+
+            function CheckNItems(n) {
+                $("input[name='items_to_receive']").each(function() {
+                    $(this).prop('checked', false);
+                });
+                $("input[name='items_to_receive']:lt("+n+")").each(function () {
+                    $(this).prop('checked', true);
+                });
+            }
+        [% END %]
+
+        $(document).ready(function() {
+            [% IF (AcqCreateItemReceiving) %]
+                cloneItemBlock(0, '[% UniqueItemFields %]');
+            [% ELSIF (AcqCreateItem == 'ordering') && not subscriptionid %]
+                $("input[name='items_to_receive']").change(function() {
+                    CalcQtyToReceive();
+                });
+                CalcQtyToReceive();
+                $("#quantity").keyup(function() {
+                    var qty = parseInt($("#quantity").val());
+                    var qtyto = parseInt($("#quantity_to_receive").val());
+                    if(qty > qtyto) {
+                        $("#qtyrecerror").show();
+                    } else {
+                        $("#qtyrecerror").hide();
+                    }
+                    CheckNItems($(this).val());
+                });
+            [% END %]
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

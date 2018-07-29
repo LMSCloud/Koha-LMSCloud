@@ -40,6 +40,7 @@
             <xsl:otherwise>"</xsl:otherwise>
           </xsl:choose>
         </xsl:variable>
+
         <xsl:variable name="leader" select="marc:leader"/>
         <xsl:variable name="leader6" select="substring($leader,7,1)"/>
         <xsl:variable name="leader7" select="substring($leader,8,1)"/>
@@ -724,11 +725,13 @@
                     </xsl:call-template>
                 </xsl:attribute>
             </xsl:when>
+
             <!-- #1807 Strip unwanted parenthesis from subjects for searching -->
             <xsl:otherwise>
                 <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=su<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="translate(marc:subfield[@code='a'],'()','')"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
             </xsl:otherwise>
             </xsl:choose>
+
             <xsl:call-template name="chopPunctuation">
                 <xsl:with-param name="chopString">
                     <xsl:call-template name="subfieldSelect">
@@ -739,6 +742,20 @@
                 </xsl:with-param>
             </xsl:call-template>
             </a>
+
+            <xsl:if test="marc:subfield[@code=9]">
+                <xsl:text> </xsl:text>
+                <a class='authlink'>
+                    <xsl:attribute name="href">/cgi-bin/koha/authorities/detail.pl?authid=<xsl:value-of select="marc:subfield[@code=9]"/></xsl:attribute>
+                    <xsl:element name="img">
+                        <xsl:attribute name="src">/intranet-tmpl/prog/img/filefind.png</xsl:attribute>
+                        <xsl:attribute name="alt"></xsl:attribute>
+                        <xsl:attribute name="height">15</xsl:attribute>
+                        <xsl:attribute name="width">15</xsl:attribute>
+                    </xsl:element>
+                </a>
+            </xsl:if>
+
             <xsl:choose>
             <xsl:when test="position()=last()"></xsl:when>
             <xsl:otherwise> | </xsl:otherwise>
@@ -781,6 +798,55 @@
             </span>
         </xsl:if>
 
+<!-- MARC21 776 Additional Physical Form Entry -->
+    <xsl:if test="marc:datafield[@tag=776]">
+        <span class="results_summary add_physical_form">
+            <span class="label">Additional physical formats: </span>
+            <xsl:for-each select="marc:datafield[@tag=776]">
+                <xsl:variable name="linktext">
+                    <xsl:choose>
+                    <xsl:when test="marc:subfield[@code='t']">
+                        <xsl:value-of select="marc:subfield[@code='t']"/>
+                    </xsl:when>
+                    <xsl:when test="marc:subfield[@code='a']">
+                        <xsl:value-of select="marc:subfield[@code='a']"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:text>No title</xsl:text>
+                    </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:if test="@ind2=8 and marc:subfield[@code='i']">
+                    <xsl:call-template name="subfieldSelect">
+                        <xsl:with-param name="codes">i</xsl:with-param>
+                    </xsl:call-template>
+                    <xsl:text>: </xsl:text>
+                </xsl:if>
+                <xsl:choose>
+                <xsl:when test="marc:subfield[@code='w']">
+                    <a>
+                    <xsl:attribute name="href">
+                        <xsl:text>/cgi-bin/koha/catalogue/search.pl?q=control-number:</xsl:text>
+                        <xsl:call-template name="extractControlNumber">
+                            <xsl:with-param name="subfieldW">
+                                <xsl:value-of select="marc:subfield[@code='w']"/>
+                            </xsl:with-param>
+                        </xsl:call-template>
+                    </xsl:attribute>
+                    <xsl:value-of select="$linktext"/>
+                    </a>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="$linktext"/>
+                </xsl:otherwise>
+                </xsl:choose>
+                <xsl:if test="position() != last()">
+                    <xsl:text>; </xsl:text>
+                </xsl:if>
+            </xsl:for-each>
+        </span>
+    </xsl:if>
+
 <!-- DDC classification -->
     <xsl:if test="marc:datafield[@tag=082]">
         <span class="results_summary ddc">
@@ -796,6 +862,23 @@
                 </xsl:choose>
             </xsl:for-each>
         </span>
+    </xsl:if>
+
+<!-- Other classification -->
+    <xsl:if test="marc:datafield[@tag=084]">
+       <span class="results_summary oc">
+           <span class="label">Other classification: </span>
+          <xsl:for-each select="marc:datafield[@tag=084]">
+                <xsl:call-template name="subfieldSelect">
+                   <xsl:with-param name="codes">a</xsl:with-param>
+                   <xsl:with-param name="delimeter"><xsl:text> | </xsl:text></xsl:with-param>
+                </xsl:call-template>
+                <xsl:choose>
+                   <xsl:when test="position()=last()"><xsl:text>  </xsl:text></xsl:when>
+                   <xsl:otherwise> | </xsl:otherwise>
+                </xsl:choose>
+          </xsl:for-each>
+       </span>
     </xsl:if>
 
         <xsl:if test="marc:datafield[@tag=856]">

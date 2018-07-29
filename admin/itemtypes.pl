@@ -31,8 +31,8 @@ use C4::Koha;
 use C4::Context;
 use C4::Auth;
 use C4::Output;
-
 use Koha::ItemTypes;
+use Koha::ItemType;
 use Koha::Localizations;
 
 my $input         = new CGI;
@@ -72,6 +72,8 @@ if ( $op eq 'add_form' ) {
     my $itemtype     = Koha::ItemTypes->find($itemtype_code);
     my $description  = $input->param('description');
     my $rentalcharge = $input->param('rentalcharge');
+    my $defaultreplacecost = $input->param('defaultreplacecost');
+    my $processfee = $input->param('processfee');
     my $image = $input->param('image') || q||;
 
     my $notforloan = $input->param('notforloan') ? 1 : 0;
@@ -90,6 +92,8 @@ if ( $op eq 'add_form' ) {
     if ( $itemtype and $is_a_modif ) {    # it's a modification
         $itemtype->description($description);
         $itemtype->rentalcharge($rentalcharge);
+        $itemtype->defaultreplacecost($defaultreplacecost);
+        $itemtype->processfee($processfee);
         $itemtype->notforloan($notforloan);
         $itemtype->imageurl($imageurl);
         $itemtype->summary($summary);
@@ -108,17 +112,19 @@ if ( $op eq 'add_form' ) {
         }
     } elsif ( not $itemtype and not $is_a_modif ) {
         my $itemtype = Koha::ItemType->new(
-            {   itemtype       => $itemtype_code,
-                description    => $description,
-                rentalcharge   => $rentalcharge,
-                notforloan     => $notforloan,
-                imageurl       => $imageurl,
-                summary        => $summary,
-                checkinmsg     => $checkinmsg,
-                checkinmsgtype => $checkinmsgtype,
-                sip_media_type => $sip_media_type,
-                hideinopac     => $hideinopac,
-                searchcategory => $searchcategory,
+            {   itemtype           => $itemtype_code,
+                description        => $description,
+                rentalcharge       => $rentalcharge,
+                defaultreplacecost => $defaultreplacecost,
+                processfee         => $processfee,
+                notforloan         => $notforloan,
+                imageurl           => $imageurl,
+                summary            => $summary,
+                checkinmsg         => $checkinmsg,
+                checkinmsgtype     => $checkinmsgtype,
+                sip_media_type     => $sip_media_type,
+                hideinopac         => $hideinopac,
+                searchcategory     => $searchcategory,
             }
         );
         eval { $itemtype->store; };
@@ -137,27 +143,19 @@ if ( $op eq 'add_form' ) {
 
     $searchfield = '';
     $op          = 'list';
-} elsif ( $op eq 'delete_confirm' ) {
 
-    # Check both items and biblioitems
-    my ($total) = $dbh->selectrow_array( '
-        SELECT COUNT(*) AS total FROM (
-            SELECT itemtype AS t FROM biblioitems
-            UNION ALL
-            SELECT itype AS t FROM items
-        ) AS tmp
-        WHERE tmp.t=?
-    ', {}, $itemtype_code );
-
-    if ($total) {
-        push @messages, { type => 'error', code => 'cannot_be_deleted', total => $total };
+ } elsif ( $op eq 'delete_confirm' ) {
+    my $itemtype = Koha::ItemTypes->find($itemtype_code);
+    my $can_be_deleted = $itemtype->can_be_deleted();
+    if ($can_be_deleted == 0) {
+        push @messages, { type => 'error', code => 'cannot_be_deleted'};
         $op = 'list';
     } else {
-        my $itemtype = Koha::ItemTypes->find($itemtype_code);
         $template->param( itemtype => $itemtype, );
     }
 
 } elsif ( $op eq 'delete_confirmed' ) {
+
     my $itemtype = Koha::ItemTypes->find($itemtype_code);
     my $deleted = eval { $itemtype->delete };
     if ( $@ or not $deleted ) {

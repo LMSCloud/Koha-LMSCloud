@@ -26,8 +26,7 @@ Invoice details
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
@@ -35,7 +34,7 @@ use C4::Output;
 use C4::Acquisition;
 use C4::Budgets;
 
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Currencies;
 use Koha::DateUtils;
 use Koha::Misc::Files;
@@ -80,10 +79,12 @@ elsif ( $op && $op eq 'reopen' ) {
 elsif ( $op && $op eq 'mod' ) {
     my $shipmentcost       = $input->param('shipmentcost');
     my $shipment_budget_id = $input->param('shipment_budget_id');
+    my $invoicenumber      = $input->param('invoicenumber');
     ModInvoice(
         invoiceid             => $invoiceid,
-        shipmentdate          => output_pref( { str => scalar $input->param('shipmentdate'), dateformat => 'iso', dateonly => 1 } ),
-        billingdate           => output_pref( { str => scalar $input->param('billingdate'),  dateformat => 'iso', dateonly => 1 } ),
+        invoicenumber         => $invoicenumber,
+        shipmentdate          => scalar output_pref( { str => scalar $input->param('shipmentdate'), dateformat => 'iso', dateonly => 1 } ),
+        billingdate           => scalar output_pref( { str => scalar $input->param('billingdate'),  dateformat => 'iso', dateonly => 1 } ),
         shipmentcost          => $shipmentcost,
         shipmentcost_budgetid => $shipment_budget_id
     );
@@ -110,34 +111,33 @@ elsif ( $op && $op eq 'delete' ) {
 
 
 my $details = GetInvoiceDetails($invoiceid);
-my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $details->{booksellerid} });
+my $bookseller = Koha::Acquisition::Booksellers->find( $details->{booksellerid} );
 my @orders_loop = ();
 my $orders = $details->{'orders'};
 my @foot_loop;
 my %foot;
 my $total_quantity = 0;
-my $total_gste = 0;
-my $total_gsti = 0;
-my $total_gstvalue = 0;
+my $total_tax_excluded = 0;
+my $total_tax_included = 0;
+my $total_tax_value = 0;
 foreach my $order (@$orders) {
-    $order = C4::Acquisition::populate_order_with_prices(
-        {
-            order        => $order,
-            booksellerid => $bookseller->{id},
-            receiving    => 1,
-        }
-    );
-    my $line = get_infos( $order, $bookseller, $template );
+    my $line = get_infos( $order, $bookseller);
 
-    $foot{$$line{gstrate}}{gstrate} = $$line{gstrate};
-    $foot{$$line{gstrate}}{gstvalue} += $$line{gstvalue};
-    $total_gstvalue += $$line{gstvalue};
-    $foot{$$line{gstrate}}{quantity}  += $$line{quantity};
+    $line->{total_tax_excluded} = $line->{unitprice_tax_excluded} * $line->{quantity};
+    $line->{total_tax_included} = $line->{unitprice_tax_included} * $line->{quantity};
+
+    $line->{tax_value} = $line->{tax_value_on_receiving};
+    $line->{tax_rate} = $line->{tax_rate_on_receiving};
+
+    $foot{$$line{tax_rate}}{tax_rate} = $$line{tax_rate};
+    $foot{$$line{tax_rate}}{tax_value} += $$line{tax_value};
+    $total_tax_value += $$line{tax_value};
+    $foot{$$line{tax_rate}}{quantity}  += $$line{quantity};
     $total_quantity += $$line{quantity};
-    $foot{$$line{gstrate}}{totalgste} += $$line{totalgste};
-    $total_gste += $$line{totalgste};
-    $foot{$$line{gstrate}}{totalgsti} += $$line{totalgsti};
-    $total_gsti += $$line{totalgsti};
+    $foot{$$line{tax_rate}}{total_tax_excluded} += $$line{total_tax_excluded};
+    $total_tax_excluded += $$line{total_tax_excluded};
+    $foot{$$line{tax_rate}}{total_tax_included} += $$line{total_tax_included};
+    $total_tax_included += $$line{total_tax_included};
 
     $line->{orderline} = $line->{parent_ordernumber};
     push @orders_loop, $line;
@@ -145,7 +145,6 @@ foreach my $order (@$orders) {
 
 push @foot_loop, map {$_} values %foot;
 
-my $format = "%.2f";
 my $budgets = GetBudgets();
 my @budgets_loop;
 my $shipmentcost_budgetid = $details->{shipmentcost_budgetid};
@@ -172,12 +171,12 @@ $template->param(
     orders_loop      => \@orders_loop,
     foot_loop        => \@foot_loop,
     total_quantity   => $total_quantity,
-    total_gste       => sprintf( $format, $total_gste ),
-    total_gsti       => sprintf( $format, $total_gsti ),
-    total_gstvalue   => sprintf( $format, $total_gstvalue ),
-    total_gste_shipment => sprintf( $format, $total_gste + $details->{shipmentcost}),
-    total_gsti_shipment => sprintf( $format, $total_gsti + $details->{shipmentcost}),
-    invoiceincgst    => $bookseller->{invoiceincgst},
+    total_tax_excluded => $total_tax_excluded,
+    total_tax_included => $total_tax_included,
+    total_tax_value  => $total_tax_value,
+    total_tax_excluded_shipment => $total_tax_excluded + $details->{shipmentcost},
+    total_tax_included_shipment => $total_tax_included + $details->{shipmentcost},
+    invoiceincgst    => $bookseller->invoiceincgst,
     currency         => Koha::Acquisition::Currencies->get_active,
     budgets_loop     => \@budgets_loop,
 );
@@ -202,7 +201,6 @@ sub get_infos {
     $line{budget_name}    = $budget->{budget_name};
 
     if ( $line{uncertainprice} ) {
-        $template->param( uncertainprices => 1 );
         $line{rrp} .= ' (Uncertain)';
     }
     if ( $line{'title'} ) {

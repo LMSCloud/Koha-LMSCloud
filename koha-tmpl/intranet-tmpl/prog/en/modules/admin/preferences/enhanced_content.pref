@@ -98,9 +98,29 @@ Enhanced Content:
         -
             - Access Novelist Select using user profile
             - pref: NovelistSelectProfile
-            - and password
+            - on the opac
+        -
+            - Access Novelist Select using user profile
+            - pref: NovelistSelectStaffProfile
+            - on the staff client
+        -
+            - Access Novelist Select using password
             - pref: NovelistSelectPassword
               class: password
+            - .
+        -
+            - pref: NovelistSelectStaffEnabled
+              choices:
+                  yes: Add
+                  no: "Don't add"
+            - Novelist Select content to the Staff client (requires that you have entered in a user profile and password, which can be seen in image links).
+        -
+            - Display Novelist Select staff content
+            - pref: NovelistSelectStaffView
+              choices:
+                  tab: in a tab
+                  above: above the holdings table
+                  below: below the holdings table
             - .
     Google:
         -
@@ -151,7 +171,7 @@ Enhanced Content:
                   yes: Show
                   no: "Don't show"
             - "reviews, similar items, and tags from Library Thing for Libraries on item detail pages on the OPAC. If you've enabled this, you need to "
-            - <a href="http://www.librarything.com/forlibraries/">sign up</a>, then enter in your ID below.
+            - <a href="https://www.librarything.com/forlibraries/">sign up</a>, then enter in your ID below.
         -
             - Access Library Thing for Libraries using the customer ID
             - pref: LibraryThingForLibrariesID
@@ -364,6 +384,15 @@ Enhanced Content:
             - "Show items from the OverDrive catalog of library #"
             - pref: OverDriveLibraryID
             - .
+        -
+            - pref: OverDriveCirculation
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - users to access their OverDrive circulation history, and circulate items.
+            - If you enable access, you must register auth return url of
+            - http(s)://my.opac.hostname/cgi-bin/koha/external/overdrive/auth.pl
+            - with OverDrive.
     Coce Cover images cache:
         -
             - pref: Coce

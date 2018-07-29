@@ -13,6 +13,8 @@
                     "<a href='/cgi-bin/koha/virtualshelves/shelves.pl?op=view&shelfnumber=[% data.shelfnumber %]'>[% data.shelfname | html%]</a>",
                 "dt_count":
                     "[% data.count %] item(s)",
+                "dt_is_shared":
+                    "[% IF data.type == 2 %]Public[% ELSIF data.is_shared %]Shared[% ELSE %]Private[% END %]",
                 "dt_owner":
                     "<a href='/cgi-bin/koha/members/moremember.pl?borrowernumber=[% data.owner %]'>[% data.firstname %] [% data.surname %]</a>",
                 "dt_sortby":
@@ -37,7 +39,7 @@
         [%~ action_block = action_block _ '<input type="hidden" name="op" value="edit_form" />' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="category" value="' _ type _ '" />' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="referer" value="list" />' ~%]
-        [%~ action_block = action_block _ '<button class="editshelf btn btn-mini"><i class="fa fa-pencil"></i> Edit</button>' ~%]
+        [%~ action_block = action_block _ '<button class="editshelf btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>' ~%]
         [%~ action_block = action_block _ '</form> ' ~%]
     [%~ END ~%]
     [%~ IF can_manage_shelf OR can_delete_shelf ~%]
@@ -48,7 +50,7 @@
         [%~ action_block = action_block _ '<input type="hidden" name="shelfnumber" value="' _ shelfnumber  _ '" />' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="category" value="' _ type _ '" />' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="referer" value="list" />' ~%]
-        [%~ action_block = action_block _ '<button type="submit" class="deleteshelf btn btn-mini"><i class="fa fa-trash"></i> Delete</button>' ~%]
+        [%~ action_block = action_block _ '<button type="submit" class="deleteshelf btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</button>' ~%]
         [%~ action_block = action_block _ '</form>' ~%]
     [%~ END ~%]
 [%~ ELSE ~%]

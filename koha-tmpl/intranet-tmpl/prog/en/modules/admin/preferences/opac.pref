@@ -1,6 +1,12 @@
 OPAC:
     Appearance:
         -
+            - pref: OPACUserSummary
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
+        -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
               choices:
@@ -87,6 +93,11 @@ OPAC:
                   no: Show
             - lost items on search and detail pages.
         -
+            - 'Display lists in the OPAC using XSLT stylesheet at: '
+            - pref: OPACXSLTListsDisplay
+              class: file
+            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="">Leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="default">default</a>" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language'
+        -
             - 'Display OPAC results using XSLT stylesheet at: '
             - pref: OPACXSLTResultsDisplay
               class: file
@@ -138,13 +149,15 @@ OPAC:
                   both: "home and holding libraries"
             - for items on the OPAC record details page.
         -
-            - Display the shelving location under the
-            - pref: OpacLocationBranchToDisplayShelving
+            - 'Display the shelving location '
+            - pref: OpacLocationOnDetail
               choices:
-                  home: "home library"
-                  holding: "holding library"
-                  both: "home and holding libraries"
-            - for items on the OPAC record details page.
+                  home: "below the home library"
+                  holding: "below the holding library"
+                  both: "below both home and holding libraries"
+                  column: "on a separate column"
+            - "for items on the OPAC record details page."
+            - "<br />Note: If 'on a separate column' is selected, you still need to enable the item_shelving_location display on the <a href='/cgi-bin/koha/admin/columns_settings.pl'>configure columns</a> administration page"
         -
             - pref: OpacKohaUrl
               default: 0
@@ -159,13 +172,6 @@ OPAC:
                   yes: Show
                   no: "Don't show"
             - a link to recent comments in the OPAC masthead.
-        -
-            - pref: OPACShowBarcode
-              default: 0
-              choices:
-                  yes: Show
-                  no: "Don't show"
-            - the item's barcode on the holdings tab.
         -
             - pref: GoogleIndicTransliteration
               default: 0
@@ -318,6 +324,13 @@ OPAC:
                 holdingbranch: 'holding library'
             - "is the logged in user's library. The second tab will contain all other items."
         -
+            - pref: OPACHoldingsDefaultSortField
+              choices:
+                  first_column: First column of the table
+                  homebranch: Home library
+                  holdingbranch: Holding library
+            - "is the default sort field for the holdings table"
+        -
             - pref: OpacSuggestionManagedBy
               choices:
                   yes: Show
@@ -330,7 +343,7 @@ OPAC:
             - items on the biblio detail page (if the biblio has more items than this, a link is displayed instead that allows the user to choose to display all items).
         -
             - "Show the following HTML on the OPAC login form when a patron is not logged in:"
-            - pref: NoLoginInstructions
+            - pref: OpacLoginInstructions
               type: htmlarea
               class: code
         -
@@ -505,6 +518,13 @@ OPAC:
                   no: Don't display
             - the acquisition details on OPAC detail pages.
         -
+            - pref: OpacNewsLibrarySelect
+              default: 0
+              choices:
+                  yes: Display
+                  no: Don't display
+            - a branch selection list for news items in the OPAC.
+        -
             - "Use the following as the OPAC ISBD template:"
             - pref: OPACISBD
               type: textarea
@@ -563,6 +583,22 @@ OPAC:
                   yes: Allow
             - patrons to select library when making a purchase suggestion
         -
+            - "Fields that should be mandatory for patron purchase suggestions:"
+            - pref: OPACSuggestionMandatoryFields
+              multiple:
+                title: Title
+                author: Author
+                copyrightdate: Copyright or publication date
+                isbn: ISBN, ISSN or other standard number
+                publishercode: Publisher name
+                collectiontitle: Collection title
+                place: Publication place
+                itemtype: Item type
+                branch: Library or branch
+                patronreason: Patron reason
+                note: Note
+            - "<br />Note: if none of the above options are selected, 'Title' field would be mandatory anyway, by default."
+        -
             - pref: OpacHiddenItems
               type: textarea
               class: code
@@ -596,7 +632,11 @@ OPAC:
             - Do not display MARC field 520 content if the value of the first indicator of the field 520 content is contained in following list 
             - pref: ExcludeReviewsWithMARC520Indicator1Value
             - "seperated by | (e.g. 4|8). Use # instead of a space."
-
+        -
+            - Limit patrons to
+            - pref: MaxOpenSuggestions
+              class: integer
+            - "open suggestions. Leave empty for no limit. **Note: this setting does not affect anonymous suggestions"
     Privacy:
         -
             - pref: StoreLastBorrower
@@ -719,17 +759,17 @@ OPAC:
               class: integer
             - "days."
         -
-            - "The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
             - pref: PatronSelfRegistrationBorrowerMandatoryField
               class: multi
             - (separate columns with |)
         -
-            - "The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
             - pref: PatronSelfRegistrationBorrowerUnwantedField
               class: multi
             - (separate columns with |)
         -
-            - "The following <a href='http://schema.koha-community.org/16_05/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
             - pref: PatronSelfModificationBorrowerUnwantedField
               class: multi
             - (separate columns with |)
@@ -738,6 +778,24 @@ OPAC:
             - pref: PatronSelfRegistrationAdditionalInstructions
               type: htmlarea
               class: html
+        -
+            - pref: PatronSelfRegistrationEmailMustBeUnique
+              choices:
+                  yes: "Consider"
+                  no: "Do not consider"
+            - "patron's email (borrowers.email) as unique on self registering. An email won't be accepted if it already exists in the database."
+        -
+            - "Enable the self registration for the following libraries:"
+            - pref: PatronSelfRegistrationLibraryList
+            - (separate branchcode with |).
+            - If empty, all libraries will be listed.
+        -
+            - pref: PatronSelfRegistrationPrefillForm
+              choices:
+                  yes: "Display and prefill"
+                  no: "Do not display and prefill"
+            - "password and login form after a patron has self registered."
+
     Advanced Search Options:
         -
             - Show search options

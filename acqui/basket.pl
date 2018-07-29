@@ -20,24 +20,27 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use C4::Auth;
 use C4::Koha;
 use C4::Output;
 use CGI qw ( -utf8 );
 use C4::Acquisition;
 use C4::Budgets;
-use C4::Branch;
 use C4::Contract;
 use C4::Debug;
 use C4::Biblio;
-use C4::Members qw/GetMember/;  #needed for permissions checking for changing basketgroup of a basket
 use C4::Items;
 use C4::Suggestions;
+use Koha::Biblios;
+use Koha::Acquisition::Booksellers;
+use Koha::Libraries;
+use C4::Letters qw/SendAlerts/;
 use Date::Calc qw/Add_Delta_Days/;
 use Koha::Database;
 use Koha::EDI qw( create_edi_order get_edifact_ean );
+use Koha::CsvProfiles;
+use Koha::Patrons;
 
 =head1 NAME
 
@@ -67,13 +70,13 @@ the supplier this script have to display the basket.
 
 =cut
 
-my $query        = new CGI;
+our $query        = new CGI;
 our $basketno     = $query->param('basketno');
-my $ean          = $query->param('ean');
-my $booksellerid = $query->param('booksellerid');
+our $ean          = $query->param('ean');
+our $booksellerid = $query->param('booksellerid');
 my $duplinbatch =  $query->param('duplinbatch');
 
-my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
+our ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
     {
         template_name   => "acqui/basket.tt",
         query           => $query,
@@ -84,9 +87,9 @@ my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
     }
 );
 
-my $basket = GetBasket($basketno);
+our $basket = GetBasket($basketno);
 $booksellerid = $basket->{booksellerid} unless $booksellerid;
-my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 my $schema = Koha::Database->new()->schema();
 my $rs = $schema->resultset('VendorEdiAccount')->search(
     { vendor_id => $booksellerid, } );
@@ -98,7 +101,7 @@ unless (CanUserManageBasket($loggedinuser, $basket, $userflags)) {
         basketno => $basketno,
         basketname => $basket->{basketname},
         booksellerid => $booksellerid,
-        name => $bookseller->{name}
+        booksellername => $bookseller->name,
     );
     output_html_with_http_headers $query, $cookie, $template->output;
     exit;
@@ -108,13 +111,12 @@ unless (CanUserManageBasket($loggedinuser, $basket, $userflags)) {
 # FIXME : the query->param('booksellerid') below is probably useless. The bookseller is always known from the basket
 # if no booksellerid in parameter, get it from basket
 # warn "=>".$basket->{booksellerid};
-my $op = $query->param('op');
-if (!defined $op) {
-    $op = q{};
-}
+my $op = $query->param('op') // 'list';
 
-my $confirm_pref= C4::Context->preference("BasketConfirmations") || '1';
+our $confirm_pref= C4::Context->preference("BasketConfirmations") || '1';
 $template->param( skip_confirm_reopen => 1) if $confirm_pref eq '2';
+
+my @messages;
 
 if ( $op eq 'delete_confirm' ) {
     my $basketno = $query->param('basketno');
@@ -129,12 +131,13 @@ if ( $op eq 'delete_confirm' ) {
         my @cannotdelbiblios ;
         foreach my $myorder (@orders){
             my $biblionumber = $myorder->{'biblionumber'};
+            my $biblio = Koha::Biblios->find( $biblionumber );
             my $countbiblio = CountBiblioInOrders($biblionumber);
             my $ordernumber = $myorder->{'ordernumber'};
-            my $subscriptions = scalar GetSubscriptionsId ($biblionumber);
-            my $itemcount = GetItemsCount($biblionumber);
+            my $cnt_subscriptions = $biblio->subscriptions->count;
+            my $itemcount = $biblio->items->count;
             my $error;
-            if ($countbiblio == 0 && $itemcount == 0 && $subscriptions == 0) {
+            if ($countbiblio == 0 && $itemcount == 0 && not $cnt_subscriptions ) {
                 $error = DelBiblio($myorder->{biblionumber}) }
             else {
                 push @cannotdelbiblios, {biblionumber=> ($myorder->{biblionumber}),
@@ -142,7 +145,7 @@ if ( $op eq 'delete_confirm' ) {
                                          author=> $myorder->{'author'},
                                          countbiblio=> $countbiblio,
                                          itemcount=>$itemcount,
-                                         subscriptions=>$subscriptions};
+                                         subscriptions => $cnt_subscriptions};
             }
             if ($error) {
                 push @cannotdelbiblios, {biblionumber=> ($myorder->{biblionumber}),
@@ -155,7 +158,11 @@ if ( $op eq 'delete_confirm' ) {
     }
  # delete the basket
     DelBasket($basketno,);
-    $template->param( delete_confirmed => 1 );
+    $template->param(
+        delete_confirmed => 1,
+        booksellername => $bookseller->name,
+        booksellerid => $booksellerid,
+    );
 } elsif ( !$bookseller ) {
     $template->param( NO_BOOKSELLER => 1 );
 } elsif ($op eq 'export') {
@@ -163,8 +170,22 @@ if ( $op eq 'delete_confirm' ) {
         -type       => 'text/csv',
         -attachment => 'basket' . $basket->{'basketno'} . '.csv',
     );
-    print GetBasketAsCSV($query->param('basketno'), $query);
+    my $csv_profile_id = $query->param('csv_profile');
+    print GetBasketAsCSV( scalar $query->param('basketno'), $query, $csv_profile_id ); # if no csv_profile_id passed, using default rows
     exit;
+} elsif ($op eq 'email') {
+    my $err = eval {
+        SendAlerts( 'orderacquisition', $query->param('basketno'), 'ACQORDER' );
+    };
+    if ( $@ ) {
+        push @messages, { type => 'error', code => $@ };
+    } elsif ( ref $err and exists $err->{error} ) {
+        push @messages, { type => 'error', code => $err->{error} };
+    } else {
+        push @messages, { type => 'message', code => 'email_sent' };
+    }
+
+    $op = 'list';
 } elsif ($op eq 'close') {
     my $confirm = $query->param('confirm') || $confirm_pref eq '2';
     if ($confirm) {
@@ -195,13 +216,14 @@ if ( $op eq 'delete_confirm' ) {
     $template->param(
         confirm_close   => "1",
         booksellerid    => $booksellerid,
+        booksellername  => $bookseller->name,
         basketno        => $basket->{'basketno'},
         basketname      => $basket->{'basketname'},
         basketgroupname => $basket->{'basketname'},
     );
     }
 } elsif ($op eq 'reopen') {
-    ReopenBasket($query->param('basketno'));
+    ReopenBasket(scalar $query->param('basketno'));
     print $query->redirect('/cgi-bin/koha/acqui/basket.pl?basketno='.$basket->{'basketno'})
 }
 elsif ( $op eq 'ediorder' ) {
@@ -221,7 +243,9 @@ elsif ( $op eq 'ediorder' ) {
     });
     print $query->redirect("/cgi-bin/koha/acqui/basket.pl?basketno=$basketno");
     exit;
-} else {
+}
+
+if ( $op eq 'list' ) {
     my @branches_loop;
     # get librarian branch...
     if ( C4::Context->preference("IndependentBranches") ) {
@@ -236,6 +260,7 @@ elsif ( $op eq 'ediorder' ) {
                 exit 0;
             }
         }
+
         if (!defined $basket->{branch} or $basket->{branch} eq $userenv->{branch}) {
             push @branches_loop, {
                 branchcode => $userenv->{branch},
@@ -245,20 +270,17 @@ elsif ( $op eq 'ediorder' ) {
         }
     } else {
         # get branches
-        my $branches = C4::Branch::GetBranchesWithoutMobileStations;
-        my @branchcodes = sort {
-            $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname}
-        } keys %$branches;
-        foreach my $branch (@branchcodes) {
+        my $branches = Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => ['branchname'] } )->unblessed;
+        foreach my $branch (@$branches) {
             my $selected = 0;
             if (defined $basket->{branch}) {
-                $selected = 1 if $branch eq $basket->{branch};
+                $selected = 1 if $branch->{branchcode} eq $basket->{branch};
             } else {
-                $selected = 1 if $branch eq C4::Context->userenv->{branch};
+                $selected = 1 if $branch->{branchcode} eq C4::Context->userenv->{branch};
             }
             push @branches_loop, {
-                branchcode => $branch,
-                branchname => $branches->{$branch}->{branchname},
+                branchcode => $branch->{branchcode},
+                branchname => $branch->{branchname},
                 selected => $selected
             };
         }
@@ -266,8 +288,8 @@ elsif ( $op eq 'ediorder' ) {
 
 #if the basket is closed,and the user has the permission to edit basketgroups, display a list of basketgroups
     my ($basketgroup, $basketgroups);
-    my $staffuser = GetMember(borrowernumber => $loggedinuser);
-    if ($basket->{closedate} && haspermission($staffuser->{userid}, { acquisition => 'group_manage'} )) {
+    my $patron = Koha::Patrons->find($loggedinuser);
+    if ($basket->{closedate} && haspermission($patron->userid, { acquisition => 'group_manage'} )) {
         $basketgroups = GetBasketgroups($basket->{booksellerid});
         for my $bg ( @{$basketgroups} ) {
             if ($basket->{basketgroupid} && $basket->{basketgroupid} == $bg->{id}){
@@ -281,7 +303,7 @@ elsif ( $op eq 'ediorder' ) {
     my $estimateddeliverydate;
     if( $basket->{closedate} ) {
         my ($year, $month, $day) = ($basket->{closedate} =~ /(\d+)-(\d+)-(\d+)/);
-        ($year, $month, $day) = Add_Delta_Days($year, $month, $day, $bookseller->{deliverytime});
+        ($year, $month, $day) = Add_Delta_Days($year, $month, $day, $bookseller->deliverytime);
         $estimateddeliverydate = sprintf( "%04d-%02d-%02d", $year, $month, $day );
     }
 
@@ -296,8 +318,9 @@ elsif ( $op eq 'ediorder' ) {
     my @basketusers_ids = GetBasketUsers($basketno);
     my @basketusers;
     foreach my $basketuser_id (@basketusers_ids) {
-        my $basketuser = GetMember(borrowernumber => $basketuser_id);
-        push @basketusers, $basketuser if $basketuser;
+        # FIXME Could be improved with a search -in
+        my $basket_patron = Koha::Patrons->find( $basketuser_id );
+        push @basketusers, $basket_patron if $basket_patron;
     }
 
     my $active_currency = Koha::Acquisition::Currencies->get_active;
@@ -308,27 +331,29 @@ elsif ( $op eq 'ediorder' ) {
     my @book_foot_loop;
     my %foot;
     my $total_quantity = 0;
-    my $total_gste = 0;
-    my $total_gsti = 0;
-    my $total_gstvalue = 0;
+    my $total_tax_excluded = 0;
+    my $total_tax_included = 0;
+    my $total_tax_value = 0;
     for my $order (@orders) {
-        $order = C4::Acquisition::populate_order_with_prices({ order => $order, booksellerid => $booksellerid, ordering => 1 });
         my $line = get_order_infos( $order, $bookseller);
         if ( $line->{uncertainprice} ) {
             $template->param( uncertainprices => 1 );
         }
 
+        $line->{tax_rate} = $line->{tax_rate_on_ordering};
+        $line->{tax_value} = $line->{tax_value_on_ordering};
+
         push @books_loop, $line;
 
-        $foot{$$line{gstrate}}{gstrate} = $$line{gstrate};
-        $foot{$$line{gstrate}}{gstvalue} += $$line{gstvalue};
-        $total_gstvalue += $$line{gstvalue};
-        $foot{$$line{gstrate}}{quantity}  += $$line{quantity};
+        $foot{$$line{tax_rate}}{tax_rate} = $$line{tax_rate};
+        $foot{$$line{tax_rate}}{tax_value} += $$line{tax_value};
+        $total_tax_value += $$line{tax_value};
+        $foot{$$line{tax_rate}}{quantity}  += $$line{quantity};
         $total_quantity += $$line{quantity};
-        $foot{$$line{gstrate}}{totalgste} += $$line{totalgste};
-        $total_gste += $$line{totalgste};
-        $foot{$$line{gstrate}}{totalgsti} += $$line{totalgsti};
-        $total_gsti += $$line{totalgsti};
+        $foot{$$line{tax_rate}}{total_tax_excluded} += $$line{total_tax_excluded};
+        $total_tax_excluded += $$line{total_tax_excluded};
+        $foot{$$line{tax_rate}}{total_tax_included} += $$line{total_tax_included};
+        $total_tax_included += $$line{total_tax_included};
     }
 
     push @book_foot_loop, map {$_} values %foot;
@@ -337,7 +362,6 @@ elsif ( $op eq 'ediorder' ) {
     my @cancelledorders = GetOrders($basketno, { cancelled => 1 });
     my @cancelledorders_loop;
     for my $order (@cancelledorders) {
-        $order = C4::Acquisition::populate_order_with_prices({ order => $order, booksellerid => $booksellerid, ordering => 1 });
         my $line = get_order_infos( $order, $bookseller);
         push @cancelledorders_loop, $line;
     }
@@ -348,10 +372,7 @@ elsif ( $op eq 'ediorder' ) {
 
     if ($basket->{basketgroupid}){
         $basketgroup = GetBasketgroup($basket->{basketgroupid});
-        $basketgroup->{deliveryplacename} = C4::Branch::GetBranchName( $basketgroup->{deliveryplace} );
-        $basketgroup->{billingplacename} = C4::Branch::GetBranchName( $basketgroup->{billingplace} );
     }
-    my $borrower= GetMember('borrowernumber' => $loggedinuser);
     my $budgets = GetBudgetHierarchy;
     my $has_budgets = 0;
     foreach my $r (@{$budgets}) {
@@ -368,7 +389,7 @@ elsif ( $op eq 'ediorder' ) {
         basketno             => $basketno,
         basket               => $basket,
         basketname           => $basket->{'basketname'},
-        basketbranchname     => C4::Branch::GetBranchName($basket->{branch}),
+        basketbranchcode     => $basket->{branch},
         basketnote           => $basket->{note},
         basketbooksellernote => $basket->{booksellernote},
         basketcontractno     => $basket->{contractnumber},
@@ -382,20 +403,20 @@ elsif ( $op eq 'ediorder' ) {
         closedate            => $basket->{closedate},
         estimateddeliverydate=> $estimateddeliverydate,
         is_standing          => $basket->{is_standing},
-        deliveryplace        => C4::Branch::GetBranchName( $basket->{deliveryplace} ),
-        billingplace         => C4::Branch::GetBranchName( $basket->{billingplace} ),
-        active               => $bookseller->{'active'},
-        booksellerid         => $bookseller->{'id'},
-        name                 => $bookseller->{'name'},
+        deliveryplace        => $basket->{deliveryplace},
+        billingplace         => $basket->{billingplace},
+        active               => $bookseller->active,
+        booksellerid         => $bookseller->id,
+        booksellername       => $bookseller->name,
         books_loop           => \@books_loop,
         book_foot_loop       => \@book_foot_loop,
         cancelledorders_loop => \@cancelledorders_loop,
         total_quantity       => $total_quantity,
-        total_gste           => sprintf( "%.2f", $total_gste ),
-        total_gsti           => sprintf( "%.2f", $total_gsti ),
-        total_gstvalue       => sprintf( "%.2f", $total_gstvalue ),
+        total_tax_excluded   => $total_tax_excluded,
+        total_tax_included   => $total_tax_included,
+        total_tax_value      => $total_tax_value,
         currency             => $active_currency->currency,
-        listincgst           => $bookseller->{listincgst},
+        listincgst           => $bookseller->listincgst,
         basketgroups         => $basketgroups,
         basketgroup          => $basketgroup,
         grouped              => $basket->{basketgroupid},
@@ -407,8 +428,12 @@ elsif ( $op eq 'ediorder' ) {
         unclosable           => @orders ? $basket->{is_standing} : 1,
         has_budgets          => $has_budgets,
         duplinbatch          => $duplinbatch,
+        csv_profiles         => [ Koha::CsvProfiles->search({ type => 'sql', used_for => 'export_basket' }) ],
     );
 }
+
+$template->param( messages => \@messages );
+output_html_with_http_headers $query, $cookie, $template->output;
 
 sub get_order_infos {
     my $order = shift;
@@ -426,8 +451,13 @@ sub get_order_infos {
     $line{basketno}       = $basketno;
     $line{budget_name}    = $budget->{budget_name};
 
+    $line{total_tax_included} = $line{ecost_tax_included} * $line{quantity};
+    $line{total_tax_excluded} = $line{ecost_tax_excluded} * $line{quantity};
+    $line{tax_value} = $line{tax_value_on_ordering};
+    $line{tax_rate} = $line{tax_rate_on_ordering};
+
     if ( $line{uncertainprice} ) {
-        $line{rrpgste} .= ' (Uncertain)';
+        $line{rrp_tax_excluded} .= ' (Uncertain)';
     }
     if ( $line{'title'} ) {
         my $volume      = $order->{'volume'};
@@ -437,31 +467,29 @@ sub get_order_infos {
     }
 
     my $biblionumber = $order->{'biblionumber'};
-    my $countbiblio = CountBiblioInOrders($biblionumber);
-    my $ordernumber = $order->{'ordernumber'};
-    my @subscriptions = GetSubscriptionsId ($biblionumber);
-    my $itemcount = GetItemsCount($biblionumber);
-    my $holds  = GetHolds ($biblionumber);
-    my @items = GetItemnumbersFromOrder( $ordernumber );
-    my $itemholds;
-    foreach my $item (@items){
-        my $nb = GetItemHolds($biblionumber, $item);
-        if ($nb){
-            $itemholds += $nb;
-        }
+    if ( $biblionumber ) { # The biblio still exists
+        my $biblio = Koha::Biblios->find( $biblionumber );
+        my $countbiblio = CountBiblioInOrders($biblionumber);
+        my $ordernumber = $order->{'ordernumber'};
+        my $cnt_subscriptions = $biblio->subscriptions->count;
+        my $itemcount   = $biblio->items->count;
+        my $holds_count = $biblio->holds->count;
+        my @items = GetItemnumbersFromOrder( $ordernumber );
+        my $itemholds  = $biblio->holds->search({ itemnumber => { -in => \@items } })->count;
+
+        # if the biblio is not in other orders and if there is no items elsewhere and no subscriptions and no holds we can then show the link "Delete order and Biblio" see bug 5680
+        $line{can_del_bib}          = 1 if $countbiblio <= 1 && $itemcount == scalar @items && !($cnt_subscriptions) && !($holds_count);
+        $line{items}                = ($itemcount) - (scalar @items);
+        $line{left_item}            = 1 if $line{items} >= 1;
+        $line{left_biblio}          = 1 if $countbiblio > 1;
+        $line{biblios}              = $countbiblio - 1;
+        $line{left_subscription}    = 1 if $cnt_subscriptions;
+        $line{subscriptions}        = $cnt_subscriptions;
+        ($holds_count >= 1) ? $line{left_holds} = 1 : $line{left_holds} = 0;
+        $line{left_holds_on_order}  = 1 if $line{left_holds}==1 && ($line{items} == 0 || $itemholds );
+        $line{holds}                = $holds_count;
+        $line{holds_on_order}       = $itemholds?$itemholds:$holds_count if $line{left_holds_on_order};
     }
-    # if the biblio is not in other orders and if there is no items elsewhere and no subscriptions and no holds we can then show the link "Delete order and Biblio" see bug 5680
-    $line{can_del_bib}          = 1 if $countbiblio <= 1 && $itemcount == scalar @items && !(@subscriptions) && !($holds);
-    $line{items}                = ($itemcount) - (scalar @items);
-    $line{left_item}            = 1 if $line{items} >= 1;
-    $line{left_biblio}          = 1 if $countbiblio > 1;
-    $line{biblios}              = $countbiblio - 1;
-    $line{left_subscription}    = 1 if scalar @subscriptions >= 1;
-    $line{subscriptions}        = scalar @subscriptions;
-    ($holds >= 1) ? $line{left_holds} = 1 : $line{left_holds} = 0;
-    $line{left_holds_on_order}  = 1 if $line{left_holds}==1 && ($line{items} == 0 || $itemholds );
-    $line{holds}                = $holds;
-    $line{holds_on_order}       = $itemholds?$itemholds:$holds if $line{left_holds_on_order};
 
 
     my $suggestion   = GetSuggestionInfoFromBiblionumber($line{biblionumber});
@@ -472,7 +500,8 @@ sub get_order_infos {
     foreach my $key (qw(transferred_from transferred_to)) {
         if ($line{$key}) {
             my $order = GetOrder($line{$key});
-            my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $basket->{booksellerid} });
+            my $basket = GetBasket($order->{basketno});
+            my $bookseller = Koha::Acquisition::Booksellers->find( $basket->{booksellerid} );
             $line{$key} = {
                 order => $order,
                 basket => $basket,
@@ -484,9 +513,6 @@ sub get_order_infos {
 
     return \%line;
 }
-
-output_html_with_http_headers $query, $cookie, $template->output;
-
 
 sub edi_close_and_order {
     my $confirm = $query->param('confirm') || $confirm_pref eq '2';

@@ -1,10 +1,10 @@
+[% USE Koha %]
         </div>
-
-[% IF ( languages_loop ) %]
+[% IF ( ( languages_loop ) && ( ! popup_window ) && ( Koha.Preference('StaffLangSelectorMode') == 'both' || Koha.Preference('StaffLangSelectorMode') == 'footer') ) %]
     [% UNLESS ( one_language_enabled ) %]
-        <div id="changelanguage" class="navbar navbar-fixed-bottom">
-            <div class="navbar-inner">
-        <ul id="i18nMenu" class="nav">
+        <div id="changelanguage" class="navbar navbar-default navbar-fixed-bottom">
+            <div class="container-fluid">
+        <ul id="i18nMenu" class="nav navbar-nav">
         [% FOREACH languages_loo IN languages_loop %]
 
             [% IF ( languages_loo.group_enabled ) %]
@@ -23,11 +23,11 @@
                         [% END %]
                     [% END %]
                 <span class="caret"></span></a>
-            <ul id="sub[% languages_loo.rfc4646_subtag %]" class="dropdown-menu">
+            <ul id="sub[% languages_loo.rfc4646_subtag %]" class="dropdown-menu dropdown-menu-right">
             [% FOREACH sublanguages_loo IN languages_loo.sublanguages_loop %]
         [% IF ( sublanguages_loo.enabled ) %]
                 [% IF ( sublanguages_loo.sublanguage_current ) %]
-                    <li class="navbar-text"> <a href="#" class="currentlanguage disabled">[% sublanguages_loo.native_description %] [% sublanguages_loo.script_description %] [% sublanguages_loo.region_description %] [% sublanguages_loo.variant_description %] ([% sublanguages_loo.rfc4646_subtag %])</a></li>
+                    <li class="navbar-text"> <span class="currentlanguage disabled">[% sublanguages_loo.native_description %] [% sublanguages_loo.script_description %] [% sublanguages_loo.region_description %] [% sublanguages_loo.variant_description %] ([% sublanguages_loo.rfc4646_subtag %])</span></li>
                 [% ELSE %]
                 <li><a href="/cgi-bin/koha/changelanguage.pl?language=[% sublanguages_loo.rfc4646_subtag %]"> [% sublanguages_loo.native_description %] [% sublanguages_loo.script_description %] [% sublanguages_loo.region_description %] [% sublanguages_loo.variant_description %] ([% sublanguages_loo.rfc4646_subtag %])</a></li>
         [% END %]
@@ -66,5 +66,10 @@
     [% END %]
 [% END %]
     <span id="audio-alert"></span>
+    [% IF ( footerjs ) %]
+        [% INCLUDE js_includes.inc %]
+        [% jsinclude # Parse the page template's JavaScript block if necessary %]
+        [% TRY %][% jsextrainclude %][% CATCH %][% END %]
+    [% END %]
     </body>
 </html>

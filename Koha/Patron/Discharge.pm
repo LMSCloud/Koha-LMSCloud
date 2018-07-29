@@ -6,13 +6,11 @@ use File::Temp qw( :POSIX );
 use Carp;
 
 use C4::Templates qw ( gettemplate );
-use C4::Members qw( GetPendingIssues );
-use C4::Reserves qw( GetReservesFromBorrowernumber CancelReserve );
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
-
-my $rs = Koha::Database->new->schema->resultset('Discharge');
+use Koha::Patrons;
+use Koha::Patron::Debarments;
 
 sub count {
     my ($params) = @_;
@@ -29,20 +27,18 @@ sub count {
         $values->{validated} = { '!=', undef };
     }
 
-    return $rs->search( $values )->count;
+    return search_limited( $values )->count;
 }
 
 sub can_be_discharged {
     my ($params) = @_;
     return unless $params->{borrowernumber};
 
-    my $issues = GetPendingIssues( $params->{borrowernumber} );
-    if( @$issues ) {
-        return 0;
-    }
-    else {
-        return 1;
-    }
+    my $patron = Koha::Patrons->find( $params->{borrowernumber} );
+    return unless $patron;
+
+    my $has_pending_checkouts = $patron->checkouts->count;
+    return $has_pending_checkouts ? 0 : 1;
 }
 
 sub is_discharged {
@@ -50,11 +46,10 @@ sub is_discharged {
     return unless $params->{borrowernumber};
     my $borrowernumber = $params->{borrowernumber};
 
+    my $restricted = Koha::Patrons->find( $borrowernumber )->is_debarred;
+    my @validated = get_validated({borrowernumber => $borrowernumber});
 
-    my $restricted = Koha::Patron::Debarments::IsDebarred($borrowernumber);
-    my $validated = get_validated({borrowernumber => $borrowernumber});
-
-    if ($restricted && $validated) {
+    if ($restricted && @validated) {
         return 1;
     } else {
         return 0;
@@ -67,6 +62,7 @@ sub request {
     return unless $borrowernumber;
     return unless can_be_discharged({ borrowernumber => $borrowernumber });
 
+    my $rs = Koha::Database->new->schema->resultset('Discharge');
     return $rs->create({
         borrower => $borrowernumber,
         needed   => dt_from_string,
@@ -79,9 +75,10 @@ sub discharge {
     return unless $borrowernumber and can_be_discharged( { borrowernumber => $borrowernumber } );
 
     # Cancel reserves
-    my @reserves = GetReservesFromBorrowernumber($borrowernumber);
-    for my $reserve (@reserves) {
-        CancelReserve( { reserve_id => $reserve->{reserve_id} } );
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    my $holds = $patron->holds;
+    while ( my $hold = $holds->next ) {
+        $hold->cancel;
     }
 
     # Debar the member
@@ -91,6 +88,7 @@ sub discharge {
     });
 
     # Generate the discharge
+    my $rs = Koha::Database->new->schema->resultset('Discharge');
     my $discharge = $rs->search({ borrower => $borrowernumber }, { order_by => { -desc => 'needed' }, rows => 1 });
     if( $discharge->count > 0 ) {
         $discharge->update({ validated => dt_from_string });
@@ -107,9 +105,11 @@ sub generate_as_pdf {
     my ($params) = @_;
     return unless $params->{borrowernumber};
 
+    my $patron = Koha::Patrons->find( $params->{borrowernumber} );
     my $letter = C4::Letters::GetPreparedLetter(
         module      => 'members',
         letter_code => 'DISCHARGE',
+        lang        => $patron->lang,
         tables      => { borrowers => $params->{borrowernumber}, branches => $params->{'branchcode'}, },
     );
 
@@ -160,8 +160,7 @@ sub get_pendings {
         ( defined $branchcode ? ( 'borrower.branchcode' => $branchcode ) : () ),
     };
 
-    my @rs = $rs->search( $cond, { join => 'borrower' } );
-    return \@rs;
+    return search_limited( $cond );
 }
 
 sub get_validated {
@@ -175,9 +174,23 @@ sub get_validated {
         ( defined $branchcode ? ( 'borrower.branchcode' => $branchcode ) : () ),
     };
 
-    my @rs = $rs->search( $cond, { join => 'borrower' } );
-    return \@rs;
+    return search_limited( $cond );
 }
 
+# TODO This module should be based on Koha::Object[s]
+sub search_limited {
+    my ( $params, $attributes ) = @_;
+    my $userenv = C4::Context->userenv;
+    my @restricted_branchcodes;
+    if ( $userenv and $userenv->{number} ) {
+        my $logged_in_user = Koha::Patrons->find( $userenv->{number} );
+        @restricted_branchcodes = $logged_in_user->libraries_where_can_see_patrons;
+    }
+    $params->{'borrower.branchcode'} = { -in => \@restricted_branchcodes } if @restricted_branchcodes;
+    $attributes->{join} = 'borrower';
+
+    my $rs = Koha::Database->new->schema->resultset('Discharge');
+    return $rs->search( $params, { join => 'borrower' } );
+}
 
 1;

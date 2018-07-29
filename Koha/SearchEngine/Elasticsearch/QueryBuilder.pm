@@ -47,7 +47,7 @@ use Modern::Perl;
 use URI::Escape;
 
 use C4::Context;
-use Data::Dumper;    # TODO remove
+use Koha::Exceptions;
 
 =head2 build_query
 
@@ -111,13 +111,14 @@ sub build_query {
 
     # See _convert_facets in Search.pm for how these get turned into
     # things that Koha can use.
-    $res->{facets} = {
+    $res->{aggregations} = {
         author   => { terms => { field => "author__facet" } },
         subject  => { terms => { field => "subject__facet" } },
         itype    => { terms => { field => "itype__facet" } },
         location => { terms => { field => "location__facet" } },
         'su-geo' => { terms => { field => "su-geo__facet" } },
         se       => { terms => { field => "se__facet" } },
+        ccode    => { terms => { field => "ccode__facet" } },
     };
 
     my $display_library_facets = C4::Context->preference('DisplayLibraryFacets');
@@ -130,7 +131,7 @@ sub build_query {
         $res->{aggregations}{holdingbranch} = { terms => { field => "holdingbranch__facet" } };
     }
     if ( my $ef = $options{expanded_facet} ) {
-        $res->{facets}{$ef}{terms}{size} = C4::Context->preference('FacetMaxCount');
+        $res->{aggregations}{$ef}{terms}{size} = C4::Context->preference('FacetMaxCount');
     };
     return $res;
 }
@@ -203,6 +204,7 @@ sub build_query_compat {
     my @sort_params  = $self->_convert_sort_fields(@$sort_by);
     my @index_params = $self->_convert_index_fields(@$indexes);
     my $limits       = $self->_fix_limit_special_cases($orig_limits);
+    if ( $params->{suppress} ) { push @$limits, "suppress:0"; }
 
     # Merge the indexes in with the search terms and the operands so that
     # each search thing is a handy unit.
@@ -408,6 +410,16 @@ appropriate search object.
 
 =cut
 
+our $koha_to_index_name = {
+    mainmainentry   => 'Heading-Main',
+    mainentry       => 'Heading',
+    match           => 'Match',
+    'match-heading' => 'Match-heading',
+    'see-from'      => 'Match-heading-see-from',
+    thesaurus       => 'Subject-heading-thesaurus',
+    all              => ''
+};
+
 sub build_authorities_query_compat {
     my ( $self, $marclist, $and_or, $excluding, $operator, $value,
         $authtypecode, $orderby )
@@ -417,24 +429,16 @@ sub build_authorities_query_compat {
     # extensible hash form that is understood by L<build_authorities_query>.
     my @searches;
 
-    my %koha_to_index_name = (
-        mainmainentry   => 'Heading-Main',
-        mainentry       => 'Heading',
-        match           => 'Match',
-        'match-heading' => 'Match-heading',
-        'see-from'      => 'Match-heading-see-from',
-        thesaurus       => 'Subject-heading-thesaurus',
-        any              => '',
-    );
-
     # Make sure everything exists
     foreach my $m (@$marclist) {
-        confess "Invalid marclist field provided: $m" unless exists $koha_to_index_name{$m};
+        Koha::Exceptions::WrongParameter->throw("Invalid marclist field provided: $m")
+            unless exists $koha_to_index_name->{$m};
     }
     for ( my $i = 0 ; $i < @$value ; $i++ ) {
+        next unless $value->[$i]; #clean empty form values, ES doesn't like undefined searches
         push @searches,
           {
-            where    => $koha_to_index_name{$marclist->[$i]},
+            where    => $koha_to_index_name->{$marclist->[$i]},
             operator => $operator->[$i],
             value    => $value->[$i],
           };
@@ -483,11 +487,11 @@ sub _convert_sort_fields {
         pubdate     => 'pubdate',
     );
     my %sort_order_convert =
-      ( qw( dsc desc ), qw( asc asc ), qw( az asc ), qw( za desc ) );
+      ( qw( desc desc ), qw( dsc desc ), qw( asc asc ), qw( az asc ), qw( za desc ) );
 
     # Convert the fields and orders, drop anything we don't know about.
     grep { $_->{field} } map {
-        my ( $f, $d ) = split /_/;
+        my ( $f, $d ) = /(.+)_(.+)/;
         {
             field     => $sort_field_convert{$f},
             direction => $sort_order_convert{$d}
@@ -600,7 +604,7 @@ will have to wait for a real query parser.
 sub _convert_index_strings_freeform {
     my ( $self, $search ) = @_;
     while ( my ( $zeb, $es ) = each %index_field_convert ) {
-        $search =~ s/\b$zeb(?:,[\w-]*)?:/$es:/g;
+        $search =~ s/\b$zeb(?:,[\w\-]*)?:/$es:/g;
     }
     return $search;
 }
@@ -713,11 +717,14 @@ to ensure those parts are correct.
 sub _clean_search_term {
     my ( $self, $term ) = @_;
 
+    my $auto_truncation = C4::Context->preference("QueryAutoTruncate") || 0;
+
     # Some hardcoded searches (like with authorities) produce things like
     # 'an=123', when it ought to be 'an:123' for our purposes.
     $term =~ s/=/:/g;
     $term = $self->_convert_index_strings_freeform($term);
     $term =~ s/[{}]/"/g;
+    $term = $self->_truncate_terms($term) if ($auto_truncation);
     return $term;
 }
 
@@ -776,6 +783,35 @@ sub _sort_field {
         $f .= '__sort';
     }
     return $f;
+}
+
+=head2 _truncate_terms
+
+    my $query = $self->_truncate_terms($query);
+
+Given a string query this function appends '*' wildcard  to all terms except
+operands and double quoted strings.
+
+=cut
+
+sub _truncate_terms {
+    my ( $self, $query ) = @_;
+
+    # '"donald duck" title:"the mouse" and peter" get split into
+    # ['', '"donald duck"', '', ' ', '', 'title:"the mouse"', '', ' ', 'and', ' ', 'pete']
+    my @tokens = split /((?:[\w\-.]+:)?"[^"]+"|\s+)/, $query;
+
+    # Filter out empty tokens
+    my @words = grep { $_ !~ /^\s*$/ } @tokens;
+
+    # Append '*' to words if needed, ie. if it's not surrounded by quotes, not
+    # terminated by '*' and not a keyword
+    my @terms = map {
+        my $w = $_;
+        (/"$/ or /\*$/ or grep {lc($w) eq $_} qw/and or not/) ? $_ : "$_*";
+    } @words;
+
+    return join ' ', @terms;
 }
 
 1;

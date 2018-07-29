@@ -26,11 +26,11 @@ use C4::Auth;
 use C4::Koha;
 use C4::Output;
 use C4::Circulation;
-use C4::Review;
 use C4::Biblio;
-use C4::Members qw/GetMemberDetails/;
 use Koha::DateUtils;
-use POSIX qw(ceil strftime);
+use Koha::Patrons;
+use Koha::Reviews;
+use POSIX qw(ceil floor strftime);
 
 my $template_name;
 my $query = new CGI;
@@ -38,8 +38,7 @@ my $format = $query->param("format") || '';
 my $count = C4::Context->preference('OPACnumSearchResults') || 20;
 my $results_per_page = $query->param('count') || $count;
 my $offset = $query->param('offset') || 0;
-my $page = $query->param('page') || 1;
-$offset = ($page-1)*$results_per_page if $page>1;
+my $page = floor( $offset / $results_per_page ) + 1;
 
 if ($format eq "rss") {
     $template_name = "opac-showreviews-rss.tt";
@@ -76,42 +75,53 @@ if ( C4::Context->preference('ShowReviewer') and C4::Context->preference('ShowRe
     }
 }
 
-my $reviews = getallreviews(1,$offset,$results_per_page);
+my $reviews = Koha::Reviews->search(
+    { approved => 1 },
+    {
+        rows => $results_per_page,
+        page => $page,
+        order_by => { -desc => 'datereviewed' },
+    }
+)->unblessed;
 my $marcflavour      = C4::Context->preference("marcflavour");
-my $hits = numberofreviews(1);
+my $hits = Koha::Reviews->search({ approved => 1 })->count;
 my $i = 0;
 my $latest_comment_date;
 for my $result (@$reviews){
     my $biblionumber = $result->{biblionumber};
-	my $bib = &GetBiblioData($biblionumber);
-    my $record = GetMarcBiblio($biblionumber);
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    my $biblioitem = $biblio->biblioitem;
+    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
     my $frameworkcode = GetFrameworkCode($biblionumber);
-	my ( $borr ) = GetMemberDetails( $result->{borrowernumber} );
 	$result->{normalized_upc} = GetNormalizedUPC($record,$marcflavour);
 	$result->{normalized_ean} = GetNormalizedEAN($record,$marcflavour);
 	$result->{normalized_oclc} = GetNormalizedOCLCNumber($record,$marcflavour);
 	$result->{normalized_isbn} = GetNormalizedISBN(undef,$record,$marcflavour);
-	$result->{title} = $bib->{'title'};
+    $result->{title} = $biblio->title;
 	$result->{subtitle} = GetRecordValue('subtitle', $record, $frameworkcode);
-	$result->{author} = $bib->{'author'};
-	$result->{place} = $bib->{'place'};
-	$result->{publishercode} = $bib->{'publishercode'};
-	$result->{copyrightdate} = $bib->{'copyrightdate'};
-	$result->{pages} = $bib->{'pages'};
-	$result->{size} = $bib->{'size'};
-	$result->{notes} = $bib->{'notes'};
-	$result->{timestamp} = $bib->{'timestamp'};
-    $result->{borrtitle} = $borr->{'title'};
-	$result->{firstname} = $borr->{'firstname'};
-	$result->{surname} = $borr->{'surname'};
-    $result->{userid} = $borr->{'userid'};
-        if ($libravatar_enabled and $borr->{'email'}) {
-            $result->{avatarurl} = libravatar_url(email => $borr->{'email'}, size => 40, https => $ENV{HTTPS});
-        }
+    $result->{author} = $biblio->author;
+    $result->{place} = $biblioitem->place;
+    $result->{publishercode} = $biblioitem->publishercode;
+    $result->{copyrightdate} = $biblio->copyrightdate;
+    $result->{pages} = $biblioitem->pages;
+    $result->{size} = $biblioitem->size;
+    $result->{notes} = $biblioitem->notes;
+    $result->{timestamp} = $biblioitem->timestamp;
 
-    if ($result->{borrowernumber} eq $borrowernumber) {
-		$result->{your_comment} = 1;
-	}
+    my $patron = Koha::Patrons->find( $result->{borrowernumber} );
+    if ( $patron ) {
+        $result->{borrtitle} = $patron->title;
+        $result->{firstname} = $patron->firstname;
+        $result->{surname} = $patron->surname;
+        $result->{userid} = $patron->userid;
+            if ($libravatar_enabled and $patron->email) {
+                $result->{avatarurl} = libravatar_url(email => $patron->email, size => 40, https => $ENV{HTTPS});
+            }
+
+        if ($result->{borrowernumber} eq $borrowernumber) {
+            $result->{your_comment} = 1;
+        }
+    }
 
     if($format eq "rss"){
         my $rsstimestamp = eval { dt_from_string( $result->{datereviewed} ); };
@@ -174,6 +184,7 @@ $template->param(next_page_offset => $next_page_offset) unless $pages eq $curren
 
 $template->param(
     reviews => $reviews,
+    results_per_page => $results_per_page,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

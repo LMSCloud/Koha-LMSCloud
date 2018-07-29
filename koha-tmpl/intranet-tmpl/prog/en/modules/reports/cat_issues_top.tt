@@ -1,44 +1,10 @@
+[% USE Branches %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Reports &rsaquo; Most-circulated items[% IF ( do_it ) %] &rsaquo; Results[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<script type="text/javascript">
-//<![CDATA[
-[% IF ( do_it ) %]function Dopop(link) {
-	newin=window.open(link,'width=500,height=400,toolbar=false,scrollbars=yes');
-}[% ELSE %]
-    $(document).ready(function() {
-        // http://jqueryui.com/demos/datepicker/#date-range
-        var dates = $( "#from, #to" ).datepicker({
-            changeMonth: true,
-            numberOfMonths: 1,
-            onSelect: function( selectedDate ) {
-                var option = this.id == "from" ? "minDate" : "maxDate",
-                    instance = $( this ).data( "datepicker" );
-                    date = $.datepicker.parseDate(
-                        instance.settings.dateFormat ||
-                        $.datepicker._defaults.dateFormat,
-                        selectedDate, instance.settings );
-                dates.not( this ).datepicker( "option", option, date );
-            }
-        });
-        var datesRO = $( "#fromRO, #toRO" ).datepicker({
-            changeMonth: true,
-            numberOfMonths: 1,
-            onSelect: function( selectedDate ) {
-                var option = this.id == "fromRO" ? "minDate" : "maxDate",
-                    instance = $( this ).data( "datepicker" );
-                    date = $.datepicker.parseDate(
-                        instance.settings.dateFormat ||
-                        $.datepicker._defaults.dateFormat,
-                        selectedDate, instance.settings );
-                datesRO.not( this ).datepicker( "option", option, date );
-            }
-        });
-    });[% END %]
-//]]>
-</script>
 </head>
+
 <body id="rep_cat_issues_top" class="rep">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -58,7 +24,7 @@
 		[% IF ( mainloo.loopfilter ) %]
             <p>Filtered on:</p>
 			[% FOREACH loopfilte IN mainloo.loopfilter %]
-					<p>[% IF ( loopfilte.err ) %]  [% END %] [% loopfilte.crit %] =[% loopfilte.filter %][% IF ( loopfilte.err ) %]  [% END %]</p>
+                    <p>[% IF ( loopfilte.err ) %]  [% END %] [% loopfilte.crit %] =[% loopfilte.filter |html %][% IF ( loopfilte.err ) %]  [% END %]</p>
 			[% END %]
 		[% END %]
 		
@@ -111,16 +77,16 @@
         <li><label for="fromRO">Check-in date from</label> <input type="text" size="10" id="fromRO" name="Filter" />
         <label for="toRO" class="inline">To: </label> <input type="text" size="10" id="toRO" name="Filter" value="" />
                     <span class="hint">[% INCLUDE 'date-format.inc' %]</span></li>
-				<li><label for="branch">Library: </label>
-<select name="Filter" id="branch"><option value="" > Any library</option>
-    [% FOREACH branchloo IN branchloop %]
-        <option value="[% branchloo.value %]" >[% branchloo.branchname %] </option>  
-     [% END %] 
-    </select>     </li>
+        <li>
+            <label for="branch">Library: </label>
+            <select name="Filter" id="branch"><option value="" > Any library</option>
+                [% PROCESS options_for_libraries libraries => Branches.all() %]
+            </select>
+        </li>
       <li> 
         <label for="documenttype">Item type: </label><select name="Filter" id="documenttype"><option value="" > Any item type</option>
-    [% FOREACH itemtypeloo IN itemtypeloop %]
-        <option value="[% itemtypeloo.value %]" >[% itemtypeloo.description %] </option>  
+    [% FOREACH itemtype IN itemtypes %]
+        <option value="[% itemtype.itemtype %]" >[% itemtype.translated_description %] </option>
      [% END %] 
     </select>
       </li>
@@ -143,9 +109,9 @@
       </li>
       <li>
         <label for="patroncategory">Patron category: </label><select name="Filter" id="patroncategory"><option value="" > Any category code</option>
-    [% FOREACH borcatloo IN borcatloop %]
-        <option value="[% borcatloo.value %]" >[% borcatloo.description %] </option>  
-     [% END %] 
+    [% FOREACH patron_category IN patron_categories %]
+        <option value="[% patron_category.categorycode %]" >[% patron_category.description %] </option>
+     [% END %]
     </select>
         </li>
 				<li><label for="day">Day: </label> <input type="text" name="Filter" id="day" value="" /></li>
@@ -221,4 +187,42 @@
 [% INCLUDE 'reports-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    <script type="text/javascript">
+        [% UNLESS ( do_it ) %]
+            $(document).ready(function() {
+                // http://jqueryui.com/demos/datepicker/#date-range
+                var dates = $( "#from, #to" ).datepicker({
+                    changeMonth: true,
+                    numberOfMonths: 1,
+                    onSelect: function( selectedDate ) {
+                        var option = this.id == "from" ? "minDate" : "maxDate",
+                            instance = $( this ).data( "datepicker" );
+                            date = $.datepicker.parseDate(
+                                instance.settings.dateFormat ||
+                                $.datepicker._defaults.dateFormat,
+                                selectedDate, instance.settings );
+                        dates.not( this ).datepicker( "option", option, date );
+                    }
+                });
+                var datesRO = $( "#fromRO, #toRO" ).datepicker({
+                    changeMonth: true,
+                    numberOfMonths: 1,
+                    onSelect: function( selectedDate ) {
+                        var option = this.id == "fromRO" ? "minDate" : "maxDate",
+                            instance = $( this ).data( "datepicker" );
+                            date = $.datepicker.parseDate(
+                                instance.settings.dateFormat ||
+                                $.datepicker._defaults.dateFormat,
+                                selectedDate, instance.settings );
+                        datesRO.not( this ).datepicker( "option", option, date );
+                    }
+                });
+            });
+        [% END %]
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

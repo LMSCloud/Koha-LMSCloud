@@ -1,0 +1,48 @@
+{
+  "biblionumber": {
+    "type": "integer",
+    "description": "internally assigned biblio identifier"
+  },
+  "patron_id": {
+    "type": "integer",
+    "description": "Internal patron identifier"
+  },
+  "cardnumber": {
+    "type": ["string", "null"],
+    "description": "library assigned user identifier"
+  },
+  "city_id": {
+    "type": "integer",
+    "description": "internally assigned city identifier",
+    "readOnly": true
+  },
+  "email": {
+    "type": ["string", "null"],
+    "description": "primary email address for patron's primary address"
+  },
+  "firstname": {
+    "type": ["string", "null"],
+    "description": "patron's first name"
+  },
+  "itemnumber": {
+    "type": ["integer", "null"],
+    "description": "internally assigned item identifier"
+  },
+  "phone": {
+    "type": ["string", "null"],
+    "description": "primary phone number for patron's primary address"
+  },
+  "reserve_id": {
+    "type": "integer",
+    "description": "Internal hold identifier"
+  },
+  "surname": {
+    "type": "string",
+    "description": "patron's last name"
+  },
+  "vendor_id": {
+    "type": "integer",
+    "description": "internally assigned vendor identifier",
+    "readOnly": true
+  }
+}

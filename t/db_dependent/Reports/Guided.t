@@ -18,7 +18,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::More tests => 9;
 use Test::Warn;
 
 use t::lib::TestBuilder;
@@ -186,19 +186,19 @@ subtest 'get_saved_reports' => sub {
     is( $count, 0, "There is no report" );
 
     my @report_ids;
-    foreach ( 1..3 ) {
+    foreach my $ii ( 1..3 ) {
         my $id = $builder->build({ source => 'Borrower' })->{ borrowernumber };
         push @report_ids, save_report({
             borrowernumber => $id,
             sql            => "SQL$id",
             name           => "Name$id",
-            area           => "area$id",
+            area           => "area$ii", # ii vs id area is varchar(6)
             group          => "group$id",
             subgroup       => "subgroup$id",
             type           => "type$id",
             notes          => "note$id",
-            cache_expiry   => "null",
-            public         => "null"
+            cache_expiry   => undef,
+            public         => 0,
         });
         $count++;
     }
@@ -258,6 +258,100 @@ subtest 'get_saved_reports' => sub {
 
     is_deeply( get_report_areas(), [ 'CIRC', 'CAT', 'PAT', 'ACQ', 'ACC', 'SER' ],
         "get_report_areas returns the correct array of report areas");
+};
+
+subtest 'Ensure last_run is populated' => sub {
+    plan tests => 3;
+
+    my $rs = Koha::Database->new()->schema()->resultset('SavedSql');
+
+    my $report = $rs->new(
+        {
+            report_name => 'Test Report',
+            savedsql    => 'SELECT * FROM branches',
+            notes       => undef,
+        }
+    )->insert();
+
+    is( $report->last_run, undef, 'Newly created report has null last_run ' );
+
+    execute_query( $report->savedsql, undef, undef, undef, $report->id );
+    $report->discard_changes();
+
+    isnt( $report->last_run, undef, 'First run of report populates last_run' );
+
+    my $previous_last_run = $report->last_run;
+    sleep(1); # last_run is stored to the second, so we need to ensure at least one second has passed between runs
+    execute_query( $report->savedsql, undef, undef, undef, $report->id );
+    $report->discard_changes();
+
+    isnt( $report->last_run, $previous_last_run, 'Second run of report updates last_run' );
+};
+
+subtest 'convert_sql' => sub {
+    plan tests => 4;
+
+    my $sql = q|
+    SELECT biblionumber, ExtractValue(marcxml,
+'count(//datafield[@tag="505"])') AS count505
+    FROM biblioitems
+    HAVING count505 > 1|;
+    my $expected_converted_sql = q|
+    SELECT biblionumber, ExtractValue(metadata,
+'count(//datafield[@tag="505"])') AS count505
+    FROM biblio_metadata
+    HAVING count505 > 1|;
+
+    is( C4::Reports::Guided::convert_sql( $sql ), $expected_converted_sql, "Simple query should have been correctly converted");
+
+    $sql = q|
+    SELECT biblionumber, substring(
+ExtractValue(marcxml,'//controlfield[@tag="008"]'), 8,4 ) AS 'PUB DATE',
+title
+    FROM biblioitems
+    INNER JOIN biblio USING (biblionumber)
+    WHERE biblionumber = 14|;
+
+    $expected_converted_sql = q|
+    SELECT biblionumber, substring(
+ExtractValue(metadata,'//controlfield[@tag="008"]'), 8,4 ) AS 'PUB DATE',
+title
+    FROM biblio_metadata
+    INNER JOIN biblio USING (biblionumber)
+    WHERE biblionumber = 14|;
+    is( C4::Reports::Guided::convert_sql( $sql ), $expected_converted_sql, "Query with biblio info should have been correctly converted");
+
+    $sql = q|
+    SELECT concat(b.title, ' ', ExtractValue(m.marcxml,
+'//datafield[@tag="245"]/subfield[@code="b"]')) AS title, b.author,
+count(h.reservedate) AS 'holds'
+    FROM biblio b
+    LEFT JOIN biblioitems m USING (biblionumber)
+    LEFT JOIN reserves h ON (b.biblionumber=h.biblionumber)
+    GROUP BY b.biblionumber
+    HAVING count(h.reservedate) >= 42|;
+
+    $expected_converted_sql = q|
+    SELECT concat(b.title, ' ', ExtractValue(m.metadata,
+'//datafield[@tag="245"]/subfield[@code="b"]')) AS title, b.author,
+count(h.reservedate) AS 'holds'
+    FROM biblio b
+    LEFT JOIN biblio_metadata m USING (biblionumber)
+    LEFT JOIN reserves h ON (b.biblionumber=h.biblionumber)
+    GROUP BY b.biblionumber
+    HAVING count(h.reservedate) >= 42|;
+    is( C4::Reports::Guided::convert_sql( $sql ), $expected_converted_sql, "Query with 2 joins should have been correctly converted");
+
+    $sql = q|
+    SELECT t1.marcxml AS first, t2.marcxml AS second,
+    FROM biblioitems t1
+    LEFT JOIN biblioitems t2 USING ( biblionumber )|;
+
+    $expected_converted_sql = q|
+    SELECT t1.metadata AS first, t2.metadata AS second,
+    FROM biblio_metadata t1
+    LEFT JOIN biblio_metadata t2 USING ( biblionumber )|;
+    is( C4::Reports::Guided::convert_sql( $sql ), $expected_converted_sql, "Query with multiple instances of marcxml and biblioitems should have them all replaced");
 };
 
 $schema->storage->txn_rollback;

@@ -24,6 +24,7 @@ use C4::Items;
 use C4::Auth;
 use C4::Output;
 
+use Koha::AuthorisedValues;
 use Koha::CsvProfiles;
 
 my $query = new CGI;
@@ -60,9 +61,12 @@ if (C4::Context->preference('TagsEnabled')) {
 foreach my $biblionumber ( @bibs ) {
     $template->param( biblionumber => $biblionumber );
 
+    my $fw = GetFrameworkCode($biblionumber);
+
     my $dat              = &GetBiblioData($biblionumber);
     next unless $dat;
-    my $record           = &GetMarcBiblio($biblionumber);
+    my $record           = &GetMarcBiblio({ biblionumber => $biblionumber });
+    $dat->{subtitle}     = GetRecordValue('subtitle', $record, $fw);
     my $marcnotesarray   = GetMarcNotes( $record, $marcflavour );
     my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
     my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
@@ -75,8 +79,8 @@ foreach my $biblionumber ( @bibs ) {
       $hasauthors = 1;
     }
 	
-    my $shelflocations =GetKohaAuthorisedValues('items.location',$dat->{'frameworkcode'});
-    my $collections =  GetKohaAuthorisedValues('items.ccode',$dat->{'frameworkcode'});
+    my $shelflocations =
+      { map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $dat->{frameworkcode}, kohafield => 'items.location' } ) };
 
 	for my $itm (@items) {
 	    if ($itm->{'location'}){
@@ -121,7 +125,7 @@ my $resultsarray = \@results;
 
 $template->param(
     BIBLIO_RESULTS => $resultsarray,
-    csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc' }) ],
+    csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ],
     bib_list => $bib_list,
 );
 

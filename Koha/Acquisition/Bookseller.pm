@@ -1,122 +1,86 @@
 package Koha::Acquisition::Bookseller;
 
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Koha; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 use Modern::Perl;
 
-use Koha::Database;
-use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Acquisition::Bookseller::Contacts;
+use Koha::Subscriptions;
 
-use Carp qw( croak );
+use base qw( Koha::Object );
 
-use base qw( Class::Accessor );
+=head1 NAME
 
-use C4::Bookseller::Contact;
+Koha::Acquisition::Bookseller Object class
 
-sub fetch {
-    my ( $class, $params ) = @_;
-    my $id = $params->{id};
-    return unless $id;
-    my $schema = Koha::Database->new->schema;
+=head1 API
 
-    my $bookseller =
-      $schema->resultset('Aqbookseller')->find( { id => $id },
-        { result_class => 'DBIx::Class::ResultClass::HashRefInflator' } );
+=head2 Class Methods
 
-    return unless $bookseller;
+=head3 baskets
 
-    my $self = $class->new( $bookseller );
-    $self->contacts; # TODO: This should be generated on demand.
-    return $self;
-}
+    my $vendor  = Koha::Acquisition::Booksellers->find( $id );
+    my @baskets = $vendor->baskets();
 
-sub search {
-    my ( $class, $params ) = @_;
+Returns the list of baskets for the vendor
 
-    my $schema = Koha::Database->new->schema;
+=cut
 
-    my $search_params;
-    while ( my ( $field, $value ) = each %$params ) {
-        if ( $field eq 'name' ) {
-            # Use "like" if search on name
-            $search_params->{name} = { -like => "%$value%" };
-        } else {
-            $search_params->{$field} = $value;
-        }
-    }
-    my $rs = $schema->resultset('Aqbookseller')->search(
-        $search_params,
-        { order_by => 'name' }
-    );
-
-    my @booksellers;
-    while ( my $b = $rs->next ) {
-        my $t = Koha::Acquisition::Bookseller->fetch({ id => $b->id });
-        push @booksellers, $t;
-    }
-    return @booksellers;
-}
-
-sub basket_count {
+sub baskets {
     my ( $self ) = @_;
-    my $schema = Koha::Database->new->schema;
-
-    return $schema->resultset('Aqbasket')->count( { booksellerid => $self->{id} });
+    return $self->{_result}->aqbaskets;
 }
 
-sub subscription_count {
-    my ( $self ) = @_;
+=head3 contacts
 
-    my $schema = Koha::Database->new->schema;
+    my $vendor   = Koha::Acquisition::Booksellers->find( $id );
+    my @contacts = $vendor->contacts();
 
-    return $schema->resultset('Subscription')->count( { aqbooksellerid => $self->{id} });
-}
+Returns the list of contacts for the vendor
+
+=cut
 
 sub contacts {
-    my ( $self ) = @_;
-
-    return $self->{contacts} if $self->{contacts};
-    $self->{contacts} = C4::Bookseller::Contact->get_from_bookseller($self->{id});
-    return $self->{contacts};
+    my ($self) = @_;
+    return Koha::Acquisition::Bookseller::Contacts->search( { booksellerid => $self->id } );
 }
 
-sub insert {
+=head3 subscriptions
+
+    my $vendor        = Koha::Acquisition::Booksellers->find( $id );
+    my @subscriptions = $vendor->subscriptions();
+
+Returns the list of subscriptions for the vendor
+
+=cut
+
+sub subscriptions {
     my ($self) = @_;
 
-    # if these parameters are missing, we can't continue
-    for my $key (qw( id )) {
-        croak "Cannot insert bookseller: Mandatory parameter $key is missing"
-          unless $self->{$key};
-    }
-
-    $self->{quantityreceived} ||= 0;
-    $self->{entrydate} ||=
-      output_pref( { dt => dt_from_string, dateformat => 'iso' } );
-
-    my $schema  = Koha::Database->new->schema;
-    my @columns = $schema->source('Aqorder')->columns;
-    my $rs = $schema->resultset('Aqorder')->create(
-        {
-            map {
-                exists $self->{$_} ? ( $_ => $self->{$_} ) : ()
-            } @columns
-        }
-    );
-    $self->{ordernumber} = $rs->id;
-
-    unless ( $self->{parent_ordernumber} ) {
-        $rs->update( { parent_ordernumber => $self->{ordernumber} } );
-    }
-
-    return $self;
+    return Koha::Subscriptions->search( { aqbooksellerid => $self->id } );
 }
 
-# TODO Move code from ModBookseller
-sub update {
-    die "not implemented yet";
-}
+=head2 Internal methods
 
-# TODO Move code from DelBookseller
-sub delete {
-    die "not implemented yet";
+=head3 _type
+
+=cut
+
+sub _type {
+    return 'Aqbookseller';
 }
 
 1;

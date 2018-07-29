@@ -30,6 +30,7 @@ use C4::Auth;
 use C4::Context;
 use C4::Items;
 use C4::Members;
+use Koha::Patrons;
 use Date::Calc qw( Today Date_to_Days );
 my $query = new CGI;
 
@@ -49,10 +50,10 @@ my $opacrenew = C4::Context->preference("OpacRenewalAllowed");
 my $errorstring = q{};
 my $renewed     = q{};
 
-my $member_details = GetMemberDetails($borrowernumber);
+my $patron = Koha::Patrons->find( $borrowernumber );
 
-if (   $member_details->{'BlockExpiredPatronOpacActions'}
-    && $member_details->{'is_expired'} )
+if (   $patron->category->effective_BlockExpiredPatronOpacActions
+    && $patron->is_expired )
 {
     $errorstring = 'card_expired';
 }
@@ -69,8 +70,7 @@ else {
                 $branchcode = $item->{'homebranch'};
             }
             elsif ( $renewalbranch eq 'patronhomebranch' ) {
-                my $borrower = GetMemberDetails($borrowernumber);
-                $branchcode = $borrower->{'branchcode'};
+                $branchcode = Koha::Patrons->find( $borrowernumber )->branchcode;
             }
             elsif ( $renewalbranch eq 'checkoutbranch' ) {
                 my $issue = GetOpenIssue($itemnumber);
@@ -82,7 +82,7 @@ else {
             else {
                 $branchcode = 'OPACRenew';
             }
-            AddRenewal( $borrowernumber, $itemnumber, $branchcode );
+            AddRenewal( $borrowernumber, $itemnumber, $branchcode, undef, undef );
             push( @renewed, $itemnumber );
         }
         else {

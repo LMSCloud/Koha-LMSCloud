@@ -132,8 +132,7 @@ Not yet completed...
 
 =cut
 
-use strict;            # always use
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 
 ## STEP 1. Load things that are used in both search page and
 # results page and decide which template to load, operations 
@@ -146,16 +145,16 @@ use C4::Auth qw(:DEFAULT get_session);
 use C4::Search;
 use C4::Languages qw(getLanguages);
 use C4::Koha;
-use C4::Members qw(GetMember);
 use URI::Escape;
 use POSIX qw(ceil floor);
-use C4::Branch; # GetBranches
 use C4::Search::History;
 
-use Koha::LibraryCategories;
-use Koha::Virtualshelves;
+use Koha::ItemTypes;
+use Koha::Library::Groups;
+use Koha::Patrons;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
+use Koha::Virtualshelves;
 
 use URI::Escape;
 
@@ -171,6 +170,7 @@ my $template_type;
 my @params = $cgi->multi_param("limit");
 if ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) || ($cgi->param('limit-copydate')) ) {
     $template_name = 'catalogue/results.tt';
+    $template_type = 'results';
 }
 else {
     $template_name = 'catalogue/advsearch.tt';
@@ -191,17 +191,14 @@ my $lang = C4::Languages::getlanguage($cgi);
 if (C4::Context->preference("marcflavour") eq "UNIMARC" ) {
     $template->param('UNIMARC' => 1);
 }
-if (C4::Context->preference("IntranetNumbersPreferPhrase")) {
-    $template->param('numbersphr' => 1);
-}
 
 if($cgi->cookie("holdfor")){ 
-    my $holdfor_patron = GetMember('borrowernumber' => $cgi->cookie("holdfor"));
+    my $holdfor_patron = Koha::Patrons->find( $cgi->cookie("holdfor") );
     $template->param(
         holdfor => $cgi->cookie("holdfor"),
-        holdfor_surname => $holdfor_patron->{'surname'},
-        holdfor_firstname => $holdfor_patron->{'firstname'},
-        holdfor_cardnumber => $holdfor_patron->{'cardnumber'},
+        holdfor_surname => $holdfor_patron->surname,
+        holdfor_firstname => $holdfor_patron->firstname,
+        holdfor_cardnumber => $holdfor_patron->cardnumber,
     );
 }
 
@@ -213,29 +210,17 @@ if($cgi->cookie("intranet_bib_list")){
     @cart_list = split(/\//, $cart_list);
 }
 
-# load the branches
-my $branches = GetBranchesWithoutMobileStations();
+my @search_groups =
+  Koha::Library::Groups->get_search_groups( { interface => 'staff' } );
+@search_groups = sort { $a->title cmp $b->title } @search_groups;
 
-# Populate branch_loop with all branches sorted by their name.  If
-# IndependentBranches is activated, set the default branch to the borrower
-# branch, except for superlibrarian who need to search all libraries.
-my $user = C4::Context->userenv;
-my @branch_loop = map {
-     {
-        value      => $_,
-        branchname => $branches->{$_}->{branchname},
-        selected   => $user->{branch} eq $_ && C4::Branch::onlymine(),
-     }
-} sort {
-    $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname}
-} keys %$branches;
-
-my $categories = Koha::LibraryCategories->search( { categorytype => 'searchdomain' }, { order_by => [ 'categorytype', 'categorycode' ] } );
-
-$template->param(branchloop => \@branch_loop, searchdomainloop => $categories);
+$template->param(
+    selected_branchcode => ( C4::Context->IsSuperLibrarian ? C4::Context->userenv : '' ),
+    search_groups    => \@search_groups,
+);
 
 # load the Type stuff
-my $itemtypes = GetItemTypes;
+my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 # the index parameter is different for item-level itemtypes
 my $itype_or_itemtype = (C4::Context->preference("item-level_itypes"))?'itype':'itemtype';
 my @advancedsearchesloop;
@@ -412,9 +397,9 @@ my %is_nolimit = map { $_ => 1 } @nolimits;
 @limits = grep { not $is_nolimit{$_} } @limits;
 
 if($params->{'multibranchlimit'}) {
-    my $library_category = Koha::LibraryCategories->find( $params->{multibranchlimit} );
-    my @libraries = $library_category->libraries;
-    my $multibranch = '('.join( " or ", map { 'branch: ' . $_->id } @libraries ) .')';
+    my $search_group = Koha::Library::Groups->find( $params->{multibranchlimit} );
+    my @libraries = $search_group->all_libraries;
+    my $multibranch = '('.join( " or ", map { 'branch: ' . $_->branchcode } @libraries ) .')';
     push @limits, $multibranch if ($multibranch ne  '()');
 }
 
@@ -474,9 +459,9 @@ my $scan = $params->{'scan'};
 my $count = C4::Context->preference('numSearchResults') || 20;
 my $results_per_page = $params->{'count'} || $count;
 my $offset = $params->{'offset'} || 0;
+$offset = 0 if $offset < 0;
 my $page = $cgi->param('page') || 1;
 #my $offset = ($page-1)*$results_per_page;
-my $hits;
 my $expanded_facet = $params->{'expand'};
 
 # Define some global variables
@@ -501,54 +486,55 @@ my @query_inputs;
 my $scan_index_to_use;
 my $scan_search_term_to_use;
 
-for my $this_cgi ( split('&',$query_cgi) ) {
-    next unless $this_cgi;
-    $this_cgi =~ m/(.*?)=(.*)/;
-    my $input_name = $1;
-    my $input_value = $2;
-    push @query_inputs, { input_name => $input_name, input_value => Encode::decode_utf8( uri_unescape( $input_value ) ) };
-    if ($input_name eq 'idx') {
-        $scan_index_to_use = $input_value; # unless $scan_index_to_use;
-    }
-    if ($input_name eq 'q') {
-        $scan_search_term_to_use = Encode::decode_utf8( uri_unescape( $input_value ));
+if ($query_cgi) {
+    for my $this_cgi ( split('&', $query_cgi) ) {
+        next unless $this_cgi;
+        $this_cgi =~ m/(.*?)=(.*)/;
+        my $input_name = $1;
+        my $input_value = $2;
+        push @query_inputs, { input_name => $input_name, input_value => Encode::decode_utf8( uri_unescape( $input_value ) ) };
+        if ($input_name eq 'idx') {
+            $scan_index_to_use = $input_value; # unless $scan_index_to_use;
+        }
+        if ($input_name eq 'q') {
+            $scan_search_term_to_use = Encode::decode_utf8( uri_unescape( $input_value ));
+        }
     }
 }
+
 $template->param ( QUERY_INPUTS => \@query_inputs,
                    scan_index_to_use => $scan_index_to_use,
                    scan_search_term_to_use => $scan_search_term_to_use );
 
 ## parse the limit_cgi string and put it into a form suitable for <input>s
 my @limit_inputs;
-for my $this_cgi ( split('&',$limit_cgi) ) {
-    next unless $this_cgi;
-    # handle special case limit-yr
-    if ($this_cgi =~ /yr,st-numeric/) {
-        push @limit_inputs, { input_name => 'limit-yr', input_value => $limit_yr_value };   
-        next;
+if ($limit_cgi) {
+    for my $this_cgi ( split('&', $limit_cgi) ) {
+        next unless $this_cgi;
+        # handle special case limit-yr
+        if ($this_cgi =~ /yr,st-numeric/) {
+            push @limit_inputs, { input_name => 'limit-yr', input_value => $limit_yr_value };
+            next;
+        }
+        $this_cgi =~ m/(.*=)(.*)/;
+        my $input_name = $1;
+        my $input_value = $2;
+        $input_name =~ s/=$//;
+        push @limit_inputs, { input_name => $input_name, input_value => Encode::decode_utf8( uri_unescape($input_value) ) };
     }
-    if ($this_cgi =~ /copydate,st-numeric/) {
-        push @limit_inputs, { input_name => 'limit-copydate', input_value => $limit_copydate_value };   
-        next;
-    }
-    $this_cgi =~ m/(.*=)(.*)/;
-    my $input_name = $1;
-    my $input_value = $2;
-    $input_name =~ s/=$//;
-    push @limit_inputs, { input_name => $input_name, input_value => Encode::decode_utf8( uri_unescape($input_value) ) };
 }
 $template->param ( LIMIT_INPUTS => \@limit_inputs );
 
 ## II. DO THE SEARCH AND GET THE RESULTS
-my $total; # the total results for the whole set
+my $total = 0; # the total results for the whole set
 my $facets; # this object stores the faceted results that display on the left-hand of the results page
 my $results_hashref;
 
 eval {
-    my $itemtypes = GetItemTypes;
+    my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
     ( $error, $results_hashref, $facets ) = $searcher->search_compat(
         $query,            $simple_query, \@sort_by,       \@servers,
-        $results_per_page, $offset,       $expanded_facet, $branches,
+        $results_per_page, $offset,       $expanded_facet, undef,
         $itemtypes,        $query_type,   $scan
     );
 };
@@ -565,11 +551,11 @@ my @sup_results_array;
 for (my $i=0;$i<@servers;$i++) {
     my $server = $servers[$i];
     if ($server =~/biblioserver/) { # this is the local bibliographic server
-        $hits = $results_hashref->{$server}->{"hits"};
+        my $hits = $results_hashref->{$server}->{"hits"} // 0;
         my $page = $cgi->param('page') || 0;
         my @newresults = searchResults('intranet', $query_desc, $hits, $results_per_page, $offset, $scan,
                                        $results_hashref->{$server}->{"RECORDS"});
-        $total = $total + $results_hashref->{$server}->{"hits"};
+        $total = $total + $hits;
 
         # Search history
         if (C4::Context->preference('EnableSearchHistory')) {
@@ -617,9 +603,11 @@ for (my $i=0;$i<@servers;$i++) {
 
         if ($hits) {
             $template->param(total => $hits);
-            my $limit_cgi_not_availablity = $limit_cgi;
-            $limit_cgi_not_availablity =~ s/&limit=available//g;
-            $template->param(limit_cgi_not_availablity => $limit_cgi_not_availablity);
+            if ($limit_cgi) {
+                my $limit_cgi_not_availablity = $limit_cgi;
+                $limit_cgi_not_availablity =~ s/&limit=available//g;
+                $template->param(limit_cgi_not_availablity => $limit_cgi_not_availablity);
+            }
             $template->param(limit_cgi => $limit_cgi);
             $template->param(query_cgi => $query_cgi);
             $template->param(query_desc => $query_desc);
@@ -645,6 +633,7 @@ for (my $i=0;$i<@servers;$i++) {
             my @page_numbers;
             # total number of pages there will be
             my $pages = ceil($hits / $results_per_page);
+            my $last_page_offset = ( $pages -1 ) * $results_per_page;
             # default page number
             my $current_page_number = 1;
             $current_page_number = ($offset / $results_per_page + 1) if $offset;
@@ -695,6 +684,7 @@ for (my $i=0;$i<@servers;$i++) {
             }
             # FIXME: no previous_page_offset when pages < 2
             $template->param(   PAGE_NUMBERS => \@page_numbers,
+                                last_page_offset => $last_page_offset,
                                 previous_page_offset => $previous_page_offset) unless $pages < 2;
             $template->param(   next_page_offset => $next_page_offset) unless $pages eq $current_page_number;
         }
@@ -732,13 +722,13 @@ for (my $i=0;$i<@servers;$i++) {
 $template->{'VARS'}->{'searchid'} = $cgi->param('searchid');
 
 my $gotonumber = $cgi->param('gotoNumber');
-if ($gotonumber eq 'last' || $gotonumber eq 'first') {
+if ( $gotonumber && ( $gotonumber eq 'last' || $gotonumber eq 'first' ) ) {
     $template->{'VARS'}->{'gotoNumber'} = $gotonumber;
 }
 $template->{'VARS'}->{'gotoPage'}   = 'detail.pl';
 my $gotopage = $cgi->param('gotoPage');
 $template->{'VARS'}->{'gotoPage'} = $gotopage
-  if $gotopage =~ m/^(ISBD|labeledMARC|MARC|more)?detail.pl$/;
+  if $gotopage && $gotopage =~ m/^(ISBD|labeledMARC|MARC|more)?detail.pl$/;
 
 for my $facet ( @$facets ) {
     for my $entry ( @{ $facet->{facets} } ) {
@@ -810,7 +800,7 @@ sub prepare_adv_search_types {
     # the index parameter is different for item-level itemtypes
     my $itype_or_itemtype =
       ( C4::Context->preference("item-level_itypes") ) ? 'itype' : 'itemtype';
-    my $itemtypes = GetItemTypes;
+    my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 
     my ( $cnt, @result );
     foreach my $advanced_srch_type (@advanced_search_types) {

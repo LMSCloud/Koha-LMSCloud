@@ -8,6 +8,13 @@ Authorities:
                   no: "Don't display"
             - broader term/narrower term hierarchies when viewing authorities.
         -
+            - Use the following text to edit how authority records control indicators of attached biblio fields (and possibly subfield $2).<br>
+            - "Lines starting with a comment symbol (#) are skipped. Each line should be of the form: (marc21|unimarc), tag, ind1:(auth1|auth2|some_value), ind2:(auth1|auth2|thesaurus|some_value).<br>"
+            - Here auth1 and auth2 refer to the indicators of the authority record, tag is a biblio field number or an asterisk (*), and some_value is a fixed value (one character).<br>
+            - The MARC21 option thesaurus refers to indicators controlled by authority field 008/11 and 040$f.
+            - pref: AuthorityControlledIndicators
+              type: textarea
+        -
             - When editing records,
             - pref: BiblioAddsAuthorities
               default: no
@@ -24,12 +31,10 @@ Authorities:
                   no: "do not generate"
             - authority records that are missing (BiblioAddsAuthorities must be set to "allow" for this to have any effect).
         -
-            - pref: dontmerge
-              default: yes
-              choices:
-                  yes: "Don't"
-                  no: Do
-            - automatically update attached biblios when changing an authority record. If this is off, please ask your administrator to enable the merge_authority.pl cronjob.
+            - When modifying an authority record, do not update attached biblio records if the number exceeds
+            - pref: AuthorityMergeLimit
+              default: 50
+            - records. (Above this limit, the merge_authority cron job will merge them.)
         -
             - Use the following text for the contents of MARC21 authority control field 008 position 06-39 (fixed length data elements). Do NOT include the date (position 00-05).
             - pref: MARCAuthorityControlField008
@@ -46,7 +51,7 @@ Authorities:
         -
             - Use the following text for the contents of UNIMARC authority field 100 position 08-35 (fixed length data elements). Do NOT include the date (position 00-07).
             - pref: UNIMARCAuthorityField100
-              defautl: "afrey50      ba0"
+              default: "afrey50      ba0"
               type: textarea
               class: code
         -

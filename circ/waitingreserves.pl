@@ -18,18 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output;
-use C4::Branch; # GetBranchName
 use C4::Auth;
 use C4::Circulation;
 use C4::Members;
 use C4::Biblio;
 use C4::Items;
-use Koha::DateUtils;
 use Date::Calc qw(
   Today
   Add_Delta_Days
@@ -37,6 +34,11 @@ use Date::Calc qw(
 );
 use C4::Reserves;
 use C4::Koha;
+use Koha::DateUtils;
+use Koha::BiblioFrameworks;
+use Koha::Items;
+use Koha::ItemTypes;
+use Koha::Patrons;
 
 my $input = new CGI;
 
@@ -48,7 +50,7 @@ my $all_branches   = $input->param('allbranches') || '';
 my $cancelall      = $input->param('cancelall');
 my $tab            = $input->param('tab');
 
-my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "circ/waitingreserves.tt",
         query           => $input,
@@ -65,7 +67,7 @@ my $transfer_when_cancel_all = C4::Context->preference('TransferWhenCancelAllWai
 $template->param( TransferWhenCancelAllWaitingHolds => 1 ) if $transfer_when_cancel_all;
 
 my @cancel_result;
-# if we have a return from the form we launch the subroutine CancelReserve
+# if we have a return from the form we cancel the holds
 if ($item) {
     my $res = cancel( $item, $borrowernumber, $fbr, $tbr );
     push @cancel_result, $res if $res;
@@ -81,66 +83,58 @@ $template->param( all_branches => 1 ) if $all_branches;
 
 my (@reservloop, @overloop);
 my ($reservcount, $overcount);
-my @getreserves = $all_branches ? GetReservesForBranch() : GetReservesForBranch($default);
+# FIXME - Is priority => 0 useful? If yes it must be moved to waiting, otherwise we need to remove it from here.
+my $holds = Koha::Holds->waiting->search({ priority => 0, ( $all_branches ? () : ( branchcode => $default ) ) }, { order_by => ['waitingdate'] });
 # get reserves for the branch we are logged into, or for all branches
 
 my $today = Date_to_Days(&Today);
 my $max_pickup_delay = C4::Context->preference('ReservesMaxPickUpDelay');
-$max_pickup_delay-- if C4::Context->preference('ExpireReservesMaxPickUpDelay');
 
-foreach my $num (@getreserves) {
-    next unless ($num->{'waitingdate'} && $num->{'waitingdate'} ne '0000-00-00');
+while ( my $hold = $holds->next ) {
+    next unless ($hold->waitingdate && $hold->waitingdate ne '0000-00-00');
 
-    my $itemnumber = $num->{'itemnumber'};
-    my $gettitle     = GetBiblioFromItemNumber( $itemnumber );
-    my $borrowernum = $num->{'borrowernumber'};
-    my $holdingbranch = $gettitle->{'holdingbranch'};
-    my $homebranch = $gettitle->{'homebranch'};
+    my $item = $hold->item;
+    my $patron = $hold->borrower;
+    my $biblio = $item->biblio;
+    my $holdingbranch = $item->holdingbranch;
+    my $homebranch = $item->homebranch;
 
     my %getreserv = (
-        itemnumber => $itemnumber,
-        borrowernum => $borrowernum,
+        title             => $biblio->title,
+        itemnumber        => $item->itemnumber,
+        waitingdate       => $hold->waitingdate,
+        reservedate       => $hold->reservedate,
+        borrowernum       => $patron->borrowernumber,
+        biblionumber      => $biblio->biblionumber,
+        barcode           => $item->barcode,
+        homebranch        => $homebranch,
+        holdingbranch     => $item->holdingbranch,
+        itemcallnumber    => $item->itemcallnumber,
+        enumchron         => $item->enumchron,
+        copynumber        => $item->copynumber,
+        borrowername      => $patron->surname, # FIXME Let's send $patron to the template
+        borrowerfirstname => $patron->firstname,
+        borrowerphone     => $patron->phone,
     );
 
-    # fix up item type for display
-    $gettitle->{'itemtype'} = C4::Context->preference('item-level_itypes') ? $gettitle->{'itype'} : $gettitle->{'itemtype'};
-    my $getborrower = GetMember(borrowernumber => $num->{'borrowernumber'});
-    my $itemtypeinfo = getitemtypeinfo( $gettitle->{'itemtype'} );  # using the fixed up itype/itemtype
-    $getreserv{'waitingdate'} = $num->{'waitingdate'};
-    my ( $waiting_year, $waiting_month, $waiting_day ) = split (/-/, $num->{'waitingdate'});
+    my $itemtype = Koha::ItemTypes->find( $item->effective_itemtype );
+    my ( $expire_year, $expire_month, $expire_day ) = split (/-/, $hold->expirationdate);
+    my $calcDate = Date_to_Days( $expire_year, $expire_month, $expire_day );
 
-    ( $waiting_year, $waiting_month, $waiting_day ) =
-      Add_Delta_Days( $waiting_year, $waiting_month, $waiting_day,
-        $max_pickup_delay);
-    my $calcDate = Date_to_Days( $waiting_year, $waiting_month, $waiting_day );
-
-    $getreserv{'itemtype'}       = $itemtypeinfo->{'description'};
-    $getreserv{'title'}          = $gettitle->{'title'};
-    $getreserv{'subtitle'}       = GetRecordValue('subtitle', GetMarcBiblio($gettitle->{'biblionumber'}), GetFrameworkCode($gettitle->{'biblionumber'}));
-    $getreserv{'biblionumber'}   = $gettitle->{'biblionumber'};
-    $getreserv{'barcode'}        = $gettitle->{'barcode'};
-    $getreserv{'branchname'}     = GetBranchName($gettitle->{'homebranch'});
-    $getreserv{'homebranch'}     = $gettitle->{'homebranch'};
-    $getreserv{'holdingbranch'}  = $gettitle->{'holdingbranch'};
-    $getreserv{'itemcallnumber'} = $gettitle->{'itemcallnumber'};
-    $getreserv{'enumchron'}      = $gettitle->{'enumchron'};
-    $getreserv{'copynumber'}     = $gettitle->{'copynumber'};
+    $getreserv{'itemtype'}       = $itemtype->description; # FIXME Should not it be translated_description?
+    $getreserv{'subtitle'}       = GetRecordValue(
+        'subtitle',
+        GetMarcBiblio({ biblionumber => $biblio->biblionumber }),
+        $biblio->frameworkcode);
     if ( $homebranch ne $holdingbranch ) {
         $getreserv{'dotransfer'} = 1;
     }
-    $getreserv{'borrowername'}      = $getborrower->{'surname'};
-    $getreserv{'borrowerfirstname'} = $getborrower->{'firstname'};
-    $getreserv{'borrowerphone'}     = $getborrower->{'phone'};
 
-    my $borEmail = GetFirstValidEmailAddress( $borrowernum );
-
-    if ( $borEmail ) {
-        $getreserv{'borrowermail'}  = $borEmail;
-    }
+    $getreserv{patron} = $patron;
 
     if ($today > $calcDate) {
         if ($cancelall) {
-            my $res = cancel( $itemnumber, $borrowernum, $holdingbranch, $homebranch, !$transfer_when_cancel_all );
+            my $res = cancel( $item->itemnumber, $patron->borrowernumber, $holdingbranch, $homebranch, !$transfer_when_cancel_all );
             push @cancel_result, $res if $res;
             next;
         } else {
@@ -164,6 +158,9 @@ $template->param(
     ReservesMaxPickUpDelay => $max_pickup_delay,
     tab => $tab,
 );
+
+# Checking if there is a Fast Cataloging Framework
+$template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 
 if ($item && $tab eq 'holdsover' && !@cancel_result) {
     print $input->redirect("/cgi-bin/koha/circ/waitingreserves.pl#holdsover");
@@ -191,19 +188,19 @@ sub cancel {
     # if we have a result
     if ($nextreservinfo) {
         my %res;
-        my $borrowerinfo = C4::Members::GetMember( borrowernumber => $nextreservinfo );
-        my $iteminfo = GetBiblioFromItemNumber($item);
+        my $patron = Koha::Patrons->find( $nextreservinfo );
+        my $title = Koha::Items->find( $item )->biblio->title;
         if ( $messages->{'transfert'} ) {
             $res{messagetransfert} = $messages->{'transfert'};
-            $res{branchname}       = GetBranchName($messages->{'transfert'});
+            $res{branchcode}       = $messages->{'transfert'};
         }
 
         $res{message}             = 1;
         $res{nextreservnumber}    = $nextreservinfo;
-        $res{nextreservsurname}   = $borrowerinfo->{'surname'};
-        $res{nextreservfirstname} = $borrowerinfo->{'firstname'};
+        $res{nextreservsurname}   = $patron->surname;
+        $res{nextreservfirstname} = $patron->firstname;
         $res{nextreservitem}      = $item;
-        $res{nextreservtitle}     = $iteminfo->{'title'};
+        $res{nextreservtitle}     = $title;
         $res{waiting}             = $messages->{'waiting'} ? 1 : 0;
 
         return \%res;

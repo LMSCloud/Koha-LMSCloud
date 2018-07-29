@@ -1,5 +1,6 @@
 DELETE FROM auth_types WHERE authtypecode='NP';
-INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (200, 'NP', 'Auteur', '[200a][, 200b][ 200d][ ; 200c][ (200f)]');
+-- INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (200, 'NP', 'Auteur', '[200a][, 200b][ 200d][ ; 200c][ (200f)]');
+INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (200, 'NP', 'Автор (особа)', '[200a][, 200b][ 200d][ ; 200c][ (200f)]');
 DELETE FROM auth_tag_structure WHERE authtypecode='NP';
 DELETE FROM auth_subfield_structure WHERE authtypecode='NP';
 
@@ -327,3 +328,6 @@ INSERT INTO  auth_subfield_structure (frameworkcode, authtypecode, tagfield, tag
  ('', 'NP', '886', '2', 0, 0, 'Системний код', 'Системний код',         -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'NP', '886', 'a', 0, 1, 'Тег поля початкового формату', 'Тег поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'NP', '886', 'b', 0, 1, 'Індикатори та підполя поля початкового формату', 'Індикатори та підполя поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0);
+
+-- Replace nonzero hidden values like -5, 1 or 8 by 1
+UPDATE auth_subfield_structure SET hidden=1 WHERE hidden<>0

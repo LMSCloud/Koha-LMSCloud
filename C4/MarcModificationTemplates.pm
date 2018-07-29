@@ -23,6 +23,7 @@ use DateTime;
 
 use C4::Context;
 use Koha::SimpleMARC;
+use Koha::MoreUtils;
 
 use vars qw(@ISA @EXPORT);
 
@@ -239,6 +240,8 @@ sub AddModificationTemplateAction {
                     $to_regex_search, $to_regex_replace, $to_regex_modifiers, $conditional, $conditional_field, $conditional_subfield, $conditional_comparison,
                     $conditional_value, $conditional_regex, $description )" ) if DEBUG;
 
+  $conditional ||= undef;
+  $conditional_comparison ||= undef;
   $conditional_regex ||= '0';
 
   my $dbh = C4::Context->dbh;
@@ -336,6 +339,9 @@ sub ModModificationTemplateAction {
   ) = @_;
 
   my $dbh = C4::Context->dbh;
+  $conditional ||= undef;
+  $conditional_comparison ||= undef;
+  $conditional_regex ||= '0';
 
   my $query = "
   UPDATE marc_modification_template_actions SET
@@ -567,9 +573,21 @@ sub ModifyRecordWithTemplate {
                     subfield => $conditional_subfield,
                     is_regex => $conditional_regex,
                 });
+                my $all_fields = [
+                    1 .. scalar @{
+                        field_exists(
+                            {
+                                record   => $record,
+                                field    => $conditional_field,
+                                subfield => $conditional_subfield
+                            }
+                        )
+                    }
+                ];
+                $field_numbers = [Koha::MoreUtils::singleton ( @$field_numbers, @$all_fields ) ];
                 $do = $conditional eq 'if'
-                    ? not @$field_numbers
-                    : @$field_numbers;
+                    ? @$field_numbers
+                    : not @$field_numbers;
             }
         }
 

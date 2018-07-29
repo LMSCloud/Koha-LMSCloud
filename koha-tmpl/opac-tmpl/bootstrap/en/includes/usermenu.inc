@@ -1,3 +1,4 @@
+[% USE Koha %]
 [% IF ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && loggedinusername ) %]
     <div id="menu">
         <h4><a href="#" class="menu-collapse-toggle">Your account menu</a></h4>
@@ -96,6 +97,15 @@
                 <a href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=1">your lists</a></li>
             [% END %]
 
+            [% IF Koha.Preference( 'RoutingSerials' ) && logged_in_user && logged_in_user.get_routing_lists.count %]
+                [% IF ( routinglistsview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-routing-lists.pl">your routing lists</a></li>
+            [% END %]
+
             [% IF Koha.Preference( 'useDischarge' ) == 1 %]
                 [% IF ( dischargeview ) %]
                     <li class="active">
@@ -104,6 +114,16 @@
                 [% END %]
                 <a href="/cgi-bin/koha/opac-discharge.pl">ask for a discharge</a></li>
             [% END %]
+
+            [% IF Koha.Preference( 'ILLModule' ) == 1 %]
+                [% IF ( illrequestsview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-illrequests.pl">your interlibrary loan requests</a></li>
+            [% END %]
+
         </ul>
     </div>
 [% END %]

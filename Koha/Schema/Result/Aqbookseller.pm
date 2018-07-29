@@ -31,27 +31,27 @@ __PACKAGE__->table("aqbooksellers");
 
 =head2 name
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 0
 
 =head2 address1
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 address2
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 address3
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 address4
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 phone
@@ -62,12 +62,12 @@ __PACKAGE__->table("aqbooksellers");
 
 =head2 accountnumber
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 othersupplier
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 currency
@@ -78,27 +78,27 @@ __PACKAGE__->table("aqbooksellers");
 
 =head2 booksellerfax
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 notes
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 bookselleremail
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 booksellerurl
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 postal
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 url
@@ -141,7 +141,7 @@ __PACKAGE__->table("aqbooksellers");
   data_type: 'tinyint'
   is_nullable: 1
 
-=head2 gstrate
+=head2 tax_rate
 
   data_type: 'decimal'
   is_nullable: 1
@@ -170,33 +170,33 @@ __PACKAGE__->add_columns(
   "id",
   { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "name",
-  { data_type => "mediumtext", is_nullable => 0 },
+  { data_type => "longtext", is_nullable => 0 },
   "address1",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "address2",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "address3",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "address4",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "phone",
   { data_type => "varchar", is_nullable => 1, size => 30 },
   "accountnumber",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "othersupplier",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "currency",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "booksellerfax",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "notes",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "bookselleremail",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "booksellerurl",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "postal",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "url",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "active",
@@ -211,7 +211,7 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", is_nullable => 1 },
   "invoiceincgst",
   { data_type => "tinyint", is_nullable => 1 },
-  "gstrate",
+  "tax_rate",
   { data_type => "decimal", is_nullable => 1, size => [6, 4] },
   "discount",
   { data_type => "float", is_nullable => 1, size => [6, 4] },
@@ -381,8 +381,15 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-12-14 18:10:36
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:YGWCQl/GxVlJoxWUQDiWPA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:DyaF9RbcNAOjPQ1lrxHV3A
+
+__PACKAGE__->add_columns(
+    '+active' => { is_boolean => 1 },
+    '+gstreg' => { is_boolean => 1 },
+    '+listincgst' => { is_boolean => 1 },
+    '+invoiceincgst' => { is_boolean => 1 },
+);
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

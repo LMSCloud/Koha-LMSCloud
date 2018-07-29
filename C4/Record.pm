@@ -34,9 +34,11 @@ use C4::XSLT ();
 use YAML; #marcrecords2csv
 use Template;
 use Text::CSV::Encoded; #marc2csv
+use Koha::Items;
 use Koha::SimpleMARC qw(read_field);
 use Koha::XSLT_Handler;
 use Koha::CsvProfiles;
+use Koha::AuthorisedValues;
 use Carp;
 
 use vars qw(@ISA @EXPORT);
@@ -227,7 +229,7 @@ EXAMPLE
     my dcxml = marc2dcxml (undef, undef, 1, "oaidc");
 
 Convert MARC or MARCXML to Dublin Core metadata (XSLT Transformation),
-optionally can get an XML directly from database (biblioitems.marcxml)
+optionally can get an XML directly from biblio_metadata
 without item information. This method take into consideration the syspref
 'marcflavour' (UNIMARC, MARC21 and NORMARC).
 Return an XML file with the format defined in C<$format>
@@ -236,7 +238,7 @@ C<$marc> - an ISO-2709 scalar or MARC::Record object
 
 C<$xml> - a MARCXML file
 
-C<$biblionumber> - obtain the record directly from database (biblioitems.marcxml)
+C<$biblionumber> - biblionumber for database access
 
 C<$format> - accept three type of DC formats (oaidc, srwdc, and rdfdc )
 
@@ -257,7 +259,7 @@ sub marc2dcxml {
         # no need to catch errors or warnings marc2marcxml do it instead
         $marcxml = C4::Record::marc2marcxml( $marc );
     } elsif ( not defined $xml and defined $biblionumber ) {
-        # get MARCXML biblio directly from biblioitems.marcxml without item information
+        # get MARCXML biblio directly without item information
         $marcxml = C4::Biblio::GetXmlBiblio( $biblionumber );
     } else {
         $marcxml = $xml;
@@ -292,7 +294,7 @@ sub marc2dcxml {
         };
     } elsif ( $record =~ /^MARC::Record/ ) { # if OK makes xslt transformation
         my $xslt_engine = Koha::XSLT_Handler->new;
-        if ( $format =~ /oaidc|srwdc|rdfdc/ ) {
+        if ( $format =~ /^(dc|oaidc|srwdc|rdfdc)$/i ) {
             $output = $xslt_engine->transform( $marcxml, $xsl );
         } else {
             croak "The format argument ($format) not accepted.\n" .
@@ -426,7 +428,8 @@ sub marc2csv {
     my $firstpass = 1;
     if ( @$itemnumbers ) {
         for my $itemnumber ( @$itemnumbers) {
-            my $biblionumber = GetBiblionumberFromItemnumber $itemnumber;
+            my $item = Koha::Items->find( $itemnumber );
+            my $biblionumber = $item->biblio->biblionumber;
             $output .= marcrecord2csv( $biblionumber, $id, $firstpass, $csv, $fieldprocessing, [$itemnumber] );
             $firstpass = 0;
         }
@@ -468,7 +471,7 @@ sub marcrecord2csv {
     my $output;
 
     # Getting the record
-    my $record = GetMarcBiblio($biblio);
+    my $record = GetMarcBiblio({ biblionumber => $biblio });
     return unless $record;
     C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblio, $itemnumbers );
     # Getting the framework
@@ -585,18 +588,22 @@ sub marcrecord2csv {
                 # If it is a subfield
                 my @loop_values;
                 if ( $tag->{subfieldtag} ) {
+                    my $av = Koha::AuthorisedValues->search_by_marc_field({ frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag}, tagsubfield => $tag->{subfieldtag}, });
+                    $av = $av->count ? $av->unblessed : [];
+                    my $av_description_mapping = { map { ( $_->{authorised_value} => $_->{lib} ) } @$av };
                     # For each field
                     foreach my $field (@fields) {
                         my @subfields = $field->subfield( $tag->{subfieldtag} );
                         foreach my $subfield (@subfields) {
-                            my $authvalues = GetKohaAuthorisedValuesFromField( $tag->{fieldtag}, $tag->{subfieldtag}, $frameworkcode, undef);
-                            push @loop_values, (defined $authvalues->{$subfield}) ? $authvalues->{$subfield} : $subfield;
+                            push @loop_values, (defined $av_description_mapping->{$subfield}) ? $av_description_mapping->{$subfield} : $subfield;
                         }
                     }
 
                 # Or a field
                 } else {
-                    my $authvalues = GetKohaAuthorisedValuesFromField( $tag->{fieldtag}, undef, $frameworkcode, undef);
+                    my $av = Koha::AuthorisedValues->search_by_marc_field({ frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag}, });
+                    $av = $av->count ? $av->unblessed : [];
+                    my $authvalues = { map { ( $_->{authorised_value} => $_->{lib} ) } @$av };
 
                     foreach my $field ( @fields ) {
                         my $value;

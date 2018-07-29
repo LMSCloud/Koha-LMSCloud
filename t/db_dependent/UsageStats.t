@@ -15,9 +15,14 @@
 # with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 545;
+use Test::More tests => 57;
 use t::lib::Mocks qw(mock_preference);
+use t::lib::TestBuilder;
 use POSIX qw(strftime);
+use Data::Dumper;
+use Koha::Biblios;
+
+use Koha::Libraries;
 
 BEGIN {
     use_ok('C4::UsageStats');
@@ -26,7 +31,7 @@ BEGIN {
     use_ok( 'C4::AuthoritiesMarc', qw(AddAuthority) );
     use_ok('C4::Reserves');
     use_ok('MARC::Record');
-    use_ok('Koha::Acquisition::Order');
+    use_ok('Koha::Acquisition::Orders');
 }
 
 can_ok(
@@ -37,9 +42,10 @@ can_ok(
       _count )
 );
 
+my $schema  = Koha::Database->new->schema;
+$schema->storage->txn_begin;
+my $builder = t::lib::TestBuilder->new;
 my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 $dbh->do('DELETE FROM issues');
 $dbh->do('DELETE FROM biblio');
@@ -71,26 +77,30 @@ t::lib::Mocks::mock_preference( "UsageStatsLastUpdateTime", $now );
 $update = C4::UsageStats->NeedUpdate;
 is( $update, 0, "Last update just be done, no update needed " );
 
+my $nb_of_libraries = Koha::Libraries->count;
+
 # ---------- Testing BuildReport ----------------
 
 #Test report->library -----------------
 #mock to 0
 t::lib::Mocks::mock_preference( "UsageStatsID",          0 );
 t::lib::Mocks::mock_preference( "UsageStatsLibraryName", 0 );
-t::lib::Mocks::mock_preference( "UsageStatsLibraryUrl",  0 );
+t::lib::Mocks::mock_preference( "UsageStatsLibrariesInfo",  0 );
 t::lib::Mocks::mock_preference( "UsageStatsLibraryType", 0 );
 t::lib::Mocks::mock_preference( "UsageStatsCountry",     0 );
+t::lib::Mocks::mock_preference( "UsageStatsLibraryUrl",  0 );
 
 my $report = C4::UsageStats->BuildReport();
 
-isa_ok( $report,            'HASH', '$report is a HASH' );
-isa_ok( $report->{library}, 'HASH', '$report->{library} is a HASH' );
-is( scalar( keys %{$report->{library}} ), 5,  "There are 5 fields in $report->{library}" );
-is( $report->{library}->{id},             0,  "UsageStatsID           is good" );
-is( $report->{library}->{name},           '', "UsageStatsLibraryName  is good" );
-is( $report->{library}->{url},            '', "UsageStatsLibraryUrl   is good" );
-is( $report->{library}->{type},           '', "UsageStatsLibraryType  is good" );
-is( $report->{library}->{country},        '', "UsageStatsCountry      is good" );
+isa_ok( $report,              'HASH',  '$report is a HASH' );
+isa_ok( $report->{libraries}, 'ARRAY', '$report->{libraries} is an ARRAY' );
+is( scalar( @{ $report->{libraries} } ), 0, "There are 0 fields in libraries, libraries info are not shared" );
+is( $report->{installation}->{koha_id}, 0,  "UsageStatsID          is good" );
+is( $report->{installation}->{name},    '', "UsageStatsLibraryName is good" );
+is( $report->{installation}->{url},     '', "UsageStatsLibraryUrl  is good" );
+is( $report->{installation}->{type},    '', "UsageStatsLibraryType is good" );
+is( $report->{installation}->{country}, '', "UsageStatsCountry     is good" );
+
 
 #mock with values
 t::lib::Mocks::mock_preference( "UsageStatsID",          1 );
@@ -98,17 +108,20 @@ t::lib::Mocks::mock_preference( "UsageStatsLibraryName", 'NAME' );
 t::lib::Mocks::mock_preference( "UsageStatsLibraryUrl",  'URL' );
 t::lib::Mocks::mock_preference( "UsageStatsLibraryType", 'TYPE' );
 t::lib::Mocks::mock_preference( "UsageStatsCountry",     'COUNTRY' );
+t::lib::Mocks::mock_preference( "UsageStatsLibrariesInfo", 1 );
+t::lib::Mocks::mock_preference( "UsageStatsGeolocation", 1 );
+
 
 $report = C4::UsageStats->BuildReport();
 
-isa_ok( $report,            'HASH', '$report is a HASH' );
-isa_ok( $report->{library}, 'HASH', '$report->{library} is a HASH' );
-is( scalar( keys %{$report->{library}} ), 5,         "There are 5 fields in $report->{library}" );
-is( $report->{library}->{id},             1,         "UsageStatsID            is good" );
-is( $report->{library}->{name},           'NAME',    "UsageStatsLibraryName   is good" );
-is( $report->{library}->{url},            'URL',     "UsageStatsLibraryUrl    is good" );
-is( $report->{library}->{type},           'TYPE',    "UsageStatsLibraryType   is good" );
-is( $report->{library}->{country},        'COUNTRY', "UsageStatsCountry       is good" );
+isa_ok( $report,              'HASH',  '$report is a HASH' );
+isa_ok( $report->{libraries}, 'ARRAY', '$report->{libraries} is an ARRAY' );
+is( scalar( @{ $report->{libraries} } ), $nb_of_libraries, "There are 6 fields in $report->{libraries}" );
+is( $report->{installation}->{koha_id}, 1,     "UsageStatsID          is good" );
+is( $report->{installation}->{name},   'NAME', "UsageStatsLibraryName is good" );
+is( $report->{installation}->{url},     'URL', "UsageStatsLibraryUrl  is good" );
+is( $report->{installation}->{type},   'TYPE', "UsageStatsLibraryType is good" );
+is( $report->{installation}->{country}, 'COUNTRY', "UsageStatsCountry is good" );
 
 #Test report->volumetry ---------------
 #with original values
@@ -202,8 +215,8 @@ sub construct_objects_needed {
     my $cardnumber1  = 'test_card1';
     my $cardnumber2  = 'test_card2';
     my $cardnumber3  = 'test_card3';
-    my $categorycode = Koha::Database->new()->schema()->resultset('Category')->first()->categorycode();
-    my $branchcode   = Koha::Database->new()->schema()->resultset('Branch')->first()->branchcode();
+    my $categorycode = $builder->build({ source => 'Category' })->{categorycode};
+    my $branchcode = $builder->build({ source => 'Branch' })->{branchcode};
 
     my $query = '
     INSERT INTO borrowers
@@ -227,8 +240,8 @@ sub construct_objects_needed {
 
     $query = '
     INSERT INTO biblio
-      (title, author)
-    VALUES (?,?)';
+      (title, author, datecreated)
+    VALUES (?,?, NOW())';
     $insert_sth = $dbh->prepare($query);
     $insert_sth->execute( $title1, $author1 );
     my $biblionumber1 = $dbh->last_insert_id( undef, undef, 'biblio', undef );
@@ -240,14 +253,14 @@ sub construct_objects_needed {
     # ---------- 3 biblio items  -------------------------
     $query = '
     INSERT INTO biblioitems
-      (biblionumber, itemtype, marcxml)
-    VALUES (?,?,?)';
+      (biblionumber, itemtype)
+    VALUES (?,?)';
     $insert_sth = $dbh->prepare($query);
-    $insert_sth->execute( $biblionumber1, 'Book', '' );
+    $insert_sth->execute( $biblionumber1, 'Book' );
     my $biblioitemnumber1 = $dbh->last_insert_id( undef, undef, 'biblioitems', undef );
-    $insert_sth->execute( $biblionumber2, 'Music', '' );
+    $insert_sth->execute( $biblionumber2, 'Music' );
     my $biblioitemnumber2 = $dbh->last_insert_id( undef, undef, 'biblioitems', undef );
-    $insert_sth->execute( $biblionumber3, 'Book', '' );
+    $insert_sth->execute( $biblionumber3, 'Book' );
     my $biblioitemnumber3 = $dbh->last_insert_id( undef, undef, 'biblioitems', undef );
 
     # ---------- 3 items  -------------------------
@@ -270,28 +283,28 @@ sub construct_objects_needed {
     # ---------- Add 2 auth_header
     $query = '
     INSERT INTO auth_header
-      (authtypecode)
-    VALUES (?)';
+      (authtypecode, marcxml)
+    VALUES (?, "")';
     $insert_sth = $dbh->prepare($query);
-    $insert_sth->execute('authtypecode1');
+    $insert_sth->execute('atc1');
     my $authid1 = $dbh->last_insert_id( undef, undef, 'auth_header', undef );
-    $insert_sth->execute('authtypecode2');
+    $insert_sth->execute('atc2');
     my $authid2 = $dbh->last_insert_id( undef, undef, 'auth_header', undef );
 
     # ---------- Add 1 old_issues
     $query = '
     INSERT INTO old_issues
-      (borrowernumber, branchcode, itemnumber)
-    VALUES (?,?,?)';
+      (issue_id, borrowernumber, branchcode, itemnumber)
+    VALUES ((select coalesce(max(issue_id), 0)+1 from issues),?,?,?)';
     $insert_sth = $dbh->prepare($query);
     $insert_sth->execute( $borrowernumber1, $branchcode, $item_number1 );
     my $issue_id1 = $dbh->last_insert_id( undef, undef, 'old_issues', undef );
 
     # ---------- Add 1 old_reserves
     AddReserve( $branchcode, $borrowernumber1, $biblionumber1, '', 1, undef, undef, '', 'Title', undef, undef );
-    my $reserves1   = GetReservesFromBiblionumber( { biblionumber => $biblionumber1 } );
-    my $reserve_id1 = $reserves1->[0]->{reserve_id};
-    my $reserve1    = CancelReserve( { reserve_id => $reserve_id1 } );
+    my $biblio = Koha::Biblios->find( $biblionumber1 );
+    my $holds = $biblio->holds;
+    $holds->next->cancel if $holds->count;
 
     # ---------- Add 1 aqbudgets
     $query = '
@@ -347,7 +360,8 @@ sub mocking_systempreferences_to_a_set_value {
         AuthDisplayHierarchy
         AutoCreateAuthorities
         BiblioAddsAuthorities
-        dontmerge
+        AuthorityMergeLimit
+        AuthorityMergeMode
         UseAuthoritiesForTracings
         CatalogModuleRelink
         hide_marc
@@ -366,12 +380,14 @@ sub mocking_systempreferences_to_a_set_value {
         z3950NormalizeAuthor
         SpineLabelAutoPrint
         SpineLabelShowPrintOnBibDetails
+        BlockReturnOfLostItems
         BlockReturnOfWithdrawnItems
         CalculateFinesOnReturn
         AgeRestrictionOverride
         AllFinesNeedOverride
         AllowFineOverride
         AllowItemsOnHoldCheckout
+        AllowItemsOnHoldCheckoutSCO
         AllowNotForLoanOverride
         AllowRenewalLimitOverride
         AllowReturnToBranch
@@ -399,7 +415,7 @@ sub mocking_systempreferences_to_a_set_value {
         finesCalendar
         FinesIncludeGracePeriod
         finesMode
-        RefundLostItemFeeOnReturn
+        RefundLostOnReturnControl
         WhenLostChargeReplacementFee
         WhenLostForgiveFine
         AllowHoldDateInFuture
@@ -481,11 +497,9 @@ sub mocking_systempreferences_to_a_set_value {
         OpacMaintenance
         OpacPublic
         OpacSeparateHoldings
-        OPACShowBarcode
         OPACShowCheckoutName
         OpacShowFiltersPulldownMobile
         OPACShowHoldQueueDetails
-        OpacShowLibrariesPulldownMobile
         OpacShowRecentComments
         OPACShowUnusedAuthorities
         OpacStarRatings
@@ -531,12 +545,10 @@ sub mocking_systempreferences_to_a_set_value {
         AutoEmailPrimaryAddress
         autoMemberNum
         BorrowerRenewalPeriodBase
-        checkdigit
         EnableBorrowerFiles
         EnhancedMessagingPreferences
         ExtendedPatronAttributes
         intranetreadinghistory
-        memberofinstitution
         patronimages
         TalkingTechItivaPhoneNotification
         uppercasesurnames
@@ -586,9 +598,18 @@ sub mocking_systempreferences_to_a_set_value {
 sub verif_systempreferences_values {
     my ( $report, $value_to_test ) = @_;
 
+    my @missings;
     foreach my $key ( keys %{$report->{systempreferences}} ) {
-        is( $report->{systempreferences}->{$key}, $value_to_test, "\$report->{systempreferences}->{$key} = $value_to_test" );
+        if ( $report->{systempreferences}->{$key} ne $value_to_test ) {
+            warn $key;
+            push @missings, $key;
+        }
+    }
+    unless ( @missings ) {
+        ok(1, 'All prefs are present');
+    } else {
+        ok(0, 'Some prefs are missing: ' . Dumper(\@missings));
     }
 }
 
-$dbh->rollback;
+$schema->storage->txn_rollback;

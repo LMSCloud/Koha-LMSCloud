@@ -18,6 +18,7 @@
  */
 
 define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ], function( MARC, KohaBackend, Preferences, TextMARC, Widget ) {
+
     var NOTIFY_TIMEOUT = 250;
 
     function editorCursorActivity( cm ) {
@@ -136,6 +137,14 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
     }
 
     var _editorKeys = {
+        'Alt-C': function( cm ) {
+            cm.replaceRange( '©', cm.getCursor() );
+        },
+
+        'Alt-P': function( cm ) {
+            cm.replaceRange( '℗', cm.getCursor() );
+        },
+
         Enter: function( cm ) {
             var cursor = cm.getCursor();
             cm.replaceRange( '\n', { line: cursor.line }, null, 'marcAware' );
@@ -153,6 +162,30 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
             if ( cm.somethingSelected() ) return true;
 
             cm.execCommand('deleteLine');
+        },
+
+        'Shift-Ctrl-L': function( cm ) {
+            // Launch the auth search popup
+            var field = cm.marceditor.getCurrentField();
+
+            if ( !field ) return;
+            if ( authInfo[field.tag] == undefined ) return;
+            authtype = authInfo[field.tag].authtypecode;
+            index = 'tag_'+field.tag+'_rancor';
+            var mainmainstring = '';
+            if( field.getSubfields( authInfo[field.tag].subfield ).length != 0 ){
+                mainmainstring += field.getSubfields( authInfo[field.tag].subfield )[0].text;
+            }
+
+            var subfields = field.getSubfields();
+            var mainstring= '';
+            for(i=0;i < subfields.length ;i++){
+                if ( authInfo[field.tag].subfield == subfields[i].code ) continue;
+                if( subfields[i].code == '9' ) continue;
+                mainstring += subfields[i].text+' ';
+            }
+            newin=window.open("../authorities/auth_finder.pl?source=biblio&authtypecode="+authtype+"&index="+index+"&value_mainstr="+encodeURI(mainmainstring)+"&value_main="+encodeURI(mainstring), "_blank",'width=700,height=550,toolbar=false,scrollbars=yes');
+
         },
 
         'Shift-Ctrl-X': function( cm ) {

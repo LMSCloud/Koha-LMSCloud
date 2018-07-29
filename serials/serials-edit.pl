@@ -61,8 +61,7 @@ op can be :
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use Encode qw( decode is_utf8 );
 use C4::Auth;
@@ -74,6 +73,7 @@ use C4::Context;
 use C4::Serials;
 use C4::Search qw/enabled_staff_search_views/;
 use Koha::DateUtils;
+use Koha::Serial::Items;
 
 use List::MoreUtils qw/uniq/;
 
@@ -163,7 +163,7 @@ foreach my $serialid (@serialids) {
         $processedserialid{$serialid} = 1;
     }
 }
-my $biblio = GetBiblioData( $serialdatalist[0]->{'biblionumber'} );
+my $biblio = Koha::Biblios->find( $serialdatalist[0]->{biblionumber} );
 
 my @newserialloop;
 my @subscriptionloop;
@@ -250,6 +250,25 @@ if ( $op and $op eq 'serialchangestatus' ) {
                 $notes[$i]
             );
         }
+        my $makePreviousSerialAvailable = C4::Context->preference('makePreviousSerialAvailable');
+        if ($makePreviousSerialAvailable && $serialids[$i] ne "NEW") {
+            # We already have created the new expected serial at this point, so we get the second previous serial
+            my $previous = GetPreviousSerialid($subscriptionids[$i]);
+            if ($previous) {
+
+                my $serialitem = Koha::Serial::Items->search( {serialid => $previous} )->next;
+                my $itemnumber = $serialitem ? $serialitem->itemnumber : undef;
+                if ($itemnumber) {
+
+                    # Getting the itemtype to set from the database
+                    my $subscriptioninfos = GetSubscription($subscriptionids[$i]);
+
+                    # Changing the status to "available" and the itemtype according to the previousitemtype db field
+                    ModItem({notforloan => 0, itype => $subscriptioninfos->{'previousitemtype'} }, undef, $itemnumber);
+                }
+            }
+        }
+
     }
     my @moditems = $query->multi_param('moditem');
     if ( scalar(@moditems) ) {
@@ -402,10 +421,11 @@ my $location = $serialdatalist[0]->{'location'};
 my $default_bib_view = get_default_view();
 
 $template->param(
+    subscriptionid  => $serialdatalist[0]->{subscriptionid},
     serialsadditems => $serialdatalist[0]->{'serialsadditems'},
     callnumber	     => $serialdatalist[0]->{'callnumber'},
     internalnotes   => $serialdatalist[0]->{'internalnotes'},
-    bibliotitle     => $biblio->{'title'},
+    bibliotitle     => $biblio->title,
     biblionumber    => $serialdatalist[0]->{'biblionumber'},
     serialslist     => \@serialdatalist,
     default_bib_view => $default_bib_view,

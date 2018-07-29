@@ -1,12 +1,14 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo;[% IF ( add_form ) %][% IF ( use_heading_flags_p ) %][% IF ( heading_edit_subfields_p ) %] MARC subfield structure &rsaquo; Edit MARC subfields constraints[% END %][% ELSE %] MARC subfield structure &rsaquo; [% action %][% END %][% END %]
 [% IF ( delete_confirm ) %] MARC subfield structure &rsaquo; Confirm deletion of subfield [% tagsubfield %][% END %][% IF ( delete_confirmed ) %] MARC subfield structure &rsaquo; Subfield deleted[% END %][% IF ( else ) %]MARC subfield structure[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/marc_subfields_structure.js"></script>
 </head>
+
 <body id="admin_marc_subfields_structure" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs">
   <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; <a href="/cgi-bin/koha/admin/biblio_framework.pl">MARC frameworks</a> &rsaquo; <a href="/cgi-bin/koha/admin/marctagstructure.pl?frameworkcode=[% frameworkcode %]&amp;searchfield=[% tagfield | uri %]">[% IF ( frameworkcode ) %][% frameworkcode %][% ELSE %]Default[% END %] framework structure</a> &rsaquo;
@@ -24,11 +26,11 @@
 [% IF ( else ) %]Tag [% tagfield | html %] Subfield structure[% END %]
 </div>
 
-<div id="doc" class="yui-t7">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-g">
+<div id="doc3" class="yui-t2">
+
+    <div id="bd">
+    <div id="yui-main">
+    <div class="yui-b">
 
 [% IF ( add_form ) %]
     <h1>
@@ -143,7 +145,8 @@
                 <li><label for="link[% loo.row %]">Link:</label><input type="text" id="link[% loo.row %]" name="link" value="[% loo.link %]" size="10" maxlength="80" /> (e.g., Title or Local-Number) <span class="error"><em>NOTE: If you change this value you must ask your administrator to run misc/batchRebuildBiblioTables.pl.</em></span></li>
                 <li>
                     <label for="kohafield[% loo.row %]">Koha link:</label>
-                    <select name="kohafield" id="kohafield[% loo.row %]" size="1">
+                    <!-- This select should be DISABLED; value is submitted by the following hidden input -->
+                    <select name="kohafield" id="kohafield[% loo.row %]" size="1" disabled>
                     [% FOREACH value IN loo.kohafields %]
                       [% IF ( value == loo.kohafield ) %]
                         <option value="[% value %]" selected="selected">[% value %]</option>
@@ -152,6 +155,8 @@
                       [% END %]
                     [% END %]
                     </select>
+                    <!-- Do NOT remove this next hidden input! We need it to save kohafield. -->
+                    <input type="hidden" name="kohafield" value="[% loo.kohafield %]"/>
                 </li>
 			</ol>
             </fieldset>
@@ -163,6 +168,7 @@
                             <li>
                                 <label for="authorised_value[% loo.row %]">Authorized value:</label>
                                 <select name="authorised_value" id="authorised_value[% loo.row %]" size="1">
+                                <option value=""></option>
                                 [% FOREACH value IN loo.authorised_values %]
                                     [% IF ( value == loo.authorised_value ) %]
                                     <option value="[% value %]" selected="selected">[% value %]</option>
@@ -255,8 +261,7 @@
     <th>Subfield</th>
     <th>Text</th>
     <th>Constraints</th>
-    <th>Edit</th>
-    <th>Delete</th>
+    <th>Actions</th>
 </tr>
 [% FOREACH loo IN loop %]
 <tr>
@@ -285,8 +290,10 @@
             [% IF ( loo.link ) %] | Link:[% loo.link %],[% END %]
         [% END %]
     </td>
-    <td><a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=add_form&amp;tagfield=[% loo.tagfield %]&amp;frameworkcode=[% frameworkcode %]#sub[% loo.tagsubfield %]field">Edit</a></td>
-    <td><a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=delete_confirm&amp;tagfield=[% loo.tagfield %]&amp;tagsubfield=[% loo.tagsubfield %]&amp;frameworkcode=[% frameworkcode %]">Delete</a></td>
+    <td class="actions">
+        <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=add_form&amp;tagfield=[% loo.tagfield %]&amp;frameworkcode=[% frameworkcode %]#sub[% loo.tagsubfield %]field" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+        <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=delete_confirm&amp;tagfield=[% loo.tagfield %]&amp;tagsubfield=[% loo.tagsubfield %]&amp;frameworkcode=[% frameworkcode %]" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</a>
+    </td>
 </tr>
 [% END %]
 </table>
@@ -306,5 +313,13 @@
 
 </div>
 </div>
+<div class="yui-b noprint">
+    [% INCLUDE 'admin-menu.inc' %]
 </div>
+</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") %]
+    [% Asset.js("js/marc_subfields_structure.js") %]
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

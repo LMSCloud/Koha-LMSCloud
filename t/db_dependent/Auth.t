@@ -10,7 +10,7 @@ use CGI qw ( -utf8 );
 use Test::MockObject;
 use Test::MockModule;
 use List::MoreUtils qw/all any none/;
-use Test::More tests => 21;
+use Test::More tests => 22;
 use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -19,6 +19,7 @@ use C4::Auth qw(checkpw);
 use C4::Members;
 use Koha::AuthUtils qw/hash_password/;
 use Koha::Database;
+use Koha::Patrons;
 
 BEGIN {
     use_ok('C4::Auth');
@@ -28,11 +29,15 @@ my $schema  = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;
 my $dbh     = C4::Context->dbh;
 
+# FIXME: SessionStorage defaults to mysql, but it seems to break transaction
+# handling
+t::lib::Mocks::mock_preference( 'SessionStorage', 'tmp' );
+
 $schema->storage->txn_begin;
 
 subtest 'checkauth() tests' => sub {
 
-    plan tests => 1;
+    plan tests => 3;
 
     my $patron = $builder->build({ source => 'Borrower', value => { flags => undef } })->{userid};
 
@@ -46,6 +51,68 @@ subtest 'checkauth() tests' => sub {
 
     is( $userid, undef, 'checkauth() returns undef for userid if no logged in user (Bug 18275)' );
 
+    my $db_user_id = C4::Context->config('user');
+    my $db_user_pass = C4::Context->config('pass');
+    $cgi = Test::MockObject->new();
+    $cgi->mock( 'cookie', sub { return; } );
+    $cgi->mock( 'param', sub {
+            my ( $self, $param ) = @_;
+            if ( $param eq 'userid' ) { return $db_user_id; }
+            elsif ( $param eq 'password' ) { return $db_user_pass; }
+            else { return; }
+        });
+    ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, $authnotrequired );
+    is ( $userid, undef, 'If DB user is used, it should not be logged in' );
+
+    my $is_allowed = C4::Auth::haspermission( $db_user_id, { can_do => 'everything' } );
+
+    # FIXME This belongs to t/db_dependent/Auth/haspermission.t but we do not want to c/p the pervious mock statements
+    ok( !$is_allowed, 'DB user should not have any permissions');
+
+    C4::Context->_new_userenv; # For next tests
+
+};
+
+subtest 'track_login_daily tests' => sub {
+
+    plan tests => 5;
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $userid = $patron->userid;
+
+    $patron->lastseen( undef );
+    $patron->store();
+
+    my $cache     = Koha::Caches->get_instance();
+    my $cache_key = "track_login_" . $patron->userid;
+    $cache->clear_from_cache($cache_key);
+
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '1' );
+
+    is( $patron->lastseen, undef, 'Patron should have not last seen when newly created' );
+
+    C4::Auth::track_login_daily( $userid );
+    $patron->_result()->discard_changes();
+    isnt( $patron->lastseen, undef, 'Patron should have last seen set when TrackLastPatronActivity = 1' );
+
+    sleep(1); # We need to wait a tiny bit to make sure the timestamp will be different
+    my $last_seen = $patron->lastseen;
+    C4::Auth::track_login_daily( $userid );
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged' );
+
+    $cache->clear_from_cache($cache_key);
+    C4::Auth::track_login_daily( $userid );
+    $patron->_result()->discard_changes();
+    isnt( $patron->lastseen, $last_seen, 'Patron last seen should be changed if we cleared the cache' );
+
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '0' );
+    $patron->lastseen( undef )->store;
+    $cache->clear_from_cache($cache_key);
+    C4::Auth::track_login_daily( $userid );
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, undef, 'Patron should still have last seen unchanged when TrackLastPatronActivity = 0' );
+
 };
 
 my $hash1 = hash_password('password');
@@ -53,7 +120,7 @@ my $hash2 = hash_password('password');
 
 { # tests no_set_userenv parameter
     my $patron = $builder->build( { source => 'Borrower' } );
-    changepassword( $patron->{userid}, $patron->{borrowernumber}, $hash1 );
+    Koha::Patrons->find( $patron->{borrowernumber} )->update_password( $patron->{userid}, $hash1 );
     my $library = $builder->build(
         {
             source => 'Branch',
@@ -173,7 +240,7 @@ my $hash2 = hash_password('password');
                 }
             );
         };
-        like ( $@, qr(^bad template path), 'The file $template_name should not be accessible' );
+        like ( $@, qr(^bad template path), "The file $template_name should not be accessible" );
     }
     ( $template, $loggedinuser, $cookies ) = get_template_and_user(
         {
@@ -218,5 +285,3 @@ ok( ( any { 'OPACBaseURL' eq $_ } keys %{$template2->{VARS}} ),
 
 ok(C4::Auth::checkpw_hash('password', $hash1), 'password validates with first hash');
 ok(C4::Auth::checkpw_hash('password', $hash2), 'password validates with second hash');
-
-

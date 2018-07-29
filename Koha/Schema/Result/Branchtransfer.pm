@@ -23,6 +23,12 @@ __PACKAGE__->table("branchtransfers");
 
 =head1 ACCESSORS
 
+=head2 branchtransfer_id
+
+  data_type: 'integer'
+  is_auto_increment: 1
+  is_nullable: 0
+
 =head2 itemnumber
 
   data_type: 'integer'
@@ -60,12 +66,14 @@ __PACKAGE__->table("branchtransfers");
 
 =head2 comments
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =cut
 
 __PACKAGE__->add_columns(
+  "branchtransfer_id",
+  { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "itemnumber",
   {
     data_type      => "integer",
@@ -102,8 +110,20 @@ __PACKAGE__->add_columns(
     size => 10,
   },
   "comments",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
 );
+
+=head1 PRIMARY KEY
+
+=over 4
+
+=item * L</branchtransfer_id>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("branchtransfer_id");
 
 =head1 RELATIONS
 
@@ -153,8 +173,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2013-10-14 20:56:21
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NPbH+5o2BVPj8yeoUqEavw
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:uPQzv0lMxfnu75SzS6UpVQ
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

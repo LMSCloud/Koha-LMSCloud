@@ -1,10 +1,9 @@
+[% USE Asset %]
 [% USE Koha %]
 [% USE Biblio %]
 [% USE KohaDates %]
-[% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Catalog &rsaquo; [% IF ( searchdesc ) %]Results of search [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %]&nbsp;with limit(s):&nbsp;'[% limit_desc | html %]'[% END %][% ELSE %]You did not specify any search criteria[% END %]</title>
-[% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'browser-strings.inc' %]
+[% SET footerjs = 1 %]
+[% USE AuthorisedValues %]
 [% IF BiblioDefaultViewmarc %]
     [% SET DetailPage="MARCdetail.pl" %]
 [% ELSIF BiblioDefaultViewlabeled_marc %]
@@ -14,302 +13,11 @@
 [% ELSE %]
     [% SET DetailPage="detail.pl" %]
 [% END %]
-
-<!--[if lt IE 9]>
-<script type="text/javascript" src="[% interface %]/lib/shims/json2.min.js"></script>
-<![endif]-->
-<script type="text/javascript" src="[% interface %]/js/browser.js"></script>
-<script type="text/javascript">
-//<![CDATA[
-var MSG_NO_ITEM_SELECTED = _("Nothing is selected.");
-var MSG_NON_RESERVES_SELECTED = _("One or more selected items cannot be placed on hold.");
-var q_array = new Array();  // will hold search terms, if present
-[% IF ( AmazonCoverImages ) %]
-// http://www.oreillynet.com/pub/a/javascript/2003/10/21/amazonhacks.html
-function verify_images() {
-    $("img").each(function(i){
-        if ((this.src.indexOf('images-amazon.com') >= 0) || (this.src.indexOf('images.amazon.com') >=0)) {
-            w = this.width;
-            h = this.height;
-            if ((w == 1) || (h == 1)) {
-                this.src = 'https://images-na.ssl-images-amazon.com/images/G/01/x-site/icons/no-img-sm.gif';
-            } else if ((this.complete != null) && (!this.complete)) {
-                this.src = 'https://images-na.ssl-images-amazon.com/images/G/01/x-site/icons/no-img-sm.gif';
-            }
-        }
-    });
-}
-
-$(window).load(function() {
-        verify_images();
-     });
-[% END %]
-function Dopop(link) {
-        newin=window.open(link,'popup','width=500,height=500,toolbar=false,scrollbars=yes,resizeable=yes');
-}
-function cartList(){
-    var checkboxes = $("#searchresults").find(":checkbox");
-    var vshelf = vShelfAdd(checkboxes);
-    if($("#addto").find("option:selected").attr("value") == "addtolist"){
-        var shelfnumber = $("#addto").find("option:selected").attr("id").replace("s","");
-        if (vshelf) {
-             Dopop('/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?shelfnumber='+shelfnumber+'&confirm=1&' + vshelf);
-        }
-        return false;
-    } else if($("#addto").find("option:selected").attr("value") == "newlist"){
-        if (vshelf) {
-            Dopop('/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?newshelf=1&' + vshelf);
-        }
-        return false;
-    } else if($("#addto").find("option:selected").attr("value") == "morelists"){
-        if (vshelf) {
-            Dopop('/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?' + vshelf);
-        }
-        return false;
-    }
-    if($("#addto").find("option:selected").attr("value") == "addtocart"){
-        addMultiple(checkboxes);
-        return false;
-    }
-}
-$(document).ready(function() {
-$("#cartsubmit").click(function(){
-    cartList();
-    return false;
-});
-$("#z3950submit").click(function(){
-    PopupZ3950();
-    return false;
-});
-
-$("#searchheader").on("click",".placehold", function(){
-    placeHold();
-    $(".btn-group").removeClass("open");
-    return false;
-});
-$(".placeholdfor").click(function(){
-    holdForPatron();
-    $(".btn-group").removeClass("open");
-    return false;
-});
-$("#forgetholdfor").click(function(){
-    forgetPatron();
-    $(".btn-group").removeClass("open");
-    return false;
-});
-$('#sortbyform').find("input:submit").hide();
-$('#sort_by').change(function() {
-        $('#sortbyform').submit();
-    });
-        var param1 = "<label for=\"addto\">"+_("Add to:")+"<\/label><select name=\"addto\" id=\"addto\"><option value=\"\"><\/option>";
-        [% IF ( intranetbookbag ) %]     param1 += "<option value=\"addtocart\">"+_("Cart")+"<\/option>"; [% END %]
-
-        [% IF Koha.Preference('virtualshelves') %]
-            [% IF add_to_some_private_shelves.count %]
-                param1 += "<optgroup label=\""+_("Your lists:")+"\">";
-                [% SET number_of_private_shelves = 0 %]
-                [% FOREACH s IN add_to_some_private_shelves %]
-                    [% IF shelfnumber != s.shelfnumber %]
-                        param1 += "<option id=\"s[% s.shelfnumber %]\" value=\"addtolist\">[% s.shelfname |html %]<\/option>";
-                        [% SET number_of_private_shelves = number_of_private_shelves + 1 %]
-                        [% IF number_of_private_shelves == 10 %][% LAST %][% END %]
-                    [% END %]
-                [% END %]
-                param1 += "<\/optgroup>";
-            [% END %]
-            [% IF add_to_some_public_shelves.count %]
-                param1 += "<optgroup label=\""+_("Public lists:")+"\">";
-                [% SET number_of_public_shelves = 0 %]
-                [% FOREACH s IN add_to_some_public_shelves %]
-                    [% IF shelfnumber != s.shelfnumber %]
-                        param1 += "<option id=\"s[% s.shelfnumber %]\" value=\"addtolist\">[% s.shelfname |html %]<\/option>";
-                        [% SET number_of_public_shelves = number_of_public_shelves + 1 %]
-                        [% IF number_of_public_shelves == 10 %][% LAST %][% END %]
-                    [% END %]
-                [% END %]
-                param1 += "<\/optgroup>";
-            [% END %]
-            [% IF add_to_some_private_shelves.count > 10 or add_to_some_public_shelves.count > 10 %]
-                param1 += "<option value=\"morelists\">[ "+_("More lists")+" ]<\/option>";
-            [% END %]
-            param1 +="<option value=\"newlist\">"+_("[ New list ]")+"<\/option>"
-        [% END %]
-
-        param1 += "<\/select> <input id=\"cartsubmit\" type=\"submit\" class=\"submit\" value=\""+_("Save")+"\" />";
- $('#sortsubmit').hide();
-        $("span.clearall").html("<a id=\"CheckNone\" href=\"#\">"+_("Clear all")+"<\/a>");
-        $("span.checkall").html("<a id=\"CheckAll\" href=\"#\">"+_("Select all")+"<\/a>");
-        $("span.addto").html(param1);
-        $("#addto").change(function(){
-                cartList();
-        });
-        $(".addto").find("input:submit").click(function(){
-                cartList();
-                return false;
-	});
-
- $("#tagsel_span").html("<input id=\"tagsel_tag\" class=\"submit\" type=\"submit\" value=\"Tag\"/>");
-
-    $("#selection_ops").show();
-    $(".selection").show();
-    [% IF ( query_desc ) %]
-    toHighlight = $("p,span.results_summary,a.title");
-        var query_desc = "[% query_desc |replace("'", "\'") |replace('"', '\"') |replace('\n', '\\n') |replace('\r', '\\r') | html %]";
-        q_array = query_desc.split(" ");
-        // ensure that we don't have "" at the end of the array, which can
-        // break the highlighter
-        while (q_array.length > 0 && q_array[q_array.length-1] == "") {
-            q_array = q_array.splice(0,-1);
-        }
-        highlightOn();
-        $("#highlight_toggle_on" ).hide().click(function() {highlightOn() ;});
-        $("#highlight_toggle_off").show().click(function() {highlightOff();});
-    [% END %]
-
-    [% IF (SEARCH_RESULTS) %]
-        var newresults = [
-            [%- FOREACH result IN SEARCH_RESULTS -%]
-                [%- result.biblionumber %],
-            [%- END -%]
-        ];
-        var browser = KOHA.browser('[% searchid %]', parseInt('[% biblionumber %]', 10));
-        browser.create([% SEARCH_RESULTS.first.result_number %], '[% query_cgi %]', '[% limit_cgi | uri %]','[% sort_cgi | uri %]',
-               newresults, '[% total %]');
-    [% END %]
-    [% IF (gotoPage && gotoNumber) %]
-        [% IF (gotoNumber == 'first') %]
-            window.location = '/cgi-bin/koha/catalogue/[% gotoPage %]?biblionumber=' + [% SEARCH_RESULTS.first.biblionumber %] + '&searchid=[% searchid %]';
-        [% ELSIF (gotoNumber == 'last') %]
-            window.location = '/cgi-bin/koha/catalogue/[% gotoPage %]?biblionumber=' + [% SEARCH_RESULTS.last.biblionumber %] + '&searchid=[% searchid %]';
-        [% END %]
-    [% END %]
-
-    [% IF LocalCoverImages %]
-        KOHA.LocalCover.LoadResultsCovers();
-    [% END %]
-
-    $("#select_all").on("click",function(e){
-        e.preventDefault();
-        selectAll();
-    });
-    $("#clear_all").on("click",function(e){
-        e.preventDefault();
-        clearAll();
-    });
-
-    $("#searchresults").on("click",".addtocart",function(e){
-        e.preventDefault();
-        var selection_id = this.id;
-        var biblionumber = selection_id.replace("cart","");
-        addRecord(biblionumber);
-    });
-
-    $("#searchresults").on("click",".cartRemove",function(e){
-        e.preventDefault();
-        var selection_id = this.id;
-        var biblionumber = selection_id.replace("cartR","");
-        delSingleRecord(biblionumber);
-    });
-
-});
-
-
-[% IF ( query_desc ) %]function highlightOff() {
-    toHighlight.removeHighlight();
-    $(".highlight_toggle").toggle();
-}
-function highlightOn() {
-    var x;
-    for (x in q_array) {
-        q_array[x] = q_array[x].toLowerCase();
-        var myStopwords = "[% Koha.Preference('NotHighlightedWords') %]".toLowerCase().split('|');
-        if ( (q_array[x].length > 0) && ($.inArray(q_array[x], myStopwords) == -1) ) {
-            toHighlight.highlight(q_array[x]);
-        }
-    }
-    $(".highlight_toggle").toggle();
-}[% END %]
-
-function selectAll () {
-    $(".selection").prop("checked", true);
-}
-function clearAll () {
-    $(".selection").prop("checked", false);
-}
-function placeHold () {
-    var checkedItems = $(".selection:checked");
-    if ($(checkedItems).size() == 0) {
-        alert(MSG_NO_ITEM_SELECTED);
-        return false;
-    }
-    var bibs = "";
-    var badBibs = false;
-    $(checkedItems).each(function() {
-        var bib = $(this).val();
-        if ($("#reserve_" + bib).size() == 0) {
-            alert(MSG_NON_RESERVES_SELECTED);
-            badBibs = true;
-            return false;
-        }
-        bibs += bib + "/";
-    });
-    if (badBibs) {
-        return false;
-    }
-    $("#hold_form_biblios").val(bibs);
-    $("#hold_form").submit();
-    return false;
-}
-
-function forgetPatron(){
-    $.removeCookie("holdfor", { path: '/' });
-    $(".holdforlink").remove();
-    $("#placeholdc").html("<a class=\"btn btn-mini placehold\" href=\"#\"><i class=\"fa fa-sticky-note-o\"></i> "+_("Place hold")+"</a>");
-}
-
-function addToList () {
-    var checkedItems = $(".selection:checked");
-    if ($(checkedItems).size() == 0) {
-        alert(MSG_NO_ITEM_SELECTED);
-        return false;
-    }
-    var bibs = "";
-    $(checkedItems).each(function() {
-        bibs += $(this).val() + "/";
-    });
-
-    var url = "/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?biblionumbers=" + bibs;
-	window.open(url, 'Add_to_virtualshelf', 'width=500, height=400, toolbar=false, scrollbars=yes');
-    return false;
-}
-
-/* this function open a popup to search on z3950 server.  */
-function PopupZ3950() {
-    var strQuery = GetZ3950Terms();
-    if(strQuery){
-        window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?biblionumber=[% biblionumber %]"+strQuery,"z3950search",'width=740,height=450,location=yes,toolbar=no,scrollbars=yes,resize=yes');
-    }
-}
-/* provide Z3950 search points */
-function GetZ3950Terms(){
-	var strQuery="&frameworkcode=";
-	[% FOREACH z3950_search_param IN z3950_search_params %]
-        strQuery += "&" + "[% z3950_search_param.name |uri %]" + "=" + "[% z3950_search_param.value |uri %]";
-	[% END %]
-	return strQuery;
-}
-
-var holdFor = function (){
-    $("#holdFor").val("");
-    placeHold();
-}
-var holdForPatron = function () {
-    $("#holdFor").val("[% holdfor_cardnumber %]");
-    placeHold();
-}
-//]]>
-</script>
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Catalog &rsaquo; [% IF ( searchdesc ) %]Results of search [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %]&nbsp;with limit(s):&nbsp;'[% limit_desc | html %]'[% END %][% ELSE %]You did not specify any search criteria[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
 </head>
+
 <body id="catalog_results" class="catalog">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
@@ -343,28 +51,14 @@ var holdForPatron = function () {
     [% END %]
 
     [% IF ( total ) %]
+
+        <h3>
+            [% total %] result(s) found [% IF ( query_desc ) %]for <span class="results_query_desc">'[% query_desc |html %]'</span>[% END %][% IF limit_desc  %]&nbsp;with limit(s): <span class="results_limit_desc">'[% limit_desc | html %]'</span>[% END %][% IF ( LibraryName ) %] in [% LibraryName %] Catalog[% END %].
+        </h3>
+
         <div id="searchheader">
-            <form action="/cgi-bin/koha/catalogue/search.pl" method="get" id="sortbyform">
-                [% IF ( searchdesc ) %]
-                    [% FOREACH QUERY_INPUT IN QUERY_INPUTS %]
-                    <input type="hidden" name="[% QUERY_INPUT.input_name |html %]" value="[% QUERY_INPUT.input_value |html %]"/>
-                    [% END %]
-                    [% FOREACH LIMIT_INPUT IN LIMIT_INPUTS %]
-                    <input type="hidden" name="[% LIMIT_INPUT.input_name |html %]" value="[% LIMIT_INPUT.input_value |html %]"/>
-                    [% END %]
-                [% END %]
-                <!-- RE-SORT START -->
-                    <label for="sort_by">Sort By: </label>
-                    <select id="sort_by" name="sort_by">
-                    [% INCLUDE 'resort_form.inc' %]
-                    </select>
-                    <input type="submit" value="Go" />
-                <!-- RESORT END -->
-            </form>
-            <h3>
-                [% total %] result(s) found [% IF ( query_desc ) %]for <span style="font-weight: bold;">'[% query_desc |html %]'</span>[% END %][% IF limit_desc  %]&nbsp;with limit(s): <span style="font-weight: bold;">'[% limit_desc | html %]'</span>[% END %][% IF ( LibraryName ) %] in [% LibraryName %] Catalog[% END %].<br />&nbsp;
-            </h3>
-            <div id="selection_ops" class="cartlist" style="display:none">
+
+            <div id="selection_ops">
                 <a href="#" id="select_all"><i class="fa fa-check"></i> Select all</a>
                 |
                 <a href="#" id="clear_all"><i class="fa fa-remove"></i> Clear all</a>
@@ -372,12 +66,64 @@ var holdForPatron = function () {
                 <a href="#" class="highlight_toggle" id="highlight_toggle_off">Unhighlight</a>
                 <a href="#" class="highlight_toggle" id="highlight_toggle_on">Highlight</a>
                 |
-		<span class="addto"></span>
-                [% IF ( CAN_user_reserveforothers && DisplayMultiPlaceHold ) %]
+
+            [% IF ( intranetbookbag ) %]
+                <div class="btn-group">
+                    <a id="cartsubmit" class="btn btn-default btn-xs" href="#"><i class="fa fa-shopping-cart"></i> Add to cart</a>
+                </div>
+            [% END %]
+
+            [% IF Koha.Preference('virtualshelves') %]
+                <div class="btn-group">
+                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fa fa-list"></i> Add to list <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        [% IF add_to_some_private_shelves.count %]
+                            <li class="dropdown-header">Your lists</li>
+                            [% SET number_of_private_shelves = 0 %]
+                            [% FOREACH s IN add_to_some_private_shelves %]
+                                [% IF shelfnumber != s.shelfnumber %]
+                                    <li>
+                                        <a href="#" class="addtolist" data-shelfnumber="[% s.shelfnumber %]">[% s.shelfname |html %]</a>
+                                    </li>
+                                    [% SET number_of_private_shelves = number_of_private_shelves + 1 %]
+                                    [% IF number_of_private_shelves == 10 %][% LAST %][% END %]
+                                [% END %]
+                            [% END %]
+                        [% END %]
+                        [% IF add_to_some_public_shelves.count %]
+                            <li class="dropdown-header">Public lists</li>
+                            [% SET number_of_public_shelves = 0 %]
+                            [% FOREACH s IN add_to_some_public_shelves %]
+                                [% IF shelfnumber != s.shelfnumber %]
+                                    <li>
+                                        <a href="#" data-shelfnumber="[% s.shelfnumber %]" class="addtolist">[% s.shelfname |html %]</a>
+                                    </li>
+                                    [% SET number_of_public_shelves = number_of_public_shelves + 1 %]
+                                    [% IF number_of_public_shelves == 10 %][% LAST %][% END %]
+                                [% END %]
+                            [% END %]
+                        [% END %]
+                        <li role="separator" class="divider"></li>
+                        [% IF add_to_some_private_shelves.count > 10 or add_to_some_public_shelves.count > 10 %]
+                            <li>
+                                <a href="#" class="addtolist morelists">More lists</a>
+                            </li>
+                        [% END %]
+                        <li>
+                            <a href="#" class="addtolist newlist">New list</a>
+                        </li>
+                    </ul>
+                </div>
+            [% END %]
+
+
+                [% IF ( CAN_user_reserveforothers_place_holds && DisplayMultiPlaceHold ) %]
                 [% IF ( holdfor ) %]
                     <div id="placeholdc" class="btn-group">
-                        <button class="btn btn-mini placehold"><i class="fa fa-sticky-note-o"></i> Place hold</button>
-                        <button class="btn btn-mini dropdown-toggle" data-toggle="dropdown">
+                        <button class="btn btn-default btn-xs placehold"><i class="fa fa-sticky-note-o"></i> Place hold</button>
+                        <button class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
                         <span class="caret"></span>
                         </button>
                         <ul class="dropdown-menu">
@@ -388,17 +134,123 @@ var holdForPatron = function () {
                         </ul>
                     </div>
                 [% ELSE %]
-                    <div id="placeholdc" class="btn-group"><a class="btn btn-mini placehold" href="#"><i class="fa fa-sticky-note-o"></i> Place hold</a></div>
+                    <div id="placeholdc" class="btn-group"><a class="btn btn-default btn-xs placehold" href="#"><i class="fa fa-sticky-note-o"></i> Place hold</a></div>
                 [% END %]
+                [% END %]
+                [% IF Koha.Preference('BrowseResultSelection') %]
+                    <div id="browse_selection" class="btn-group"><a class="btn btn-default btn-xs browse_selection" href="#"><i class="fa fa-sticky-note-o"></i> Browse selected records</a></div>
                 [% END %]
 
-                [% IF ( CAN_user_editcatalogue_edit_catalogue ) %] <div class="btn-group"><a class="btn btn-mini" id="z3950submit" href="#"><i class="fa fa-search"></i> Z39.50/SRU search</a></div>[% END %]
+                [% IF ( CAN_user_editcatalogue_edit_catalogue ) %] <div class="btn-group"><a class="btn btn-default btn-xs" id="z3950submit" href="#"><i class="fa fa-search"></i> Z39.50/SRU search</a></div>[% END %]
+
+            [% IF ( searchdesc ) %]
+                [% BLOCK sort_search_query ~%]
+                    [%~ FOREACH QUERY_INPUT IN QUERY_INPUTS ~%]
+                        &amp;[% QUERY_INPUT.input_name |html %]=[% QUERY_INPUT.input_value |html %]
+                    [%~ END ~%]
+                    [%~ FOREACH LIMIT_INPUT IN LIMIT_INPUTS ~%]
+                        &amp;[% LIMIT_INPUT.input_name |html %]=[% LIMIT_INPUT.input_value |html %]
+                    [%~ END ~%]
+                [%~ END %]
+            [% END %]
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Sort <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    [% IF ( sort_by == "relevance_dsc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=relevance[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Relevance</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=relevance[% PROCESS sort_search_query %]">Relevance</a></li>
+                    [% END %]
+                    <li class="dropdown-header">Popularity</li>
+                    [% IF ( sort_by == "popularity_dsc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=popularity_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Popularity (most to least)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=popularity_dsc[% PROCESS sort_search_query %]">Popularity (most to least)</a></li>
+                    [% END %]
+
+                    [% IF ( sort_by == "popularity_asc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=popularity_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Popularity (least to most)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=popularity_asc[% PROCESS sort_search_query %]">Popularity (least to most)</a></li>
+                    [% END %]
+
+                    <li class="dropdown-header">Author</li>
+
+                    [% IF ( sort_by == "author_az" || sort_by == "author_asc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=author_a[% PROCESS sort_search_query %]z"><i class="fa fa-check"></i> Author (A-Z)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=author_az[% PROCESS sort_search_query %]">Author (A-Z)</a></li>
+                    [% END %]
+
+                    [% IF ( sort_by == "author_za" || sort_by == "author_dsc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=author_za[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Author (Z-A)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=author_za[% PROCESS sort_search_query %]">Author (Z-A)</a></li>
+                    [% END %]
+
+                    <li class="dropdown-header">Call number</li>
+
+                    [% IF ( sort_by == "call_number_asc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=call_number_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Call Number (0-9 to A-Z)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=call_number_asc[% PROCESS sort_search_query %]">Call Number (0-9 to A-Z)</a></li>
+                    [% END %]
+
+                    [% IF ( sort_by == "call_number_dsc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=call_number_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Call number (Z-A to 9-0)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=call_number_dsc[% PROCESS sort_search_query %]">Call number (Z-A to 9-0)</a></li>
+                    [% END %]
+
+                    <li class="dropdown-header">Dates</li>
+                    [% IF ( sort_by == "pubdate_dsc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=pubdate_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Publication/Copyright date: newest to oldest</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=pubdate_dsc[% PROCESS sort_search_query %]">Publication/Copyright date: newest to oldest</a></li>
+                    [% END %]
+
+                    [% IF ( sort_by == "pubdate_asc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=pubdate_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Publication/Copyright date: oldest to newest</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=pubdate_asc[% PROCESS sort_search_query %]">Publication/Copyright date: oldest to newest</a></li>
+                    [% END %]
+
+                    [% IF ( sort_by == "acqdate_dsc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=acqdate_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Acquisition date: newest to oldest</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=acqdate_dsc[% PROCESS sort_search_query %]">Acquisition date: newest to oldest</a></li>
+                    [% END %]
+
+                    [% IF ( sort_by == "acqdate_asc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=acqdate_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Acquisition date: oldest to newest</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=acqdate_asc[% PROCESS sort_search_query %]">Acquisition date: oldest to newest</a></li>
+                    [% END %]
+
+                    <li class="dropdown-header">Title</li>
+                    [% IF ( sort_by == "title_az" || sort_by == "title_asc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=title_az[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Title (A-Z)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=title_az[% PROCESS sort_search_query %]">Title (A-Z)</a></li>
+                    [% END %]
+
+                    [% IF ( sort_by == "title_za" || sort_by == "title_dsc" ) %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=title_za[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Title (Z-A)</a></li>
+                    [% ELSE %]
+                        <li><a href="/cgi-bin/koha/catalogue/search.pl?sort_by=title_za[% PROCESS sort_search_query %]">Title (Z-A)</a></li>
+                    [% END %]
+                </ul>
             </div>
+            </div>
+
         </div>
     [% ELSE %]
         <div id="searchheader">
 			<form method="post" name="fz3950" class="fz3950bigrpad">
-                <button class="btn" type="button" id="z3950submit"><i class="fa fa-search"></i> Z39.50/SRU search</button>
+                <button class="btn btn-default" type="button" id="z3950submit"><i class="fa fa-search"></i> Z39.50/SRU search</button>
 			</form>
             <h3>No results found</h3>
         [% IF ( searchdesc ) %]
@@ -485,6 +337,9 @@ var holdForPatron = function () {
         [% ELSE %]
 
             <div id="searchresults">
+
+                [% INCLUDE 'page-numbers.inc' %]
+
                 <form action="/cgi-bin/koha/catalogue/search.pl" method="get" name="bookbag_form" id="bookbag_form">
                 [% IF ( searchdesc ) %]
                 [% FOREACH QUERY_INPUT IN QUERY_INPUTS %]
@@ -529,6 +384,16 @@ var holdForPatron = function () {
                                 <input type="checkbox" class="selection" id="bib[% SEARCH_RESULT.biblionumber %]" name="biblionumber" value="[% SEARCH_RESULT.biblionumber %]" style="display:none" />
                             </td>
                             <td>
+
+                                [% UNLESS ( item_level_itypes ) %]
+                                    <div class="result-biblio-itemtype">
+                                        [% IF !noItemTypeImages && SEARCH_RESULT.imageurl %]
+                                            <img src="[% SEARCH_RESULT.imageurl %]" alt="[% SEARCH_RESULT.description %]" />
+                                        [% END %]
+                                        [% SEARCH_RESULT.description %]
+                                    </div>
+                                [% END %]
+
 			    [% IF ( SEARCH_RESULT.XSLTResultsRecord ) %]
                 [% SEARCH_RESULT.result_number %].
 				[% SEARCH_RESULT.XSLTResultsRecord %]
@@ -549,22 +414,9 @@ var holdForPatron = function () {
                                         [% ELSE %]
                                             &nbsp;
                                         [% END %]
-                                    <p>
-                                    [% UNLESS ( item_level_itypes ) %]
-                                    [% IF !noItemTypeImages && SEARCH_RESULT.imageurl %]
-                                    <img src="[% SEARCH_RESULT.imageurl %]" title="[% SEARCH_RESULT.description %]" style="float: left; margin: .1em;" alt="[% SEARCH_RESULT.description %]" />
-                                    [% END %]
-                                    [% SEARCH_RESULT.description %]
-                                    [% END %]
-                                    [% SEARCH_RESULT.summary %]</p>
+                                    <p>[% SEARCH_RESULT.summary %]</p>
                                 [% ELSE %]
                                     <p>
-                                    [% UNLESS ( item_level_itypes ) %]
-                                    [% IF !noItemTypeImages && SEARCH_RESULT.imageurl %]
-                                    <img src="[% SEARCH_RESULT.imageurl %]" title="[% SEARCH_RESULT.description %]" style="float: left; margin: .1em;" alt="" />
-                                    [% END %]
-                                    [% END %]
-
                                         [% IF ( SEARCH_RESULT.author ) %]
                                             <a href="/cgi-bin/koha/catalogue/search.pl?idx=au&amp;q=[% SEARCH_RESULT.author |url %]" title="Search for this Author">[% SEARCH_RESULT.author %]</a>
                                         [% ELSE %]
@@ -589,8 +441,12 @@ var holdForPatron = function () {
                             [% IF ( SEARCH_RESULT.norequests ) %]
                                 <span class="noholdstext">No holds allowed</span>
                             [% ELSE %]
-                                <a id="reserve_[% SEARCH_RESULT.biblionumber %]" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]">Holds</a>
-                                [% IF ( holdfor ) %] <span class="holdforlink">| <a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]&amp;findborrower=[% holdfor_cardnumber %]">Place hold for [% holdfor_firstname %] [% holdfor_surname %] ([% holdfor_cardnumber %])</a></span>[% END %]
+                                [% IF CAN_user_reserveforothers_place_holds %]
+                                    <a id="reserve_[% SEARCH_RESULT.biblionumber %]" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]">Holds ([% Biblio.HoldsCount( SEARCH_RESULT.biblionumber ) %])</a>
+                                    [% IF ( holdfor ) %] <span class="holdforlink">| <a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]&amp;findborrower=[% holdfor_cardnumber %]">Place hold for [% holdfor_firstname %] [% holdfor_surname %] ([% holdfor_cardnumber %])</a></span>[% END %]
+                                [% ELSE %]
+                                    Holds ([% Biblio.HoldsCount( SEARCH_RESULT.biblionumber ) %])
+                                [% END %]
                             [% END %]
 
                                 [% IF Koha.Preference('intranetbookbag') == 1 %]
@@ -600,6 +456,10 @@ var holdForPatron = function () {
                                         | <a class="addtocart" id="cart[% SEARCH_RESULT.biblionumber %]" href="#">Add to cart</a> <a style="display:none;" class="cartRemove" id="cartR[% SEARCH_RESULT.biblionumber %]" href="#">(remove)</a>
                                     [% END %]
                                 [% END # / IF intranetbookbag %]
+
+                          [% IF Koha.Preference('ArticleRequests') %]
+                              | <a id="requst_article_[% SEARCH_RESULT.biblionumber %]" href="/cgi-bin/koha/circ/request-article.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]">Request article</a>
+                          [% END %]
 
                           [% IF ( CAN_user_editcatalogue_edit_catalogue ) %]
                           | <a href="/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=[% SEARCH_RESULT.biblionumber %]">Edit record</a>
@@ -688,9 +548,9 @@ var holdForPatron = function () {
                                         [% IF ( other_items_loo.branchname ) %][% other_items_loo.branchname %][% END %]
                                         [% IF ( other_items_loo.location ) %][% other_items_loo.location %][% END %]
                                         [% IF ( other_items_loo.itemcallnumber ) %][<a href="/cgi-bin/koha/catalogue/search.pl?idx=callnum&amp;q=%22[% other_items_loo.itemcallnumber |uri %]%22">[% other_items_loo.itemcallnumber %]</a>][% END %]
-                                        [% IF ( other_items_loo.withdrawn ) %](Withdrawn)[% END %]
-                                        [% IF ( other_items_loo.itemlost ) %](Lost)[% END %]
-                                        [% IF ( other_items_loo.damaged ) %](Damaged)[% END %]
+                                        [% IF ( other_items_loo.withdrawn ) %]([% AuthorisedValues.GetByCode( 'WITHDRAWN', other_items_loo.withdrawn ) %])[% END %]
+                                        [% IF ( other_items_loo.itemlost ) %]([% AuthorisedValues.GetByCode( 'LOST', other_items_loo.itemlost ) %])[% END %]
+                                        [% IF ( other_items_loo.damaged ) %]([% AuthorisedValues.GetByCode( 'DAMAGED', other_items_loo.damaged ) %])[% END %]
                                         [% IF ( other_items_loo.intransit ) %](In transit)[% END %]
                                         [% IF ( other_items_loo.onhold ) %](On hold)[% END %]
                                         [% IF ( other_items_loo.notforloan ) %][% other_items_loo.notforloan %][% END %]
@@ -762,4 +622,304 @@ var holdForPatron = function () {
 [% INCLUDE 'facets.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'browser-strings.inc' %]
+    [% Asset.js("js/browser.js") %]
+    [% Asset.js("lib/jquery/plugins/jquery.fixFloat.js") %]
+    [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
+    <script type="text/javascript">
+        var MSG_NO_ITEM_SELECTED = _("Nothing is selected.");
+        var MSG_NON_RESERVES_SELECTED = _("One or more selected items cannot be placed on hold.");
+        var q_array = new Array();  // will hold search terms, if present
+        [% IF ( AmazonCoverImages ) %]
+            // http://www.oreillynet.com/pub/a/javascript/2003/10/21/amazonhacks.html
+            function verify_images() {
+                $("img").each(function(i){
+                    if ((this.src.indexOf('images-amazon.com') >= 0) || (this.src.indexOf('images.amazon.com') >=0)) {
+                        w = this.width;
+                        h = this.height;
+                        if ((w == 1) || (h == 1)) {
+                            this.src = 'https://images-na.ssl-images-amazon.com/images/G/01/x-site/icons/no-img-sm.gif';
+                        } else if ((this.complete != null) && (!this.complete)) {
+                            this.src = 'https://images-na.ssl-images-amazon.com/images/G/01/x-site/icons/no-img-sm.gif';
+                        }
+                    }
+                });
+            }
+
+            $(window).load(function() {
+                verify_images();
+            });
+        [% END %]
+
+        $(document).ready(function() {
+
+            $("#searchheader").fixFloat();
+
+            $("#cartsubmit").click(function(e){
+                e.preventDefault();
+                addMultiple();
+            });
+
+            $(".addtolist").on("click",function(e){
+                e.preventDefault();
+                var shelfnumber = $(this).data("shelfnumber");
+                var vshelf = vShelfAdd();
+                if( vshelf ){
+                    if( $(this).hasClass("morelists") ){
+                        openWindow('/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?' + vshelf);
+                    } else if( $(this).hasClass("newlist") ){
+                        openWindow('/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?newshelf=1&' + vshelf);
+                    } else {
+                        openWindow('/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?shelfnumber='+shelfnumber+'&confirm=1&' + vshelf);
+                    }
+                }
+            });
+
+            $("#z3950submit").click(function(){
+                PopupZ3950();
+                return false;
+            });
+
+            $("#searchheader").on("click", ".browse_selection", function(){
+                browse_selection();
+                return false;
+            });
+
+            $("#searchheader").on("click",".placehold", function(){
+                $("#holdFor").val("");
+                placeHold();
+                $(".btn-group").removeClass("open");
+                return false;
+            });
+
+            $(".placeholdfor").click(function(){
+                holdForPatron();
+                $(".btn-group").removeClass("open");
+                return false;
+            });
+
+            $("#forgetholdfor").click(function(){
+                forgetPatron();
+                $(".btn-group").removeClass("open");
+                return false;
+            });
+
+            $("#tagsel_span").html("<input id=\"tagsel_tag\" class=\"submit\" type=\"submit\" value=\"Tag\"/>");
+
+            $(".selection").show();
+
+            [% IF ( query_desc ) %]
+                toHighlight = $("p,span.results_summary,a.title");
+                var query_desc = "[% query_desc |replace("'", "\'") |replace('"', '\"') |replace('\n', '\\n') |replace('\r', '\\r') | html %]";
+                q_array = query_desc.split(" ");
+                // ensure that we don't have "" at the end of the array, which can
+                // break the highlighter
+                while (q_array.length > 0 && q_array[q_array.length-1] == "") {
+                    q_array = q_array.splice(0,-1);
+                }
+                highlightOn();
+                $("#highlight_toggle_on" ).hide().click(function(e) {
+                    e.preventDefault();
+                     highlightOn();
+                });
+                $("#highlight_toggle_off").show().click(function(e) {
+                    e.preventDefault();
+                    highlightOff();
+                });
+            [% END %]
+
+            [% IF (SEARCH_RESULTS) %]
+                var newresults = [
+                    [%- FOREACH result IN SEARCH_RESULTS -%]
+                        [%- result.biblionumber %],
+                    [%- END -%]
+                ];
+                var browser = KOHA.browser('[% searchid %]', parseInt('[% biblionumber %]', 10));
+                browser.create([% SEARCH_RESULTS.first.result_number %], '[% query_cgi %]', '[% limit_cgi | uri %]','[% sort_cgi | uri %]',
+                       newresults, '[% total %]');
+            [% END %]
+
+            [% IF (gotoPage && gotoNumber) %]
+                [% IF (gotoNumber == 'first') %]
+                    window.location = '/cgi-bin/koha/catalogue/[% gotoPage %]?biblionumber=' + [% SEARCH_RESULTS.first.biblionumber %] + '&searchid=[% searchid %]';
+                [% ELSIF (gotoNumber == 'last') %]
+                    window.location = '/cgi-bin/koha/catalogue/[% gotoPage %]?biblionumber=' + [% SEARCH_RESULTS.last.biblionumber %] + '&searchid=[% searchid %]';
+                [% END %]
+            [% END %]
+
+            [% IF LocalCoverImages %]
+                KOHA.LocalCover.LoadResultsCovers();
+            [% END %]
+
+            $("#select_all").on("click",function(e){
+                e.preventDefault();
+                selectAll();
+            });
+
+            $("#clear_all").on("click",function(e){
+                e.preventDefault();
+                clearAll();
+            });
+
+            $("#searchresults").on("click",".addtocart",function(e){
+                e.preventDefault();
+                var selection_id = this.id;
+                var biblionumber = selection_id.replace("cart","");
+                addRecord(biblionumber);
+            });
+
+            $("#searchresults").on("click",".cartRemove",function(e){
+                e.preventDefault();
+                var selection_id = this.id;
+                var biblionumber = selection_id.replace("cartR","");
+                delSingleRecord(biblionumber);
+            });
+
+            [% UNLESS Koha.Preference('BrowseResultSelection') %]
+                resetSearchContext();
+            [% END %]
+            $(".selection").change(function(){
+                if ( $(this).is(':checked') == true ) {
+                  addBibToContext( $(this).val() );
+                } else {
+                  delBibToContext( $(this).val() );
+                }
+            });
+            $("#bookbag_form").ready(function(){
+                $("#bookbag_form").unCheckCheckboxes();
+                var bibnums = getContextBiblioNumbers();
+                if (bibnums) {
+                    for (var i=0; i < bibnums.length; i++) {
+                        var id = ('#bib' + bibnums[i]);
+                        if ($(id)) {
+                            $(id).attr('checked', true);
+                        }
+                    }
+                }
+            });
+
+        });
+
+
+        [% IF ( query_desc ) %]
+            function highlightOff() {
+                toHighlight.removeHighlight();
+                $(".highlight_toggle").toggle();
+            }
+            function highlightOn() {
+                var x;
+                for (x in q_array) {
+                    q_array[x] = q_array[x].toLowerCase();
+                    var myStopwords = "[% Koha.Preference('NotHighlightedWords') %]".toLowerCase().split('|');
+                    if ( (q_array[x].length > 0) && ($.inArray(q_array[x], myStopwords) == -1) ) {
+                        toHighlight.highlight(q_array[x]);
+                    }
+                }
+                $(".highlight_toggle").toggle();
+            }
+        [% END %]
+
+        function selectAll () {
+            $("#bookbag_form").checkCheckboxes();
+            $("#bookbag_form").find("input[type='checkbox'][name='biblionumber']").each(function(){
+                $(this).change();
+            } );
+            return false;
+        }
+        function clearAll () {
+            $("#bookbag_form").unCheckCheckboxes();
+            $("#bookbag_form").find("input[type='checkbox'][name='biblionumber']").each(function(){
+                $(this).change();
+            } );
+            return false;
+        }
+        function placeHold () {
+            var checkedItems = $(".selection:checked");
+            if ($(checkedItems).size() == 0) {
+                alert(MSG_NO_ITEM_SELECTED);
+                return false;
+            }
+            var bibs = "";
+            var badBibs = false;
+            $(checkedItems).each(function() {
+                var bib = $(this).val();
+                if ($("#reserve_" + bib).size() == 0) {
+                    alert(MSG_NON_RESERVES_SELECTED);
+                    badBibs = true;
+                    return false;
+                }
+                bibs += bib + "/";
+            });
+            if (badBibs) {
+                return false;
+            }
+            $("#hold_form_biblios").val(bibs);
+            $("#hold_form").submit();
+            return false;
+        }
+
+        function forgetPatron(){
+            $.removeCookie("holdfor", { path: '/' });
+            $(".holdforlink").remove();
+            $("#placeholdc").html("<a class=\"btn btn-default btn-xs placehold\" href=\"#\"><i class=\"fa fa-sticky-note-o\"></i> "+_("Place hold")+"</a>");
+        }
+
+        function browse_selection () {
+            var bibnums = getContextBiblioNumbers();
+            if ( bibnums && bibnums.length > 0 ) {
+                var browser = KOHA.browser('', parseInt('[% biblionumber %]', 10));
+                browser.create(1, '[% query_cgi %]', '[% limit_cgi | uri %]','[% sort_cgi | uri %]', bibnums, bibnums.length);
+                window.location = '/cgi-bin/koha/catalogue/detail.pl?biblionumber=' + bibnums[0] + '&searchid='+browser.searchid;
+            } else {
+                alert(MSG_NO_ITEM_SELECTED);
+            }
+            return false;
+        }
+
+        function addToList () {
+            var checkedItems = $(".selection:checked");
+            if ($(checkedItems).size() == 0) {
+                alert(MSG_NO_ITEM_SELECTED);
+                return false;
+            }
+            var bibs = "";
+            $(checkedItems).each(function() {
+                bibs += $(this).val() + "/";
+            });
+
+            var url = "/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?biblionumbers=" + bibs;
+            window.open(url, 'Add_to_virtualshelf', 'width=500, height=400, toolbar=false, scrollbars=yes');
+            return false;
+        }
+
+        /* this function open a popup to search on z3950 server.  */
+        function PopupZ3950() {
+            var strQuery = GetZ3950Terms();
+            if(strQuery){
+                window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?biblionumber=[% biblionumber %]"+strQuery,"z3950search",'width=740,height=450,location=yes,toolbar=no,scrollbars=yes,resize=yes');
+            }
+        }
+        /* provide Z3950 search points */
+        function GetZ3950Terms(){
+            var strQuery="&frameworkcode=";
+            [% FOREACH z3950_search_param IN z3950_search_params %]
+                strQuery += "&" + "[% z3950_search_param.name |uri %]" + "=" + "[% z3950_search_param.value |uri %]";
+            [% END %]
+            return strQuery;
+        }
+
+        function holdfor(){
+            $("#holdFor").val("");
+            placeHold();
+        }
+
+        function holdForPatron() {
+            $("#holdFor").val("[% holdfor_cardnumber %]");
+            placeHold();
+        }
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

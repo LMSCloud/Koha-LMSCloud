@@ -58,13 +58,25 @@ sub _new_schema {
     my $db_port   = $context->config("port") || '';
     my $db_user   = $context->config("user");
     my $db_passwd = $context->config("pass");
+    my $tls = $context->config("tls");
+    my $tls_options;
+    if( $tls && $tls eq 'yes' ) {
+        my $ca = $context->config('ca');
+        my $cert = $context->config('cert');
+        my $key = $context->config('key');
+        $tls_options = ";mysql_ssl=1;mysql_ssl_client_key=".$key.";mysql_ssl_client_cert=".$cert.";mysql_ssl_ca_file=".$ca;
+    }
 
-    my ( %encoding_attr, $encoding_query, $tz_query );
-    my $tz = $ENV{TZ};
+
+
+    my ( %encoding_attr, $encoding_query, $tz_query, $sql_mode_query );
+    my $tz = C4::Context->timezone;
+    $tz = q{} if ( $tz eq 'local' );
     if ( $db_driver eq 'mysql' ) {
         %encoding_attr = ( mysql_enable_utf8 => 1 );
-        $encoding_query = "set NAMES 'utf8'";
+        $encoding_query = "set NAMES 'utf8mb4'";
         $tz_query = qq(SET time_zone = "$tz") if $tz;
+        $sql_mode_query = q{SET sql_mode = 'IGNORE_SPACE,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'};
     }
     elsif ( $db_driver eq 'Pg' ) {
         $encoding_query = "set client_encoding = 'UTF8';";
@@ -72,7 +84,7 @@ sub _new_schema {
     }
     my $schema = Koha::Schema->connect(
         {
-            dsn => "dbi:$db_driver:database=$db_name;host=$db_host;port=$db_port",
+            dsn => "dbi:$db_driver:database=$db_name;host=$db_host;port=$db_port".($tls_options? $tls_options : ""),
             user => $db_user,
             password => $db_passwd,
             %encoding_attr,
@@ -83,6 +95,7 @@ sub _new_schema {
             on_connect_do => [
                 $encoding_query || (),
                 $tz_query || (),
+                $sql_mode_query || (),
             ]
         }
     );
@@ -203,6 +216,23 @@ sub restore_schema {
 
     # FIXME - If it is determined that restore_context should
     # return something, then this function should, too.
+}
+
+=head2 get_schema_cached
+
+=cut
+
+sub get_schema_cached {
+    return $database->{schema};
+}
+
+=head2 flush_schema_cache
+
+=cut
+
+sub flush_schema_cache {
+    delete $database->{schema};
+    return 1;
 }
 
 =head2 EXPORT

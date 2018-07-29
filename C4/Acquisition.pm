@@ -28,10 +28,14 @@ use C4::Contract;
 use C4::Debug;
 use C4::Templates qw(gettemplate);
 use Koha::DateUtils qw( dt_from_string output_pref );
-use Koha::Acquisition::Order;
-use Koha::Acquisition::Bookseller;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
+use Koha::Biblios;
+use Koha::Items;
 use Koha::Number::Price;
 use Koha::Libraries;
+use Koha::CsvProfiles;
+use Koha::Patrons;
 
 use C4::Koha;
 
@@ -186,7 +190,7 @@ sub GetBasket {
 =head3 NewBasket
 
   $basket = &NewBasket( $booksellerid, $authorizedby, $basketname,
-      $basketnote, $basketbooksellernote, $basketcontractnumber, $deliveryplace, $billingplace, $is_standing );
+      $basketnote, $basketbooksellernote, $basketcontractnumber, $deliveryplace, $billingplace, $is_standing, $create_items );
 
 Create a new basket in aqbasket table
 
@@ -205,7 +209,7 @@ The other parameters are optional, see ModBasketHeader for more info on them.
 sub NewBasket {
     my ( $booksellerid, $authorisedby, $basketname, $basketnote,
         $basketbooksellernote, $basketcontractnumber, $deliveryplace,
-        $billingplace, $is_standing ) = @_;
+        $billingplace, $is_standing, $create_items ) = @_;
     my $dbh = C4::Context->dbh;
     my $query =
         'INSERT INTO aqbasket (creationdate,booksellerid,authorisedby) '
@@ -217,7 +221,7 @@ sub NewBasket {
     $basketnote           ||= q{};
     $basketbooksellernote ||= q{};
     ModBasketHeader( $basket, $basketname, $basketnote, $basketbooksellernote,
-        $basketcontractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing );
+        $basketcontractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing, $create_items );
     return $basket;
 }
 
@@ -236,8 +240,10 @@ sub CloseBasket {
     my $dbh        = C4::Context->dbh;
     $dbh->do('UPDATE aqbasket SET closedate=now() WHERE basketno=?', {}, $basketno );
 
-    $dbh->do( q{UPDATE aqorders SET orderstatus = 'ordered' WHERE basketno = ? AND orderstatus != 'complete'},
-        {}, $basketno);
+    $dbh->do(
+q{UPDATE aqorders SET orderstatus = 'ordered' WHERE basketno = ? AND orderstatus NOT IN ( 'complete', 'cancelled')},
+        {}, $basketno
+    );
     return;
 }
 
@@ -258,7 +264,7 @@ sub ReopenBasket {
         UPDATE aqorders
         SET orderstatus = 'new'
         WHERE basketno = ?
-        AND orderstatus != 'complete'
+        AND orderstatus NOT IN ( 'complete', 'cancelled' )
         }, {}, $basketno);
     return;
 }
@@ -276,7 +282,7 @@ $cgi parameter is needed for column name translation
 =cut
 
 sub GetBasketAsCSV {
-    my ($basketno, $cgi) = @_;
+    my ($basketno, $cgi, $csv_profile_id) = @_;
     my $basket = GetBasket($basketno);
     my @orders = GetOrders($basketno);
     my $contract = GetContract({
@@ -284,45 +290,95 @@ sub GetBasketAsCSV {
     });
 
     my $template = C4::Templates::gettemplate("acqui/csv/basket.tt", "intranet", $cgi);
-
     my @rows;
-    foreach my $order (@orders) {
-        my $bd = GetBiblioData( $order->{'biblionumber'} );
-        my $row = {
-            contractname => $contract->{'contractname'},
-            ordernumber => $order->{'ordernumber'},
-            entrydate => $order->{'entrydate'},
-            isbn => $order->{'isbn'},
-            author => $bd->{'author'},
-            title => $bd->{'title'},
-            publicationyear => $bd->{'publicationyear'},
-            publishercode => $bd->{'publishercode'},
-            collectiontitle => $bd->{'collectiontitle'},
-            notes => $order->{'order_vendornote'},
-            quantity => $order->{'quantity'},
-            rrp => $order->{'rrp'},
-            deliveryplace => C4::Branch::GetBranchName( $basket->{'deliveryplace'} ),
-            billingplace => C4::Branch::GetBranchName( $basket->{'billingplace'} ),
-        };
-        foreach(qw(
-            contractname author title publishercode collectiontitle notes
-            deliveryplace billingplace
-        ) ) {
-            # Double the quotes to not be interpreted as a field end
-            $row->{$_} =~ s/"/""/g if $row->{$_};
+    if ($csv_profile_id) {
+        my $csv_profile = Koha::CsvProfiles->find( $csv_profile_id );
+        die "There is no valid csv profile given" unless $csv_profile;
+
+        my $csv = Text::CSV_XS->new({'quote_char'=>'"','escape_char'=>'"','sep_char'=>$csv_profile->csv_separator,'binary'=>1});
+        my $csv_profile_content = $csv_profile->content;
+        my ( @headers, @fields );
+        while ( $csv_profile_content =~ /
+            ([^=\|]+) # header
+            =?
+            ([^\|]*) # fieldname (table.row or row)
+            \|? /gxms
+        ) {
+            my $header = $1;
+            my $field = ($2 eq '') ? $1 : $2;
+
+            $header =~ s/^\s+|\s+$//g; # Trim whitespaces
+            push @headers, $header;
+
+            $field =~ s/[^\.]*\.{1}//; # Remove the table name if exists.
+            $field =~ s/^\s+|\s+$//g; # Trim whitespaces
+            push @fields, $field;
         }
-        push @rows, $row;
+        for my $order (@orders) {
+            my @row;
+            my $biblio = Koha::Biblios->find( $order->{biblionumber} );
+            my $biblioitem = $biblio->biblioitem;
+            $order = { %$order, %{ $biblioitem->unblessed } };
+            if ($contract) {
+                $order = {%$order, %$contract};
+            }
+            $order = {%$order, %$basket, %{ $biblio->unblessed }};
+            for my $field (@fields) {
+                push @row, $order->{$field};
+            }
+            push @rows, \@row;
+        }
+        my $content = join( $csv_profile->csv_separator, @headers ) . "\n";
+        for my $row ( @rows ) {
+            $csv->combine(@$row);
+            my $string = $csv->string;
+            $content .= $string . "\n";
+        }
+        return $content;
     }
+    else {
+        foreach my $order (@orders) {
+            my $biblio = Koha::Biblios->find( $order->{biblionumber} );
+            my $biblioitem = $biblio->biblioitem;
+            my $row = {
+                contractname => $contract->{'contractname'},
+                ordernumber => $order->{'ordernumber'},
+                entrydate => $order->{'entrydate'},
+                isbn => $order->{'isbn'},
+                author => $biblio->author,
+                title => $biblio->title,
+                publicationyear => $biblioitem->publicationyear,
+                publishercode => $biblioitem->publishercode,
+                collectiontitle => $biblioitem->collectiontitle,
+                notes => $order->{'order_vendornote'},
+                quantity => $order->{'quantity'},
+                rrp => $order->{'rrp'},
+            };
+            for my $place ( qw( deliveryplace billingplace ) ) {
+                if ( my $library = Koha::Libraries->find( $row->{deliveryplace} ) ) {
+                    $row->{$place} = $library->branchname
+                }
+            }
+            foreach(qw(
+                contractname author title publishercode collectiontitle notes
+                deliveryplace billingplace
+            ) ) {
+                # Double the quotes to not be interpreted as a field end
+                $row->{$_} =~ s/"/""/g if $row->{$_};
+            }
+            push @rows, $row;
+         }
 
-    @rows = sort {
-        if(defined $a->{publishercode} and defined $b->{publishercode}) {
-            $a->{publishercode} cmp $b->{publishercode};
-        }
-    } @rows;
+        @rows = sort {
+            if(defined $a->{publishercode} and defined $b->{publishercode}) {
+                $a->{publishercode} cmp $b->{publishercode};
+            }
+        } @rows;
 
-    $template->param(rows => \@rows);
+        $template->param(rows => \@rows);
 
-    return $template->output;
+        return $template->output;
+    }
 }
 
 
@@ -348,37 +404,47 @@ sub GetBasketGroupAsCSV {
         my $contract   = GetContract({
             contractnumber => $basket->{contractnumber}
         });
-        my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $basket->{booksellerid} });
+        my $bookseller = Koha::Acquisition::Booksellers->find( $basket->{booksellerid} );
         my $basketgroup = GetBasketgroup( $$basket{basketgroupid} );
 
         foreach my $order (@orders) {
-            my $bd = GetBiblioData( $order->{'biblionumber'} );
+            my $biblio = Koha::Biblios->find( $order->{biblionumber} );
+            my $biblioitem = $biblio->biblioitem;
             my $row = {
-                clientnumber => $bookseller->{accountnumber},
+                clientnumber => $bookseller->accountnumber,
                 basketname => $basket->{basketname},
                 ordernumber => $order->{ordernumber},
-                author => $bd->{author},
-                title => $bd->{title},
-                publishercode => $bd->{publishercode},
-                publicationyear => $bd->{publicationyear},
-                collectiontitle => $bd->{collectiontitle},
+                author => $biblio->author,
+                title => $biblio->title,
+                publishercode => $biblioitem->publishercode,
+                publicationyear => $biblioitem->publicationyear,
+                collectiontitle => $biblioitem->collectiontitle,
                 isbn => $order->{isbn},
                 quantity => $order->{quantity},
-                rrp => $order->{rrp},
-                discount => $bookseller->{discount},
-                ecost => $order->{ecost},
+                rrp_tax_included => $order->{rrp_tax_included},
+                rrp_tax_excluded => $order->{rrp_tax_excluded},
+                discount => $bookseller->discount,
+                ecost_tax_included => $order->{ecost_tax_included},
+                ecost_tax_excluded => $order->{ecost_tax_excluded},
                 notes => $order->{order_vendornote},
                 entrydate => $order->{entrydate},
-                booksellername => $bookseller->{name},
-                bookselleraddress => $bookseller->{address1},
-                booksellerpostal => $bookseller->{postal},
+                booksellername => $bookseller->name,
+                bookselleraddress => $bookseller->address1,
+                booksellerpostal => $bookseller->postal,
                 contractnumber => $contract->{contractnumber},
                 contractname => $contract->{contractname},
-                basketgroupdeliveryplace => C4::Branch::GetBranchName( $basketgroup->{deliveryplace} ),
-                basketgroupbillingplace => C4::Branch::GetBranchName( $basketgroup->{billingplace} ),
-                basketdeliveryplace => C4::Branch::GetBranchName( $basket->{deliveryplace} ),
-                basketbillingplace => C4::Branch::GetBranchName( $basket->{billingplace} ),
             };
+            my $temp = {
+                basketgroupdeliveryplace => $basketgroup->{deliveryplace},
+                basketgroupbillingplace  => $basketgroup->{billingplace},
+                basketdeliveryplace      => $basket->{deliveryplace},
+                basketbillingplace       => $basket->{billingplace},
+            };
+            for my $place (qw( basketgroupdeliveryplace basketgroupbillingplace basketdeliveryplace basketbillingplace )) {
+                if ( my $library = Koha::Libraries->find( $temp->{$place} ) ) {
+                    $row->{$place} = $library->branchname;
+                }
+            }
             foreach(qw(
                 basketname author title publishercode collectiontitle notes
                 booksellername bookselleraddress booksellerpostal contractname
@@ -532,21 +598,26 @@ Modifies a basket's header.
 
 =item C<$is_standing> is the "is_standing" field in the aqbasket table.
 
+=item C<$create_items> should be set to 'ordering', 'receiving' or 'cataloguing' (or undef, in which
+case the AcqCreateItem syspref takes precedence).
+
 =back
 
 =cut
 
 sub ModBasketHeader {
-    my ($basketno, $basketname, $note, $booksellernote, $contractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing) = @_;
+    my ($basketno, $basketname, $note, $booksellernote, $contractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing, $create_items) = @_;
+
+    $is_standing ||= 0;
     my $query = qq{
         UPDATE aqbasket
-        SET basketname=?, note=?, booksellernote=?, booksellerid=?, deliveryplace=?, billingplace=?, is_standing=?
+        SET basketname=?, note=?, booksellernote=?, booksellerid=?, deliveryplace=?, billingplace=?, is_standing=?, create_items=?
         WHERE basketno=?
     };
 
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare($query);
-    $sth->execute($basketname, $note, $booksellernote, $booksellerid, $deliveryplace, $billingplace, $is_standing, $basketno);
+    $sth->execute($basketname, $note, $booksellernote, $booksellerid, $deliveryplace, $billingplace, $is_standing, $create_items || undef, $basketno);
 
     if ( $contractnumber ) {
         my $query2 ="UPDATE aqbasket SET contractnumber=? WHERE basketno=?";
@@ -621,7 +692,7 @@ sub GetBasketsInfosByBookseller {
 
     my $dbh = C4::Context->dbh;
     my $query = q{
-        SELECT aqbasket.*,
+        SELECT aqbasket.basketno, aqbasket.basketname, aqbasket.note, aqbasket.booksellernote, aqbasket.contractnumber, aqbasket.creationdate, aqbasket.closedate, aqbasket.booksellerid, aqbasket.authorisedby, aqbasket.booksellerinvoicenumber, aqbasket.basketgroupid, aqbasket.deliveryplace, aqbasket.billingplace, aqbasket.branch, aqbasket.is_standing, aqbasket.create_items,
           SUM(aqorders.quantity) AS total_items,
           SUM(
             IF ( aqorders.orderstatus = 'cancelled', aqorders.quantity, 0 )
@@ -640,7 +711,7 @@ sub GetBasketsInfosByBookseller {
     unless ( $allbaskets ) {
         $query.=" AND (closedate IS NULL OR (aqorders.quantity > aqorders.quantityreceived AND datecancellationprinted IS NULL))";
     }
-    $query.=" GROUP BY aqbasket.basketno";
+    $query.=" GROUP BY aqbasket.basketno, aqbasket.basketname, aqbasket.note, aqbasket.booksellernote, aqbasket.contractnumber, aqbasket.creationdate, aqbasket.closedate, aqbasket.booksellerid, aqbasket.authorisedby, aqbasket.booksellerinvoicenumber, aqbasket.basketgroupid, aqbasket.deliveryplace, aqbasket.billingplace, aqbasket.branch, aqbasket.is_standing, aqbasket.create_items";
 
     my $sth = $dbh->prepare($query);
     $sth->execute($supplierid);
@@ -737,7 +808,7 @@ AcqViewBaskets, user permissions and basket properties (creator, users list,
 branch).
 
 First parameter can be either a borrowernumber or a hashref as returned by
-C4::Members::GetMember.
+Koha::Patron->unblessed
 
 Second parameter can be either a basketno or a hashref as returned by
 C4::Acquisition::GetBasket.
@@ -754,7 +825,10 @@ sub CanUserManageBasket {
     my ($borrower, $basket, $userflags) = @_;
 
     if (!ref $borrower) {
-        $borrower = C4::Members::GetMember(borrowernumber => $borrower);
+        # FIXME This needs to be replaced
+        # We should not accept both scalar and array
+        # Tests need to be updated
+        $borrower = Koha::Patrons->find( $borrower )->unblessed;
     }
     if (!ref $basket) {
         $basket = GetBasket($basket);
@@ -792,8 +866,8 @@ sub CanUserManageBasket {
 
         if ($AcqViewBaskets eq 'user'
         && $basket->{authorisedby} != $borrowernumber
-        && grep($borrowernumber, GetBasketUsers($basketno)) == 0) {
-            return 0;
+        && ! grep { $borrowernumber eq $_ } GetBasketUsers($basketno)) {
+             return 0;
         }
 
         if ($AcqViewBaskets eq 'branch' && defined $basket->{branch}
@@ -1324,58 +1398,42 @@ sub ModItemOrder {
 
 =head3 ModReceiveOrder
 
-  &ModReceiveOrder({
-    biblionumber => $biblionumber,
-    ordernumber => $ordernumber,
-    quantityreceived => $quantityreceived,
-    user => $user,
-    cost => $cost,
-    ecost => $ecost,
-    invoiceid => $invoiceid,
-    rrp => $rrp,
-    budget_id => $budget_id,
-    datereceived => $datereceived,
-    received_itemnumbers => \@received_itemnumbers,
-    order_internalnote => $order_internalnote,
-    order_vendornote => $order_vendornote,
-   });
+    my ( $date_received, $new_ordernumber ) = ModReceiveOrder(
+        {
+            biblionumber         => $biblionumber,
+            order                => $order,
+            quantityreceived     => $quantityreceived,
+            user                 => $user,
+            invoice              => $invoice,
+            budget_id            => $budget_id,
+            received_itemnumbers => \@received_itemnumbers,
+            order_internalnote   => $order_internalnote,
+        }
+    );
 
 Updates an order, to reflect the fact that it was received, at least
-in part. All arguments not mentioned below update the fields with the
-same name in the aqorders table of the Koha database.
+in part.
 
 If a partial order is received, splits the order into two.
 
-Updates the order with bibilionumber C<$biblionumber> and ordernumber
-C<$ordernumber>.
+Updates the order with biblionumber C<$biblionumber> and ordernumber
+C<$order->{ordernumber}>.
 
 =cut
 
 
 sub ModReceiveOrder {
-    my ( $params ) = @_;
-    my $biblionumber = $params->{biblionumber};
-    my $ordernumber = $params->{ordernumber};
-    my $quantrec = $params->{quantityreceived};
-    my $user = $params->{user};
-    my $cost = $params->{cost};
-    my $ecost = $params->{ecost};
-    my $invoiceid = $params->{invoiceid};
-    my $rrp = $params->{rrp};
-    my $budget_id = $params->{budget_id};
-    my $datereceived = $params->{datereceived};
+    my ($params)       = @_;
+    my $biblionumber   = $params->{biblionumber};
+    my $order          = { %{ $params->{order} } }; # Copy the order, we don't want to modify it
+    my $invoice        = $params->{invoice};
+    my $quantrec       = $params->{quantityreceived};
+    my $user           = $params->{user};
+    my $budget_id      = $params->{budget_id};
     my $received_items = $params->{received_items};
-    my $order_internalnote = $params->{order_internalnote};
-    my $order_vendornote = $params->{order_vendornote};
 
     my $dbh = C4::Context->dbh;
-    $datereceived = output_pref(
-        {
-            dt => ( $datereceived ? dt_from_string( $datereceived ) : dt_from_string ),
-            dateformat => 'iso',
-            dateonly => 1,
-        }
-    );
+    my $datereceived = ( $invoice and $invoice->{datereceived} ) ? $invoice->{datereceived} : dt_from_string;
     my $suggestionid = GetSuggestionFromBiblionumber( $biblionumber );
     if ($suggestionid) {
         ModSuggestion( {suggestionid=>$suggestionid,
@@ -1384,16 +1442,14 @@ sub ModReceiveOrder {
                         );
     }
 
-    my $result_set = $dbh->selectall_arrayref(
-q{SELECT *, aqbasket.is_standing FROM aqorders LEFT JOIN aqbasket USING (basketno) WHERE biblionumber=? AND aqorders.ordernumber=?},
-        { Slice => {} }, $biblionumber, $ordernumber
-    );
+    my $result_set = $dbh->selectrow_arrayref(
+            q{SELECT aqbasket.is_standing
+            FROM aqbasket
+            WHERE basketno=?},{ Slice => {} }, $order->{basketno});
+    my $is_standing = $result_set->[0];  # we assume we have a unique basket
 
-    # we assume we have a unique order
-    my $order = $result_set->[0];
-
-    my $new_ordernumber = $ordernumber;
-    if ( $order->{is_standing} || $order->{quantity} > $quantrec ) {
+    my $new_ordernumber = $order->{ordernumber};
+    if ( $is_standing || $order->{quantity} > $quantrec ) {
         # Split order line in two parts: the first is the original order line
         # without received items (the quantity is decreased),
         # the second part is a new order line with quantity=quantityrec
@@ -1402,29 +1458,39 @@ q{SELECT *, aqbasket.is_standing FROM aqorders LEFT JOIN aqbasket USING (basketn
             UPDATE aqorders
             SET quantity = ?,
                 orderstatus = 'partial'|;
-        $query .= q|, order_internalnote = ?| if defined $order_internalnote;
-        $query .= q|, order_vendornote = ?| if defined $order_vendornote;
+        $query .= q|, order_internalnote = ?| if defined $order->{order_internalnote};
         $query .= q| WHERE ordernumber = ?|;
         my $sth = $dbh->prepare($query);
 
         $sth->execute(
-            ( $order->{is_standing} ? 1 : ( $order->{quantity} - $quantrec ) ),
-            ( defined $order_internalnote ? $order_internalnote : () ),
-            ( defined $order_vendornote ? $order_vendornote : () ),
-            $ordernumber
+            ( $is_standing ? 1 : ($order->{quantity} - $quantrec) ),
+            ( defined $order->{order_internalnote} ? $order->{order_internalnote} : () ),
+            $order->{ordernumber}
         );
 
-        delete $order->{'ordernumber'};
-        $order->{'budget_id'} = ( $budget_id || $order->{'budget_id'} );
-        $order->{'quantity'} = $quantrec;
-        $order->{'quantityreceived'} = $quantrec;
-        $order->{'datereceived'} = $datereceived;
-        $order->{'invoiceid'} = $invoiceid;
-        $order->{'unitprice'} = $cost;
-        $order->{'rrp'} = $rrp;
-        $order->{ecost} = $ecost;
-        $order->{'orderstatus'} = 'complete';
-        $new_ordernumber = Koha::Acquisition::Order->new($order)->insert->{ordernumber};
+        # Recalculate tax_value
+        $dbh->do(q|
+            UPDATE aqorders
+            SET
+                tax_value_on_ordering = quantity * ecost_tax_excluded * tax_rate_on_ordering,
+                tax_value_on_receiving = quantity * unitprice_tax_excluded * tax_rate_on_receiving
+            WHERE ordernumber = ?
+        |, undef, $order->{ordernumber});
+
+        delete $order->{ordernumber};
+        $order->{budget_id} = ( $budget_id || $order->{budget_id} );
+        $order->{quantity} = $quantrec;
+        $order->{quantityreceived} = $quantrec;
+        $order->{ecost_tax_excluded} //= 0;
+        $order->{tax_rate_on_ordering} //= 0;
+        $order->{unitprice_tax_excluded} //= 0;
+        $order->{tax_rate_on_receiving} //= 0;
+        $order->{tax_value_on_ordering} = $order->{quantity} * $order->{ecost_tax_excluded} * $order->{tax_rate_on_ordering};
+        $order->{tax_value_on_receiving} = $order->{quantity} * $order->{unitprice_tax_excluded} * $order->{tax_rate_on_receiving};
+        $order->{datereceived} = $datereceived;
+        $order->{invoiceid} = $invoice->{invoiceid};
+        $order->{orderstatus} = 'complete';
+        $new_ordernumber = Koha::Acquisition::Order->new($order)->store->ordernumber; # TODO What if the store fails?
 
         if ($received_items) {
             foreach my $itemnumber (@$received_items) {
@@ -1433,29 +1499,57 @@ q{SELECT *, aqbasket.is_standing FROM aqorders LEFT JOIN aqbasket USING (basketn
         }
     } else {
         my $query = q|
-            update aqorders
-            set quantityreceived=?,datereceived=?,invoiceid=?,
-                unitprice=?,rrp=?,ecost=?,budget_id=?,orderstatus='complete'|;
-        $query .= q|, order_internalnote = ?| if defined $order_internalnote;
-        $query .= q|, order_vendornote = ?| if defined $order_vendornote;
+            UPDATE aqorders
+            SET quantityreceived = ?,
+                datereceived = ?,
+                invoiceid = ?,
+                budget_id = ?,
+                orderstatus = 'complete'
+        |;
+
+        $query .= q|
+            , unitprice = ?, unitprice_tax_included = ?, unitprice_tax_excluded = ?
+        | if defined $order->{unitprice};
+
+        $query .= q|
+            ,tax_value_on_receiving = ?
+        | if defined $order->{tax_value_on_receiving};
+
+        $query .= q|
+            ,tax_rate_on_receiving = ?
+        | if defined $order->{tax_rate_on_receiving};
+
+        $query .= q|
+            , order_internalnote = ?
+        | if defined $order->{order_internalnote};
+
         $query .= q| where biblionumber=? and ordernumber=?|;
+
         my $sth = $dbh->prepare( $query );
-        $sth->execute(
-            $quantrec,
-            $datereceived,
-            $invoiceid,
-            $cost,
-            $rrp,
-            $ecost,
-            ( $budget_id ? $budget_id : $order->{budget_id} ),
-            ( defined $order_internalnote ? $order_internalnote : () ),
-            ( defined $order_vendornote ? $order_vendornote : () ),
-            $biblionumber,
-            $ordernumber
-        );
+        my @params = ( $quantrec, $datereceived, $invoice->{invoiceid}, ( $budget_id ? $budget_id : $order->{budget_id} ) );
+
+        if ( defined $order->{unitprice} ) {
+            push @params, $order->{unitprice}, $order->{unitprice_tax_included}, $order->{unitprice_tax_excluded};
+        }
+
+        if ( defined $order->{tax_value_on_receiving} ) {
+            push @params, $order->{tax_value_on_receiving};
+        }
+
+        if ( defined $order->{tax_rate_on_receiving} ) {
+            push @params, $order->{tax_rate_on_receiving};
+        }
+
+        if ( defined $order->{order_internalnote} ) {
+            push @params, $order->{order_internalnote};
+        }
+
+        push @params, ( $biblionumber, $order->{ordernumber} );
+
+        $sth->execute( @params );
 
         # All items have been received, sent a notification to users
-        NotifyOrderUsers( $ordernumber );
+        NotifyOrderUsers( $order->{ordernumber} );
 
     }
     return ($datereceived, $new_ordernumber);
@@ -1498,6 +1592,7 @@ sub CancelReceipt {
     my $parent_ordernumber = $order->{'parent_ordernumber'};
 
     my @itemnumbers = GetItemnumbersFromOrder( $ordernumber );
+    my $order_obj = Koha::Acquisition::Orders->find( $ordernumber ); # FIXME rewrite all this subroutine using this object
 
     if($parent_ordernumber == $ordernumber || not $parent_ordernumber) {
         # The order line has no parent, just mark it as not received
@@ -1511,7 +1606,7 @@ sub CancelReceipt {
         };
         $sth = $dbh->prepare($query);
         $sth->execute(0, undef, undef, $ordernumber);
-        _cancel_items_receipt( $ordernumber );
+        _cancel_items_receipt( $order_obj );
     } else {
         # The order line has a parent, increase parent quantity and delete
         # the order line.
@@ -1548,7 +1643,17 @@ sub CancelReceipt {
                 " receipt";
             return;
         }
-        _cancel_items_receipt( $ordernumber, $parent_ordernumber );
+
+        # Recalculate tax_value
+        $dbh->do(q|
+            UPDATE aqorders
+            SET
+                tax_value_on_ordering = quantity * ecost_tax_excluded * tax_rate_on_ordering,
+                tax_value_on_receiving = quantity * unitprice_tax_excluded * tax_rate_on_receiving
+            WHERE ordernumber = ?
+        |, undef, $parent_ordernumber);
+
+        _cancel_items_receipt( $order_obj, $parent_ordernumber );
         # Delete order line
         $query = qq{
             DELETE FROM aqorders
@@ -1559,21 +1664,21 @@ sub CancelReceipt {
 
     }
 
-    if(C4::Context->preference('AcqCreateItem') eq 'ordering') {
+    if( $order_obj->basket->effective_create_items eq 'ordering' ) {
         my @affects = split q{\|}, C4::Context->preference("AcqItemSetSubfieldsWhenReceiptIsCancelled");
         if ( @affects ) {
             for my $in ( @itemnumbers ) {
-                my $biblionumber = C4::Biblio::GetBiblionumberFromItemnumber( $in );
-                my $frameworkcode = GetFrameworkCode($biblionumber);
-                my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
-                my $item = C4::Items::GetMarcItem( $biblionumber, $in );
+                my $item = Koha::Items->find( $in );
+                my $biblio = $item->biblio;
+                my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $biblio->frameworkcode );
+                my $item_marc = C4::Items::GetMarcItem( $biblio->biblionumber, $in );
                 for my $affect ( @affects ) {
                     my ( $sf, $v ) = split q{=}, $affect, 2;
-                    foreach ( $item->field($itemfield) ) {
+                    foreach ( $item_marc->field($itemfield) ) {
                         $_->update( $sf => $v );
                     }
                 }
-                C4::Items::ModItemFromMarc( $item, $biblionumber, $in );
+                C4::Items::ModItemFromMarc( $item_marc, $biblio->biblionumber, $in );
             }
         }
     }
@@ -1582,11 +1687,11 @@ sub CancelReceipt {
 }
 
 sub _cancel_items_receipt {
-    my ( $ordernumber, $parent_ordernumber ) = @_;
-    $parent_ordernumber ||= $ordernumber;
+    my ( $order, $parent_ordernumber ) = @_;
+    $parent_ordernumber ||= $order->ordernumber;
 
-    my @itemnumbers = GetItemnumbersFromOrder($ordernumber);
-    if(C4::Context->preference('AcqCreateItem') eq 'receiving') {
+    my @itemnumbers = GetItemnumbersFromOrder($order->ordernumber); # FIXME Must be $order->items
+    if ( $order->basket->effective_create_items eq 'receiving' ) {
         # Remove items that were created at receipt
         my $query = qq{
             DELETE FROM items, aqorders_items
@@ -1613,17 +1718,22 @@ sub _cancel_items_receipt {
 @results = &SearchOrders({
     ordernumber => $ordernumber,
     search => $search,
-    biblionumber => $biblionumber,
     ean => $ean,
     booksellerid => $booksellerid,
     basketno => $basketno,
+    basketname => $basketname,
+    basketgroupname => $basketgroupname,
     owner => $owner,
     pending => $pending
     ordered => $ordered
+    biblionumber => $biblionumber,
+    budget_id => $budget_id
 });
 
-Searches for orders.
+Searches for orders filtered by criteria.
 
+C<$ordernumber> Finds matching orders or transferred orders by ordernumber.
+C<$search> Finds orders matching %$search% in title, author, or isbn.
 C<$owner> Finds order for the logged in user.
 C<$pending> Finds pending orders. Ignores completed and cancelled orders.
 C<$ordered> Finds orders to receive only (status 'ordered' or 'partial').
@@ -1658,6 +1768,8 @@ sub SearchOrders {
                biblio.*,
                biblioitems.isbn,
                biblioitems.biblioitemnumber,
+               biblioitems.publishercode,
+               biblioitems.publicationyear,
                aqbasket.authorisedby,
                aqbasket.booksellerid,
                aqbasket.closedate,
@@ -1800,7 +1912,7 @@ sub DelOrder {
 
     my @itemnumbers = GetItemnumbersFromOrder( $ordernumber );
     foreach my $itemnumber (@itemnumbers){
-        my $delcheck = C4::Items::DelItemCheck( $dbh, $bibnum, $itemnumber );
+        my $delcheck = C4::Items::DelItemCheck( $bibnum, $itemnumber );
 
         if($delcheck != 1) {
             $error->{'delitem'} = 1;
@@ -1809,7 +1921,8 @@ sub DelOrder {
 
     if($delete_biblio) {
         # We get the number of remaining items
-        my $itemcount = C4::Items::GetItemsCount($bibnum);
+        my $biblio = Koha::Biblios->find( $bibnum );
+        my $itemcount = $biblio->items->count;
 
         # If there are no items left,
         if ( $itemcount == 0 ) {
@@ -1844,8 +1957,11 @@ sub TransferOrder {
 
     return unless ($ordernumber and $basketno);
 
-    my $order = GetOrder( $ordernumber );
-    return if $order->{datereceived};
+    my $order = Koha::Acquisition::Orders->find( $ordernumber ) or return;
+    return if $order->datereceived;
+
+    $order = $order->unblessed;
+
     my $basket = GetBasket($basketno);
     return unless $basket;
 
@@ -1864,7 +1980,7 @@ sub TransferOrder {
     delete $order->{parent_ordernumber};
     $order->{'basketno'} = $basketno;
 
-    my $newordernumber = Koha::Acquisition::Order->new($order)->insert->{ordernumber};
+    my $newordernumber = Koha::Acquisition::Order->new($order)->store->ordernumber;
 
     $query = q{
         UPDATE aqorders_items
@@ -2034,7 +2150,6 @@ sub GetLateOrders {
         AND aqbasket.closedate IS NOT NULL
         AND (aqorders.datecancellationprinted IS NULL OR aqorders.datecancellationprinted='0000-00-00')
     ";
-    my $having = "";
     if ($dbdriver eq "mysql") {
         $select .= "
         aqorders.quantity - COALESCE(aqorders.quantityreceived,0)                 AS quantity,
@@ -2045,7 +2160,7 @@ sub GetLateOrders {
             $from .= " AND (closedate <= DATE_SUB(CAST(now() AS date),INTERVAL ? DAY)) " ;
             push @query_params, $delay;
         }
-        $having = "HAVING quantity <> 0";
+        $from .= " AND aqorders.quantity - COALESCE(aqorders.quantityreceived,0) <> 0";
     } else {
         # FIXME: account for IFNULL as above
         $select .= "
@@ -2057,6 +2172,7 @@ sub GetLateOrders {
             $from .= " AND (closedate <= (CAST(now() AS date) -(INTERVAL ? DAY)) ";
             push @query_params, $delay;
         }
+        $from .= " AND aqorders.quantity <> 0";
     }
     if (defined $supplierid) {
         $from .= ' AND aqbasket.booksellerid = ? ';
@@ -2087,7 +2203,7 @@ sub GetLateOrders {
         push @query_params, C4::Context->userenv->{branch};
     }
     $from .= " AND orderstatus <> 'cancelled' ";
-    my $query = "$select $from $having\nORDER BY latesince, basketno, borrowers.branchcode, supplier";
+    my $query = "$select $from \nORDER BY latesince, basketno, borrowers.branchcode, supplier";
     $debug and print STDERR "GetLateOrders query: $query\nGetLateOrders args: " . join(" ",@query_params);
     my $sth = $dbh->prepare($query);
     $sth->execute(@query_params);
@@ -2172,6 +2288,22 @@ sub GetHistory {
     my $total_qtyreceived = 0;
     my $total_price       = 0;
 
+    #get variation of isbn
+    my @isbn_params;
+    my @isbns;
+    if ($isbn){
+        if ( C4::Context->preference("SearchWithISBNVariations") ){
+            @isbns = C4::Koha::GetVariationsOfISBN( $isbn );
+            foreach my $isb (@isbns){
+                push @isbn_params, '?';
+            }
+        }
+        unless (@isbns){
+            push @isbns, $isbn;
+            push @isbn_params, '?';
+        }
+    }
+
     my $dbh   = C4::Context->dbh;
     my $query ="
         SELECT
@@ -2239,10 +2371,13 @@ sub GetHistory {
         push @query_params, "%$author%";
     }
 
-    if ( $isbn ) {
-        $query .= " AND biblioitems.isbn LIKE ? ";
-        push @query_params, "%$isbn%";
+    if ( @isbns ) {
+        $query .= " AND ( biblioitems.isbn LIKE " . join (" OR biblioitems.isbn LIKE ", @isbn_params ) . ")";
+        foreach my $isb (@isbns){
+            push @query_params, "%$isb%";
+        }
     }
+
     if ( $ean ) {
         $query .= " AND biblioitems.ean = ? ";
         push @query_params, "$ean";
@@ -2323,7 +2458,7 @@ sub GetHistory {
 
   $results = GetRecentAcqui($days);
 
-C<$results> is a ref to a table which containts hashref
+C<$results> is a ref to a table which contains hashref
 
 =cut
 
@@ -2402,7 +2537,8 @@ sub GetInvoices {
 
     my $dbh = C4::Context->dbh;
     my $query = qq{
-        SELECT aqinvoices.*, aqbooksellers.name AS suppliername,
+        SELECT aqinvoices.invoiceid, aqinvoices.invoicenumber, aqinvoices.booksellerid, aqinvoices.shipmentdate, aqinvoices.billingdate, aqinvoices.closedate, aqinvoices.shipmentcost, aqinvoices.shipmentcost_budgetid, aqinvoices.message_id,
+            aqbooksellers.name AS suppliername,
           COUNT(
             DISTINCT IF(
               aqorders.datereceived IS NOT NULL,
@@ -2488,7 +2624,7 @@ sub GetInvoices {
     }
 
     $query .= " WHERE " . join(" AND ", @bind_strs) if @bind_strs;
-    $query .= " GROUP BY aqinvoices.invoiceid ";
+    $query .= " GROUP BY aqinvoices.invoiceid, aqinvoices.invoicenumber, aqinvoices.booksellerid, aqinvoices.shipmentdate, aqinvoices.billingdate, aqinvoices.closedate, aqinvoices.shipmentcost, aqinvoices.shipmentcost_budgetid, aqinvoices.message_id, aqbooksellers.name";
 
     if($args{order_by}) {
         my ($column, $direction) = split / /, $args{order_by};
@@ -2568,6 +2704,7 @@ sub GetInvoiceDetails {
         SELECT aqorders.*,
                 biblio.*,
                 biblio.copyrightdate,
+                biblioitems.isbn,
                 biblioitems.publishercode,
                 biblioitems.publicationyear,
                 aqbasket.basketname,
@@ -2813,9 +2950,6 @@ sub GetBiblioCountByBasketno {
     return $sth->fetchrow;
 }
 
-# This is *not* the good way to calcul prices
-# But it's how it works at the moment into Koha
-# This will be fixed later.
 # Note this subroutine should be moved to Koha::Acquisition::Order
 # Will do when a DBIC decision will be taken.
 sub populate_order_with_prices {
@@ -2825,61 +2959,82 @@ sub populate_order_with_prices {
     my $booksellerid = $params->{booksellerid};
     return unless $booksellerid;
 
-    my $bookseller = Koha::Acquisition::Bookseller->fetch({ id => $booksellerid });
+    my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 
     my $receiving = $params->{receiving};
     my $ordering  = $params->{ordering};
     my $discount  = $order->{discount};
     $discount /= 100 if $discount > 1;
 
-    $order->{rrp}   = Koha::Number::Price->new( $order->{rrp} )->round;
-    $order->{ecost} = Koha::Number::Price->new( $order->{ecost} )->round;
     if ($ordering) {
-        if ( $bookseller->{listincgst} ) {
-            $order->{rrpgsti} = $order->{rrp};
-            $order->{rrpgste} = Koha::Number::Price->new(
-                $order->{rrpgsti} / ( 1 + $order->{gstrate} ) )->round;
-            $order->{ecostgsti} = $order->{ecost};
-            $order->{ecostgste} = Koha::Number::Price->new(
-                $order->{ecost} / ( 1 + $order->{gstrate} ) )->round;
-            $order->{gstvalue} = Koha::Number::Price->new(
-                ( $order->{ecostgsti} - $order->{ecostgste} ) *
-                  $order->{quantity} )->round;
-            $order->{totalgste} = $order->{ecostgste} * $order->{quantity};
-            $order->{totalgsti} = $order->{ecostgsti} * $order->{quantity};
+        $order->{tax_rate_on_ordering} //= $order->{tax_rate};
+        if ( $bookseller->listincgst ) {
+            # The user entered the rrp tax included
+            $order->{rrp_tax_included} = $order->{rrp};
+
+            # rrp tax excluded = rrp tax included / ( 1 + tax rate )
+            $order->{rrp_tax_excluded} = $order->{rrp_tax_included} / ( 1 + $order->{tax_rate_on_ordering} );
+
+            # ecost tax excluded = rrp tax excluded * ( 1 - discount )
+            $order->{ecost_tax_excluded} = $order->{rrp_tax_excluded} * ( 1 - $discount );
+
+            # ecost tax included = rrp tax included  ( 1 - discount )
+            $order->{ecost_tax_included} = $order->{rrp_tax_included} * ( 1 - $discount );
         }
         else {
-            $order->{rrpgste} = $order->{rrp};
-            $order->{rrpgsti} = Koha::Number::Price->new(
-                $order->{rrp} * ( 1 + $order->{gstrate} ) )->round;
-            $order->{ecostgste} = $order->{ecost};
-            $order->{ecostgsti} = Koha::Number::Price->new(
-                $order->{ecost} * ( 1 + $order->{gstrate} ) )->round;
-            $order->{gstvalue} = Koha::Number::Price->new(
-                ( $order->{ecostgsti} - $order->{ecostgste} ) *
-                  $order->{quantity} )->round;
-            $order->{totalgste} = $order->{ecostgste} * $order->{quantity};
-            $order->{totalgsti} = $order->{ecostgsti} * $order->{quantity};
+            # The user entered the rrp tax excluded
+            $order->{rrp_tax_excluded} = $order->{rrp};
+
+            # rrp tax included = rrp tax excluded * ( 1 - tax rate )
+            $order->{rrp_tax_included} = $order->{rrp_tax_excluded} * ( 1 + $order->{tax_rate_on_ordering} );
+
+            # ecost tax excluded = rrp tax excluded * ( 1 - discount )
+            $order->{ecost_tax_excluded} = $order->{rrp_tax_excluded} * ( 1 - $discount );
+
+            # ecost tax included = rrp tax excluded * ( 1 + tax rate ) * ( 1 - discount )
+            $order->{ecost_tax_included} =
+                $order->{rrp_tax_excluded} *
+                ( 1 + $order->{tax_rate_on_ordering} ) *
+                ( 1 - $discount );
         }
+
+        # tax value = quantity * ecost tax excluded * tax rate
+        $order->{tax_value_on_ordering} =
+            $order->{quantity} * $order->{ecost_tax_excluded} * $order->{tax_rate_on_ordering};
     }
 
     if ($receiving) {
-        if ( $bookseller->{listincgst} ) {
-            $order->{unitpricegsti} = Koha::Number::Price->new( $order->{unitprice} )->round;
-            $order->{unitpricegste} = Koha::Number::Price->new(
-              $order->{unitpricegsti} / ( 1 + $order->{gstrate} ) )->round;
+        $order->{tax_rate_on_receiving} //= $order->{tax_rate};
+        if ( $bookseller->invoiceincgst ) {
+            # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
+            # we need to keep the exact ecost value
+            if ( Koha::Number::Price->new( $order->{unitprice} )->round == Koha::Number::Price->new( $order->{ecost_tax_included} )->round ) {
+                $order->{unitprice} = $order->{ecost_tax_included};
+            }
+
+            # The user entered the unit price tax included
+            $order->{unitprice_tax_included} = $order->{unitprice};
+
+            # unit price tax excluded = unit price tax included / ( 1 + tax rate )
+            $order->{unitprice_tax_excluded} = $order->{unitprice_tax_included} / ( 1 + $order->{tax_rate_on_receiving} );
         }
         else {
-            $order->{unitpricegste} = Koha::Number::Price->new( $order->{unitprice} )->round;
-            $order->{unitpricegsti} = Koha::Number::Price->new(
-              $order->{unitpricegste} * ( 1 + $order->{gstrate} ) )->round;
-        }
-        $order->{gstvalue} = Koha::Number::Price->new(
-          ( $order->{unitpricegsti} - $order->{unitpricegste} )
-          * $order->{quantityreceived} )->round;
+            # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
+            # we need to keep the exact ecost value
+            if ( Koha::Number::Price->new( $order->{unitprice} )->round == Koha::Number::Price->new( $order->{ecost_tax_excluded} )->round ) {
+                $order->{unitprice} = $order->{ecost_tax_excluded};
+            }
 
-        $order->{totalgste} = $order->{unitpricegste} * $order->{quantity};
-        $order->{totalgsti} = $order->{unitpricegsti} * $order->{quantity};
+            # The user entered the unit price tax excluded
+            $order->{unitprice_tax_excluded} = $order->{unitprice};
+
+
+            # unit price tax included = unit price tax included * ( 1 + tax rate )
+            $order->{unitprice_tax_included} = $order->{unitprice_tax_excluded} * ( 1 + $order->{tax_rate_on_receiving} );
+        }
+
+        # tax value = quantity * unit price tax excluded * tax rate
+        $order->{tax_value_on_receiving} = $order->{quantity} * $order->{unitprice_tax_excluded} * $order->{tax_rate_on_receiving};
     }
 
     return $order;
@@ -2957,16 +3112,17 @@ sub NotifyOrderUsers {
 
     my $order = GetOrder( $ordernumber );
     for my $borrowernumber (@borrowernumbers) {
-        my $borrower = C4::Members::GetMember( borrowernumber => $borrowernumber );
-        my $library = Koha::Libraries->find( $borrower->{branchcode} )->unblessed;
-        my $biblio = C4::Biblio::GetBiblio( $order->{biblionumber} );
+        my $patron = Koha::Patrons->find( $borrowernumber );
+        my $library = $patron->library->unblessed;
+        my $biblio = Koha::Biblios->find( $order->{biblionumber} )->unblessed;
         my $letter = C4::Letters::GetPreparedLetter(
             module      => 'acquisition',
             letter_code => 'ACQ_NOTIF_ON_RECEIV',
             branchcode  => $library->{branchcode},
+            lang        => $patron->lang,
             tables      => {
                 'branches'    => $library,
-                'borrowers'   => $borrower,
+                'borrowers'   => $patron->unblessed,
                 'biblio'      => $biblio,
                 'aqorders'    => $order,
             },
@@ -2997,7 +3153,7 @@ If the field does not exist, it will be created too.
 
 sub FillWithDefaultValues {
     my ($record) = @_;
-    my $tagslib = C4::Biblio::GetMarcStructure( 1, 'ACQ' );
+    my $tagslib = C4::Biblio::GetMarcStructure( 1, 'ACQ', { unsafe => 1 } );
     if ($tagslib) {
         my ($itemfield) =
           C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', '' );

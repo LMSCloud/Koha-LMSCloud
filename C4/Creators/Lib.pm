@@ -316,7 +316,7 @@ sub get_label_summary {
     my %params = @_;
     my $label_number = 0;
     my @label_summaries = ();
-    my $query = "     SELECT b.title, b.author, bi.itemtype, i.barcode, i.biblionumber, i.itype
+    my $query = "     SELECT b.title, b.author, bi.itemtype, i.barcode, i.itemcallnumber, i.biblionumber, i.itype
                       FROM creator_batches AS c LEFT JOIN items AS i ON (c.item_number=i.itemnumber)
                       LEFT JOIN biblioitems AS bi ON (i.biblioitemnumber=bi.biblioitemnumber)
                       LEFT JOIN biblio AS b ON (bi.biblionumber=b.biblionumber)
@@ -342,6 +342,7 @@ sub get_label_summary {
         $label_summary->{'_item_type'} = C4::Context->preference("item-level_itypes") ? $record->{'itype'} : $record->{'itemtype'};
         $label_summary->{'_barcode'} = $record->{'barcode'};
         $label_summary->{'_item_number'} = $item->{'item_number'};
+        $label_summary->{'_item_cn'} = $record->{'itemcallnumber'};
         $label_summary->{'_label_id'} = $item->{'label_id'};
         push (@label_summaries, $label_summary);
     }
@@ -559,7 +560,7 @@ sub html_table {
                 next POPULATE_ROW;
             }
             elsif ($table_column =~ m/^_((.*)_(.*$))/) {   # this a special case
-                my $table_name = get_table_names($2);
+                my $table_name = get_table_names('creator_'.$2); #Bug 14143 fix to remove ambiguity with table 'club_template_enrollment_fields'
                 my $record_set = _SELECT($1, @$table_name[0], $2 . "_id = " . $db_row->{$2 . "_id"});
                 $$fields[$col_index] = {hidden => 0, link_field => $link_field->{$table_column}, select_field => 0, field_name => ($table_column . "_tbl"), field_value => $$record_set[0]{$1}};
                 $col_index++;

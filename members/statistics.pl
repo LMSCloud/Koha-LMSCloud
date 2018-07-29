@@ -26,13 +26,12 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
-use C4::Branch;
 use C4::Context;
 use C4::Members;
 use C4::Members::Statistics;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Output;
-use Koha::Patron::Images;
+use Koha::Patrons;
 
 my $input = new CGI;
 
@@ -41,28 +40,19 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { borrowers => 1 },
+        flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
 
 my $borrowernumber = $input->param('borrowernumber');
 
-# Set informations for the patron
-my $borrower = GetMemberDetails( $borrowernumber, 0 );
-if ( not defined $borrower ) {
-    $template->param (unknowuser => 1);
-    output_html_with_http_headers $input, $cookie, $template->output;
-    exit;
-}
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $patron         = Koha::Patrons->find( $borrowernumber );
+output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
-foreach my $key ( keys %$borrower ) {
-    $template->param( $key => $borrower->{$key} );
-}
-$template->param(
-    categoryname    => $borrower->{'description'},
-    branchname      => GetBranchName($borrower->{'branchcode'}),
-);
+my $category = $patron->category;
+
 # Construct column names
 my $fields = C4::Members::Statistics::get_fields();
 our @statistic_column_names = split '\|', $fields;
@@ -94,14 +84,8 @@ if (C4::Context->preference('ExtendedPatronAttributes')) {
     );
 }
 
-my $patron_image = Koha::Patron::Images->find($borrower->{borrowernumber});
-$template->param( picture => 1 ) if $patron_image;
-
-$template->param(%$borrower);
-
-$template->param( adultborrower => 1 ) if ( $borrower->{category_type} eq 'A' || $borrower->{category_type} eq 'I' );
-
 $template->param(
+    patron             => $patron,
     statisticsview     => 1,
     datas              => $datas,
     column_names       => \@statistic_column_names,
@@ -109,7 +93,6 @@ $template->param(
     count_total_issues_returned => $count_total_issues_returned,
     count_total_precedent_state => $count_total_precedent_state,
     count_total_actual_state => $count_total_actual_state,
-    RoutingSerials => C4::Context->preference('RoutingSerials'),
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

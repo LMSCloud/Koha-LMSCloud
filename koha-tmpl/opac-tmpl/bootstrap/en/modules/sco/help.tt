@@ -1,21 +1,22 @@
+[% USE Asset %]
 [% USE KohaDates %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] &rsaquo; Self checkout help</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Koha [% Version %]" /> <!-- leave this for stats -->
 <link rel="shortcut icon" href="[% IF ( OpacFavicon  ) %][% OpacFavicon  %][% ELSE %][% interface %]/[% theme %]/images/favicon.ico[% END %]" type="image/x-icon" />
- <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/lib/bootstrap/css/bootstrap.min.css" />
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/lib/jquery/jquery-ui.css" />
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/sco.css" />
-[% IF ( OPACUserCSS ) %]<style type="text/css">[% OPACUserCSS %]</style>[% END %]
-[% IF ( SCOUserCSS ) %]<style type="text/css">[% SCOUserCSS %]</style>[% END %]
+ [% Asset.css("lib/bootstrap/css/bootstrap.min.css") %]
+[% Asset.css("lib/jquery/jquery-ui.css") %]
+[% Asset.css("css/sco.css") %]
+[% IF ( OPACUserCSS ) %]<style>[% OPACUserCSS %]</style>[% END %]
+[% IF ( SCOUserCSS ) %]<style>[% SCOUserCSS %]</style>[% END %]
 <!--[if lt IE 9]>
     <script src="[% interface %]/[% theme %]/lib/respond.min.js"></script>
 <![endif]-->
-<script type="text/javascript">
+<script>
     function _(s) { return s } // dummy function for gettext
 </script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/modernizr.min.js"></script>
+[% Asset.js("lib/modernizr.min.js") %]
 </head>
 <body id="sco_help" class="sco">
 [% INCLUDE 'masthead-sco.inc' %]
@@ -61,5 +62,5 @@ The Submit button only needs to be clicked if you enter the barcode manually.</p
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
-[% IF ( SCOUserJS ) %]<script type="text/javascript">[% SCOUserJS %]</script>[% END %]
+[% IF ( SCOUserJS ) %]<script>[% SCOUserJS %]</script>[% END %]
 [% END %]

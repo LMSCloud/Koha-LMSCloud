@@ -19,7 +19,8 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use Test::More tests => 3;
+use Test::More tests => 4;
+use Test::MockModule;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
@@ -94,7 +95,7 @@ subtest 'AuthenticatePatron test' => sub {
 
 subtest 'GetPatronInfo/GetBorrowerAttributes test for extended patron attributes' => sub {
 
-    plan tests => 1;
+    plan tests => 2;
 
     $schema->storage->txn_begin;
 
@@ -165,6 +166,18 @@ subtest 'GetPatronInfo/GetBorrowerAttributes test for extended patron attributes
         }
     } );
 
+    $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber    => $brwr->{borrowernumber},
+                accountno         => 1,
+                accounttype       => 'xxx',
+                amountoutstanding => 10
+            }
+        }
+    );
+
     # Prepare and send web request for IL-SDI server:
     my $query = new CGI;
     $query->param( 'service', 'GetPatronInfo' );
@@ -184,6 +197,9 @@ subtest 'GetPatronInfo/GetBorrowerAttributes test for extended patron attributes
         value_description => undef,
     };
 
+    is( $reply->{'charges'}, '10.00',
+        'The \'charges\' attribute should be correctly filled (bug 17836)' );
+
     # Check results:
     is_deeply( $reply->{'attributes'}, [ $cmp ], 'Test GetPatronInfo - show_attributes parameter' );
 
@@ -191,4 +207,58 @@ subtest 'GetPatronInfo/GetBorrowerAttributes test for extended patron attributes
     $schema->storage->txn_rollback;
 };
 
-1;
+
+subtest 'LookupPatron test' => sub {
+
+    plan tests => 9;
+
+    $schema->storage->txn_begin;
+
+    $schema->resultset( 'Issue' )->delete_all;
+    $schema->resultset( 'Borrower' )->delete_all;
+    $schema->resultset( 'BorrowerAttribute' )->delete_all;
+    $schema->resultset( 'BorrowerAttributeType' )->delete_all;
+    $schema->resultset( 'Category' )->delete_all;
+    $schema->resultset( 'Item' )->delete_all; # 'Branch' deps. on this
+    $schema->resultset( 'Branch' )->delete_all;
+
+    my $borrower = $builder->build({
+        source => 'Borrower',
+    });
+
+    my $query = CGI->new();
+    my $bad_result = C4::ILSDI::Services::LookupPatron($query);
+    is( $bad_result->{message}, 'PatronNotFound', 'No parameters' );
+
+    $query->delete_all();
+    $query->param( 'id', $borrower->{firstname} );
+    my $optional_result = C4::ILSDI::Services::LookupPatron($query);
+    is(
+        $optional_result->{id},
+        $borrower->{borrowernumber},
+        'Valid Firstname only'
+    );
+
+    $query->delete_all();
+    $query->param( 'id', 'ThereIsNoWayThatThisCouldPossiblyBeValid' );
+    my $bad_optional_result = C4::ILSDI::Services::LookupPatron($query);
+    is( $bad_optional_result->{message}, 'PatronNotFound', 'Invalid ID' );
+
+    foreach my $id_type (
+        'cardnumber',
+        'userid',
+        'email',
+        'borrowernumber',
+        'surname',
+        'firstname'
+    ) {
+        $query->delete_all();
+        $query->param( 'id_type', $id_type );
+        $query->param( 'id', $borrower->{$id_type} );
+        my $result = C4::ILSDI::Services::LookupPatron($query);
+        is( $result->{'id'}, $borrower->{borrowernumber}, "Checking $id_type" );
+    }
+
+    # Cleanup
+    $schema->storage->txn_rollback;
+};

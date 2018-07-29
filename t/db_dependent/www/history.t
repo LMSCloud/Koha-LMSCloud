@@ -21,11 +21,16 @@ use utf8;
 use XML::Simple;
 use Encode;
 
-use Test::More tests => 2;
+use Test::More; #See plan tests => \d+ below
 use Test::WWW::Mechanize;
 
 my $koha_conf = $ENV{KOHA_CONF};
 my $xml       = XMLin($koha_conf);
+
+my $user     = $ENV{KOHA_USER} || $xml->{config}->{user};
+my $password = $ENV{KOHA_PASS} || $xml->{config}->{pass};
+my $intranet = $ENV{KOHA_INTRANET_URL};
+
 
 eval{
     use C4::Context;
@@ -33,13 +38,11 @@ eval{
 if ($@) {
     plan skip_all => "Tests skip. You must have a working Context\n";
 }
-
-my $user     = $ENV{KOHA_USER} || $xml->{config}->{user};
-my $password = $ENV{KOHA_PASS} || $xml->{config}->{pass};
-my $intranet = $ENV{KOHA_INTRANET_URL};
-
-if (not defined $intranet) {
+elsif (not defined $intranet) {
     plan skip_all => "Tests skip. You must set env. variable KOHA_INTRANET_URL to do tests\n";
+}
+else {
+    plan tests => 4;
 }
 
 
@@ -48,13 +51,13 @@ $intranet =~ s#/$##;
 my $agent = Test::WWW::Mechanize->new( autocheck => 1 );
 
 # Login
-$agent->get( "$intranet/cgi-bin/koha/mainpage.pl", 'Load the intranet login page' );
+$agent->get_ok( "$intranet/cgi-bin/koha/mainpage.pl", 'Load the intranet login page' );
 $agent->form_name('loginform');
 $agent->field( 'password', $password );
 $agent->field( 'userid',   $user );
 $agent->field( 'branch',   '' );
 $agent->click( '', 'Login to the intranet' );
-$agent->get( "$intranet/cgi-bin/koha/about.pl", 'Load the about page' );
+$agent->get_ok( "$intranet/cgi-bin/koha/about.pl", 'Load the about page' );
 
 # Test about > timeline is correctly encoded
 my $encoded_latin_name    = Encode::encode('UTF-8', 'Frédéric Demians');
@@ -64,4 +67,3 @@ my $history_page          = Encode::encode('UTF-8', $agent->text());
 like( $history_page, qr/$encoded_latin_name/, "Latin characters with umlauts show correctly on the history page." );
 like( $history_page, qr/$encoded_cyrillic_name/, "Cyrillic characters with umlauts show correctly on the history page." );
 
-1;

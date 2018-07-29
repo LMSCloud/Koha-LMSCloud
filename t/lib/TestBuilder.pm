@@ -1,7 +1,12 @@
 package t::lib::TestBuilder;
 
 use Modern::Perl;
+
 use Koha::Database;
+
+use Bytes::Random::Secure;
+use Carp;
+use Module::Load;
 use String::Random;
 
 sub new {
@@ -51,12 +56,46 @@ sub delete {
     return $rv;
 }
 
+sub build_object {
+    my ( $self, $params ) = @_;
+
+    my $class = $params->{class};
+    my $value = $params->{value};
+
+    if ( not defined $class ) {
+        carp "Missing class param";
+        return;
+    }
+
+    load $class;
+    my $source = $class->_type;
+    my @pks = $self->schema->source( $class->_type )->primary_columns;
+
+    my $hashref = $self->build({ source => $source, value => $value });
+    my @ids;
+
+    foreach my $pk ( @pks ) {
+        push @ids, $hashref->{ $pk };
+    }
+
+    my $object = $class->find( @ids );
+
+    return $object;
+}
+
 sub build {
 # build returns a hash of column values for a created record, or undef
 # build does NOT update a record, or pass back values of an existing record
     my ($self, $params) = @_;
-    my $source  = $params->{source} || return;
+    my $source  = $params->{source};
+    if( !$source ) {
+        carp "Source parameter not specified!";
+        return;
+    }
     my $value   = $params->{value};
+
+    my @unknowns = grep( !/^(source|value)$/, keys %{ $params });
+    carp "Unknown parameter(s): ", join( ', ', @unknowns ) if scalar @unknowns;
 
     my $col_values = $self->_buildColumnValues({
         source  => $source,
@@ -150,8 +189,8 @@ sub _buildColumnValues {
     my @columns = $self->schema->source($source)->columns;
     my %unique_constraints = $self->schema->source($source)->unique_constraints();
 
-    my $build_value = 3;
-    # we try max three times if there are unique constraints
+    my $build_value = 5;
+    # we try max $build_value times if there are unique constraints
     BUILD_VALUE: while ( $build_value ) {
         # generate random values for all columns
         for my $col_name( @columns ) {
@@ -378,7 +417,7 @@ sub _gen_real {
     if( defined( $params->{info}->{size} ) ) {
         $max = 10 ** ($params->{info}->{size}->[0] - $params->{info}->{size}->[1]);
     }
-    return rand($max) + 1;
+    return sprintf("%.2f", rand($max)+1);
 }
 
 sub _gen_date {
@@ -394,17 +433,21 @@ sub _gen_datetime {
 sub _gen_text {
     my ($self, $params) = @_;
     # From perldoc String::Random
-    # max: specify the maximum number of characters to return for * and other
-    # regular expression patters that don't return a fixed number of characters
-    my $regex = '[A-Za-z][A-Za-z0-9_]*';
-    my $size = $params->{info}{size};
-    if ( defined $size and $size > 1 ) {
-        $size--;
-    } elsif ( defined $size and $size == 1 ) {
-        $regex = '[A-Za-z]';
-    }
-    my $random = String::Random->new( max => $size );
+    my $size = $params->{info}{size} // 10;
+    $size -= alt_rand(0.5 * $size);
+    my $regex = $size > 1
+        ? '[A-Za-z][A-Za-z0-9_]{'.($size-1).'}'
+        : '[A-Za-z]';
+    my $random = String::Random->new( rand_gen => \&alt_rand );
+    # rand_gen is only supported from 0.27 onward
     return $random->randregex($regex);
+}
+
+sub alt_rand { #Alternative randomizer
+    my ($max) = @_;
+    my $random = Bytes::Random::Secure->new( NonBlocking => 1 );
+    my $r = $random->irand / 2**32;
+    return int( $r * $max );
 }
 
 sub _gen_set_enum {
@@ -420,12 +463,39 @@ sub _gen_blob {
 sub _gen_default_values {
     my ($self) = @_;
     return {
+        Borrower => {
+            login_attempts => 0,
+            gonenoaddress  => undef,
+            lost           => undef,
+            debarred       => undef,
+            borrowernotes  => '',
+        },
         Item => {
+            notforloan         => 0,
+            itemlost           => 0,
+            withdrawn          => 0,
+            restricted         => 0,
             more_subfields_xml => undef,
         },
-        Biblioitem => {
-            marcxml => undef,
-        }
+        Category => {
+            enrolmentfee => 0,
+            reservefee   => 0,
+        },
+        Itemtype => {
+            rentalcharge => 0,
+            defaultreplacecost => 0,
+            processfee => 0,
+        },
+        Aqbookseller => {
+            tax_rate => 0,
+            discount => 0,
+        },
+        AuthHeader => {
+            marcxml => '',
+        },
+        Accountline => {
+            accountno => 0,
+        },
     };
 }
 
@@ -503,6 +573,13 @@ Note that you should wrap these actions in a transaction yourself.
 
     Realize that passing primary key values to build may result in undef
     if a record with that primary key already exists.
+
+=head2 build_object
+
+Given a plural Koha::Object-derived class, it creates a random element, and
+returns the corresponding Koha::Object.
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' [, value => { ... }] });
 
 =head1 AUTHOR
 

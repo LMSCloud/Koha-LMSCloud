@@ -19,7 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
+use Modern::Perl;
+
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
@@ -27,7 +28,6 @@ use C4::Biblio;
 use C4::Items;
 use C4::Context;
 use C4::Koha;
-use C4::Branch;
 
 
 my $query = CGI->new;
@@ -46,7 +46,7 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
     }
 );
 
-my $biblio = GetMarcBiblio($biblionumber);
+my $biblio = GetMarcBiblio({ biblionumber => $biblionumber });
 my $marcflavour = C4::Context->preference("marcflavour");
 $marcflavour ||="MARC21";
 if ($marcflavour eq 'MARC21' || $marcflavour eq 'NORMARC') {
@@ -57,43 +57,44 @@ if ($marcflavour eq 'MARC21' || $marcflavour eq 'NORMARC') {
 
 $template->param(biblionumber => $biblionumber);
 
-if ($barcode && $biblionumber) { 
-    
-    # We get the host itemnumber
-    my $hostitemnumber = GetItemnumberFromBarcode($barcode);
+if ( $barcode && $biblionumber ) {
 
-    if ($hostitemnumber) {
-	my $hostbiblionumber = GetBiblionumberFromItemnumber($hostitemnumber);
+    my $item = Koha::Items->find( { barcode => $barcode } );
 
-	if ($hostbiblionumber) {
-	        my $field = PrepHostMarcField($hostbiblionumber, $hostitemnumber,$marcflavour);
-		$biblio->append_fields($field);
+    if ($item) {
+        my $field = PrepHostMarcField( $item->biblio->biblionumber, $item->itemnumber, $marcflavour );
+        $biblio->append_fields($field);
 
-		my $modresult = ModBiblio($biblio, $biblionumber, ''); 
-		if ($modresult) { 
-			$template->param(success => 1);
-		} else {
-			$template->param(error => 1,
-					 errornomodbiblio => 1); 
-		}
-	} else {
-		$template->param(error => 1,
-	        	             errornohostbiblionumber => 1);
-	}
-    } else {
-	    $template->param(error => 1,
-			     errornohostitemnumber => 1);
-
+        my $modresult = ModBiblio( $biblio, $biblionumber, '' );
+        if ($modresult) {
+            $template->param( success => 1 );
+        }
+        else {
+            $template->param(
+                error            => 1,
+                errornomodbiblio => 1
+            );
+        }
+        $template->param(
+            hostitemnumber => $item->itemnumber,
+        );
     }
-    $template->param(
-			barcode => $barcode,  
-			hostitemnumber => $hostitemnumber,
-		    );
+    else {
+        $template->param(
+            error                 => 1,
+            errornohostitemnumber => 1,
+        );
+    }
 
-} else {
-    $template->param(missingparameter => 1);
-    if (!$barcode)      { $template->param(missingbarcode      => 1); }
-    if (!$biblionumber) { $template->param(missingbiblionumber => 1); }
+    $template->param(
+        barcode        => $barcode,
+    );
+
+}
+else {
+    $template->param( missingparameter => 1 );
+    if ( !$barcode )      { $template->param( missingbarcode      => 1 ); }
+    if ( !$biblionumber ) { $template->param( missingbiblionumber => 1 ); }
 }
 
 

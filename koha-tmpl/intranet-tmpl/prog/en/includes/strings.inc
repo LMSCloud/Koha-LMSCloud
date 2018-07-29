@@ -9,7 +9,7 @@
     var NOT_CHECKED_OUT = _("not checked out");
     var TOO_MANY_RENEWALS = _("too many renewals");
     var ON_RESERVE = _("on hold");
-    var REASON_UNKNOWN = _("reason unkown");
+    var REASON_UNKNOWN = _("reason unknown");
     var TODAYS_CHECKOUTS = _("Today's checkouts");
     var PREVIOUS_CHECKOUTS = _("Previous checkouts");
     var BY = _("by _AUTHOR_");
@@ -17,6 +17,9 @@
     var NOT_RENEWABLE = _("Not renewable");
     var NOT_RENEWABLE_TOO_SOON = _("No renewal before %s");
     var NOT_RENEWABLE_AUTO_TOO_SOON = _("Scheduled for automatic renewal");
+    var NOT_RENEWABLE_AUTO_TOO_LATE = _("Can no longer be auto-renewed - number of checkout days exceeded");
+    var NOT_RENEWABLE_AUTO_TOO_MUCH_OWEING = _("Automatic renewal failed, patron has unpaid fines");
+    var NOT_RENEWABLE_AUTO_ACCOUNT_EXPIRED = _("Automatic renewal failed, account expired");
     var NOT_RENEWABLE_AUTO_RENEW = _("Scheduled for automatic renewal");
     var RENEWALS_REMAINING = _("%s of %s renewals remaining");
     var HOLD_IS_SUSPENDED = _("Hold is <strong>suspended</strong>");
@@ -34,10 +37,14 @@
     var CANCEL = _("Cancel");
     var RESUME = _("Resume");
     var SUSPEND = _("Suspend");
+    var SUSPEND_UNTIL = _("Suspend until:");
     var SUSPEND_HOLD_ON = _("Suspend hold on");
     var CLEAR_DATE_TO_SUSPEND_INDEFINITELY = _("Clear date to suspend indefinitely");
     var SUSPEND_HOLD_ERROR_DATE = _("Unable to suspend hold, invalid date");
     var SUSPEND_HOLD_ERROR_NOT_FOUND = _("Unable to suspend hold, hold not found");
     var RESUME_HOLD_ERROR_NOT_FOUND = _("Unable to resume, hold not found");
+    var CURRENT = _(" (current) ");
+    var MSG_NO_ITEMTYPE = _("No itemtype");
+    var MSG_CHECKOUTS_BY_ITEMTYPE = _("Number of checkouts by item type");
 //]]>
 </script>

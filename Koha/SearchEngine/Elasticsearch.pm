@@ -22,6 +22,7 @@ use base qw(Class::Accessor);
 use C4::Context;
 
 use Koha::Database;
+use Koha::Exceptions::Config;
 use Koha::SearchFields;
 use Koha::SearchMarcMaps;
 
@@ -29,6 +30,8 @@ use Carp;
 use JSON;
 use Modern::Perl;
 use Readonly;
+use Search::Elasticsearch;
+use Try::Tiny;
 use YAML::Syck;
 
 use Data::Dumper;    # TODO remove
@@ -115,6 +118,8 @@ sub get_elasticsearch_params {
       if ( !$es->{index_name} );
     # Append the name of this particular index to our namespace
     $es->{index_name} .= '_' . $self->index;
+
+    $es->{key_prefix} = 'es_';
     return $es;
 }
 
@@ -139,13 +144,13 @@ sub get_elasticsearch_settings {
             analysis => {
                 analyzer => {
                     analyser_phrase => {
-                        tokenizer => 'keyword',
-                        filter    => ['lowercase'],
+                        tokenizer => 'icu_tokenizer',
+                        filter    => ['icu_folding'],
                     },
                     analyser_standard => {
-                        tokenizer => 'standard',
-                        filter    => ['lowercase'],
-                    }
+                        tokenizer => 'icu_tokenizer',
+                        filter    => ['icu_folding'],
+                    },
                 },
             }
         }
@@ -168,16 +173,12 @@ sub get_elasticsearch_mappings {
     # TODO cache in the object?
     my $mappings = {
         data => {
+            _all => {type => "string", analyzer => "analyser_standard"},
             properties => {
                 record => {
-                    store          => "yes",
+                    store          => "true",
                     include_in_all => JSON::false,
-                    type           => "string",
-                },
-                '_all.phrase' => {
-                    search_analyzer => "analyser_phrase",
-                    index_analyzer  => "analyser_phrase",
-                    type            => "string",
+                    type           => "text",
                 },
             }
         }
@@ -196,52 +197,39 @@ sub get_elasticsearch_mappings {
             my $es_type =
               $type eq 'boolean'
               ? 'boolean'
-              : 'string';
-            $mappings->{data}{properties}{$name} = {
-                search_analyzer => "analyser_standard",
-                index_analyzer  => "analyser_standard",
-                type            => $es_type,
-                fields          => {
-                    phrase => {
-                        search_analyzer => "analyser_phrase",
-                        index_analyzer  => "analyser_phrase",
-                        type            => "string",
-                        copy_to         => "_all.phrase",
-                    },
-                    raw => {
-                        "type" => "string",
-                        "index" => "not_analyzed",
-                    }
-                },
-            };
-            $mappings->{data}{properties}{$name}{null_value} = 0
-              if $type eq 'boolean';
+              : 'text';
+
+            if ($es_type eq 'boolean') {
+                $mappings->{data}{properties}{$name} = _elasticsearch_mapping_for_boolean( $name, $es_type, $facet, $suggestible, $sort, $marc_type );
+                return; #Boolean cannot have facets nor sorting nor suggestions
+            } else {
+                $mappings->{data}{properties}{$name} = _elasticsearch_mapping_for_default( $name, $es_type, $facet, $suggestible, $sort, $marc_type );
+            }
+
             if ($facet) {
                 $mappings->{data}{properties}{ $name . '__facet' } = {
-                    type  => "string",
-                    index => "not_analyzed",
+                    type  => "keyword",
                 };
             }
             if ($suggestible) {
                 $mappings->{data}{properties}{ $name . '__suggestion' } = {
                     type => 'completion',
-                    index_analyzer => 'simple',
+                    analyzer => 'simple',
                     search_analyzer => 'simple',
                 };
             }
-            # Sort may be true, false, or undef. Here we care if it's
-            # anything other than undef.
-            if (defined $sort) {
+            # Sort is a bit special as it can be true, false, undef.
+            # We care about "true" or "undef",
+            # "undef" means to do the default thing, which is make it sortable.
+            if ($sort || !defined $sort) {
                 $mappings->{data}{properties}{ $name . '__sort' } = {
                     search_analyzer => "analyser_phrase",
-                    index_analyzer  => "analyser_phrase",
-                    type            => "string",
+                    analyzer  => "analyser_phrase",
+                    type            => "text",
                     include_in_all  => JSON::false,
                     fields          => {
                         phrase => {
-                            search_analyzer => "analyser_phrase",
-                            index_analyzer  => "analyser_phrase",
-                            type            => "string",
+                            type            => "keyword",
                         },
                     },
                 };
@@ -251,6 +239,43 @@ sub get_elasticsearch_mappings {
     );
     $self->sort_fields(\%sort_fields);
     return $mappings;
+}
+
+=head2 _elasticsearch_mapping_for_*
+
+Get the ES mappings for the given data type or a special mapping case
+
+Receives the same parameters from the $self->_foreach_mapping() dispatcher
+
+=cut
+
+sub _elasticsearch_mapping_for_boolean {
+    my ( $name, $type, $facet, $suggestible, $sort, $marc_type ) = @_;
+
+    return {
+        type            => $type,
+        null_value      => 0,
+    };
+}
+
+sub _elasticsearch_mapping_for_default {
+    my ( $name, $type, $facet, $suggestible, $sort, $marc_type ) = @_;
+
+    return {
+        search_analyzer => "analyser_standard",
+        analyzer        => "analyser_standard",
+        type            => $type,
+        fields          => {
+            phrase => {
+                search_analyzer => "analyser_phrase",
+                analyzer        => "analyser_phrase",
+                type            => "text",
+            },
+            raw => {
+                type    => "keyword",
+            }
+        },
+    };
 }
 
 sub reset_elasticsearch_mappings {
@@ -275,7 +300,6 @@ sub reset_elasticsearch_mappings {
 # sort_fields isn't set, then it'll generate it.
 sub sort_fields {
     my $self = shift;
-
     if (@_) {
         $self->_sort_fields_accessor(@_);
         return;
@@ -294,24 +318,21 @@ sub get_fixer_rules {
 
     my $marcflavour = lc C4::Context->preference('marcflavour');
     my @rules;
+
     $self->_foreach_mapping(
         sub {
             my ( $name, $type, $facet, $suggestible, $sort, $marc_type, $marc_field ) = @_;
             return if $marc_type ne $marcflavour;
-            my $options = '';
+            my $options ='';
 
-            # There's a bug when using 'split' with something that
-            # selects a range
-            # The split makes everything into nested arrays, but that's not
-            # really a big deal, ES doesn't mind.
-            $options = '-split => 1' unless $marc_field =~ m|_/| || $type eq 'sum';
-            push @rules, "marc_map('$marc_field','${name}', $options)";
+            push @rules, "marc_map('$marc_field','${name}.\$append', $options)";
             if ($facet) {
-                push @rules, "marc_map('$marc_field','${name}__facet', $options)";
+                push @rules, "marc_map('$marc_field','${name}__facet.\$append', $options)";
             }
             if ($suggestible) {
                 push @rules,
-"marc_map('$marc_field','${name}__suggestion.input.\$append', $options)";
+                    #"marc_map('$marc_field','${name}__suggestion.input.\$append', '')"; #must not have nested data structures in .input
+                    "marc_map('$marc_field','${name}__suggestion.input.\$append')";
             }
             if ( $type eq 'boolean' ) {
 
@@ -323,17 +344,15 @@ sub get_fixer_rules {
             if ($type eq 'sum' ) {
                 push @rules, "sum('$name')";
             }
-            # Sort is a bit special as it can be true, false, undef. For
-            # fixer rules, we care about "true", or "undef" if there is
-            # special handling of this field from other one. "undef" means
-            # to do the default thing, which is make it sortable.
             if ($self->sort_fields()->{$name}) {
                 if ($sort || !defined $sort) {
-                    push @rules, "marc_map('$marc_field','${name}__sort', $options)";
+                    push @rules, "marc_map('$marc_field','${name}__sort.\$append', $options)";
                 }
             }
         }
     );
+
+    push @rules, "move_field(_id,es_id)"; #Also you must set the Catmandu::Store::ElasticSearch->new(key_prefix: 'es_');
     return \@rules;
 }
 
@@ -452,6 +471,65 @@ sub process_error {
     return "Unable to understand your search query, please rephrase and try again.\n" if $msg =~ /ParseException/;
 
     return "Unable to perform your search. Please try again.\n";
+}
+
+=head2 _read_configuration
+
+    my $conf = _read_configuration();
+
+Reads the I<configuration file> and returns a hash structure with the
+configuration information. It raises an exception if mandatory entries
+are missing.
+
+The hashref structure has the following form:
+
+    {
+        'nodes' => ['127.0.0.1:9200', 'anotherserver:9200'],
+        'index_name' => 'koha_instance',
+    }
+
+This is configured by the following in the C<config> block in koha-conf.xml:
+
+    <elasticsearch>
+        <server>127.0.0.1:9200</server>
+        <server>anotherserver:9200</server>
+        <index_name>koha_instance</index_name>
+    </elasticsearch>
+
+=cut
+
+sub _read_configuration {
+
+    my $configuration;
+
+    my $conf = C4::Context->config('elasticsearch');
+    Koha::Exceptions::Config::MissingEntry->throw(
+        "Missing 'elasticsearch' block in config file")
+      unless defined $conf;
+
+    if ( $conf && $conf->{server} ) {
+        my $nodes = $conf->{server};
+        if ( ref($nodes) eq 'ARRAY' ) {
+            $configuration->{nodes} = $nodes;
+        }
+        else {
+            $configuration->{nodes} = [$nodes];
+        }
+    }
+    else {
+        Koha::Exceptions::Config::MissingEntry->throw(
+            "Missing 'server' entry in config file for elasticsearch");
+    }
+
+    if ( defined $conf->{index_name} ) {
+        $configuration->{index_name} = $conf->{index_name};
+    }
+    else {
+        Koha::Exceptions::Config::MissingEntry->throw(
+            "Missing 'index_name' entry in config file for elasticsearch");
+    }
+
+    return $configuration;
 }
 
 1;

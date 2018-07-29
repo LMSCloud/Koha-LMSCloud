@@ -1,5 +1,6 @@
 DELETE FROM auth_types WHERE authtypecode='SAUTTIT';
-INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (240, 'SAUTTIT', 'Auteur titre', '[240a][, 240b][ 240d][ ; 240c][ (240f)][. 240t]\n');
+-- INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (240, 'SAUTTIT', 'Auteur titre', '[240a][, 240b][ 240d][ ; 240c][ (240f)][. 240t]\n');
+INSERT INTO auth_types (auth_tag_to_report, authtypecode, authtypetext, summary) VALUES (240, 'SAUTTIT', 'Автор та заголовок', '[240a][, 240b][ 240d][ ; 240c][ (240f)][. 240t]\n');
 DELETE FROM auth_tag_structure WHERE authtypecode='SAUTTIT';
 DELETE FROM auth_subfield_structure WHERE authtypecode='SAUTTIT';
 
@@ -315,3 +316,6 @@ INSERT INTO  auth_subfield_structure (frameworkcode, authtypecode, tagfield, tag
  ('', 'SAUTTIT', '886', '2', 0, 0, 'Системний код', 'Системний код',    -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'SAUTTIT', '886', 'a', 0, 1, 'Тег поля початкового формату', 'Тег поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0),
  ('', 'SAUTTIT', '886', 'b', 0, 1, 'Індикатори та підполя поля початкового формату', 'Індикатори та підполя поля початкового формату', -1, 0, NULL, NULL, NULL, NULL, NULL, 0);
+
+-- Replace nonzero hidden values like -5, 1 or 8 by 1
+UPDATE auth_subfield_structure SET hidden=1 WHERE hidden<>0

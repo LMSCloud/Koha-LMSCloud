@@ -18,24 +18,44 @@ package Koha::Template::Plugin::ItemTypes;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use C4::Koha;
 
 use Template::Plugin;
 use base qw( Template::Plugin );
 
-use C4::Koha;
+use Koha::ItemTypes;
+use Koha::Items;
 
 sub GetDescription {
-    my ( $self, $itemtype ) = @_;
+    my ( $self, $itemtypecode ) = @_;
+    my $itemtype = Koha::ItemTypes->find( $itemtypecode );
+    return $itemtype ? $itemtype->translated_description : q{};
+}
 
-    $itemtype = C4::Koha::getitemtypeinfo( $itemtype );
-    return $itemtype->{translated_description};
-
+sub GetImageLocation {
+    my ( $self, $interface, $imageurl ) = @_;
+    return C4::Koha::getitemtypeimagelocation( $interface, $imageurl );
 }
 
 sub Get {
-    my @itemtypes = @{ GetItemTypes(style => 'array') };
-    @itemtypes = sort { $a->{description} cmp $b->{description} } @itemtypes;
-    return \@itemtypes;
+    return Koha::ItemTypes->search_with_localization->unblessed;
+}
+
+sub GetBiblioItemtype {
+    my ( $self, $biblioitemnumber ) = @_;
+    my $biblioitem = Koha::Biblioitems->find( $biblioitemnumber );
+    my $itype = undef;
+    if ( $biblioitem ) {
+        $itype = $biblioitem->itemtype;
+    }
+    if (! $itype ) {
+        foreach my $item ( Koha::Items->search( { biblionumber => $biblioitemnumber } ) ) {
+            if ( $item->itype ) {
+                $itype = $item->itype; last;
+            }
+        }
+    }
+    return $itype;
 }
 
 1;

@@ -17,19 +17,21 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
+
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Context;
-use C4::Branch; # GetBranches
 use C4::Koha;
 use C4::Circulation;
 use C4::Members;
 use C4::Reports;
 use C4::Debug;
+
 use Koha::DateUtils;
+use Koha::ItemTypes;
+use Koha::Patron::Categories;
 
 =head1 NAME
 
@@ -37,11 +39,8 @@ plugin that shows a stats on borrowers
 
 =head1 DESCRIPTION
 
-=over 2
-
 =cut
 
-$debug = 1;
 $debug and open DEBUG, ">/tmp/bor_issues_top.debug.log";
 
 my $input = new CGI;
@@ -63,7 +62,7 @@ my ($template, $borrowernumber, $cookie)
                 flagsrequired => {reports => '*'},
                 debug => 1,
                 });
-our $sep     = $input->param("sep");
+our $sep     = $input->param("sep") || C4::Context->preference('delimiter') || ',';
 $sep = "\t" if ($sep eq 'tabulation');
 $template->param(do_it => $do_it,
         );
@@ -110,41 +109,14 @@ my @values;
 # here each element returned by map is a hashref, get it?
 my @mime  = ( map { {type =>$_} } (split /[;:]/, 'CSV') ); # FIXME translation
 my $delims = GetDelimiterChoices;
-my $branches = GetBranches;
-my @branchloop;
-foreach (sort keys %$branches) {
-# 	my $selected = 1 if $thisbranch eq $branch;
-	my %row = ( value => $_,
-#				selected => $selected,
-				branchname => $branches->{$_}->{branchname},
-			);
-	push @branchloop, \%row;
-}
 
-my $itemtypes = GetItemTypes;
-my @itemtypeloop;
-foreach (sort {$itemtypes->{$a}->{translated_description} cmp $itemtypes->{$b}->{translated_description}} keys %$itemtypes) {
-	my %row = (value => $_,
-               translated_description => $itemtypes->{$_}->{translated_description},
-              );
-    push @itemtypeloop, \%row;
-}
-    
-my ($codes,$labels) = GetborCatFromCatType(undef,undef);
-my @borcatloop;
-foreach (sort keys %$labels) {
-	my %row =(value => $_,
-              description => $labels->{$_},
-             );
-    push @borcatloop, \%row;
-}
-    
+my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['categorycode']});
+my $itemtypes = Koha::ItemTypes->search_with_localization;
 $template->param(
 	    mimeloop => \@mime,
 	  CGIseplist => $delims,
-	  branchloop => \@branchloop,
-	itemtypeloop => \@itemtypeloop,
-	  borcatloop => \@borcatloop,
+      itemtypes => $itemtypes,
+patron_categories => $patron_categories,
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 

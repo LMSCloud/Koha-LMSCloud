@@ -57,7 +57,7 @@ __PACKAGE__->table("items");
 
 =head2 booksellerid
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 homebranch
@@ -113,6 +113,12 @@ __PACKAGE__->table("items");
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+
+=head2 damaged_on
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
 
 =head2 itemlost
 
@@ -172,12 +178,12 @@ __PACKAGE__->table("items");
 
 =head2 itemnotes
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 itemnotes_nonpublic
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 holdingbranch
@@ -189,7 +195,7 @@ __PACKAGE__->table("items");
 
 =head2 paidfor
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 timestamp
@@ -237,7 +243,7 @@ __PACKAGE__->table("items");
 
 =head2 materials
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 uri
@@ -259,7 +265,7 @@ __PACKAGE__->table("items");
 
 =head2 enumchron
 
-  data_type: 'text'
+  data_type: 'mediumtext'
   is_nullable: 1
 
 =head2 copynumber
@@ -304,7 +310,7 @@ __PACKAGE__->add_columns(
   "dateaccessioned",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "booksellerid",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "homebranch",
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
   "price",
@@ -323,6 +329,12 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "damaged",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "damaged_on",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
   "itemlost",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "itemlost_on",
@@ -352,13 +364,13 @@ __PACKAGE__->add_columns(
   "restricted",
   { data_type => "tinyint", is_nullable => 1 },
   "itemnotes",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "itemnotes_nonpublic",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "holdingbranch",
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
   "paidfor",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "timestamp",
   {
     data_type => "timestamp",
@@ -379,7 +391,7 @@ __PACKAGE__->add_columns(
   "ccode",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "materials",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "uri",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "itype",
@@ -387,7 +399,7 @@ __PACKAGE__->add_columns(
   "more_subfields_xml",
   { data_type => "longtext", is_nullable => 1 },
   "enumchron",
-  { data_type => "text", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "copynumber",
   { data_type => "varchar", is_nullable => 1, size => 32 },
   "stocknumber",
@@ -435,6 +447,21 @@ Related object: L<Koha::Schema::Result::Accountline>
 __PACKAGE__->has_many(
   "accountlines",
   "Koha::Schema::Result::Accountline",
+  { "foreign.itemnumber" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 article_requests
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ArticleRequest>
+
+=cut
+
+__PACKAGE__->has_many(
+  "article_requests",
+  "Koha::Schema::Result::ArticleRequest",
   { "foreign.itemnumber" => "self.itemnumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -660,8 +687,8 @@ __PACKAGE__->might_have(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-05-03 18:29:16
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:2XK/xYWHqauPzYKJcKc0ig
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-18 16:41:12
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:CrNXvpDUvvcuPZK2Gfzs/Q
 
 __PACKAGE__->belongs_to( biblioitem => "Koha::Schema::Result::Biblioitem", "biblioitemnumber" );
 
@@ -680,7 +707,7 @@ sub effective_itemtype {
     if ( $pref && $self->itype() ) {
         return $self->itype();
     } else {
-        warn "item-level_itypes set but no itemtype set for item ($self->itemnumber)"
+        warn "item-level_itypes set but no itemtype set for item (".$self->itemnumber.")"
           if $pref;
         return $self->biblioitemnumber()->itemtype();
     }

@@ -26,6 +26,7 @@ use C4::External::Syndetics qw(get_syndetics_editions);
 use LWP::UserAgent;
 use HTTP::Request::Common;
 
+use Koha::Biblios;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 
@@ -38,20 +39,9 @@ BEGIN {
 	@ISA = qw(Exporter);
 	@EXPORT_OK = qw(
 		&get_xisbns
-        &get_biblionumber_from_isbn
 	);
 }
 
-sub get_biblionumber_from_isbn {
-    my $isbn = shift;
-   	$isbn.='%';
-    my @biblionumbers;
-    my $dbh=C4::Context->dbh;
-    my $query = "SELECT biblionumber FROM biblioitems WHERE isbn LIKE ? LIMIT 10";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($isbn);
-	return $sth->fetchall_arrayref({});
-}
 =head1 NAME
 
 C4::XISBN - Functions for retrieving XISBN content in Koha
@@ -71,13 +61,15 @@ sub _get_biblio_from_xisbn {
     return unless ( !$errors && scalar @$results );
 
     my $record = C4::Search::new_record_from_zebra( 'biblioserver', $results->[0] );
-    my $biblionumber = C4::Biblio::get_koha_field_from_marc('biblio', 'biblionumber', $record, '');
+    my $biblionumber = C4::Biblio::TransformMarcToKohaOneField( 'biblio.biblionumber', $record );
     return unless $biblionumber;
 
-    my $xbiblio = GetBiblioData($biblionumber);
-    return unless $xbiblio;
-    $xbiblio->{normalized_isbn} = GetNormalizedISBN($xbiblio->{isbn});
-    return $xbiblio;
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    return unless $biblio;
+    my $isbn = $biblio->biblioitem->isbn;
+    $biblio = $biblio->unblessed;
+    $biblio->{normalized_isbn} = GetNormalizedISBN($isbn);
+    return $biblio;
 }
 
 =head1 get_xisbns($isbn);
@@ -88,7 +80,7 @@ sub _get_biblio_from_xisbn {
 
 sub get_xisbns {
     my ( $isbn ) = @_;
-    my ($response,$thing_response,$xisbn_response,$syndetics_response);
+    my ($response,$thing_response,$xisbn_response,$syndetics_response,$errors);
     # THINGISBN
     if ( C4::Context->preference('ThingISBN') ) {
         my $url = "http://www.librarything.com/api/thingISBN/".$isbn;
@@ -114,6 +106,8 @@ sub get_xisbns {
         unless ($reached_limit) {
             $xisbn_response = _get_url($url,'xisbn');
         }
+        $errors->{xisbn} = $xisbn_response->{ stat }
+            if $xisbn_response->{ stat } ne 'ok';
     }
 
     $response->{isbn} = [ @{ $xisbn_response->{isbn} or [] },  @{ $syndetics_response->{isbn} or [] }, @{ $thing_response->{isbn} or [] } ];
@@ -129,7 +123,12 @@ sub get_xisbns {
         my $xbiblio= _get_biblio_from_xisbn($response_data->{content});
         push @xisbns, $xbiblio if $xbiblio;
     }
-    return \@xisbns;
+    if ( wantarray ) {
+        return (\@xisbns, $errors);
+    }
+    else {
+        return \@xisbns;
+    }
 }
 
 sub _get_url {

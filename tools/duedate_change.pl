@@ -24,11 +24,9 @@ use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Koha;
-use C4::Branch;
 use C4::Circulation;
 use Koha::Libraries;
-use Koha::LibraryCategories;
-use Koha::Issues;
+use Koha::Checkouts;
 use Koha::DateUtils;
 
 my $input = new CGI;
@@ -99,36 +97,19 @@ if ($op eq 'update' ) {
     $op = 'select';
 }
 if ($op eq 'select') {
-    my $datedues = Koha::Issues->getIssueDatesAndBranches({ categorycode => $groupselect, branchcode => $branchselect });
+    my $datedues = Koha::Checkouts->get_issue_dates_and_branches({ categorycode => $groupselect, branchcode => $branchselect });
     foreach my $duedate ( sort { $a cmp $b } keys %$datedues ) {
         push @duedates, [ $duedate, $datedues->{$duedate} ];
     }
     $founddates = scalar(@duedates);
 }
 
-
 ########################################
-#  Read branches
+#  Read library groups
 ########################################
-my $branches = GetBranches();
-my @branchloop;
-for my $thisbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-    push @branchloop, {
-        value      => $thisbranch,
-        selected   => $thisbranch eq $branch,
-        branchname => $branches->{$thisbranch}->{'branchname'},
-        branchcode => $branches->{$thisbranch}->{'branchcode'},
-        category   => $branches->{$thisbranch}->{'category'}
-    };
-}
-
-########################################
-#  Read library categories
-########################################
-my @categories;
-for my $category ( Koha::LibraryCategories->search ) {
-    push @categories, $category->unblessed();
-}
+my @search_groups =
+  Koha::Library::Groups->get_search_groups( { interface => 'staff' } );
+@search_groups = sort { $a->title cmp $b->title } @search_groups;
 
 
 
@@ -143,14 +124,10 @@ my $message_transport_types = C4::Letters::GetMessageTransportTypes();
 #  Set template paramater
 ########################################
 $template->param(
-                        humanbranch => ($branch ne '*' ? $branches->{$branch}->{branchname} : ''),
-                        current_branch => $branch,
-                        branchloop => \@branchloop,
                         branch => $branch,
-                        categories => \@categories,
+                        librarygroups => \@search_groups,
                         duedates => \@duedates,
                         founddates => $founddates,
-                        branches => $branches,
                         selectedgroup => $selectedgroup,
                         selectedbranch => $selectedbranch,
                         processerrors => \@errors,

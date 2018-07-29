@@ -28,8 +28,7 @@ this script is to show orders ordered but not yet received
 =cut
 
 use C4::Context;
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
@@ -52,7 +51,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $query = <<EOQ;
 SELECT
-    aqorders.basketno, aqorders.ordernumber,
+    aqorders.biblionumber, aqorders.basketno, aqorders.ordernumber,
     quantity-quantityreceived AS tleft,
     ecost, budgetdate, entrydate,
     aqbasket.booksellerid,

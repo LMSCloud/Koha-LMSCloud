@@ -19,19 +19,23 @@
     [%- CASE 'coursereserves' -%]<span>Course reserves</span>
     [%- CASE 'plugins' -%]<span>Koha plugins</span>
     [%- CASE 'lists' -%]<span>Lists</span>
+    [%- CASE 'clubs' -%]<span>Patron clubs</span>
+    [%- CASE 'ill' -%]<span>Create and modify Interlibrary loan requests</span>
+    [%- CASE 'self_check' -%]<span>Self check modules</span>
     [%- END -%]
 [%- END -%]
 
 [%- BLOCK sub_permissions -%]
-    [% SWITCH name %]
+  [% SWITCH name %]
     [%- CASE 'circulate_remaining_permissions' -%]<span>Remaining circulation permissions</span>
     [%- CASE 'force_checkout' -%]<span>Force checkout if a limitation exists</span>
     [%- CASE 'manage_restrictions' -%]<span>Manage restrictions for accounts</span>
     [%- CASE 'overdues_report' -%]<span>Execute overdue items report</span>
     [%- CASE 'override_renewals' -%]<span>Override blocked renewals</span>
-    [%- CASE 'self_checkout' -%]<span>Perform self checkout at the OPAC. It should be used for the patron matching the AutoSelfCheckID</span>
     [%- CASE 'manage_circ_rules' -%]<span>manage circulation rules</span>
     [%- CASE 'parameters_remaining_permissions' -%]<span>Remaining system parameters permissions</span>
+    [%- CASE 'edit_borrowers' -%]<span>Add, modify and view patron information</span>
+    [%- CASE 'view_borrower_infos_from_any_libraries' -%]<span>View patron infos from any libraries. If not set the logged in user could only access patron infos from its own library or group of libraries.</span>
     [%- CASE 'modify_holds_priority' -%]<span>Modify holds priority</span>
     [%- CASE 'place_holds' -%]<span>Place holds for patrons</span>
     [%- CASE 'delete_all_items' -%]<span>Delete all items at once</span>
@@ -93,6 +97,7 @@
     [%- CASE 'renew_subscription' -%]<span>Renew a subscription</span>
     [%- CASE 'routing' -%]<span>Routing</span>
     [%- CASE 'superserials' -%]<span>Manage subscriptions from any branch (only applies when IndependentBranches is used)</span>
+    [%- CASE 'delete_reports' -%]<span>Delete SQL reports</span>
     [%- CASE 'create_reports' -%]<span>Create SQL reports</span>
     [%- CASE 'execute_reports' -%]<span>Execute SQL reports</span>
     [%- CASE 'add_reserves' -%]<span>Add course reserves</span>
@@ -110,5 +115,13 @@
     [%- CASE 'duedate_update' -%]<span>Update due-dates of checked-out items</span>
     [%- CASE 'send_adhoc_notices' -%]<span>Send adhoc notices to patrons</span>
     [%- CASE 'cancel_fee' -%]<span>Cancel fines and fees</span>
-    [%- END -%]
+    [%- CASE 'access_files' -%]<span>Access to the files stored on the server</span>
+    [%- CASE 'edit_clubs' -%]<span>Create and edit clubs</span>
+    [%- CASE 'edit_templates' -%]<span>Create and edit club templates</span>
+    [%- CASE 'enroll' -%]<span>Enroll patrons in clubs</span>
+    [%- CASE 'edi_manage' -%]<span>Manage EDIFACT transmissions</span>
+  [%# self_check %]
+    [%- CASE 'self_checkin_module' -%]<span>Log into the self check-in module. Note: this permission prevents the patron from using any other OPAC functionality</span>
+    [%- CASE 'self_checkout_module' -%]<span>Perform self checkout at the OPAC. It should be used for the patron matching the AutoSelfCheckID</span>
+  [%- END -%]
 [%- END -%]

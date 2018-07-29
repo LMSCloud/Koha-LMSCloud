@@ -17,8 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+
+use threads;    # used for parallel
+use Parallel::ForkManager;
+use Sys::CPU;
 
 =head1 NAME
 
@@ -64,8 +67,18 @@ for my $theme ( grep { not /^\.|lib|js/ } readdir($dh) ) {
 }
 close $dh;
 
+my $ncpu;
+if ( $ENV{KOHA_PROVE_CPUS} ) {
+    $ncpu = $ENV{KOHA_PROVE_CPUS} ; # set number of cpus to use
+} else {
+    $ncpu = Sys::CPU::cpu_count();
+}
+
+my $pm   = new Parallel::ForkManager($ncpu);
+
 # Tests
 foreach my $theme ( @themes ) {
+    $pm->start and next;    # do the fork
     print "Testing $theme->{'type'} $theme->{'theme'} templates\n";
     if ( $theme->{'theme'} eq 'bootstrap' ) {
         run_template_test(
@@ -83,7 +96,10 @@ foreach my $theme ( @themes ) {
             $theme->{'includes'},
         );
     }
+    $pm->finish;
 }
+
+$pm->wait_all_children;
 
 done_testing();
 
@@ -101,6 +117,10 @@ sub run_template_test {
 sub create_template_test {
     my $includes = shift;
     my @exclusions = @_;
+
+    my $interface = $includes =~ s|^.*/([^/]*-tmpl).*$|$1|r;
+    my $theme = ($interface =~ /opac/) ? 'bootstrap' : 'prog';
+
     return sub {
         my $tt = Template->new(
             {
@@ -115,7 +135,7 @@ sub create_template_test {
                 return;
             }
         }
-        my $vars;
+        my $vars = { interface => $interface, theme => $theme };
         my $output;
         if ( ! -d $_ ) {    # skip dirs
             if ( !ok( $tt->process( $_, $vars, \$output ), $_ ) ) {

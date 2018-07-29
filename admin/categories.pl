@@ -23,13 +23,13 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Auth;
-use C4::Branch;
 use C4::Output;
 use C4::Form::MessagingPreferences;
 use Koha::Patrons;
 use Koha::Database;
 use Koha::DateUtils;
 use Koha::Patron::Categories;
+use Koha::Libraries;
 
 my $input         = new CGI;
 my $searchfield   = $input->param('description') // q||;
@@ -55,13 +55,13 @@ if ( $op eq 'add_form' ) {
         $selected_branches = $category->branch_limitations;
     }
 
-    my $branches = GetBranchesWithoutMobileStations;
+    my $branches = Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => ['branchname'] } )->unblessed;
     my @branches_loop;
-    foreach my $branchcode ( sort { uc( $branches->{$a}->{branchname} ) cmp uc( $branches->{$b}->{branchname} ) } keys %$branches ) {
-        my $selected = ( grep { $_ eq $branchcode } @$selected_branches ) ? 1 : 0;
+    foreach my $branch ( @$branches ) {
+        my $selected = ( grep { $_ eq $branch->{branchcode} } @$selected_branches ) ? 1 : 0;
         push @branches_loop,
-          { branchcode => $branchcode,
-            branchname => $branches->{$branchcode}->{branchname},
+          { branchcode => $branch->{branchcode},
+            branchname => $branch->{branchname},
             selected   => $selected,
           };
     }
@@ -90,6 +90,7 @@ elsif ( $op eq 'add_validate' ) {
     my $overduenoticerequired = $input->param('overduenoticerequired');
     my $category_type = $input->param('category_type');
     my $BlockExpiredPatronOpacActions = $input->param('BlockExpiredPatronOpacActions');
+    my $checkPrevCheckout = $input->param('checkprevcheckout');
     my $default_privacy = $input->param('default_privacy');
     my $family_card = $input->param('family_card');
     my @branches = grep { $_ ne q{} } $input->multi_param('branches');
@@ -120,6 +121,7 @@ elsif ( $op eq 'add_validate' ) {
         $category->overduenoticerequired($overduenoticerequired);
         $category->category_type($category_type);
         $category->BlockExpiredPatronOpacActions($BlockExpiredPatronOpacActions);
+        $category->checkprevcheckout($checkPrevCheckout);
         $category->default_privacy($default_privacy);
         $category->family_card($family_card);
         eval {
@@ -146,6 +148,7 @@ elsif ( $op eq 'add_validate' ) {
             overduenoticerequired => $overduenoticerequired,
             category_type => $category_type,
             BlockExpiredPatronOpacActions => $BlockExpiredPatronOpacActions,
+            checkprevcheckout => $checkPrevCheckout,
             default_privacy => $default_privacy,
             family_card => $family_card
         });

@@ -24,13 +24,13 @@ use C4::Context;
 use C4::Acquisition;
 use C4::Biblio;
 use C4::Items;
-use C4::Bookseller;
 use C4::Budgets;
 use t::lib::Mocks;
 
 use Koha::Database;
 use Koha::DateUtils;
-use Koha::Acquisition::Order;
+use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 use MARC::Record;
 
 my $schema = Koha::Database->new()->schema();
@@ -41,17 +41,18 @@ $dbh->{RaiseError} = 1;
 my $builder = t::lib::TestBuilder->new;
 my $itemtype = $builder->build({ source => 'Itemtype' })->{ itemtype };
 
-my $booksellerid1 = C4::Bookseller::AddBookseller(
+my $bookseller = Koha::Acquisition::Bookseller->new(
     {
         name => "my vendor 1",
         address1 => "bookseller's address",
         phone => "0123456",
         active => 1
     }
-);
+)->store;
+t::lib::Mocks::mock_preference('AcqCreateItem', 'receiving');
 
 my $basketno1 = C4::Acquisition::NewBasket(
-    $booksellerid1
+    $bookseller->id
 );
 
 my $budgetid = C4::Budgets::AddBudget(
@@ -66,7 +67,6 @@ my $budget = C4::Budgets::GetBudget( $budgetid );
 my ($biblionumber, $biblioitemnumber) = AddBiblio(MARC::Record->new, '');
 my $itemnumber = AddItem( { itype => $itemtype }, $biblionumber );
 
-t::lib::Mocks::mock_preference('AcqCreateItem', 'receiving');
 my $order = Koha::Acquisition::Order->new(
     {
         basketno => $basketno1,
@@ -74,15 +74,14 @@ my $order = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-my $ordernumber = $order->{ordernumber};
+)->store;
+my $ordernumber = $order->ordernumber;
 
 ModReceiveOrder(
     {
         biblionumber     => $biblionumber,
-        ordernumber      => $ordernumber,
+        order            => $order->unblessed,
         quantityreceived => 2,
-        datereceived     => dt_from_string
     }
 );
 
@@ -90,8 +89,7 @@ $order->add_item( $itemnumber );
 
 CancelReceipt($ordernumber);
 
-$order = GetOrder( $ordernumber );
-is(scalar GetItemnumbersFromOrder($order->{ordernumber}), 0, "Create items on receiving: 0 item exist after cancelling a receipt");
+is(scalar GetItemnumbersFromOrder($ordernumber), 0, "Create items on receiving: 0 item exist after cancelling a receipt");
 
 my $itemnumber1 = AddItem( { itype => $itemtype }, $biblionumber );
 my $itemnumber2 = AddItem( { itype => $itemtype }, $biblionumber );
@@ -105,10 +103,10 @@ $order = Koha::Acquisition::Order->new(
         biblionumber => $biblionumber,
         budget_id => $budget->{budget_id},
     }
-)->insert;
-$ordernumber = $order->{ordernumber};
+)->store;
+$ordernumber = $order->ordernumber;
 
-is( $order->{parent_ordernumber}, $order->{ordernumber},
+is( $order->parent_ordernumber, $order->ordernumber,
     "Insert an order should set parent_order=ordernumber, if no parent_ordernumber given"
 );
 
@@ -116,7 +114,7 @@ $order->add_item( $itemnumber1 );
 $order->add_item( $itemnumber2 );
 
 is(
-    scalar( GetItemnumbersFromOrder( $order->{ordernumber} ) ),
+    scalar( GetItemnumbersFromOrder( $order->ordernumber ) ),
     2,
     "Create items on ordering: 2 items should be linked to the order before receiving"
 );
@@ -124,9 +122,8 @@ is(
 my ( undef, $new_ordernumber ) = ModReceiveOrder(
     {
         biblionumber     => $biblionumber,
-        ordernumber      => $ordernumber,
+        order            => $order->unblessed,
         quantityreceived => 1,
-        datereceived     => dt_from_string,
         received_items   => [ $itemnumber1 ],
     }
 );
@@ -142,7 +139,7 @@ is( $new_order->{parent_ordernumber}, $ordernumber,
 );
 
 is(
-    scalar( GetItemnumbersFromOrder( $order->{ordernumber} ) ),
+    scalar( GetItemnumbersFromOrder( $order->ordernumber ) ),
     1,
     "Create items on ordering: 1 item should still be linked to the original order after receiving"
 );
@@ -160,7 +157,7 @@ is(
     "Create items on ordering: no item should be linked to the cancelled order"
 );
 is(
-    scalar( GetItemnumbersFromOrder( $order->{ordernumber} ) ),
+    scalar( GetItemnumbersFromOrder( $order->ordernumber ) ),
     2,
     "Create items on ordering: items are not deleted after cancelling a receipt"
 );

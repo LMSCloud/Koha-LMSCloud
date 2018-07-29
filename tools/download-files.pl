@@ -24,8 +24,6 @@ use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Koha;
-use C4::Branch;
-use Koha::Libraries;
 use Koha::DateUtils;
 use POSIX qw( strftime );
 use File::stat;

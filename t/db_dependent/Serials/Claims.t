@@ -2,8 +2,8 @@ use Modern::Perl;
 use Test::More tests => 17;
 
 use C4::Acquisition;
-use C4::Bookseller;
 use C4::Budgets;
+use Koha::Acquisition::Booksellers;
 use_ok('C4::Serials');
 
 use Koha::DateUtils qw( dt_from_string output_pref );
@@ -48,7 +48,7 @@ my $sample_supplier1 = {
     gstreg        => 1,
     listincgst    => 1,
     invoiceincgst => 1,
-    gstrate       => '1.0000',
+    tax_rate       => '1.0000',
     discount      => '1.0000',
     notes         => 'notes1',
     deliverytime  => undef
@@ -68,14 +68,16 @@ my $sample_supplier2 = {
     gstreg        => 1,
     listincgst    => 1,
     invoiceincgst => 1,
-    gstrate       => '2.0000',
+    tax_rate       => '2.0000',
     discount      => '2.0000',
     notes         => 'notes2',
     deliverytime  => 2
 };
 
-my $supplier_id1 = C4::Bookseller::AddBookseller($sample_supplier1);
-my $supplier_id2 = C4::Bookseller::AddBookseller($sample_supplier2);
+my $supplier1 = Koha::Acquisition::Bookseller->new($sample_supplier1)->store;
+my $supplier2 = Koha::Acquisition::Bookseller->new($sample_supplier2)->store;
+my $supplier_id1 = $supplier1->id;
+my $supplier_id2 = $supplier2->id;
 
 my $supplierlist = eval { GetSuppliersWithLateIssues() };
 is( length($@), 0, "No SQL problem in GetSuppliersWithLateIssues" );

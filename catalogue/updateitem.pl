@@ -17,8 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
-use strict; 
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Context;
@@ -81,6 +80,6 @@ elsif (defined $itemnotes) { # i.e., itemnotes parameter passed from form
 
 ModItem($item_changes, $biblionumber, $itemnumber);
 
-LostItem($itemnumber, 'MARK RETURNED') if $itemlost;
+LostItem($itemnumber, 'moredetail') if $itemlost;
 
 print $cgi->redirect("moredetail.pl?biblionumber=$biblionumber&itemnumber=$itemnumber#item$itemnumber");

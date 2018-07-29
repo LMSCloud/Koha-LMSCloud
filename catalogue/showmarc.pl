@@ -20,8 +20,7 @@
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 # standard or CPAN modules used
 use CGI qw(:standard -utf8);
@@ -37,6 +36,17 @@ use C4::ImportBatch;
 use C4::XSLT ();
 
 my $input= new CGI;
+my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+  {
+    template_name   => "catalogue/showmarc.tt",
+    query           => $input,
+    type            => "intranet",
+    authnotrequired => 0,
+    flagsrequired   => { catalogue => 1  },
+    debug           => 1,
+  }
+);
+
 my $biblionumber= $input->param('id');
 my $importid= $input->param('importid');
 my $view= $input->param('viewas')||'';
@@ -46,7 +56,7 @@ if ($importid) {
     $record = C4::ImportBatch::GetRecordFromImportBiblio( $importid, 'embed_items' );
 }
 else {
-    $record =GetMarcBiblio($biblionumber);
+    $record =GetMarcBiblio({ biblionumber => $biblionumber });
 }
 if(!ref $record) {
     print $input->redirect("/cgi-bin/koha/errors/404.pl");
@@ -70,16 +80,6 @@ if($view eq 'card' || $view eq 'html') {
           Encode::encode_utf8(C4::XSLT::engine->transform($xml, $xsl));
 }
 else {
-    my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-      {
-        template_name   => "catalogue/showmarc.tt",
-        query           => $input,
-        type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { catalogue => 1  },
-        debug           => 1,
-      }
-    );
     $template->param( MARC_FORMATTED => $record->as_formatted );
     output_html_with_http_headers $input, $cookie, $template->output;
 }

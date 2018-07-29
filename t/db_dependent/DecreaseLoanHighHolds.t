@@ -16,17 +16,19 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use DateTime;
 
 use C4::Circulation;
 use Koha::Database;
-use Koha::Patron;
+use Koha::Patrons;
 use Koha::Biblio;
 use Koha::Item;
 use Koha::Holds;
 use Koha::Hold;
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 
-use Test::More tests => 14;
+use Test::More tests => 17;
 
 my $dbh    = C4::Context->dbh;
 my $schema = Koha::Database->new()->schema();
@@ -41,6 +43,10 @@ $dbh->do('DELETE FROM issuingrules');
 $dbh->do('DELETE FROM borrowers');
 $dbh->do('DELETE FROM items');
 
+my $now_value       = DateTime->now();
+my $mocked_datetime = Test::MockModule->new('DateTime');
+$mocked_datetime->mock( 'now', sub { return $now_value; } );
+
 my $library  = $builder->build( { source => 'Branch' } );
 my $category = $builder->build( { source => 'Category' } );
 my $itemtype = $builder->build( { source => 'Itemtype' } )->{itemtype};
@@ -50,10 +56,11 @@ C4::Context->_new_userenv('xxx');
 C4::Context->set_userenv( 0, 0, 0, 'firstname', 'surname', $library->{branchcode}, 'Midway Public Library', '', '', '' );
 is( C4::Context->userenv->{branch}, $library->{branchcode}, 'userenv set' );
 
+my $patron_category = $builder->build({ source => 'Category', value => { category_type => 'P', enrolmentfee => 0 } });
 my @patrons;
 for my $i ( 1 .. 20 ) {
     my $patron = Koha::Patron->new(
-        { cardnumber => $i, firstname => 'Kyle', surname => 'Hall', categorycode => $category->{categorycode}, branchcode => $library->{branchcode} } )
+        { cardnumber => $i, firstname => 'Kyle', surname => 'Hall', categorycode => $category->{categorycode}, branchcode => $library->{branchcode}, categorycode => $patron_category->{categorycode}, } )
       ->store();
     push( @patrons, $patron );
 }
@@ -103,11 +110,18 @@ $builder->build(
 my $item   = pop(@items);
 my $patron = pop(@patrons);
 
-C4::Context->set_preference( 'decreaseLoanHighHolds',               1 );
-C4::Context->set_preference( 'decreaseLoanHighHoldsDuration',       1 );
-C4::Context->set_preference( 'decreaseLoanHighHoldsValue',          1 );
-C4::Context->set_preference( 'decreaseLoanHighHoldsControl',        'static' );
-C4::Context->set_preference( 'decreaseLoanHighHoldsIgnoreStatuses', 'damaged,itemlost,notforloan,withdrawn' );
+my $orig_due = C4::Circulation::CalcDateDue(
+    DateTime->now(time_zone => C4::Context->tz()),
+    $item->effective_itemtype,
+    $patron->branchcode,
+    $patron->unblessed
+);
+
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHolds',               1 );
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsDuration',       1 );
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsValue',          1 );
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsControl',        'static' );
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsIgnoreStatuses', 'damaged,itemlost,notforloan,withdrawn' );
 
 my $item_hr = { itemnumber => $item->id, biblionumber => $biblio->id, homebranch => $library->{branchcode}, holdingbranch => $library->{branchcode}, barcode => $item->barcode };
 my $patron_hr = { borrowernumber => $patron->id, branchcode => $library->{branchcode} };
@@ -118,7 +132,12 @@ is( $data->{outstanding},     6,          "Should have 5 outstanding holds" );
 is( $data->{duration},        1,          "Should have duration of 1" );
 is( ref( $data->{due_date} ), 'DateTime', "due_date should be a DateTime object" );
 
-C4::Context->set_preference( 'decreaseLoanHighHoldsControl', 'dynamic' );
+my $duedate = $data->{due_date};
+is($duedate->hour, $orig_due->hour, 'New due hour is equal to original due hour.');
+is($duedate->min, $orig_due->min, 'New due minute is equal to original due minute.');
+is($duedate->sec, 0, 'New due date second is zero.');
+
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsControl', 'dynamic' );
 $data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
 is( $data->{exceeded}, 0, "Should not exceed threshold" );
 
@@ -136,7 +155,7 @@ for my $i ( 5 .. 10 ) {
 $data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
 is( $data->{exceeded}, 1, "Should exceed threshold of 1" );
 
-C4::Context->set_preference( 'decreaseLoanHighHoldsValue', 2 );
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsValue', 2 );
 $data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
 is( $data->{exceeded}, 0, "Should not exceed threshold of 2" );
 
@@ -168,13 +187,13 @@ $unholdable->store();
 $data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
 is( $data->{exceeded}, 1, "Should exceed threshold with one withdrawn item" );
 
-C4::Context->set_preference('CircControl', 'PatronLibrary');
+t::lib::Mocks::mock_preference('CircControl', 'PatronLibrary');
 
-my ( undef, $needsconfirmation ) = CanBookBeIssued( $patron_hr, $item->barcode );
+my $patron_object = Koha::Patrons->find( $patron_hr->{borrowernumber} );
+my ( undef, $needsconfirmation ) = CanBookBeIssued( $patron_object, $item->barcode );
 ok( $needsconfirmation->{HIGHHOLDS}, "High holds checkout needs confirmation" );
 
-( undef, $needsconfirmation ) = CanBookBeIssued( $patron_hr, $item->barcode, undef, undef, undef, { override_high_holds => 1 } );
+( undef, $needsconfirmation ) = CanBookBeIssued( $patron_object, $item->barcode, undef, undef, undef, { override_high_holds => 1 } );
 ok( !$needsconfirmation->{HIGHHOLDS}, "High holds checkout does not need confirmation" );
 
 $schema->storage->txn_rollback();
-1;

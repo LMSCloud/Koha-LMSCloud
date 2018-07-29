@@ -57,6 +57,7 @@
             <option value="a">a - AACR 2</option>
             <option value="c">c - ISBD punctuation omitted</option>
             <option value="i">i - ISBD punctuation included</option>
+            <option value="n">n - Non-ISBD punctuation omitted</option>
             <option value="u">u - Unknown</option>
         </select>
         <select name="f19" title="Multipart record resource level">
@@ -136,6 +137,34 @@ require( [ 'widget' ], function( Widget ) {
             } else {
                 $( this.node ).append( '<span class="hint">' + _("unset") + '</span>' );
             }
+        }
+    } );
+
+    Widget.Register( '006@', {
+        makeTemplate: function() {
+            return "a                 ";
+        },
+        init: function() {
+            var $result = $( '<span class="subfield-widget fixed-widget">' + _("Fixed data:") + '<span class="hint widget-loading">' + _("Loading...") + '</span></span>' );
+
+            return $result[0];
+        },
+        postCreate: function( node, mark ) {
+            this.createFromXML( 'marc21/xml/006' );
+        }
+    } );
+
+    Widget.Register( '007@', {
+        makeTemplate: function() {
+            return "a       ";
+        },
+        init: function() {
+            var $result = $( '<span class="subfield-widget fixed-widget">' + _("Fixed data:") + '<span class="hint widget-loading">' + _("Loading...") + '</span></span>' );
+
+            return $result[0];
+        },
+        postCreate: function( node, mark ) {
+            this.createFromXML( 'marc21/xml/007' );
         }
     } );
 

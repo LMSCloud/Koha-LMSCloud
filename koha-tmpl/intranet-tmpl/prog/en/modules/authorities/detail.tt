@@ -1,3 +1,5 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% PROCESS 'authorities.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Authorities &rsaquo;
@@ -8,56 +10,8 @@
     [% END %]
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% IF ( displayhierarchy ) %]
-<script type="text/javascript" src="/intranet-tmpl/lib/jquery/plugins/jquery.jstree.js"></script>
-[% END %]
-<script type="text/javascript">
-
-//<![CDATA[
-
-	 $(document).ready(function() {
-    $('#authoritiestabs').tabs();
-    [% IF ( displayhierarchy ) %]
-        var current_nodes = [];
-        $('.currentauth').each(function() {
-            current_nodes.push('#' + $(this).parent().parents('li:first').attr('id'));
-            });
-        $('#hierarchies').jstree({
-                "plugins": [ "themes", "html_data"],
-                "themes": { "theme": "classic",
-                            "icons": false },
-                "core": { "initially_open": current_nodes }
-            });
-    [% END %]
-	 });
-
-function confirm_deletion() {
-    var is_confirmed = confirm(_("Are you sure you want to delete this authority?"));
-    if (is_confirmed) {
-        window.location="authorities-home.pl?op=delete&authid=[% authid %]&csrf_token=[% csrf_token %]";
-    }
-}
-function Dopop(link) {
-	newin=window.open(link,'width=500,height=400,toolbar=false,scrollbars=yes');
-}
-//]]>
-</script>
-<script type="text/javascript">
-function Help() {
-    newin=window.open("/cgi-bin/koha/help.pl","KohaHelp",'width=600,height=600,toolbar=false,scrollbars=yes');
-}
-
-function addauthority() {
-    X = document.forms[0].authtype.value;
-    window.location="/cgi-bin/koha/authorities/authorities.pl?authtypecode="+X;
-}
-function searchauthority() {
-    X = document.forms[0].authtype2.value;
-    Y = document.forms[0].value.value;
-    window.location="/cgi-bin/koha/authorities/authorities-home.pl?op=do_search&type=intranet&authtypecode="+X+"&value="+Y+"&marclist=&and_or=and&excluding=&operator=contains";
-}
-</script>
 </head>
+
 <body id="auth_detail" class="auth">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'authorities-search.inc' %]
@@ -69,11 +23,9 @@ function searchauthority() {
     [% END %]
 </div>
 
-<div id="doc" class="yui-t7">
-
-<div id="bd">
-        <div id="yui-main">
-        <div class="yui-g">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
 
     [% INCLUDE 'authorities-toolbar.inc' %]
 	
@@ -90,7 +42,7 @@ function searchauthority() {
 <h1>Authority #[% authid %] ([% authtypetext %])</h1>
 
 <div id="action">
-    [% IF count > 0 %]
+    [% IF count %]
         Used in <a href="/cgi-bin/koha/catalogue/search.pl?type=intranet&amp;op=do_search&amp;q=an=[% authid %]">[% count %] record(s)</a>
     [% ELSE %]
         This authority is not used in any records.
@@ -141,6 +93,29 @@ function searchauthority() {
 </div>
 </div>
 [% END %]
-</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'authorities_js.inc' %]
+    [% IF ( displayhierarchy ) %]
+        [% Asset.js("lib/jquery/plugins/jquery.jstree.js") %]
+    [% END %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#authoritiestabs').tabs();
+            [% IF ( displayhierarchy ) %]
+                var current_nodes = [];
+                $('.currentauth').each(function() {
+                    current_nodes.push('#' + $(this).parent().parents('li:first').attr('id'));
+                    });
+                $('#hierarchies').jstree({
+                        "plugins": [ "themes", "html_data"],
+                        "themes": { "theme": "classic",
+                                    "icons": false },
+                        "core": { "initially_open": current_nodes }
+                    });
+            [% END %]
+         });
+    </script>
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

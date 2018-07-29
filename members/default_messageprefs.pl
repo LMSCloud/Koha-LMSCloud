@@ -18,8 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 #
 
-use strict;
-use warnings;
+use Modern::Perl;
 use C4::Service;
 use C4::Form::MessagingPreferences;
 
@@ -28,7 +27,7 @@ use C4::Form::MessagingPreferences;
 # update the prefs if operator is creating a new patron and has
 # changed the patron category from its original value.
 
-my ($query, $response) = C4::Service->init(borrowers => 1);
+my ($query, $response) = C4::Service->init(borrowers => 'edit_borrowers');
 my ($categorycode) = C4::Service->require_params('categorycode');
 C4::Form::MessagingPreferences::set_form_values({ categorycode => $categorycode }, $response);
 C4::Service->return_success( $response );

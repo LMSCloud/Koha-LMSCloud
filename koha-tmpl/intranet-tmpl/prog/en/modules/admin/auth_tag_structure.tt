@@ -1,3 +1,6 @@
+[% USE Asset %]
+[% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Authority MARC framework [% IF ( add_form ) %][% IF ( use_heading_flags_p ) %]
     [% IF ( heading_modify_tag_p ) %]&rsaquo; [% IF ( authtypecode ) %][% authtypecode %] Framework[% ELSE %]Default framework[% END %] &rsaquo; Modify tag[% END %]
@@ -5,24 +8,12 @@
     [% ELSE %]&rsaquo; [% action %][% END %][% END %][% IF ( delete_confirm ) %]&rsaquo; [% IF ( authtypecode ) %][% authtypecode %] Framework[% ELSE %]Default framework[% END %] &rsaquo; Confirm deletion[% END %][% IF ( delete_confirmed ) %]&rsaquo; [% IF ( authtypecode ) %][% authtypecode %] Framework[% ELSE %]Default framework[% END %] &rsaquo; Data deleted[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-//<![CDATA[
- $(document).ready(function() {
-    $("#table_authtagstructure").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-            { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-        ],
-        "sPaginationType": "four_button"
-    }));
- });
-//]]>
-</script>
+[% Asset.css("css/datatables.css") %]
 </head>
+
 <body id="admin_auth_tag_structure" class="admin">
 [% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo;
     <a href="/cgi-bin/koha/admin/authtypes.pl">Authority types</a> &rsaquo;
@@ -114,13 +105,8 @@
         </li>
         <li><label for="authorised_value">Authorized value: </label>
             <select name="authorised_value" id="authorised_value" size="1">
-            [% FOREACH value IN authorised_value.values %]
-                [% IF ( value == authorised_value.default ) %]
-                    <option value="[% value %]" selected="selected">[% value %]</option>
-                [% ELSE %]
-                    <option value="[% value %]">[% value %]</option>
-                [% END %]
-            [% END %]
+                <option value=""></option>
+                [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories( selected => authorised_value ) %]
             </select>
             (if you select a value here, the indicators will be limited to the authorized value list)
         </li>
@@ -184,7 +170,7 @@
 [% IF ( else ) %]
 
 <div id="toolbar" class="btn-toolbar">
-    <div class="btn-group"><a class="btn btn-small" id="newtag" href="/cgi-bin/koha/admin/auth_tag_structure.pl?op=add_form&amp;authtypecode=[% authtypecode %]"><i class="fa fa-plus"></i> New tag</a></div>
+    <div class="btn-group"><a class="btn btn-default btn-sm" id="newtag" href="/cgi-bin/koha/admin/auth_tag_structure.pl?op=add_form&amp;authtypecode=[% authtypecode %]"><i class="fa fa-plus"></i> New tag</a></div>
 </div>
 
 <h2>Select an authority framework</h2>
@@ -224,7 +210,7 @@
             <td>[% loo.authorised_value %]</td>
             <td>
                 <div class="dropdown">
-                    <a class="btn btn-mini dropdown-toggle" id="authtagactions[% loo.tagfield %]" role="button" data-toggle="dropdown" href="#">
+                    <a class="btn btn-default btn-xs dropdown-toggle" id="authtagactions[% loo.tagfield %]" role="button" data-toggle="dropdown" href="#">
                         Actions <b class="caret"></b></a>
                     <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="authtagactions[% loo.tagfield %]">
                         <li><a href="[% loo.subfield_link %]"><i class="fa fa-eye"></i> Subfields</a></li>
@@ -246,4 +232,19 @@
 [% INCLUDE 'admin-menu.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("js/admin-menu.js") %]
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#table_authtagstructure").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                ],
+                "sPaginationType": "four_button"
+            }));
+        });
+    </script>
+[% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -101,6 +101,7 @@
 <field name="items.itype">Koha itemtype</field>
 <field name="items.stocknumber">Inventory number</field>
 <field name="items.damaged">Damaged status</field>
+<field name="items.damaged_on">Damaged on</field>
 <field name="items.materials">Materials specified</field>
 <field name="items.uri">Uniform Resource Identifier</field>
 <field name="items.more_subfields_xml">Additional subfields (XML)</field>
@@ -141,9 +142,7 @@
 <field name="biblioitems.size">Size</field>
 <field name="biblioitems.place">Place of publication</field>
 <field name="biblioitems.lccn">LCCN</field>
-<field name="biblioitems.lccn">MARC blob</field>
 <field name="biblioitems.agerestriction">Age restriction</field>
-<field name="biblioitems.marcxml">MARC XML blob</field>
 <field name="biblioitems.url">URL</field>
 <field name="biblioitems.title">Title</field>
 <field name="subscription.startdate">Start date</field>

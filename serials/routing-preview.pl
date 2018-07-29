@@ -18,8 +18,7 @@
 # Routing Preview.pl script used to view a routing list after creation
 # lets one print out routing slip and create (in this instance) the heirarchy
 # of reserves for the serial
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Koha;
 use C4::Auth;
@@ -33,7 +32,10 @@ use C4::Biblio;
 use C4::Items;
 use C4::Serials;
 use URI::Escape;
-use C4::Branch;
+
+use Koha::Biblios;
+use Koha::Libraries;
+use Koha::Patrons;
 
 my $query = new CGI;
 my $subscriptionid = $query->param('subscriptionid');
@@ -60,40 +62,39 @@ my $subs = GetSubscription($subscriptionid);
 my ($tmp ,@serials) = GetSerials($subscriptionid);
 my ($template, $loggedinuser, $cookie);
 
+my $library;
 if($ok){
     # get biblio information....
-    my $biblio = $subs->{'biblionumber'};
-	my ($count2,@bibitems) = GetBiblioItemByBiblioNumber($biblio);
-	my @itemresults = GetItemsInfo( $subs->{biblionumber} );
-	my $branch = $itemresults[0]->{'holdingbranch'};
-	my $branchname = GetBranchName($branch);
+    my $biblionumber = $subs->{'bibnum'};
+    my @itemresults = GetItemsInfo( $biblionumber );
+    my $branch = @itemresults ? $itemresults[0]->{'holdingbranch'} : $subs->{branchcode};
+    $library = Koha::Libraries->find($branch);
 
 	if (C4::Context->preference('RoutingListAddReserves')){
 		# get existing reserves .....
-        my $reserves = GetReservesFromBiblionumber({ biblionumber => $biblio });
-        my $count = scalar( @$reserves );
-        my $totalcount = $count;
-		foreach my $res (@$reserves) {
-			if ($res->{'found'} eq 'W') {
-				$count--;
-			}
-		}
+
+        my $biblio = Koha::Biblios->find( $biblionumber );
+        my $holds = $biblio->current_holds;
+        my $count = $holds->count;
+        while ( my $hold = $holds->next ) {
+            $count-- if $hold->is_waiting;
+        }
 		my $notes;
 		my $title = $subs->{'bibliotitle'};
         for my $routing ( @routinglist ) {
             my $sth = $dbh->prepare('SELECT * FROM reserves WHERE biblionumber = ? AND borrowernumber = ? LIMIT 1');
-            $sth->execute($biblio,$routing->{borrowernumber});
+            $sth->execute($biblionumber,$routing->{borrowernumber});
             my $reserve = $sth->fetchrow_hashref;
 
             if($routing->{borrowernumber} == $reserve->{borrowernumber}){
                 ModReserve({
                     rank           => $routing->{ranking},
-                    biblionumber   => $biblio,
+                    biblionumber   => $biblionumber,
                     borrowernumber => $routing->{borrowernumber},
                     branchcode     => $branch
                 });
             } else {
-                AddReserve($branch,$routing->{borrowernumber},$biblio,\@bibitems,$routing->{ranking}, undef, undef, $notes,$title);
+                AddReserve($branch,$routing->{borrowernumber},$biblionumber,undef,$routing->{ranking}, undef, undef, $notes,$title);
         }
     }
 	}
@@ -106,7 +107,6 @@ if($ok){
 				flagsrequired => {serials => '*'},
 				debug => 1,
 				});
-    $template->param("libraryname"=>$branchname);
 } else {
     ($template, $loggedinuser, $cookie)
 = get_template_and_user({template_name => "serials/routing-preview.tt",
@@ -118,9 +118,11 @@ if($ok){
 				});
 }
 
+$template->param( libraryname => $library->branchname ) if $library;
+
 my $memberloop = [];
 for my $routing (@routinglist) {
-    my $member = GetMember( borrowernumber => $routing->{borrowernumber} );
+    my $member = Koha::Patrons->find( $routing->{borrowernumber} )->unblessed;
     $member->{name}           = "$member->{firstname} $member->{surname}";
     push @{$memberloop}, $member;
 }

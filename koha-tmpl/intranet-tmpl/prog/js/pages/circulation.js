@@ -14,8 +14,6 @@ $(document).ready(function() {
         }
     });
 
-    $("#messages ul").after("<a href=\"#\" id=\"addmessage\">"+MSG_ADD_MESSAGE+"</a>");
-
     $("#borrower_messages .cancel").on("click",function(){
         $("#add_message_form").hide();
         $("#addmessage").show();
@@ -78,6 +76,38 @@ $(document).ready(function() {
             checkout_settings_icon.removeClass("fa-caret-down").addClass("fa-caret-right");
         }
     });
+
+    $(".circ_setting").on("click",function(){
+        $("#barcode").focus();
+    });
+
+    $("#itemSearchFallback").ready(function(){
+        $("#itemSearchFallback").modal("show");
+    });
+
+    // Debarments
+    $("div#reldebarments .remove_restriction").on("click",function(){
+        return confirm(_("Remove restriction?"));
+    });
+    var mrform = $("#manual_restriction_form");
+    var mrlink = $("#add_manual_restriction");
+    mrform.hide();
+    mrlink.on("click",function(e){
+        $(this).hide();
+        mrform.show();
+        e.preventDefault();
+    });
+    $("#cancel_manual_restriction").on("click",function(e){
+        mrlink.show();
+        mrform.hide();
+        e.preventDefault();
+    });
+    $(".clear-date").on("click",function(e){
+        e.preventDefault();
+        var fieldID = this.id.replace("clear-date-","");
+        $("#" + fieldID).val("");
+    });
+
 
 });
 

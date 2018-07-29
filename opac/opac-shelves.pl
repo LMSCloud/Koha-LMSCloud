@@ -18,6 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Biblio;
@@ -27,7 +28,17 @@ use C4::Members;
 use C4::Output;
 use C4::Tags qw( get_tags );
 use C4::XSLT;
+
+use Koha::Biblios;
+use Koha::Biblioitems;
+use Koha::IssuingRules;
+use Koha::Items;
+use Koha::ItemTypes;
+use Koha::Patrons;
 use Koha::Virtualshelves;
+use Koha::RecordProcessor;
+
+use constant ANYONE => 2;
 
 my $query = new CGI;
 
@@ -52,14 +63,15 @@ my $category = $query->param('category') || 1;
 my ( $shelf, $shelfnumber, @messages );
 
 if ( $op eq 'add_form' ) {
-    # Nothing to do
+    # Only pass default
+    $shelf = { allow_change_from_owner => 1 };
 } elsif ( $op eq 'edit_form' ) {
     $shelfnumber = $query->param('shelfnumber');
     $shelf       = Koha::Virtualshelves->find($shelfnumber);
 
     if ( $shelf ) {
         $category = $shelf->category;
-        my $patron = GetMember( 'borrowernumber' => $shelf->owner );
+        my $patron = Koha::Patrons->find( $shelf->owner );
         $template->param( owner => $patron, );
         unless ( $shelf->can_be_managed( $loggedinuser ) ) {
             push @messages, { type => 'error', code => 'unauthorized_on_update' };
@@ -70,14 +82,14 @@ if ( $op eq 'add_form' ) {
     }
 } elsif ( $op eq 'add' ) {
     if ( $loggedinuser ) {
+        my $allow_changes_from = $query->param('allow_changes_from');
         eval {
             $shelf = Koha::Virtualshelf->new(
                 {   shelfname          => scalar $query->param('shelfname'),
                     sortfield          => scalar $query->param('sortfield'),
                     category           => scalar $query->param('category') || 1,
-                    allow_add          => scalar $query->param('allow_add'),
-                    allow_delete_own   => scalar $query->param('allow_delete_own'),
-                    allow_delete_other => scalar $query->param('allow_delete_other'),
+                    allow_change_from_owner => $allow_changes_from > 0,
+                    allow_change_from_others => $allow_changes_from == ANYONE,
                     owner              => scalar $loggedinuser,
                 }
             );
@@ -106,9 +118,9 @@ if ( $op eq 'add_form' ) {
         if ( $shelf->can_be_managed( $loggedinuser ) ) {
             $shelf->shelfname( scalar $query->param('shelfname') );
             $shelf->sortfield( $sortfield );
-            $shelf->allow_add( scalar $query->param('allow_add') );
-            $shelf->allow_delete_own( scalar $query->param('allow_delete_own') );
-            $shelf->allow_delete_other( scalar $query->param('allow_delete_other') );
+            my $allow_changes_from = $query->param('allow_changes_from');
+            $shelf->allow_change_from_owner( $allow_changes_from > 0 );
+            $shelf->allow_change_from_others( $allow_changes_from == ANYONE );
             $shelf->category( scalar $query->param('category') );
             eval { $shelf->store };
 
@@ -166,9 +178,8 @@ if ( $op eq 'add_form' ) {
         if( my $barcode = $query->param('barcode') ) {
             my $item = GetItem( 0, $barcode);
             if (defined $item && $item->{itemnumber}) {
-                my $biblio = GetBiblioFromItemNumber( $item->{itemnumber} );
                 if ( $shelf->can_biblios_be_added( $loggedinuser ) ) {
-                    my $added = eval { $shelf->add_biblio( $biblio->{biblionumber}, $loggedinuser ); };
+                    my $added = eval { $shelf->add_biblio( $item->{biblionumber}, $loggedinuser ); };
                     if ($@) {
                         push @messages, { type => 'error', code => ref($@), msg => $@ };
                     } elsif ( $added ) {
@@ -249,28 +260,40 @@ if ( $op eq 'view' ) {
                 @cart_list = split(/\//, $cart_list);
             }
 
-            my $borrower = GetMember( borrowernumber => $loggedinuser );
+            my $patron = Koha::Patrons->find( $loggedinuser );
 
-            my $xslfile = C4::Context->preference('OPACXSLTResultsDisplay');
+            # Lists display falls back to search results configuration
+            my $xslfile = C4::Context->preference('OPACXSLTListsDisplay');
             my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
             my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
 
+            my $record_processor = Koha::RecordProcessor->new({ filters => 'ViewPolicy' });
             my @items;
             while ( my $content = $contents->next ) {
-                my $biblionumber = $content->biblionumber->biblionumber;
+                my $biblionumber = $content->biblionumber;
                 my $this_item    = GetBiblioData($biblionumber);
-                my $record       = GetMarcBiblio($biblionumber);
+                my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+                my $framework = GetFrameworkCode( $biblionumber );
+                my $biblio = Koha::Biblios->find( $biblionumber );
+                $record_processor->options({
+                    interface => 'opac',
+                    frameworkcode => $framework
+                });
+                $record_processor->process($record);
 
                 if ( $xslfile ) {
-                    $this_item->{XSLTBloc} = XSLTParse4Display( $biblionumber, $record, "OPACXSLTResultsDisplay",
+                    $this_item->{XSLTBloc} = XSLTParse4Display( $biblionumber, $record, "OPACXSLTListsDisplay",
                                                                 1, undef, $sysxml, $xslfile, $lang);
                 }
 
                 my $marcflavour = C4::Context->preference("marcflavour");
-                my $itemtypeinfo = getitemtypeinfo( $content->biblionumber->biblioitems->first->itemtype, 'opac' );
-                $this_item->{imageurl}          = $itemtypeinfo->{imageurl};
-                $this_item->{description}       = $itemtypeinfo->{description};
-                $this_item->{notforloan}        = $itemtypeinfo->{notforloan};
+                my $itemtype = Koha::Biblioitems->search({ biblionumber => $content->biblionumber })->next->itemtype;
+                $itemtype = Koha::ItemTypes->find( $itemtype );
+                if( $itemtype ) {
+                    $this_item->{imageurl}          = C4::Koha::getitemtypeimagelocation( 'opac', $itemtype->imageurl );
+                    $this_item->{description}       = $itemtype->description; #FIXME Should not it be translated_description?
+                    $this_item->{notforloan}        = $itemtype->notforloan;
+                }
                 $this_item->{'coins'}           = GetCOinSBiblio($record);
                 $this_item->{'subtitle'}        = GetRecordValue( 'subtitle', $record, GetFrameworkCode( $biblionumber ) );
                 $this_item->{'normalized_upc'}  = GetNormalizedUPC( $record, $marcflavour );
@@ -295,16 +318,14 @@ if ( $op eq 'view' ) {
                     });
                 }
 
-                $this_item->{allow_onshelf_holds} = C4::Reserves::OnShelfHoldsAllowed($this_item, $borrower);
-
+                my $items = $biblio->items;
+                while ( my $item = $items->next ) {
+                    $this_item->{allow_onshelf_holds} = Koha::IssuingRules->get_onshelfholds_policy( { item => $item, patron => $patron } );
+                    last if $this_item->{allow_onshelf_holds};
+                }
 
                 if ( grep {$_ eq $biblionumber} @cart_list) {
                     $this_item->{incart} = 1;
-                }
-
-                if ( $query->param('rss') ) {
-                    $this_item->{title} = $content->biblionumber->title;
-                    $this_item->{author} = $content->biblionumber->author;
                 }
 
                 $this_item->{biblionumber} = $biblionumber;

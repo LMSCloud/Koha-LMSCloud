@@ -8,7 +8,7 @@ use C4::Context;
 use C4::Biblio qw( AddBiblio );
 use C4::Circulation qw( AddIssue AddReturn );
 use C4::Items qw( AddItem );
-use C4::Members qw( AddMember GetMember );
+use C4::Members qw( AddMember );
 use Koha::Database;
 use Koha::DateUtils;
 use Koha::Patron::Debarments qw( GetDebarments DelDebarment );
@@ -23,6 +23,7 @@ $dbh->{RaiseError} = 1;
 
 my $branchcode = $builder->build({ source => 'Branch' })->{branchcode};
 my $itemtype   = $builder->build({ source => 'Itemtype' })->{itemtype};
+my $patron_category = $builder->build({ source => 'Category' });
 
 local $SIG{__WARN__} = sub { warn $_[0] unless $_[0] =~ /redefined/ };
 my $userenv->{branch} = $branchcode;
@@ -40,18 +41,18 @@ $builder->build(
             firstremind  => 0,
             finedays     => 2,
             lengthunit   => 'days',
+            suspension_chargeperiod => 1,
         }
     }
 );
 
-
 my $borrowernumber = AddMember(
     firstname =>  'my firstname',
     surname => 'my surname',
-    categorycode => 'S',
+    categorycode => $patron_category->{categorycode},
     branchcode => $branchcode,
 );
-my $borrower = GetMember( borrowernumber => $borrowernumber );
+my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 
 my $record = MARC::Record->new();
 $record->append_fields(

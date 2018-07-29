@@ -1,9 +1,10 @@
+[% USE Asset %]
 [% USE ItemTypes %]
     [% INCLUDE 'doc-head-open.inc' %]
     <title>Koha &rsaquo; Tools &rsaquo; Label creator &rsaquo; Batches &rsaquo; [% IF batch_id %]Edit ([% batch_id %])[% ELSE %]New[% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
     [% INCLUDE 'greybox.inc' %]
-    <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+    [% Asset.css("css/datatables.css") %]
     [% INCLUDE 'datatables.inc' %]
     <script type="text/javascript">
     //<![CDATA[
@@ -41,7 +42,7 @@
                     }
                     getstr = items.join("&");
                     item_msg = item_num.join(", ");
-                    var msg = "Are you sure you want to remove label number(s): " + item_msg + " from this batch?"
+                    var msg = _("Are you sure you want to remove label number(s): %s from this batch?").format(item_msg);
                 } else if (document.items.action.checked) {
 		    alert(_("Deletion of label from a batch with only one label will delete the batch.") + "\n\n" + _("If this is what you want, select the 'Delete batch' option from the toolbar"));
                     return; // no deletion for single item batch
@@ -98,10 +99,10 @@
                         alert(_("Please select at least one label to export."));
                         return;     // no batch selected
                     }
-                    return GB_showCenter('Export labels', "/cgi-bin/koha/labels/label-print.pl?batch_id=[% batch_id %]&" + getstr, 400, 800);
+                    return GB_showCenter(_("Export labels"), "/cgi-bin/koha/labels/label-print.pl?batch_id=[% batch_id %]&" + getstr, 400, 800);
                 }
                 else if (mode == 'batch') {
-                    return GB_showCenter('Export labels', "/cgi-bin/koha/labels/label-print.pl?batch_id=[% batch_id %]", 400, 800);
+                    return GB_showCenter(_("Export labels"), "/cgi-bin/koha/labels/label-print.pl?batch_id=[% batch_id %]", 400, 800);
                 }
                 else {
                     // some pass-thru error trapping just in case...
@@ -191,8 +192,24 @@
                 <div class="yui-b">
                         [% INCLUDE 'labels-toolbar.inc' %]
                         [% IF ( err ) %]
+                            [% BLOCK xlate_errtype %]
+                            [%    SWITCH errtype %]
+                            [%       CASE 'ITEM_NOT_REMOVED' %]
+                            <span>Item(s) not removed from batch [% batch_id %].</span>
+                            [%       CASE 'BATCH_NOT_DELETED' %]
+                            <span>Batch [% batch_id %] was not deleted.</span>
+                            [%       CASE 'ITEM_NOT_ADDED' %]
+                            <span>Item(s) not added to batch [% batch_id %].</span>
+                            [%       CASE 'BRANCH_NOT_SET' %]
+                            <span>Library is not set, please set your library before adding items to a batch.</span>
+                            [%       CASE 'BATCH_NOT_DEDUP' %]
+                            <span>Batch [% batch_id %] not fully de-duplicated.</span>
+                            [%       CASE %]
+                            <span>Unknown error type [% errtype %].</span>
+                            [%    END %]
+                            [% END %]
                             <div class="dialog alert">
-                                <strong>WARNING:</strong> An error was encountered and [% errstr %] Please have your system administrator check the error log for details.
+                                <strong>WARNING:</strong> An error was encountered: [% PROCESS xlate_errtype %] Please have your system administrator check the error log for details.
                             </div>
                         [% ELSIF ( duplicate_message ) %]
                             <div class="dialog message">
@@ -226,12 +243,12 @@
                                 </div>
                             </form>
                             <div id="batch-manage" class="btn-toolbar">
-                                <a class="btn btn-small" id="additems" href="#"><i class="fa fa-plus"></i> Add item(s)</a>[% IF ( table_loop ) %]
-                                <a class="btn btn-small" id="removeitems" href="#"><i class="fa fa-trash"></i> Remove selected items</a>
-                                <a class="btn btn-small" id="deletebatch" href="#"><i class="fa fa-minus-square"></i> Delete batch</a>
-                                <a class="btn btn-small" id="deduplicate" href="#"><i class="fa fa-minus"></i> Remove duplicates</a>
-                                <a class="btn btn-small" id="exportitems" href="#"><i class="fa fa-share-square-o"></i> Export selected items</a>
-                                <a class="btn btn-small" id="exportbatch" href="#"><i class="fa fa-share-square-o"></i> Export full batch</a>[% END %]
+                                <a class="btn btn-default btn-sm" id="additems" href="#"><i class="fa fa-plus"></i> Add item(s)</a>[% IF ( table_loop ) %]
+                                <a class="btn btn-default btn-sm" id="removeitems" href="#"><i class="fa fa-trash"></i> Remove selected items</a>
+                                <a class="btn btn-default btn-sm" id="deletebatch" href="#"><i class="fa fa-minus-square"></i> Delete batch</a>
+                                <a class="btn btn-default btn-sm" id="deduplicate" href="#"><i class="fa fa-minus"></i> Remove duplicates</a>
+                                <a class="btn btn-default btn-sm" id="exportitems" href="#"><i class="fa fa-share-square-o"></i> Export selected items</a>
+                                <a class="btn btn-default btn-sm" id="exportbatch" href="#"><i class="fa fa-share-square-o"></i> Export full batch</a>[% END %]
                             </div>
                             [% IF ( table_loop ) %]
                                 <form name="items" class="checkboxed">
@@ -249,6 +266,8 @@
                                                                     <th class="anti-the">Summary</th>
                                                                 [% CASE "Item type" %]
                                                                     <th>Item type</th>
+                                                                [% CASE "Call number" %]
+                                                                    <th>Call number</th>
                                                                 [% CASE "Barcode" %]
                                                                     <th>Barcode</th>
                                                                 [% CASE "Select" -%]
@@ -265,8 +284,8 @@
                                                         [% FOREACH text_field IN table_loo.text_fields %]
                                                             [% IF ( text_field.select_field ) %]
                                                                 <td>
-                                                                    <a class="btn btn-mini delete" href="/cgi-bin/koha/labels/label-edit-batch.pl?op=remove&amp;batch_id=[% batch_id |url %]&amp;label_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
-                                                                    <a class="btn btn-mini export" href="#" data-batch-id="[% batch_id %]" data-label-id="[% text_field.field_value |html %]"><i class="fa fa-share-square-o"></i> Export</a>
+                                                                    <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/labels/label-edit-batch.pl?op=remove&amp;batch_id=[% batch_id |url %]&amp;label_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
+                                                                    <a class="btn btn-default btn-xs export" href="#" data-batch-id="[% batch_id %]" data-label-id="[% text_field.field_value |html %]"><i class="fa fa-share-square-o"></i> Export</a>
                                                                 </td>
                                                                 <td><input type="checkbox" name="action" value="[% text_field.field_value %]"></td>
                                                             [% ELSE %]

@@ -1,4 +1,16 @@
 Web services:
+    REST API:
+        -
+            - "Set the default number of results returned by the REST API endpoints to"
+            - pref: "RESTdefaultPageSize"
+              class: integer
+            - "per page."
+        -
+            - pref: RESTOAuth2ClientCredentials
+              choices:
+                  yes: Enable
+                  no: "Disable"
+            - "the OAuth2 client credentials grant for the REST API. Requires Net::OAuth2::AuthorizationServer installed. [EXPERIMENTAL]"
     OAI-PMH:
         -
             - pref: OAI-PMH

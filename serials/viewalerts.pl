@@ -18,20 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Context;
 use C4::Output;
-use C4::Koha;
-use C4::Letters;
-use C4::Serials;
 
-my $dbh = C4::Context->dbh;
+use Koha::Subscriptions;
 
 my $input = new CGI;
-my $print = $input->param('print');
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => 'serials/viewalerts.tt',
@@ -42,18 +37,17 @@ my ($template, $loggedinuser, $cookie)
                  debug => 1,
                  });
 
-my $subscriptionid=$input->param('subscriptionid');
+my $subscriptionid = $input->param('subscriptionid');
 
-my $borrowers = getalert('','issue',$subscriptionid);
-my $subscription = GetSubscription($subscriptionid);
+my $subscription = Koha::Subscriptions->find( $subscriptionid );
+# FIXME raise a message if subscription does not exist (easy with 18403)
 
-foreach (@$borrowers) {
-    $_->{name} = findrelatedto('borrower',$_->{borrowernumber});
-}
-$template->param(alertloop => $borrowers,
-                bibliotitle => $subscription->{bibliotitle},
-                subscriptionid => $subscriptionid,
-                (uc(C4::Context->preference("marcflavour"))) => 1
-                );
+my $subscribers = $subscription->subscribers;
+
+$template->param(
+    subscribers    => $subscribers,
+    bibliotitle    => $subscription->biblio->title,
+    subscriptionid => $subscriptionid,
+);
 
 output_html_with_http_headers $input, $cookie, $template->output;

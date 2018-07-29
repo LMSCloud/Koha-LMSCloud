@@ -1,15 +1,10 @@
+[% USE Asset %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Tools &rsaquo; Task scheduler</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'calendar.inc' %]
-<script type="text/JavaScript">
-//<![CDATA[
-    $(document).ready(function(){
-        $("#startdate").datepicker({ minDate: "+0D" });
-    });
-//]]>
-</script>
 </head>
+
 <body id="tools_scheduler" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
@@ -51,11 +46,13 @@
 [% END %]
 </select>
 </li>
-<li><label for="format">Output format:</label>
-<select name="format" id="format">
-<option value="text">Text</option>
-<option value="url">URL</option>
-</select>
+<li>
+    <label for="format">Output format:</label>
+    <select name="format" id="format">
+        <option value="text">Text (TSV)</option>
+        <option value="csv">CSV</option>
+        <option value="html">HTML</option>
+    </select>
 </li>
 <li><label for="email">Email:</label>
 
@@ -64,7 +61,7 @@
 </ol></fieldset>
 <fieldset class="action"><input class="submit-button" type="submit" value="Save" /></fieldset>
 </form>
-  
+
 [% IF ( JOBS ) %]<h2>Jobs already entered</h2>
 <table>
 <tr>
@@ -95,4 +92,15 @@
 [% INCLUDE 'guided-reports-view.inc' %]
 </div>
 </div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") %]
+    [% INCLUDE 'calendar.inc' %]
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $("#startdate").datepicker({ minDate: "+0D" });
+        });
+    </script>
+[% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

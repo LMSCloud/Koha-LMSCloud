@@ -18,8 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use C4::Context;
 use C4::Output;
 use CGI qw ( -utf8 );
@@ -38,9 +37,11 @@ my $session = get_session($sessionID);
 
 my $biblionumber = $input->param('biblionumber');
 my $borrowernumber = $input->param('borrowernumber');
+my $itemnumber = $input->param('itemnumber');
+my $barcode = $input->param('barcode');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-    {   
+    {
         template_name   => "circ/printslip.tt",
         query           => $input,
         type            => "intranet",
@@ -52,7 +53,13 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $userenv = C4::Context->userenv;
 my ($slip, $is_html);
-if ( my $letter = ReserveSlip ($session->param('branch') || $userenv->{branch}, $borrowernumber, $biblionumber) ) {
+if ( my $letter = ReserveSlip ({
+    branchcode     => $session->param('branch') || $userenv->{branch},
+    borrowernumber => $borrowernumber,
+    biblionumber   => $biblionumber,
+    itemnumber     => $itemnumber,
+    barcode        => $barcode,
+}) ) {
     $slip = $letter->{content};
     $is_html = $letter->{is_html};
 }

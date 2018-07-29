@@ -2,6 +2,19 @@ Circulation:
 # FIXME: printcirculationslips is also omitted. It _technically_ could work, but C4::Print is HLT specific and needs a little bit of refactoring.
     Interface:
         -
+            - pref: CircSidebar
+              choices:
+                  yes: Activate
+                  no: Deactivate
+            - the navigation sidebar on all Circulation pages.
+        -
+            - pref: AutoSwitchPatron
+              choices:
+                  yes: "Enable"
+                  no: "Don't enable"
+            - the automatic redirection to another patron when a patron barcode is scanned instead of a book.
+            - This should not be enabled if you have overlapping patron and book barcodes.
+        -
             - pref: CircAutocompl
               choices:
                   yes: Try
@@ -117,9 +130,11 @@ Circulation:
                   no: "Do not"
             - update a bibliographic record's total issues count whenever an item is issued (WARNING! This increases server load significantly; if performance is a concern, use the update_totalissues.pl cron job to update the total issues count).
         -
-            - Use the
-            - pref: ExportWithCsvProfile
-            - CSV profile when exporting patron checkout history (enter CSV Profile name)
+            - pref: ExportCircHistory
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - the export patron checkout history options.
         -
             - The following fields should be excluded from the patron checkout history CSV or iso2709 export
             - pref: ExportRemoveFields
@@ -136,6 +151,12 @@ Circulation:
                   yes: Show
                   no: "Do not show"
             - all items in the "Checked-in items" list, even items that were not checked out.
+        -
+            - pref: AllowCheckoutNotes
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - patrons to submit notes about checked out items.
 
     Checkout Policy:
         -
@@ -168,6 +189,12 @@ Circulation:
                   yes: Allow
                   no: "Don't allow"
             - checkouts of items reserved to someone else. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items.
+        -
+            - pref: AllowItemsOnHoldCheckoutSCO
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items.
         -
             - pref: AllFinesNeedOverride
               choices:
@@ -340,7 +367,7 @@ Circulation:
             - "patrons to return books before their accounts expire (by restricting due dates to before the patron's expiration date)."
         -
             - Send all notices as a BCC to this email address
-            - pref: OverdueNoticeBcc
+            - pref: NoticeBcc
         -
             - Consider
             - pref: OverdueNoticePeriodCalculationMethod
@@ -422,11 +449,21 @@ Circulation:
                   nothing : "do nothing"
             - .
         -
+            - "Mark items as returned when flagged as lost "
+            - pref: MarkLostItemsAsReturned
+              multiple:
+                cronjob: "from the longoverdue cronjob"
+                batchmod: "from the batch item modification tool"
+                additem: "when cataloguing an item"
+                moredetail: "from the items tab of the catalog module"
+                pendingreserves: "from the 'Holds to pull' list"
+            - .
+        -
             - pref: AllowMultipleIssuesOnABiblio
               choices:
                   yes: Allow
                   no: "Don't allow"
-            - "patrons to check out multiple items from the same record.  (NOTE: This will only effect records without a subscription attached.)"
+            - "patrons to check out multiple items from the same record.  (NOTE: This will only affect records without a subscription attached.)"
         -
             - pref: OnSiteCheckouts
               choices:
@@ -447,6 +484,12 @@ Circulation:
             - on-site checkouts as normal checkouts.
             - If enabled, the number of checkouts allowed will be normal checkouts + on-site checkouts.
             - If disabled, both values will be checked separately.
+        -
+            - pref: SwitchOnSiteCheckouts
+              choices:
+                  yes: Switch
+                  no: "Don't switch"
+            - on-site checkouts to normal checkouts when checked out.
         -
             - When a patron's checked out item is overdue,
             - pref: OverduesBlockRenewing
@@ -469,6 +512,13 @@ Circulation:
                   owner: the owner of the family card only.
                   member: all family card members separate.
             - Can be for each member seperate or collected for the family card owner.
+        -
+            - If a patron owes more than the value of OPACFineNoRenewals,
+            - pref: OPACFineNoRenewalsBlockAutoRenew
+              choices:
+                  yes: Block
+                  no: Allow
+            - his/her auto renewals.
     Checkin Policy:
         -
             - pref: BlockReturnOfWithdrawnItems
@@ -476,6 +526,12 @@ Circulation:
                   yes: Block
                   no: "Don't block"
             - returning of items that have been withdrawn.
+        -
+            - pref: BlockReturnOfLostItems
+              choices:
+                  yes: Block
+                  no: "Don't block"
+            - returning of items that have been lost.
         -
             - pref: CalculateFinesOnReturn
               choices:
@@ -497,6 +553,12 @@ Circulation:
             - This is a list of value pairs. When an item is checked in, if the not for loan value on the left matches the items not for loan value
             - "it will be updated to the right-hand value. E.g. '-1: 0' will cause an item that was set to 'Ordered' to now be available for loan."
             - Each pair of values should be on a separate line.
+        -
+            - pref: CumulativeRestrictionPeriods
+              choices:
+                  yes: Cumulate
+                  no: "Don't cumulate"
+            - the restriction periods.
     Holds Policy:
         -
             - pref: AllowHoldItemTypeSelection
@@ -515,7 +577,7 @@ Circulation:
               choices:
                   yes: Allow
                   no: "Don't allow"
-            - staff to override hold policies when placing holds.
+            - staff to force addition of holds even if the patron already has the maximum number of holds allowed.
         -
             - pref: AllowHoldsOnDamagedItems
               choices:
@@ -657,6 +719,12 @@ Circulation:
                   no: "Don't allow"
             - expired holds to be canceled on days the library is closed.
         -
+            - pref: ExcludeHolidaysFromMaxPickUpDelay
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - Closed days to be taken into account in reserves max pickup delay.
+        -
             - pref: decreaseLoanHighHolds
               choices:
                   yes: Enable
@@ -700,6 +768,42 @@ Circulation:
               choices:
                   homebranch: "home library"
                   holdingbranch: "holding library"
+        -
+            - pref: OPACHoldsIfAvailableAtPickup
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - to pickup up holds at libraries where the item is available.
+        -
+            - "Patron categories not affected by OPACHoldsIfAvailableAtPickup"
+            - pref: OPACHoldsIfAvailableAtPickupExceptions
+            - "(list of patron categories separated with a pipe '|')"
+        -
+            - pref: CanMarkHoldsToPullAsLost
+              choices:
+                  do_not_allow: "Do not allow to mark items as lost"
+                  allow: "Allow to mark items as lost"
+                  allow_and_notify: "Allow to mark items as lost and notify the patron"
+            - "from the 'Holds to pull' screen"
+        -
+            - Update item's values when marked as lost from the hold to pull screen.
+            - This is a list of values to update an item when it is marked as lost from the holds to pull screen.
+            - 'Example: "itemlost: 1" to set items.itemlost to 1 when the item is marked as lost'
+            - pref: UpdateItemWhenLostFromHoldList
+              type: textarea
+    Interlibrary Loans:
+        -
+            - pref: ILLModule
+              default: 0
+              choices:
+                  yes: Enable
+                  no: Disable
+            - the interlibrary loans module (master switch).
+        -
+            - "Adding text will enable the copyright clearance stage in request creation. The text you enter will be the text displayed."
+            - pref: ILLModuleCopyrightClearance
+              type: textarea
+              class: long
     Fines Policy:
         -
             - Calculate fines based on days overdue
@@ -719,11 +823,12 @@ Circulation:
             - fines (when <code>misc/cronjobs/fines.pl</code> is being run).
             - <br><b>Note:</b> Fines can also be charged by the CalculateFinesOnReturn system preference.
         -
-            - pref: RefundLostItemFeeOnReturn
+            - If a lost item is returned, apply the refunding rules defined in the
+            - pref: RefundLostOnReturnControl
               choices:
-                  yes: Refund
-                  no: "Don't refund"
-            - lost item fees charged to a borrower when the lost item is returned.
+                  CheckinLibrary: "check-in library."
+                  ItemHomeBranch: "item home branch."
+                  ItemHoldingBranch: "item holding branch."
         -
             - pref: FinesIncludeGracePeriod
               choices:
@@ -746,8 +851,9 @@ Circulation:
             - Charge a hold fee
             - pref: HoldFeeMode
               choices:
-                  always: "any time a hold is placed."
+                  any_time_is_placed: "any time a hold is placed."
                   not_always: "only if all items are checked out and the record has at least one hold already."
+                  any_time_is_collected: "any time a hold is collected."
         -
             - pref: ActivateCashRegisterTransactionsOnly
               choices:
@@ -761,10 +867,53 @@ Circulation:
                   yes: "all authorized staff users"
                   no: "only one staff user"
             - "to book to an opened cash register." 
+        -
+            - pref: useDefaultReplacementCost
+              choices:
+                  yes: use
+                  no: "Don't use"
+            - the default replacement cost defined in item type.
+        -
+            - "Set the text to be recorded in the column 'note', table 'accountlines' when the processing fee (defined in item type) is applied."
+            - pref: ProcessingFeeNote
+              type: textarea
+              class: code
+    Self check-in module:
+        -
+            - "Include the following HTML on the self check-in screen:"
+            - pref: SelfCheckInMainUserBlock
+              type: textarea
+              class: code
+        -
+            - pref: SelfCheckInModule
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - "the standalone self check-in module (available at: /cgi-bin/koha/sci/sci-main.pl)"
+        -
+            - "Reset the current self check-in screen after"
+            - pref: SelfCheckInTimeout
+              class: integer
+            - seconds.
+        -
+            - "Include the following CSS on all the self check-in screens:"
+            - pref: SelfCheckInUserCSS
+              type: textarea
+              class: code
+        -
+            - "Include the following JavaScript on all the self check-in screens:"
+            - pref: SelfCheckInUserJS
+              type: textarea
+              class: code
     Self Checkout:
         -
             - "Include the following JavaScript on all pages in the web-based self checkout:"
             - pref: SCOUserJS
+              type: textarea
+              class: code
+        -
+            - "Include the following HTML on the the web-based self checkout screen:"
+            - pref: SCOMainUserBlock
               type: textarea
               class: code
         -
@@ -789,7 +938,7 @@ Circulation:
             - pref: SelfCheckoutByLogin
               choices:
                   yes: Username and Password
-                  no: Barcode
+                  no: Cardnumber
         -
             - "Time out the current patron's web-based self checkout system login after"
             - pref: SelfCheckTimeout
@@ -840,3 +989,53 @@ Circulation:
             - "Patron categories allowed to checkout in a batch"
             - pref: BatchCheckoutsValidCategories
             - "(list of patron categories separated with a pipe '|')"
+    Housebound module:
+        -
+            - pref: HouseboundModule
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "housebound module"
+    Article Requests:
+        -
+            - pref: ArticleRequests
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - patrons to place article requests.
+        -
+            - For records that are record level or item level requestable, make the following fields mandatory
+            - pref: ArticleRequestsMandatoryFields
+              multiple:
+                title: Title
+                author: Author
+                volume: Volume
+                issue: Issue
+                date: Date
+                pages: Pages
+                chapters: Chapters
+            -
+        -
+            - For records that are only record level requestable, make the following fields mandatory
+            - pref: ArticleRequestsMandatoryFieldsRecordOnly
+              multiple:
+                title: Title
+                author: Author
+                volume: Volume
+                issue: Issue
+                date: Date
+                pages: Pages
+                chapters: Chapters
+            -
+        -
+            - For records that are only item level requestable, make the following fields mandatory
+            - pref: ArticleRequestsMandatoryFieldsItemOnly
+              multiple:
+                title: Title
+                author: Author
+                volume: Volume
+                issue: Issue
+                date: Date
+                pages: Pages
+                chapters: Chapters
+            -

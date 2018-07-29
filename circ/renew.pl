@@ -24,12 +24,14 @@ use C4::Context;
 use C4::Auth qw/:DEFAULT get_session/;
 use C4::Output;
 use C4::Circulation;
+use C4::Koha;
 use Koha::DateUtils;
 use Koha::Database;
+use Koha::BiblioFrameworks;
 
 my $cgi = new CGI;
 
-my ( $template, $librarian, $cookie ) = get_template_and_user(
+my ( $template, $librarian, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "circ/renew.tt",
         query           => $cgi,
@@ -47,7 +49,7 @@ my $override_holds = $cgi->param('override_holds');
 
 my ( $item, $issue, $borrower );
 my $error = q{};
-my $soonest_renew_date;
+my ( $soonest_renew_date, $latest_auto_renew_date );
 
 if ($barcode) {
     $item = $schema->resultset("Item")->single( { barcode => $barcode } );
@@ -82,6 +84,12 @@ if ($barcode) {
                         $item->itemnumber(),
                     );
                 }
+                if ( $error && ( $error eq 'auto_too_late' ) ) {
+                    $latest_auto_renew_date = C4::Circulation::GetLatestAutoRenewDate(
+                        $borrower->borrowernumber(),
+                        $item->itemnumber(),
+                    );
+                }
                 if ($can_renew) {
                     my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
                     my $date_due = AddRenewal( undef, $item->itemnumber(), $branchcode );
@@ -106,7 +114,11 @@ if ($barcode) {
         borrower => $borrower,
         error    => $error,
         soonestrenewdate => $soonest_renew_date,
+        latestautorenewdate => $latest_auto_renew_date,
     );
 }
+
+# Checking if there is a Fast Cataloging Framework
+$template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 
 output_html_with_http_headers( $cgi, $cookie, $template->output );

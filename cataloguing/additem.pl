@@ -19,8 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
+
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
@@ -29,9 +29,12 @@ use C4::Items;
 use C4::Context;
 use C4::Circulation;
 use C4::Koha;
-use C4::Branch;
 use C4::ClassSource;
 use Koha::DateUtils;
+use Koha::Items;
+use Koha::ItemTypes;
+use Koha::Libraries;
+use Koha::Patrons;
 use List::MoreUtils qw/any/;
 use C4::Search;
 use Storable qw(thaw freeze);
@@ -125,20 +128,23 @@ sub generate_subfield_form {
         $subfield_data{repeatable} = $subfieldlib->{repeatable};
         $subfield_data{maxlength}  = $subfieldlib->{maxlength};
         
-        $value =~ s/"/&quot;/g;
         if ( ! defined( $value ) || $value eq '')  {
             $value = $subfieldlib->{defaultvalue};
-            # get today date & replace <<YYYY>>, <<MM>>, <<DD>> if provided in the default value
-            my $today_dt = dt_from_string;
-            my $year = $today_dt->strftime('%Y');
-            my $month = $today_dt->strftime('%m');
-            my $day = $today_dt->strftime('%d');
-            $value =~ s/<<YYYY>>/$year/g;
-            $value =~ s/<<MM>>/$month/g;
-            $value =~ s/<<DD>>/$day/g;
-            # And <<USER>> with surname (?)
-            my $username=(C4::Context->userenv?C4::Context->userenv->{'surname'}:"superlibrarian");
-            $value=~s/<<USER>>/$username/g;
+            if ( $value ) {
+                # get today date & replace <<YYYY>>, <<MM>>, <<DD>> if provided in the default value
+                my $today_dt = dt_from_string;
+                my $year = $today_dt->strftime('%Y');
+                my $month = $today_dt->strftime('%m');
+                my $day = $today_dt->strftime('%d');
+                $value =~ s/<<YYYY>>/$year/g;
+                $value =~ s/<<MM>>/$month/g;
+                $value =~ s/<<DD>>/$day/g;
+                # And <<USER>> with surname (?)
+                my $username=(C4::Context->userenv?C4::Context->userenv->{'surname'}:"superlibrarian");
+                $value=~s/<<USER>>/$username/g;
+            }
+        } else {
+            $value =~ s/"/&quot;/g;
         }
         
         $subfield_data{visibility} = "display:none;" if (($subfieldlib->{hidden} > 4) || ($subfieldlib->{hidden} <= -4));
@@ -150,7 +156,7 @@ sub generate_subfield_form {
             my $CNsubfield2 = substr($pref_itemcallnumber, 4, 1);
             my $temp2 = $temp->field($CNtag);
             if ($temp2) {
-                $value = ($temp2->subfield($CNsubfield)).' '.($temp2->subfield($CNsubfield2));
+                $value = join ' ', $temp2->subfield($CNsubfield) || q{}, $temp2->subfield($CNsubfield2) || q{};
                 #remove any trailing space incase one subfield is used
                 $value =~ s/^\s+|\s+$//g;
             }
@@ -161,31 +167,23 @@ sub generate_subfield_form {
 	    $value = $input->param('barcode');
 	}
 
-        # Getting list of subfields to keep when restricted editing is enabled
-        my $subfieldsToAllowForRestrictedEditing = C4::Context->preference('SubfieldsToAllowForRestrictedEditing');
-        my $allowAllSubfields = (
-            not defined $subfieldsToAllowForRestrictedEditing
-              or $subfieldsToAllowForRestrictedEditing == q||
-        ) ? 1 : 0;
-        my @subfieldsToAllow = split(/ /, $subfieldsToAllowForRestrictedEditing);
-
         if ( $subfieldlib->{authorised_value} ) {
             my @authorised_values;
             my %authorised_lib;
             # builds list, depending on authorised value...
             if ( $subfieldlib->{authorised_value} eq "branches" ) {
                 foreach my $thisbranch (@$branches) {
-                    push @authorised_values, $thisbranch->{value};
-                    $authorised_lib{$thisbranch->{value}} = $thisbranch->{branchname};
-                    $value = $thisbranch->{value} if $thisbranch->{selected} && !$value;
+                    push @authorised_values, $thisbranch->{branchcode};
+                    $authorised_lib{$thisbranch->{branchcode}} = $thisbranch->{branchname};
+                    $value = $thisbranch->{branchcode} if $thisbranch->{selected} && !$value;
                 }
             }
             elsif ( $subfieldlib->{authorised_value} eq "itemtypes" ) {
                   push @authorised_values, "" unless ( $subfieldlib->{mandatory} );
-                  my $itemtypes = GetItemTypes( style => 'array' );
-                  for my $itemtype ( @$itemtypes ) {
-                      push @authorised_values, $itemtype->{itemtype};
-                      $authorised_lib{$itemtype->{itemtype}} = $itemtype->{translated_description};
+                  my $itemtypes = Koha::ItemTypes->search_with_localization;
+                  while ( my $itemtype = $itemtypes->next ) {
+                      push @authorised_values, $itemtype->itemtype;
+                      $authorised_lib{$itemtype->itemtype} = $itemtype->translated_description;
                   }
 
                   unless ( $value ) {
@@ -238,13 +236,6 @@ sub generate_subfield_form {
                     labels   => \%authorised_lib,
                     default  => $value,
                 };
-                # If we're on restricted editing, and our field is not in the list of subfields to allow,
-                # then it is read-only
-                $subfield_data{marc_value}->{readonlyselect} = (
-                    not $allowAllSubfields
-                    and $restrictededition
-                    and !grep { $tag . '$' . $subfieldtag  eq $_ } @subfieldsToAllow
-                ) ? 1: 0;
             }
         }
             # it's a thesaurus / authority field
@@ -305,7 +296,9 @@ sub generate_subfield_form {
             };
         }
         elsif (
-                length($value) > 100
+                (
+                    $value and length($value) > 100
+                )
                 or (
                     C4::Context->preference("marcflavour") eq "UNIMARC"
                     and 300 <= $tag && $tag < 400 && $subfieldtag eq 'a'
@@ -330,7 +323,23 @@ sub generate_subfield_form {
                 value       => $value,
             };
         }
-        
+
+        # Getting list of subfields to keep when restricted editing is enabled
+        my $subfieldsToAllowForRestrictedEditing = C4::Context->preference('SubfieldsToAllowForRestrictedEditing');
+        my $allowAllSubfields = (
+            not defined $subfieldsToAllowForRestrictedEditing
+              or $subfieldsToAllowForRestrictedEditing eq q||
+        ) ? 1 : 0;
+        my @subfieldsToAllow = split(/ /, $subfieldsToAllowForRestrictedEditing);
+
+        # If we're on restricted editing, and our field is not in the list of subfields to allow,
+        # then it is read-only
+        $subfield_data{marc_value}->{readonly} = (
+            not $allowAllSubfields
+            and $restrictededition
+            and !grep { $tag . '$' . $subfieldtag  eq $_ } @subfieldsToAllow
+        ) ? 1: 0;
+
         return \%subfield_data;
 }
 
@@ -366,7 +375,7 @@ my $input        = new CGI;
 my $error        = $input->param('error');
 my $biblionumber = $input->param('biblionumber');
 my $itemnumber   = $input->param('itemnumber');
-my $op           = $input->param('op');
+my $op           = $input->param('op') || q{};
 my $hostitemnumber = $input->param('hostitemnumber');
 my $marcflavour  = C4::Context->preference("marcflavour");
 my $searchid     = $input->param('searchid');
@@ -400,7 +409,7 @@ my ($template, $loggedinuser, $cookie)
 
 
 # Does the user have a restricted item editing permission?
-my $uid = $loggedinuser ? GetMember( borrowernumber => $loggedinuser )->{userid} : undef;
+my $uid = Koha::Patrons->find( $loggedinuser )->userid;
 my $restrictededition = $uid ? haspermission($uid,  {'editcatalogue' => 'edit_items_restricted'}) : undef;
 # In case user is a superlibrarian, editing is not restricted
 $restrictededition = 0 if ($restrictededition != 0 &&  C4::Context->IsSuperLibrarian());
@@ -408,7 +417,7 @@ $restrictededition = 0 if ($restrictededition != 0 &&  C4::Context->IsSuperLibra
 $restrictededition = 0 if ($restrictededition != 0 && $frameworkcode eq 'FA' && haspermission($uid, {'editcatalogue' => 'fast_cataloging'}));
 
 my $tagslib = &GetMarcStructure(1,$frameworkcode);
-my $record = GetMarcBiblio($biblionumber);
+my $record = GetMarcBiblio({ biblionumber => $biblionumber });
 my $oldrecord = TransformMarcToKoha($record);
 my $itemrecord;
 my $nextop="additem";
@@ -527,7 +536,7 @@ if ($op eq "additem") {
         my $oldbarcode = $addedolditem->{'barcode'};
         my ($tagfield,$tagsubfield) = &GetMarcFromKohaField("items.barcode",$frameworkcode);
 
-	# If there is a barcode and we can't find him new values, we can't add multiple copies
+    # If there is a barcode and we can't find their new values, we can't add multiple copies
 	my $testbarcode;
         $testbarcode = $barcodeobj->next_value($oldbarcode) if $barcodeobj;
 	if ($oldbarcode && !$testbarcode) {
@@ -633,7 +642,7 @@ if ($op eq "additem") {
 } elsif ($op eq "delitem") {
 #-------------------------------------------------------------------------------
     # check that there is no issue on this item before deletion.
-    $error = &DelItemCheck($dbh,$biblionumber,$itemnumber);
+    $error = &DelItemCheck( $biblionumber,$itemnumber);
     if($error == 1){
         print $input->redirect("additem.pl?biblionumber=$biblionumber&frameworkcode=$frameworkcode&searchid=$searchid");
     }else{
@@ -643,41 +652,28 @@ if ($op eq "additem") {
 #-------------------------------------------------------------------------------
 } elsif ($op eq "delallitems") {
 #-------------------------------------------------------------------------------
-    my @biblioitems = &GetBiblioItemByBiblioNumber($biblionumber);
-    my $errortest=0;
-    my $itemfail;
-    foreach my $biblioitem (@biblioitems) {
-        my $items = &GetItemsByBiblioitemnumber( $biblioitem->{biblioitemnumber} );
-
-        foreach my $item (@$items) {
-            $error =&DelItemCheck( $dbh, $biblionumber, $item->{itemnumber} );
-            $itemfail =$item;
-        if($error == 1){
-            next
-            }
-        else {
-            push @errors,$error;
-            $errortest++
-            }
+    my $itemnumbers = C4::Items::GetItemnumbersForBiblio( $biblionumber );
+    foreach my $itemnumber ( @$itemnumbers ) {
+        $error = C4::Items::DelItemCheck( $biblionumber, $itemnumber );
+        next if $error == 1; # Means ok
+        push @errors,$error;
+    }
+    if ( @errors ) {
+        $nextop="additem";
+    } else {
+        my $defaultview = C4::Context->preference('IntranetBiblioDefaultView');
+        my $views = { C4::Search::enabled_staff_search_views };
+        if ($defaultview eq 'isbd' && $views->{can_view_ISBD}) {
+            print $input->redirect("/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=$biblionumber&searchid=$searchid");
+        } elsif  ($defaultview eq 'marc' && $views->{can_view_MARC}) {
+            print $input->redirect("/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=$biblionumber&searchid=$searchid");
+        } elsif  ($defaultview eq 'labeled_marc' && $views->{can_view_labeledMARC}) {
+            print $input->redirect("/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=$biblionumber&searchid=$searchid");
+        } else {
+            print $input->redirect("/cgi-bin/koha/catalogue/detail.pl?biblionumber=$biblionumber&searchid=$searchid");
         }
-        if($errortest > 0){
-            $nextop="additem";
-        } 
-        else {
-            my $defaultview = C4::Context->preference('IntranetBiblioDefaultView');
-            my $views = { C4::Search::enabled_staff_search_views };
-            if ($defaultview eq 'isbd' && $views->{can_view_ISBD}) {
-                print $input->redirect("/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=$biblionumber&searchid=$searchid");
-            } elsif  ($defaultview eq 'marc' && $views->{can_view_MARC}) {
-                print $input->redirect("/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=$biblionumber&searchid=$searchid");
-            } elsif  ($defaultview eq 'labeled_marc' && $views->{can_view_labeledMARC}) {
-                print $input->redirect("/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=$biblionumber&searchid=$searchid");
-            } else {
-                print $input->redirect("/cgi-bin/koha/catalogue/detail.pl?biblionumber=$biblionumber&searchid=$searchid");
-            }
-            exit;
-        }
-	}
+        exit;
+    }
 #-------------------------------------------------------------------------------
 } elsif ($op eq "saveitem") {
 #-------------------------------------------------------------------------------
@@ -699,17 +695,13 @@ if ($op eq "additem") {
     if ($exist_itemnumber && $exist_itemnumber != $itemnumber) {
         push @errors,"barcode_not_unique";
     } else {
-        ModItemFromMarc($itemtosave,$biblionumber,$itemnumber);
-        $itemnumber="";
-    }
-  my $item = GetItem( $itemnumber );
-    my $olditemlost =  $item->{'itemlost'};
-
-   my ($lost_tag,$lost_subfield) = GetMarcFromKohaField("items.itemlost",'');
-
-   my $newitemlost = $itemtosave->subfield( $lost_tag, $lost_subfield );
-    if (($olditemlost eq '0' or $olditemlost eq '' ) and $newitemlost ge '1'){
-  LostItem($itemnumber,'MARK RETURNED');
+        my $item = GetItem( $itemnumber );
+        my $newitem = ModItemFromMarc($itemtosave, $biblionumber, $itemnumber);
+        $itemnumber = q{};
+        my $olditemlost = $item->{itemlost};
+        my $newitemlost = $newitem->{itemlost};
+        LostItem( $item->{itemnumber}, 'additem' )
+            if $newitemlost && $newitemlost ge '1' && !$olditemlost;
     }
     $nextop="additem";
 } elsif ($op eq "delinkitem"){
@@ -734,7 +726,7 @@ if ($op eq "additem") {
 #-------------------------------------------------------------------------------
 
 # now, build existiing item list
-my $temp = GetMarcBiblio( $biblionumber );
+my $temp = GetMarcBiblio({ biblionumber => $biblionumber });
 #my @fields = $record->fields();
 
 
@@ -758,7 +750,9 @@ if ( C4::Context->preference('EasyAnalyticalRecords') ) {
     foreach my $hostfield ($temp->field($analyticfield)){
         my $hostbiblionumber = $hostfield->subfield('0');
         if ($hostbiblionumber){
-            my $hostrecord = GetMarcBiblio($hostbiblionumber, 1);
+            my $hostrecord = GetMarcBiblio({
+                biblionumber => $hostbiblionumber,
+                embed_items  => 1 });
             if ($hostrecord) {
                 my ($itemfield, undef) = GetMarcFromKohaField( 'items.itemnumber', GetFrameworkCode($hostbiblionumber) );
                 foreach my $hostitem ($hostrecord->field($itemfield)){
@@ -804,21 +798,16 @@ foreach my $field (@fields) {
         }
         $this_row{itemnumber} = $subfieldvalue if ($field->tag() eq $itemtagfield && $subfieldcode eq $itemtagsubfield);
 
-	if ( C4::Context->preference('EasyAnalyticalRecords') ) {
-	    foreach my $hostitemnumber (@hostitemnumbers){
-		if ($this_row{itemnumber} eq $hostitemnumber){
-			$this_row{hostitemflag} = 1;
-			$this_row{hostbiblionumber}= GetBiblionumberFromItemnumber($hostitemnumber);
-			last;
-		}
-	    }
-
-#	    my $countanalytics=GetAnalyticsCount($this_row{itemnumber});
-#           if ($countanalytics > 0){
-#                $this_row{countanalytics} = $countanalytics;
-#           }
-	}
-
+        if ( C4::Context->preference('EasyAnalyticalRecords') ) {
+            foreach my $hostitemnumber (@hostitemnumbers) {
+                my $item = Koha::Items->find( $hostitemnumber );
+                if ($this_row{itemnumber} eq $hostitemnumber) {
+                    $this_row{hostitemflag} = 1;
+                    $this_row{hostbiblionumber}= $item->biblio->biblionumber;
+                    last;
+                }
+            }
+        }
     }
     if (%this_row) {
         push(@big_array, \%this_row);
@@ -863,15 +852,11 @@ my $i=0;
 
 my $pref_itemcallnumber = C4::Context->preference('itemcallnumber');
 
-my $onlymine =
-     C4::Context->preference('IndependentBranches')
-  && C4::Context->userenv
-  && !C4::Context->IsSuperLibrarian()
-  && C4::Context->userenv->{branch};
 my $branch = $input->param('branch') || C4::Context->userenv->{branch};
-
-my $homebranches = GetBranchesLoopWithoutMobileStations($branch,$onlymine);  # build once ahead of time, instead of multiple times later.
-my $branches = GetBranchesLoop($branch,$onlymine);  # build once ahead of time, instead of multiple times later.
+my $libraries = Koha::Libraries->search({}, { order_by => ['branchname'] })->unblessed;# build once ahead of time, instead of multiple times later.
+for my $library ( @$libraries ) {
+    $library->{selected} = 1 if $library->{branchcode} eq $branch
+}
 
 # We generate form, from actuel record
 @fields = ();
@@ -885,12 +870,8 @@ if($itemrecord){
             my $subfieldlib = $tagslib->{$tag}->{$subfieldtag};
 
             next if ($tagslib->{$tag}->{$subfieldtag}->{'tab'} ne "10");
-            
-            my $usebranches = $branches;
-            if ( $subfieldlib->{kohafield} && $subfieldlib->{kohafield} =~ /items.homebranch/ ) {
-                $usebranches = $homebranches;
-            }
-            my $subfield_data = generate_subfield_form($tag, $subfieldtag, $value, $tagslib, $subfieldlib, $usebranches, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
+
+            my $subfield_data = generate_subfield_form($tag, $subfieldtag, $value, $tagslib, $subfieldlib, $libraries, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
             push @fields, "$tag$subfieldtag";
             push (@loop_data, $subfield_data);
             $i++;
@@ -914,11 +895,7 @@ foreach my $tag ( keys %{$tagslib}){
         my @values = (undef);
         @values = $itemrecord->field($tag)->subfield($subtag) if ($itemrecord && defined($itemrecord->field($tag)) && defined($itemrecord->field($tag)->subfield($subtag)));
         for my $value (@values){
-            my $usebranches = $branches;
-            if ( $tagslib->{$tag}->{$subtag}->{kohafield} && $tagslib->{$tag}->{$subtag}->{kohafield} =~ /items.homebranch/ ) {
-                $usebranches = $homebranches;
-            }
-            my $subfield_data = generate_subfield_form($tag, $subtag, $value, $tagslib, $tagslib->{$tag}->{$subtag}, $usebranches, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
+            my $subfield_data = generate_subfield_form($tag, $subtag, $value, $tagslib, $tagslib->{$tag}->{$subtag}, $libraries, $biblionumber, $temp, \@loop_data, $i, $restrictededition);
             push (@loop_data, $subfield_data);
             $i++;
         }

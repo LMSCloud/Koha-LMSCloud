@@ -17,8 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 # standard or CPAN modules used
 use CGI qw ( -utf8 );
@@ -36,6 +35,7 @@ use C4::ImportBatch;
 use C4::Matcher;
 use C4::BackgroundJob;
 use C4::Labels::Batch;
+use Koha::BiblioFrameworks;
 
 my $script_name = "/cgi-bin/koha/tools/manage-marc-import.pl";
 
@@ -62,15 +62,8 @@ my %cookies = parse CGI::Cookie($cookie);
 our $sessionID = $cookies{'CGISESSID'}->value;
 our $dbh = C4::Context->dbh;
 
-# Frameworks selection loop
-{
-    my $frameworks = getframeworks;
-    my $arrayref = [];
-    while ( my ($key, $value) = each %$frameworks ) {
-        push @$arrayref, { value => $key, label => $value->{frameworktext} };
-    }
-    $template->param( frameworks => $arrayref );
-}
+my $frameworks = Koha::BiblioFrameworks->search({ tagfield => { 'not' => undef } }, { join => 'marc_tag_structure', distinct => 'frameworkcode', order_by => ['frameworktext'] });
+$template->param( frameworks => $frameworks );
 
 if ($op eq "create_labels") {
 	#create a batch of labels, then lose $op & $import_batch_id so we get back to import batch list.
@@ -240,15 +233,24 @@ sub commit_batch {
     my ($template, $import_batch_id, $framework) = @_;
 
     my $job = undef;
-    $dbh->{AutoCommit} = 0;
-    my $callback = sub {};
-    if ($runinbackground) {
-        $job = put_in_background($import_batch_id);
-        $callback = progress_callback($job, $dbh);
-    }
-    my ($num_added, $num_updated, $num_items_added, $num_items_replaced, $num_items_errored, $num_ignored) =
-        BatchCommitRecords($import_batch_id, $framework, 50, $callback);
-    $dbh->commit();
+    my ( $num_added, $num_updated, $num_items_added,
+        $num_items_replaced, $num_items_errored, $num_ignored );
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_do(
+        sub {
+            my $callback = sub { };
+            if ($runinbackground) {
+                $job = put_in_background($import_batch_id);
+                $callback = progress_callback( $job, $dbh );
+            }
+            (
+                $num_added, $num_updated, $num_items_added,
+                $num_items_replaced, $num_items_errored, $num_ignored
+              )
+              = BatchCommitRecords( $import_batch_id, $framework, 50,
+                $callback );
+        }
+    );
 
     my $results = {
         did_commit => 1,
@@ -269,16 +271,25 @@ sub commit_batch {
 sub revert_batch {
     my ($template, $import_batch_id) = @_;
 
-    $dbh->{AutoCommit} = 0;
     my $job = undef;
-    my $callback = sub {};
-    if ($runinbackground) {
-        $job = put_in_background($import_batch_id);
-        $callback = progress_callback($job, $dbh);
-    }
-    my ($num_deleted, $num_errors, $num_reverted, $num_items_deleted, $num_ignored) = 
-        BatchRevertRecords($import_batch_id, 50, $callback);
-    $dbh->commit();
+            my (
+                $num_deleted,       $num_errors, $num_reverted,
+                $num_items_deleted, $num_ignored
+            );
+    my $schema = Koha::Database->new->schema;
+    $schema->txn_do(
+        sub {
+            my $callback = sub { };
+            if ($runinbackground) {
+                $job = put_in_background($import_batch_id);
+                $callback = progress_callback( $job, $dbh );
+            }
+            (
+                $num_deleted,       $num_errors, $num_reverted,
+                $num_items_deleted, $num_ignored
+            ) = BatchRevertRecords( $import_batch_id, 50, $callback );
+        }
+    );
 
     my $results = {
         did_revert => 1,

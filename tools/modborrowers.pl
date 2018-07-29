@@ -28,7 +28,6 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
-use C4::Branch;
 use C4::Koha;
 use C4::Members;
 use C4::Members::Attributes;
@@ -37,6 +36,9 @@ use C4::Output;
 use List::MoreUtils qw /any uniq/;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::List::Patron;
+use Koha::Libraries;
+use Koha::Patron::Categories;
+use Koha::Patrons;
 
 my $input = new CGI;
 my $op = $input->param('op') || 'show_form';
@@ -49,6 +51,8 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+
 my %cookies   = parse CGI::Cookie($cookie);
 my $sessionID = $cookies{'CGISESSID'}->value;
 my $dbh       = C4::Context->dbh;
@@ -60,7 +64,7 @@ if ( $op eq 'show' ) {
     my $patron_list_id = $input->param('patron_list_id');
     my @borrowers;
     my @cardnumbers;
-    my @notfoundcardnumbers;
+    my ( @notfoundcardnumbers, @from_another_group_of_libraries );
 
     # Get cardnumbers from a file or the input area
     my @contentlist;
@@ -84,11 +88,17 @@ if ( $op eq 'show' ) {
 
     my $max_nb_attr = 0;
     for my $cardnumber ( @cardnumbers ) {
-        my $borrower = GetBorrowerInfos( cardnumber => $cardnumber );
-        if ( $borrower ) {
-            $max_nb_attr = scalar( @{ $borrower->{patron_attributes} } )
-                if scalar( @{ $borrower->{patron_attributes} } ) > $max_nb_attr;
-            push @borrowers, $borrower;
+        my $patron = Koha::Patrons->find( { cardnumber => $cardnumber } );
+        if ( $patron ) {
+            if ( $logged_in_user->can_see_patron_infos( $patron ) ) {
+                $patron = $patron->unblessed;
+                $patron->{patron_attributes} = C4::Members::Attributes::GetBorrowerAttributes( $patron->{borrowernumber} );
+                $max_nb_attr = scalar( @{ $patron->{patron_attributes} } )
+                    if scalar( @{ $patron->{patron_attributes} } ) > $max_nb_attr;
+                push @borrowers, $patron;
+            } else {
+                push @notfoundcardnumbers, $cardnumber;
+            }
         } else {
             push @notfoundcardnumbers, $cardnumber;
         }
@@ -104,7 +114,7 @@ if ( $op eq 'show' ) {
     my @patron_attributes_values;
     my @patron_attributes_codes;
     my $patron_attribute_types = C4::Members::AttributeTypes::GetAttributeTypes_hashref('all');
-    my $patron_categories = C4::Members::GetBorrowercategoryList;
+    my @patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
     for ( values %$patron_attribute_types ) {
         my $attr_type = C4::Members::AttributeTypes->fetch( $_->{code} );
         # TODO Repeatable attributes are not correctly managed and can cause data lost.
@@ -122,8 +132,8 @@ if ( $op eq 'show' ) {
 
         my $category_code = $_->{category_code};
         my ( $category_lib ) = map {
-            ( defined $category_code and $_->{categorycode} eq $category_code ) ? $_->{description} : ()
-        } @$patron_categories;
+            ( defined $category_code and $_->categorycode eq $category_code ) ? $_->description : ()
+        } @patron_categories;
         push @patron_attributes_codes,
             {
                 attribute_code => $_->{code},
@@ -144,13 +154,12 @@ if ( $op eq 'show' ) {
         if @notfoundcardnumbers;
 
     # Construct drop-down list values
-    my $branches = GetBranchesLoop;
+    my $branches = Koha::Libraries->search({}, { order_by => ['branchname'] })->unblessed;
     my @branches_option;
-    push @branches_option, { value => $_->{value}, lib => $_->{branchname} } for @$branches;
+    push @branches_option, { value => $_->{branchcode}, lib => $_->{branchname} } for @$branches;
     unshift @branches_option, { value => "", lib => "" };
-    my $categories = GetBorrowercategoryList;
     my @categories_option;
-    push @categories_option, { value => $_->{categorycode}, lib => $_->{description} } for @$categories;
+    push @categories_option, { value => $_->categorycode, lib => $_->description } for @patron_categories;
     unshift @categories_option, { value => "", lib => "" };
     my $bsort1 = GetAuthorisedValues("Bsort1");
     my @sort1_option;
@@ -288,14 +297,13 @@ if ( $op eq 'do' ) {
             $infos->{borrowernumber} = $borrowernumber;
             my $success = ModMember(%$infos);
             if (!$success) {
-                my $borrowerinfo = GetBorrowerInfos( borrowernumber => $borrowernumber );
-                $infos->{cardnumber} = $borrowerinfo->{cardnumber} || '';
+                my $patron = Koha::Patrons->find( $borrowernumber );
+                $infos->{cardnumber} = $patron ? $patron->cardnumber || '' : '';
                 push @errors, { error => "can_not_update", borrowernumber => $infos->{borrowernumber}, cardnumber => $infos->{cardnumber} };
             }
         }
 
-        #
-        my $borrower_categorycode = GetBorrowerCategorycode $borrowernumber;
+        my $borrower_categorycode = Koha::Patrons->find( $borrowernumber )->categorycode;
         my $i=0;
         for ( @attributes ) {
             my $attribute;
@@ -312,9 +320,6 @@ if ( $op eq 'do' ) {
                 };
                 push @errors, { error => $@ } if $@;
             } else {
-                # Attribute's value is empty, we don't want to modify it
-                ++$i and next if not $attribute->{attribute};
-
                 eval {
                     C4::Members::Attributes::UpdateBorrowerAttribute( $borrowernumber, $attribute );
                 };
@@ -329,11 +334,15 @@ if ( $op eq 'do' ) {
     my @borrowers;
     my $max_nb_attr = 0;
     for my $borrowernumber ( @borrowernumbers ) {
-        my $borrower = GetBorrowerInfos( borrowernumber => $borrowernumber );
-        if ( $borrower ) {
-            $max_nb_attr = scalar( @{ $borrower->{patron_attributes} } )
-                if scalar( @{ $borrower->{patron_attributes} } ) > $max_nb_attr;
-            push @borrowers, $borrower;
+        my $patron = Koha::Patrons->find( $borrowernumber );
+        if ( $patron ) {
+            my $category_description = $patron->category->description;
+            $patron = $patron->unblessed;
+            $patron->{category_description} = $category_description;
+            $patron->{patron_attributes} = C4::Members::Attributes::GetBorrowerAttributes( $patron->{borrowernumber} );
+            $max_nb_attr = scalar( @{ $patron->{patron_attributes} } )
+                if scalar( @{ $patron->{patron_attributes} } ) > $max_nb_attr;
+            push @borrowers, $patron;
         }
     }
     my @patron_attributes_option;
@@ -363,23 +372,3 @@ $template->param(
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 exit;
-
-sub GetBorrowerInfos {
-    my ( %info ) = @_;
-    my $borrower = GetMember( %info );
-    if ( $borrower ) {
-        $borrower->{branchname} = GetBranchName( $borrower->{branchcode} );
-        for ( qw(dateenrolled dateexpiry) ) {
-            my $userdate = $borrower->{$_};
-            unless ($userdate && $userdate ne "0000-00-00" and $userdate ne "9999-12-31") {
-                $borrower->{$_} = '';
-                next;
-            }
-            $borrower->{$_} = $userdate || '';
-        }
-        $borrower->{category_description} = GetBorrowercategory( $borrower->{categorycode} )->{description};
-        my $attr_loop = C4::Members::Attributes::GetBorrowerAttributes( $borrower->{borrowernumber} );
-        $borrower->{patron_attributes} = $attr_loop;
-    }
-    return $borrower;
-}

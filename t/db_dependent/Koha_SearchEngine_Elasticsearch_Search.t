@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use t::lib::Mocks;
 
 use Koha::SearchEngine::Elasticsearch::QueryBuilder;
@@ -81,7 +81,7 @@ subtest 'json2marc' => sub {
 };
 
 subtest 'build_query tests' => sub {
-    plan tests => 6;
+    plan tests => 23;
 
     t::lib::Mocks::mock_preference('DisplayLibraryFacets','both');
     my $query = $builder->build_query();
@@ -101,6 +101,154 @@ subtest 'build_query tests' => sub {
         'homebranch added to facets if DisplayLibraryFacets=home' );
     ok( !defined $query->{aggregations}{holdingbranch},
         'holdingbranch not added to facets if DisplayLibraryFacets=home' );
+
+    t::lib::Mocks::mock_preference( 'QueryAutoTruncate', '' );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['donald duck'] );
+    is(
+        $query->{query}{query_string}{query},
+        "(donald duck)",
+        "query not altered if QueryAutoTruncate disabled"
+    );
+
+    t::lib::Mocks::mock_preference( 'QueryAutoTruncate', '1' );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['donald duck'] );
+    is(
+        $query->{query}{query_string}{query},
+        "(donald* duck*)",
+        "simple query is auto truncated when QueryAutoTruncate enabled"
+    );
+
+    # Ensure reserved words are not truncated
+    ( undef, $query ) = $builder->build_query_compat( undef,
+        ['donald or duck and mickey not mouse'] );
+    is(
+        $query->{query}{query_string}{query},
+        "(donald* or duck* and mickey* not mouse*)",
+        "reserved words are not affected by QueryAutoTruncate"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['donald* duck*'] );
+    is(
+        $query->{query}{query_string}{query},
+        "(donald* duck*)",
+        "query with '*' is unaltered when QueryAutoTruncate is enabled"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['donald duck and the mouse'] );
+    is(
+        $query->{query}{query_string}{query},
+        "(donald* duck* and the* mouse*)",
+        "individual words are all truncated and stopwords ignored"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['*'] );
+    is(
+        $query->{query}{query_string}{query},
+        "(*)",
+        "query of just '*' is unaltered when QueryAutoTruncate is enabled"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['"donald duck"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '("donald duck")',
+        "query with quotes is unaltered when QueryAutoTruncate is enabled"
+    );
+
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['"donald duck" and "the mouse"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '("donald duck" and "the mouse")',
+        "all quoted strings are unaltered if more than one in query"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['barcode:123456'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(barcode:123456*)',
+        "query of specific field is truncated"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['Local-number:"123456"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(Local-number:"123456")',
+        "query of specific field including hyphen and quoted is not truncated"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['Local-number:123456'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(Local-number:123456*)',
+        "query of specific field including hyphen and not quoted is truncated"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['Local-number.raw:123456'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(Local-number.raw:123456*)',
+        "query of specific field including period and not quoted is truncated"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['Local-number.raw:"123456"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(Local-number.raw:"123456")',
+        "query of specific field including period and quoted is not truncated"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['J.R.R'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(J.R.R*)',
+        "query including period is truncated but not split at periods"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['title:"donald duck"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(title:"donald duck")',
+        "query of specific field is not truncated when surrouned by quotes"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['title:"donald duck"'], undef, undef, undef, undef, undef, { suppress => 1 } );
+    is(
+        $query->{query}{query_string}{query},
+        '(title:"donald duck") AND suppress:0',
+        "query of specific field is added AND suppress:0"
+    );
+
+    ( undef, $query ) = $builder->build_query_compat( undef, ['title:"donald duck"'], undef, undef, undef, undef, undef, { suppress => 0 } );
+    is(
+        $query->{query}{query_string}{query},
+        '(title:"donald duck")',
+        "query of specific field is not added AND suppress:0"
+    );
 };
 
-1;
+subtest "_convert_sort_fields" => sub {
+    plan tests => 2;
+    my @sort_by = $builder->_convert_sort_fields(qw( call_number_asc author_dsc ));
+    is_deeply(
+        \@sort_by,
+        [
+            { field => 'callnum', direction => 'asc' },
+            { field => 'author',  direction => 'desc' }
+        ],
+        'sort fields should have been split correctly'
+    );
+
+    # We could expect this to pass, but direction is undef instead of 'desc'
+    @sort_by = $builder->_convert_sort_fields(qw( call_number_asc author_desc ));
+    is_deeply(
+        \@sort_by,
+        [
+            { field => 'callnum', direction => 'asc' },
+            { field => 'author',  direction => 'desc' }
+        ],
+        'sort fields should have been split correctly'
+    );
+};

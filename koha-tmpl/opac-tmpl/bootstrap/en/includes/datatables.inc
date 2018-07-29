@@ -1,5 +1,6 @@
-<script type="text/javascript" src="[% interface %]/lib/jquery/plugins/jquery.dataTables.min.js"></script>
-<script type="text/javascript">
+[% USE Asset %]
+[% Asset.js("lib/jquery/plugins/jquery.dataTables.min.js") %]
+<script>
 //<![CDATA[
     var MSG_DT_FIRST = _("First");
     var MSG_DT_LAST = _("Last");
@@ -17,4 +18,4 @@
     var CONFIG_EXCLUDE_ARTICLES_FROM_SORT = _("a an the");
 //]]>
 </script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/datatables.js"></script>
+[% Asset.js("js/datatables.js") %]

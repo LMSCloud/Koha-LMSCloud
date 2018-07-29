@@ -8,16 +8,16 @@
 
 use Modern::Perl;
 
-use Test::More tests => 43;
+use Test::More tests => 44;
 use Data::Dumper;
 
-use C4::Branch;
 use C4::Calendar;
 use C4::Context;
 use C4::Members;
 use Koha::Database;
 use Koha::DateUtils;
 use Koha::Items;
+use Koha::Holds;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -64,8 +64,8 @@ my $itemtype = $builder->build({ source => 'Itemtype', value => { notforloan => 
 
 #Set up the stage
 # Sysprefs and cost matrix
-C4::Context->set_preference('HoldsQueueSkipClosed', 0);
-C4::Context->set_preference('LocalHoldsPriority', 0);
+t::lib::Mocks::mock_preference('HoldsQueueSkipClosed', 0);
+t::lib::Mocks::mock_preference('LocalHoldsPriority', 0);
 $dbh->do("UPDATE systempreferences SET value = ? WHERE variable = 'StaticHoldsQueueWeight'", undef,
          join( ',', @other_branches, $borrower_branchcode, $least_cost_branch_code));
 $dbh->do("UPDATE systempreferences SET value = '0' WHERE variable = 'RandomizeHoldsQueueWeight'");
@@ -89,8 +89,8 @@ $dbh->do("INSERT INTO biblio (frameworkcode, author, title, datecreated)
           VALUES             ('SER', 'Koha test', '$TITLE', '2011-02-01')");
 my $biblionumber = $dbh->selectrow_array("SELECT biblionumber FROM biblio WHERE title = '$TITLE'")
   or BAIL_OUT("Cannot find newly created biblio record");
-$dbh->do("INSERT INTO biblioitems (biblionumber, marcxml, itemtype)
-          VALUES                  ($biblionumber, '', '$itemtype')");
+$dbh->do("INSERT INTO biblioitems (biblionumber, itemtype)
+          VALUES                  ($biblionumber, '$itemtype')");
 my $biblioitemnumber = $dbh->selectrow_array("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber = $biblionumber")
   or BAIL_OUT("Cannot find newly created biblioitems record");
 
@@ -121,7 +121,7 @@ my $test_sth = $dbh->prepare("SELECT * FROM hold_fill_targets
                               WHERE borrowernumber = $borrowernumber");
 
 # We have a book available homed in borrower branch, no point fiddling with AutomaticItemReturn
-C4::Context->set_preference('AutomaticItemReturn', 0);
+t::lib::Mocks::mock_preference('AutomaticItemReturn', 0);
 test_queue ('take from homebranch',  0, $borrower_branchcode, $borrower_branchcode);
 test_queue ('take from homebranch',  1, $borrower_branchcode, $borrower_branchcode);
 
@@ -130,14 +130,14 @@ $dbh->do("DELETE FROM hold_fill_targets");
 $dbh->do("DELETE FROM issues WHERE itemnumber IN (SELECT itemnumber FROM items WHERE homebranch = '$borrower_branchcode' AND holdingbranch = '$borrower_branchcode')");
 $dbh->do("DELETE FROM items WHERE homebranch = '$borrower_branchcode' AND holdingbranch = '$borrower_branchcode'");
 # test_queue will flush
-C4::Context->set_preference('AutomaticItemReturn', 1);
+t::lib::Mocks::mock_preference('AutomaticItemReturn', 1);
 # Not sure how to make this test more difficult - holding branch does not matter
 
 $dbh->do("DELETE FROM tmp_holdsqueue");
 $dbh->do("DELETE FROM hold_fill_targets");
 $dbh->do("DELETE FROM issues WHERE itemnumber IN (SELECT itemnumber FROM items WHERE homebranch = '$borrower_branchcode')");
 $dbh->do("DELETE FROM items WHERE homebranch = '$borrower_branchcode'");
-C4::Context->set_preference('AutomaticItemReturn', 0);
+t::lib::Mocks::mock_preference('AutomaticItemReturn', 0);
 # We have a book available held in borrower branch
 test_queue ('take from holdingbranch', 0, $borrower_branchcode, $borrower_branchcode);
 test_queue ('take from holdingbranch', 1, $borrower_branchcode, $borrower_branchcode);
@@ -176,7 +176,7 @@ $dbh->do("DELETE FROM default_branch_circ_rules");
 $dbh->do("DELETE FROM default_branch_item_rules");
 $dbh->do("DELETE FROM default_circ_rules");
 
-C4::Context->set_preference('UseTransportCostMatrix', 0);
+t::lib::Mocks::mock_preference('UseTransportCostMatrix', 0);
 
 $itemtype = $builder->build({ source => 'Itemtype', value => { notforloan => 0 } })->{itemtype};
 
@@ -229,11 +229,9 @@ $biblionumber = $dbh->selectrow_array("SELECT biblionumber FROM biblio WHERE tit
 $dbh->do(qq{
     INSERT INTO biblioitems (
         biblionumber, 
-        marcxml, 
         itemtype
     ) VALUES (
         $biblionumber, 
-        '', 
         '$itemtype'
     )
 });
@@ -302,7 +300,7 @@ is( $holds_queue->[1]->{cardnumber}, $borrower2->{cardnumber}, "Holds queue fill
 # 1 of which is coming from MPL. Let's enable HoldsQueueSkipClosed
 # and make today a holiday for MPL. When we run it again we should only
 # have 1 row in the holds queue
-C4::Context->set_preference('HoldsQueueSkipClosed', 1);
+t::lib::Mocks::mock_preference('HoldsQueueSkipClosed', 1);
 my $today = dt_from_string();
 C4::Calendar->new( branchcode => $branchcodes[0] )->insert_single_holiday(
     day         => $today->day(),
@@ -317,7 +315,7 @@ is( Koha::Calendar->new( branchcode => $branchcodes[0] )->is_holiday( $today ), 
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref("SELECT * FROM tmp_holdsqueue", { Slice => {} });
 is( scalar( @$holds_queue ), 1, "Holds not filled with items from closed libraries" );
-C4::Context->set_preference('HoldsQueueSkipClosed', 0);
+t::lib::Mocks::mock_preference('HoldsQueueSkipClosed', 0);
 
 $dbh->do("DELETE FROM default_circ_rules");
 $dbh->do("INSERT INTO default_circ_rules ( holdallowed ) VALUES ( 2 )");
@@ -330,22 +328,22 @@ is( @$holds_queue, 3, "Holds queue filling correct number for holds for default 
 # one of which is coming from MPL. Let's enable HoldsQueueSkipClosed
 # and use our previously created holiday for MPL
 # When we run it again we should only have 2 rows in the holds queue
-C4::Context->set_preference( 'HoldsQueueSkipClosed', 1 );
+t::lib::Mocks::mock_preference( 'HoldsQueueSkipClosed', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref("SELECT * FROM tmp_holdsqueue", { Slice => {} });
 is( scalar( @$holds_queue ), 2, "Holds not filled with items from closed libraries" );
-C4::Context->set_preference( 'HoldsQueueSkipClosed', 0 );
+t::lib::Mocks::mock_preference( 'HoldsQueueSkipClosed', 0 );
 
 ## Test LocalHoldsPriority
-C4::Context->set_preference('LocalHoldsPriority', 1);
+t::lib::Mocks::mock_preference('LocalHoldsPriority', 1);
 
 $dbh->do("DELETE FROM default_circ_rules");
 $dbh->do("INSERT INTO default_circ_rules ( holdallowed ) VALUES ( 2 )");
 $dbh->do("DELETE FROM issues");
 
 # Test homebranch = patron branch
-C4::Context->set_preference('LocalHoldsPriorityPatronControl', 'HomeLibrary');
-C4::Context->set_preference('LocalHoldsPriorityItemControl', 'homebranch');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityPatronControl', 'HomeLibrary');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityItemControl', 'homebranch');
 C4::Context->clear_syspref_cache();
 $dbh->do("DELETE FROM reserves");
 $sth->execute( $borrower1->{borrowernumber}, $biblionumber, $branchcodes[0], 1 );
@@ -361,8 +359,8 @@ $holds_queue = $dbh->selectall_arrayref("SELECT * FROM tmp_holdsqueue", { Slice 
 is( $holds_queue->[0]->{cardnumber}, $borrower3->{cardnumber}, "Holds queue giving priority to patron who's home library matches item's home library");
 
 # Test holdingbranch = patron branch
-C4::Context->set_preference('LocalHoldsPriorityPatronControl', 'HomeLibrary');
-C4::Context->set_preference('LocalHoldsPriorityItemControl', 'holdingbranch');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityPatronControl', 'HomeLibrary');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityItemControl', 'holdingbranch');
 C4::Context->clear_syspref_cache();
 $dbh->do("DELETE FROM reserves");
 $sth->execute( $borrower1->{borrowernumber}, $biblionumber, $branchcodes[0], 1 );
@@ -378,8 +376,8 @@ $holds_queue = $dbh->selectall_arrayref("SELECT * FROM tmp_holdsqueue", { Slice 
 is( $holds_queue->[0]->{cardnumber}, $borrower3->{cardnumber}, "Holds queue giving priority to patron who's home library matches item's holding library");
 
 # Test holdingbranch = pickup branch
-C4::Context->set_preference('LocalHoldsPriorityPatronControl', 'PickupLibrary');
-C4::Context->set_preference('LocalHoldsPriorityItemControl', 'holdingbranch');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityPatronControl', 'PickupLibrary');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityItemControl', 'holdingbranch');
 C4::Context->clear_syspref_cache();
 $dbh->do("DELETE FROM reserves");
 $sth->execute( $borrower1->{borrowernumber}, $biblionumber, $branchcodes[0], 1 );
@@ -395,8 +393,8 @@ $holds_queue = $dbh->selectall_arrayref("SELECT * FROM tmp_holdsqueue", { Slice 
 is( $holds_queue->[0]->{cardnumber}, $borrower3->{cardnumber}, "Holds queue giving priority to patron who's home library matches item's holding library");
 
 # Test homebranch = pickup branch
-C4::Context->set_preference('LocalHoldsPriorityPatronControl', 'PickupLibrary');
-C4::Context->set_preference('LocalHoldsPriorityItemControl', 'homebranch');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityPatronControl', 'PickupLibrary');
+t::lib::Mocks::mock_preference('LocalHoldsPriorityItemControl', 'homebranch');
 C4::Context->clear_syspref_cache();
 $dbh->do("DELETE FROM reserves");
 $sth->execute( $borrower1->{borrowernumber}, $biblionumber, $branchcodes[0], 1 );
@@ -411,7 +409,7 @@ C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref("SELECT * FROM tmp_holdsqueue", { Slice => {} });
 is( $holds_queue->[0]->{cardnumber}, $borrower3->{cardnumber}, "Holds queue giving priority to patron who's home library matches item's holding library");
 
-C4::Context->set_preference('LocalHoldsPriority', 0);
+t::lib::Mocks::mock_preference('LocalHoldsPriority', 0);
 ## End testing of LocalHoldsPriority
 
 
@@ -441,7 +439,7 @@ $dbh->do("
 $biblionumber = $dbh->selectrow_array("SELECT biblionumber FROM biblio WHERE title = '$TITLE'")
   or BAIL_OUT("Cannot find newly created biblio record");
 
-$dbh->do("INSERT INTO biblioitems (biblionumber, marcxml, itemtype) VALUES ($biblionumber, '', '$itemtype')");
+$dbh->do("INSERT INTO biblioitems (biblionumber, itemtype) VALUES ($biblionumber, '$itemtype')");
 
 $biblioitemnumber =
   $dbh->selectrow_array("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber = $biblionumber")
@@ -490,7 +488,7 @@ $dbh->do("DELETE FROM default_branch_item_rules");
 $dbh->do("DELETE FROM default_circ_rules");
 $dbh->do("DELETE FROM branch_item_rules");
 
-C4::Context->set_preference("UseTransportCostMatrix",1);
+t::lib::Mocks::mock_preference("UseTransportCostMatrix",1);
 
 my $tc_rs = $schema->resultset('TransportCost');
 $tc_rs->create({ frombranch => $library_A, tobranch => $library_B, cost => 0, disable_transfer => 1 });
@@ -503,7 +501,7 @@ $dbh->do("
 $biblionumber = $dbh->selectrow_array("SELECT biblionumber FROM biblio WHERE title = '$TITLE'")
   or BAIL_OUT("Cannot find newly created biblio record");
 
-$dbh->do("INSERT INTO biblioitems (biblionumber, marcxml, itemtype) VALUES ($biblionumber, '', '$itemtype')");
+$dbh->do("INSERT INTO biblioitems (biblionumber, itemtype) VALUES ($biblionumber, '$itemtype')");
 
 $biblioitemnumber =
   $dbh->selectrow_array("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber = $biblionumber")
@@ -521,7 +519,7 @@ is( @$holds_queue, 0, "Bug 15062 - Holds queue with Transport Cost Matrix will t
 # End Bug 15062
 
 # Test hold_fulfillment_policy
-C4::Context->set_preference( "UseTransportCostMatrix", 0 );
+t::lib::Mocks::mock_preference( "UseTransportCostMatrix", 0 );
 $borrowernumber = $borrower3->{borrowernumber};
 $library_A = $library1->{branchcode};
 $library_B = $library2->{branchcode};
@@ -544,7 +542,7 @@ $dbh->do("INSERT INTO biblio (frameworkcode, author, title, datecreated) VALUES 
 $biblionumber = $dbh->selectrow_array("SELECT biblionumber FROM biblio WHERE title = '$TITLE'")
   or BAIL_OUT("Cannot find newly created biblio record");
 
-$dbh->do("INSERT INTO biblioitems (biblionumber, marcxml, itemtype) VALUES ($biblionumber, '', '$itemtype')");
+$dbh->do("INSERT INTO biblioitems (biblionumber, itemtype) VALUES ($biblionumber, '$itemtype')");
 
 $biblioitemnumber =
   $dbh->selectrow_array("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber = $biblionumber")
@@ -564,21 +562,21 @@ $reserve_id = AddReserve( $library_A, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 1, "Hold where pickup branch matches home branch targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Holding branch matches pickup branch
 $reserve_id = AddReserve( $library_B, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 0, "Hold where pickup ne home, pickup eq home not targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Neither branch matches pickup branch
 $reserve_id = AddReserve( $library_C, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 0, "Hold where pickup ne home, pickup ne holding not targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # With hold_fulfillment_policy = holdingbranch, hold should only be picked up if pickup branch = holdingbranch
 $dbh->do("DELETE FROM default_circ_rules");
@@ -589,21 +587,21 @@ $reserve_id = AddReserve( $library_A, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 0, "Hold where pickup eq home, pickup ne holding not targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Holding branch matches pickup branch
 $reserve_id = AddReserve( $library_B, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 1, "Hold where pickup ne home, pickup eq holding targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Neither branch matches pickup branch
 $reserve_id = AddReserve( $library_C, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 0, "Hold where pickup ne home, pickup ne holding not targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # With hold_fulfillment_policy = any, hold should be pikcup up reguardless of matching home or holding branch
 $dbh->do("DELETE FROM default_circ_rules");
@@ -614,26 +612,26 @@ $reserve_id = AddReserve( $library_A, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 1, "Hold where pickup eq home, pickup ne holding targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Holding branch matches pickup branch
 $reserve_id = AddReserve( $library_B, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 1, "Hold where pickup ne home, pickup eq holding targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Neither branch matches pickup branch
 $reserve_id = AddReserve( $library_C, $borrowernumber, $biblionumber, '', 1 );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 1, "Hold where pickup ne home, pickup ne holding targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # End testing hold_fulfillment_policy
 
 # Test hold itemtype limit
-C4::Context->set_preference( "UseTransportCostMatrix", 0 );
+t::lib::Mocks::mock_preference( "UseTransportCostMatrix", 0 );
 my $wrong_itemtype = $builder->build({ source => 'Itemtype', value => { notforloan => 0 } })->{itemtype};
 my $right_itemtype = $builder->build({ source => 'Itemtype', value => { notforloan => 0 } })->{itemtype};
 $borrowernumber = $borrower3->{borrowernumber};
@@ -656,7 +654,7 @@ $dbh->do("INSERT INTO biblio (frameworkcode, author, title, datecreated) VALUES 
 $biblionumber = $dbh->selectrow_array("SELECT biblionumber FROM biblio WHERE title = '$TITLE'")
   or BAIL_OUT("Cannot find newly created biblio record");
 
-$dbh->do("INSERT INTO biblioitems (biblionumber, marcxml, itemtype) VALUES ($biblionumber, '', '$itemtype')");
+$dbh->do("INSERT INTO biblioitems (biblionumber, itemtype) VALUES ($biblionumber, '$itemtype')");
 
 $biblioitemnumber =
   $dbh->selectrow_array("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber = $biblionumber")
@@ -676,21 +674,21 @@ $reserve_id = AddReserve( $library_A, $borrowernumber, $biblionumber, '', 1, und
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 0, "Item with incorrect itemtype not targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Holding branch matches pickup branch
 $reserve_id = AddReserve( $library_A, $borrowernumber, $biblionumber, '', 1, undef, undef, undef, undef, undef, undef, $right_itemtype );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 1, "Item with matching itemtype is targeted" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # Neither branch matches pickup branch
 $reserve_id = AddReserve( $library_A, $borrowernumber, $biblionumber, '', 1, undef, undef, undef, undef, undef, undef, undef );
 C4::HoldsQueue::CreateQueue();
 $holds_queue = $dbh->selectall_arrayref( "SELECT * FROM tmp_holdsqueue", { Slice => {} } );
 is( @$holds_queue, 1, "Item targeted when hold itemtype is not set" );
-CancelReserve( { reserve_id => $reserve_id } );
+Koha::Holds->find( $reserve_id )->cancel;
 
 # End testing hold itemtype limit
 
@@ -726,6 +724,16 @@ C4::HoldsQueue::CreateQueue();
 
 my $queue_rs = $schema->resultset('TmpHoldsqueue');
 is( $queue_rs->count(), 1, "Hold queue contains one hold from chosen from three possible items" );
+
+subtest 'Trivial test for UpdateTransportCostMatrix' => sub {
+    plan tests => 1;
+    my $recs = [
+        { frombranch => $library1->{branchcode}, tobranch => $library2->{branchcode}, cost => 1, disable_transfer => 0 },
+        { frombranch => $library2->{branchcode}, tobranch => $library3->{branchcode}, cost => 0, disable_transfer => 1 },
+    ];
+    C4::HoldsQueue::UpdateTransportCostMatrix( $recs );
+    is( $schema->resultset('TransportCost')->count, 2, 'UpdateTransportCostMatrix added two records' );
+};
 
 # Cleanup
 $schema->storage->txn_rollback;

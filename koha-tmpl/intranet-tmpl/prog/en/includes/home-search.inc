@@ -1,3 +1,4 @@
+[% USE Koha %]
 <div class="gradient">
 <h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName %]</a></h1><!-- Begin Main page Resident Search Box -->
 
@@ -20,7 +21,7 @@
     </div>
 [% END %]
 
-[% IF ( CAN_user_borrowers ) %]
+[% IF CAN_user_borrowers_edit_borrowers %]
 <div id="patron_search" class="residentsearch">
     <p class="tip">Enter patron card number or partial name:</p>
     <form action="/cgi-bin/koha/members/member.pl" method="post">
@@ -33,6 +34,7 @@
 <div id="catalog_search" class="residentsearch">
     <p class="tip">Enter search keywords:</p>
     <form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
+        [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %][% INCLUDE 'search_indexes.inc' %][% END %]
         <input type="text" name="q" id="search-form" class="head-searchbox" size="40" accesskey="q" />
         <input type="submit" class="submit" value="Submit"/>
     </form>
@@ -42,7 +44,7 @@
     [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#circ_search">Check out</a></li>[% END %]
     [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#checkin_search">Check in</a></li>[% END %]
     [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#renew_search">Renew</a></li>[% END %]
-    [% IF ( CAN_user_borrowers ) %]<li><a class="keep_text" href="#patron_search">Search patrons</a></li>[% END %]
+    [% IF CAN_user_borrowers_edit_borrowers %]<li><a class="keep_text" href="#patron_search">Search patrons</a></li>[% END %]
     [% IF ( CAN_user_catalogue ) %]<li><a class="keep_text" href="#catalog_search">Search the catalog</a></li>[% END %]
 </ul>
 

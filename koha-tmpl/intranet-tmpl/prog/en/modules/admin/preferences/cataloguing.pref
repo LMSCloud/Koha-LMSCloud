@@ -18,6 +18,15 @@ Cataloging:
                   yes: Display
                   no: "Don't Display"
             - easy ways to create analytical record relationships
+        -
+            - pref: EnableAdvancedCatalogingEditor
+              default: 0
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - the advanced cataloging editor.
+            - "<br/> NOTE:"
+            - Currently does not include support for UNIMARC or NORMARC fixed fields.
     Spine Labels:
         -
             - When using the quick spine label printer,
@@ -43,6 +52,10 @@ Cataloging:
             - Fill in the default language for field 008 Range 35-37 of MARC21 records (e.g. eng, nor, ger, see <a href="http://www.loc.gov/marc/languages/language_code.html">MARC Code List for Languages</a>)
             - pref: DefaultLanguageField008
             - " Empty defaults to eng."
+        -
+            - Fill in the default country code for field 008 Range 15-17 of MARC21 - Place of publication, production, or execution. See <a href="http://www.loc.gov/marc/countries/countries_code.html">MARC Code List for Countries</a>
+            - pref: DefaultCountryField008
+            - " Empty defaults to xxu for United States."
         -
             - Interpret and store MARC records in the
             - pref: marcflavour
@@ -71,7 +84,7 @@ Cataloging:
         -
             - Fill in the <a href="http://www.loc.gov/marc/organizations/orgshome.html">MARC organization code</a>
             - pref: MARCOrgCode
-            - by default in new MARC21 records (leave blank to disable).
+            - by default in new MARC21 records (leave blank to disable). This can be also set on libraries level.
         -
             - When items are created, give them the temporary location of
             - pref: NewItemsDefaultLocation
@@ -142,6 +155,14 @@ Cataloging:
                   no: "Don't use"
             - record control number ($w subfields) and control number (001) for linking of bibliographic records.
         -
+            - Use
+            - pref: MarcFieldDocURL
+              class: url
+            - as the URL for MARC field documentation.
+            - Possible substitutions are <tt>{MARC}</tt> (marc flavour, eg. "MARC21" or "UNIMARC"), <tt>{FIELD}</tt> (field number, eg. "000" or "048"), <tt>{LANG}</tt> (user language, eg. "en" or "fi-FI").
+            - If left empty, the format documentation on http://loc.gov (MARC21) or http://archive.ifla.org (UNIMARC) is used.
+            - For example <tt>http://fielddoc.example.com/?marc={MARC}&field={FIELD}&language={LANG}</tt>
+        -
             - pref: hide_marc
               choices:
                   yes: "Don't display"
@@ -171,8 +192,8 @@ Cataloging:
               choices:
                   yes: Hide
                   no: "Don't hide"
-            - items marked as suppressed from OPAC search results.
-            - <br />Restrict the suppression to IP adresses outside of the IP range
+            - biblios marked as suppressed from OPAC search results.
+            - <br />Restrict the suppression to IP addresses outside of the IP range
             - pref: OpacSuppressionByIPRange
               class: short
             - (Leave blank if not used. Define a range like <code>192.168.</code>.)
@@ -224,6 +245,14 @@ Cataloging:
                   yes: "do"
                   no: "don't"
             - attempt to match aggressively by trying all variations of the ISBNs in the imported record as a phrase in the ISBN fields of already cataloged records.  Note that this preference has no effect if UseQueryParser is on.
+        -
+            - When matching on ISSN with the record import tool,
+            - pref: AggressiveMatchOnISSN
+              choices:
+                  yes: "do"
+                  no: "don't"
+            - attempt to match aggressively by trying all variations of the ISSNs in the imported record as a phrase in the ISSN fields of already cataloged records.  Note that this preference has no effect if UseQueryParser is on.
+
     Exporting:
         -
             - Include following fields when exporting BibTeX,

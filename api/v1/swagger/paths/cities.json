@@ -1,0 +1,275 @@
+{
+  "/cities": {
+    "get": {
+      "x-mojo-to": "Cities#list",
+      "operationId": "listCities",
+      "tags": ["cities"],
+      "produces": [
+        "application/json"
+      ],
+      "parameters": [{
+        "name": "name",
+        "in": "query",
+        "description": "Case insensative search on city name",
+        "required": false,
+        "type": "string"
+      }, {
+        "name": "state",
+        "in": "query",
+        "description": "Case insensative search on city state",
+        "required": false,
+        "type": "string"
+      }, {
+        "name": "country",
+        "in": "query",
+        "description": "Case insensative search on city country",
+        "required": false,
+        "type": "string"
+      }, {
+        "name": "postal_code",
+        "in": "query",
+        "description": "Case Insensative search on city postal code",
+        "required": false,
+        "type": "string"
+      }],
+      "responses": {
+        "200": {
+          "description": "A list of cities",
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "../definitions.json#/city"
+            }
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      }
+    },
+    "post": {
+      "x-mojo-to": "Cities#add",
+      "operationId": "addCity",
+      "tags": ["cities"],
+      "parameters": [{
+        "name": "body",
+        "in": "body",
+        "description": "A JSON object containing informations about the new hold",
+        "required": true,
+        "schema": {
+          "$ref": "../definitions.json#/city"
+        }
+      }],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "City added",
+          "schema": {
+            "$ref": "../definitions.json#/city"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": {
+          "parameters": "parameters_remaining_permissions"
+        }
+      }
+    }
+  },
+  "/cities/{city_id}": {
+    "get": {
+      "x-mojo-to": "Cities#get",
+      "operationId": "getCity",
+      "tags": ["cities"],
+      "parameters": [{
+        "$ref": "../parameters.json#/city_id_pp"
+      }],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "A city",
+          "schema": {
+            "$ref": "../definitions.json#/city"
+          }
+        },
+        "404": {
+          "description": "City not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      }
+    },
+    "put": {
+      "x-mojo-to": "Cities#update",
+      "operationId": "updateCity",
+      "tags": ["cities"],
+      "parameters": [{
+        "$ref": "../parameters.json#/city_id_pp"
+      }, {
+        "name": "body",
+        "in": "body",
+        "description": "A city object",
+        "required": true,
+        "schema": {
+          "$ref": "../definitions.json#/city"
+        }
+      }],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "A city",
+          "schema": {
+            "$ref": "../definitions.json#/city"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "City not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": {
+          "parameters": "parameters_remaining_permissions"
+        }
+      }
+    },
+    "delete": {
+      "x-mojo-to": "Cities#delete",
+      "operationId": "deleteCity",
+      "tags": ["cities"],
+      "parameters": [{
+        "$ref": "../parameters.json#/city_id_pp"
+      }],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "City deleted",
+          "schema": {
+            "type": "string"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "City not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": {
+          "parameters": "parameters_remaining_permissions"
+        }
+      }
+    }
+  }
+}

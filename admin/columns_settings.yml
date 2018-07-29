@@ -88,7 +88,8 @@ modules:
       itemst:
         # NOTE: These columns are in the same order as kohastructure.sql, and contain all items
         # columns except for the following internal/obsolete fields: stack, more_subfields_xml,
-        # cn_sort, permanent_location, itemlost_on, withdrawn_on, issues, renewals and reserves.
+        # cn_sort, permanent_location, damaged_on itemlost_on, withdrawn_on, issues, renewals and
+        # reserves.
         -
           columnname: barcode
         -
@@ -155,6 +156,27 @@ modules:
           columnname: stocknumber
 
   members:
+    fines:
+      account-fines:
+        -
+          columnname: date
+        -
+          columnname: description
+        -
+          columnname: note
+        -
+          columnname: amount
+          cannot_be_toggled: 1
+          cannot_be_modified: 1
+        -
+          columnname: amountoutstanding
+          cannot_be_toggled: 1
+          cannot_be_modified: 1
+        -
+          columnname: actions
+          cannot_be_toggled: 1
+          cannot_be_modified: 1
+
     member:
       memberresultst:
         -
@@ -210,6 +232,8 @@ modules:
         -
           columnname: location
         -
+          columnname: homebranch
+        -
           columnname: checkout_on
         -
           columnname: checkout_from
@@ -232,6 +256,31 @@ modules:
           cannot_be_toggled: 1
           cannot_be_modified: 1
 
+    holdshistory:
+      holdshistory-table:
+        -
+          columnname: title
+          cannot_be_toggled: 1
+          cannot_be_modified: 1
+        -
+          columnname: author
+        -
+          columnname: barcode
+        -
+          columnname: branch
+        -
+          columnname: reservedate
+        -
+          columnname: expirationdate
+        -
+          columnname: waitingdate
+        -
+          columnname: cancellationdate
+        -
+          columnname: itemtype
+        -
+          columnname: status
+
   reports:
     lostitems:
       lostitems-table:
@@ -243,6 +292,8 @@ modules:
           columnname: author
         -
           columnname: lostcode
+        -
+          columnname: itemlost_on
         -
           columnname: barcode
         -
@@ -262,7 +313,52 @@ modules:
         -
           columnname: location
         -
+          columnname: notforloan
+        -
           columnname: notes
+
+    saved-sql:
+      table_reports:
+        -
+          columnname: selection
+          cannot_be_toggled: 1
+          cannot_be_modified: 1
+        -
+          columnname: report_id
+          cannot_be_toggled: 1
+          cannot_be_modified: 1
+        -
+          columnname: report_name
+        -
+          columnname: type
+        -
+          columnname: group
+        -
+          columnname: subgroup
+        -
+          columnname: notes
+        -
+          columnname: author
+        -
+          columnname: creation_date
+        -
+          columnname: last_edit
+        -
+          columnname: last_run
+        -
+          columnname: public
+        -
+          columnname: json_url
+        -
+          columnname: cache_expiry
+        -
+          columnname: saved_results
+        -
+          columnname: update
+        -
+          columnname: actions
+          cannot_be_toggled: 1
+          cannot_be_modified: 1
 
   circ:
     circulation:
@@ -290,6 +386,8 @@ modules:
           columnname: item_type
         -
           columnname: location
+        -
+          columnname: homebranch
         -
           columnname: checkout_on
         -
@@ -346,7 +444,7 @@ modules:
         -
           columnname: title
         -
-          columnname: collection:
+          columnname: collection
         -
           columnname: document_type
         -
@@ -365,3 +463,82 @@ modules:
           columnname: date
         -
           columnname: notes
+
+    holds:
+      holds-to-pull:
+        -
+          columnname: pull_items
+        -
+          columnname: avalaible_items
+        -
+          columnname: patrons
+        -
+          columnname: patron
+        -
+          columnname: title
+        -
+          columnname: libraries
+        -
+          columnname: call_numbers
+        -
+          columnname: copy_numbers
+        -
+          columnname: enumeration
+        -
+          columnname: itemtypes
+        -
+          columnname: locations
+        -
+          columnname: hold_date
+        -
+          columnname: action
+
+  opac:
+    biblio-detail:
+      holdingst:
+        -
+          columnname: item_itemtype
+        -
+          columnname: item_current_location
+        -
+          columnname: item_home_location
+        -
+          columnname: item_shelving_location
+          is_hidden: 1
+        -
+          columnname: item_ccode
+        -
+          columnname: item_callnumber
+        -
+          columnname: item_enumchron
+        -
+          columnname: item_url
+        -
+          columnname: item_copy
+        -
+          columnname: item_status
+        -
+          columnname: item_notes
+        -
+          columnname: item_datedue
+        -
+          columnname: item_barcode
+          is_hidden: 1
+        -
+          columnname: item_holds
+        -
+          columnname: item_priority
+        -
+          columnname: item_coursereserves
+
+      subscriptionst:
+        -
+          columnname: serial_serialseq
+        -
+          columnname: serial_publisheddate
+        -
+          columnname: serial_planneddate
+        -
+          columnname: serial_status
+        -
+          columnname: serial_notes

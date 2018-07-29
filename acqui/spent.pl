@@ -32,8 +32,7 @@ this script is designed to show the spent amount in budgets
 use C4::Context;
 use C4::Auth;
 use C4::Output;
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 
 my $dbh      = C4::Context->dbh;
@@ -54,7 +53,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $query = <<EOQ;
 SELECT
-    aqorders.basketno, aqorders.ordernumber,
+    aqorders.biblionumber, aqorders.basketno, aqorders.ordernumber,
     quantity-quantityreceived AS tleft,
     ecost, budgetdate, entrydate,
     aqbasket.booksellerid,
@@ -64,8 +63,7 @@ SELECT
     aqinvoices.invoicenumber,
     quantityreceived,
     unitprice,
-    datereceived,
-    aqorders.biblionumber
+    datereceived
 FROM (aqorders, aqbasket)
 LEFT JOIN biblio ON
     biblio.biblionumber=aqorders.biblionumber

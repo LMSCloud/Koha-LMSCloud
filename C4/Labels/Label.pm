@@ -98,9 +98,10 @@ sub _get_label_item {
     $data->{'itype'} = $data1->{'description'};
     # add *_description fields
     if ($data->{'homebranch'} || $data->{'holdingbranch'}){
-        require C4::Branch;
-        $data->{'homebranch_description'} = C4::Branch::GetBranchName($data->{'homebranch'}) if $data->{'homebranch'};
-        $data->{'holdingbranch_description'} = C4::Branch::GetBranchName($data->{'holdingbranch'}) if $data->{'holdingbranch'};
+        require Koha::Libraries;
+        # FIXME Is this used??
+        $data->{'homebranch_description'} = Koha::Libraries->find($data->{'homebranch'})->branchname if $data->{'homebranch'};
+        $data->{'holdingbranch_description'} = Koha::Libraries->find($data->{'holdingbranch'})->branchname if $data->{'holdingbranch'};
     }
     $data->{'ccode_description'} = C4::Biblio::GetAuthorisedValueDesc('','', $data->{'ccode'} ,'','','CCODE', 1) if $data->{'ccode'};
     $data->{'location_description'} = C4::Biblio::GetAuthorisedValueDesc('','', $data->{'location'} ,'','','LOC', 1) if $data->{'location'};
@@ -469,7 +470,7 @@ sub draw_label_text {
     my $size = $self->{'font_size'};
     my $item = _get_label_item($self->{'item_number'});
     my $label_fields = _get_text_fields($self->{'format_string'});
-    my $record = GetMarcBiblio($item->{'biblionumber'});
+    my $record = GetMarcBiblio({ biblionumber => $item->{'biblionumber'} });
     # FIXME - returns all items, so you can't get data from an embedded holdings field.
     # TODO - add a GetMarcBiblio1item(bibnum,itemnum) or a GetMarcItem(itemnum).
     my $cn_source = ($item->{'cn_source'} ? $item->{'cn_source'} : C4::Context->preference('DefaultClassificationSource'));
@@ -684,9 +685,9 @@ sub csv_data {
     my $self = shift;
     my $label_fields = _get_text_fields($self->{'format_string'});
     my $item = _get_label_item($self->{'item_number'});
-    my $bib_record = GetMarcBiblio($item->{biblionumber});
-    my ($value,$font,$size,$nowrap) = _get_barcode_data($_->{'code'},$item,$bib_record);
-    my @csv_data = (map { $value } @$label_fields);
+
+    my $bib_record = GetMarcBiblio({ biblionumber => $item->{biblionumber} });
+    my @csv_data = (map { _get_barcode_data($_->{'code'},$item,$bib_record) } @$label_fields);
     return \@csv_data;
 }
 
