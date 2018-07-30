@@ -33,8 +33,8 @@ CREATE TABLE `acquisition_import` ( -- for backtracking the vendor's information
   `payload` longtext NOT NULL default '', -- payload of message received from vendor (only if rec_type=="message")
   `object_reference` int(11) default NULL, -- reference to base object (acquisition_import.id), e.g. the order item a invoice item refers to
   PRIMARY KEY  (`id`),
-  KEY `object_item` (`vendor_id`, `object_type`, `object_number`, `rec_type`, `object_item_number`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  KEY `object_item` (`vendor_id` (100), `object_type` (80), `object_number` (150), `rec_type` (80), `object_item_number` (150))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `acquisition_import_objects`
@@ -48,7 +48,7 @@ CREATE TABLE `acquisition_import_objects` ( -- supplement to table acquisition_i
   `koha_object_id` int(11) NOT NULL default 0, -- foreign key of the connected Koha record, e.g. value of items.itemnumber
   PRIMARY KEY  (`id`),
   KEY `acquisition_import_id` (`acquisition_import_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `aggregated_statistics`
@@ -65,7 +65,7 @@ CREATE TABLE `aggregated_statistics` ( -- for defining statistic evaluations for
   PRIMARY KEY  (`id`),
   KEY `type` (`type`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `aggregated_statistics_parameters`
@@ -77,7 +77,7 @@ CREATE TABLE `aggregated_statistics_parameters` ( -- contains additional selecti
   `name` varchar(80) NOT NULL default '', -- name of the parameter, e.g. "branchcode"
   `value` mediumtext, -- value of the parameter, eg. "Zentrale"
   PRIMARY KEY  (`statistics_id`, `name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `aggregated_statistics_values`
@@ -90,7 +90,7 @@ CREATE TABLE `aggregated_statistics_values` ( -- contains the resulting values f
   `value` mediumtext, -- calculated/edited result value
   `type` varchar(20) NOT NULL default '', -- enum of value type, e.g. "text", "bool", "int", "float", "money"
   PRIMARY KEY  (`statistics_id`, `name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `auth_header`
@@ -364,7 +364,7 @@ CREATE TABLE `browser` ( -- store classification values
   `startrange` varchar(20),  -- a numeric value part subordinated to a group
   `endrange` varchar(20),  -- if the classification represents a higher level including a range of numbers it represents the end of the range
   `exclude` varchar(1024) -- a search string that can be used to extend the query for titles of a classication value (e.g. exclude values that should not be found with a search)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `categories`
@@ -4316,7 +4316,7 @@ CREATE TABLE `claiming_rules` (
   `claim_fee_level5` decimal(28,6) default NULL, -- fine amount for reaching 5nd claim
    PRIMARY KEY (`id`),
    UNIQUE KEY `pseudo_key` (`categorycode`,`itemtype`, `branchcode`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `notice_fee_rules`
@@ -4340,7 +4340,7 @@ CREATE TABLE `notice_fee_rules` (
   `notice_fee` decimal(28,6) default NULL, -- fine amount for notififcations
    PRIMARY KEY (`id`),
    UNIQUE KEY `pseudo_key` (`branchcode`,`categorycode`,`message_transport_type`,`letter_code`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table cash_register
@@ -4363,7 +4363,7 @@ CREATE TABLE `cash_register` (
    UNIQUE KEY `pseudo_key` (`name`),
    CONSTRAINT `cash_register_fk_1` FOREIGN KEY (`manager_id`)
        REFERENCES `borrowers` (`borrowernumber`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table cash_register_manager
@@ -4386,7 +4386,7 @@ CREATE TABLE `cash_register_manager` (
        REFERENCES `cash_register` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
    CONSTRAINT `cash_register_manager_fk_2` FOREIGN KEY (`manager_id`)
        REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table cash_register_account
@@ -4420,7 +4420,7 @@ CREATE TABLE `cash_register_account` (
     REFERENCES `cash_register` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `cash_register_account_fk_2` FOREIGN KEY (`accountlines_id`)
     REFERENCES `accountlines` (`accountlines_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 --
@@ -4440,7 +4440,7 @@ CREATE TABLE `overdue_issues` (
   `claim_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, -- when was the item claimed
    PRIMARY KEY (`id`),
    KEY `overdue_issues_idx_issue_id` (`issue_id`,`claim_level`,`claim_time`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

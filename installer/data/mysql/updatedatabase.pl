@@ -15910,6 +15910,9 @@ if( CheckVersion( $DBversion ) ) {
                 branchcode VARCHAR(10) NULL DEFAULT NULL, -- The branchcode of a branch belonging to the parent group
                 title VARCHAR(100) NULL DEFAULT NULL,     -- Short description of the goup
                 description TEXT NULL DEFAULT NULL,    -- Longer explanation of the group, if necessary
+                ft_hide_patron_info TINYINT(1) NOT NULL DEFAULT 0, -- Turn on the feature "Hide patron's info" for this group
+                ft_search_groups_opac TINYINT(1) NOT NULL DEFAULT 0, -- Use this group for staff side search groups
+                ft_search_groups_staff TINYINT(1) NOT NULL DEFAULT 0, -- Use this group for opac side search groups
                 created_on TIMESTAMP NULL,             -- Date and time of creation
                 updated_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Date and time of last
                 PRIMARY KEY id ( id ),
@@ -16006,29 +16009,6 @@ if ( CheckVersion($DBversion) ) {
     print "Upgrade to $DBversion done (Bug 18403 - Add the view_borrower_infos_from_any_libraries permission )\n";
 }
 
-$DBversion = '17.12.00.010';
-if( CheckVersion( $DBversion ) ) {
-
-    if( !column_exists( 'library_groups', 'ft_hide_patron_info' ) ) {
-        $dbh->do( "ALTER TABLE library_groups ADD COLUMN ft_hide_patron_info tinyint(1) NOT NULL DEFAULT 0 AFTER description" );
-    }
-
-    SetVersion( $DBversion );
-    print "Upgrade to $DBversion done (Bug 20133 - Add library_groups.ft_hide_patron_info)\n";
-}
-
-$DBversion = '17.12.00.011';
-if( CheckVersion( $DBversion ) ) {
-
-    if( !column_exists( 'library_groups', 'ft_search_groups_opac' ) ) {
-        $dbh->do( "ALTER TABLE library_groups ADD COLUMN ft_search_groups_opac tinyint(1) NOT NULL DEFAULT 0 AFTER ft_hide_patron_info" );
-        $dbh->do( "ALTER TABLE library_groups ADD COLUMN ft_search_groups_staff tinyint(1) NOT NULL DEFAULT 0 AFTER ft_search_groups_opac" );
-        $dbh->do( "UPDATE library_groups SET ft_search_groups_staff = 1 AND ft_search_groups_opac = 1 WHERE title = '__SEARCH_GROUPS__'" );
-    }
-
-    SetVersion( $DBversion );
-    print "Upgrade to $DBversion done (Bug 20157 - Use group 'features' to decide which groups to use for group searching functionality)\n";
-}
 
 $DBversion = '17.12.00.012';
 if( CheckVersion( $DBversion ) ) {
@@ -16108,7 +16088,15 @@ if( CheckVersion( $DBversion ) ) {
         unless ( $table[1] =~ /COLLATE=utf8mb4_unicode_ci/ ) {
             # Some users might have done the upgrade to utf8mb4 on their own
             # to support supplemental chars (japanese, chinese, etc)
-            if ( $name eq 'additional_fields' ) {
+            if ( $name eq 'acquisition_import' ) {
+                $dbh->do(qq|
+                    ALTER TABLE $name
+                        DROP KEY `object_item`,
+                        ADD KEY `object_item` (`vendor_id` (100), `object_type` (80), `object_number` (150), `rec_type` (80), `object_item_number` (150))
+                |);
+                $dbh->do(qq|ALTER TABLE $name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci|);
+            }
+            elsif ( $name eq 'additional_fields' ) {
                 $dbh->do(qq|
                     ALTER TABLE $name
                         DROP KEY `fields_uniq`,
