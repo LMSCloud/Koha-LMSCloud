@@ -37,6 +37,7 @@
    <div id="bd">
     <div id="yui-main">
         <div class="yui-b">
+        [% INCLUDE 'notice_sent_dialog.inc' %]
         [% INCLUDE 'members-toolbar.inc' %]
 
             <h3>Statistics for [% UNLESS ( I ) %][% title %] [% firstname %] [% END %] [% surname %] ([% cardnumber %])</h3>

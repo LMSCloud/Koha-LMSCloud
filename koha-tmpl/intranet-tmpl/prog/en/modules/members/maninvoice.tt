@@ -22,6 +22,7 @@ $(document).ready(function(){
    <div id="bd">
 	<div id="yui-main">
 	<div class="yui-b">
+[% INCLUDE 'notice_sent_dialog.inc' %]
 [% INCLUDE 'members-toolbar.inc' %]
 
 <!-- The manual invoice and credit buttons -->
