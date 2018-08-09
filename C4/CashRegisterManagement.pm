@@ -1069,7 +1069,7 @@ sub getLastBooking {
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
                 a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description
         FROM cash_register_account a
-        WHERE id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.cash_register_id = b.cash_register_id) 
+        WHERE a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE b.cash_register_id = ?) 
               AND a.cash_register_id = ?
        }; $query =~ s/^\s+/ /mg;
     my $sth = $dbh->prepare($query);
@@ -1087,7 +1087,7 @@ sub getLastBooking {
     my $sth_delbor = $dbh->prepare($query_delbor);
 
 
-    $sth->execute($cash_register_id);
+    $sth->execute($cash_register_id, $cash_register_id);
 
     if ($row = $sth->fetchrow_hashref) {
         $row->{manager_name} = '';
@@ -3128,7 +3128,7 @@ sub addCashRegisterTransaction {
     # Avoiding use of stale booking_amount with concurrent inserts, 
     # because storing with same cash_register_id and cash_register_account_id will fail with message:
     # paycollect.pl: DBIx::Class::Storage::DBI::_dbh_execute(): Duplicate entry '...' for key 'cash_reg_account_idx_account_id'
-    while ( $trials < 101 ) {
+    while ( $trials < 11 ) {
         $trials += 1;
         # retrieve last transaction data of this cash register
         my $lastTransaction = $self->getLastBooking($cash_register_id);
@@ -3185,7 +3185,7 @@ sub addCashRegisterTransaction {
         if ( defined($res) ) {
             return 1;    # $entry->store() did succeed
         }
-        if ( $trials >= 100 ) {
+        if ( $trials >= 10 ) {
             $entry->store();    # if failing: die and show error message in dialog 
             return 1;
         }
