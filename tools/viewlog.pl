@@ -108,24 +108,15 @@ if ($do_it) {
     my ( $results, $modules, $actions );
     if ( defined $actions[0] && $actions[0] ne '' ) { $actions  = \@actions; }     # match All means no limit
     if ( $modules[0] ne '' ) { $modules = \@modules; }    # match All means no limit
-    $results = GetLogs( $datefrom, $dateto, $user, $modules, $actions, $object, $info );
+
+    $results = GetLogsLeftJoin( $datefrom, $dateto, $user, $modules, $actions, $object, $info );
+
     @data = @$results;
     foreach my $result (@data) {
 
-        # Init additional columns for CSV export
-        $result->{'biblionumber'}      = q{};
-        $result->{'biblioitemnumber'}  = q{};
-        $result->{'barcode'}           = q{};
-        $result->{'userfirstname'}     = q{};
-        $result->{'usersurname'}       = q{};
-        $result->{'borrowerfirstname'} = q{};
-        $result->{'borrowersurname'}   = q{};
-
-        if ( substr( $result->{'info'}, 0, 4 ) eq 'item' || $result->{module} eq "CIRCULATION" ) {
-
-            # get item information so we can create a working link
+        # get item information so we can create a working link
+        if ( $result->{module} ne "CIRCULATION" && substr( $result->{'info'}, 0, 4 ) eq 'item') {
             my $itemnumber = $result->{'object'};
-            $itemnumber = $result->{'info'} if ( $result->{module} eq "CIRCULATION" );
             my $item = GetItem($itemnumber);
             if ($item) {
                 $result->{'biblionumber'}     = $item->{'biblionumber'};
@@ -135,24 +126,17 @@ if ($do_it) {
         }
 
         #always add firstname and surname for librarian/user
-        if ( $result->{'user'} ) {
-            my $userdetails = C4::Members::GetMemberDetails( $result->{'user'} );
-            if ($userdetails) {
-                $result->{'userfirstname'} = $userdetails->{'firstname'};
-                $result->{'usersurname'}   = $userdetails->{'surname'};
-            }
-        }
+        #add firstname and surname for borrower via action_logs.object, if action_logs.module in CIRCULATION, MEMBERS, FINES (managed by LEFT JOIN condition of GetLogs() )
 
-        #add firstname and surname for borrower, when using the CIRCULATION, MEMBERS, FINES
-        if ( $result->{module} eq "CIRCULATION" || $result->{module} eq "MEMBERS" || $result->{module} eq "FINES" ) {
-            if ( $result->{'object'} ) {
-                my $borrowerdetails = C4::Members::GetMemberDetails( $result->{'object'} );
-                if ($borrowerdetails) {
-                    $result->{'borrowerfirstname'} = $borrowerdetails->{'firstname'};
-                    $result->{'borrowersurname'}   = $borrowerdetails->{'surname'};
-                }
-            }
-        }
+
+        # Init additional columns for CSV export as empty string if not defined
+        $result->{'biblionumber'}      = q{} if !defined($result->{'biblionumber'});
+        $result->{'biblioitemnumber'}  = q{} if !defined($result->{'biblioitemnumber'});
+        $result->{'barcode'}           = q{} if !defined($result->{'barcode'});
+        $result->{'userfirstname'}     = q{} if !defined($result->{'userfirstname'});
+        $result->{'usersurname'}       = q{} if !defined($result->{'usersurname'});
+        $result->{'borrowerfirstname'} = q{} if !defined($result->{'borrowerfirstname'});
+        $result->{'borrowersurname'}   = q{} if !defined($result->{'borrowersurname'});
     }
 
     if ( $output eq "screen" ) {
