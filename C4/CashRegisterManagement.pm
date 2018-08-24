@@ -854,7 +854,7 @@ sub readPermittedStaff {
         SELECT distinct b.borrowernumber, b.firstname, b.surname, b.categorycode, b.flags 
         FROM borrowers b
         LEFT JOIN user_permissions u ON b.borrowernumber=u.borrowernumber
-        WHERE b.flags%2=1 OR ( u.module_bit = 10 AND code = 'cash_management')};
+        WHERE b.flags%2=1 OR b.flags&1024 > 0 OR ( u.module_bit = 10 AND code = 'cash_management')};
     # we might exclude those who are already registered as authorized users
     if ( $cashregID ) {
         $staffquery .= q{
