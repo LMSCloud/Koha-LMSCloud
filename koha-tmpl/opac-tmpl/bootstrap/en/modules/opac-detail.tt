@@ -645,9 +645,9 @@
                             <tbody>
                             [% FOREACH serialcollection IN serialcollections %]
                                 <tr>
-                                <td>[% serialcollection.branch %]</td>
-                                <td>[% serialcollection.text %]</td>
-                                <td>[% serialcollection.itemcallnumber %]</td>
+                                <td>[% serialcollection.branch | html %]</td>
+                                <td>[% serialcollection.text | html %]</td>
+                                <td>[% serialcollection.itemcallnumber | html %]</td>
                                 </tr>
                             [% END %]
                             </tbody>
@@ -1280,16 +1280,16 @@
                     [% END %]
 
                     [% IF ( itemdata_ccode ) %]
-                        <td class="collection">[% ITEM_RESULT.ccode %]</td>
+                        <td class="collection">[% ITEM_RESULT.ccode | html %]</td>
                     [% END %]
 
                     [% IF ( Koha.Preference('OpacLocationOnDetail') == 'column' && itemdata_location ) %]
-                        <td class="shelving_location">[% ITEM_RESULT.location_description %]</td>
+                        <td class="shelving_location">[% ITEM_RESULT.location_description | html %]</td>
                     [% END %]
 
                     <td class="call_no" property="sku">
                         [% IF ( ITEM_RESULT.itemcallnumber ) %]
-                            [% ITEM_RESULT.itemcallnumber %]
+                            [% ITEM_RESULT.itemcallnumber | html %]
                             [% IF ( OPACShelfBrowser ) %]
                                 [% IF ( ITEM_RESULT.itemnumber == starting_itemnumber ) %]
                                     (<a class="close_shelf" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ITEM_RESULT.biblionumber %]&amp;shelfbrowse_itemnumber=[% ITEM_RESULT.itemnumber %]#[% tab %]">Browse shelf</a>)
