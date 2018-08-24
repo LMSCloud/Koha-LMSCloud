@@ -218,6 +218,7 @@ if ($filter eq '' and $level == 1) {
     $have_hierarchy = 1 if @level_loop;
 } 
 else {
+    my %washere;
     $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ? ORDER BY prefix, classval, startrange, description");
     my $val = $filter;
     while (length($val)>0) {
@@ -225,11 +226,15 @@ else {
         my $line = $sth->fetchrow_hashref;
         if ( $line ) {
             $val = $line->{'parent'};
+            last if ( exists($washere{$val}) );
             $line->{'search'} = createSearchString($line);
             unshift @hierarchy_loop, $line;
             last if ( $line->{'level'} eq '1' );
+            $washere{$val} = 1;
         }
-
+        else {
+            last;
+        }
     }
     $have_hierarchy = 1 if @hierarchy_loop;
 }
