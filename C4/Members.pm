@@ -382,6 +382,34 @@ sub ModMember {
     return $execute_success;
 }
 
+=head2 UpdateFamilyCardMembers
+  &UpdateFamilyCardMembers($borrowernumber,$date);
+Update family card member subscriptions to a given date if the borrowers category is family card category.
+=cut
+
+sub UpdateFamilyCardMembers {
+    my ($borrowerid,$date) = @_;
+    
+    my $dbh = C4::Context->dbh;
+    
+    my $query = q{
+        SELECT l.borrowernumber as borrowernumber
+        FROM borrowers b, borrowers l, categories c
+        WHERE     b.borrowernumber = ? 
+              AND c.family_card = 1 
+              AND l.guarantorid = b.borrowernumber
+              AND c.categorycode = b.categorycode};
+    $query =~ s/^\s+/ /mg; 
+    my $sth = $dbh->prepare($query);
+    
+    $sth->execute($borrowerid);
+    while (my $row = $sth->fetchrow_hashref) {
+        $dbh->do("UPDATE borrowers SET dateexpiry = ? WHERE borrowernumber = ?", undef, $date, $row->{borrowernumber});
+        logaction("MEMBERS", "RENEW", $row->{borrowernumber}, "Membership renewed with family card") if C4::Context->preference("BorrowersLog");
+    }
+    $sth->finish;
+}
+
 =head2 AddMember
 
   $borrowernumber = &AddMember(%borrower);
@@ -811,7 +839,7 @@ sub IssueSlip {
                       { '>=' => $today_start, '<=' => $today_end, }
                 }
             },
-            { order_by => ['date_due', 'timestamp', 'issuedate' ] }
+            { order_by => ['date_due', 'me.timestamp', 'issuedate' ] }
         );
         my @checkouts;
         while ( my $c = $todays_checkouts->next ) {
@@ -835,7 +863,7 @@ sub IssueSlip {
     else {
         my $today = Koha::Database->new->schema->storage->datetime_parser->format_datetime( dt_from_string );
         # Checkouts due in the future
-        my $checkouts = $pending_checkouts->search({ date_due => { '>' => $today } }, { order_by => ['date_due', 'timestamp', 'issuedate' ] } );
+        my $checkouts = $pending_checkouts->search({ date_due => { '>' => $today } }, { order_by => ['date_due', 'me.timestamp', 'issuedate' ] } );
         my @checkouts; my @overdues;
         while ( my $c = $checkouts->next ) {
             my $all = $c->unblessed_all_relateds;
@@ -848,7 +876,7 @@ sub IssueSlip {
         }
 
         # Checkouts due in the past are overdues
-        my $overdues = $pending_checkouts->search({ date_due => { '<=' => $today } }, { order_by => ['date_due', 'timestamp', 'issuedate' ] } );
+        my $overdues = $pending_checkouts->search({ date_due => { '<=' => $today } }, { order_by => ['date_due', 'me.timestamp', 'issuedate' ] } );
         while ( my $o = $overdues->next ) {
             my $all = $o->unblessed_all_relateds;
             push @overdues, {
