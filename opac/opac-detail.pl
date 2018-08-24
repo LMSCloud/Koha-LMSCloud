@@ -724,8 +724,10 @@ if ( not $viewallitems and @items > $max_items_to_display ) {
         && !$itemtypes->{$itm->{'itype'}}->{notforloan}
         && $itm->{'itemnumber'};
 
-    $allow_onshelf_holds = Koha::IssuingRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
-      unless $allow_onshelf_holds;
+    if ( $item ) {
+        $allow_onshelf_holds = Koha::IssuingRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
+            unless $allow_onshelf_holds;
+    }
 
     # get collection code description, too
     my $ccode = $itm->{'ccode'};
