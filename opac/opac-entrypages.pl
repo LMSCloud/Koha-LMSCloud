@@ -118,7 +118,7 @@ if ( $enduser eq 'A' ) {
     my $sth;
     if ( $filter ) {
 	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
-	$sth->execute(1,$filter);
+	$sth->execute($level,$filter);
     }
     else {
 	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN ('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') ORDER BY description");
