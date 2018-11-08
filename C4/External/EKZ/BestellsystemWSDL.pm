@@ -45,16 +45,18 @@ sub getResponseName {
 }
 
 sub BudgetCheckElement {
-    return C4::External::EKZ::BudgetCheckElement::BudgetCheckElement(@_);
+    my $budgetCheckElement = C4::External::EKZ::BudgetCheckElement->new();
+    return $budgetCheckElement->process(@_);
 }
 
 sub DublettenCheckElement {
-    return C4::External::EKZ::DublettenCheckElement::DublettenCheckElement(@_);
+    my $dublettenCheckElement = C4::External::EKZ::DublettenCheckElement->new();
+    return $dublettenCheckElement->process(@_);
 }
 
 sub BestellInfoElement {
-    C4::External::EKZ::BestellInfoElement::init();
-    return C4::External::EKZ::BestellInfoElement::BestellInfoElement(@_);
+    my $bestellInfoElement = C4::External::EKZ::BestellInfoElement->new();
+    return $bestellInfoElement->process(@_);
 }
 
 sub NotImplementedElement {

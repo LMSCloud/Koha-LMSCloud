@@ -37,8 +37,8 @@ sub authenticate{
     my $authenticated = 0;
     my $dbh = C4::Context->dbh;
 
-    my $borrower = C4::Members::GetMember( userid => $userid );
-    if ( defined($borrower) && &checkpw( $dbh, $borrower->{borrowernumber}, $pw ) ) {
+    my $patron = Koha::Patrons->search( { userid => $userid } )->next();
+    if ( defined($patron) && &checkpw( $dbh, $patron->borrowernumber(), $pw ) ) {
         $authenticated = 1;
     }
 print STDERR "EkzAuthentication::authenticate() returns authenticated:" . $authenticated . ":\n" if $debugIt;

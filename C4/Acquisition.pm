@@ -1,6 +1,7 @@
 package C4::Acquisition;
 
 # Copyright 2000-2002 Katipo Communications
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -53,7 +54,7 @@ BEGIN {
         &GetBasket &NewBasket &CloseBasket &ReopenBasket &DelBasket &ModBasket
         &GetBasketAsCSV &GetBasketGroupAsCSV
         &GetBasketsByBookseller &GetBasketsByBasketgroup
-        &GetBasketsInfosByBookseller
+        &GetBasketsInfosByBookseller  &GetBaskets
 
         &GetBasketUsers &ModBasketUsers
         &CanUserManageBasket
@@ -61,12 +62,12 @@ BEGIN {
         &ModBasketHeader
 
         &ModBasketgroup &NewBasketgroup &DelBasketgroup &GetBasketgroup &CloseBasketgroup
-        &GetBasketgroups &ReOpenBasketgroup
+        &GetBasketgroups &GetBasketgroupsGeneric &ReOpenBasketgroup
 
         &DelOrder &ModOrder &GetOrder &GetOrders &GetOrdersByBiblionumber
         &GetLateOrders &GetOrderFromItemnumber
         &SearchOrders &GetHistory &GetRecentAcqui
-        &ModReceiveOrder &CancelReceipt
+        &ModReceiveOrder &CancelReceipt &ModOrderDeliveryNote
         &TransferOrder
         &GetLastOrderNotReceivedFromSubscriptionid &GetLastOrderReceivedFromSubscriptionid
         &ModItemOrder
@@ -210,18 +211,20 @@ sub NewBasket {
     my ( $booksellerid, $authorisedby, $basketname, $basketnote,
         $basketbooksellernote, $basketcontractnumber, $deliveryplace,
         $billingplace, $is_standing, $create_items ) = @_;
+    my $basket = undef;
     my $dbh = C4::Context->dbh;
     my $query =
         'INSERT INTO aqbasket (creationdate,booksellerid,authorisedby) '
       . 'VALUES  (now(),?,?)';
-    $dbh->do( $query, {}, $booksellerid, $authorisedby );
+    if ( $dbh->do( $query, {}, $booksellerid, $authorisedby ) ) {
 
-    my $basket = $dbh->{mysql_insertid};
-    $basketname           ||= q{}; # default to empty strings
-    $basketnote           ||= q{};
-    $basketbooksellernote ||= q{};
-    ModBasketHeader( $basket, $basketname, $basketnote, $basketbooksellernote,
-        $basketcontractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing, $create_items );
+        $basket = $dbh->{mysql_insertid};
+        $basketname           ||= q{}; # default to empty strings
+        $basketnote           ||= q{};
+        $basketbooksellernote ||= q{};
+        ModBasketHeader( $basket, $basketname, $basketnote, $basketbooksellernote,
+            $basketcontractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing, $create_items );
+    }
     return $basket;
 }
 
@@ -628,6 +631,58 @@ sub ModBasketHeader {
 }
 
 #------------------------------------------------------------#
+
+=head3 GetBaskets
+
+  $results = &GetBaskets($selparam, $extra);
+
+Returns a reference on a list of hashes of all the baskets that match the select criteria of $selparam.
+
+=over
+
+=item C<$selparam> is a hash containig values for a free number of fields that must be matched by the aqbaskets records to be selected
+=item C<$extra> is the extra sql parameters, can be
+
+ $extra->{groupby}: group baskets by column
+    ex. $extra->{groupby} = aqbasket.basketgroupid
+ $extra->{orderby}: order baskets by column
+ $extra->{limit}: limit number of results (can be helpful for pagination)
+
+=back
+
+=cut
+
+sub GetBaskets {
+    my ($selparam, $extra) = @_;
+
+    my $ret = [];
+    if ( keys %{$selparam} ) {
+        my $query = '';
+        foreach my $col (keys %{$selparam} ) {
+            if ( length($query) == 0  ) {
+                $query = "SELECT * FROM aqbasket WHERE $col = $selparam->{$col}";
+            } else {
+                $query .= " AND $col = $selparam->{$col}";
+            }
+        }
+        if ($extra) {
+            if ($extra->{groupby}) {
+                $query .= " GROUP by $extra->{groupby}";
+            }
+            if ($extra->{orderby}){
+                $query .= " ORDER by $extra->{orderby}";
+            }
+            if ($extra->{limit}){
+                $query .= " LIMIT $extra->{limit}";
+            }
+        }
+        my $dbh = C4::Context->dbh;
+        my $sth = $dbh->prepare($query);
+        $sth->execute();
+        $ret = $sth->fetchall_arrayref({});
+    }
+    return $ret;
+}
 
 =head3 GetBasketsByBookseller
 
@@ -1085,6 +1140,59 @@ sub GetBasketgroups {
     my $sth = $dbh->prepare($query);
     $sth->execute($booksellerid);
     return $sth->fetchall_arrayref({});
+}
+
+#------------------------------------------------------------#
+
+=head3 GetBasketgroupsGeneric
+
+  $basketgroups = &GetBasketgroupsGeneric($selparam, $extra);
+
+Returns a reference to the array of all the aqbasketgroups records that match the select criteria of $selparam.
+
+=over
+
+=item C<$selparam> is a hash containig values for a free number of fields that must be matched by the aqbasketgroups records to be selected
+=item C<$extra> is the extra sql parameters, can be
+
+ $extra->{groupby}: group basketgroups by column
+ $extra->{orderby}: order basketgroups by column
+ $extra->{limit}: limit number of results (can be helpful for pagination)
+
+=back
+
+=cut
+
+sub GetBasketgroupsGeneric {
+    my ($selparam, $extra) = @_;
+
+    my $ret = [];
+    if ( keys %{$selparam} ) {
+        my $query = '';
+        foreach my $col (keys %{$selparam} ) {
+            if ( length($query) == 0  ) {
+                $query = "SELECT * FROM aqbasketgroups WHERE $col = $selparam->{$col}";
+            } else {
+                $query .= " AND $col = $selparam->{$col}";
+            }
+        }
+        if ($extra) {
+            if ($extra->{groupby}) {
+                $query .= " GROUP by $extra->{groupby}";
+            }
+            if ($extra->{orderby}){
+                $query .= " ORDER by $extra->{orderby}";
+            }
+            if ($extra->{limit}){
+                $query .= " LIMIT $extra->{limit}";
+            }
+        }
+        my $dbh = C4::Context->dbh;
+        my $sth = $dbh->prepare($query);
+        $sth->execute();
+        $ret = $sth->fetchall_arrayref({});
+    }
+    return $ret;
 }
 
 #------------------------------------------------------------#
@@ -1709,6 +1817,94 @@ sub _cancel_items_receipt {
             ModItemOrder($itemnumber, $parent_ordernumber);
         }
     }
+}
+
+#------------------------------------------------------------#
+
+=head3 ModOrderDeliveryNote
+
+  &ModOrderDeliveryNote({
+    biblionumber => $biblionumber,
+    ordernumber => $ordernumber,
+    quantitydelivered => $quantitydelivered,
+    delivered_itemns => \@delivered_items
+   });
+
+Updates an order, to reflect the fact that a delivery note was received, at least
+in part (i.e. for some of the items).
+
+If the delivery note is partial, splits the order into two.
+
+Updates the order with bibilionumber C<$biblionumber> and ordernumber
+C<$ordernumber>.
+
+=cut
+
+
+sub ModOrderDeliveryNote {
+    my ( $params ) = @_;
+
+    my $ordernumber = $params->{ordernumber};
+    my $biblionumber = $params->{biblionumber};
+    my $quantitydelivered = $params->{quantitydelivered};
+    my $delivered_items = $params->{delivered_items};
+    my $basketno_delivery = $params->{basketno_delivery};
+
+    my $dbh = C4::Context->dbh;
+
+    my $result_set = $dbh->selectall_arrayref(
+q{SELECT *, aqbasket.is_standing FROM aqorders LEFT JOIN aqbasket USING (basketno) WHERE biblionumber=? AND aqorders.ordernumber=? AND invoiceid IS NULL},
+        { Slice => {} }, $biblionumber, $ordernumber
+    );
+    if ( !defined($result_set) || !defined($result_set->[0]) ) {
+        return;
+    }
+    # we assume we have a unique order
+    my $order = $result_set->[0];
+
+    my $new_ordernumber = $ordernumber;
+    if ( $order->{is_standing} || $order->{quantity} > $quantitydelivered ) {
+        # Split order line in two parts: the first is the original order line
+        # without delivered items (the quantity is decreased),
+        # the second part is a new order line with quantity=quantitydelivered
+        my $query = q|
+            UPDATE aqorders
+            SET quantity = ?|;
+        $query .= q| WHERE biblionumber=? AND ordernumber = ?|;
+        my $sth = $dbh->prepare($query);
+
+        $sth->execute(
+            ( $order->{is_standing} ? 1 : ( $order->{quantity} - $quantitydelivered ) ),
+            $biblionumber, $ordernumber
+        );
+
+        delete $order->{'ordernumber'};
+        $order->{'quantity'} = $quantitydelivered;
+        $order->{'quantityreceived'} = 0;
+        $order->{'datereceived'} = undef;
+        $order->{'invoiceid'} = undef;
+        $order->{'orderstatus'} = 'ordered';
+        $order->{'basketno'} = $basketno_delivery;
+        $new_ordernumber = Koha::Acquisition::Order->new($order)->insert->{ordernumber};
+
+        if ($delivered_items) {
+            foreach my $itemnumber (@$delivered_items) {
+                ModItemOrder($itemnumber, $new_ordernumber);
+            }
+        }
+    } else {
+        my $query = q|
+            update aqorders
+            set basketno=?|;
+        $query .= q| where biblionumber=? and ordernumber=?|;
+        my $sth = $dbh->prepare( $query );
+        $sth->execute(
+            $basketno_delivery,
+            $biblionumber,
+            $ordernumber
+        );
+    }
+    return ($new_ordernumber);
 }
 
 #------------------------------------------------------------#
