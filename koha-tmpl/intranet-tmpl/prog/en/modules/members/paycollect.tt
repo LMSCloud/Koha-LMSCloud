@@ -19,6 +19,7 @@
 <div id="bd">
 <div id="yui-main">
 <div class="yui-b">
+[% INCLUDE 'notice_sent_dialog.inc' %]
 [% INCLUDE 'members-toolbar.inc' borrowernumber=patron.borrowernumber %]
 
 
@@ -165,7 +166,7 @@
     <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
     <fieldset class="rows">
     <legend>Cancel an individual fine</legend>
-    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% borrower.borrowernumber %]" />
+    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
     <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description %]" />
@@ -193,7 +194,7 @@
     </table>
     </fieldset>
     <div class="action"><input type="submit" name="confirm_cancelfee" id="confirm_cancelfee" value="Cancel this charge" />
-        <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a></div>
+        <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a></div>
     </form>
 
 [% ELSE %]

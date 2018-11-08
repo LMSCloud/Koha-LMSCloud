@@ -35,7 +35,7 @@ use vars qw(@ISA @EXPORT);
 BEGIN {
         require Exporter;
         @ISA = qw(Exporter);
-        @EXPORT = qw(&logaction &cronlogaction &GetLogStatus &displaylog &GetLogs);
+        @EXPORT = qw(&logaction &cronlogaction &GetLogStatus &displaylog &GetLogs &GetLogsLeftJoin);
 }
 
 =head1 NAME
@@ -253,6 +253,84 @@ sub GetLogs {
     my $query = "
         SELECT *
         FROM   action_logs
+        WHERE 1
+    ";
+
+    my @parameters;
+    $query .=
+      " AND DATE_FORMAT(timestamp, '%Y-%m-%d') >= \"" . $iso_datefrom . "\" "
+      if $iso_datefrom;    #fix me - mysql specific
+    $query .=
+      " AND DATE_FORMAT(timestamp, '%Y-%m-%d') <= \"" . $iso_dateto . "\" "
+      if $iso_dateto;
+    if ( $user ne q{} ) {
+        $query .= " AND user = ? ";
+        push( @parameters, $user );
+    }
+    if ( $modules && scalar(@$modules) ) {
+        $query .=
+          " AND module IN (" . join( ",", map { "?" } @$modules ) . ") ";
+        push( @parameters, @$modules );
+    }
+    if ( $action && scalar(@$action) ) {
+        $query .= " AND action IN (" . join( ",", map { "?" } @$action ) . ") ";
+        push( @parameters, @$action );
+    }
+    if ($object) {
+        $query .= " AND object = ? ";
+        push( @parameters, $object );
+    }
+    if ($info) {
+        $query .= " AND info LIKE ? ";
+        push( @parameters, "%" . $info . "%" );
+    }
+    if ( $interfaces && scalar(@$interfaces) ) {
+        $query .=
+          " AND interface IN (" . join( ",", map { "?" } @$interfaces ) . ") ";
+        push( @parameters, @$interfaces );
+    }
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@parameters);
+
+    my @logs;
+    while ( my $row = $sth->fetchrow_hashref ) {
+        push @logs, $row;
+    }
+    return \@logs;
+}
+
+=item GetLogsLeftJoin
+
+$logs = GetLogsLeftJoin($datefrom,$dateto,$user,\@modules,$action,$object,$info);
+
+Return:
+C<$logs> is a ref to a hash which containts all columns from action_logs
+
+=cut
+
+sub GetLogsLeftJoin {
+    my $datefrom = shift;
+    my $dateto   = shift;
+    my $user     = shift;
+    my $modules  = shift;
+    my $action   = shift;
+    my $object   = shift;
+    my $info     = shift;
+    my $interfaces = shift;
+
+    my $iso_datefrom = $datefrom ? output_pref({ dt => dt_from_string( $datefrom ), dateformat => 'iso', dateonly => 1 }) : undef;
+    my $iso_dateto = $dateto ? output_pref({ dt => dt_from_string( $dateto ), dateformat => 'iso', dateonly => 1 }) : undef;
+
+    $user ||= q{};
+
+    my $dbh   = C4::Context->dbh;
+    my $query = "
+        SELECT al.*, i.biblionumber as biblionumber, i.biblioitemnumber as biblioitemnumber, i.barcode as barcode, u.firstname as userfirstname, u.surname as usersurname, b.firstname as borrowerfirstname, b.surname as borrowersurname
+        FROM action_logs al
+            LEFT JOIN items i on (i.itemnumber = al.info AND al.module = 'CIRCULATION')
+            LEFT JOIN borrowers u on al.user = u.borrowernumber 
+            LEFT JOIN borrowers b on al.object = b.borrowernumber AND al.module IN ('CIRCULATION','MEMBERS','FINES')
         WHERE 1
     ";
 

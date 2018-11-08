@@ -24,6 +24,7 @@
     <div id="bd">
     <div id="yui-main">
     <div class="yui-b">
+[% INCLUDE 'notice_sent_dialog.inc' %]
 [% INCLUDE 'members-toolbar.inc' %]
 <h1>Sent notices for [% INCLUDE 'patron-title.inc' %]</h1>
 
