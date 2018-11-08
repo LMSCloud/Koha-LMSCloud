@@ -129,7 +129,7 @@
         var createStatus = function(data, type, row, meta) {
             var origData = meta.settings.oInit.originalData;
             if (origData.length > 0) {
-                var status_name = meta.settings.oInit.originalData[0].capabilities[
+                var status_name = meta.settings.oInit.originalData[meta.row].capabilities[
                     row.status
                 ].name;
                 switch( status_name ) {
