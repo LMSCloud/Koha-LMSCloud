@@ -41,6 +41,7 @@ use Koha::DateUtils qw( format_sqldatetime dt_from_string );
 use Koha::Libraries;
 use Koha::Patrons;
 use Koha::Subscriptions;
+use Koha::Illrequests;
 
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
@@ -851,6 +852,7 @@ sub _parseletter_sth {
     ($table eq 'borrower_modifications') ? "SELECT * FROM $table WHERE verification_token = ?" :
     ($table eq 'subscription') ? "SELECT * FROM $table WHERE subscriptionid = ?" :
     ($table eq 'serial') ? "SELECT * FROM $table WHERE serialid = ?" :
+    ($table eq 'illrequests') ? "SELECT * FROM $table WHERE illrequest_id = ?" :
     undef ;
     unless ($query) {
         warn "ERROR: No _parseletter_sth query for table '$table'";
@@ -1652,6 +1654,12 @@ sub _get_tt_params {
             singular => 'suggestion',
             plural   => 'suggestions',
             pk       => 'suggestionid',
+        },
+        illrequests => {
+            module   => 'Koha::Illrequests',
+            singular => 'illrequest',
+            plural   => 'illrequests',
+            pk       => 'illrequest_id',
         },
         issues => {
             module   => 'Koha::Checkouts',
