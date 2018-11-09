@@ -1069,7 +1069,7 @@ sub getLastBooking {
         SELECT  a.id, a.cash_register_account_id, a.cash_register_id, a.manager_id, a.booking_time, 
                 a.accountlines_id, a.current_balance, a.action, a.booking_amount, a.description
         FROM cash_register_account a
-        WHERE id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.cash_register_id = b.cash_register_id) 
+        WHERE a.id = (SELECT MAX(b.id) FROM cash_register_account b WHERE b.cash_register_id = ?) 
               AND a.cash_register_id = ?
        }; $query =~ s/^\s+/ /mg;
     my $sth = $dbh->prepare($query);
@@ -1087,7 +1087,7 @@ sub getLastBooking {
     my $sth_delbor = $dbh->prepare($query_delbor);
 
 
-    $sth->execute($cash_register_id);
+    $sth->execute($cash_register_id, $cash_register_id);
 
     if ($row = $sth->fetchrow_hashref) {
         $row->{manager_name} = '';
@@ -3102,7 +3102,7 @@ sub getCashTransactionOverviewByBranch {
 }
 
 
-=head2 getLastBooking
+=head2 addCashRegisterTransaction
 
   $cash_management->addCashRegisterTransaction($cash_register_id, $action, $manager_id, $comment, $amount, $accountlines_id)
 
@@ -3123,76 +3123,74 @@ sub addCashRegisterTransaction {
     if (! $amount ) {
         $amount = 0.00;
     }
-    # retrieve last transaction data
-    my $lastTransaction = $self->getLastBooking($cash_register_id);
-    if (! $lastTransaction ) {
-        $lastTransaction = {
-            manager_id => undef,
-            current_balance => 0.00,
-            booking_amount => 0.00
+    
+    my $trials = 0;
+    # Avoiding use of stale booking_amount with concurrent inserts, 
+    # because storing with same cash_register_id and cash_register_account_id will fail with message:
+    # paycollect.pl: DBIx::Class::Storage::DBI::_dbh_execute(): Duplicate entry '...' for key 'cash_reg_account_idx_account_id'
+    while ( $trials < 11 ) {
+        $trials += 1;
+        # retrieve last transaction data of this cash register
+        my $lastTransaction = $self->getLastBooking($cash_register_id);
+        if (! $lastTransaction ) {
+            $lastTransaction = {
+                cash_register_account_id => 0,
+                manager_id => undef,
+                current_balance => 0.00,
+                booking_amount => 0.00
+            };
+        }
+        
+        if ( $action eq 'OPEN' ) {
+            $accountlines_id = undef;
+            $amount = 0.00;
+        }
+        elsif ( $action eq 'CLOSE' ) {
+            $accountlines_id = undef;
+            $amount = 0.00;
+        }
+        elsif ( $action eq 'PAYMENT' ) {
+        }
+        elsif ( $action eq 'REVERSE_PAYMENT' ) {
+        }
+        elsif ( $action eq 'PAYOUT' ) {
+        }
+        elsif ( $action eq 'DEPOSIT' ) {
+        }
+        elsif ( $action eq 'ADJUSTMENT' ) {
+        }
+        elsif ( $action eq 'CREDIT' ) {
+        }
+        else {
+            return 0;
+        }
+        
+        # set parameter to store
+        my $params = {
+            cash_register_id => $cash_register_id,
+            cash_register_account_id => $lastTransaction->{cash_register_account_id} + 1,    # This may clash with a concurrent insert, but there are further attempts.
+            manager_id => $manager_id,
+            current_balance => $lastTransaction->{current_balance} + $amount,
+            booking_amount => $amount,
+            accountlines_id => $accountlines_id,
+            action => $action,
+            description => $comment,
+            reason => $reason
         };
-    }
-    
-    if ( $action eq 'OPEN' ) {
-        $accountlines_id = undef;
-        $amount = 0.00;
-    }
-    elsif ( $action eq 'CLOSE' ) {
-        $accountlines_id = undef;
-        $amount = 0.00;
-    }
-    elsif ( $action eq 'PAYMENT' ) {
-    }
-    elsif ( $action eq 'REVERSE_PAYMENT' ) {
-    }
-    elsif ( $action eq 'PAYOUT' ) {
-    }
-    elsif ( $action eq 'DEPOSIT' ) {
-    }
-    elsif ( $action eq 'ADJUSTMENT' ) {
-    }
-    elsif ( $action eq 'CREDIT' ) {
-    }
-    else {
-        return 0;
-    }
-    
-    my $cash_register_account_id = 0;
-    my $dbh = C4::Context->dbh;
-    my $query = q{
-        SELECT max(cash_register_account_id) as cash_register_account_id
-        FROM cash_register_account
-        WHERE cash_register_id = ?
-       }; $query =~ s/^\s+/ /mg;
-       
-    my $sth = $dbh->prepare($query);
-    $sth->execute($cash_register_id);
-    while (my $row = $sth->fetchrow_hashref) {
-        if ( $row && $row->{cash_register_account_id} ) {
-            $cash_register_account_id = $row->{cash_register_account_id};
+        
+        my $entry = Koha::CashRegister::CashRegisterAccount->new();
+        $entry->set($params);
+        my $res = eval { $entry->store() };
+
+        if ( defined($res) ) {
+            return 1;    # $entry->store() did succeed
+        }
+        if ( $trials >= 10 ) {
+            $entry->store();    # if failing: die and show error message in dialog 
+            return 1;
         }
     }
-    $cash_register_account_id++;
-    
-    
-    # set parameter to store
-    my $params = {
-        cash_register_id => $cash_register_id,
-        cash_register_account_id => $cash_register_account_id,
-        manager_id => $manager_id,
-        current_balance => $lastTransaction->{current_balance} + $amount,
-        booking_amount => $amount,
-        accountlines_id => $accountlines_id,
-        action => $action,
-        description => $comment,
-        reason => $reason
-    };
-    
-    my $entry = Koha::CashRegister::CashRegisterAccount->new();
-    $entry->set($params);
-    $entry->store();
-    
-    return 1;
+    return 0;
 }
 
 sub getCashRegisterHandoverInformationByLastOpeningAction {

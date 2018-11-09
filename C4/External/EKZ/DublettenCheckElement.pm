@@ -34,22 +34,29 @@ use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::EkzKohaRecords;
 
 
+sub new {
+    my $class = shift;
 
-my $debugIt = 1;
+    my $self  = {
+        'debugIt' => 1
+    };
+    bless $self, $class;
 
-sub DublettenCheckElement {
-    my ($request) = @_;    # $request->{'soap:Envelope'}->{'soap:Body'} contains our deserialized DublettenCheckElement of the HTTP request
+    return $self;
+}
+
+sub process {
+    my ($self, $request) = @_;    # $request->{'soap:Envelope'}->{'soap:Body'} contains our deserialized DublettenCheckElement of the HTTP request
 
     my $soapEnvelopeHeader = $request->{'soap:Envelope'}->{'soap:Header'};
     my $soapEnvelopeBody = $request->{'soap:Envelope'}->{'soap:Body'};
 
 foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:DublettenCheckElement'}}) {
-    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request tag:", $tag, ":\n" if $debugIt;
+    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request tag:", $tag, ":\n" if $self->{debugIt};
 }
 
     my $wssusername = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'} : "WSS-username not defined";
     my $wsspassword = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Password'} : "WSS-username not defined";
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n" if $debugIt;
     my $authenticated = C4::External::EKZ::EkzAuthentication::authenticate($wssusername, $wsspassword);
     my $ekzLocalServicesEnabled = C4::External::EKZ::EkzAuthentication::ekzLocalServicesEnabled();
 
@@ -65,8 +72,8 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request header
 
     if ( $authenticated && $ekzLocalServicesEnabled )
     {
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:",$soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'},":\n" if $debugIt;
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}),":\n" if $debugIt;
+print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:",$soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'},":\n" if $self->{debugIt};
+print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}),":\n" if $self->{debugIt};
         my $titeldefined = ( exists $soapEnvelopeBody->{'ns2:DublettenCheckElement'} && defined $soapEnvelopeBody->{'ns2:DublettenCheckElement'} &&
                              exists $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'} && defined $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'});
         my $titelArrayRef = [];    #  using ref to empty array if there are sent no titel blocks
@@ -79,12 +86,12 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
                  $titelArrayRef = $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}; # ref to deserialized array containing the hash references
             }
         }
-        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n" if $debugIt;
+        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n" if $self->{debugIt};
 
         $titleCount = scalar @$titelArrayRef;
-        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP titleCount:",$titleCount, ":\n" if $debugIt;
+        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP titleCount:",$titleCount, ":\n" if $self->{debugIt};
         for ( my $i = 0; $i < $titleCount; $i++ ) {
-            print STDERR "DublettenCheckElement::DublettenCheckElement() title loop $i\n" if $debugIt;
+            print STDERR "DublettenCheckElement::DublettenCheckElement() title loop $i\n" if $self->{debugIt};
             my $titel = $titelArrayRef->[$i];
 
             # extracting the search criteria
@@ -98,7 +105,7 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
             $reqParamTitelInfo->{'titel'} = $titel->{'titelInfo'}->{'titel'};
             $reqParamTitelInfo->{'erscheinungsJahr'} = $titel->{'titelInfo'}->{'erscheinungsJahr'};
     
-            if ( $debugIt ) {
+            if ( $self->{debugIt} ) {
                 # log request parameters
                 my $logstr = $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : "<undef>";
                 print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ekzArtikelNr:$logstr:\n";
@@ -120,20 +127,20 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
                 print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request erscheinungsJahr:$logstr:\n";
             }
 
-            my @dublettenInfo = &searchDubletten($reqParamTitelInfo);
+            my @dublettenInfo = $self->searchDubletten($reqParamTitelInfo);
 
             if(scalar(@dublettenInfo) > 0 ) {
                 $titleWithDubCount += 1;
             }
 
-            print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": Anzahl dublettenInfo:",@dublettenInfo+0, "\n" if $debugIt;
-            print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": dublettenInfo:",@dublettenInfo, "\n" if $debugIt;
+            print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": Anzahl dublettenInfo:",@dublettenInfo+0, "\n" if $self->{debugIt};
+            print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": dublettenInfo:",@dublettenInfo, "\n" if $self->{debugIt};
 
             push @dublettenInfoListe, @dublettenInfo;
         }
     }
 
-    print STDERR "DublettenCheckElement::DublettenCheckElement() Anzahl dublettenInfoListe:",@dublettenInfoListe+0, "\n" if $debugIt;
+    print STDERR "DublettenCheckElement::DublettenCheckElement() Anzahl dublettenInfoListe:",@dublettenInfoListe+0, "\n" if $self->{debugIt};
 
     $respStatusCode = 'ERROR';
     if ( !$authenticated ) {
@@ -156,14 +163,14 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
     my @soapTitelListe = ();
     foreach my $dublettenInfo (@dublettenInfoListe)
     {
-        print STDERR "DublettenCheckElement::DublettenCheckElement(); EkzArtikelNr:",$dublettenInfo->{'ekzArtikelNr'},":\n" if $debugIt;
+        print STDERR "DublettenCheckElement::DublettenCheckElement(); EkzArtikelNr:",$dublettenInfo->{'ekzArtikelNr'},":\n" if $self->{debugIt};
 
         my $soapEkzArtikelNr = SOAP::Data->name( 'ekzArtikelNr' => $dublettenInfo->{'ekzArtikelNr'} )->type( 'string' );
         my @soapExemplare = ();
 
         foreach my $dupExemplar (@{$dublettenInfo->{'exemplare'}})
         {
-            print STDERR "DublettenCheckElement::DublettenCheckElement(); dupExemplar->{'zweigstelle'}:",$dupExemplar->{'zweigstelle'},":\n" if $debugIt;
+            print STDERR "DublettenCheckElement::DublettenCheckElement(); dupExemplar->{'zweigstelle'}:",$dupExemplar->{'zweigstelle'},":\n" if $self->{debugIt};
 
             my $soapExemplar = SOAP::Data->name( 'exemplar' => \SOAP::Data->value(
                 SOAP::Data->name( 'zweigstelle' => $dupExemplar->{'zweigstelle'} )->type( 'string' ),
@@ -189,12 +196,11 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
 }
 
 sub searchDubletten {
-    my ($reqParamTitelInfo) = @_;
+    my ($self, $reqParamTitelInfo) = @_;
 
     my $testIt = 0;
     my ( $marcresults, $hits ) = ( \(), 0 );
     my $marc_titledata = '';
-    my $itemtypes;
     
     # variables for result structure
     my @titelListe = ();
@@ -214,11 +220,11 @@ sub searchDubletten {
         push @titelListe, \%titel;
         push @titelListe, \%titel;
 
-        print STDERR "DublettenCheckElement::searchDubletten() titelListe:",@titelListe,":\n" if $debugIt;
-        print STDERR "DublettenCheckElement::searchDubletten() Exemplare:",@exemplare,":\n" if $debugIt;
-        print STDERR "DublettenCheckElement::searchDubletten() Anz. Exemplare:",@exemplare+0,":\n" if $debugIt;
-        print STDERR "DublettenCheckElement::searchDubletten() titel-Exemplare:",@{$titel{'exemplare'}},":\n" if $debugIt;
-        print STDERR "DublettenCheckElement::searchDubletten() Anz. titel-Exemplare:",@#{titel{'exemplare'}}-1,":\n" if $debugIt;
+        print STDERR "DublettenCheckElement::searchDubletten() titelListe:",@titelListe,":\n" if $self->{debugIt};
+        print STDERR "DublettenCheckElement::searchDubletten() Exemplare:",@exemplare,":\n" if $self->{debugIt};
+        print STDERR "DublettenCheckElement::searchDubletten() Anz. Exemplare:",@exemplare+0,":\n" if $self->{debugIt};
+        print STDERR "DublettenCheckElement::searchDubletten() titel-Exemplare:",@{$titel{'exemplare'}},":\n" if $self->{debugIt};
+        print STDERR "DublettenCheckElement::searchDubletten() Anz. titel-Exemplare:",@#{titel{'exemplare'}}-1,":\n" if $self->{debugIt};
     } else
     {
         # search priority:  1. ekzArtikelNr  /  2. isbn or isbn13  /  3. issn or ismn or ean  /  4. titel and author and erscheinungsJahr
@@ -226,10 +232,7 @@ sub searchDubletten {
     }
 
     $hits = scalar @$marcresults if $marcresults;
-    print STDERR "DublettenCheckElement::searchDubletten() hits:$hits:\n" if $debugIt;
-    if ( $hits > 0 ) {
-        $itemtypes = GetItemTypes();
-    }
+    print STDERR "DublettenCheckElement::searchDubletten() hits:$hits:\n" if $self->{debugIt};
     
     # Search the items of the catalogue titles found (= candidates for duplicates). 
     # The caller of this web service expects in the response 1 XML 'titel' block for each XML 'titel' block in the request.
@@ -271,11 +274,11 @@ sub searchDubletten {
                     }
                 }
                 $titel{'ekzArtikelNr'} = $ekzArtikelNr;
-print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", defined($marcrecord->field("003")) ? $marcrecord->field("003")->data() : "undef", ": marcrecord->field('001'):", defined($marcrecord->field("001")) ? $marcrecord->field("001")->data() : "undef", ": ekzArtikelNr:$ekzArtikelNr:\n" if $debugIt;
+print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", defined($marcrecord->field("003")) ? $marcrecord->field("003")->data() : "undef", ": marcrecord->field('001'):", defined($marcrecord->field("001")) ? $marcrecord->field("001")->data() : "undef", ": ekzArtikelNr:$ekzArtikelNr:\n" if $self->{debugIt};
             }
 
             
-print STDERR "DublettenCheckElement::searchDubletten() reqParamTitelInfo->{'ekzArtikelNr'}:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": duplicate candidate biblionumber: $biblionumber:\n" if $debugIt;
+print STDERR "DublettenCheckElement::searchDubletten() reqParamTitelInfo->{'ekzArtikelNr'}:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": duplicate candidate biblionumber: $biblionumber:\n" if $self->{debugIt};
             # read items of this biblio number
             my @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };
             for my $itemnumber ( @itemnumbers )
@@ -297,18 +300,12 @@ print STDERR "DublettenCheckElement::searchDubletten() reqParamTitelInfo->{'ekzA
                 } 
 
                 my $auflage =  defined $marcrecord->subfield("250","a") ? $marcrecord->subfield("250","a") : "";
-                # would be nice to have, but only integers are allowed in <auflage> of response:
-                # my $itemtype =  defined $marcrecord->subfield("942","c") ? $marcrecord->subfield("942","c") : "";
-                # my $description = $itemtypes->{$itemtype}->{'description'};
-                # $exemplar{'auflage'} =  "(Medientyp: " . $description . ")";
-                # if ( length($auflage) > 0 ) {
-                #     $exemplar{'auflage'} .=  " " . $auflage;
-                # }
+                # It would be nice to display also the itemstypes.description here, but only integers are allowed in XML element <auflage> of response:
                 if ( $auflage =~ /^.*?(\d+).*$/m ) {
                     $exemplar{'auflage'} =  $1;
                 }
 
-print STDERR "DublettenCheckElement::searchDubletten() exemplar{'auflage'}:", $exemplar{'auflage'}, ":\n" if $debugIt;
+print STDERR "DublettenCheckElement::searchDubletten() exemplar{'auflage'}:", $exemplar{'auflage'}, ":\n" if $self->{debugIt};
             
                 push @exemplare, \%exemplar;
             }
@@ -319,7 +316,7 @@ print STDERR "DublettenCheckElement::searchDubletten() exemplar{'auflage'}:", $e
         push @titelListe, \%titel;
     }
 
-    return (@titelListe);
+    return @titelListe;
 }
 
 1;

@@ -1,5 +1,7 @@
 package Koha::Acquisition::Order;
 
+# parts Copyright 2018 (C) LMSCLoud GmbH
+#
 # This file is part of Koha.
 #
 # Koha is free software; you can redistribute it and/or modify it under the
@@ -97,6 +99,16 @@ sub add_item {
     my $schema = Koha::Database->new->schema;
     my $rs = $schema->resultset('AqordersItem');
     $rs->create({ ordernumber => $self->ordernumber, itemnumber => $itemnumber });
+}
+
+sub search_order_by_item {
+    my ( $self, $itemnumber )  = @_;
+    my $schema = Koha::Database->new->schema;
+    my $rs = $schema->resultset('AqordersItem');
+    my $orderno = $rs->find({ itemnumber => $itemnumber },
+        { result_class => 'DBIx::Class::ResultClass::HashRefInflator' } )->{ordernumber};
+
+    return Koha::Acquisition::Order->fetch( { 'ordernumber' => $orderno } );
 }
 
 =head3 basket

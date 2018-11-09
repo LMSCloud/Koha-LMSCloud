@@ -64,6 +64,7 @@ my $validemailavailable = $input->param('validemailavailable');
 my $patronlistid = $input->param('patronlistid');
 my $issuecountstart = $input->param('issuecountstart');
 my $issuecountend = $input->param('issuecountend');
+my $return_borrower_attributes = $input->param('return_borrower_attributes');
 
 # variable information for DataTables (id)
 my $sEcho = $input->param('sEcho');
@@ -163,7 +164,8 @@ $results = C4::Utils::DataTables::Members::search(
         validemailavailable => $validemailavailable,
         patronlistid => $patronlistid,
         issuecountstart => $issuecountstart,
-        issuecountend => $issuecountend
+        issuecountend => $issuecountend,
+        return_borrower_attributes => $return_borrower_attributes
     }
 ) unless $results;
 

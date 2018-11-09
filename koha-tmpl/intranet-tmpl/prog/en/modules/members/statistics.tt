@@ -28,6 +28,7 @@
    <div id="bd">
     <div id="yui-main">
         <div class="yui-b">
+        [% INCLUDE 'notice_sent_dialog.inc' %]
         [% INCLUDE 'members-toolbar.inc' %]
 
             <h3>Statistics for [% INCLUDE 'patron-title.inc' %]</h3>

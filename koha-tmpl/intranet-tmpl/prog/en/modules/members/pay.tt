@@ -20,6 +20,7 @@
         <div id="bd">
             <div id="yui-main">
                 <div class="yui-b">
+                    [% INCLUDE 'notice_sent_dialog.inc' %]
                     [% INCLUDE 'members-toolbar.inc' borrowernumber=patron.borrowernumber %]
 
                     <!-- The manual invoice and credit buttons -->
@@ -146,7 +147,7 @@
 [% ELSE %]
     <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" />
 [% END %]
-<a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% borrower.borrowernumber %]">Cancel</a>
+<a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a>
 </fieldset>
 </form>
 [% ELSE %]

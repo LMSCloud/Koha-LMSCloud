@@ -33,13 +33,15 @@ use Koha::AcquisitionImport::AcquisitionImports;
 use Koha::AcquisitionImport::AcquisitionImportObjects;
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
+use Koha::Acquisition::Order;
+use C4::Acquisition;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
 
 
 my $debugIt = 1;
-my $updOrInsItemsCount = 0;
+
 
 
 ###################################################################################################
@@ -51,12 +53,12 @@ sub readLSFromEkzWsLieferscheinList {
 	my $selKundennummerWarenEmpfaenger = shift;
 
     my $result = ();    # hash reference
-print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinList() selVon:", $selVon, ": selBis:", defined($selBis) ? $selBis : "undef", ": selKundennummerWarenEmpfaenger:", defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : "undef", ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() selVon:", $selVon, ": selBis:", defined($selBis) ? $selBis : "undef", ": selKundennummerWarenEmpfaenger:", defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : "undef", ":\n" if $debugIt;
 
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
     $result = $ekzwebservice->callWsLieferscheinList($selVon, $selBis, $selKundennummerWarenEmpfaenger);
-print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinList() result->{'lieferscheinCount'}:$result->{'lieferscheinCount'}:\n" if $debugIt;
-print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinList() result->{'lieferscheinRecords'}:$result->{'lieferscheinRecords'}:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() result->{'lieferscheinCount'}:$result->{'lieferscheinCount'}:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() result->{'lieferscheinRecords'}:$result->{'lieferscheinRecords'}:\n" if $debugIt;
 
     return $result;
 }
@@ -71,15 +73,15 @@ sub readLSFromEkzWsLieferscheinDetail {
     my $refLieferscheinDetailElement = shift;    # for storing the LieferscheinDetailElement of the SOAP response body
 
     my $result = ();    # hash reference
-print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinDetail() selId:", defined($selId) ? $selId : "undef", ": selLieferscheinnummer:", defined($selLieferscheinnummer) ? $selLieferscheinnummer : "undef", ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() selId:", defined($selId) ? $selId : "undef", ": selLieferscheinnummer:", defined($selLieferscheinnummer) ? $selLieferscheinnummer : "undef", ":\n" if $debugIt;
     
-print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinDetail() \$refLieferscheinDetailElement:", $refLieferscheinDetailElement, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() \$refLieferscheinDetailElement:", $refLieferscheinDetailElement, ":\n" if $debugIt;
 print STDERR Dumper($refLieferscheinDetailElement) if $debugIt;
 
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
     $result = $ekzwebservice->callWsLieferscheinDetail($selId, $selLieferscheinnummer, $refLieferscheinDetailElement);
-print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinDetail() result->{'lieferscheinCount'}:$result->{'lieferscheinCount'}:\n" if $debugIt;
-print STDERR "ekzWsLieferschein::readLSFromEkzWsLieferscheinDetail() result->{'lieferscheinRecords'}:$result->{'lieferscheinRecords'}:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() result->{'lieferscheinCount'}:$result->{'lieferscheinCount'}:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() result->{'lieferscheinRecords'}:$result->{'lieferscheinRecords'}:\n" if $debugIt;
 
     return $result;
 }
@@ -108,13 +110,17 @@ sub genKohaRecords {
     $emaillog->{'dt'}->set_time_zone( 'Europe/Berlin' );
     my ($message, $subject, $haserror) = ('','',0);
 
-    print STDERR "ekzWsLieferschein::genKohaRecords() Start;  messageID:$messageID id:$lieferscheinRecord->{'id'}: Lieferscheinnummer:$lieferscheinRecord->{'nummer'}: lieferscheinRecord->{'teilLieferungCount'}:$lieferscheinRecord->{'teilLieferungCount'}\n" if $debugIt;
+    print STDERR "ekzWsDeliveryNote::genKohaRecords() Start;  messageID:$messageID id:$lieferscheinRecord->{'id'}: Lieferscheinnummer:$lieferscheinRecord->{'nummer'}: lieferscheinRecord->{'teilLieferungCount'}:$lieferscheinRecord->{'teilLieferungCount'}\n" if $debugIt;
 
-    my $zweigstellenname = '';
+    my $updOrInsItemsCount = 0;
+    my $zweigstellencode = '';
     my $homebranch = C4::Context->preference("ekzWebServicesDefaultBranch");
     $homebranch =~ s/^\s+|\s+$//g; # trim spaces
     if ( defined $homebranch && length($homebranch) > 0 ) {
-        $zweigstellenname = $homebranch;
+        $zweigstellencode = $homebranch;
+    }
+    if ( !&C4::External::EKZ::lib::EkzKohaRecords::checkbranchcode($zweigstellencode) ) {
+        $zweigstellencode = '';
     }
     my $titleSourceSequence = C4::Context->preference("ekzTitleDataServicesSequence");
     if ( !defined($titleSourceSequence) ) {
@@ -129,8 +135,14 @@ sub genKohaRecords {
         $ekzWebServicesHideOrderedTitlesInOpac == 0 ) {
             $ekzWsHideOrderedTitlesInOpac = 0;
     }
+    my $ekzAqbooksellersId = C4::Context->preference("ekzAqbooksellersId");
+    $ekzAqbooksellersId =~ s/^\s+|\s+$//g;    # trim spaces
+    my $acquisitionError = 0;
+    my $basketno = -1;
+    my $basketgroupid = undef;
 
     $lieferscheinNummer = $lieferscheinRecord->{'nummer'};
+    $lieferscheinNummer =~ s/^\s+|\s+$//g;    # trim spaces
     my $lsDatum = $lieferscheinRecord->{'datum'};
     $lieferscheinDatum = DateTime->new( year => substr($lsDatum,0,4), month => substr($lsDatum,5,2), day => substr($lsDatum,8,2), time_zone => 'local' );
 
@@ -164,24 +176,24 @@ sub genKohaRecords {
         payload => $lieferscheinDetailElement,
         #object_reference => undef # NULL
     };
-print STDERR "ekzWsLieferschein::genKohaRecords() search delivery note message record in acquisition_import selParam:", Dumper($selParam), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() search delivery note message record in acquisition_import selParam:", Dumper($selParam), ":\n" if $debugIt;
 
     my $acquisitionImportIdLieferschein;
     my $acquisitionImportLieferschein = Koha::AcquisitionImport::AcquisitionImports->new();
     my $hit = $acquisitionImportLieferschein->_resultset()->find( $selParam );
-print STDERR "ekzWsLieferschein::genKohaRecords() ref(acquisitionImportLieferschein):", ref($acquisitionImportLieferschein), ": ref(hit):", ref($hit), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() ref(acquisitionImportLieferschein):", ref($acquisitionImportLieferschein), ": ref(hit):", ref($hit), ":\n" if $debugIt;
     if ( defined($hit) ) {
         $lieferscheinNummerIsDuplicate = 1;
-print STDERR "ekzWsLieferschein::genKohaRecords() hit->{_column_data}:", Dumper($hit->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() hit->{_column_data}:", Dumper($hit->{_column_data}), ":\n" if $debugIt;
         my $mess = sprintf("The delivery note number '%s' has already been used at %s. Processing denied.\n",$lieferscheinNummer, $hit->get_column('processingtime'));
         carp $mess;
     } else {
         my $schemaResultAcquitionImport = $acquisitionImportLieferschein->_resultset()->create($insParam);
         $acquisitionImportIdLieferschein = $schemaResultAcquitionImport->get_column('id');
-print STDERR "ekzWsLieferschein::genKohaRecords() ref(schemaResultAcquitionImport):", ref($schemaResultAcquitionImport), ":\n" if $debugIt;
-#print STDERR "ekzWsLieferschein::genKohaRecords() Dumper(schemaResultAcquitionImport):", Dumper($schemaResultAcquitionImport), ":\n" if $debugIt;
-print STDERR "ekzWsLieferschein::genKohaRecords() Dumper(schemaResultAcquitionImport->{_column_data}):", Dumper($schemaResultAcquitionImport->{_column_data}), ":\n" if $debugIt;
-print STDERR "ekzWsLieferschein::genKohaRecords() acquisitionImportIdLieferschein:", $acquisitionImportIdLieferschein, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() ref(schemaResultAcquitionImport):", ref($schemaResultAcquitionImport), ":\n" if $debugIt;
+#print STDERR "ekzWsDeliveryNote::genKohaRecords() Dumper(schemaResultAcquitionImport):", Dumper($schemaResultAcquitionImport), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() Dumper(schemaResultAcquitionImport->{_column_data}):", Dumper($schemaResultAcquitionImport->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() acquisitionImportIdLieferschein:", $acquisitionImportIdLieferschein, ":\n" if $debugIt;
     }
 
 
@@ -198,9 +210,9 @@ print STDERR "ekzWsLieferschein::genKohaRecords() acquisitionImportIdLieferschei
             my $biblioitemnumber;
             my $lsEkzArtikelNr = '';
 
-            print STDERR "ekzWsLieferschein::genKohaRecords() teilLieferungRecord gelieferteExemplare:$teilLieferungRecord->{'gelieferteExemplare'}: teilLieferung:$teilLieferungRecord->{'teilLieferung'}: auftragsPositionCount:$teilLieferungRecord->{'auftragsPositionCount'}:\n" if $debugIt;
+            print STDERR "ekzWsDeliveryNote::genKohaRecords() teilLieferungRecord gelieferteExemplare:$teilLieferungRecord->{'gelieferteExemplare'}: teilLieferung:$teilLieferungRecord->{'teilLieferung'}: auftragsPositionCount:$teilLieferungRecord->{'auftragsPositionCount'}:\n" if $debugIt;
             my $auftragsPosition = $teilLieferungRecord->{'auftragsPositionRecords'}->[0];    # this array always consists of only 1 element
-            print STDERR "ekzWsLieferschein::genKohaRecords() auftragsPosition ekzexemplarid:", defined($auftragsPosition->{'ekzexemplarid'}) ? $auftragsPosition->{'ekzexemplarid'} : 'undef', ": ekzArtikelNr:$auftragsPosition->{'artikelNummer'}: isbn:$auftragsPosition->{'isbn'}: ean:$auftragsPosition->{'ean'}: kundenBestelldatum:$auftragsPosition->{'kundenBestelldatum'}:\n" if $debugIt;
+            print STDERR "ekzWsDeliveryNote::genKohaRecords() auftragsPosition ekzexemplarid:", defined($auftragsPosition->{'ekzexemplarid'}) ? $auftragsPosition->{'ekzexemplarid'} : 'undef', ": ekzArtikelNr:$auftragsPosition->{'artikelNummer'}: isbn:$auftragsPosition->{'isbn'}: ean:$auftragsPosition->{'ean'}: kundenBestelldatum:$auftragsPosition->{'kundenBestelldatum'}:\n" if $debugIt;
             my $deliveredItemsCount = $teilLieferungRecord->{'gelieferteExemplare'};
             $updOrInsItemsCount = 0;
 
@@ -226,7 +238,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() acquisitionImportIdLieferschei
             # method2: searching for ekzArtikelNr identity if ekzArtikelNr > 0
             # method3 is for all items for which no acquisition_import record representing the order title could be found
 
-            # method1: searching for ekzExemplarid identity (which is preferable)
+            # method1: searching for ekzExemplarid identity (which is preferable; typical for an item that was ordered in the ekz Medienshop)
             if (defined($auftragsPosition->{'ekzexemplarid'}) && length($auftragsPosition->{'ekzexemplarid'}) > 0 && $updOrInsItemsCount < $deliveredItemsCount ) {
 
                 # search in acquisition_import for records representing ordered items with the same ekzExemplarid
@@ -237,15 +249,15 @@ print STDERR "ekzWsLieferschein::genKohaRecords() acquisitionImportIdLieferschei
                     rec_type => "item",
                     processingstate => 'ordered'
                 };
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: search order item record in acquisition_import selParam:", Dumper($selParam), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: search order item record in acquisition_import selParam:", Dumper($selParam), ":\n" if $debugIt;
                 my $acquisitionImportEkzExemplarIdHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: scalar acquisitionImportEkzExemplarIdHits:", scalar $acquisitionImportEkzExemplarIdHits, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: scalar acquisitionImportEkzExemplarIdHits:", scalar $acquisitionImportEkzExemplarIdHits, ":\n" if $debugIt;
 
                 foreach my $acquisitionImportEkzExemplarIdHit ($acquisitionImportEkzExemplarIdHits->all()) {
                     if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
                         last;
                     }
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: acquisitionImportEkzExemplarIdHit->{_column_data}:", Dumper($acquisitionImportEkzExemplarIdHit->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: acquisitionImportEkzExemplarIdHit->{_column_data}:", Dumper($acquisitionImportEkzExemplarIdHit->{_column_data}), ":\n" if $debugIt;
 
                     #read the corresponding title via its biblionumber from acquisition_import_objects
                     # search in acquisition_import for the record representing the ordered title belonging to this item
@@ -256,19 +268,19 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method1: acquisitionImportEkzE
                         rec_type => "title",
                         processingstate => 'ordered'
                     };
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: search title order record in acquisition_import selParam:", Dumper($selParam), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: search title order record in acquisition_import selParam:", Dumper($selParam), ":\n" if $debugIt;
                     my $acquisitionImportTitleHit = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->find($selParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: acquisitionImportTitleHit->{_column_data}:", Dumper($acquisitionImportTitleHit->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: acquisitionImportTitleHit->{_column_data}:", Dumper($acquisitionImportTitleHit->{_column_data}), ":\n" if $debugIt;
                     if ( defined($acquisitionImportTitleHit) ) {
                         my $selParam = {
                             acquisition_import_id => $acquisitionImportTitleHit->get_column('id'),
                             koha_object => "title"
                         };
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: search title order record in acquisition_import_objects selParam:", Dumper($selParam), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: search title order record in acquisition_import_objects selParam:", Dumper($selParam), ":\n" if $debugIt;
                         my $titleObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                         my $titleObjectRS = $titleObject->_resultset()->find($selParam);
                         my $selBiblionumber = $titleObjectRS->get_column('koha_object_id');
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: titleObjectRS->{_column_data}:", Dumper($titleObjectRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: titleObjectRS->{_column_data}:", Dumper($titleObjectRS->{_column_data}), ":\n" if $debugIt;
 
                         if ( defined($selBiblionumber) ) {
                             if ( $selBiblionumber != $biblionumber ) {
@@ -296,20 +308,20 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method1: titleObjectRS->{_colu
 
                                     # add result of finding biblio to log email
                                     ($titeldata, $isbnean) = C4::External::EKZ::lib::EkzKohaRecords->getShortISBD($titleHits->{'records'}->[0]);
-                                    push @{$emaillog->{'records'}}, [$tmp_cna, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1];
-print STDERR "ekzWsLieferschein::genKohaRecords() method1: emaillog->{'records'}->[0]:", Dumper($emaillog->{'records'}->[0]), ":\n" if $debugIt;
+                                    push @{$emaillog->{'records'}}, [$tmp_cna, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: emaillog->{'records'}->[0]:", Dumper($emaillog->{'records'}->[0]), ":\n" if $debugIt;
                                 } else {
                                     next;    # next in acquisitionImportEkzExemplarIdHits->all()
                                 }
                             }
-                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog);
+                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId);
                         }    #end defined($selBiblionumber)
                     }    # end defined($acquisitionImportTitleHit)
                 }    # end foreach acquisitionImportEkzExemplarIdHits->all()
             }    # end method1
 
 
-            # method2: searching for ekzArtikelNr identity if ekzArtikelNr > 0
+            # method2: searching for ekzArtikelNr identity if ekzArtikelNr > 0 (typical for an item of a running standing order)
             if (defined($auftragsPosition->{'artikelNummer'}) && $auftragsPosition->{'artikelNummer'} > 0 && $updOrInsItemsCount < $deliveredItemsCount ) {
             #if (defined($auftragsPosition->{'artikelNummer'})  && $updOrInsItemsCount < $deliveredItemsCount ) {    # XXXWH maybe there is an standing order that matches the auftragsPosition by ISBN or EAN even if $auftragsPosition->{'artikelNummer'} == 0
 
@@ -321,7 +333,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method1: emaillog->{'records'}
                     rec_type => "title"
                 };
                 my $acquisitionImportTitleHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method2: scalar acquisitionImportTitleHits:", scalar $acquisitionImportTitleHits->{_column_data}, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method2: scalar acquisitionImportTitleHits:", scalar $acquisitionImportTitleHits->{_column_data}, ":\n" if $debugIt;
 
                 # Search corresponding 'ordered' order items and set them to 'delivered' (in table 'acquisition_import' and in 'items' via system preference ekzWsItemSetSubfieldsWhenReceived).
                 # Insert records in table acquisition_import for the title and items.
@@ -329,7 +341,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method2: scalar acquisitionImp
                     if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
                         last;
                     }
-                    print STDERR "ekzWsLieferschein::genKohaRecords() method2: acquisitionImportTitleHit->{_column_data}:", Dumper($acquisitionImportTitleHit->{_column_data}), ":\n" if $debugIt;
+                    print STDERR "ekzWsDeliveryNote::genKohaRecords() method2: acquisitionImportTitleHit->{_column_data}:", Dumper($acquisitionImportTitleHit->{_column_data}), ":\n" if $debugIt;
                     
                     if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
                         # search the biblio record; if not found, create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method3)
@@ -348,7 +360,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method2: scalar acquisitionImp
                         $lsEkzArtikelNr = '';
                         # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
                         $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleInLocalDB($reqParamTitelInfo, 1);
-print STDERR "ekzWsLieferschein::genKohaRecords() method2: from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method2: from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                             $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
                             my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
@@ -365,13 +377,13 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method2: from local DB titleHi
 
                             # add result of finding biblio to log email
                             ($titeldata, $isbnean) = C4::External::EKZ::lib::EkzKohaRecords->getShortISBD($titleHits->{'records'}->[0]);
-                            push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1];
+                            push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
                         } else {
                             last;   # create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method3)
                         }
                     }
                     
-                    # for this title: search all records in acquisition_order representing its items that are 'ordered' (i.e. can still be delivered)
+                    # for this title: search all records in acquisition_import representing its items that are 'ordered' (i.e. can still be delivered)
                     my $selParam = {
                         vendor_id => "ekz",
                         object_type => "order",
@@ -380,25 +392,25 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method2: from local DB titleHi
                         processingstate => 'ordered'
                     };
                     my $acquisitionImportTitleItemHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method2: acquisitionImportTitleItemHits->{_column_data}:", Dumper($acquisitionImportTitleItemHits->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method2: acquisitionImportTitleItemHits->{_column_data}:", Dumper($acquisitionImportTitleItemHits->{_column_data}), ":\n" if $debugIt;
 
                     foreach my $acquisitionImportTitleItemHit ($acquisitionImportTitleItemHits->all()) {
-print STDERR "ekzWsLieferschein::genKohaRecords() method2: acquisitionImportTitleItemHit->{_column_data}:", Dumper($acquisitionImportTitleItemHit->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method2: acquisitionImportTitleItemHit->{_column_data}:", Dumper($acquisitionImportTitleItemHit->{_column_data}), ":\n" if $debugIt;
                         if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
                             last;    # now all $deliveredItemsCount delivered items have been handled 
                         }
 
-                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog);
+                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId);
                     }
                 }
             }    # end method2
 
-print STDERR "ekzWsLieferschein::genKohaRecords() deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:\n" if $debugIt;
 
             # method3 is for all items for which no acquisition_import record representing the order title could be found
             # if not enough matching items could be found: we suppose a 'normal' order and create the corresponding entries for the remaining items
             if ( $updOrInsItemsCount < $deliveredItemsCount) {
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: create item for ekzArtikelNr:$auftragsPosition->{'artikelNummer'}:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: create item for ekzArtikelNr:$auftragsPosition->{'artikelNummer'}:\n" if $debugIt;
 
                 if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
 
@@ -420,14 +432,14 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: create item for ekzAr
                         $reqParamTitelInfo->{'preis'} = $auftragsPosition->{'verkaufsPreis'};    # without regard to $auftragsPosition->{'nachlass'}
                     }
                     $reqParamTitelInfo->{'auflage'} = $auftragsPosition->{'auflageText'};
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: reqParamTitelInfo->{'ekzArtikelNr'}:",$reqParamTitelInfo->{'ekzArtikelNr'},": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: reqParamTitelInfo->{'ekzArtikelNr'}:",$reqParamTitelInfo->{'ekzArtikelNr'},": \n" if $debugIt;
 
                     $titleHits = { 'count' => 0, 'records' => [] };
                     $biblionumber = 0;
                     $lsEkzArtikelNr = '';
                     # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
                     $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleInLocalDB($reqParamTitelInfo, 1);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                     if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                         $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
                         my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
@@ -444,24 +456,24 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: from local DB titleHi
                         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                             last;    # title has been found in lastly tested title source
                         }
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: titleSource:$titleSource:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: titleSource:$titleSource:\n" if $debugIt;
 
                         if ( $titleSource eq '_LMSC' ) {
                             # search title in LMSPool
                             $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleInLMSPool($reqParamTitelInfo);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: from LMS Pool titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: from LMS Pool titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                         } elsif ( $titleSource eq '_EKZWSMD' ) {
                             # detailed query to the ekz title information web service
                             $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: from ekz Webservice titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: from ekz Webservice titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                         } elsif ( $titleSource eq '_WS' ) {
                             # use sparse title data from the LieferscheinDetailElement
                             $titleHits = C4::External::EKZ::lib::EkzKohaRecords->createTitleFromFields($reqParamTitelInfo);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: from sent titel fields:",$titleHits->{'count'},": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: from sent titel fields:",$titleHits->{'count'},": \n" if $debugIt;
                         } else {
                             # search title in in the Z39.50 target with z3950servers.servername=$titleSource
                             $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ": \n" if $debugIt;
                         }
                     }
 
@@ -475,7 +487,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: from z39.50 search on
                                 $titleHits->{'records'}->[0]->insert_fields_ordered(MARC::Field->new('942',' ',' ','n' => 1));           # hide this title in opac
                             }
                             ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($titleHits->{'records'}->[0],'');
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: new biblionumber:",$biblionumber,": biblioitemnumber:",$biblioitemnumber,": \n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: new biblionumber:",$biblionumber,": biblioitemnumber:",$biblioitemnumber,": \n" if $debugIt;
                             if ( defined $biblionumber && $biblionumber > 0 ) {
                                 $biblioInserted = 1;
                                 # positive message for log
@@ -502,10 +514,10 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: new biblionumber:",$b
                         }
                         # add result of adding biblio to log email
                         ($titeldata, $isbnean) = C4::External::EKZ::lib::EkzKohaRecords->getShortISBD($titleHits->{'records'}->[0]);
-                        push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1];
+                        push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
                     }
                 }
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: biblioExisting:$biblioExisting: biblioInserted:$biblioInserted: biblionumber:$biblionumber:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: biblioExisting:$biblioExisting: biblioInserted:$biblioInserted: biblionumber:$biblionumber:\n" if $debugIt;
 
                 # now add the acquisition_import and acquisition_import_objects record for the title
                 if ( $biblioExisting || $biblioInserted ) {
@@ -534,7 +546,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: biblioExisting:$bibli
                     my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
                     my $acquisitionImportTitleRS = $acquisitionImportTitle->_resultset()->create($insParam);
                     my $acquisitionImportIdTitle = $acquisitionImportTitleRS->get_column('id');
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportTitleRS->{_column_data}:", Dumper($acquisitionImportTitleRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: acquisitionImportTitleRS->{_column_data}:", Dumper($acquisitionImportTitleRS->{_column_data}), ":\n" if $debugIt;
 
                     # Insert a record into table acquisition_import_object representing the Koha title data of the 'invented' order.
                     $insParam = {
@@ -545,7 +557,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportTitl
                     };
                     my $titleImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                     my $titleImportObjectRS = $titleImportObject->_resultset()->create($insParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: titleImportObjectRS->{_column_data}:", Dumper($titleImportObjectRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: titleImportObjectRS->{_column_data}:", Dumper($titleImportObjectRS->{_column_data}), ":\n" if $debugIt;
 
                     # Insert a record into table acquisition_import representing the delivery note title.
                     $insParam = {
@@ -563,13 +575,167 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: titleImportObjectRS->
                     };
                     my $acquisitionImportTitleDelivery = Koha::AcquisitionImport::AcquisitionImports->new();
                     my $acquisitionImportTitleDeliveryRS = $acquisitionImportTitleDelivery->_resultset()->create($insParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportTitleDeliveryRS->{_column_data}:", Dumper($acquisitionImportTitleDeliveryRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: acquisitionImportTitleDeliveryRS->{_column_data}:", Dumper($acquisitionImportTitleDeliveryRS->{_column_data}), ":\n" if $debugIt;
 
 
                     # now add the items data for the new biblionumber
                     my $ekzExemplarID = $ekzBestellNr . '-' . $lsEkzArtikelNr;    # dummy item number for the 'invented' order
                     my $exemplarcount = $deliveredItemsCount - $updOrInsItemsCount;
-                    print STDERR "ekzWsLieferschein::genKohaRecords() exemplar ekzExemplarID $ekzExemplarID exemplarcount $exemplarcount\n" if $debugIt;
+                    print STDERR "ekzWsDeliveryNote::genKohaRecords() exemplar ekzExemplarID $ekzExemplarID exemplarcount $exemplarcount\n" if $debugIt;
+
+                    # attaching ekz order to Koha acquisition: 
+                    # If system preference ekzAqbooksellersId is not empty: create a Koha order basket for collecting the Koha orders created for each title contained in the request that can not be assigned to an existing order.
+                    # policy: If ekzAqbooksellersId is not empty but does not identify an aqbooksellers record: create such an record and update ekzAqbooksellersId.
+                    $ekzAqbooksellersId = C4::External::EKZ::lib::EkzKohaRecords->checkEkzAqbooksellersId($ekzAqbooksellersId,1);
+                    if ( length($ekzAqbooksellersId) ) {
+                        # Search or create a Koha acquisition order basket,
+                        # i.e. search / insert a record in table aqbasket so that the following new aqorders records can link to it via aqorders.basketno = aqbasket.basketno .
+                        my $basketname = 'L-' . $lieferscheinNummer . '/' .  'L-' . $lieferscheinNummer;
+                        my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
+                        if ( @{$selbaskets} > 0 ) {
+                            $basketno = $selbaskets->[0]->{'basketno'};
+                            print STDERR "ekzWsDeliveryNote::genKohaRecords() found aqbasket with basketno:$basketno:\n" if $debugIt;
+                        } else {
+                            my $authorisedby = undef;
+                            my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
+                            $sth->execute();
+                            if ( my $hit = $sth->fetchrow_hashref ) {
+                                $authorisedby = $hit->{borrowernumber};
+                            }
+                            my $branchcode = C4::External::EKZ::lib::EkzKohaRecords->branchcodeFallback('', $homebranch);
+                            $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz LieferscheinDetail', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH
+                            print STDERR "ekzWsDeliveryNote::genKohaRecords() created new basket having basketno:", Dumper($basketno), ":\n" if $debugIt;
+                            if ( $basketno ) {
+                                my $basketinfo = {};
+                                $basketinfo->{'basketno'} = $basketno;
+                                $basketinfo->{'branch'} = $branchcode;
+                                C4::Acquisition::ModBasket($basketinfo);
+                            }
+                        }
+                        if ( !defined($basketno) || $basketno < 1 ) {
+                            $acquisitionError = 1;
+                        }
+                    }
+                    print STDERR "ekzWsDeliveryNote::genKohaRecords() ekzAqbooksellersId:$ekzAqbooksellersId: acquisitionError:$acquisitionError: basketno:$basketno:\n" if $debugIt;
+
+                    # attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order.
+                    my $verkaufsPreis = defined($auftragsPosition->{'verkaufsPreis'}) ? $auftragsPosition->{'verkaufsPreis'} : "0.00";
+                    my $nachlass = defined($auftragsPosition->{'nachlass'}) ? $auftragsPosition->{'nachlass'} : "0.00";
+                    my $rabatt = "0.0";    # not sent in LieferscheinDetailResponseElement, so we calculate it from verkaufsPreis and nachlass
+                    if ( $verkaufsPreis != 0.0 ) {
+                        $rabatt = ($nachlass * 100.0) / $verkaufsPreis
+                    }
+                    my $wertPositionsTeil = defined($auftragsPosition->{'wertPositionsTeil'}) ? $auftragsPosition->{'wertPositionsTeil'} : "0.00";    # info by etecture: <wertPositionsTeil> = <verkaufsPreis> - <nachlass>
+                    my $wertMehrpreise = defined($auftragsPosition->{'wertMehrpreise'}) ? $auftragsPosition->{'wertMehrpreise'} : "0.00";
+                    my $wertBearbeitung = defined($auftragsPosition->{'wertBearbeitung'}) ? $auftragsPosition->{'wertBearbeitung'} : "0.00";
+                    my $waehrung = defined($auftragsPosition->{'waehrung'}) ? $auftragsPosition->{'waehrung'} : "EUR";
+                    my $ustSatz = "0.07";    # not sent in LieferscheinDetailResponseElement, so we evaluate XML element <mwst>
+                    my $ust = "0.00";    # not sent in LieferscheinDetailResponseElement
+                    my $mwst  = defined($auftragsPosition->{'mwst'}) ? $auftragsPosition->{'mwst'} : "E";
+                    if ( $mwst eq 'V') {
+                        $ustSatz = "0.19";
+                    }
+                    
+                    my $gesamtpreis_tax_included = $verkaufsPreis;    # not sent in LieferscheinDetailResponseElement, so we calculate it based on an info by etecture; total for a single item
+                    if ( defined($auftragsPosition->{'verkaufsPreis'}) && defined($auftragsPosition->{'nachlass'}) ) {
+                        $gesamtpreis_tax_included = $verkaufsPreis - $nachlass + $wertMehrpreise + $wertBearbeitung;    # not sent in LieferscheinDetailResponseElement, so we calculate it; total for a single item
+                    } elsif ( defined($auftragsPosition->{'wertPositionsTeil'}) ) {
+                        $gesamtpreis_tax_included = $wertPositionsTeil + $wertMehrpreise + $wertBearbeitung;    # not sent in LieferscheinDetailResponseElement, so we calculate it; total for a single item
+                    }
+                    if ( $ust == 0.0 && $ustSatz != 0.0 ) {    # Bruttopreise
+                        $ust = $gesamtpreis_tax_included * $ustSatz / (1 + $ustSatz);
+                        $ust =  &C4::External::EKZ::lib::EkzKohaRecords::round($ust, 2);
+                    }
+                    if ( $ustSatz == 0.0 && $ust != 0.0 && $gesamtpreis_tax_included != 0.0) {    # Nettopreise
+                        $ustSatz = $ust / $gesamtpreis_tax_included;
+                        $ustSatz =  &C4::External::EKZ::lib::EkzKohaRecords::round($ustSatz, 2);
+                    }
+                    my $divisor = 1.0 + $ustSatz;
+                    my $gesamtpreis_tax_excluded = $divisor == 0.0 ? 0.0 : $gesamtpreis_tax_included / $divisor;
+                    $gesamtpreis_tax_excluded = &C4::External::EKZ::lib::EkzKohaRecords::round($gesamtpreis_tax_excluded, 2);
+
+                    my $replacementcost_tax_included =  $verkaufsPreis;    # list price of single item in library's currency, not discounted
+                    my $replacementcost_tax_excluded = $divisor == 0.0 ? 0.0 : $replacementcost_tax_included / $divisor;
+                    $replacementcost_tax_excluded = &C4::External::EKZ::lib::EkzKohaRecords::round($replacementcost_tax_excluded, 2);
+
+                    my $order = undef;
+                    my $ordernumber = undef;
+                    if ( defined($basketno) && $basketno > 0 ) {
+                        # Add a Koha acquisition order to the order basket,
+                        # i.e. insert an additional aqorder and add it to the aqbasket.
+
+                        # conventions:
+                        # It depends on aqbooksellers.listincgst if prices include gst or not. Exception: For 'Actual cost' (aqorder.unitprice) this depends on aqbooksellers.invoiceincgst.
+                        # aqorders.listprice:   input field 'Vendor price' in UI       single item list price in foreign currency
+                        # aqorders.rrp:         input field 'Replacement cost' in UI   single item listprice recalculated in library's currency
+                        # aqorders.ecost:       input field 'Budgeted cost' in UI      quantity * single item listprice recalculated in library's currency, discount applied
+                        # aqorders.unitprice:   input field 'Actual cost' in UI        entered cost, handling etc. incl.
+                        #
+                        # Here exclusively the aqbookseller 'ekz' is used, so we assume listprice=EUR, invoiceprice=EUR, gstreg=1, listincgst=1, invoiceincgst=1, tax_rate_bak=0.07 and the library's currency = EUR.
+
+                        my $haushaltsstelle = "";    # not sent in LieferscheinDetailResponseElement
+                        my $kostenstelle = "";    # not sent in LieferscheinDetailResponseElement
+
+                        my ($dummy1, $dummy2, $budgetid, $dummy3) = C4::External::EKZ::lib::EkzKohaRecords->checkAqbudget($haushaltsstelle, $kostenstelle, 1);
+
+                        my $quantity = $exemplarcount;
+                        my $budgetedcost_tax_included =  $gesamtpreis_tax_included;    # discounted
+                        my $budgetedcost_tax_excluded =  $gesamtpreis_tax_excluded;    # discounted
+
+                        my $orderinfo = ();
+
+                        # ordernumber is set by DBS
+                        $orderinfo->{biblionumber} = $biblionumber;
+                        # entrydate is set to today by Koha::Acquisition::Order->insert()
+                        $orderinfo->{quantity} = $quantity;
+                        $orderinfo->{currency} = $waehrung;    # currency of bookseller's list price
+                        # XXXWH currency-Umrechnung fehlt in die eine oder andere Richtung
+                        $orderinfo->{'listprice'} = $verkaufsPreis;    # input field 'Vendor price' in UI (in foreign currency, not discounted, per item)
+                        $orderinfo->{unitprice} = 0.0;    #  corresponds to input field 'Actual cost' in UI (discounted) and will be initialized with budgetedcost in the GUI in 'receiving' step
+                        $orderinfo->{unitprice_tax_excluded} = 0.0;
+                        $orderinfo->{unitprice_tax_included} = 0.0;
+                        # quantityreceived is set to 0 by DBS
+                        $orderinfo->{order_internalnote} = '';
+                        $orderinfo->{order_vendornote} = 'Verkaufspreis: ' . "$verkaufsPreis $waehrung\n";
+                        if ( $nachlass != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= 'Nachlass: ' . "$nachlass $waehrung\n";
+                        }
+                        if ( $wertPositionsTeil != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= 'Positionsteilwert: ' . "$wertPositionsTeil $waehrung\n";
+                        }
+                        if ( $wertMehrpreise != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= 'Mehrpreis: ' . "$wertMehrpreise $waehrung\n";
+                        }
+                        if ( $wertBearbeitung != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= 'Bearbeitungspreis: ' . "$wertBearbeitung $waehrung\n";
+                        }
+                        $orderinfo->{basketno} = $basketno;
+                        # timestamp is set to now by DBS
+                        $orderinfo->{budget_id} = $budgetid;
+                        $orderinfo->{'uncertainprice'} = 0;
+                        # claims_count is set to 0 by DBS
+                        $orderinfo->{subscriptionid} = undef;
+                        $orderinfo->{orderstatus} = 'ordered';
+                        $orderinfo->{rrp} = $replacementcost_tax_included;    #  corresponds to input field 'Replacement cost' in UI (not discounted, per item)
+                        $orderinfo->{rrp_tax_excluded} = $replacementcost_tax_excluded;
+                        $orderinfo->{rrp_tax_included} = $replacementcost_tax_included;
+                        $orderinfo->{ecost} = $budgetedcost_tax_included;     #  corresponds to input field 'Budgeted cost' in UI (discounted, per item)
+                        $orderinfo->{ecost_tax_excluded} = $budgetedcost_tax_excluded;
+                        $orderinfo->{ecost_tax_included} = $budgetedcost_tax_included;
+                        $orderinfo->{tax_rate_bak} = $ustSatz;        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
+                        $orderinfo->{tax_rate_on_ordering} = $ustSatz;
+                        $orderinfo->{tax_rate_on_receiving} = $ustSatz;
+                        $orderinfo->{tax_value_bak} = $ust;        #  corresponds to input field 'Tax value' in UI
+                        $orderinfo->{tax_value_on_ordering} = $ust;
+                        # XXXWH or alternatively: $orderinfo->{tax_value_on_ordering} = $orderinfo->{quantity} * $orderinfo->{ecost_tax_excluded} * $orderinfo->{tax_rate_on_ordering};    # see C4::Acquisition.pm
+                        $orderinfo->{tax_value_on_receiving} = $ust;
+                        # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
+                        $orderinfo->{discount} = $rabatt;        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
+
+                        $order = Koha::Acquisition::Order->new($orderinfo);
+                        $order->store();
+                        $ordernumber = $order->{ordernumber};
+                    }
 
                     for ( my $j = 0; $j < $exemplarcount; $j++ ) {
                         $emaillog->{'problems'} = '';              # string for accumulating error messages for this order
@@ -577,19 +743,11 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportTitl
 
                         $emaillog->{'processedItemsCount'} += 1;
 
-                        if ( &C4::External::EKZ::lib::EkzKohaRecords::checkbranchcode($zweigstellenname) ) {
-                            $item_hash->{homebranch} = $zweigstellenname;
-                        } else {
-                            $item_hash->{homebranch} = '';
-                        }
+                        $item_hash->{homebranch} = $zweigstellencode;
                         $item_hash->{booksellerid} = 'ekz';
                         if ( $auftragsPosition->{'waehrung'} eq 'EUR' && defined($auftragsPosition->{'verkaufsPreis'}) ) {
-                            if ( defined($auftragsPosition->{'nachlass'}) ) {
-                                $item_hash->{price} = $auftragsPosition->{'verkaufsPreis'} - $auftragsPosition->{'nachlass'};
-                            } else {
-                                $item_hash->{price} = $auftragsPosition->{'verkaufsPreis'};
-                            }
-                            $item_hash->{replacementprice} = $auftragsPosition->{'verkaufsPreis'};    # without regard to $auftragsPosition->{'nachlass'}
+                            $item_hash->{price} = $gesamtpreis_tax_included;
+                            $item_hash->{replacementprice} = $replacementcost_tax_included;    # without regard to $auftragsPosition->{'nachlass'}
                         }
                         $item_hash->{notforloan} = 0;    # item delivered -> can be loaned
                         
@@ -599,9 +757,9 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportTitl
 
                             # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenReceived> where itemnumber = <itemnumberfrom above C4::Items::AddItem call>
                             my $itemHitRs = undef;
-                        my $res = undef;
+                            my $res = undef;
                             $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: itemHitRs->{_column_data}:", Dumper($itemHitRs->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: itemHitRs->{_column_data}:", Dumper($itemHitRs->{_column_data}), ":\n" if $debugIt;
                             if ( defined $itemHitRs ) {
                                 # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenReceived")
                                 # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
@@ -622,6 +780,11 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: itemHitRs->{_column_d
                                 }
                             }
 
+                            # attaching ekz order to Koha acquisition: Insert an additional aqordersitem for the aqorder.
+                            if ( defined($order) ) {
+                                $order->add_item($itemnumber);
+                            }
+
                             # Insert a record into table acquisition_import representing the item data of the 'invented' order.
                             my $insParam = {
                                 #id => 0, # AUTO
@@ -639,7 +802,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: itemHitRs->{_column_d
                             my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
                             my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->create($insParam);
                             my $acquisitionImportIdItem = $acquisitionImportItemRS->get_column('id');
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportItemRS->{_column_data}:", Dumper($acquisitionImportItemRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: acquisitionImportItemRS->{_column_data}:", Dumper($acquisitionImportItemRS->{_column_data}), ":\n" if $debugIt;
 
                             # Insert a record into acquisition_import_object representing the Koha item data.
                             $insParam = {
@@ -650,7 +813,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportItem
                             };
                             my $itemImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                             my $itemImportObjectRS = $itemImportObject->_resultset()->create($insParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: itemImportObjectRS->{_column_data}:", Dumper($itemImportObjectRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: itemImportObjectRS->{_column_data}:", Dumper($itemImportObjectRS->{_column_data}), ":\n" if $debugIt;
 
                             # Insert a record into table acquisition_import representing the the delivery note item data.
                             $insParam = {
@@ -668,7 +831,7 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: itemImportObjectRS->{
                             };
                             my $acquisitionImportItemDelivery = Koha::AcquisitionImport::AcquisitionImports->new();
                             my $acquisitionImportItemDeliveryRS = $acquisitionImportItemDelivery->_resultset()->create($insParam);
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportItemDeliveryRS->{_column_data}:", Dumper($acquisitionImportItemDeliveryRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: acquisitionImportItemDeliveryRS->{_column_data}:", Dumper($acquisitionImportItemDeliveryRS->{_column_data}), ":\n" if $debugIt;
 
                             if ( $biblioExisting && $emaillog->{'foundTitlesCount'} == 0 ) {
                                 $emaillog->{'foundTitlesCount'} = 1;
@@ -687,12 +850,12 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: acquisitionImportItem
                         my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                         my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
                         $emaillog->{'importIds'}->{$importId} = $itemnumber;
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: importedItemsCount:$emaillog->{'importedItemsCount'}; set next importIds:", $importId, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: importedItemsCount:$emaillog->{'importedItemsCount'}; set next importIds:", $importId, ":\n" if $debugIt;
                         # add result of inserting item to log email
                         my ($titeldata, $isbnean) = ($itemnumber, '');
-                        push @{$emaillog->{'records'}}, [$lsEkzArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2];
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: emaillog->{'records'}->[0]:", Dumper($emaillog->{'records'}->[0]), ":\n" if $debugIt;
-print STDERR "ekzWsLieferschein::genKohaRecords() method3: emaillog->{'records'}->[1]:", Dumper($emaillog->{'records'}->[1]), ":\n" if $debugIt;
+                        push @{$emaillog->{'records'}}, [$lsEkzArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2, $ordernumber, $basketno];
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: emaillog->{'records'}->[0]:", Dumper($emaillog->{'records'}->[0]), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() method3: emaillog->{'records'}->[1]:", Dumper($emaillog->{'records'}->[1]), ":\n" if $debugIt;
                     } # foreach remainig delivered items: create koha item record
                 } # koha biblio data have been found or created
             } # end method3: "if ( $updOrInsItemsCount < $deliveredItemsCount)"
@@ -701,15 +864,15 @@ print STDERR "ekzWsLieferschein::genKohaRecords() method3: emaillog->{'records'}
 
             # create @actionresult message for log email, representing 1 title with all its processed items
             my @actionresultTit = ( 'insertRecords', 0, "X", "Y", $emaillog->{'processedTitlesCount'}, $emaillog->{'importedTitlesCount'}, $emaillog->{'foundTitlesCount'}, $emaillog->{'processedItemsCount'}, $emaillog->{'importedItemsCount'}, $emaillog->{'updatedItemsCount'}, $emaillog->{'records'} );
-print STDERR "ekzWsLieferschein::genKohaRecords() actionresultTit:", @actionresultTit, ":\n" if $debugIt;
-print STDERR "ekzWsLieferschein::genKohaRecords() actionresultTit->[10]->[0]:", @{$actionresultTit[10]->[0]}, ":\n" if $debugIt;
-print STDERR "ekzWsLieferschein::genKohaRecords() actionresultTit->[10]->[1]:", @{$actionresultTit[10]->[1]}, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() actionresultTit:", @actionresultTit, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() actionresultTit->[10]->[0]:", @{$actionresultTit[10]->[0]}, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::genKohaRecords() actionresultTit->[10]->[1]:", @{$actionresultTit[10]->[1]}, ":\n" if $debugIt;
             push @{$emaillog->{'actionresult'}}, \@actionresultTit;
         }
 
         # create @logresult message for log email, representing all titles of the current $lieferscheinResult with all their processed items
-        push @{$emaillog->{'logresult'}}, ['LieferscheinDetail', $messageID, $emaillog->{'actionresult'}];
-print STDERR "ekzWsLieferschein::genKohaRecords() Dumper($emaillog->{'logresult'}): ####################################################################################################################\n" if $debugIt;
+        push @{$emaillog->{'logresult'}}, ['LieferscheinDetail', $messageID, $emaillog->{'actionresult'}, $acquisitionError, $ekzAqbooksellersId, undef];    # arg basketno is undef, because with standing orders multiple delivery baskets are possible
+print STDERR "ekzWsDeliveryNote::genKohaRecords() Dumper($emaillog->{'logresult'}): ####################################################################################################################\n" if $debugIt;
 print STDERR Dumper($emaillog->{'logresult'}) if $debugIt;
         
         if ( scalar(@{$emaillog->{'logresult'}}) > 0 ) {
@@ -717,6 +880,59 @@ print STDERR Dumper($emaillog->{'logresult'}) if $debugIt;
             ($message, $subject, $haserror) = C4::External::EKZ::lib::EkzKohaRecords->createProcessingMessageText($emaillog->{'logresult'}, "headerTEXT", $emaillog->{'dt'}, \@importIds, $lieferscheinNummer);
             C4::External::EKZ::lib::EkzKohaRecords->sendMessage($message, $subject);
         }
+
+        # attaching ekz order to Koha acquisition:
+        if ( length($ekzAqbooksellersId) && defined($basketno) && $basketno > 0 ) {
+            # create a basketgroup for this basket and close both basket and basketgroup
+            my $aqbasket = &C4::Acquisition::GetBasket($basketno);
+print STDERR "ekzWsDeliveryNote::genKohaRecords() Dumper aqbasket:", Dumper($aqbasket), ":\n" if $debugIt;
+            if ( $aqbasket ) {
+                # close the basket
+print STDERR "ekzWsDeliveryNote::genKohaRecords() is calling CloseBasket basketno:", $aqbasket->{basketno}, ":\n" if $debugIt;
+                &C4::Acquisition::CloseBasket($aqbasket->{basketno});
+
+                # search/create basket group with aqbasketgroups.name = ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
+                my $params = {
+                    name => "\'$aqbasket->{basketname}\'",
+                    booksellerid => $aqbasket->{booksellerid}
+                };
+                $basketgroupid  = undef;
+                my $aqbasketgroups = &C4::Acquisition::GetBasketgroupsGeneric($params, { orderby => "id DESC" } );
+print STDERR "ekzWsDeliveryNote::genKohaRecords() Dumper aqbasketgroups:", Dumper($aqbasketgroups), ":\n" if $debugIt;
+
+                # create basket group if not existing
+                if ( !defined($aqbasketgroups) || scalar @{$aqbasketgroups} == 0 ) {
+                    $params = { 
+                        name => "$aqbasket->{basketname}",
+                        closed => 0,
+                        booksellerid => $aqbasket->{booksellerid},
+                        deliveryplace => "$aqbasket->{deliveryplace}",
+                        freedeliveryplace => "$aqbasket->{freedeliveryplace}",
+                        deliverycomment => "$aqbasket->{deliverycomment}",
+                        billingplace => "$aqbasket->{billingplace}",
+                    };
+                    $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
+print STDERR "ekzWsDeliveryNote::genKohaRecords() created basketgroup with name:", $aqbasket->{basketname}, ": having basketgroupid:$basketgroupid:\n" if $debugIt;
+                } else {
+                    $basketgroupid = $aqbasketgroups->[0]->{id};
+print STDERR "ekzWsDeliveryNote::genKohaRecords() found basketgroup with name:", $aqbasket->{basketname}, ": having basketgroupid:$basketgroupid:\n" if $debugIt;
+                }
+
+                if ( $basketgroupid ) {
+                    # update basket, i.e. set basketgroupid
+                    my $basketinfo = {
+                        'basketno' => $aqbasket->{basketno},
+                        'basketgroupid' => $basketgroupid
+                    };
+                    &C4::Acquisition::ModBasket($basketinfo);
+
+                    # close the basketgroup
+print STDERR "ekzWsDeliveryNote::genKohaRecords() is calling CloseBasketgroup basketgroupid:$basketgroupid:\n" if $debugIt;
+                    &C4::Acquisition::CloseBasketgroup($basketgroupid);
+                }
+            }
+        }
+
     }
 
 
@@ -731,14 +947,17 @@ print STDERR Dumper($emaillog->{'logresult'}) if $debugIt;
 
 sub processItemHit
 {
-    my ( $lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsArtikelNr, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog ) = @_;
+    my ( $lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsArtikelNr, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, $updOrInsItemsCountRef, $ekzAqbooksellersId ) = @_;
     my $selParam = '';
     my $updParam = '';
     my $insParam = '';
+    my $order = undef;
+    my $ordernumber = undef;
+    my $basketno = undef;
 
     # update the item's 'acquisition_import' record and the 'items' record in 3 steps:
     # 1. step: get itemnumber: select koha_object_id from acquisition_import_objects where acquisition_import_id = acquisition_import.id of current $acquisitionImportTitleItemHit
-print STDERR "ekzWsLieferschein::processItemHit() update item for lsArtikelNr:$lsArtikelNr:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() update item for lsArtikelNr:$lsArtikelNr:\n" if $debugIt;
     $selParam = {
         acquisition_import_id => $acquisitionImportTitleItemHit->get_column('id'),
         koha_object => "item"
@@ -746,15 +965,15 @@ print STDERR "ekzWsLieferschein::processItemHit() update item for lsArtikelNr:$l
     my $titleItemObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
     my $titleItemObjectRS = $titleItemObject->_resultset()->find($selParam);
     my $itemnumber = $titleItemObjectRS->get_column('koha_object_id');
-print STDERR "ekzWsLieferschein::processItemHit() titleItemObjectRS->{_column_data}:", Dumper($titleItemObjectRS->{_column_data}), ":\n" if $debugIt;
-print STDERR "ekzWsLieferschein::processItemHit() update item with itemnumber:" . $itemnumber . ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() titleItemObjectRS->{_column_data}:", Dumper($titleItemObjectRS->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() update item with itemnumber:" . $itemnumber . ":\n" if $debugIt;
     
     # 2. step: update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenReceived> where itemnumber = acquisition_import_objects.koha_object_id (from above result)
     my $itemHitRs = undef;
     my $res = undef;
     if ( defined $titleItemObjectRS && defined $itemnumber ) {
         $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
-print STDERR "ekzWsLieferschein::processItemHit() 1. itemHitRs->{_column_data}:", Dumper($itemHitRs->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() 1. itemHitRs->{_column_data}:", Dumper($itemHitRs->{_column_data}), ":\n" if $debugIt;
         if ( defined $itemHitRs ) {
             # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenReceived")
             # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
@@ -762,31 +981,30 @@ print STDERR "ekzWsLieferschein::processItemHit() 1. itemHitRs->{_column_data}:"
                 my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenReceived;
                 if ( @affects ) {
                     my $frameworkcode = GetFrameworkCode($biblionumber);
-print STDERR "ekzWsLieferschein::processItemHit() Dumper(frameworkcode):", Dumper($frameworkcode), ":\n" if $debugIt;    # XXXWH
                     my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
-print STDERR "ekzWsLieferschein::processItemHit() Dumper(itemfield):", Dumper($itemfield), ":\n" if $debugIt;    # XXXWH
                     my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
-print STDERR "ekzWsLieferschein::processItemHit() 1. Dumper(item):", Dumper($item), ":\n" if $debugIt;    # XXXWH
                     for my $affect ( @affects ) {
                         my ( $sf, $v ) = split('=', $affect, 2);
                         foreach ( $item->field($itemfield) ) {
                             $_->update( $sf => $v );
                         }
                     }
-print STDERR "ekzWsLieferschein::processItemHit() 2. Dumper(item):", Dumper($item), ":\n" if $debugIt;    # XXXWH
                     C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
-print STDERR "ekzWsLieferschein::processItemHit() 3. Dumper(item):", Dumper($item), ":\n" if $debugIt;    # XXXWH
                 }
             }
-            $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );    # XXXWH
-print STDERR "ekzWsLieferschein::processItemHit() 2. itemHitRs->{_column_data}:", Dumper($itemHitRs->{_column_data}), ":\n" if $debugIt;    # XXXWH
+            $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
+
+            # attaching ekz order to Koha acquisition: 
+            if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
+                ($ordernumber, $basketno) = processItemOrder( $lieferscheinNummer, $lieferscheinDatum, $biblionumber, $itemnumber, $auftragsPosition, $acquisitionImportTitleItemHit );
+            }
+
         }
     }
 
     # 3. step: update acquisition_import set processingstate = 'delivered' of current $acquisitionImportTitleItemHit
     $res = $acquisitionImportTitleItemHit->update( { processingstate => 'delivered' } );
-print STDERR "ekzWsLieferschein::processItemHit() acquisitionImportTitleItemHit->update res:", Dumper($res->{_column_data}), ":\n" if $debugIt;
-
+print STDERR "ekzWsDeliveryNote::processItemHit() acquisitionImportTitleItemHit->update res:", Dumper($res->{_column_data}), ":\n" if $debugIt;
 
     # set variables of log email
     if ( $emaillog->{'foundTitlesCount'} == 0 ) {
@@ -794,7 +1012,7 @@ print STDERR "ekzWsLieferschein::processItemHit() acquisitionImportTitleItemHit-
     }
     $emaillog->{'processedItemsCount'} += 1;
     if ( defined $titleItemObjectRS && defined $itemnumber && defined $itemHitRs && defined $res ) {    # item successfully updated
-        $updOrInsItemsCount += 1;
+        $$updOrInsItemsCountRef += 1;
         # positive message for log email
         $emaillog->{'importresult'} = 1;
         $emaillog->{'updatedItemsCount'} += 1;
@@ -809,11 +1027,11 @@ print STDERR "ekzWsLieferschein::processItemHit() acquisitionImportTitleItemHit-
     my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
     my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
     $emaillog->{'importIds'}->{$importId} = $itemnumber;
-print STDERR "ekzWsLieferschein::processItemHit() updatedItemsCount:$emaillog->{'updatedItemsCount'}; set next importIds:", $importId, ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() updatedItemsCount:$emaillog->{'updatedItemsCount'}; set next importIds:", $importId, ":\n" if $debugIt;
     
     # add result of updating item to log email
     my ($titeldata, $isbnean) = ($itemnumber, '');
-    push @{$emaillog->{'records'}}, [$lsArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2];
+    push @{$emaillog->{'records'}}, [$lsArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2, $ordernumber, $basketno];
 
     # Insert information on the item delivery in 2 steps:
     # 1. step: Insert an acquisition_import record for the delivery note title, if it does not exist already.
@@ -843,10 +1061,10 @@ print STDERR "ekzWsLieferschein::processItemHit() updatedItemsCount:$emaillog->{
         #payload => undef # NULL
         object_reference => $acquisitionImportTitleHit->get_column('id')
     };
-print STDERR "ekzWsLieferschein::processItemHit() update or insert acquisition_import record for title calling Koha::AcquisitionImport::AcquisitionImports->new()->upd_or_ins(selParam, updParam, insParam) selParam:", Dumper($selParam), ": updParam:", Dumper($updParam), ": insParam:", Dumper($insParam), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() update or insert acquisition_import record for title calling Koha::AcquisitionImport::AcquisitionImports->new()->upd_or_ins(selParam, updParam, insParam) selParam:", Dumper($selParam), ": updParam:", Dumper($updParam), ": insParam:", Dumper($insParam), ":\n" if $debugIt;
     my $acquisitionImportDeliveryNoteTitle = Koha::AcquisitionImport::AcquisitionImports->new();
     $res = $acquisitionImportDeliveryNoteTitle->upd_or_ins($selParam, $updParam, $insParam);   # TODO: evaluate $res
-print STDERR "ekzWsLieferschein::processItemHit() insert acquisition_import record for delivery title res:", Dumper($res->_resultset()->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() insert acquisition_import record for delivery title res:", Dumper($res->_resultset()->{_column_data}), ":\n" if $debugIt;
 
     # 2. step: Insert an acquisition_import record for the delivery note item.
     $insParam = {
@@ -862,10 +1080,158 @@ print STDERR "ekzWsLieferschein::processItemHit() insert acquisition_import reco
         #payload => undef # NULL
         object_reference => $acquisitionImportTitleItemHit->get_column('id')
     };
-print STDERR "ekzWsLieferschein::processItemHit() insert acquisition_import record for item calling Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->insert(insParam) insParam:", Dumper($insParam), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() insert acquisition_import record for item calling Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->insert(insParam) insParam:", Dumper($insParam), ":\n" if $debugIt;
     my $acquisitionImportDeliveryNoteItem = Koha::AcquisitionImport::AcquisitionImports->new();
     $res = $acquisitionImportDeliveryNoteItem->_resultset()->create($insParam);   # TODO: evaluate $res
-print STDERR "ekzWsLieferschein::processItemHit() insert acquisition_import record for item res:", Dumper($res->{_column_data}), ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemHit() insert acquisition_import record for item res:", Dumper($res->{_column_data}), ":\n" if $debugIt;
+}
+
+# If it's an item for Standing Order (<ekzexemplarid> is not sent, but ekzArtikelNr matches a record in acquisition_import with object_number like 'stoID%' ):
+#   Search the matching aqorders record via aqorders_items.
+#   Create a basket for this delivery note if not existing,
+#   'shift' the order into this basket. Append the old basketname in note field of the new basket (may become a list). Do not delete the old basket even if empty now.
+#   If no basketgroup exists for the new basket that contains this order, create such an basketgroup with same name.
+#   
+sub processItemOrder
+{
+    #my ( $lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsArtikelNr, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog,  ) = @_;
+    my ( $lieferscheinNummer, $lieferscheinDatum, $biblionumber, $itemnumber, $auftragsPosition, $acquisitionImportTitleItemHit ) = @_;
+
+    my $ordernumber_ret = undef;
+    my $basketno_ret = undef;
+    my $basketgroupid = undef;
+
+print STDERR "ekzWsDeliveryNote::processItemOrder() Start biblionumber:$biblionumber: itemnumber:$itemnumber:\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::processItemOrder() Start acquisitionImportTitleItemHit object_number:", $acquisitionImportTitleItemHit->object_number, ":\n" if $debugIt;
+
+    my $isSTO = 0;
+    if ( $acquisitionImportTitleItemHit->object_number =~ /^stoID/ ) {
+        $isSTO = 1;
+    }
+print STDERR "ekzWsDeliveryNote::processItemOrder() Start acquisitionImportTitleItemHit isSTO:$isSTO:\n" if $debugIt;
+
+    # search the aqorders record via select * from aqorders where ordernumber = (select ordernumber from aqorders_items where itemnumber = $itemnumber)
+    my $aqorder = Koha::Acquisition::Order->new()->search_order_by_item($itemnumber);
+
+print STDERR "ekzWsDeliveryNote::processItemOrder() Dumper aqorder:", Dumper($aqorder), ":\n" if $debugIt;
+    if ( !$aqorder ) {
+        return ($ordernumber_ret, $basketno_ret);    # both values still undef
+    }
+    $ordernumber_ret = $aqorder->{ordernumber};
+    $basketno_ret = $aqorder->{basketno};
+
+    # search basket of order
+    my $aqbasket_order = &C4::Acquisition::GetBasket($aqorder->{basketno});
+print STDERR "ekzWsDeliveryNote::processItemOrder() Dumper aqbasket_order:", Dumper($aqbasket_order), ":\n" if $debugIt;
+    if ( !$aqbasket_order ) {
+        return ($ordernumber_ret, $basketno_ret);
+    }
+
+    if ( $isSTO ) {
+        # search/create new basket of same bookseller with basketname derived from Delivery note plus stoID
+        my $aqbasket_delivery_name = 'L-' . $lieferscheinNummer . '/' . $aqbasket_order->{basketname};
+        my $aqbasket_delivery = undef;
+        my $params = {
+            basketname => '"'.$aqbasket_delivery_name.'"',
+            booksellerid => "$aqbasket_order->{booksellerid}"
+        };
+        my $aqbasket_delivery_hits = &C4::Acquisition::GetBaskets($params, { orderby => "basketno DESC" });
+print STDERR "ekzWsDeliveryNote::processItemOrder() Dumper aqbasket_delivery_hits:", Dumper($aqbasket_delivery_hits), ":\n" if $debugIt;
+        if ( defined($aqbasket_delivery_hits) && scalar @{$aqbasket_delivery_hits} > 0 ) {
+            $aqbasket_delivery = $aqbasket_delivery_hits->[0];
+            
+            # reopen basket
+            &C4::Acquisition::ReopenBasket($aqbasket_delivery->{basketno});
+print STDERR "ekzWsDeliveryNote::processItemOrder() after ReopenBasket\n" if $debugIt;
+
+            my $note = $aqbasket_delivery->{note};
+            if ( index($note, $aqbasket_order->{basketname}) == -1 ) {
+                my $basketinfo = {
+                    basketno => $aqbasket_delivery->{basketno},
+                    note => $note . ', ' . $aqbasket_order->{basketname}
+                };
+                &C4::Acquisition::ModBasket($basketinfo);
+            }
+        } else {
+            my $aqbasket_delivery_no  = &C4::Acquisition::NewBasket($aqbasket_order->{booksellerid}, $aqbasket_order->{authorisedby}, $aqbasket_delivery_name,
+                                                                $aqbasket_order->{basketname},"", $aqbasket_order->{basketcontractnumber}, $aqbasket_order->{deliveryplace}, $aqbasket_order->{billingplace}, $aqbasket_order->{is_standing}, $aqbasket_order->{create_items});
+            if ( $aqbasket_delivery_no ) {
+                my $basketinfo = {
+                    basketno => $aqbasket_delivery_no,
+                    branch => "$aqbasket_order->{branch}"
+                };
+                &C4::Acquisition::ModBasket($basketinfo);
+                $aqbasket_delivery = &C4::Acquisition::GetBasket($aqbasket_delivery_no);
+            }
+        }
+print STDERR "ekzWsDeliveryNote::processItemOrder() Dumper aqbasket_delivery:$aqbasket_delivery:\n" if $debugIt;
+        if ( !$aqbasket_delivery ) {
+            return ($ordernumber_ret, $basketno_ret);
+        }
+        $basketno_ret = $aqbasket_delivery->{basketno};
+
+        # shift order to this new basket
+        $params = {
+            ordernumber => $aqorder->{ordernumber},
+            biblionumber => $aqorder->{biblionumber},
+            quantitydelivered => 1,
+            delivered_items => [$itemnumber],
+            basketno_delivery => $aqbasket_delivery->{basketno}
+        };
+        $ordernumber_ret = &C4::Acquisition::ModOrderDeliveryNote($params);
+            
+        # close basket
+        &C4::Acquisition::CloseBasket($aqbasket_delivery->{basketno});
+print STDERR "ekzWsDeliveryNote::processItemOrder() after CloseBasket\n" if $debugIt;
+
+        # search/create basket group with name derived from Delivery note and same bookseller and update aqbasket_delivery accordingly
+        $params = {
+            name => '"'.$aqbasket_delivery_name.'"',
+            booksellerid => $aqbasket_order->{booksellerid}
+        };
+        $basketgroupid  = undef;
+        my $aqbasketgroups = &C4::Acquisition::GetBasketgroupsGeneric($params, { orderby => "id DESC" } );
+print STDERR "ekzWsDeliveryNote::processItemOrder() Dumper aqbasketgroups:", Dumper($aqbasketgroups), ":\n" if $debugIt;
+
+        # create basket group if not existing
+        if ( !defined($aqbasketgroups) || scalar @{$aqbasketgroups} == 0 ) {
+            $params = { 
+                name => $aqbasket_delivery_name,
+                closed => 0,
+                booksellerid => $aqbasket_delivery->{booksellerid},
+                deliveryplace => "$aqbasket_delivery->{deliveryplace}",
+                freedeliveryplace => "$aqbasket_delivery->{freedeliveryplace}",
+                deliverycomment => "$aqbasket_delivery->{deliverycomment}",
+                billingplace => "$aqbasket_delivery->{billingplace}",
+            };
+            $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
+        } else {
+            $basketgroupid = $aqbasketgroups->[0]->{id};
+            
+            # reopen basketgroup
+            &C4::Acquisition::ReOpenBasketgroup($basketgroupid);
+print STDERR "ekzWsDeliveryNote::processItemOrder() after ReOpenBasketgroup\n" if $debugIt;
+        }
+print STDERR "ekzWsDeliveryNote::processItemOrder() basketgroup with name:L-$lieferscheinNummer: has basketgroupid:$basketgroupid:\n" if $debugIt;
+
+        if ( $basketgroupid ) {
+            
+            # update basket
+            my $basketinfo = {
+                'basketno' => $aqbasket_delivery->{basketno},
+                'basketgroupid' => $basketgroupid
+            };
+            &C4::Acquisition::ModBasket($basketinfo);
+print STDERR "ekzWsDeliveryNote::processItemOrder() after ModBasket\n" if $debugIt;
+            
+            # close basketgroup
+            &C4::Acquisition::CloseBasketgroup($basketgroupid);
+print STDERR "ekzWsDeliveryNote::processItemOrder() after CloseBasketgroup\n" if $debugIt;
+        }
+    }
+print STDERR "ekzWsDeliveryNote::processItemOrder() returns ordernumber_ret:", $ordernumber_ret , ": and basketno_ret:$basketno_ret:\n" if $debugIt;
+
+    return ($ordernumber_ret, $basketno_ret);
 }
 
 1;

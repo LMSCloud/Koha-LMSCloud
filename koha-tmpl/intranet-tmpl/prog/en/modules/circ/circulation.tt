@@ -46,6 +46,7 @@
 	<div class="yui-b">
 [% END %]
 
+[% INCLUDE 'notice_sent_dialog.inc' %]
 [% IF patron %]
 [% INCLUDE 'members-toolbar.inc' %]
 [% END %]

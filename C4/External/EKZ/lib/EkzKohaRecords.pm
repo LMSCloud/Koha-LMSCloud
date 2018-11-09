@@ -34,6 +34,9 @@ use C4::Breeding qw(Z3950SearchGeneral);
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::LMSPoolSRU;
 use C4::External::EKZ::lib::EkzWebServices;
+use Koha::Libraries;
+
+use Koha::Schema::Result::Aqbudgetperiod;
 
 
 
@@ -774,7 +777,7 @@ sub checkbranchcode {
     }
 
     if ( keys %branchnames == 0 ) {
-        my $branches = C4::Branch::GetBranches();
+        my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
         foreach my $brcode (sort keys %$branches) {
             my $brcodeN = $brcode;
             $brcodeN =~ s/^\s+|\s+$//g; # trim spaces
@@ -917,6 +920,7 @@ sub createProcessingMessageText {
     if ( defined($envKohaInstanceUrl) && length($envKohaInstanceUrl) ) {
         $kohaInstanceUrl = $envKohaInstanceUrl;
     }
+print STDERR "EkzKohaRecords::createProcessingMessageText() envKohaInstanceUrl:$envKohaInstanceUrl: kohaInstanceUrl:$kohaInstanceUrl:\n" if $debugIt;
     my $printdate =  $dt->dmy('.') . ' um ' . sprintf("%02d:%02d Uhr", $dt->hour, $dt->minute);
 print STDERR "EkzKohaRecords::createProcessingMessageText() printdate:$printdate: Anz. logresult:", @{$logresult}+0, ": importIDs->[0]:$importIDs->[0]: ekzBestellOrLsNr:$ekzBestellOrLsNr:\n" if $debugIt;
     
@@ -1006,6 +1010,9 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() printdate:$printdate
     $message .= '</style>'."\n";
     $message .= '</head>'."\n";
     
+    my $acquisitionError = undef;
+    my $aqbooksellersid = undef;
+    my $aqbasketno = undef;
     my $processedTitlesCount = 0;
     my $importedTitlesCount = 0;
     my $foundTitlesCount = 0;
@@ -1019,6 +1026,10 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() printdate:$printdate
 print STDERR "EkzKohaRecords::createProcessingMessageText() result:", $result,":\n" if $debugIt;
 print STDERR Dumper( $result ) if $debugIt;
         my @actionsteps = @{$result->[2]};
+        $acquisitionError = $result->[3];
+        $aqbooksellersid = $result->[4];
+        $aqbasketno = $result->[5];
+
         my @records = ();
         foreach my $action (@actionsteps) {
 print STDERR "EkzKohaRecords::createProcessingMessageText() action->[$actTxt]:", $action->[$actTxt],":\n" if $debugIt;
@@ -1120,6 +1131,13 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
                 $messText = "Link auf alle bearbeiteten Titel";
             }            
             $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/catalogue/search.pl?q=' . $controlNumberQuery . '">' . h($messText) . '</a>';
+            if ( $logresult->[0]->[0] eq 'BestellInfo' || $logresult->[0]->[0] eq 'StoList' ) {
+                if ( defined($aqbasketno) && $aqbasketno > 0 ) { 
+                    my $messText = "Link auf die Koha-Bestellung";    # default for BestellInfo and StoList
+                    # e. g.  http://192.168.122.100:8080/cgi-bin/koha/acqui/basket.pl?basketno=42
+                    $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/basket.pl?basketno=' . $aqbasketno . '">' . h($messText) . '</a>';
+                }
+            }
         }
     }
     $message .= '</p>'."\n";
@@ -1205,7 +1223,7 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
             }
 
             if ( scalar(@records) > 0 ) {
-                
+                my %aqordernumbers = ();
                 for ( my $j = 0; $j < scalar(@records); $j++ ) {
                     my $record = $records[$j];
                     
@@ -1274,6 +1292,22 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
                             # e.g.: http://192.168.122.100:8080/cgi-bin/koha/cataloguing/additem.pl?op=edititem&biblionumber=68231&itemnumber=123915#edititem
                             $message .= '            <br /><a href="' . $kohaInstanceUrl . '/cgi-bin/koha/cataloguing/additem.pl?op=edititem&biblionumber=' . $record->[1] . '&itemnumber=' . $record->[3] . '#edititem' . '">' . h($record->[3]) . "</a>\n";
                         }
+                        if ( defined($aqbooksellersid) && length($aqbooksellersid) > 0 ) {
+                            my $aqordernumber = $record->[8];
+                            my $item_basketno = $record->[9];
+                            if ( defined($aqordernumber) && $aqordernumber > 0 ) {
+                                if ( defined($item_basketno) && $item_basketno > 0 ) {
+                                    # e. g. for basket: http://192.168.122.100:8080/cgi-bin/koha/acqui/basket.pl?basketno=42
+                                    # e.g. for order line: http://192.168.122.100:8080/cgi-bin/koha/acqui/neworderempty.pl?ordernumber=45&booksellerid=13&basketno=42
+                                    # XXXWH incomplete: $message .= ' <a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/neworderempty.pl?ordernumber=' . $aqordernumber . '&booksellerid=' . $aqbooksellersid . '&basketno=' . $item_basketno . '">(' . h(' Best. ' . $item_basketno . ', Posten ' . $aqordernumber) . ")</a>\n";
+                                    $message .= '( <a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/basket.pl?basketno=' . $item_basketno . '">' . h('Best. ' . $item_basketno) . '</a>' . 
+                                                ', <a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/neworderempty.pl?ordernumber=' . $aqordernumber . '&booksellerid=' . $aqbooksellersid . '&basketno=' . $item_basketno . '">' . h('Posten ' . $aqordernumber) . "</a>)\n";
+                                } else {
+                                    # e.g.: http://192.168.122.100:8080/cgi-bin/koha/acqui/neworderempty.pl?ordernumber=45&booksellerid=13
+                                    $message .= ' <a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/neworderempty.pl?ordernumber=' . $aqordernumber . '&booksellerid=' . $aqbooksellersid . '">(' . h(' Bestellposten ' . $aqordernumber) . ")</a>\n";
+                                }
+                            }
+                        }
                     }
                     if ( $j == scalar(@records)-1 ) {    # last item of this title -> mark end of table column and table row
                         $message .= '        </td>'."\n";
@@ -1341,6 +1375,260 @@ print STDERR Dumper( %sendmailParams ) if $debugIt;
 
 sub h {
     return (encode_entities(shift));
+}
+
+
+sub checkEkzAqbooksellersId {
+	my $class = shift;
+    my ($ekzAqbooksellersId, $createIfNotExists) = @_;
+    my $ekzAqbooksellersIdNew = $ekzAqbooksellersId;
+
+print STDERR "EkzKohaRecords::checkEkzAqbooksellersId() Start ekzAqbooksellersId:$ekzAqbooksellersId: createIfNotExists:$createIfNotExists:\n" if $debugIt;
+
+    if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
+        my $schema = Koha::Database->new->schema;
+        my $rs = $schema->resultset('Aqbookseller');
+        my $rec = $rs->find({ 'id' => $ekzAqbooksellersId });
+        if ( !defined($rec) ) {
+            $rec = $rs->search({ 'name' => "ekz" }, { order_by => {-asc => 'id'} })->first();
+            if ( defined($rec) ) {
+                $ekzAqbooksellersIdNew = $rec->id;
+            }
+        }
+
+        if ( !defined($rec) && $createIfNotExists ) {
+            $rec = $rs->create({
+                                    name => "ekz",
+                                    address1 => "ekz.bibliotheksservice GmbH\n",
+                                    address2 => "Bismarckstr. 3\n",
+                                    address3 => "D-72764 Reutlingen\n",
+                                    phone => "07121 144-0",
+                                    fax => "07121 144-280",
+                                    url => "http://www.ekz.de",
+                                    postal => "ekz.bibliotheksservice GmbH\nBismarckstr. 3\nD-72764 Reutlingen\n",
+                                    active => 1,
+                                    listprice => "EUR",
+                                    invoiceprice => "EUR",
+                                    gstreg => 1,
+                                    listincgst => 1,
+                                    invoiceincgst => 1,
+                                    tax_rate => 0.07,
+                                    discount => 0.0,
+                                    deliverytime => 9
+                            });
+            $ekzAqbooksellersIdNew = $rec->id;
+        }
+
+        if (  $ekzAqbooksellersIdNew != $ekzAqbooksellersId ) {
+            my $rs = $schema->resultset('Systempreference');
+            my $rec = $rs->find({ 'variable' => "ekzAqbooksellersId" });
+            if ( defined($rec) ) {
+                $rec->update({ 'value' => $ekzAqbooksellersIdNew });
+            }
+        }
+    }
+print STDERR "EkzKohaRecords::checkEkzAqbooksellersId() returns ekzAqbooksellersIdNew:$ekzAqbooksellersIdNew:\n" if $debugIt;
+    return $ekzAqbooksellersIdNew;
+}
+
+sub checkAqbudget {
+	my $class = shift;
+    my ($ekzHaushaltsstelle, $ekzKostenstelle, $createIfNotExists) = @_;
+    my $ret_budget_period_id = undef;
+    my $ret_budget_period_description = undef;
+    my $ret_budget_id = undef;
+    my $ret_budget_code = undef;
+    my $budget_code_default;
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+    my $today = $year+1900 . '-' . sprintf("%02d",$mon+1) . '-' . sprintf("%02d",$mday);
+
+print STDERR "EkzKohaRecords::checkAqbudget() Start ekzHaushaltsstelle:$ekzHaushaltsstelle: ekzKostenstelle:$ekzKostenstelle: createIfNotExists:$createIfNotExists:\n" if $debugIt;
+
+    # $ekzHaushaltsstelle is sent in SOAP request and refers to aqbudgetperiods.budget_period_description
+    # $ekzKostenstelle is sent in SOAP request refers to aqbudgets.budget_code where budget_parent_id IS NULL and budget_period_id = aqbudgetperiods.budget_period_id
+    # As we require the combination of aqbudgetperiods.budget_period_description and aqbudgets.budget_code to be unique, we do not select by budget_branchcode (this is necessary because StoList and Lieferscheindetail send no branchcode field)
+    
+    # If ekzHaushaltsstelle is not empty:
+    #     If an active, non locked aqbudgetperiods record with aqbudgetperiods.budget_period_description = ekzHaushaltsstelle exists, then take this record,
+    #     otherwise create such an aqbudgetperiods record (budget_period_startdate = CURRYEAR-01-01 etc.).
+    #
+    # If ekzHaushaltsstelle is empty and C4::Context->preference("ekzAqbudgetperiodsDescription") is not empty:
+    #     If an active, non locked aqbudgetperiods record with aqbudgetperiods.budget_period_description = C4::Context->preference("ekzAqbudgetperiodsDescription") exists, then take this record,
+    #     otherwise create such an aqbudgetperiods record (budget_period_startdate = CURRYEAR-01-01 etc.).
+    # 
+    # If ekzHaushaltsstelle is empty and C4::Context->preference("ekzAqbudgetperiodsDescription") is empty:
+    #     If an active, non locked aqbudgetperiods record with with aqbudgetperiods.budget_period_startdate < today <  aqbudgetperiods.budget_period_enddate exists, then take this record,
+    #     otherwise create a default aqbudgetperiods record (aqbudgetperiods.budget_period_description = CURRYEAR, budget_period_startdate = CURRYEAR-01-01 etc.).
+
+    # find or create a budget period to use
+    my $ekzAqbudgetperiodsDescription = C4::Context->preference("ekzAqbudgetperiodsDescription");
+    if ( defined($ekzHaushaltsstelle) && length($ekzHaushaltsstelle) > 0 ) {
+        $ret_budget_period_description = $ekzHaushaltsstelle;
+    } else {
+        if ( defined($ekzAqbudgetperiodsDescription) && length($ekzAqbudgetperiodsDescription) > 0 ) {
+            $ret_budget_period_description = $ekzAqbudgetperiodsDescription;
+        }
+    }
+print STDERR "EkzKohaRecords::checkAqbudget() ekzHaushaltsstelle:$ekzHaushaltsstelle: syspref ekzAqbudgetperiodsDescription:$ekzAqbudgetperiodsDescription: ret_budget_period_description:$ret_budget_period_description:\n" if $debugIt;
+
+    my $query_period = "SELECT * FROM aqbudgetperiods p ";
+    $query_period .= " WHERE p.budget_period_active = 1 ";
+    $query_period .= " AND p.budget_period_locked = 0 ";
+    if ( $ret_budget_period_description ) {
+        $query_period .= " AND p.budget_period_description = '$ret_budget_period_description' ";
+    } else {
+        $query_period .= " AND p.budget_period_startdate <= CURDATE() ";
+        $query_period .= " AND CURDATE() <= p.budget_period_enddate ";
+    }
+    $query_period .= " order by p.budget_period_startdate, p.budget_period_enddate ";
+
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare($query_period);
+    $sth->execute();
+	my $budgetperiod_hits = $sth->fetchall_arrayref({});
+    my $best_budgetperiod_hit = undef;
+
+print STDERR "EkzKohaRecords::checkAqbudget() scalar budgetperiod_hits:", scalar @{$budgetperiod_hits}, ":\n" if $debugIt;
+    foreach my $budgetperiod_hit ( @{$budgetperiod_hits} ) {
+print STDERR "EkzKohaRecords::checkAqbudget() budgetperiod_hit:", Dumper($budgetperiod_hit), ":\n" if $debugIt;
+        if ( !defined($best_budgetperiod_hit) ) {
+            $best_budgetperiod_hit = $budgetperiod_hit;
+            $ret_budget_period_id = $best_budgetperiod_hit->{'budget_period_id'};
+            $ret_budget_period_description = $best_budgetperiod_hit->{'budget_period_description'};
+        } else {
+print STDERR "EkzKohaRecords::checkAqbudget() today:$today: budgetperiod_hit->startdate:", $budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate:", $budgetperiod_hit->{'budget_period_enddate'}, ": best_budgetperiod_hit->startdate::", $best_budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate::", $best_budgetperiod_hit->{'budget_period_enddate'}, ":\n" if $debugIt;
+            if ( !($best_budgetperiod_hit->{'budget_period_startdate'} le $today && $today le $best_budgetperiod_hit->{'budget_period_enddate'}) ) {
+                if ( $budgetperiod_hit->{'budget_period_startdate'} le $today && $today le $budgetperiod_hit->{'budget_period_enddate'} ) {
+                    $best_budgetperiod_hit = $budgetperiod_hit;
+                    $ret_budget_period_id = $best_budgetperiod_hit->{'budget_period_id'};
+                    $ret_budget_period_description = $best_budgetperiod_hit->{'budget_period_description'};
+                }
+            }
+print STDERR "EkzKohaRecords::checkAqbudget() today:$today: budgetperiod_hit->startdate:", $budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate:", $budgetperiod_hit->{'budget_period_enddate'}, ": best_budgetperiod_hit->startdate::", $best_budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate::", $best_budgetperiod_hit->{'budget_period_enddate'}, ":\n" if $debugIt;
+        }
+    }
+
+    if ( !defined($best_budgetperiod_hit) ) {
+        if ( !$ret_budget_period_description ) {
+            $ret_budget_period_description = $year+1900;
+        }
+        if (  $createIfNotExists ) {
+            # It is required to create an aqbudgetperiods record.
+            my $startdate = $year+1900 . '-01-01';
+            my $enddate = $year+1900 . '-12-31';
+            my $schema = Koha::Database->new->schema;
+            my $rs = $schema->resultset('Aqbudgetperiod');
+            my $aqbudgetperiod = $rs->create( { 
+                                                'budget_period_startdate' => $startdate,
+                                                'budget_period_enddate' => $enddate,
+                                                'budget_period_active' => 1,
+                                                'budget_period_description' => $ret_budget_period_description,
+                                                'budget_period_total' => 0.0,
+                                                'budget_period_locked' => 0
+                                              } );
+
+            $ret_budget_period_id = $aqbudgetperiod->budget_period_id;
+print STDERR "EkzKohaRecords::checkAqbudget() created aqbudgetperiods, ret_budget_period_id:$ret_budget_period_id:\n" if $debugIt;
+        }
+    }
+
+    if ( $ret_budget_period_id ) {
+        # find or create a budget in the budget period to use
+        my $ekzAqbudgetsCode = C4::Context->preference("ekzAqbudgetsCode");
+        if ( defined($ekzAqbudgetsCode) && length($ekzAqbudgetsCode) > 0 ) {
+            $budget_code_default = $ekzAqbudgetsCode;
+        } else {
+            $budget_code_default = "ekz";
+        }
+        if ( defined($ekzKostenstelle) && length($ekzKostenstelle) > 0 ) {
+            $ret_budget_code = $ekzKostenstelle;
+        } else {
+            $ret_budget_code = $budget_code_default;
+        }
+print STDERR "EkzKohaRecords::checkAqbudget() budget_code_default:$budget_code_default: ret_budget_code:$ret_budget_code:\n" if $debugIt;
+        
+        my $query_budget = "SELECT b.* FROM aqbudgets b ";
+        $query_budget .= " WHERE b.budget_parent_id IS NULL ";
+        $query_budget .= " AND b.budget_code = '$ret_budget_code' ";
+        $query_budget .= " AND b.budget_period_id = $ret_budget_period_id";
+        $query_budget .= " ORDER BY b.budget_branchcode ASC, b.budget_id DESC";
+
+print STDERR "EkzKohaRecords::checkAqbudget() query_budget:$query_budget:\n" if $debugIt;
+
+        $sth = $dbh->prepare($query_budget);
+        $sth->execute();
+        my $budget_hits = $sth->fetchall_arrayref({});
+
+print STDERR "EkzKohaRecords::checkAqbudget() scalar budget_hits:", scalar @{$budget_hits}, ":\n" if $debugIt;
+
+        if ( defined($budget_hits->[0]) ) {
+            $ret_budget_id = $budget_hits->[0]->{'budget_id'};
+            $ret_budget_code = $budget_hits->[0]->{'budget_code'};
+        } else {
+            if ( $createIfNotExists ) {
+                # It is required to create an aqbudgets record.
+                # To this end an appropriate aqbudgetperiods record must exist.
+                my $schema = Koha::Database->new->schema;
+                my $rs = $schema->resultset('Aqbudget');
+                my $aqbudget = $rs->create( { 
+                                                'budget_parent_id' => undef,
+                                                'budget_code' => $ret_budget_code,
+                                                'budget_name' => $ret_budget_period_description . '-' . $ret_budget_code,
+                                                'budget_branchcode' => '',
+                                                'budget_amount' => 0.01,
+                                                'budget_notes' => "",
+                                                'budget_period_id' => $ret_budget_period_id,
+                                                'sort1_authcat' => "",
+                                                'sort2_authcat' => ""
+                                            } );
+
+                $ret_budget_id = $aqbudget->budget_id;
+                $ret_budget_code = $aqbudget->budget_code;
+print STDERR "EkzKohaRecords::checkAqbudget() created aqbudget record having ret_budget_id:$ret_budget_id: and ret_budget_code:$ret_budget_code:\n" if $debugIt;
+            }
+        }
+    }
+    
+print STDERR "EkzKohaRecords::checkAqbudget() returns ret_budget_period_id:$ret_budget_period_id: ret_budget_period_description:$ret_budget_period_description: ret_budget_id:$ret_budget_id: ret_budget_code:$ret_budget_code:\n" if $debugIt;
+    return ($ret_budget_period_id, $ret_budget_period_description, $ret_budget_id, $ret_budget_code);
+}
+
+sub branchcodeFallback {
+	my $class = shift;
+    my ($branchcode, $branchcodeFallback) = @_;
+    my $ret_branchcode = $branchcode;
+
+    $ret_branchcode =~ s/^\s+|\s+$//g;    # trim spaces
+    if ( !checkbranchcode($ret_branchcode) ) {
+        $ret_branchcode = $branchcodeFallback;
+        $ret_branchcode =~ s/^\s+|\s+$//g;    # trim spaces
+        if ( !checkbranchcode($ret_branchcode) ) {
+            # take the branchcode of the branch having most items (but not 'eBib' and no book mobile station) 
+            # select homebranch, count(*) from items where exists (select branchcode from branches where branches.branchcode != 'eBib' and branches.mobilebranch IS NULL and branches.branchcode = items.homebranch)  group by homebranch order by count(*);
+            my $dbh = C4::Context->dbh;
+            my $sth = $dbh->prepare("select homebranch, count(*) as count from items where exists (select branchcode from branches where branches.branchcode != 'eBib' and branches.mobilebranch IS NULL and branches.branchcode = items.homebranch)  group by homebranch order by count desc");
+            $sth->execute();
+            while ( my $hit = $sth->fetchrow_hashref ) {
+                $ret_branchcode = $hit->{homebranch};
+                $ret_branchcode =~ s/^\s+|\s+$//g;    # trim spaces
+                if ( checkbranchcode($ret_branchcode) ) {
+                    last;
+                }
+                $ret_branchcode = '';
+            }
+        }
+    }
+print STDERR "EkzKohaRecords::branchcodeFallback(branchcode:$branchcode: branchcodeFallback:$branchcodeFallback:) returns ret_branchcode:$ret_branchcode:\n" if $debugIt;
+    return $ret_branchcode
+}
+
+# round float $flt to precision of $decimaldigits behind the decimal separator. E. g. round(-1.234567, 2) == -1.23
+sub round ()
+{
+    my ($flt, $decimaldigits) = @_;
+    my $decimalshift = 10 ** $decimaldigits;
+
+    return (int(($flt * $decimalshift) + (($flt < 0) ? -0.5 : 0.5)) / $decimalshift);
 }
 
 1;

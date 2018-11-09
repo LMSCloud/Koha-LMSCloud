@@ -235,7 +235,7 @@ if ( $patron ) {
 # build and output the xml response directly.
 
 # build the components of the response
-my $output_header = "<?xml version=\"1.0\" encoding=\"utf8\" ?>\n";
+my $output_header = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 my $output_response_tag_start = "<response>\n";
 my $output_status_tag = sprintf("<status>%s</status>\n",$response->{'status'});
 my $output_fsk_tag = sprintf("<fsk>%s</fsk>\n",$response->{'fsk'});

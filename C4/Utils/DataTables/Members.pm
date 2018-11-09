@@ -31,6 +31,7 @@ sub search {
     my $patronlistid = $params->{patronlistid};
     my $issuecountstart = $params->{issuecountstart};
     my $issuecountend = $params->{issuecountend};
+    my $return_borrower_attributes = $params->{return_borrower_attributes};
 
     unless ( $searchmember ) {
         $searchmember = $dt_params->{sSearch} // '';
@@ -288,6 +289,24 @@ sub search {
         $dt_params->{iDisplayStart} //= 0;
         $dt_params->{iDisplayLength} //= 20;
         $limit = "LIMIT $dt_params->{iDisplayStart},$dt_params->{iDisplayLength}";
+    }
+
+    # Get and return information from borrower_attributes
+    if ( $return_borrower_attributes ) {
+        my @borrower_attributes_codes = split /,/, $return_borrower_attributes;
+        my $select_borrower_attributes = '';
+        my $from_borrower_attributes = '';
+        #my $where_borrower_attributes = '';
+        my $i = 0;
+        foreach my $code (@borrower_attributes_codes) {
+            $select_borrower_attributes .= " , ba$i.code as borr_attr_code_$code, ba$i.attribute as borr_attr_attribute_$code ";
+            $from_borrower_attributes .= " LEFT JOIN borrower_attributes ba$i ON borrowers.borrowernumber = ba$i.borrowernumber AND ba$i.code = '$code' ";
+            #$where_borrower_attributes .= " AND ba$i.code = ' $code ' ";
+            $i += 1;
+        }
+        $select .= $select_borrower_attributes;
+        $from .= $from_borrower_attributes;
+        #$where .= $where_borrower_attributes;
     }
 
     $query = join(
