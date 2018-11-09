@@ -1249,6 +1249,11 @@
   <index_subfields tag="899" subfields="9">
     <target_index>Koha-Auth-Number:w</target_index>
   </index_subfields>
+  <!--record.abs added line by roger: melm 900$a      Author,Author:p-->
+  <index_subfields tag="900" subfields="a">
+    <target_index>Author:w</target_index>
+    <target_index>Author:p</target_index>
+  </index_subfields>
   <!--record.abs added line by roger: melm 945$a    EKZFsk:n,EKZFsk:p,EKZUsk:n,EKZUsk:p,EKZAge:n,EKZAge:p -->
   <index_subfields tag="945" subfields="a" condition="@ind1='a' and @ind2='f'">
     <target_index>EKZFsk:n</target_index>
