@@ -1,0 +1,130 @@
+# Generic character map.
+#
+
+encoding utf-8
+
+# Define the basic value-set. *Beware* of changing this without re-indexing
+# your databases.
+lowercase {0-9}aäæåbcdefghijklmnoöøpqrstuüvwxyzαβγδεζηθικλμνξοπρστυφχψω
+uppercase {0-9}AÄÆÅBCDEFGHIJKLMNOÖØPQRSTUÜVWXYZΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ
+
+# Breaking characters
+
+space {\001-\040}!"#$%&'\()*+,-./:;<=>?@\[\\]^_`\{|}~’{\x88-\x89}{\x98-\x9C}
+
+# Characters to be considered equivalent for searching purposes.
+equivalent æä(ae)
+equivalent øöœ(oe)
+equivalent å(aa)
+equivalent ü(ue)
+equivalent ß(ss)
+
+# Supplemental mappings
+
+map (&auml;)       ä
+map (&aelig;)      æ
+map (&oslash;)     ø
+map (&aring;)      å
+map (&ouml;)       ö
+map (&Auml;)       Ä
+map (&Aelig;)      Æ
+map (&Oslash;)     Ø
+map (&Aring;)      Å
+map (&Ouml;)       Ö
+map (&uuml;)       ü
+map (&Uuml;)       Ü
+map (&szlig;)      (ss)
+
+map āâàáãăąȧǎȁȃⱥĀÂÁÀÃĂĄȦǍȀȂȺ		a
+map êÊëËéÉèÈēĒẽẼĕĔęĘėĖěĚȅȄȇȆɇɆ		e
+map īĪïÏîÎíÍìÌịỊĩĨĭĬįĮǐǏȉȈȋȊɨƗ		i
+map ôÔóÓòÒõÕōŌǒǑŏŎǫǪȯȮőŐȍȌȏȎ		o
+map ūŪùÙúÚûÛũŨŭŬųŲűŰǔǓȕȔȗȖʉɄů		 u
+map ṛṚr̥R̥ṝṜřŘṟ		 r
+map ḷḶḹḸḻḺłŁ		 l
+map ṭṬŧŦ	 t
+map ḍḌđĐð	 d
+map śŚṣṢşŞšŠṡṠ	 s
+map ṁṀṃṂ	 m
+map ḥḤẖħĦ	 h
+map źŹẓẒżŻƶƵ	 z
+map çÇćĆčČȼȻĊċĈĉ	 c
+map ǥǤġĠǧǦğĞ	 g
+map ḵḴḰḱ	 k
+map ýÝɏɎ	 y
+map άΆ	 α
+map έΈ	 ε
+map ίΊ	 ι
+map ήΉ	 η
+map όΌ	 ο
+map ύΎ	 υ
+map ώΏ	 ω
+map Σς	 σ
+map ß	 (ss)
+
+map (^Der\s)    @
+map (^Die\s)    @
+map (^Das\s)      @
+map (^Den\s)      @
+map (^Dem\s)      @
+map (^Ein\s)      @
+map (^Eine\s)     @
+map (^Einen\s)     @
+map (^Le\s)    @
+map (^La\s)    @
+map (^Les\s)      @
+map (^Un\s)      @
+map (^Une\s)     @
+map (^De\s)     @
+map (^Des\s)     @
+map (^L')     @
+map (^D')     @
+map (^The\s)    @
+map (^the\s)    @
+map (^a\s)      @
+map (^A\s)      @
+map (^An\s)     @
+map (^an\s)     @
+map (^El\s)         @
+map (^En\s)         @
+map (^La\s)         @
+map (^Los\s)        @
+map (^Las\s)        @
+map (^Un\s)         @
+map (^Unos\s)       @
+map (^Una\s)        @
+map (^Unas\s)       @
+
+map (^\x98Der\x9C\s)    @
+map (^\x98Die\x9C\s)    @
+map (^\x98Das\x9C\s)      @
+map (^\x98Den\x9C\s)      @
+map (^\x98Dem\x9C\s)      @
+map (^\x98Ein\x9C\s)      @
+map (^\x98Eine\x9C\s)     @
+map (^\x98Einen\x9C\s)     @
+map (^\x98Le\x9C\s)    @
+map (^\x98La\x9C\s)    @
+map (^\x98Les\x9C\s)      @
+map (^\x98Un\x9C\s)      @
+map (^\x98Une\x9C\s)     @
+map (^\x98De\x9C\s)     @
+map (^\x98Des\x9C\s)     @
+map (^\x98L'\x9C)     @
+map (^\x98D'\x9C)     @
+map (^\x98The\x9C\s)    @
+map (^\x98the\x9C\s)    @
+map (^\x98a\x9C\s)      @
+map (^\x98A\x9C\s)      @
+map (^\x98An\x9C\s)     @
+map (^\x98an\x9C\s)     @
+map (^\x98El\x9C\s)         @
+map (^\x98En\x9C\s)         @
+map (^\x98La\x9C\s)         @
+map (^\x98Los\x9C\s)        @
+map (^\x98Las\x9C\s)        @
+map (^\x98Un\x9C\s)         @
+map (^\x98Unos\x9C\s)       @
+map (^\x98Una\x9C\s)        @
+map (^\x98Unas\x9C\s)       @
+
