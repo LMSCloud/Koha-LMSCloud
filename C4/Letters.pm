@@ -544,8 +544,8 @@ sub SendAlerts {
             push @cc, $addlcontact->{email} if ( $addlcontact && $addlcontact->{email} );
         }
 
-        my $branchcode = Koha::Libraries->get_effective_branch( $externalid->{branchcode} );
         my $userenv = C4::Context->userenv;
+        my $branchcode = Koha::Libraries->get_effective_branch( $userenv->{branch} );
         my $letter = GetPreparedLetter (
             module => $type,
             letter_code => $letter_code,
@@ -563,7 +563,7 @@ sub SendAlerts {
         $letter->{content} =~ s/<order>(.*?)<\/order>/$1/gxms;
 
         # ... then send mail
-        my $library = Koha::Libraries->find( $userenv->{branch} );
+        my $library = Koha::Libraries->find( $branchcode );
         my %mail = (
             To => join( ',', @email),
             Cc             => join( ',', @cc),

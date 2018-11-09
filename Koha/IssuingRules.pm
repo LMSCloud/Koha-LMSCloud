@@ -144,8 +144,14 @@ sub get_opacitemholds_policy {
 sub get_onshelfholds_policy {
     my ( $class, $params ) = @_;
     my $item = $params->{item};
+
+    return unless $item;
+
     my $itemtype = $item->effective_itemtype;
     my $patron = $params->{patron};
+
+    return unless $patron;
+
     my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule(
         {
             ( $patron ? ( categorycode => $patron->categorycode ) : () ),

@@ -615,6 +615,10 @@ Add enrolment fee for a patron if needed.
 
 sub add_enrolment_fee_if_needed {
     my ($self) = @_;
+    
+    # do not charge if it is a family card member
+    return 0 if ( $self->get_family_card_id );
+    
     my $enrolment_fee = $self->category->enrolmentfee;
     if ( $enrolment_fee && $enrolment_fee > 0 ) {
         # insert fee in patron debts

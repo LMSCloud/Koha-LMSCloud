@@ -519,6 +519,12 @@ Circulation:
                   yes: Block
                   no: Allow
             - his/her auto renewals.
+        -
+            - pref: IssuingBranchBecomesHomeBranch
+              choices:
+                  yes: Reset
+                  no: "Don't reset"
+            - the home library of an item with the issuing library. The setting is useful, if the library system does not support transfers. 
     Checkin Policy:
         -
             - pref: BlockReturnOfWithdrawnItems
@@ -791,6 +797,9 @@ Circulation:
             - 'Example: "itemlost: 1" to set items.itemlost to 1 when the item is marked as lost'
             - pref: UpdateItemWhenLostFromHoldList
               type: textarea
+        -
+            - pref: EnableHoldsNotForLoanStatus
+            - Enable patrons to place holds for ordered items with the specified negative not for loan status if on shelf holds are allowed only if all items are unavailable. Seperate multiple status by | (e.g. -1|-2).
     Interlibrary Loans:
         -
             - pref: ILLModule

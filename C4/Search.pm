@@ -1559,7 +1559,10 @@ sub buildQuery {
                     $weight_fields    = 0;
                     $stemming         = 0;
                 } else {
-                    $operands[$i] =~ s/\?/{?}/g; # need to escape question marks
+                    if ( $operands[$i] =~ /[\?!]/ && $operands[$i] !~ /^\s*[\"]/ ) {
+                        $operands[$i] = '"' .$operands[$i] . '"';
+                    }
+                    #$operands[$i] =~ s/\?/{?}/g; # need to escape question marks
                 }
                 my $operand = $operands[$i];
                 my $index   = $indexes[$i];
