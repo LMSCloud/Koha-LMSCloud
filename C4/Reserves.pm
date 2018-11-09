@@ -1145,15 +1145,23 @@ sub IsAvailableForItemLevelRequest {
           Koha::Items->search( { biblionumber => $item->{biblionumber} } );
 
         my $any_available = 0;
+        
+        my @EnableHoldsNotForLoanStatus = ();
+        if ( C4::Context->preference('EnableHoldsNotForLoanStatus') ) {
+            @EnableHoldsNotForLoanStatus = split(/\|/,C4::Context->preference('EnableHoldsNotForLoanStatus'));
+        }
 
         foreach my $i (@items) {
 
             my $circ_control_branch = C4::Circulation::_GetCircControlBranch( $i->unblessed(), $borrower );
             my $branchitemrule = C4::Circulation::GetBranchItemRule( $circ_control_branch, $i->itype );
-
+            
+            my $notforloan = $i->notforloan || '';
+            my $reserveNotForLoan = scalar(grep { /^$notforloan$/ } @EnableHoldsNotForLoanStatus);
+            
             $any_available = 1
               unless $i->itemlost
-              || $i->notforloan > 0
+              || ($reserveNotForLoan || $i->notforloan > 0)
               || $i->withdrawn
               || $i->onloan
               || IsItemOnHoldAndFound( $i->id )

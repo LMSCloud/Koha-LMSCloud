@@ -178,6 +178,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('emailLibrarianWhenHoldIsPlaced','0',NULL,'If ON, emails the librarian whenever a hold is placed','YesNo'),
 ('EnableAdvancedCatalogingEditor','0','','Enable the Rancor advanced cataloging editor','YesNo'),
 ('EnableBorrowerFiles','0',NULL,'If enabled, allows librarians to upload and attach arbitrary files to a borrower record.','YesNo'),
+('EnableHoldsNotForLoanStatus','',NULL,'Enable patrons to place holds for ordered items with the specified negative not for loan status if on shelf holds are allowed only if all items are unavailable. Seperate multiple status by | (e.g. -1|-2)','Free'),
 ('EnableOpacSearchHistory','1','YesNo','Enable or disable opac search history',''),
 ('EnableSearchHistory','0','','Enable or disable search history','YesNo'),
 ('EnhancedMessagingPreferences','1','','If ON, allows patrons to select to receive additional messages about items due or nearly due.','YesNo'),

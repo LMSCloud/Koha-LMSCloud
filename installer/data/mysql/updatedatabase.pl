@@ -16761,7 +16761,20 @@ if ( CheckVersion($DBversion) ) {
     });
     
     SetVersion ($DBversion);
-    print "Upgrade to $DBversion done (18.05.01 release)\n";
+    print "Upgrade to $DBversion done (18.05.001 release)\n";
+}
+
+$DBversion = "18.05.01.002";
+if ( CheckVersion($DBversion) ) {
+
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (`variable`,`value`,`options`,`explanation`,`type`)
+        VALUES
+            ('EnableHoldsNotForLoanStatus','',NULL,'Enable patrons to place holds for ordered items with the specified negative not for loan status if on shelf holds are allowed only if all items are unavailable. Seperate multiple status by | (e.g. -1|-2)','Free');
+    });
+    
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (18.05.002 release)\n";
 }
 
 # SEE bug 13068
