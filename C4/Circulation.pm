@@ -1400,15 +1400,23 @@ sub AddIssue {
                         $item->{'barcode'} );
                 }
             }
-
-            ModItem(
-                {
+            
+            my $itemUpdate = {
                     issues        => $item->{'issues'},
                     holdingbranch => C4::Context->userenv->{'branch'},
                     itemlost      => 0,
                     onloan        => $datedue->ymd(),
                     datelastborrowed => DateTime->now( time_zone => C4::Context->tz() )->ymd(),
-                },
+                };
+                
+            # if it's configured that an item is always moved at the holding library, 
+            # the homebranch is changed to the holding branch
+            if ( C4::Context->preference("IssuingBranchBecomesHomeBranch") ) {
+                $itemUpdate->{homebranch} = Koha::Libraries->get_effective_branch(C4::Context->userenv->{'branch'});
+            }
+
+            ModItem(
+                $itemUpdate,
                 $item->{'biblionumber'},
                 $item->{'itemnumber'},
                 { log_action => 0 }

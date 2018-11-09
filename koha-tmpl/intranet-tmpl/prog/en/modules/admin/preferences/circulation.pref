@@ -519,6 +519,12 @@ Circulation:
                   yes: Block
                   no: Allow
             - his/her auto renewals.
+        -
+            - pref: IssuingBranchBecomesHomeBranch
+              choices:
+                  yes: Reset
+                  no: "Don't reset"
+            - the home library of an item with the issuing library. The setting is useful, if the library system does not support transfers. 
     Checkin Policy:
         -
             - pref: BlockReturnOfWithdrawnItems

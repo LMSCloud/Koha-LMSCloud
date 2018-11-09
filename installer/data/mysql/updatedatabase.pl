@@ -16751,6 +16751,19 @@ if ( CheckVersion($DBversion) ) {
     print "Upgrade to $DBversion done (18.05.01 release)\n";
 }
 
+$DBversion = "18.05.01.001";
+if ( CheckVersion($DBversion) ) {
+
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (`variable`,`value`,`options`,`explanation`,`type`)
+        VALUES
+            ('IssuingBranchBecomesHomeBranch','0',NULL,'If ON, the issuing library will be set as home branch of an item. The setting is useful for a library system that does not transfer items.','YesNo');
+    });
+    
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (18.05.01 release)\n";
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 
