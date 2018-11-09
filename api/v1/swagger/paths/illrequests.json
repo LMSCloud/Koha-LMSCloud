@@ -21,6 +21,16 @@
                     ]
                 }
             }, {
+                "name": "infilter",
+                "in": "query",
+                "description": "helper for constructing a 'not_in' or 'in' SQL statement",
+                "required": false,
+                "type": "array",
+                "collectionFormat": "csv",
+                "items": {
+                    "type": "string"
+                }
+            }, {
                 "name": "backend",
                 "in": "query",
                 "description": "The name of a ILL backend",
