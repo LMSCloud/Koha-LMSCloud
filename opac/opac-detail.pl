@@ -133,6 +133,9 @@ if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $recor
             $useitem->{'this_branch'} = $divitem->{'this_branch'};
             $useitem->{'available'} = $divitem->{'available'};
             $useitem->{'reservable'} = $divitem->{'reservable'};
+            if ( !($divitem->{'available'} || $divitem->{'reservable'}) ) {
+                $useitem->{'itemnotforloan'} = 100;
+            }
         }
         elsif ( $divibib_items ) {
             foreach my $ditem ( @{$divibib_items} ) {
