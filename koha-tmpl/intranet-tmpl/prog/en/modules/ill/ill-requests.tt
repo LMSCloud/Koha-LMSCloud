@@ -23,7 +23,6 @@
             'completed',
             'capabilities',
             'cost',
-            'medium',
             'notesopac',
             'notesstaff',
             'placed',
@@ -42,10 +41,11 @@
 
         // The core fields that should be displayed first
         var core = [
+            'orderid',
+            'medium',
             'metadata_Author',
             'metadata_Title',
             'borrowername',
-            'biblio_id',
             'library',
             'status',
             'updated',
@@ -106,6 +106,15 @@
             return value;
         };
 
+        // Our 'render' function for biblio link
+        var createBiblioLink = function(data, type, row) {
+            return '<a title="' + _("View title details") + '" ' +
+                'href="/cgi-bin/koha/catalogue/detail.pl?' +
+                'biblionumber='+row.biblio_id+'">' +
+                row.metadata_Title + 
+                '</a>';
+        };
+
         // Our 'render' function for borrowerlink
         var createPatronLink = function(data, type, row) {
             var patronLink = '<a title="' + _("View borrower details") + '" ' +
@@ -121,6 +130,16 @@
         // Our 'render' function for the library name
         var createLibrary = function(data, type, row) {
             return row.library.branchname;
+        };
+
+        // Render function for orderid
+        var createOrderId = function(data, type, row) {
+            return row.id_prefix + row.orderid;
+        };
+
+        // Render function for medium type
+        var createMediumType = function(data, type, row) {
+            return row.id_prefix + row.medium;
         };
 
         // Render function for request ID
@@ -179,6 +198,14 @@
                 name: _("Patron"),
                 func: createPatronLink
             },
+            orderid: {
+                name: _("Order ID"),
+                func: createOrderId
+            },
+            medium: {
+                name: _("Type"),
+                func: createMediumType
+            },
             illrequest_id: {
                 name: _("Request number"),
                 func: createRequestId
@@ -187,8 +214,9 @@
                 name: _("Status"),
                 func: createStatus
             },
-            biblio_id: {
-                name: _("Biblio ID")
+            metadata_Title: {
+                name: _("Title"),
+                func: createBiblioLink
             },
             library: {
                 name: _("Library"),
@@ -222,7 +250,11 @@
         // Get our data from the API and process it prior to passing
         // it to datatables
         var ajax = $.ajax(
-            '/api/v1/illrequests?embed=metadata,patron,capabilities,library'
+            [% IF infilter %]
+                '/api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=[% infilter %]'
+            [% ELSE %]
+                '/api/v1/illrequests?embed=metadata,patron,capabilities,library'
+            [% END %]
             ).done(function() {
                 var data = JSON.parse(ajax.responseText);
                 // Make a copy, we'll be removing columns next and need
@@ -577,10 +609,11 @@
                         <table id="ill-requests">
                             <thead>
                                 <tr id="illview-header">
+                                    <th>Order ID</th>
+                                    <th>Type</th>
                                     <th>Author</th>
                                     <th>Title</th>
                                     <th>Patron</th>
-                                    <th>Biblio ID</th>
                                     <th>Library</th>
                                     <th>Status</th>
                                     <th>Updated on</th>

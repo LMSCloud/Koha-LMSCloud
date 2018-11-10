@@ -49,6 +49,14 @@ sub list {
         delete $args->{embed};
     }
 
+    if (defined $args->{infilter}) {
+        my @cond = @{$args->{infilter}};
+        my $fieldname = shift @cond;
+        my $incond = shift @cond;
+        $filter->{$fieldname} = { $incond => \@cond };
+        delete $args->{infilter};
+    }
+
     for my $filter_param ( keys %$args ) {
         my @values = split(/,/, $args->{$filter_param});
         $filter->{$filter_param} = \@values;

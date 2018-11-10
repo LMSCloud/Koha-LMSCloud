@@ -234,6 +234,11 @@ if ( $backends_available ) {
                 prefilters => $active_filters
             );
         }
+        if ( $params->{infilter} ) {
+            $template->param(
+                infilter => $params->{infilter}
+            );
+        }
     } else {
         my $request = Koha::Illrequests->find($params->{illrequest_id});
         my $backend_result = $request->custom_capability($op, $params);

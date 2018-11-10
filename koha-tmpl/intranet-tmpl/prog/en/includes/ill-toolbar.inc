@@ -23,8 +23,14 @@
                 <i class="fa fa-plus"></i> New ILL request
             </a>
         [% END %]
-        <a id="ill-list" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl">
+        <a id="ill-list" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist">
             <i class="fa fa-list"></i> List requests
+        </a>
+        <a id="ill-list" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&amp;infilter=status,-not_in,COMP,QUEUED">
+            <i class="fa fa-list"></i> List open requests
+        </a>
+        <a id="ill-list" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&amp;infilter=status,-in,COMP">
+            <i class="fa fa-list"></i> List completed requests
         </a>
     </div>
 [% END %]
