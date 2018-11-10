@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "POT-Creation-Date: 2018-11-10 21:05+0100\n"
-"PO-Revision-Date: 2018-11-10 21:11+0100\n"
+"PO-Revision-Date: 2018-11-10 21:22+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -35933,7 +35933,7 @@ msgstr ""
 #: intranet-tmpl/prog/en/includes/ill-toolbar.inc:33
 #, c-format
 msgid "List completed requests "
-msgstr "Abgeschlossene Fernleihbestellungen auflisten "
+msgstr "Abgeschlossene Bestellungen anzeigen "
 
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:119
 #, c-format
@@ -35998,7 +35998,7 @@ msgstr "Liste der Regeln"
 #: intranet-tmpl/prog/en/includes/ill-toolbar.inc:30
 #, c-format
 msgid "List open requests "
-msgstr "Offene Fernleihbestellungen auflisten"
+msgstr "Offene Bestellungen anzeigen "
 
 #: intranet-tmpl/prog/en/modules/reports/orders_by_budget.tt:43
 #, c-format
@@ -36019,7 +36019,7 @@ msgstr "Listenpreise:"
 #: intranet-tmpl/prog/en/includes/ill-toolbar.inc:27
 #, c-format
 msgid "List requests "
-msgstr "Fernleihbestellungen auflisten"
+msgstr "Bestellungen anzeigen "
 
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:85
 #, c-format
