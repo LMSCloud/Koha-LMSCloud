@@ -17,16 +17,16 @@
 
 use Modern::Perl;
 
-use Test::More tests => 26;
+use Test::More tests => 27;
 
 use Koha::Database;
 use t::lib::TestBuilder;
 
 BEGIN {
-    use_ok('C4::Biblio');
-    use_ok('C4::Context');
-    use_ok('C4::CourseReserves', qw/:all/);
     use_ok('C4::Items', qw(AddItem));
+    use_ok('C4::Biblio');
+    use_ok('C4::CourseReserves', qw/:all/);
+    use_ok('C4::Context');
     use_ok('MARC::Field');
     use_ok('MARC::Record');
 }
@@ -135,5 +135,8 @@ ok( !defined( $course_reserve->{'cr_id'} ), "DelCourseReserve functions correctl
 DelCourse($course_id);
 $course = GetCourse($course_id);
 ok( !defined( $course->{'course_id'} ), "DelCourse deleted course successfully" );
+
+$courses = SearchCourses(); # FIXME Lack of tests for SearchCourses
+is( ref($courses), 'ARRAY', 'SearchCourses should not crash and return an arrayref' );
 
 $schema->storage->txn_rollback;

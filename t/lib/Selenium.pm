@@ -18,11 +18,23 @@ package t::lib::Selenium;
 
 use Modern::Perl;
 use Carp qw( croak );
+use JSON qw( from_json );
 
 use C4::Context;
 
 use base qw(Class::Accessor);
 __PACKAGE__->mk_accessors(qw(login password base_url opac_base_url selenium_addr selenium_port driver));
+
+sub capture {
+    my ( $class, $driver ) = @_;
+
+    my $lutim_server = q|https://framapic.org|; # Thanks Framasoft!
+    $driver->capture_screenshot('selenium_failure.png');
+    my $from_json = from_json qx{curl -s -F "format=json" -F "file=\@selenium_failure.png" -F "delete-day=1" $lutim_server};
+    if ( $from_json ) {
+        print STDERR "\nSCREENSHOT: $lutim_server/" . $from_json->{msg}->{short} . "\n";
+    }
+}
 
 sub new {
     my ( $class, $params ) = @_;
@@ -38,14 +50,16 @@ sub new {
         port               => $self->{selenium_port},
         remote_server_addr => $self->{selenium_addr},
         error_handler => sub {
-            my $selenium_error = $_[1];
+            my ( $driver, $selenium_error ) = @_;
             print STDERR "\nSTRACE:";
             my $i = 1;
             while ( (my @call_details = (caller($i++))) ){
                 print STDERR "\t" . $call_details[1]. ":" . $call_details[2] . " in " . $call_details[3]."\n";
             }
             print STDERR "\n";
-            croak $selenium_error; }
+            $class->capture( $driver );
+            croak $selenium_error;
+        }
     );
     return bless $self, $class;
 }
@@ -220,8 +234,11 @@ when we use automation test using Selenium
 
     Should always be called to avoid the "An element could not be located on the page" error
 
-=head2
+=head2 capture
+    $c->capture
 
+Capture a screenshot and upload it using the excellent lut.im service provided by framasoft
+The url of the image will be printed on STDERR (it should be better to return it instead)
 
 =head1 AUTHORS
 

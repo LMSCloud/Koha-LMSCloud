@@ -108,11 +108,14 @@
 
         // Our 'render' function for borrowerlink
         var createPatronLink = function(data, type, row) {
-            return '<a title="' + _("View borrower details") + '" ' +
+            var patronLink = '<a title="' + _("View borrower details") + '" ' +
                 'href="/cgi-bin/koha/members/moremember.pl?' +
-                'borrowernumber='+row.borrowernumber+'">' +
-                row.patron_firstname + ' ' + row.patron_surname +
-                '</a>';
+                'borrowernumber='+row.borrowernumber+'">';
+                if ( row.patron_firstname ) {
+                    patronLink = patronLink + row.patron_firstname + ' ';
+                }
+                patronLink = patronLink + row.patron_surname + '</a>';
+            return patronLink
         };
 
         // Our 'render' function for the library name
@@ -316,19 +319,7 @@
 
                 [% IF query_type == 'create' %]
                     <h1>New ILL request</h1>
-                    [% IF whole.stage == 'copyrightclearance' %]
-                        <div>
-                            <p>
-                                [% Koha.Preference('ILLModuleCopyrightClearance') %]
-                            </p>
-                            <a href="?method=create&stage=copyrightclearance&backend=[% whole.value.backend %]"
-                               class="btn btn-sm btn-default btn-group"><i class="fa fa-check">Yes</i></a>
-                            <a href="/cgi-bin/koha/ill/ill-requests.pl"
-                               class="btn btn-sm btn-default btn-group"><i class="fa fa-times">No</i></a>
-                        </div>
-                    [% ELSE %]
-                        [% PROCESS $whole.template %]
-                    [% END %]
+                    [% PROCESS $whole.template %]
 
                 [% ELSIF query_type == 'confirm' %]
                     <h1>Confirm ILL request</h1>
@@ -452,7 +443,7 @@
                                 </li>
                                 <li class="notesopac">
                                     <label for="notesopac" class="notesopac">Opac notes:</label>
-                                    <textarea name="notesopac" id="notesopac" rows="5">[% request.notesopac %]</textarea>
+                                    <textarea name="notesopac" id="notesopac" rows="5">[% request.notesopac | html %]</textarea>
                                 </li>
                             </ol>
                         </fieldset>
@@ -550,7 +541,7 @@
                                 </div>
                                 <div class="notesopac">
                                     <span class="label notes_opac">Notes:</span>
-                                    <pre>[% request.notesopac %]</pre>
+                                    <pre>[% request.notesopac | html %]</pre>
                                 </div>
                             </div>
                             <div class="rows">

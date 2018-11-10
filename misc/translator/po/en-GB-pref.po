@@ -3,17 +3,18 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-06-12 12:52+0000\n"
-"PO-Revision-Date: 2017-05-26 14:14+0100\n"
-"Last-Translator: Jonathan <jonathan.field@ptfs-europe.com>\n"
+"PO-Revision-Date: 2018-06-22 09:34+0000\n"
+"Last-Translator: Jon McGowan <jon.mcgowan@ptfs-europe.com>\n"
 "Language-Team: Koha-translate <koha-translate@lists.koha.org>\n"
 "Language: en_GB\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.0.2\n"
+"X-Generator: Pootle 2.8\n"
 "X-Pootle-Path: /en_GB/18.05/en-GB-pref.po\n"
 "X-Pootle-Revision: 1\n"
+"X-POOTLE-MTIME: 1529660070.612692\n"
 
 # Acquisitions
 msgid "acquisitions.pref"
@@ -421,7 +422,7 @@ msgstr ""
 
 # Administration > Login options
 msgid "admin.pref#IndependentBranchesPatronModifications# Prevent staff (but not superlibrarians) from viewing and approving/denying patron modification requests for patrons belonging to other libraries."
-msgstr "# Prevent staff (but not superlibrarians) from viewing and approving/denying patron modification requests for users belonging to other libraries."
+msgstr "Prevent staff (but not superlibrarians) from viewing and approving/denying patron modification requests for users belonging to other libraries."
 
 # Administration > Login options
 msgid "admin.pref#IndependentBranchesPatronModifications# Yes"
@@ -2473,7 +2474,7 @@ msgstr ""
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowItemsOnHoldCheckoutSCO# checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items."
-msgstr "circulation.pref#AllowItemsOnHoldCheckoutSCO# loans of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self issues for those items."
+msgstr " loans of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self issues for those items."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AllowMultipleIssuesOnABiblio# Allow"
@@ -2613,7 +2614,7 @@ msgstr ""
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#AutoRemoveOverduesRestrictions# allow OVERDUES restrictions triggered by sent notices to be cleared automatically when all overdue items are returned by a patron."
-msgstr "# allow OVERDUES restrictions triggered by sent notices to be cleared automatically when all overdue items are returned by a user."
+msgstr " allow OVERDUES restrictions triggered by sent notices to be cleared automatically when all overdue items are returned by a user."
 
 # Circulation > Holds Policy
 msgid "circulation.pref#AutoResumeSuspendedHolds# Allow"
@@ -4136,10 +4137,6 @@ msgstr ""
 msgid "enhanced_content.pref Novelist Select"
 msgstr ""
 
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref OCLC"
-msgstr ""
-
 # Enhanced Content > Open Library
 msgid "enhanced_content.pref Open Library"
 msgstr ""
@@ -4518,7 +4515,7 @@ msgstr ""
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectView# ."
-msgstr " ."
+msgstr ""
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectView# Display Novelist Select content"
@@ -4538,14 +4535,6 @@ msgstr ""
 
 # Enhanced Content > Novelist Select
 msgid "enhanced_content.pref#NovelistSelectView# under the Save Record dropdown, on the right"
-msgstr ""
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#OCLCAffiliateID# Use the <a href=\"http://www.worldcat.org/affiliate/webservices/xisbn/app.jsp\">OCLC affiliate ID</a>"
-msgstr ""
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#OCLCAffiliateID# to access the xISBN service. Note that unless you have signed up for an ID, you are limited to 1000 requests per day."
 msgstr ""
 
 # Enhanced Content > Amazon
@@ -4886,26 +4875,6 @@ msgstr ""
 
 # Enhanced Content > Plugins
 msgid "enhanced_content.pref#UseKohaPlugins# the ability to use Koha Plugins. Note, the plugin system must also be enabled in the Koha configuration file to be fully enabled."
-msgstr ""
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# Don't use"
-msgstr ""
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# Use"
-msgstr ""
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# the OCLC xISBN service to show other editions of a title (when either FRBRizeEditions or OPACFRBRizeEditions is on)."
-msgstr ""
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBNDailyLimit# Only use the xISBN service"
-msgstr ""
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBNDailyLimit# times a day. Unless you are paying for the xISBN service, you should leave this at the default of 999 (as detailed above)."
 msgstr ""
 
 # I18N/L10N
@@ -6082,7 +6051,7 @@ msgstr ""
 
 # OPAC > Appearance
 msgid "opac.pref#OpacNav# Show the following HTML on the left hand column of the main page and patron account on the OPAC (generally navigation links):"
-msgstr "opac.pref#OpacNav# Show the following HTML on the left hand column of the main page and user account on the OPAC (generally navigation links):"
+msgstr " Show the following HTML on the left hand column of the main page and user account on the OPAC (generally navigation links):"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacNavBottom# Show the following HTML on the left hand column of the main page and patron account on the OPAC, after OpacNav, and before patron account links if available:"
@@ -6830,7 +6799,7 @@ msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#EnhancedMessagingPreferences# Staff to manage which notices patrons will receive and when they will receive them. Note: this only applies to courtesy notices. To manage if patrons have also access to these settings, use EnhancedMessagingPreferencesOPAC."
-msgstr "patrons.pref#EnhancedMessagingPreferences# Staff to manage which notices users will receive and when they will receive them. Note: this only applies to courtesy notices. To manage if users have also access to these settings, use EnhancedMessagingPreferencesOPAC."
+msgstr " Staff to manage which notices users will receive and when they will receive them. Note: this only applies to courtesy notices. To manage if users have also access to these settings, use EnhancedMessagingPreferencesOPAC."
 
 # Patrons > General
 msgid "patrons.pref#EnhancedMessagingPreferencesOPAC# Don't show"
@@ -6930,7 +6899,7 @@ msgstr ""
 
 # Patrons > Norwegian patron database
 msgid "patrons.pref#NorwegianPatronDBUsername# Communicate with the Norwegian national patron database using the username"
-msgstr "patrons.pref#NorwegianPatronDBUsername# Communicate with the Norwegian national user database using the username"
+msgstr " Communicate with the Norwegian national user database using the username"
 
 # Patrons > Norwegian patron database
 msgid "patrons.pref#NorwegianPatronDBUsername# and the password"
@@ -6950,7 +6919,7 @@ msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#PatronQuickAddFields# add these fields to the patron quick add form when entering a new patron. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
-msgstr "patrons.pref#PatronQuickAddFields# add these fields to the user quick add form when entering a new user. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
+msgstr " add these fields to the user quick add form when entering a new user. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
 
 # Patrons > General
 msgid "patrons.pref#PatronsPerPage# By default, show"
@@ -6989,7 +6958,7 @@ msgid "patrons.pref#RequireStrongPassword# a strong password for staff and patro
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#SMSSendDriver# Define a username/login"
+msgid "patrons.pref#SMSSendDriver# <br>If you would prefer to receive SMS via E-mail, set SMSendDriver to: Email"
 msgstr ""
 
 # Patrons > General
@@ -6997,11 +6966,15 @@ msgid "patrons.pref#SMSSendDriver# Use the SMS::Send::"
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#SMSSendDriver# and a password"
+msgid "patrons.pref#SMSSendDriver# driver to send SMS messages."
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#SMSSendDriver# driver to send SMS messages."
+msgid "patrons.pref#SMSSendUsername# Define a username/login"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#SMSSendUsername# and a password"
 msgstr ""
 
 # Patrons > General
@@ -7054,7 +7027,7 @@ msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#autoMemberNum# default the card number field on the patron addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942)."
-msgstr "patrons.pref#autoMemberNum# default the card number field on the user addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942)."
+msgstr " default the card number field on the user addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942)."
 
 # Patrons > General
 msgid "patrons.pref#borrowerRelationship# (input multiple choices separated by |). Leave empty to deactivate"

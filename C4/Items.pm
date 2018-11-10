@@ -22,6 +22,46 @@ package C4::Items;
 use strict;
 #use warnings; FIXME - Bug 2505
 
+use vars qw(@ISA @EXPORT);
+BEGIN {
+    require Exporter;
+    @ISA = qw(Exporter);
+
+    @EXPORT = qw(
+        GetItem
+        AddItemFromMarc
+        AddItem
+        AddItemBatchFromMarc
+        ModItemFromMarc
+        Item2Marc
+        ModItem
+        ModDateLastSeen
+        ModItemTransfer
+        DelItem
+        CheckItemPreSave
+        GetItemsForInventory
+        GetItemsByBiblioitemnumber
+        GetItemsInfo
+	    GetItemsLocationInfo
+	    GetHostItemsInfo
+        GetItemnumbersForBiblio
+    	get_hostitemnumbers_of
+        GetItemnumberFromBarcode
+        GetBarcodeFromItemnumber
+        GetHiddenItemnumbers
+        ItemSafeToDelete
+        DelItemCheck
+        MoveItemFromBiblio
+        GetLastAcquisitions
+        CartToShelf
+        ShelfToCart
+        GetAnalyticsCount
+        SearchItemsByField
+        SearchItems
+        PrepareItemrecordDisplay
+    );
+}
+
 use Carp;
 use C4::Context;
 use C4::Koha;
@@ -30,14 +70,14 @@ use Koha::DateUtils;
 use MARC::Record;
 use C4::ClassSource;
 use C4::Log;
-use List::MoreUtils qw/any/;
-use YAML qw/Load/;
+use List::MoreUtils qw(any);
+use YAML qw(Load);
 use DateTime::Format::MySQL;
 use Data::Dumper; # used as part of logging item record changes, not just for
                   # debugging; so please don't remove this
 
 use Koha::AuthorisedValues;
-use Koha::DateUtils qw/dt_from_string/;
+use Koha::DateUtils qw(dt_from_string);
 use Koha::Database;
 
 use Koha::Biblioitems;
@@ -46,56 +86,6 @@ use Koha::ItemTypes;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 use Koha::Libraries;
-
-use vars qw(@ISA @EXPORT);
-
-BEGIN {
-
-	require Exporter;
-    @ISA = qw( Exporter );
-
-    # function exports
-    @EXPORT = qw(
-        GetItem
-        AddItemFromMarc
-        AddItem
-        AddItemBatchFromMarc
-        ModItemFromMarc
-    Item2Marc
-        ModItem
-        ModDateLastSeen
-        ModItemTransfer
-        DelItem
-    
-        CheckItemPreSave
-    
-        GetItemsForInventory
-        GetItemsByBiblioitemnumber
-        GetItemsInfo
-	GetItemsLocationInfo
-	GetHostItemsInfo
-        GetItemnumbersForBiblio
-	get_hostitemnumbers_of
-        GetItemnumberFromBarcode
-        GetBarcodeFromItemnumber
-        GetHiddenItemnumbers
-        ItemSafeToDelete
-        DelItemCheck
-    MoveItemFromBiblio
-    GetLatestAcquisitions
-
-        CartToShelf
-        ShelfToCart
-
-	GetAnalyticsCount
-
-        SearchItemsByField
-        SearchItems
-
-        PrepareItemrecordDisplay
-
-    );
-}
 
 =head1 NAME
 
@@ -238,10 +228,10 @@ sub AddItemFromMarc {
     # parse item hash from MARC
     my $frameworkcode = C4::Biblio::GetFrameworkCode( $biblionumber );
     my ($itemtag,$itemsubfield)=C4::Biblio::GetMarcFromKohaField("items.itemnumber",$frameworkcode);
-	
-	my $localitemmarc=MARC::Record->new;
-	$localitemmarc->append_fields($source_item_marc->field($itemtag));
-    my $item = &TransformMarcToKoha( $localitemmarc, $frameworkcode ,'items');
+
+    my $localitemmarc=MARC::Record->new;
+    $localitemmarc->append_fields($source_item_marc->field($itemtag));
+    my $item = TransformMarcToKoha( $localitemmarc, $frameworkcode ,'items');
     my $unlinked_item_subfields = _get_unlinked_item_subfields($localitemmarc, $frameworkcode);
     return AddItem($item, $biblionumber, $dbh, $frameworkcode, $unlinked_item_subfields);
 }
@@ -503,8 +493,8 @@ sub ModItemFromMarc {
 
     my $localitemmarc = MARC::Record->new;
     $localitemmarc->append_fields( $item_marc->field($itemtag) );
-    my $item = &TransformMarcToKoha( $localitemmarc, $frameworkcode, 'items' );
-    my $default_values = _build_default_values_for_mod_marc($frameworkcode);
+    my $item = TransformMarcToKoha( $localitemmarc, $frameworkcode, 'items' );
+    my $default_values = _build_default_values_for_mod_marc();
     foreach my $item_field ( keys %$default_values ) {
         $item->{$item_field} = $default_values->{$item_field}
           unless exists $item->{$item_field};
@@ -558,6 +548,9 @@ sub ModItem {
     my $log_action = $additional_params->{log_action} // 1;
     my $unlinked_item_subfields = $additional_params->{unlinked_item_subfields};
 
+    return unless %$item;
+    $item->{'itemnumber'} = $itemnumber or return;
+
     # if $biblionumber is undefined, get it from the current item
     unless (defined $biblionumber) {
         $biblionumber = _get_single_item_column('biblionumber', $itemnumber);
@@ -566,8 +559,6 @@ sub ModItem {
     if ($unlinked_item_subfields) {
         $item->{'more_subfields_xml'} = _get_unlinked_subfields_xml($unlinked_item_subfields);
     };
-
-    $item->{'itemnumber'} = $itemnumber or return;
 
     my @fields = qw( itemlost withdrawn damaged );
 
@@ -646,18 +637,24 @@ sub ModItemTransfer {
 
 =head2 ModDateLastSeen
 
-  ModDateLastSeen($itemnum);
+ModDateLastSeen( $itemnumber, $leave_item_lost );
 
 Mark item as seen. Is called when an item is issued, returned or manually marked during inventory/stocktaking.
-C<$itemnum> is the item number
+C<$itemnumber> is the item number
+C<$leave_item_lost> determines if a lost item will be found or remain lost
 
 =cut
 
 sub ModDateLastSeen {
-    my ($itemnumber) = @_;
+    my ( $itemnumber, $leave_item_lost ) = @_;
 
     my $today = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
-    ModItem( { itemlost => 0, datelastseen => $today }, undef, $itemnumber, { log_action => 0 } );
+
+    my $params;
+    $params->{datelastseen} = $today;
+    $params->{itemlost} = 0 unless $leave_item_lost;
+
+    ModItem( $params, undef, $itemnumber, { log_action => 0 } );
 }
 
 =head2 DelItem
@@ -944,6 +941,7 @@ Called by C<C4::XISBN>
 
 sub GetItemsByBiblioitemnumber {
     my ( $bibitem ) = @_;
+    warn "C4::Items::GetItemsByBiblioitemnumber will be deprecated as of 18.11. - See Bug 21202 for details\n";
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT * FROM items WHERE items.biblioitemnumber = ?") || die $dbh->errstr;
     # Get all items attached to a biblioitem
@@ -2582,7 +2580,7 @@ sub PrepareItemrecordDisplay {
     # Note: $tagslib obtained from GetMarcStructure() in 'unsafe' mode is
     # a shared data structure. No plugin (including custom ones) should change
     # its contents. See also GetMarcStructure.
-    my $tagslib = &GetMarcStructure( 1, $frameworkcode, { unsafe => 1 } );
+    my $tagslib = GetMarcStructure( 1, $frameworkcode, { unsafe => 1 } );
 
     # return nothing if we don't have found an existing framework.
     return q{} unless $tagslib;

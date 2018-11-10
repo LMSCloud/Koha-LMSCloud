@@ -230,15 +230,7 @@ sub add_form {
         push @{$field_selection}, add_fields('aqbooksellers', 'aqbasket', 'aqorders', 'biblio', 'biblioitems');
     }
     elsif ($module eq 'claimissues') {
-        push @{$field_selection}, add_fields('aqbooksellers', 'serial', 'subscription');
-        push @{$field_selection},
-        {
-            value => q{},
-            text => '---BIBLIO---'
-        };
-        foreach(qw(title author serial)) {
-            push @{$field_selection}, {value => "biblio.$_", text => ucfirst $_ };
-        }
+        push @{$field_selection}, add_fields('aqbooksellers', 'serial', 'subscription', 'biblio', 'biblioitems');
     }
     elsif ($module eq 'serial') {
         push @{$field_selection}, add_fields('branches', 'biblio', 'biblioitems', 'borrowers', 'subscription', 'serial');
@@ -385,7 +377,6 @@ sub retrieve_letters {
     }
 
     $sql .= " WHERE ".join(" AND ", @where) if @where;
-    $sql .= " GROUP BY branchcode,module,code";
     $sql .= " ORDER BY module, code, branchcode";
 
     return $dbh->selectall_arrayref($sql, { Slice => {} }, @args);

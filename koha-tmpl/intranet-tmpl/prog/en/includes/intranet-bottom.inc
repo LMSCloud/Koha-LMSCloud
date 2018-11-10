@@ -1,4 +1,5 @@
 [% USE Koha %]
+[% USE KohaPlugins %]
         </div>
 [% IF ( ( languages_loop ) && ( ! popup_window ) && ( Koha.Preference('StaffLangSelectorMode') == 'both' || Koha.Preference('StaffLangSelectorMode') == 'footer') ) %]
     [% UNLESS ( one_language_enabled ) %]
@@ -72,4 +73,5 @@
         [% TRY %][% jsextrainclude %][% CATCH %][% END %]
     [% END %]
     </body>
+[% KohaPlugins.get_plugins_intranet_js %]
 </html>

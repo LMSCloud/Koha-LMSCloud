@@ -24,7 +24,9 @@ use C4::Output;
 
 use C4::Biblio;    # GetBiblio
 use C4::Search;		# enabled_staff_search_views
+use C4::Serials;
 use Koha::Checkouts;
+use Koha::Old::Checkouts;
 
 use Koha::Biblios;
 
@@ -41,20 +43,29 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 my $biblionumber = $query->param('biblionumber');
 
-my $checkouts = Koha::Checkouts->search(
+my @checkouts = Koha::Checkouts->search(
     { biblionumber => $biblionumber },
     {
         join       => 'item',
         order_by   => 'timestamp',
     }
 );
+my @old_checkouts = Koha::Old::Checkouts->search(
+    { biblionumber => $biblionumber },
+    {
+        join       => 'item',
+        order_by   => 'timestamp',
+    }
+);
+
 my $biblio = Koha::Biblios->find( $biblionumber );
 
 $template->param(
-    checkouts => $checkouts,
+    checkouts => [ @checkouts, @old_checkouts ],
     biblio    => $biblio,
 	issuehistoryview => 1,
 	C4::Search::enabled_staff_search_views,
+    subscriptionsnumber => CountSubscriptionFromBiblionumber($biblionumber),
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

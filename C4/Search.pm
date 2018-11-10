@@ -963,6 +963,9 @@ sub _build_stemmed_operand {
     require Lingua::Stem::Snowball ;
     my $stemmed_operand=q{};
 
+    # Stemmer needs language
+    return $operand unless $lang;
+
     # If operand contains a digit, it is almost certainly an identifier, and should
     # not be stemmed.  This is particularly relevant for ISBNs and ISSNs, which
     # can contain the letter "X" - for example, _build_stemmend_operand would reduce
@@ -2561,7 +2564,7 @@ sub new_record_from_zebra {
     # Set the default indexing modes
     my $search_engine = C4::Context->preference("SearchEngine");
     if ($search_engine eq 'Elasticsearch') {
-        return $raw_data;
+        return ref $raw_data eq 'MARC::Record' ? $raw_data : MARC::Record->new_from_xml( $raw_data, 'UTF-8' );
     }
     my $index_mode = ( $server eq 'biblioserver' )
                         ? C4::Context->config('zebra_bib_index_mode') // 'dom'

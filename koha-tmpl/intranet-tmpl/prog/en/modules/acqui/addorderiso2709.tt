@@ -18,7 +18,7 @@
 <body id="acq_addorderiso2709" class="acq">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% booksellername %]</a> &rsaquo; <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno %]">Basket [% basketno %]</a> &rsaquo;  Add orders from iso2709 file</div>
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% booksellername | html %]</a> &rsaquo; <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketno | html %]</a> &rsaquo;  Add orders from MARC file</div>
 <div id="doc3" class="yui-t2">
    <div id="bd">
        <div id="yui-main">
@@ -226,7 +226,7 @@
                         <li><label for="budget_code_item_[% item.item_id %]">budget_code</label><select id="budget_code_item_[% item.item_id %]" name="budget_code_[% item.biblio_count %]">
                         <option value="">Select a fund</option>
                         [% FOREACH budget_loo IN budget_loop %]
-                            [% IF ( budget_loo.b_code ) == ( item.budget_code ) %]<option value="[% budget_loo.b_id %]" selected="selected">[% budget_loo.b_txt %]</option>
+                            [% IF ( budget_loo.b_id ) == ( item.budget_id ) %]<option value="[% budget_loo.b_id %]" selected="selected">[% budget_loo.b_txt %]</option>
                             [% ELSE %]<option value="[% budget_loo.b_id %]">[% budget_loo.b_txt %]</option>
                             [% END %]
                         [% END %]
@@ -564,7 +564,7 @@
                 $("#dataPreview .modal-body").load(page + " div");
                 $('#dataPreview').modal({show:true});
             });
-            $("#dataPreview").on("hidden", function(){
+            $("#dataPreview").on("hidden.bs.modal", function(){
                 $("#dataPreviewLabel").html("");
                 $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
             });

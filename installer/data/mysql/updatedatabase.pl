@@ -16757,7 +16757,7 @@ if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences (`variable`,`value`,`options`,`explanation`,`type`)
         VALUES
-            ('IssuingBranchBecomesHomeBranch','0',NULL,'If ON, the issuing library will be set as home branch of an item. The setting is useful for a library system that does not transfer items.','YesNo');
+            ('IssuingBranchBecomesHomeBranch','0',NULL,'If ON, the issuing library will be set as home branch of an item. The setting is useful for a library system that does not transfer items.','YesNo')
     });
     
     SetVersion ($DBversion);
@@ -16770,11 +16770,201 @@ if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences (`variable`,`value`,`options`,`explanation`,`type`)
         VALUES
-            ('EnableHoldsNotForLoanStatus','',NULL,'Enable patrons to place holds for ordered items with the specified negative not for loan status if on shelf holds are allowed only if all items are unavailable. Seperate multiple status by | (e.g. -1|-2)','Free');
+            ('EnableHoldsNotForLoanStatus','',NULL,'Enable patrons to place holds for ordered items with the specified negative not for loan status if on shelf holds are allowed only if all items are unavailable. Seperate multiple status by | (e.g. -1|-2)','Free')
     });
     
     SetVersion ($DBversion);
     print "Upgrade to $DBversion done (18.05.002 release)\n";
+}
+
+$DBversion = "18.05.02.000";
+if ( CheckVersion($DBversion) ) {
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (18.05.02 release)\n";
+}
+
+$DBversion = '18.05.02.001';
+if( CheckVersion( $DBversion ) ) {
+
+    # Add 'Manual Credit' offset type
+    $dbh->do(q{
+        INSERT IGNORE INTO `account_offset_types` (`type`) VALUES ('Manual Credit');
+    });
+
+    # Fix wrong account offsets / Manual credits
+    $dbh->do(q{
+        UPDATE account_offsets
+        SET credit_id=debit_id,
+            debit_id=NULL,
+            type='Manual Credit'
+        WHERE amount < 0 AND
+              type='Manual Debit' AND
+              debit_id IN
+                (SELECT accountlines_id AS debit_id
+                 FROM accountlines
+                 WHERE accounttype='C');
+    });
+
+    # Fix wrong account offsets / Manually forgiven amounts
+    $dbh->do(q{
+        UPDATE account_offsets
+        SET credit_id=debit_id,
+            debit_id=NULL,
+            type='Writeoff'
+        WHERE amount < 0 AND
+              type='Manual Debit' AND
+              debit_id IN
+                (SELECT accountlines_id AS debit_id
+                 FROM accountlines
+                 WHERE accounttype='FOR');
+    });
+
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 20980 - Manual credit offsets are stored as debits)\n";
+}
+
+$DBversion = '18.05.02.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{DELETE FROM systempreferences where variable="OCLCAffiliateID";});
+    $dbh->do(q{DELETE FROM systempreferences where variable="XISBN";});
+    $dbh->do(q{DELETE FROM systempreferences where variable="XISBNDailyLimit";});
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21226 - Remove prefs OCLCAffiliateID, XISBN and XISBNDailyLimit)\n";
+}
+
+$DBversion = '18.05.02.003';
+if( CheckVersion( $DBversion ) ) {
+    my $dtf  = Koha::Database->new->schema->storage->datetime_parser;
+    my $days = C4::Context->preference('MaxPickupDelay') || 7;
+    my $date = DateTime->now()->add( days => $days );
+    my $sql  = q|UPDATE reserves SET expirationdate = ? WHERE expirationdate IS NULL AND waitingdate IS NOT NULL|;
+    $dbh->do( $sql, undef, $dtf->format_datetime($date) );
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 20773 - expirationdate filled for waiting holds)\n";
+}
+
+$DBversion = '18.05.02.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q|INSERT IGNORE INTO authorised_value_categories (category_name) VALUES ('ROADTYPE');|);
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21144: Add ROADTYPE to default authorised values categories)\n";
+}
+
+$DBversion = '18.05.02.005';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q|
+UPDATE items LEFT JOIN issues USING (itemnumber)
+SET items.onloan = NULL
+WHERE issues.itemnumber IS NULL
+    |);
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 20487: Clear items.onloan for unissued items)\n";
+}
+
+$DBversion = "18.05.03.000";
+if ( CheckVersion($DBversion) ) {
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (18.05.03 release)\n";
+}
+
+$DBversion = '18.05.03.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( "DROP TABLE IF EXISTS services_throttle" );
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21235: Remove table services_throttle)\n";
+}
+
+$DBversion = '18.05.03.002';
+if( CheckVersion( $DBversion ) ) {
+    unless ( index_exists( 'subscription', 'by_biblionumber' ) ) {
+        $dbh->do(q{
+            CREATE INDEX `by_biblionumber` ON `subscription` (`biblionumber`)
+        });
+    }
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21288: Slowness in acquisition caused by GetInvoices\n";
+}
+
+$DBversion = '18.05.03.003';
+if( CheckVersion( $DBversion ) ) {
+    if ( column_exists( 'accountlines', 'dispute' ) ) {
+        $dbh->do(q{
+            ALTER TABLE `accountlines`
+                DROP COLUMN `dispute`
+        });
+    }
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 20777 - Remove unused field accountlines.dispute)\n";
+}
+
+$DBversion = "18.05.04.000";
+if ( CheckVersion($DBversion) ) {
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (18.05.04 release)\n";
+}
+
+$DBversion = '18.05.04.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q|ALTER TABLE items                   CHANGE COLUMN ccode ccode varchar(80) default NULL|);
+    $dbh->do(q|ALTER TABLE deleteditems            CHANGE COLUMN ccode ccode varchar(80) default NULL|);
+    $dbh->do(q|ALTER TABLE branch_transfer_limits  CHANGE COLUMN ccode ccode varchar(80) default NULL|);
+    $dbh->do(q|ALTER TABLE course_items            CHANGE COLUMN ccode ccode varchar(80) default NULL|);
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 5458: length of items.ccode disagrees with authorised_values.authorised_value)\n";
+}
+
+$DBversion = '18.05.04.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( "ALTER TABLE edifact_ean MODIFY branchcode VARCHAR(10) NULL DEFAULT NULL" );
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21417 - EDI ordering fails when basket and EAN libraries do not match)\n";
+}
+
+$DBversion = "18.05.05.000";
+if ( CheckVersion($DBversion) ) {
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (18.05.05 release)\n";
+}
+
+$DBversion = '18.05.05.001';
+if( CheckVersion( $DBversion ) ) {
+    unless (TableExists('branches_overdrive')){
+        $dbh->do( q|
+            CREATE TABLE IF NOT EXISTS branches_overdrive (
+                `branchcode` VARCHAR( 10 ) NOT NULL ,
+                `authname` VARCHAR( 255 ) NOT NULL ,
+                PRIMARY KEY (`branchcode`) ,
+                CONSTRAINT `branches_overdrive_ibfk_1` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE
+            ) ENGINE = INNODB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci |
+        );
+    }
+    $dbh->do("INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('OverDriveAuthname', '', 'Authname for OverDrive Patron Authentication, will be used as fallback if individual branch authname not set', NULL, 'Free');");
+    $dbh->do("INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('OverDriveWebsiteID','', 'WebsiteID provided by OverDrive', NULL, 'Free');");
+    $dbh->do("INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('OverDrivePasswordRequired','', 'Does the library require passwords for OverDrive SIP authentication', NULL, 'YesNo');");
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21082 - Add overdrive patron auth method)\n";
+}
+
+$DBversion = '18.05.05.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( "alter table statistics change column ccode ccode varchar(80) default NULL" );
+
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21617: Make statistics.ccode longer)\n";
+}
+
+$DBversion = '18.05.05.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q(
+        INSERT IGNORE INTO message_transports
+        (message_attribute_id,message_transport_type,is_digest,letter_module,letter_code)
+        VALUES
+        (2, 'phone', 0, 'circulation', 'PREDUE'),
+        (2, 'phone', 1, 'circulation', 'PREDUEDGST'),
+        (4, 'phone', 0, 'reserves',    'HOLD')
+        ));
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Bug 21639 - Add phone transports by default)\n";
 }
 
 # SEE bug 13068

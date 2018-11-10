@@ -20,6 +20,65 @@ package C4::Biblio;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+
+use vars qw(@ISA @EXPORT);
+BEGIN {
+    require Exporter;
+    @ISA = qw(Exporter);
+
+    @EXPORT = qw(
+        AddBiblio
+        GetBiblioData
+        GetMarcBiblio
+        GetRecordValue
+        GetISBDView
+        GetMarcControlnumber
+        GetMarcNotes
+        GetMarcISBN
+        GetMarcISSN
+        GetMarcSubjects
+        GetMarcAuthors
+        GetMarcSeries
+        GetMarcHosts
+        GetMarcUrls
+        GetUsedMarcStructure
+        GetXmlBiblio
+        GetCOinSBiblio
+        GetMarcPrice
+        MungeMarcPrice
+        GetMarcQuantity
+        GetAuthorisedValueDesc
+        GetMarcStructure
+        IsMarcStructureInternal
+        GetMarcFromKohaField
+        GetMarcSubfieldStructureFromKohaField
+        GetFrameworkCode
+        TransformKohaToMarc
+        PrepHostMarcField
+        CountItemsIssued
+        CountBiblioInOrders
+        ModBiblio
+        ModZebra
+        UpdateTotalIssues
+        RemoveAllNsb
+        DelBiblio
+        BiblioAutoLink
+        LinkBibHeadingsToAuthorities
+        TransformMarcToKoha
+        TransformHtmlToMarc
+        TransformHtmlToXml
+        prepare_host_field
+    );
+
+    # Internal functions
+    # those functions are exported but should not be used
+    # they are useful in a few circumstances, so they are exported,
+    # but don't use them unless you are a core developer ;-)
+    push @EXPORT, qw(
+      ModBiblioMarc
+    );
+}
+
 use Carp;
 
 use Encode qw( decode is_utf8 );
@@ -49,94 +108,8 @@ use Koha::ItemTypes;
 use Koha::SearchEngine;
 use Koha::Libraries;
 
-use vars qw(@ISA @EXPORT);
 use vars qw($debug $cgi_debug);
 
-BEGIN {
-
-    require Exporter;
-    @ISA = qw( Exporter );
-
-    # to add biblios
-    # EXPORTED FUNCTIONS.
-    push @EXPORT, qw(
-      &AddBiblio
-    );
-
-    # to get something
-    push @EXPORT, qw(
-      GetBiblioData
-      GetMarcBiblio
-
-      &GetRecordValue
-
-      &GetISBDView
-
-      &GetMarcControlnumber
-      &GetMarcNotes
-      &GetMarcISBN
-      &GetMarcISSN
-      &GetMarcSubjects
-      &GetMarcAuthors
-      &GetMarcSeries
-      &GetMarcHosts
-      GetMarcUrls
-      &GetUsedMarcStructure
-      &GetXmlBiblio
-      &GetCOinSBiblio
-      &GetMarcPrice
-      &MungeMarcPrice
-      &GetMarcQuantity
-
-      &GetAuthorisedValueDesc
-      &GetMarcStructure
-      &IsMarcStructureInternal
-      &GetMarcFromKohaField
-      &GetMarcSubfieldStructureFromKohaField
-      &GetFrameworkCode
-      &TransformKohaToMarc
-      &PrepHostMarcField
-
-      &CountItemsIssued
-      &CountBiblioInOrders
-    );
-
-    # To modify something
-    push @EXPORT, qw(
-      &ModBiblio
-      &ModZebra
-      &UpdateTotalIssues
-      &RemoveAllNsb
-    );
-
-    # To delete something
-    push @EXPORT, qw(
-      &DelBiblio
-    );
-
-    # To link headings in a bib record
-    # to authority records.
-    push @EXPORT, qw(
-      &BiblioAutoLink
-      &LinkBibHeadingsToAuthorities
-    );
-
-    # Internal functions
-    # those functions are exported but should not be used
-    # they are useful in a few circumstances, so they are exported,
-    # but don't use them unless you are a core developer ;-)
-    push @EXPORT, qw(
-      &ModBiblioMarc
-    );
-
-    # Others functions
-    push @EXPORT, qw(
-      &TransformMarcToKoha
-      &TransformHtmlToMarc
-      &TransformHtmlToXml
-      prepare_host_field
-    );
-}
 
 =head1 NAME
 
@@ -234,6 +207,10 @@ sub AddBiblio {
         $defer_marc_save = 1;
     }
 
+    if (C4::Context->preference('BiblioAddsAuthorities')) {
+        BiblioAutoLink( $record, $frameworkcode );
+    }
+
     my ( $biblionumber, $biblioitemnumber, $error );
     my $dbh = C4::Context->dbh;
 
@@ -293,6 +270,10 @@ sub ModBiblio {
     if ( C4::Context->preference("CataloguingLog") ) {
         my $newrecord = GetMarcBiblio({ biblionumber => $biblionumber });
         logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $newrecord->as_formatted );
+    }
+
+    if (C4::Context->preference('BiblioAddsAuthorities')) {
+        BiblioAutoLink( $record, $frameworkcode );
     }
 
     # Cleaning up invalid fields must be done early or SetUTF8Flag is liable to
@@ -380,6 +361,10 @@ C<$error> : undef unless an error occurs
 
 sub DelBiblio {
     my ($biblionumber) = @_;
+
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    return unless $biblio; # Should we throw an exception instead?
+
     my $dbh = C4::Context->dbh;
     my $error;    # for error handling
 
@@ -402,7 +387,6 @@ sub DelBiblio {
     }
 
     # We delete any existing holds
-    my $biblio = Koha::Biblios->find( $biblionumber );
     my $holds = $biblio->holds;
     while ( my $hold = $holds->next ) {
         $hold->cancel;
@@ -743,7 +727,7 @@ sub GetISBDView {
     my $framework = $params->{framework};
     my $itemtype  = $framework;
     my ( $holdingbrtagf, $holdingbrtagsubf ) = &GetMarcFromKohaField( "items.holdingbranch", $itemtype );
-    my $tagslib = &GetMarcStructure( 1, $itemtype, { unsafe => 1 } );
+    my $tagslib = GetMarcStructure( 1, $itemtype, { unsafe => 1 } );
 
     my $ISBD = C4::Context->preference($sysprefname);
     my $bloc = $ISBD;

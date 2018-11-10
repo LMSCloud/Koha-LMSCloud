@@ -261,11 +261,7 @@
                                                     [% END %]
 
                                                     [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
-                                                        [% IF ( using_https ) %]
-                                                            <img src="https://secure.syndetics.com/index.aspx?isbn=[% ISSUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;type=xw10&amp;upc=[% ISSUE.normalized_upc %]&amp;oclc=[% ISSUE.normalized_oclc %]" alt="" class="item-thumbnail" />
-                                                        [% ELSE %]
-                                                            <img src="http://www.syndetics.com/index.aspx?isbn=[% ISSUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;type=xw10&amp;upc=[% ISSUE.normalized_upc %]&amp;oclc=[% ISSUE.normalized_oclc %]" alt="" class="item-thumbnail" />
-                                                        [% END %]
+                                                        <img src="https://secure.syndetics.com/index.aspx?isbn=[% ISSUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;type=xw10&amp;upc=[% ISSUE.normalized_upc %]&amp;oclc=[% ISSUE.normalized_oclc %]" alt="" class="item-thumbnail" />
                                                     [% END %]
 
                                                 </td>[% END # / IF JacketImages %]
@@ -780,11 +776,7 @@
                                                     [% END %]
 
                                                     [% IF ( SyndeticsCoverImages ) %]
-                                                        [% IF ( using_https ) %]
-                                                            <img src="https://secure.syndetics.com/index.aspx?isbn=[% OVERDUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;upc=[% OVERDUE.normalized_upc %]&amp;oclc=[% OVERDUE.normalized_oclc %]&amp;type=xw10" alt="" class="item-thumbnail" />
-                                                        [% ELSE %]
-                                                            <img src="http://www.syndetics.com/index.aspx?isbn=[% OVERDUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;upc=[% OVERDUE.normalized_upc %]&amp;oclc=[% OVERDUE.normalized_oclc %]&amp;type=xw10" alt="" class="item-thumbnail" />
-                                                        [% END %]
+                                                        <img src="https://secure.syndetics.com/index.aspx?isbn=[% OVERDUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;upc=[% OVERDUE.normalized_upc %]&amp;oclc=[% OVERDUE.normalized_oclc %]&amp;type=xw10" alt="" class="item-thumbnail" />
                                                     [% END %]
                                                     </td>
                                                 [% END # /IF jacketcell %]
@@ -1028,7 +1020,7 @@
                                                                         <div class="modal-body">
                                                                             <input type="hidden" name="reserve_id" value="[% RESERVE.reserve_id %]" />
                                                                             <label for="suspend_until_[% RESERVE.reserve_id %]">Suspend until:</label>
-                                                                            <input name="suspend_until" id="suspend_until_[% RESERVE.reserve_id %]" class="suspend-until" size="10" />
+                                                                            <input type="text" name="suspend_until" id="suspend_until_[% RESERVE.reserve_id %]" class="suspend-until" size="10" />
                                                                             [% INCLUDE 'date-format.inc' %]
                                                                             <p class="js-show"><a href="#" onclick="document.getElementById('suspend_until_[% RESERVE.reserve_id %]').value='';return false;">Clear date to suspend indefinitely</a></p>
                                                                             <button class="btn btn-mini js-hide" type="submit" name="submit">Suspend</button>
@@ -1070,7 +1062,7 @@
 
                                         [% IF AutoResumeSuspendedHolds %]
                                             <label for="suspend_until"> until </label>
-                                            <input name="suspend_until" id="suspend_until" class="suspend-until" readonly="readonly" size="10" />
+                                            <input type="text" name="suspend_until" id="suspend_until" class="suspend-until" readonly="readonly" size="10" />
                                             <a href="#" style="font-size:85%;text-decoration:none;" onclick="document.getElementById('suspend_until').value='';return false;">Clear date to suspend indefinitely</a>
                                         [% END %]
                                     </form>
@@ -1196,7 +1188,10 @@
 </div> <!-- /#main -->
 
 [% IF ( OverDriveCirculation ) %]
-[% INCLUDE 'overdrive-checkout.inc' %]
+    [% INCLUDE 'overdrive-checkout.inc' %]
+    [% IF ( Koha.Preference('OverDrivePasswordRequired') ) %]
+        [% INCLUDE 'overdrive-login.inc' %]
+    [% END %]
 [% END %]
 
 [% INCLUDE 'opac-bottom.inc' %]
@@ -1355,6 +1350,7 @@
     [% IF Koha.Preference('OverDriveCirculation') %]
     [% Asset.js("js/overdrive.js") %]
     <script>
+    var OD_password_required = [% IF Koha.Preference('OverDrivePasswordRequired') %]1[% ELSE %]0[% END %];
     $(document).ready(function() {
         [% IF ( overdrive_error ) %]
             KOHA.OverDriveCirculation.display_error("#opac-user-overdrive", "[% overdrive_error.dquote %]");

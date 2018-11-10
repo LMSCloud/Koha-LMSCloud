@@ -64,10 +64,10 @@
             [% IF CAN_user_tools_manage_patron_lists || CAN_user_borrowers_edit_borrowers || (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
               <div id="searchheader">
                   <div>
-                    [% IF CAN_user_tools_manage_patron_lists %]
                       <a href="#" id="select_all"><i class="fa fa-check"></i> Select all</a>
                       |
                       <a href="#" id="clear_all"><i class="fa fa-remove"></i> Clear all</a>
+                    [% IF CAN_user_tools_manage_patron_lists %]
                       |
                       <span>
                           <label for="add_to_patron_list">Add selected patrons to:</label>
@@ -108,7 +108,7 @@
             <table id="memberresultst">
               <thead>
                 <tr>
-                [% IF CAN_user_tools_manage_patron_lists %]
+                [% IF CAN_user_borrowers_edit_borrowers || CAN_user_tools_manage_patron_lists %]
                   <th>&nbsp;</th>
                 [% END %]
                   <th>Card</th>
@@ -345,9 +345,6 @@
         </fieldset>
       </form>
     </div>
-  </div>
-  <div class="yui-g">
-    [% INCLUDE 'members-menu.inc' %]
   </div>
 </div>
 
@@ -588,11 +585,11 @@
             });
             $("#select_all").on("click",function(e){
                 e.preventDefault();
-                $(".selection").prop("checked", true);
+                $(".selection").prop("checked", true).change();
             });
             $("#clear_all").on("click",function(e){
                 e.preventDefault();
-                $(".selection").prop("checked", false);
+                $(".selection").prop("checked", false).change();
             });
             $("#clear_search").on("click",function(e){
                 e.preventDefault();
@@ -722,7 +719,7 @@
 
             // Apply DataTables on the results table
             var columns_settings = [% ColumnsSettings.GetColumns( 'members', 'member', 'memberresultst', 'json' ) %];
-            [% UNLESS CAN_user_tools_manage_patron_lists %]
+            [% UNLESS CAN_user_borrowers_edit_borrowers OR CAN_user_tools_manage_patron_lists %]
                 [%# Remove the first column if we do not display the checkbox %]
                 columns_settings.splice(0, 1);
             [% END %]
@@ -835,7 +832,7 @@
                     });
                 },
                 'aoColumns':[
-                    [% IF CAN_user_tools_manage_patron_lists %]
+                    [% IF CAN_user_borrowers_edit_borrowers || CAN_user_tools_manage_patron_lists %]
                       { 'mDataProp': 'dt_borrowernumber', 'bSortable': false },
                     [% END %]
                     { 'mDataProp': 'dt_cardnumber' },

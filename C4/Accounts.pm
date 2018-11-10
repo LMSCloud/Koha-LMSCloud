@@ -22,7 +22,6 @@ use strict;
 #use warnings; FIXME - Bug 2505
 use C4::Context;
 use C4::Stats;
-# use C4::Members;
 use C4::CashRegisterManagement;
 use C4::Log qw(logaction);
 use Koha::Account;
@@ -85,37 +84,6 @@ sub getnextacctno {
     $sth->execute($borrowernumber);
     return ($sth->fetchrow || 1);
 }
-
-=head2 fixaccounts (removed)
-
-  &fixaccounts($accountlines_id, $borrowernumber, $accountnumber, $amount);
-
-#'
-# FIXME - I don't understand what this function does.
-sub fixaccounts {
-    my ( $accountlines_id, $borrowernumber, $accountno, $amount ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare(
-        "SELECT * FROM accountlines WHERE accountlines_id=?"
-    );
-    $sth->execute( $accountlines_id );
-    my $data = $sth->fetchrow_hashref;
-
-    # FIXME - Error-checking
-    my $diff        = $amount - $data->{'amount'};
-    my $outstanding = $data->{'amountoutstanding'} + $diff;
-    $sth->finish;
-
-    $dbh->do(<<EOT);
-        UPDATE  accountlines
-        SET     amount = '$amount',
-                amountoutstanding = '$outstanding'
-        WHERE   accountlines_id = $accountlines_id
-EOT
-	# FIXME: exceedingly bad form.  Use prepare with placholders ("?") in query and execute args.
-}
-
-=cut
 
 =head2 chargelostitem
 

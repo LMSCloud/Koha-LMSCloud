@@ -1,3 +1,4 @@
+[% USE Koha %]
 [% Asset.js("lib/codemirror/codemirror-compressed.js") %]
 [% Asset.js("lib/filesaver.js") %]
 [% Asset.js("lib/koha/cateditor/marc-mode.js") %]
@@ -177,7 +178,13 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
     }
 
     function getFieldHelpURL( tag ) {
-        [% IF ( marcflavour == 'MARC21' ) %]
+        [% IF Koha.Preference('marcfielddocurl') %]
+            var docurl = "[% Koha.Preference('marcfielddocurl').replace('"','&quot;') | html %]";
+            docurl = docurl.replace("{MARC}", "[% marcflavour | html %]");
+            docurl = docurl.replace("{FIELD}", ""+tag);
+            docurl = docurl.replace("{LANG}", "[% lang | html %]");
+            return docurl;
+        [% ELSIF ( marcflavour == 'MARC21' ) %]
             if ( tag == '000' ) {
                 return "http://www.loc.gov/marc/bibliographic/bdleader.html";
             } else if ( tag >= '090' && tag < '100' ) {
@@ -251,7 +258,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             }
         },
         'iso2709': {
-            saveLabel: _("Save as ISO2709 (.mrc) file"),
+            saveLabel: _("Save as MARC (.mrc) file"),
             save: function( id, record, done ) {
                 saveAs( new Blob( [record.toISO2709()], { 'type': 'application/octet-stream;charset=utf-8' } ), 'record.mrc' );
 
@@ -578,7 +585,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             invalidateSearchResults();
             Search.Reconnect();
         } else {
-            humanMsg.displayMsg( '<h3>' + _("Internal search error") + '</h3><p>' + error + '</p><p>' + _("Please refresh the page and try again.") + '</p>', { className: 'humanError' } );
+            humanMsg.displayMsg( '<h3>' + _("Internal search error") + '</h3><p>' + error.responseText + '</p><p>' + _("Please refresh the page and try again.") + '</p>', { className: 'humanError' } );
         }
     }
 
@@ -1089,7 +1096,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             if(editor.modified )
                 { return 1; }
             else
-                { return undef; }
+                { return undefined; }
         };
 
         // Start editor

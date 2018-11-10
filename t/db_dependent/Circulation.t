@@ -17,8 +17,9 @@
 
 use Modern::Perl;
 
-use Test::More tests => 118;
+use Test::More tests => 119;
 
+use Data::Dumper;
 use DateTime;
 use POSIX qw( floor );
 use t::lib::Mocks;
@@ -1742,7 +1743,7 @@ subtest 'AddReturn + CumulativeRestrictionPeriods' => sub {
 };
 
 subtest 'AddReturn + suspension_chargeperiod' => sub {
-    plan tests => 12;
+    plan tests => 21;
 
     my $library = $builder->build( { source => 'Branch' } );
     my $patron  = $builder->build( { source => 'Borrower', value => { categorycode => $patron_category->{categorycode} } } );
@@ -1891,6 +1892,16 @@ subtest 'AddReturn + suspension_chargeperiod' => sub {
             patron          => $patron,
             due_date        => $five_days_ago,
             expiration_date => $expected_expiration_dt->clone->add( days => 1 ),
+        }
+    );
+
+    test_debarment_on_checkout(
+        {
+            item            => $item_1,
+            library         => $library,
+            patron          => $patron,
+            return_date     => dt_from_string->add(days => 5),
+            expiration_date => dt_from_string->add(days => 5 + (5 * 2 - 1) ),
         }
     );
 };
@@ -2317,7 +2328,7 @@ subtest 'CanBookBeIssued | notforloan' => sub {
         );
 
         # for loan at item type and item level
-        $item->notforloan(undef)->store;
+        $item->notforloan(0)->store;
         $item->biblioitem->itemtype($itemtype->{itemtype})->store;
         ( $issuingimpossible, $needsconfirmation ) = CanBookBeIssued( $patron, $item->barcode, undef, undef, undef, undef );
         is_deeply( $needsconfirmation, {}, 'Item can be issued to this patron' );
@@ -2346,6 +2357,16 @@ subtest 'CanBookBeIssued | notforloan' => sub {
     };
 
     # TODO test with AllowNotForLoanOverride = 1
+};
+
+subtest 'AddReturn should clear items.onloan for unissued items' => sub {
+    plan tests => 1;
+
+    t::lib::Mocks::mock_preference( "AllowReturnToBranch", 'anywhere' );
+    my $item = $builder->build_object({ class => 'Koha::Items', value  => { onloan => '2018-01-01' }});
+    AddReturn( $item->barcode, $item->homebranch );
+    $item->discard_changes; # refresh
+    is( $item->onloan, undef, 'AddReturn did clear items.onloan' );
 };
 
 $schema->storage->txn_rollback;
@@ -2394,6 +2415,7 @@ sub test_debarment_on_checkout {
     my $library  = $params->{library};
     my $patron   = $params->{patron};
     my $due_date = $params->{due_date} || dt_from_string;
+    my $return_date = $params->{return_date} || dt_from_string;
     my $expected_expiration_date = $params->{expiration_date};
 
     $expected_expiration_date = output_pref(
@@ -2407,8 +2429,10 @@ sub test_debarment_on_checkout {
     my $line_number = $caller[2];
     AddIssue( $patron, $item->{barcode}, $due_date );
 
-    AddReturn( $item->{barcode}, $library->{branchcode},
-        undef, undef, dt_from_string );
+    my ( undef, $message ) = AddReturn( $item->{barcode}, $library->{branchcode},
+        undef, undef, $return_date );
+    is( $message->{WasReturned} && exists $message->{Debarred}, 1, 'AddReturn must have debarred the patron' )
+        or diag('AddReturn returned message ' . Dumper $message );
     my $debarments = Koha::Patron::Debarments::GetDebarments(
         { borrowernumber => $patron->{borrowernumber}, type => 'SUSPENSION' } );
     is( scalar(@$debarments), 1, 'Test at line ' . $line_number );

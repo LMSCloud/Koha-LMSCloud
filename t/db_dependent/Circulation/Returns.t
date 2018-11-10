@@ -24,10 +24,10 @@ use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Biblio;
+use C4::Members;
 use C4::Circulation;
 use C4::Items;
-use C4::Members;
+use C4::Biblio;
 use Koha::Database;
 use Koha::Account::Lines;
 use Koha::DateUtils;
@@ -337,7 +337,7 @@ subtest 'Handle ids duplication' => sub {
 };
 
 subtest 'BlockReturnOfLostItems' => sub {
-    plan tests => 3;
+    plan tests => 4;
     my $biblio = $builder->build_object( { class => 'Koha::Biblios' } );
     my $item = $builder->build_object(
         {
@@ -360,6 +360,9 @@ subtest 'BlockReturnOfLostItems' => sub {
     my ( $doreturn, $messages, $issue ) = AddReturn($item->barcode);
     is( $doreturn, 0, "With BlockReturnOfLostItems, a checkin of a lost item should be blocked");
     is( $messages->{WasLost}, 1, "... and the WasLost flag should be set");
+
+    $item->discard_changes;
+    is( $item->itemlost, 1, "Item remains lost" );
 
     t::lib::Mocks::mock_preference('BlockReturnOfLostItems', 0);
     ( $doreturn, $messages, $issue ) = AddReturn($item->barcode);

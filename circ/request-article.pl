@@ -22,6 +22,8 @@ use Modern::Perl;
 use C4::Output;
 use C4::Auth;
 use C4::Utils::DataTables::Members;
+use C4::Search;
+use C4::Serials;
 use Koha::Biblios;
 use Koha::Patrons;
 use Koha::ArticleRequests;
@@ -44,6 +46,9 @@ my $patron_cardnumber = $cgi->param('patron_cardnumber');
 my $patron_id         = $cgi->param('patron_id');
 
 my $biblio = Koha::Biblios->find($biblionumber);
+output_and_exit( $cgi, $cookie, $template, 'unknown_biblio')
+    unless $biblio;
+
 my $patron =
     $patron_id         ? Koha::Patrons->find($patron_id)
   : $patron_cardnumber ? Koha::Patrons->find( { cardnumber => $patron_cardnumber } )
@@ -106,6 +111,8 @@ if ( !$patron && $patron_cardnumber ) {
 $template->param(
     biblio => $biblio,
     patron => $patron,
+    subscriptionsnumber => CountSubscriptionFromBiblionumber($biblionumber),
+    C4::Search::enabled_staff_search_views,
 );
 
 output_html_with_http_headers $cgi, $cookie, $template->output;

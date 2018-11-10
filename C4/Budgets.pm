@@ -133,6 +133,7 @@ sub AddBudgetPeriod {
     my ($budgetperiod) = @_;
     return unless($budgetperiod->{budget_period_startdate} && $budgetperiod->{budget_period_enddate});
 
+    undef $budgetperiod->{budget_period_id};
     my $resultset = Koha::Database->new()->schema->resultset('Aqbudgetperiod');
     return $resultset->create($budgetperiod)->id;
 }
@@ -549,14 +550,14 @@ sub GetBudgetHierarchy {
                SUM( COALESCE(unitprice_tax_included, ecost_tax_included) * quantity ) AS budget_spent
         FROM aqorders JOIN aqbudgets USING (budget_id)
         WHERE quantityreceived > 0 AND datecancellationprinted IS NULL
-        GROUP BY budget_id
+        GROUP BY budget_id, budget_parent_id
         |, 'budget_id');
     my $hr_budget_ordered = $dbh->selectall_hashref(q|
         SELECT aqorders.budget_id, aqbudgets.budget_parent_id,
                SUM(ecost_tax_included *  quantity) AS budget_ordered
         FROM aqorders JOIN aqbudgets USING (budget_id)
         WHERE quantityreceived = 0 AND datecancellationprinted IS NULL
-        GROUP BY budget_id
+        GROUP BY budget_id, budget_parent_id
         |, 'budget_id');
     my $hr_budget_spent_shipment = $dbh->selectall_hashref(q|
         SELECT shipmentcost_budgetid as budget_id,
@@ -622,6 +623,8 @@ sub AddBudget {
     my ($budget) = @_;
     return unless ($budget);
 
+    undef $budget->{budget_encumb} if $budget->{budget_encumb} eq '';
+    undef $budget->{budget_owner_id} if $budget->{budget_owner_id} eq '';
     my $resultset = Koha::Database->new()->schema->resultset('Aqbudget');
     return $resultset->create($budget)->id;
 }
@@ -632,6 +635,8 @@ sub ModBudget {
     my $result = Koha::Database->new()->schema->resultset('Aqbudget')->find($budget);
     return unless($result);
 
+    undef $budget->{budget_encumb} if $budget->{budget_encumb} eq '';
+    undef $budget->{budget_owner_id} if $budget->{budget_owner_id} eq '';
     $result = $result->update($budget);
     return $result->in_storage;
 }
@@ -1210,6 +1215,7 @@ sub CloneBudgetHierarchy {
         my $tidy_budget =
           { map { join( ' ', @columns ) =~ /$_/ ? ( $_ => $budget->{$_} ) : () }
               keys %$budget };
+        delete $tidy_budget->{timestamp};
         my $new_budget_id = AddBudget(
             {
                 %$tidy_budget,

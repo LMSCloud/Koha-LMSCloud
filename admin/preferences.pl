@@ -35,7 +35,6 @@ use YAML::Syck qw();
 use List::MoreUtils qw(any);
 $YAML::Syck::ImplicitTyping = 1;
 $YAML::Syck::ImplicitUnicode = 1;
-our $lang;
 
 # use Smart::Comments;
 #
@@ -81,7 +80,7 @@ sub _get_chunk {
             $interface = 'intranet';
             $theme     = C4::Context->preference('template');
         }
-        $chunk->{'languages'} = getTranslatedLanguages( $interface, $theme, $lang, $current_languages );
+        $chunk->{'languages'} = getTranslatedLanguages( $interface, $theme, undef, $current_languages );
         $chunk->{'type'} = 'languages';
     } elsif ( $options{ 'choices' } ) {
         if ( $options{'choices'} && ref( $options{ 'choices' } ) eq '' ) {
@@ -229,7 +228,8 @@ sub SearchPrefs {
     our @terms = split( /\s+/, $searchfield );
 
     foreach my $tab_name ( keys %tab_files ) {
-        my $data = GetTab( $input, $tab_name );
+        # Force list context to remove 'uninitialized value in goto' warn coming from YAML::Syck; note that the other GetTab call is in list context too. The actual cause however is the null value for the pref OpacRenewalBranch in opac.pref
+        my ($data) = GetTab( $input, $tab_name );
         my $title = ( keys( %$data ) )[0];
         my $tab = $data->{ $title };
         $tab = { '' => $tab } if ( ref( $tab ) eq 'ARRAY' );
@@ -305,7 +305,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-$lang = $template->param( 'lang' );
 my $op = $input->param( 'op' ) || '';
 my $tab = $input->param( 'tab' );
 $tab ||= 'acquisitions'; # Ideally this should be "local-use" but preferences.pl

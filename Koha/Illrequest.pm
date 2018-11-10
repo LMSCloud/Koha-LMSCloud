@@ -625,23 +625,24 @@ sub backend_create {
 print STDERR "Koha::Illrequest::backend_create() Start params->{stage}:" . scalar $params->{stage} . ": self->_backend->name:" . scalar $self->_backend->name . ":\n";
 
     # Establish whether we need to do a generic copyright clearance.
-    if ( ( !$params->{stage} || $params->{stage} eq 'init' )
-             && C4::Context->preference("ILLModuleCopyrightClearance") ) {
-        return {
-            error   => 0,
-            status  => '',
-            message => '',
-            method  => 'create',
-            stage   => 'copyrightclearance',
-            value   => {
-                backend => $self->_backend->name
-            }
-        };
-    } elsif (     defined $params->{stage}
-               && $params->{stage} eq 'copyrightclearance' ) {
-        $params->{stage} = 'init';
+    if ($params->{opac}) {
+        if ( ( !$params->{stage} || $params->{stage} eq 'init' )
+                && C4::Context->preference("ILLModuleCopyrightClearance") ) {
+            return {
+                error   => 0,
+                status  => '',
+                message => '',
+                method  => 'create',
+                stage   => 'copyrightclearance',
+                value   => {
+                    backend => $self->_backend->name
+                }
+            };
+        } elsif (     defined $params->{stage}
+                && $params->{stage} eq 'copyrightclearance' ) {
+            $params->{stage} = 'init';
+        }
     }
-
     # First perform API action, then...
     my $args = {
         request => $self,

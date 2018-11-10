@@ -5,17 +5,17 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2018-06-15 08:03-0300\n"
-"PO-Revision-Date: 2018-03-05 07:26+0000\n"
-"Last-Translator: lan <starangle986@gmail.com>\n"
+"POT-Creation-Date: 2018-10-20 00:43-0300\n"
+"PO-Revision-Date: 2018-10-16 02:43+0000\n"
+"Last-Translator: Frank Chou <frank@sris.com.tw>\n"
 "Language-Team: koha_TW <kohataiwan@googlegroups.com>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Pootle 2.5.1.1\n"
-"X-POOTLE-MTIME: 1520234779.000000\n"
+"X-Generator: Pootle 2.8\n"
+"X-POOTLE-MTIME: 1539657832.981699\n"
 "X-Pootle-Path: /zh_CN/18.05/zh-Hans-CN-staff-help.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -2608,7 +2608,7 @@ msgstr "音效报警"
 #: intranet-tmpl/prog/en/modules/help/admin/z3950servers.tt:69
 #, c-format
 msgid "Author"
-msgstr "着者"
+msgstr "著者"
 
 #: intranet-tmpl/prog/en/modules/help/admin/items_search_fields.tt:18
 #, c-format
@@ -6074,10 +6074,10 @@ msgstr "格式"
 #. %1$s:  interface 
 #. %2$s:  theme 
 #: intranet-tmpl/prog/en/modules/help/labels/spinelabel-home.tt:9
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Format your label printing by editing spinelabel.css found in %s/%s/css/"
-msgstr "编辑在 %s/css/ 找到的书标打印格式 spinelabel.css"
+msgstr "编辑在 %s/%s/css/ 找到的书标打印格式 spinelabel.css"
 
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:5
 #: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:59
@@ -9198,7 +9198,7 @@ msgid ""
 "supported in Koha). Once this information is saved, items or holdings can be "
 "attached."
 msgstr ""
-"在 Koha 的书目纪录里包括与数据有关的信息。包括题名、着者、ISBN 等。这些信息储"
+"在 Koha 的书目纪录里包括与数据有关的信息。包括题名、著者、ISBN 等。这些信息储"
 "存于 Marc (不是 Koha 支持的变形 Marc)。存储后，就能加入馆藏数据。"
 
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:110
@@ -14318,8 +14318,7 @@ msgstr "此 '罚款宽限期' 是馆藏逾期后的一段时间，过了这段�
 #, fuzzy, c-format
 msgid ""
 "The 'Grace period' is the number of days before an issue is automatically "
-"moved from 'Expected' status to 'Waiting' and how many days before an issue "
-"is automatically moved from 'Waiting' status to 'Late'"
+"moved from status 'Expected' to 'Late'"
 msgstr ""
 "此 '宽限期' 是天数，自动把期刊从 '预期' 状态转移为 '等待'，同样的天数，自动把"
 "期刊从 '等待' 状态转移为 '迟到'"
@@ -15316,7 +15315,7 @@ msgstr "新的值将与旧的值一起出现在清单"
 #: intranet-tmpl/prog/en/modules/help/tools/koha-news.tt:23
 #, c-format
 msgid "The news item's author will be set to the currently logged in user."
-msgstr "最新消息的着者就是当前登录的用户。"
+msgstr "最新消息的著者就是当前登录的用户。"
 
 #: intranet-tmpl/prog/en/modules/help/acqui/basket.tt:46
 #, c-format
@@ -15576,7 +15575,7 @@ msgstr ""
 msgid ""
 "The system preference 'NewsAuthorDisplay' can be used to hide or show the "
 "author for news item."
-msgstr "系统首选 'NewsAuthorDisplay' 可设为隐藏或显示最新消息的着者。"
+msgstr "系统首选 'NewsAuthorDisplay' 可设为隐藏或显示最新消息的著者。"
 
 #: intranet-tmpl/prog/en/modules/help/tools/scheduler.tt:5
 #, c-format
@@ -20576,7 +20575,7 @@ msgstr "o - 完整索书号"
 msgid ""
 "on a field like author (200f in UNIMARC), put 200f here, you will be able to "
 "see all bib records with the same author."
-msgstr "在着者字段(UNIMARC 的 200f)里，可看到同着者的所有记录。"
+msgstr "在著者字段(UNIMARC 的 200f)里，可看到同著者的所有记录。"
 
 #: intranet-tmpl/prog/en/modules/help/admin/marc_subfields_structure.tt:79
 #: intranet-tmpl/prog/en/modules/help/admin/biblio_framework.tt:133

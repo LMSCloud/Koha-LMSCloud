@@ -5,7 +5,8 @@
   xmlns:marc="http://www.loc.gov/MARC21/slim"
   xmlns:items="http://www.koha-community.org/items"
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-  exclude-result-prefixes="marc items">
+  xmlns:str="http://exslt.org/strings"
+  exclude-result-prefixes="marc items str">
     <xsl:import href="MARC21slimUtils.xsl"/>
     <xsl:output method = "html" indent="yes" omit-xml-declaration = "yes" encoding="UTF-8"/>
     <xsl:key name="item-by-status" match="items:item" use="items:status"/>
@@ -305,7 +306,7 @@
                     <xsl:value-of select="$IntranetBiblioDefaultView"/>
                 </xsl:with-param>
             </xsl:call-template>
-            <xsl:value-of select="$biblionumber"/>
+            <xsl:value-of select="str:encode-uri($biblionumber, true())"/>
         </xsl:attribute>
         <xsl:attribute name="class">title</xsl:attribute>
 
@@ -316,7 +317,8 @@
                 </xsl:call-template>
                 <xsl:text> </xsl:text>
                 <!-- 13381 add additional subfields-->
-                <xsl:for-each select="marc:subfield[contains('bchknps', @code)]">
+                <!-- bz 17625 adding subfields f and g -->
+                <xsl:for-each select="marc:subfield[contains('bcfghknps', @code)]">
                     <xsl:choose>
                         <xsl:when test="@code='h'">
                             <!--  13381 Span class around subfield h so it can be suppressed via css -->
@@ -352,10 +354,10 @@
             <a>
                 <xsl:choose>
                     <xsl:when test="marc:subfield[@code=9] and $UseAuthoritiesForTracings='1'">
-                        <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=an:<xsl:value-of select="marc:subfield[@code=9]"/></xsl:attribute>
+                        <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=an:<xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/></xsl:attribute>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=au:"<xsl:value-of select="marc:subfield[@code='a']"/>"</xsl:attribute>
+                        <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=au:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
                     </xsl:otherwise>
                 </xsl:choose>
                 <xsl:call-template name="chopPunctuation">
@@ -886,7 +888,7 @@
             <xsl:call-template name="chopPunctuation">
               <xsl:with-param name="chopString">
                 <xsl:call-template name="subfieldSelect">
-                    <xsl:with-param name="codes">abceg</xsl:with-param>
+                    <xsl:with-param name="codes">abcefg</xsl:with-param>
                 </xsl:call-template>
                </xsl:with-param>
            </xsl:call-template>

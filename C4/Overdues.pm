@@ -70,11 +70,6 @@ BEGIN {
     push @EXPORT, qw(
       &GetIssuesIteminfo
     );
-
-    # subs to move to Biblio.pm
-    push @EXPORT, qw(
-      &GetItems
-    );
 }
 
 =head1 NAME
@@ -246,6 +241,8 @@ sub CalcFine {
     my $itemtype = $item->{itemtype} || $item->{itype};
     my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule({ categorycode => $bortype, itemtype => $itemtype, branchcode => $branchcode });
 
+    $itemtype = Koha::ItemTypes->find($itemtype);
+
     return unless $issuing_rule; # If not rule exist, there is no fine
 
     my $fine_unit = $issuing_rule->lengthunit || 'days';
@@ -263,7 +260,15 @@ sub CalcFine {
     } # else { # a zero (or null) chargeperiod or negative units_minus_grace value means no charge. }
 
     $amount = $issuing_rule->overduefinescap if $issuing_rule->overduefinescap && $amount > $issuing_rule->overduefinescap;
+
+    # This must be moved to Koha::Item (see also similar code in C4::Accounts::chargelostitem
+    $item->{replacementprice} ||= $itemtype->defaultreplacecost
+      if $itemtype
+      && $item->{replacementprice} == 0
+      && C4::Context->preference("useDefaultReplacementCost");
+
     $amount = $item->{replacementprice} if ( $issuing_rule->cap_fine_to_replacement_price && $item->{replacementprice} && $amount > $item->{replacementprice} );
+
     $debug and warn sprintf("CalcFine returning (%s, %s, %s, %s)", $amount, $issuing_rule->chargename, $units_minus_grace, $chargeable_units);
     return ($amount, $issuing_rule->chargename, $units_minus_grace, $chargeable_units);
     # FIXME: chargename is NEVER populated anywhere.
@@ -716,35 +721,6 @@ sub GetFine {
         return $fine->{fineamount};
     }
     return 0;
-}
-
-=head2 GetItems
-
-    ($items) = &GetItems($itemnumber);
-
-Returns the list of all delays from overduerules.
-
-C<$items> is a reference-to-hash whose keys are all of the fields
-from the items tables of the Koha database. Thus,
-
-C<$itemnumber> contains the borrower categorycode
-
-=cut
-
-# FIXME: This is a bad function to have here.
-# Shouldn't it be in C4::Items?
-# Shouldn't it be called GetItem since you only get 1 row?
-# Shouldn't it be called GetItem since you give it only 1 itemnumber?
-
-sub GetItems {
-    my $itemnumber = shift or return;
-    my $query = qq|SELECT *
-             FROM items
-              WHERE itemnumber=?|;
-    my $sth = C4::Context->dbh->prepare($query);
-    $sth->execute($itemnumber);
-    my ($items) = $sth->fetchrow_hashref;
-    return ($items);
 }
 
 =head2 GetBranchcodesWithOverdueRules

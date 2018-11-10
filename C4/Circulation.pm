@@ -1046,14 +1046,14 @@ print STDERR "C4::Circulation::CanBookBeIssued barcode:$barcode: duedate:$duedat
                 $alerts{HIGHHOLDS} = {
                     num_holds  => $check->{outstanding},
                     duration   => $check->{duration},
-                    returndate => output_pref( $check->{due_date} ),
+                    returndate => output_pref( { dt => dt_from_string($check->{due_date}), dateformat => 'iso', timeformat => '24hr' }),
                 };
             }
             else {
                 $needsconfirmation{HIGHHOLDS} = {
                     num_holds  => $check->{outstanding},
                     duration   => $check->{duration},
-                    returndate => output_pref( $check->{due_date} ),
+                    returndate => output_pref( { dt => dt_from_string($check->{due_date}), dateformat => 'iso', timeformat => '24hr' }),
                 };
             }
         }
@@ -1931,6 +1931,7 @@ sub AddReturn {
                 . Dumper($issue->unblessed) . "\n";
     } else {
         $messages->{'NotIssued'} = $barcode;
+        ModItem({ onloan => undef }, $item->{biblionumber}, $item->{itemnumber}) if defined $item->{onloan};
         # even though item is not on loan, it may still be transferred;  therefore, get current branch info
         $doreturn = 0;
         # No issue, no borrowernumber.  ONLY if $doreturn, *might* you have a $borrower later.
@@ -2058,7 +2059,8 @@ sub AddReturn {
         $returnbranch = $branch;
     }
     
-    ModDateLastSeen( $item->{'itemnumber'} );
+    my $leave_item_lost = C4::Context->preference("BlockReturnOfLostItems") ? 1 : 0;
+    ModDateLastSeen( $item->{itemnumber}, $leave_item_lost );
 
     # check if we have a transfer for this document
     my ($datesent,$frombranch,$tobranch) = GetTransfers( $item->{'itemnumber'} );
@@ -2111,6 +2113,7 @@ sub AddReturn {
 
         if ( $issue and $issue->is_overdue ) {
         # fix fine days
+            $today = dt_from_string($return_date) if $return_date;
             $today = $dropboxdate if $dropbox;
             my ($debardate,$reminder) = _debar_user_on_return( $patron_unblessed, $item, dt_from_string($issue->date_due), $today );
             if ($reminder){
@@ -3076,7 +3079,7 @@ sub AddRenewal {
     # Charge a new rental fee, if applicable?
     my ( $charge, $type ) = GetIssuingCharges( $itemnumber, $borrowernumber, 1, $issue->branchcode);
     if ( $charge > 0 ) {
-        my $accountno = getnextacctno( $borrowernumber );
+        my $accountno = C4::Accounts::getnextacctno( $borrowernumber );
         my $manager_id = 0;
         $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv; 
         $sth = $dbh->prepare(
@@ -3451,7 +3454,7 @@ sub AddIssuingCharge {
 
     # FIXME What if checkout does not exist?
 
-    my $nextaccntno = getnextacctno($checkout->borrowernumber);
+    my $nextaccntno = C4::Accounts::getnextacctno( $checkout->borrowernumber );
 
     my $manager_id  = 0;
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;

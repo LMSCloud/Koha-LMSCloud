@@ -615,7 +615,13 @@ NO_DB
     die;
 fi
 
-set_memcached $name
+if [ "$USE_MEMCACHED" = "no" ]; then
+    MEMCACHED_SERVERS=""
+    MEMCACHED_NAMESPACE=""
+    MEMCACHED_PREFIX=""
+else
+    set_memcached $name
+fi
 
 # Set template cache dir
 if [ "$CLO_TEMPLATE_CACHE_DIR" != "" ]; then
@@ -726,8 +732,6 @@ then
         mysql $MYSQL_OPTIONS <<eof
 CREATE DATABASE \`$mysqldb\`;
 CREATE USER \`$mysqluser\`@'$mysql_hostname' IDENTIFIED BY '$mysqlpwd';
-CREATE USER \`$mysqluser\`@'%' IDENTIFIED BY '$mysqlpwd';
-GRANT ALL PRIVILEGES ON \`$mysqldb\`.* TO \`$mysqluser\`;
 GRANT ALL PRIVILEGES ON \`$mysqldb\`.* TO \`$mysqluser\`@'$mysql_hostname';
 FLUSH PRIVILEGES;
 eof
@@ -799,7 +803,7 @@ then
     if [ -e "$DEFAULTSQL" ]
     then
         # Populate the database with default content.
-        zcat "$DEFAULTSQL" |
+        zcat -f "$DEFAULTSQL" |
         sed "s/__KOHASITE__/koha_$name/g" |
         mysql --host="$mysqlhost" --user="$mysqluser" --password="$mysqlpwd" "$mysqldb"
 

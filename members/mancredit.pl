@@ -33,8 +33,9 @@ use C4::Accounts;
 use C4::Items;
 use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
-use Koha::Patrons;
 
+use Koha::Account;
+use Koha::Patrons;
 use Koha::Patron::Categories;
 use Koha::Token;
 
@@ -51,7 +52,10 @@ unless ( $patron ) {
 my $add=$input->param('add');
 
 if ($add){
-    if ( checkauth( $input, 0, $flagsrequired, 'intranet' ) ) {
+
+    my ( $user_id ) = checkauth( $input, 0, $flagsrequired, 'intranet' );
+
+    if ( $user_id ) {
 
         die "Wrong CSRF token"
             unless Koha::Token->new->check_csrf( {
@@ -62,16 +66,25 @@ if ($add){
         # Note: If the logged in user is not allowed to see this patron an invoice can be forced
         # Here we are trusting librarians not to hack the system
         my $barcode = $input->param('barcode');
-        my $itemnum;
+        my $item_id;
         if ($barcode) {
-            $itemnum = GetItemnumberFromBarcode($barcode);
+            $item_id = GetItemnumberFromBarcode($barcode);
         }
-        my $desc    = $input->param('desc');
-        my $note    = $input->param('note');
-        my $amount  = $input->param('amount') || 0;
-        $amount = -$amount;
-        my $type = $input->param('type');
-        manualinvoice( $borrowernumber, $itemnum, $desc, $type, $amount, $note );
+        my $description = $input->param('desc');
+        my $note        = $input->param('note');
+        my $amount      = $input->param('amount') || 0;
+        my $type        = $input->param('type');
+
+        my $logged_in_user = Koha::Patrons->find( { userid => $user_id } ) or die "Not logged in";
+        Koha::Account->new({ patron_id => $borrowernumber })->add_credit({
+            amount      => $amount,
+            description => $description,
+            item_id     => $item_id,
+            note        => $note,
+            type        => $type,
+            user_id     => $logged_in_user->borrowernumber
+        });
+
         print $input->redirect("/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber");
     }
 } else {

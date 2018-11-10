@@ -80,7 +80,7 @@ sub _get_biblio_from_xisbn {
 
 sub get_xisbns {
     my ( $isbn ) = @_;
-    my ($response,$thing_response,$xisbn_response,$syndetics_response,$errors);
+    my ($response,$thing_response,$syndetics_response,$errors);
     # THINGISBN
     if ( C4::Context->preference('ThingISBN') ) {
         my $url = "http://www.librarything.com/api/thingISBN/".$isbn;
@@ -96,21 +96,7 @@ sub get_xisbns {
 		$syndetics_response = {isbn => \@syndetics_response};
 	}
 
-    # XISBN
-    if ( C4::Context->preference('XISBN') ) {
-        my $affiliate_id=C4::Context->preference('OCLCAffiliateID');
-        my $limit = C4::Context->preference('XISBNDailyLimit') || 999;
-        my $reached_limit = _service_throttle('xisbn',$limit);
-        my $url = "http://xisbn.worldcat.org/webservices/xid/isbn/".$isbn."?method=getEditions&format=xml&fl=form,year,lang,ed";
-        $url.="&ai=".$affiliate_id if $affiliate_id;
-        unless ($reached_limit) {
-            $xisbn_response = _get_url($url,'xisbn');
-        }
-        $errors->{xisbn} = $xisbn_response->{ stat }
-            if $xisbn_response->{ stat } ne 'ok';
-    }
-
-    $response->{isbn} = [ @{ $xisbn_response->{isbn} or [] },  @{ $syndetics_response->{isbn} or [] }, @{ $thing_response->{isbn} or [] } ];
+    $response->{isbn} = [ @{ $syndetics_response->{isbn} or [] }, @{ $thing_response->{isbn} or [] } ];
     my @xisbns;
     my $unique_xisbns; # a hashref
 
@@ -153,34 +139,6 @@ sub _get_url {
         warn "WARNING: URL Request Failed " . $response->status_line . "\n";
     }
 
-}
-
-
-# Throttle services to the specified amount
-sub _service_throttle {
-    my ($service_type,$daily_limit) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare(q{ SELECT service_count FROM services_throttle WHERE service_type=? });
-    $sth->execute($service_type);
-    my $count = 0;
-
-    if ($sth->rows == 0) {
-        # initialize services throttle
-        my $sth2 = $dbh->prepare(q{ INSERT INTO services_throttle (service_type, service_count) VALUES (?, ?) });
-        $sth2->execute($service_type, $count);
-    } else {
-        $count = $sth->fetchrow_array;
-    }
-
-    # we're over the limit
-    return 1 if $count >= $daily_limit;
-
-    # not over the limit
-    $count++;
-    my $sth3 = $dbh->prepare(q{ UPDATE services_throttle SET service_count=? WHERE service_type=? });
-    $sth3->execute($count, $service_type);
-
-    return undef;
 }
 
 1;

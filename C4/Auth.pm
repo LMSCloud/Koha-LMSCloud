@@ -261,7 +261,7 @@ sub get_template_and_user {
         }
 
         # user info
-        $template->param( loggedinusername   => $user ); # FIXME Should be replaced with something like patron-title.inc
+        $template->param( loggedinusername   => $user ); # OBSOLETE - Do not reuse this in template, use logged_in_user.userid instead
         $template->param( loggedinusernumber => $borrowernumber ); # FIXME Should be replaced with logged_in_user.borrowernumber
         $template->param( logged_in_user     => $patron );
         $template->param( sessionID          => $sessionID );
@@ -952,7 +952,7 @@ sub checkauth {
             $session->param( 'search_history', $anon_search_history );
         }
 
-        my $sessionID = $session->id;
+        $sessionID = $session->id;
         C4::Context->_new_userenv($sessionID);
         $cookie = $query->cookie(
             -name     => 'CGISESSID',
@@ -1221,8 +1221,8 @@ sub checkauth {
     my @inputs = ();
     foreach my $name ( param $query) {
         (next) if ( $name eq 'userid' || $name eq 'password' || $name eq 'ticket' );
-        my $value = $query->param($name);
-        push @inputs, { name => $name, value => $value };
+        my @value = $query->multi_param($name);
+        push @inputs, { name => $name, value => $_ } for @value;
     }
 
     my $patron = Koha::Patrons->find({ userid => $q_userid }); # Not necessary logged in!

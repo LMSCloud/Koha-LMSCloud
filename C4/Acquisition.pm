@@ -32,6 +32,7 @@ use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 use Koha::Biblios;
+use Koha::Exceptions;
 use Koha::Items;
 use Koha::Number::Price;
 use Koha::Libraries;
@@ -296,7 +297,7 @@ sub GetBasketAsCSV {
     my @rows;
     if ($csv_profile_id) {
         my $csv_profile = Koha::CsvProfiles->find( $csv_profile_id );
-        die "There is no valid csv profile given" unless $csv_profile;
+        Koha::Exceptions::ObjectNotFound->throw( 'There is no valid csv profile given') unless $csv_profile;
 
         my $csv = Text::CSV_XS->new({'quote_char'=>'"','escape_char'=>'"','sep_char'=>$csv_profile->csv_separator,'binary'=>1});
         my $csv_profile_content = $csv_profile->content;
@@ -755,7 +756,7 @@ sub GetBasketsInfosByBookseller {
           COUNT(DISTINCT aqorders.biblionumber) AS total_biblios,
           SUM(
             IF(aqorders.datereceived IS NULL
-              AND aqorders.datecancellationprinted IS NULL
+              AND (aqorders.datecancellationprinted IS NULL OR aqorders.datecancellationprinted='0000-00-00')
             , aqorders.quantity
             , 0)
           ) AS expected_items
@@ -763,10 +764,18 @@ sub GetBasketsInfosByBookseller {
           LEFT JOIN aqorders ON aqorders.basketno = aqbasket.basketno
         WHERE booksellerid = ?};
 
-    unless ( $allbaskets ) {
-        $query.=" AND (closedate IS NULL OR (aqorders.quantity > aqorders.quantityreceived AND datecancellationprinted IS NULL))";
-    }
     $query.=" GROUP BY aqbasket.basketno, aqbasket.basketname, aqbasket.note, aqbasket.booksellernote, aqbasket.contractnumber, aqbasket.creationdate, aqbasket.closedate, aqbasket.booksellerid, aqbasket.authorisedby, aqbasket.booksellerinvoicenumber, aqbasket.basketgroupid, aqbasket.deliveryplace, aqbasket.billingplace, aqbasket.branch, aqbasket.is_standing, aqbasket.create_items";
+
+    unless ( $allbaskets ) {
+        # Don't show the basket if it's NOT CLOSED or is FULLY RECEIVED
+        $query.=" HAVING (closedate IS NULL OR (
+          SUM(
+            IF(aqorders.datereceived IS NULL
+              AND (aqorders.datecancellationprinted IS NULL OR aqorders.datecancellationprinted='0000-00-00')
+            , aqorders.quantity
+            , 0)
+            ) > 0))"
+    }
 
     my $sth = $dbh->prepare($query);
     $sth->execute($supplierid);

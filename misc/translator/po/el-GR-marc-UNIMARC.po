@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2018-06-15 07:27-0300\n"
-"PO-Revision-Date: 2018-05-29 08:44+0000\n"
+"POT-Creation-Date: 2018-10-20 00:07-0300\n"
+"PO-Revision-Date: 2018-09-03 12:51+0000\n"
 "Last-Translator: Dimitris Antonakis <dimantonak@gmail.com>\n"
 "Language-Team: Koha Translation Team <koha-translate@nongnu.org>\n"
 "Language: el\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1527583476.493200\n"
+"X-POOTLE-MTIME: 1535979111.827241\n"
 "X-Pootle-Path: /el/18.05/el-GR-marc-UNIMARC.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -1573,6 +1573,7 @@ msgstr "Παιδική χορωδία"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_225a_bis.tt:26
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c_bis.tt:20
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:91
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:69
 #, c-format
 msgid "Choose"
 msgstr "Επιλέξτε"
@@ -5989,11 +5990,6 @@ msgstr "παιδιά, ηλικίες (9-14)"
 msgid "choir-book"
 msgstr "Χορωδιακό βιβλίο"
 
-#. IMG
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c.tt:69
-msgid "choose"
-msgstr "επιλέξτε"
-
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128a.tt:71
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_128a.tt:73
 #, c-format
@@ -7065,7 +7061,7 @@ msgstr "f - εγκυκλοπαίδεια"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:55
 #, c-format
 msgid "f - monograph, date of publication uncertain"
-msgstr "f - μονογραφία με αβέβαιη χρονολογία δημοσίευσης"
+msgstr "f - μονογραφία με άγνωστη χρονολογία έκδοσης"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:54
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:56
@@ -8167,7 +8163,7 @@ msgstr "k - φόρμες"
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_100.tt:89
 #, c-format
 msgid "k - monograph with both publication date and print date"
-msgstr "k - μονογραφία με χρονολογία δημοσίευσης και χρονολογία εκτύπωσης"
+msgstr "f - μονογραφία με χρονολογία έκδοσης και χρονολογία εκτύπωσης"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:465
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_105.tt:467
@@ -11783,7 +11779,7 @@ msgstr "αρχίζει με"
 #: opac-tmpl/bootstrap/en/includes/subtypes_unimarc.inc:96
 #, c-format
 msgid "statistics"
-msgstr "στατιστικά στοιχεία"
+msgstr "στατιστικά"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1038
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_116.tt:1040
