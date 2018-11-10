@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2018-11-10 17:59+0100\n"
+"POT-Creation-Date: 2018-11-10 21:05+0100\n"
 "PO-Revision-Date: 2018-11-10 19:06+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -107,12 +107,12 @@ msgstr "#- Undefiniert"
 msgid "#record"
 msgstr "#record"
 
-#. %1$s:  IF ( total )
-#. %2$s:  from
-#. %3$s:  to
-#. %4$s:  total
-#. %5$s:  ELSE
-#. %6$s:  END
+#. %1$s:  IF ( total ) 
+#. %2$s:  from 
+#. %3$s:  to 
+#. %4$s:  total 
+#. %5$s:  ELSE 
+#. %6$s:  END 
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_linking_section.tt:56
 #, c-format
 msgid "%sResults %s to %s of %s %sNo results found %s"
