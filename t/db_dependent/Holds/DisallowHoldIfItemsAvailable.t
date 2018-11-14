@@ -3,8 +3,8 @@
 use Modern::Perl;
 
 use C4::Context;
-use C4::Items;
 use C4::Circulation;
+use C4::Items;
 use Koha::IssuingRule;
 
 use Test::More tests => 6;
@@ -225,7 +225,7 @@ my $item3 = $builder->build({
         notforloan   => 0,
         withdrawn    => 0,
         damaged      => 0,
-        onloan       => 0
+        onloan       => undef,
     }
 });
 

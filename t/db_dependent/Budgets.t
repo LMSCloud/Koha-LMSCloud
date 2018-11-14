@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use Modern::Perl;
-use Test::More tests => 144;
+use Test::More tests => 145;
 
 BEGIN {
     use_ok('C4::Budgets')
@@ -12,8 +12,11 @@ use C4::Members qw( AddMember );
 
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
+use Koha::Acquisition::Funds;
+use Koha::Patrons;
 
 use t::lib::TestBuilder;
+use Koha::DateUtils;
 
 use YAML;
 
@@ -57,6 +60,7 @@ my $my_budgetperiod = {
     budget_period_enddate     => '2008-12-31',
     budget_period_description => 'MAPERI',
     budget_period_active      => 0,
+    budget_period_id          => '', # Bug 21604
 };
 $bpid = AddBudgetPeriod($my_budgetperiod);
 isnt( $bpid, undef, 'AddBugetPeriod does not returns undef' );
@@ -125,6 +129,7 @@ my $my_budget = {
     budget_name      => 'Periodiques',
     budget_notes     => 'This is a note',
     budget_period_id => $bpid,
+    budget_encumb    => '', # Bug 21604
 };
 my $budget_id = AddBudget($my_budget);
 isnt( $budget_id, undef, 'AddBudget does not returns undef' );
@@ -476,6 +481,12 @@ is ( GetBudgetOrdered( $fund ), '20.000000', "total ordered price is 20");
 
 
 # CloneBudgetPeriod
+# Let's make sure our timestamp is old
+my @orig_funds = Koha::Acquisition::Funds->search({ budget_period_id => $budget_period_id });
+foreach my $fund (@orig_funds){
+    $fund->timestamp('1999-12-31 23:59:59')->store;
+}
+
 my $budget_period_id_cloned = C4::Budgets::CloneBudgetPeriod(
     {
         budget_period_id        => $budget_period_id,
@@ -487,6 +498,13 @@ my $budget_period_id_cloned = C4::Budgets::CloneBudgetPeriod(
 
 my $budget_period_cloned = C4::Budgets::GetBudgetPeriod($budget_period_id_cloned);
 is($budget_period_cloned->{budget_period_description}, 'Budget Period Cloned', 'Cloned budget\'s description is updated.');
+
+my $budget_cloned = C4::Budgets::GetBudgets({ budget_period_id => $budget_period_id_cloned });
+my $budget_time =  $budget_cloned->[0]->{timestamp};
+
+isnt($budget_time, '1999-12-31 23:59:59', "New budget has an updated timestamp");
+
+
 
 my $budget_hierarchy        = GetBudgetHierarchy($budget_period_id);
 my $budget_hierarchy_cloned = GetBudgetHierarchy($budget_period_id_cloned);

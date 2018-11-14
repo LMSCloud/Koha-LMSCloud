@@ -71,8 +71,8 @@
         <a href="/cgi-bin/koha/catalogue/showmarc.pl?id=[% biblio.biblionumber %]&amp;viewas=html" class="previewMARC">View MARC</a>
         </td>
             <td>
-            <a href="/cgi-bin/koha/acqui/neworderempty.pl?booksellerid=[% booksellerid %]&amp;basketno=[% basketno %]&amp;biblionumber=[% biblio.biblionumber %]" title="Order this one">
-                Order
+            <a href="/cgi-bin/koha/acqui/neworderempty.pl?booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]&amp;biblionumber=[% biblio.biblionumber | uri %]" class="btn btn-default btn-xs" title="Order this one">
+                Place order
             </a>
             </td>
         </tr>
@@ -127,7 +127,7 @@
                 $("#marcPreview .modal-body").load(page + " table");
                 $('#marcPreview').modal({show:true});
             });
-            $("#marcPreview").on("hidden", function(){
+            $("#marcPreview").on("hidden.bs.modal", function(){
                 $("#marcPreviewLabel").html("");
                 $("#marcPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
             });

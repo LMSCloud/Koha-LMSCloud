@@ -3,16 +3,16 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-23 08:15+0200\n"
-"PO-Revision-Date: 2018-03-05 15:17+0000\n"
-"Last-Translator: Josef <josef.moravec@knihovna-uo.cz>\n"
+"PO-Revision-Date: 2018-10-01 12:28+0000\n"
+"Last-Translator: m23 <black23@gmail.com>\n"
 "Language-Team: Czech <http://hosted.weblate.org/projects/koha/staff-prog/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Pootle 2.5.1.1\n"
-"X-POOTLE-MTIME: 1520263068.000000\n"
+"X-Generator: Pootle 2.8\n"
+"X-POOTLE-MTIME: 1538396930.121261\n"
 "X-Pootle-Path: /cs/18.05/cs-CZ-pref.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -202,7 +202,7 @@ msgstr ""
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#PurgeSuggestionsOlderThan# days."
-msgstr ""
+msgstr "dny."
 
 # Acquisitions > Policy
 msgid "acquisitions.pref#UniqueItemFields# (separated by a space)"
@@ -2822,7 +2822,7 @@ msgstr "Vyřizovat při vracení i rezervace, které mají platnost v budoucnost
 
 # Circulation > Holds Policy
 msgid "circulation.pref#ConfirmFutureHolds# days from now) at checkin time. Note that this number of days will be used too in calculating the default end date for the Holds to pull-report. But it does not interfere with issuing, renewing or transferring books."
-msgstr "dní). Poznámka: Tento počet dní bude použit i ve výchozím filtru, při vyhledávání rezervací, které je třeba najít na regále. Toto nastavení nemá vliv na půjčování, prodlužování ani přesun jendotek."
+msgstr "dní). Poznámka: Tento počet dní bude použit i ve výchozím filtru, při vyhledávání rezervací, které je třeba najít na regále. Toto nastavení nemá vliv na půjčování, prodlužování ani přesun jednotek."
 
 # Circulation > Checkout Policy
 msgid "circulation.pref#ConsiderOnSiteCheckoutsAsNormalCheckouts# Consider"
@@ -4137,10 +4137,6 @@ msgstr "Local Cover Images"
 msgid "enhanced_content.pref Novelist Select"
 msgstr "Novelist Select"
 
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref OCLC"
-msgstr "OCLC"
-
 # Enhanced Content > Open Library
 msgid "enhanced_content.pref Open Library"
 msgstr "Open Library"
@@ -4541,14 +4537,6 @@ msgstr "v záložce na OPACu"
 msgid "enhanced_content.pref#NovelistSelectView# under the Save Record dropdown, on the right"
 msgstr "pod tlačítko Uložit záznam. napravo"
 
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#OCLCAffiliateID# Use the <a href=\"http://www.worldcat.org/affiliate/webservices/xisbn/app.jsp\">OCLC affiliate ID</a>"
-msgstr "Použít <a href=\"http://www.worldcat.org/affiliate/webservices/xisbn/app.jsp\">OCLC ID pro spolupracující organizace</a>"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#OCLCAffiliateID# to access the xISBN service. Note that unless you have signed up for an ID, you are limited to 1000 requests per day."
-msgstr "pro přístup k xISBN. Pokud ID nemáte, můžeze denně zaslat maximálně 1000 dotazů."
-
 # Enhanced Content > Amazon
 msgid "enhanced_content.pref#OPACAmazonCoverImages# Don't show"
 msgstr "Nezobrazovat"
@@ -4888,26 +4876,6 @@ msgstr "Umožnit"
 # Enhanced Content > Plugins
 msgid "enhanced_content.pref#UseKohaPlugins# the ability to use Koha Plugins. Note, the plugin system must also be enabled in the Koha configuration file to be fully enabled."
 msgstr "používání zásuvných modulů Koha. Poznámka: moduly musí být dále povoleny v konfiguračním souboru Koha ."
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# Don't use"
-msgstr "Neužívat"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# Use"
-msgstr "Užívat"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# the OCLC xISBN service to show other editions of a title (when either FRBRizeEditions or OPACFRBRizeEditions is on)."
-msgstr "službu OCLC xIBSN na zobrazení dalších vydání titulu (když je zapnut parametr FRBRizeEditions nebo OPACFRBRizeEditions)."
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBNDailyLimit# Only use the xISBN service"
-msgstr "Použít službu xISBN maximálně"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBNDailyLimit# times a day. Unless you are paying for the xISBN service, you should leave this at the default of 999 (as detailed above)."
-msgstr "krát denně. Pokud za službu xISBN platíte, nastavte výchozí hodnotu 999."
 
 # I18N/L10N
 msgid "i18n_l10n.pref"
@@ -6990,20 +6958,24 @@ msgid "patrons.pref#RequireStrongPassword# a strong password for staff and patro
 msgstr ""
 
 # Patrons > General
-msgid "patrons.pref#SMSSendDriver# Define a username/login"
-msgstr "Nastavit uživatelské/přihlašovací jméno"
+msgid "patrons.pref#SMSSendDriver# <br>If you would prefer to receive SMS via E-mail, set SMSendDriver to: Email"
+msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#SMSSendDriver# Use the SMS::Send::"
 msgstr "Používat SMS::Send::"
 
 # Patrons > General
-msgid "patrons.pref#SMSSendDriver# and a password"
-msgstr "a heslo"
-
-# Patrons > General
 msgid "patrons.pref#SMSSendDriver# driver to send SMS messages."
 msgstr "driver pro posílání SMS zpráv."
+
+# Patrons > General
+msgid "patrons.pref#SMSSendUsername# Define a username/login"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#SMSSendUsername# and a password"
+msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#StatisticsFields# (separate fields with |, without trailing |). Default if empty: location|itype|ccode"

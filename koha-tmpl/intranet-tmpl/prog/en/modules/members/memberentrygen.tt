@@ -24,9 +24,9 @@
 	<div class="yui-b">
     [% IF error_alert %]
         [% IF ( error_alert == "no_email" ) %]
-            <div class="error">This member has no email</div>
+            <div class="dialog alert">This member has no email</div>
         [% ELSE %]
-            <div class="error">[% error_alert %]</div>
+            <div class="dialog alert">[% error_alert | html %]</div>
         [% END %]
     [% END %]
     [% IF info_alert %]
@@ -147,7 +147,7 @@
 <input type="hidden" name="op" value="insert" />
 [% ELSE %]
 <input type="hidden" name="op" value="save" />
-[% IF step == 4 || step == 5 || step == 6 || step == 2 || step == 1 %]
+[% IF step == 4 || step == 5 || step == 6 || step == 2 || step == 1 || step == 7 %]
 [%# Only put the cardnumber if we arent showing it in the form later %]
 [% IF cardnumber %]
 <input type="hidden" name="cardnumber" value="[% cardnumber %]" />
@@ -954,7 +954,7 @@
                         <legend id="manual_restriction_lgd">Add manual restriction</legend>
                         <ol>
                             <li><label for="debarred_comment">Comment: </label><input type="text" id="debarred_comment" name="debarred_comment" onchange="$('#add_debarment').val(1);" /></li>
-                            <li><label for="debarred_expiration">Expiration: </label><input name="debarred_expiration" id="debarred_expiration" size="10" value="" class="datepicker" onchange="$('#add_debarment').val(1);" />
+                            <li><label for="debarred_expiration">Expiration: </label><input name="debarred_expiration" id="debarred_expiration" size="10" value="" class="datepicker" onchange="$('#add_debarment').val(1);" type="text" />
                                     <a href='javascript:void(0)' onclick="$('#debarred_expiration').val('');">Clear date</a></li>
 
                         </ol>
@@ -968,7 +968,7 @@
 
 [% END %]
 
-[% IF ( step_4 ) %]
+[% IF ( step_7 ) %]
 [% IF Koha.Preference('HouseboundModule') %]
   <fieldset class="rows" id="memberentry_housebound_roles">
     <legend id="housebound_roles">Housebound roles</legend>
@@ -1018,16 +1018,19 @@
     </ol>
   </fieldset>
 [% END # hide fieldset %]
+[% END # IF step_7 %]
+
+[% IF ( step_4 ) %]
 [% IF ( ExtendedPatronAttributes ) %][% UNLESS ( no_patron_attribute_types ) %]
   <fieldset class="rows" id="memberentry_patron_attributes">
     <legend id="patron_attributes_lgd">Additional attributes and identifiers</legend>
     <input type="hidden" name="setting_extended_patron_attributes" value="1" />
     [% FOREACH pa_loo IN patron_attributes %]
-        [% IF pa_loo.class %]
-            <fieldset id="aai_[% pa_loo.class %]">
-            <legend id="[% pa_loo.class %]_lgd">[% pa_loo.lib %]</legend>
-        [% END %]
         <ol class="attributes_table">
+            [% IF pa_loo.class %]
+                <fieldset id="aai_[% pa_loo.class | html %]">
+                <legend id="[% pa_loo.class | html %]_lgd">[% pa_loo.lib | html %]</legend>
+            [% END %]
             [% FOREACH patron_attribute IN pa_loo.items %]
                 <li data-category_code="[% patron_attribute.category_code %]">
                     <label for="[% patron_attribute.form_id %]">[% patron_attribute.description %]: </label>
@@ -1056,8 +1059,8 @@
                         [% END %]
                 </li>
             [% END %]
+            [% IF pa_loo.class %]</fieldset>[% END %]
         </ol>
-        [% IF pa_loo.class %]</fieldset>[% END %]
     [% END %]
   </fieldset>
 [% END %][% END %][% END %]
@@ -1104,7 +1107,7 @@
 </div>
 
 [% UNLESS ( opadd ) %]<div class="yui-b">
-[% INCLUDE 'members-menu.inc' %]
+[% INCLUDE 'circ-menu.inc' %]
 </div>[% END %]
 [% END %]
 </div>

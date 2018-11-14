@@ -28,6 +28,7 @@ use C4::Koha;
 use C4::Output;
 use C4::Log;
 use C4::Items;
+use C4::Serials;
 use C4::Debug;
 use C4::Search;    # enabled_staff_search_views
 use Koha::Patrons;
@@ -73,9 +74,9 @@ if ( $src eq 'circ' ) {
     use C4::Members::Attributes qw(GetBorrowerAttributes);
     my $borrowernumber = $object;
     my $patron = Koha::Patrons->find( $borrowernumber );
+    my $circ_info = 1;
     unless ( $patron ) {
-        print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
-        exit;
+         $circ_info = 0;
     }
     if ( C4::Context->preference('ExtendedPatronAttributes') ) {
         my $attributes = GetBorrowerAttributes( $borrowernumber );
@@ -87,13 +88,14 @@ if ( $src eq 'circ' ) {
 
     $template->param(
         patron      => $patron,
-        circulation => 1,
+        circulation => $circ_info,
     );
 }
 
 $template->param(
     debug => $debug,
     C4::Search::enabled_staff_search_views,
+    subscriptionsnumber => CountSubscriptionFromBiblionumber($input->param('object')),
     object => $object,
 );
 

@@ -238,7 +238,7 @@ sub build_query_compat {
     #die Dumper($query);
     # We roughly emulate the CGI parameters of the zebra query builder
     my $query_cgi;
-    $query_cgi = 'idx=kw&q=' . uri_escape_utf8( $operands->[0] ) if @$operands;
+    $query_cgi = 'q=' . uri_escape_utf8( $operands->[0] ) if @$operands;
     my $simple_query;
     $simple_query = $operands->[0] if @$operands == 1;
     my $query_desc   = $simple_query;
@@ -290,40 +290,46 @@ sub build_authorities_query {
 
     # Start by making the query parts
     my @query_parts;
-    my @filter_parts;
+
     foreach my $s ( @{ $search->{searches} } ) {
         my ( $wh, $op, $val ) = @{$s}{qw(where operator value)};
         $wh = '_all' if $wh eq '';
         if ( $op eq 'is' || $op eq '=' ) {
 
-            # look for something that matches completely
+            # look for something that matches a term completely
             # note, '=' is about numerical vals. May need special handling.
-            # _allphrase is a special field that only groups the exact
-            # matches. Also, we lowercase our search because the ES
+            # Also, we lowercase our search because the ES
             # index lowercases its values, and term searches don't get the
             # search analyzer applied to them.
-            push @filter_parts, { term => { "$wh.phrase" => lc $val } };
+            push @query_parts, { term => {"$wh.phrase" => lc $val} };
         }
         elsif ( $op eq 'exact' ) {
-
             # left and right truncation, otherwise an exact phrase
-            push @query_parts, { match_phrase => { $wh => $val } };
+            push @query_parts, { match_phrase => {"$wh.phrase" => lc $val} };
         }
         elsif ( $op eq 'start' ) {
-
-            # startswith search
-            push @query_parts, { wildcard => { "$wh.phrase" => lc "$val*" } };
+            # startswith search, uses lowercase untokenized version of heading
+            push @query_parts, { prefix => {"$wh.lc_raw" => lc $val} };
         }
         else {
             # regular wordlist stuff
-            push @query_parts, { match => { $wh => $val } };
+#            push @query_parts, { match => {$wh => { query => $val, operator => 'and' }} };
+            my @values = split(' ',$val);
+            foreach my $v (@values) {
+                push @query_parts, { wildcard => { "$wh.phrase" => "*" . lc $v . "*" } };
+            }
         }
     }
 
-    # Merge the query and filter parts appropriately
-    # 'should' behaves like 'or', if we want 'and', use 'must'
-    my $query_part  = { bool => { should => \@query_parts } };
-    my $filter_part = { bool => { should => \@filter_parts } };
+    # Merge the query parts appropriately
+    # 'should' behaves like 'or'
+    # 'must' behaves like 'and'
+    # Zebra results seem to match must so using that here
+    my $query = { query=>
+                 { bool =>
+                     { must => \@query_parts  }
+                 }
+             };
 
     # We need to add '.phrase' to all the sort headings otherwise it'll sort
     # based on the tokenised form.
@@ -336,20 +342,9 @@ sub build_authorities_query {
         $search->{sort} = \%s;
     }
 
-    # extract the sort stuff
-    my %sort;
-    %sort = ( sort => [ $search->{sort} ] ) if exists $search->{sort};
-    my $query;
-    if (@filter_parts) {
-        $query =
-          { query =>
-              { filtered => { filter => $filter_part, query => $query_part } }
-          };
-    }
-    else {
-        $query = { query => $query_part };
-    }
-    $query = { %$query, %sort };
+    # add the sort stuff
+    $query->{sort} = [ $search->{sort} ]  if exists $search->{sort};
+
     return $query;
 }
 
@@ -446,7 +441,7 @@ sub build_authorities_query_compat {
 
     my %sort;
     my $sort_field =
-        ( $orderby =~ /^Heading/ ) ? 'Heading'
+        ( $orderby =~ /^Heading/ ) ? 'Heading__sort'
       : ( $orderby =~ /^Auth/ )    ? 'Local-Number'
       :                              undef;
     if ($sort_field) {

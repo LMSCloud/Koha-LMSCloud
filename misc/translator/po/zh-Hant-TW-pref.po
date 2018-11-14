@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-10 19:14+0200\n"
-"PO-Revision-Date: 2018-05-13 23:54+0000\n"
+"PO-Revision-Date: 2018-07-19 06:53+0000\n"
 "Last-Translator: Anthony MAO <mao@lins.fju.edu.tw>\n"
 "Language-Team: koha_TW <kohataiwan@googlegroups.com>\n"
 "Language: zh_TW\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1526255675.498760\n"
+"X-POOTLE-MTIME: 1531983188.022367\n"
 "X-Pootle-Path: /zh_TW/18.05/zh-Hans-TW-pref.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -4137,10 +4137,6 @@ msgstr "在地封面"
 msgid "enhanced_content.pref Novelist Select"
 msgstr "EBSCO 公司的 Novelist Select"
 
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref OCLC"
-msgstr "OCLC"
-
 # Enhanced Content > Open Library
 msgid "enhanced_content.pref Open Library"
 msgstr "開放圖書館網站"
@@ -4541,14 +4537,6 @@ msgstr "在 OPAC 分頁"
 msgid "enhanced_content.pref#NovelistSelectView# under the Save Record dropdown, on the right"
 msgstr "在儲存記錄下，右方"
 
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#OCLCAffiliateID# Use the <a href=\"http://www.worldcat.org/affiliate/webservices/xisbn/app.jsp\">OCLC affiliate ID</a>"
-msgstr "使用 <a href=\"http://www.worldcat.org/affiliate/webservices/xisbn/app.jsp\">美國國際圖書館電腦中心會員帳號</a>"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#OCLCAffiliateID# to access the xISBN service. Note that unless you have signed up for an ID, you are limited to 1000 requests per day."
-msgstr "近用 xISBN 服務。沒有前述帳號者，每天僅能查詢 1000 筆。"
-
 # Enhanced Content > Amazon
 msgid "enhanced_content.pref#OPACAmazonCoverImages# Don't show"
 msgstr "不顯示"
@@ -4888,26 +4876,6 @@ msgstr "啟用"
 # Enhanced Content > Plugins
 msgid "enhanced_content.pref#UseKohaPlugins# the ability to use Koha Plugins. Note, the plugin system must also be enabled in the Koha configuration file to be fully enabled."
 msgstr "使用 Koha 外掛的能力。說明，必須同時啟用 Koha 的組態檔案，才會完全啟用外掛系統。"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# Don't use"
-msgstr "停用"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# Use"
-msgstr "使用"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBN# the OCLC xISBN service to show other editions of a title (when either FRBRizeEditions or OPACFRBRizeEditions is on)."
-msgstr "OCLC 的 xISBN 服務，顯示題名的其他版本(當 FRBRizeEditions 或 OPACFRBRizeEditions 開啟)。"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBNDailyLimit# Only use the xISBN service"
-msgstr "僅能使用 xISBN 服務"
-
-# Enhanced Content > OCLC
-msgid "enhanced_content.pref#XISBNDailyLimit# times a day. Unless you are paying for the xISBN service, you should leave this at the default of 999 (as detailed above)."
-msgstr "每天可用的次數。若沒有付費，應讓此數字停留在預設的 999 (詳情如上)。"
 
 # I18N/L10N
 msgid "i18n_l10n.pref"
@@ -6043,7 +6011,7 @@ msgstr "位於所屬圖書館之下"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacLocationOnDetail# for items on the OPAC record details page."
-msgstr "在 OPAC 紀錄詳情頁面的館藏"
+msgstr "在 OPAC 紀錄詳情頁面的館藏。"
 
 # OPAC > Appearance
 msgid "opac.pref#OpacLocationOnDetail# on a separate column"
@@ -6990,20 +6958,24 @@ msgid "patrons.pref#RequireStrongPassword# a strong password for staff and patro
 msgstr "館員及讀者的強固密碼"
 
 # Patrons > General
-msgid "patrons.pref#SMSSendDriver# Define a username/login"
-msgstr "設定使用者名稱/登入"
+msgid "patrons.pref#SMSSendDriver# <br>If you would prefer to receive SMS via E-mail, set SMSendDriver to: Email"
+msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#SMSSendDriver# Use the SMS::Send::"
 msgstr "使用 SMS::Send::"
 
 # Patrons > General
-msgid "patrons.pref#SMSSendDriver# and a password"
-msgstr "與密碼"
-
-# Patrons > General
 msgid "patrons.pref#SMSSendDriver# driver to send SMS messages."
 msgstr "發送簡訊的驅動程式。"
+
+# Patrons > General
+msgid "patrons.pref#SMSSendUsername# Define a username/login"
+msgstr ""
+
+# Patrons > General
+msgid "patrons.pref#SMSSendUsername# and a password"
+msgstr ""
 
 # Patrons > General
 msgid "patrons.pref#StatisticsFields# (separate fields with |, without trailing |). Default if empty: location|itype|ccode"
@@ -7951,7 +7923,7 @@ msgstr "館員介面位於"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#staffClientBaseURL# This should be a complete URL, starting with http:// or https://. Do not include a trailing slash in the URL. (This must be filled in correctly for CAS, svc, and load_testing to work.)"
-msgstr "應為完整的 URL，以 http:// 或 https:// 起頭。不要包括結尾的斜線。(必須完整的輸入供 CAS、svc、與 load_testing 使用)。"
+msgstr "應為完整的 URL，以 http:// 或 https:// 起頭。不要包括結尾的斜線。(必須完整的輸入供 CAS、svc、與 load_testing 使用)"
 
 # Staff Client > Appearance
 msgid "staff_client.pref#template# Use the"
@@ -8231,7 +8203,7 @@ msgstr "設定 REST API 目標的預設結果數"
 
 # Web services > REST API
 msgid "web_services.pref#RESTdefaultPageSize# per page."
-msgstr "每頁"
+msgstr "每頁。"
 
 # Web services > Reporting
 msgid "web_services.pref#SvcMaxReportRows# Only return"

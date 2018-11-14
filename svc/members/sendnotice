@@ -25,7 +25,6 @@ use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
 use C4::Output qw( output_with_http_headers );
 use C4::Letters;
 use C4::Members;
-use C4::Branch;
 use C4::Overdues;
 use C4::Context;
 use Koha::Acquisition::Currencies;
@@ -97,7 +96,7 @@ sub SendAdhocNotices {
     if ($lettercode) {    
 
         my $dbh = C4::Context->dbh();
-        my $branchcode = C4::Branch::mybranch();
+        my $branchcode = Koha::Libraries->get_effective_branch(C4::Context::mybranch());
         my $lettertemplates = C4::Letters::GetAdhocNoticeLetters();
         my $module;
         foreach my $lettertemplate (@$lettertemplates) {

@@ -2,6 +2,7 @@
 [% USE Koha %]
 [% USE Branches %]
 [% USE KohaDates %]
+[% USE Price %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Print receipt for [% patron.cardnumber %]</title>
@@ -48,39 +49,20 @@
   [% FOREACH account IN accounts %]
 <tr class="highlight">
       <td>[% account.date | $KohaDates%]</td>
-       <td>
-        [% SWITCH account.accounttype %]
-          [% CASE 'Pay' %]Payment, thanks
-          [% CASE 'Pay00' %]Payment, thanks (cash via SIP2)
-          [% CASE 'Pay01' %]Payment, thanks (VISA via SIP2)
-          [% CASE 'Pay02' %]Payment, thanks (credit card via SIP2)
-          [% CASE 'N' %]New Card
-          [% CASE 'F' %]Fine
-          [% CASE 'A' %]Account management fee
-          [% CASE 'M' %]Sundry
-          [% CASE 'L' %]Lost Item
-          [% CASE 'W' %]Writeoff
-          [% CASE 'CAN' %]Fee cancelled
-          [% CASE 'CL1' %]Overdue fine (level 1)
-          [% CASE 'CL2' %]Overdue fine (level 2)
-          [% CASE 'CL3' %]Overdue fine (level 3)
-          [% CASE 'CL4' %]Overdue fine (level 4)
-          [% CASE 'CL5' %]Overdue fine (level 5)
-          [% CASE 'NOTF' %]Notice fee
-          [% CASE %][% account.accounttype %]
-        [%- END -%]
-        [%- IF account.description %], [% account.description %][% END %]
+      <td>
+        [% INCLUDE 'accounttype.inc' account => account %]
+        [%- IF account.description %], [% account.description | html %][% END %]
       </td>
       <td>[% account.note %]</td>
-      [% IF ( account.amountcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% account.amount %]</td>
-      [% IF ( account.amountoutstandingcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% account.amountoutstanding %]</td>
+      [% IF ( account.amountcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% account.amount | $Price %]</td>
+      [% IF ( account.amountoutstandingcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% account.amountoutstanding | $Price %]</td>
     </tr>
 
   [% END %]
 <tfoot>
   <tr>
     <td colspan="4">Total outstanding dues as on date: </td>
-    [% IF ( totalcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% total %]</td>
+    [% IF ( totalcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% total | $Price %]</td>
   </tr>
   </tfoot>
 </table>

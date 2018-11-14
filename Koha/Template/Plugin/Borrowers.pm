@@ -70,7 +70,7 @@ sub GetGuarantor {
 
     return unless $borrowernumber;
 
-    return Koha::Patrons->find( $borrowernumber )->get_family_card_id;
+    return Koha::Patrons->find( $borrowernumber )->unblessed;
 }
 
 1;

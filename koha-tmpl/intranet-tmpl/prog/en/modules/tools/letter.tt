@@ -92,7 +92,21 @@
                 [% can_edit = lette.branchcode || !independant_branch %]
                 <tr>
                   <td>[% IF lette.branchname %][% lette.branchname %][% ELSE %](All libraries)[% END %]</td>
-                  <td>[% lette.module %]</td>
+                  <td>
+                      [% SWITCH lette.module %]
+                          [% CASE 'acquisition' %]<span>Acquisition</span>
+                          [% CASE 'catalogue' %]<span>Catalog</span>
+                          [% CASE 'circulation' %]<span>Circulation</span>
+                          [% CASE 'orderacquisition' %]<span>Order acquisition</span>
+                          [% CASE 'claimacquisition' %]<span>Claim acquisition</span>
+                          [% CASE 'claimissues' %]<span>Claim serial issue</span>
+                          [% CASE 'reserves' %]<span>Holds</span>
+                          [% CASE 'members' %]<span>Patrons</span>
+                          [% CASE 'serial' %]<span>Serials (new issue)</span>
+                          [% CASE 'suggestions' %]<span>Suggestions</span>
+                          [% CASE %]<span>[% lette.module | html %]</span>
+                      [% END %]
+                  </td>
                   <td>[% lette.code %]</td>
                   <td>[% lette.name %]</td>
                   <td class="actions">
@@ -238,9 +252,9 @@
                                       <option value="reserves">Holds</option>
                                     [% END %]
                                     [% IF ( module == "members" ) %]
-                                      <option value="members" selected="selected">Members</option>
+                                      <option value="members" selected="selected">Patrons</option>
                                     [% ELSE %]
-                                      <option value="members">Members</option>
+                                      <option value="members">Patrons</option>
                                     [% END %]
                                     [% IF ( module == "serial" ) %]
                                       <option value="serial" selected="selected">Serials (new issue)</option>
@@ -365,7 +379,7 @@
                         <td class="actions">
                             <button type="button" data-containerid="[% letter.message_transport_type %]_[% lang %]" class="btn btn-default btn-sm insert">Insert <i class="fa fa-long-arrow-right"></i></button>
                         </td>
-                      <td><textarea name="content" data-lang="[% lang %]" class="content_[% letter.message_transport_type %]" id="content_[% letter.message_transport_type %]_[% lang %]" cols="80" rows="15">[% letter.content | html %]</textarea></td>
+                      <td><textarea name="content" data-lang="[% lang %]" class="content_[% letter.message_transport_type %]" id="content_[% letter.message_transport_type %]_[% lang %]" cols="80" rows="15">[% letter.content %]</textarea></td>
                     </tr>
                   </table>
                 </li>

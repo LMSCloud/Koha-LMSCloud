@@ -19,12 +19,15 @@
         <a href="/cgi-bin/koha/mainpage.pl">Home</a>
         &rsaquo;
         <a href="/cgi-bin/koha/catalogue/search.pl">Catalog</a>
+        [% UNLESS blocking_error %]
         &rsaquo;
         <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber %]">[% biblio.title | html %]</a>
         &rsaquo;
         Request article
+        [% END %]
     </div>
 
+    [% INCLUDE 'blocking_errors.inc' %]
     <div id="doc3" class="yui-t2">
         <div id="bd">
             <div id="yui-main">
@@ -305,24 +308,26 @@
         });
 
         $(document).ready(function() {
-            $( "#patron" ).autocomplete({
-                source: "/cgi-bin/koha/circ/ysearch.pl",
-                minLength: 3,
-                select: function( event, ui ) {
-                    $( "#patron" ).val( ui.item.cardnumber );
-                    $( "#holds_patronsearch" ).submit();
-                    return false;
-                }
-            })
-            .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
-                return $( "<li></li>" )
-                .data( "ui-autocomplete-item", item )
-                .append( "<a>" + item.surname + ", " + item.firstname +
-                         " (" + item.cardnumber + ") <small>" + item.address +
-                         " " + item.city + " " + item.zipcode + " " +
-                         item.country + "</small></a>" )
-                .appendTo( ul );
-            };
+            if ( $( "#patron" ).size() ){
+                $( "#patron" ).autocomplete({
+                    source: "/cgi-bin/koha/circ/ysearch.pl",
+                    minLength: 3,
+                    select: function( event, ui ) {
+                        $( "#patron" ).val( ui.item.cardnumber );
+                        $( "#holds_patronsearch" ).submit();
+                        return false;
+                    }
+                })
+                .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
+                    return $( "<li></li>" )
+                    .data( "ui-autocomplete-item", item )
+                    .append( "<a>" + item.surname + ", " + item.firstname +
+                             " (" + item.cardnumber + ") <small>" + item.address +
+                             " " + item.city + " " + item.zipcode + " " +
+                             item.country + "</small></a>" )
+                    .appendTo( ul );
+                };
+            }
 
             $( ".ar-update-branchcode" ).on('focus', function(){
                 previous_branchcode = this.value;

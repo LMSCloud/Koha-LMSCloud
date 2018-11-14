@@ -3280,6 +3280,10 @@ fieldset.rows + fieldset.action {
     width: auto;
 }
 
+#ill-view-panel .notesopac {
+    display: inline-block;
+}
+
 table#ill-requests {
     width: 100% !important;
 }
@@ -3443,3 +3447,9 @@ span.name {
 #pat_member #searchform .hasDatepicker {
     width: 7em !important;
 }
+
+.cart-controls {
+    border-top: 1px solid #E8E8E8;
+    padding: 7px 0;
+}
+

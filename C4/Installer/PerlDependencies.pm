@@ -617,6 +617,11 @@ our $PERL_DEPS = {
         'required' => '0',
         'min_ver'  => '0.04',
     },
+    'Text::CSV::Unicode' => {
+        usage      => 'Testing suite',
+        required   => 0,
+        min_ver    => '0.40'
+    },
     'Text::Unaccent' => {
         'usage'    => 'Core',
         'required' => '1',
@@ -837,6 +842,11 @@ our $PERL_DEPS = {
         required => 1,
         min_ver => '1.00',
     },
+    'Selenium::Remote::Driver' => {
+        usage    => 'Testing suite',
+        required => 0,
+        min_ver  => '1.27'
+    },
     'Sereal::Encoder' => {
         'usage'    => 'Caching',
         'required' => '1',
@@ -902,6 +912,11 @@ our $PERL_DEPS = {
        usage    => 'Plack',
        required => '1',
        min_ver  => '0.17'
+    },
+    'Clone' => {
+        usage    => 'ILL, Test suite',
+        required => '1',
+        min_ver  => '0.37',
     },
 };
 

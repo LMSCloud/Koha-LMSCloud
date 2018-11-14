@@ -17,7 +17,15 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'serials-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a> &rsaquo; [% IF ( modify ) %]<a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid %]"><i>[% bibliotitle |html %]</i></a> &rsaquo; Modify subscription[% ELSE %]New subscription[% END %]</div>
+<div id="breadcrumbs">
+    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+    &rsaquo; <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
+    [% UNLESS blocking_error %]
+        &rsaquo; [% IF ( modify ) %]<a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><i>[% bibliotitle | html %]</i></a>
+        &rsaquo; Modify subscription[% ELSE %]New subscription[% END %]
+    [% END %]
+</div>
+[% INCLUDE 'blocking_errors.inc' %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -30,7 +38,7 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                 [% ELSE %]
                         <input type="hidden" name="op" value="addsubscription" />
                 [% END %]
-                <input type="hidden" name="user" value="[% loggedinusername %]" />
+                <input type="hidden" name="user" value="[% logged_in_user.userid | html %]" />
                 <input type="hidden" name="irreg_check" value="0" />
 
                 <div id="page_1">

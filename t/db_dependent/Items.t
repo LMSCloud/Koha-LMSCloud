@@ -20,7 +20,9 @@ use Modern::Perl;
 use Data::Dumper;
 
 use MARC::Record;
+use C4::Items;
 use C4::Biblio;
+use Koha::Items;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Library;
@@ -31,14 +33,9 @@ use Koha::Caches;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use Test::More tests => 14;
+use Test::More tests => 12;
 
 use Test::Warn;
-
-BEGIN {
-    use_ok('C4::Items');
-    use_ok('Koha::Items');
-}
 
 my $schema = Koha::Database->new->schema;
 my $location = 'My Location';
@@ -72,6 +69,12 @@ subtest 'General Add, Get and Del tests' => sub {
     cmp_ok($getitem->{'biblioitemnumber'}, '==', $item_bibitemnum, "Retrieved item has correct biblioitemnumber.");
     is( $getitem->{location}, $location, "The location should not have been modified" );
     is( $getitem->{permanent_location}, $location, "The permanent_location should have been set to the location value" );
+
+
+    # Do not modify anything, and do not explode!
+    my $dbh = C4::Context->dbh;
+    local $dbh->{RaiseError} = 1;
+    ModItem({}, $bibnum, $itemnumber);
 
     # Modify item; setting barcode.
     ModItem({ barcode => '987654321' }, $bibnum, $itemnumber);

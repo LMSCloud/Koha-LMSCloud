@@ -79,6 +79,10 @@ my ($template, $loggedinuser, $cookie)
 my $borrowernumber = $input->param('borrowernumber');
 my $patron         = Koha::Patrons->find($borrowernumber);
 
+if ( $borrowernumber and not $patron ) {
+    output_and_exit( $input, $cookie, $template,  'unknown_patron' );
+}
+
 if ( C4::Context->preference('SMSSendDriver') eq 'Email' ) {
     my @providers = Koha::SMS::Providers->search();
     $template->param( sms_providers => \@providers );
@@ -553,7 +557,7 @@ if ($nok or !$nodouble){
     %data=%newdata; 
     $template->param( updtype => ($op eq 'add' ?'I':'M'));	# used to check for $op eq "insert"... but we just changed $op!
     unless ($step){  
-        $template->param( step_1 => 1,step_2 => 1,step_3 => 1, step_4 => 1, step_5 => 1, step_6 => 1);
+        $template->param( step_1 => 1,step_2 => 1,step_3 => 1, step_4 => 1, step_5 => 1, step_6 => 1, step_7 => 1 );
     }  
 } 
 if (C4::Context->preference("IndependentBranches")) {
@@ -566,11 +570,11 @@ if (C4::Context->preference("IndependentBranches")) {
     }
 }
 if ($op eq 'add'){
-    $template->param( updtype => 'I', step_1=>1, step_2=>1, step_3=>1, step_4=>1, step_5 => 1, step_6 => 1);
+    $template->param( updtype => 'I', step_1=>1, step_2=>1, step_3=>1, step_4=>1, step_5 => 1, step_6 => 1, step_7 => 1);
 }
 if ($op eq "modify")  {
     $template->param( updtype => 'M',modify => 1 );
-    $template->param( step_1=>1, step_2=>1, step_3=>1, step_4=>1, step_5 => 1, step_6 => 1) unless $step;
+    $template->param( step_1=>1, step_2=>1, step_3=>1, step_4=>1, step_5 => 1, step_6 => 1, step_7 => 1) unless $step;
     if ( $step == 4 ) {
         $template->param( categorycode => $borrower_data->{'categorycode'} );
     }
@@ -586,7 +590,7 @@ if ($op eq "modify")  {
 }
 if ( $op eq "duplicate" ) {
     $template->param( updtype => 'I' );
-    $template->param( step_1 => 1, step_2 => 1, step_3 => 1, step_4 => 1, step_5 => 1, step_6 => 1 ) unless $step;
+    $template->param( step_1 => 1, step_2 => 1, step_3 => 1, step_4 => 1, step_5 => 1, step_6 => 1, step_7 => 1 ) unless $step;
     $data{'cardnumber'} = "";
 }
 

@@ -34,6 +34,7 @@ use C4::Members;
 use MARC::File::XML;
 use List::MoreUtils qw/uniq/;
 
+use Koha::AuthorisedValues;
 use Koha::Biblios;
 use Koha::DateUtils;
 use Koha::Items;
@@ -233,10 +234,11 @@ if ($op eq "action") {
 if ($op eq "show"){
     my $filefh = $input->upload('uploadfile');
     my $filecontent = $input->param('filecontent');
-    my @notfoundbarcodes;
+    my ( @notfoundbarcodes, @notfounditemnumbers);
 
     my @contentlist;
     if ($filefh){
+        binmode $filefh, ':encoding(UTF-8)';
         while (my $content=<$filefh>){
             $content =~ s/[\r\n]*$//;
             push @contentlist, $content if $content;
@@ -255,7 +257,9 @@ if ($op eq "show"){
             }
         }
         elsif ( $filecontent eq 'itemid_file') {
-            @itemnumbers = @contentlist;
+            @itemnumbers = Koha::Items->search({ itemnumber => \@contentlist })->get_column('itemnumber');
+            my %exists = map {$_=>1} @itemnumbers;
+            @notfounditemnumbers = grep { !$exists{$_} } @contentlist;
         }
     } else {
         if (defined $biblionumber){
@@ -297,12 +301,6 @@ if ($op eq "show"){
 my @loop_data =();
 my $i=0;
 my $branch_limit = C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
-my $query = qq{SELECT authorised_value, lib FROM authorised_values};
-$query  .= qq{ LEFT JOIN authorised_values_branches ON ( id = av_id ) } if $branch_limit;
-$query  .= qq{ WHERE category = ?};
-$query  .= qq{ AND ( branchcode = ? OR branchcode IS NULL ) } if $branch_limit;
-$query  .= qq{ GROUP BY lib ORDER BY lib, lib_opac};
-my $authorised_values_sth = $dbh->prepare( $query );
 
 my $libraries = Koha::Libraries->search({}, { order_by => ['branchname'] })->unblessed;# build once ahead of time, instead of multiple times later.
 
@@ -400,10 +398,11 @@ foreach my $tag (sort keys %{$tagslib}) {
       }
       else {
           push @authorised_values, ""; # unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
-          $authorised_values_sth->execute( $tagslib->{$tag}->{$subfield}->{authorised_value}, $branch_limit ? $branch_limit : () );
-          while ( my ( $value, $lib ) = $authorised_values_sth->fetchrow_array ) {
-              push @authorised_values, $value;
-              $authorised_lib{$value} = $lib;
+
+          my @avs = Koha::AuthorisedValues->search({ category => $tagslib->{$tag}->{$subfield}->{authorised_value}, branchcode => $branch_limit });
+          for my $av ( @avs ) {
+              push @authorised_values, $av->authorised_value;
+              $authorised_lib{$av->authorised_value} = $av->lib;
           }
           $value="";
       }
@@ -491,16 +490,15 @@ foreach my $tag (sort keys %{$tagslib}) {
     $i++
   }
 } # -- End foreach tag
-$authorised_values_sth->finish;
 
 
 
     # what's the next op ? it's what we are not in : an add if we're editing, otherwise, and edit.
-    $template->param(item => \@loop_data);
-    if (@notfoundbarcodes) { 
-	my @notfoundbarcodesloop = map{{barcode=>$_}}@notfoundbarcodes;
-    	$template->param(notfoundbarcodes => \@notfoundbarcodesloop);
-    }
+    $template->param(
+        item                => \@loop_data,
+        notfoundbarcodes    => \@notfoundbarcodes,
+        notfounditemnumbers => \@notfounditemnumbers
+    );
     $nextop="action"
 } # -- End action="show"
 

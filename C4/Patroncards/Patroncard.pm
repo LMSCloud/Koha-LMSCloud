@@ -216,6 +216,8 @@ sub draw_text {
     return unless (ref($self->{'layout'}->{'text'}) eq 'ARRAY'); # just in case there is not text
 
     my $text = [@{$self->{'layout'}->{'text'}}]; # make a copy of the arrayref *not* simply a pointer
+    # after a endless loop in this function it seems to be useful to add a breaking condition
+    my $whileintext = 0;
     while (scalar @$text) {
         my $line = shift @$text;
         my $parse_line = $line;
@@ -254,6 +256,8 @@ sub draw_text {
 #        my $string_width = ($font_units_width * $text_attribs->{'font_size'}) / $units_per_em;
         my $string_width = C4::Creators::PDF->StrWidth($line, $text_attribs->{'font'}, $text_attribs->{'font_size'});
         if (($string_width + $text_attribs->{'llx'}) > $self->{'width'}) {
+            # counter for a breaking condition to prevent endless looping
+            my $innerwhile = 0;
             WRAP_LINES:
             while (1) {
 #                $line =~ m/^.*(\s\b.*\b\s*|\s&|\<\b.*\b\>)$/; # original regexp... can be removed after dev stage is over
@@ -282,6 +286,10 @@ sub draw_text {
                         last WRAP_LINES;
                     }
                 }
+                if ( ++$innerwhile == 1000 ) {
+                    warn "Patroncard.pm => draw_text: Leaving inner while draw_text with innerwhile ($innerwhile): line is: $line\n";
+                    last WRAP_LINES;
+                }
             }
         }
         else {
@@ -308,6 +316,10 @@ sub draw_text {
         $pdf->FontSize($text_attribs->{'font_size'});
         foreach my $line (@lines) {
             $pdf->Text($line->{'Tx'}, $line->{'Ty'}, $line->{'line'});
+        }
+        if ( ++$whileintext == 1000 ) {
+            warn "Patroncard.pm => draw_text: Leaving outer while draw_text with whileintext ($whileintext): text is: @$text\n";
+            last;
         }
     }
 }
@@ -394,7 +406,7 @@ sub _draw_barcode {   # this is cut-and-paste from Label.pm because there is no 
             PDF::Reuse::Barcode::COOP2of5(
                 x                   => $params{'llx'}* $self->{'unitvalue'},
                 y                   => $params{'lly'}* $self->{'unitvalue'},
-                value               => "*$params{barcode_data}*",
+                value               => $params{barcode_data},
                 xSize               => $x_scale_factor,
                 ySize               => $params{'y_scale_factor'},
                 mode                    => 'graphic',
@@ -412,7 +424,7 @@ sub _draw_barcode {   # this is cut-and-paste from Label.pm because there is no 
             PDF::Reuse::Barcode::Industrial2of5(
                 x                   => $params{'llx'}* $self->{'unitvalue'} ,
                 y                   => $params{'lly'}* $self->{'unitvalue'},
-                value               => "*$params{barcode_data}*",
+                value               => $params{barcode_data},
                 xSize               => $x_scale_factor,
                 ySize               => $params{'y_scale_factor'},
                 mode                    => 'graphic',

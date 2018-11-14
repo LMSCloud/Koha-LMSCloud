@@ -349,6 +349,18 @@ CREATE TABLE `branches` ( -- information about your libraries or branches are st
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `branches_overdrive`
+--
+
+DROP TABLE IF EXISTS `branches_overdrive`;
+CREATE TABLE IF NOT EXISTS branches_overdrive (
+  `branchcode` VARCHAR( 10 ) NOT NULL ,
+  `authname` VARCHAR( 255 ) NOT NULL ,
+  PRIMARY KEY (`branchcode`) ,
+  CONSTRAINT `branches_overdrive_ibfk_1` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `browser`
 --
 DROP TABLE IF EXISTS `browser`;
@@ -745,7 +757,7 @@ CREATE TABLE `deleteditems` (
   `onloan` date default NULL, -- defines if item is checked out (NULL for not checked out, and due date for checked out)
   `cn_source` varchar(10) default NULL, -- classification source used on this item (MARC21 952$2)
   `cn_sort` varchar(255) default NULL, -- normalized form of the call number (MARC21 952$o) used for sorting
-  `ccode` varchar(10) default NULL, -- authorized value for the collection code associated with this item (MARC21 952$8)
+  `ccode` varchar(80) default NULL, -- authorized value for the collection code associated with this item (MARC21 952$8)
   `materials` MEDIUMTEXT default NULL, -- materials specified (MARC21 952$3)
   `uri` varchar(255) default NULL, -- URL for the item (MARC21 952$u)
   `itype` varchar(10) default NULL, -- foreign key from the itemtypes table defining the type for this item (MARC21 952$y)
@@ -1007,7 +1019,7 @@ CREATE TABLE `items` ( -- holdings/item information
   `onloan` date default NULL, -- defines if item is checked out (NULL for not checked out, and due date for checked out)
   `cn_source` varchar(10) default NULL, -- classification source used on this item (MARC21 952$2)
   `cn_sort` varchar(255) default NULL,  -- normalized form of the call number (MARC21 952$o) used for sorting
-  `ccode` varchar(10) default NULL, -- authorized value for the collection code associated with this item (MARC21 952$8)
+  `ccode` varchar(80) default NULL, -- authorized value for the collection code associated with this item (MARC21 952$8)
   `materials` MEDIUMTEXT default NULL, -- materials specified (MARC21 952$3)
   `uri` varchar(255) default NULL, -- URL for the item (MARC21 952$u)
   `itype` varchar(10) default NULL, -- foreign key from the itemtypes table defining the type for this item (MARC21 952$y)
@@ -2088,7 +2100,7 @@ CREATE TABLE `statistics` ( -- information related to transactions (circulation 
   `branch` varchar(10) default NULL, -- foreign key, branch where the transaction occurred
   `proccode` varchar(4) default NULL, -- type of procedure used when making payments (does not appear in the code)
   `value` double(16,4) default NULL, -- monetary value associated with the transaction
-  `type` varchar(16) default NULL, -- transaction type (locause, issue, return, renew, writeoff, payment, Credit*)
+  `type` varchar(16) default NULL, -- transaction type (localuse, issue, return, renew, writeoff, payment)
   `other` LONGTEXT, -- used by SIP
   `usercode` varchar(10) default NULL, -- unused in Koha
   `itemnumber` int(11) default NULL, -- foreign key from the items table, links transaction to a specific item
@@ -2096,7 +2108,7 @@ CREATE TABLE `statistics` ( -- information related to transactions (circulation 
   `location` varchar(80) default NULL, -- authorized value for the shelving location for this item (MARC21 952$c)
   `borrowernumber` int(11) default NULL, -- foreign key from the borrowers table, links transaction to a specific borrower
   `associatedborrower` int(11) default NULL, -- unused in Koha
-  `ccode` varchar(10) default NULL, -- foreign key from the items table, links transaction to a specific collection code
+  `ccode` varchar(80) default NULL, -- foreign key from the items table, links transaction to a specific collection code
   KEY `timeidx` (`datetime`),
   KEY `branch_idx` (`branch`),
   KEY `proccode_idx` (`proccode`),
@@ -2205,6 +2217,7 @@ CREATE TABLE `subscription` ( -- information related to the subscription
   `itemtype` VARCHAR( 10 ) NULL,
   `previousitemtype` VARCHAR( 10 ) NULL,
   PRIMARY KEY  (`subscriptionid`),
+  KEY `by_biblionumber` (`biblionumber`),
   CONSTRAINT subscription_ibfk_1 FOREIGN KEY (periodicity) REFERENCES subscription_frequencies (id) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT subscription_ibfk_2 FOREIGN KEY (numberpattern) REFERENCES subscription_numberpatterns (id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2430,17 +2443,6 @@ CREATE TABLE `zebraqueue` (
   `time` timestamp NOT NULL default CURRENT_TIMESTAMP,
   PRIMARY KEY  (`id`),
   KEY `zebraqueue_lookup` (`server`, `biblio_auth_number`, `operation`, `done`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `services_throttle`
---
-
-DROP TABLE IF EXISTS `services_throttle`;
-CREATE TABLE `services_throttle` (
-  `service_type` varchar(10) NOT NULL default '',
-  `service_count` varchar(45) default NULL,
-  PRIMARY KEY  (`service_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2751,7 +2753,7 @@ CREATE TABLE branch_transfer_limits (
     toBranch varchar(10) NOT NULL,
     fromBranch varchar(10) NOT NULL,
     itemtype varchar(10) NULL,
-    ccode varchar(10) NULL,
+    ccode varchar(80) NULL,
     PRIMARY KEY  (limitId)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -2800,7 +2802,6 @@ CREATE TABLE `accountlines` (
   `date` date default NULL,
   `amount` decimal(28,6) default NULL,
   `description` LONGTEXT,
-  `dispute` LONGTEXT,
   `accounttype` varchar(5) default NULL,
   `payment_type` varchar(80) default NULL, -- optional authorised value PAYMENT_TYPE
   `amountoutstanding` decimal(28,6) default NULL,
@@ -2956,8 +2957,8 @@ CREATE TABLE `aqbudgets` ( -- information related to Funds
   `budget_name` varchar(80) default NULL, -- name assigned to the fund by the user
   `budget_branchcode` varchar(10) default NULL, -- branch that this fund belongs to (branches.branchcode)
   `budget_amount` decimal(28,6) NULL default '0.00', -- total amount for this fund
-  `budget_encumb` decimal(28,6) NULL default '0.00', -- not used in the code
-  `budget_expend` decimal(28,6) NULL default '0.00', -- not used in the code
+  `budget_encumb` decimal(28,6) NULL default '0.00', -- budget warning at percentage
+  `budget_expend` decimal(28,6) NULL default '0.00', -- budget warning at amount
   `budget_notes` LONGTEXT, -- notes related to this fund
   `timestamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP, -- date and time this fund was last touched (created or modified)
   `budget_period_id` int(11) default NULL, -- id of the budget that this fund belongs to (aqbudgetperiods.budget_period_id)
@@ -3820,7 +3821,7 @@ DROP TABLE IF EXISTS edifact_ean;
 CREATE TABLE IF NOT EXISTS edifact_ean (
   ee_id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   description VARCHAR(128) NULL DEFAULT NULL,
-  branchcode VARCHAR(10) NOT NULL REFERENCES branches (branchcode),
+  branchcode VARCHAR(10) NULL DEFAULT NULL REFERENCES branches (branchcode),
   ean VARCHAR(15) NOT NULL,
   id_code_qualifier VARCHAR(3) NOT NULL DEFAULT '14',
   CONSTRAINT efk_branchcode FOREIGN KEY ( branchcode ) REFERENCES branches ( branchcode )
@@ -3885,7 +3886,7 @@ CREATE TABLE `course_items` (
   `ci_id` int(11) NOT NULL AUTO_INCREMENT, -- course item id
   `itemnumber` int(11) NOT NULL, -- items.itemnumber for the item on reserve
   `itype` varchar(10) DEFAULT NULL, -- new itemtype for the item to have while on reserve (optional)
-  `ccode` varchar(10) DEFAULT NULL, -- new category code for the item to have while on reserve (optional)
+  `ccode` varchar(80) DEFAULT NULL, -- new category code for the item to have while on reserve (optional)
   `holdingbranch` varchar(10) DEFAULT NULL, -- new holding branch for the item to have while on reserve (optional)
   `location` varchar(80) DEFAULT NULL, -- new shelving location for the item to have while on reseve (optional)
   `enabled` enum('yes','no') NOT NULL DEFAULT 'no', -- if at least one enabled course has this item on reseve, this field will be 'yes', otherwise it will be 'no'

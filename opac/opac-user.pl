@@ -18,8 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
@@ -82,7 +81,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-my %renewed = map { $_ => 1 } split( ':', $query->param('renewed') );
+my %renewed = map { $_ => 1 } split( ':', $query->param('renewed') || '' );
 
 my $show_priority;
 for ( C4::Context->preference("OPACShowHoldQueueDetails") ) {

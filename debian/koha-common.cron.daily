@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-<<<<<<< HEAD
 # koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/automatic_renewals.pl
 # koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/fines.pl
 # koha-foreach --chdir --enabled --email /usr/share/koha/bin/cronjobs/overdue_notices.pl -t
@@ -23,7 +22,7 @@
 # koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/serialsUpdate.pl -c
 # koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/membership_expiry.pl -c
 # koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/holds/cancel_expired_holds.pl >/dev/null 2>&1
-koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/services_throttle.pl > /dev/null 2>&1
+
 koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/cleanup_database.pl --sessions --zebraqueue 10 --list-invites --temp-uploads
 koha-foreach --chdir --enabled --noemail /usr/share/koha/bin/cronjobs/cleanup_database.pl --mail
 koha-foreach --chdir --enabled /usr/share/koha/bin/cronjobs/holds/auto_unsuspend_holds.pl > /dev/null 2>&1

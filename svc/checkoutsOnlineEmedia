@@ -26,10 +26,10 @@ use JSON qw(to_json);
 use C4::Auth qw(check_cookie_auth haspermission get_session);
 use C4::Biblio qw(GetMarcBiblio GetFrameworkCode GetRecordValue);
 use C4::Context;
-use C4::Branch; # GetBranches
 use C4::Divibib::NCIPService;
 
 use Koha::DateUtils;
+use Koha::Libraries;
 
 my $input = new CGI;
 
@@ -68,7 +68,7 @@ if (C4::Context->preference('DivibibEnabled')) {
 
 my @checkouts = ();
 my $item_level_itypes = C4::Context->preference('item-level_itypes');
-my $branches = GetBranches();    # load the branches
+my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' });    # load the branches
 
 foreach my $c ( @{$divibib_issues} ) {
 
@@ -89,7 +89,7 @@ foreach my $c ( @{$divibib_issues} ) {
         itemtype_description => $itemtype->{translated_description},
         itemnotes            => $item->{itemnotes},
         itemnotes_nonpublic  => $item->{itemnotes_nonpublic},
-        branchname           => defined($item->{homebranch}) && defined($branches->{$item->{homebranch}}->{'branchname'}) ? $branches->{$item->{homebranch}}->{'branchname'} : '',
+        branchname           => defined($item->{homebranch}) && defined($branches{$item->{homebranch}}->{'branchname'}) ? $branches{$item->{homebranch}}->{'branchname'} : '',
         branchcode           => $item->{homebranch},
         itemnumber          => $item->{itemnumber},
         borrowernumber      => $c->{borrowernumber},
