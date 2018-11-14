@@ -689,7 +689,6 @@ sub CanBookBeIssued {
     my $patron_unblessed = $patron->unblessed;
 
     # check if it is an ILL item and if an alternative datedue is stored in the Illbackend
-print STDERR "C4::Circulation::CanBookBeIssued barcode:$barcode: duedate:$duedate:\n";
     my ( $itisanillitem, $illrequest, $datedueIllbackend, $shippingBackRequired ) = &checkIfIllItem($item,1);
     if ( $itisanillitem && $datedueIllbackend ) {
         $duedate = $datedueIllbackend;
@@ -1285,7 +1284,6 @@ sub AddIssue {
 
     my $issue;
 
-print STDERR "C4::Circulation::AddIssue barcode:$barcode: datedue:$datedue: issuedate:$issuedate:\n";
     if ( $datedue && ref $datedue ne 'DateTime' ) {
         $datedue = dt_from_string($datedue);
     }
@@ -1364,11 +1362,9 @@ print STDERR "C4::Circulation::AddIssue barcode:$barcode: datedue:$datedue: issu
             }
 
             # check if it is an ILL item and if an alternative datedue is stored in the Illbackend
-print STDERR "C4::Circulation::AddIssue barcode:$barcode: datedue:$datedue: issuedate:$issuedate:\n";
             my ( $itisanillitem, $illrequest, $datedueIllbackend, $shippingBackRequired ) = &checkIfIllItem($item,1);
             if ( $itisanillitem && $datedueIllbackend ) {
                 $datedue = $datedueIllbackend;
-print STDERR "C4::Circulation::AddIssue itisanillitem:$itisanillitem: barcode:$barcode: datedue:$datedue: issuedate:$issuedate: shippingBackRequired:$shippingBackRequired:\n";
             }
 
             # Record in the database the fact that the book was issued.
@@ -2203,24 +2199,11 @@ sub AddReturn {
         }
     }
 
-    # check if it is an ILL item    TODO: needs rework, we will shift this action in the backend ship-back-method in the future
-print STDERR "C4::Circulation::AddReturn barcode:$barcode: return_date:$return_date:\n";
+    # check if it is an ILL item 
     my ( $itisanillitem, $illrequest, $datedueIllbackend, $shippingBackRequired ) = &checkIfIllItem($item,0);
     if ( $itisanillitem && $illrequest ) {
         # update also the ILL backend status
         $illrequest->_backend_capability( "itemCheckedIn", $illrequest );
-        # delete item and title;
-        my $res = C4::Items::DelItemCheck( $item->{'biblionumber'}, $item->{'itemnumber'} );
-        my $error;
-        if ( $res eq '1' ) {
-            $error = &DelBiblio($item->{'biblionumber'});
-        }
-        if ( $res ne '1' || $error) {
-            warn "ERROR when deleting ILL title $item->{'biblionumber'} ($error) or ILL item $item->{'itemnumber'} ($res)";
-            print "Content-Type: text/html\n\n<html><body><h3>ERROR when deleting ILL title $item->{'biblionumber'} ($error) or ILL item $item->{'itemnumber'} ($res)</h3></body></html>";
-	        exit;
-        }
-print STDERR "C4::Circulation::AddReturn itisanillitem:$itisanillitem: barcode:$barcode: return_date:$return_date: res:$res:\n";
     }
 
     return ( $doreturn, $messages, $issue, ( $patron ? $patron->unblessed : {} ) );
@@ -4369,13 +4352,11 @@ sub  checkIfIllItem {
         # if it is an ILL item then try to read datedue from table illrequestattributes
         my @illItemtypes = split( /\|/, C4::Context->preference("IllItemtypes") );
         foreach my $illItemtype (@illItemtypes) {
-print STDERR "C4::Circulation::checkIfIllItem illItemtype:$illItemtype: item->{itype}:$item->{itype}:\n";
             if ( $illItemtype eq $item->{'itype'} ) {
                 $itisanillitem = 1;
                 last;
             }
         }
-print STDERR "C4::Circulation::checkIfIllItem itisanillitem:$itisanillitem: item->itemnumber:$item->{itemnumber}: item->barcode:$item->{barcode}: item->{'biblionumber'}:$item->{'biblionumber'}:\n";
         if ( $itisanillitem ) {
             eval {
                 # XXXWH use Koha::Illrequests sollte man (und kann man eigentlich) erst hier benutzen, nicht grundsätzlich immer (wie im Moment)
