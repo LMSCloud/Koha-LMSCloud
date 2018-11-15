@@ -21,7 +21,6 @@
    <div id="bd">
 	<div id="yui-main">
 	<div class="yui-b">
-[% INCLUDE 'notice_sent_dialog.inc' %]
 [% INCLUDE 'members-toolbar.inc' %]
 <h1>Circulation history</h1>
 
