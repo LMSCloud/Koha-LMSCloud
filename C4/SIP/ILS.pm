@@ -212,13 +212,6 @@ sub checkin {
 
     if ($item) {
         $circ->do_checkin( $current_loc, $return_date, $checked_in_ok );
-        
-        if ( $circ->ok ) {
-            $circ->patron( $patron = C4::SIP::ILS::Patron->new( $item->{patron} ) );
-            delete $item->{patron};
-            delete $item->{due_date};
-            $patron->{items} = [ grep { $_ ne $item_id } @{ $patron->{items} } ];
-        }
     }
     else {
         $circ->alert(1);
