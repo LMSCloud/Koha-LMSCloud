@@ -602,7 +602,7 @@ END_SQL
             my $borrower_sql = <<"END_SQL";
 SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, 
                 cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
-FROM   branches, borrowers, categories, issues, items
+FROM   branches, borrowers, categories, items, issues
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  issues.borrowernumber = borrowers.borrowernumber $exludeFamilyCardMembers
 AND    borrowers.categorycode=categories.categorycode
@@ -631,7 +631,7 @@ END_SQL
 UNION
 SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, 
                 bo.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
-FROM   branches, borrowers bo, borrowers bb, categories, issues, items
+FROM   branches, borrowers bo, borrowers bb, categories, items, issues
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  categories.family_card = 1
 AND    issues.borrowernumber = bb.borrowernumber
@@ -723,7 +723,7 @@ END_SQL
                 my $familyCardOwner = $patron->get_family_card_id;
 
                 @emails_to_use = ();
-                 my $notice_email = $patron->notice_email_address;
+                my $notice_email = $patron->notice_email_address;
                 $notice_email =~ s/^\s+// if ($notice_email);
                 $notice_email =~ s/\s+$// if ($notice_email);
                 
@@ -847,9 +847,7 @@ END_SQL
 
                     $itemcount++;
                     push @items, $item_info;
-                    
-                    my $borrowerCategoryCode = C4::Members::GetBorrowerCategorycode($item_info->{'borrowernumber'});
-                    
+                                      
                     if ( $overdue_rules->{"debarred$i"} && !exists($debarredPatrons{$item_info->{'borrowernumber'}}) ) {
                         #action taken is debarring
                         if (! $test_mode ) {
@@ -868,7 +866,7 @@ END_SQL
                     # check whether there are claiming fee rules defined
                     if ( $nocharge==0 && $new_overdue_item == 1 && $claimFees->checkForClaimingRules() == 1 ) {
                         # check whether there is a matching claiming fee rule
-                        my $claimFeeRule = $claimFees->getFittingClaimingRule($borrowerCategoryCode, $item_info->{itype}, $usebranch);
+                        my $claimFeeRule = $claimFees->getFittingClaimingRule($patron->category, $item_info->{itype}, $usebranch);
                         
                         if ( $claimFeeRule ) {
                             my $fee = 0.0;
