@@ -86,7 +86,7 @@ sub new {
     $self->{permanent_location}= $item->homebranch;
     $self->{'collection_code'} = $item->ccode;
     $self->{  'call_number'  } = $item->itemcallnumber;
-    
+    $self->{   'location'    } = $item->location;
 
     my $it = $item->effective_itemtype;
     my $itemtype = Koha::Database->new()->schema()->resultset('Itemtype')->find( $it );

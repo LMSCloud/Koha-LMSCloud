@@ -723,7 +723,11 @@ sub handle_checkin {
             } else {
                 $resp .= maybe_add( FID_ITEM_PROPS,       $item->sip_item_properties );
             }
-            $resp .= maybe_add( FID_COLLECTION_CODE,      $item->collection_code );
+            if ( $server->{account}->{use_location_instead_ccode_for_CR} ) {
+                $resp .= maybe_add( FID_COLLECTION_CODE,  $item->location );
+            } else {
+                $resp .= maybe_add( FID_COLLECTION_CODE,  $item->collection_code );
+            }
             $resp .= maybe_add( FID_CALL_NUMBER,          $item->call_number );
             $resp .= maybe_add( FID_DESTINATION_LOCATION, $item->destination_loc );
             $resp .= maybe_add( FID_HOLD_PATRON_ID,       $item->hold_patron_bcode );
