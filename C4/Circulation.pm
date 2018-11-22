@@ -3073,7 +3073,7 @@ sub AddRenewal {
         );
         $sth->execute( $borrowernumber, $accountno, $charge, $manager_id,
             "Renewal of Rental Item " . $biblio->title . " $item->{'barcode'}",
-            'Rent', $charge, $itemnumber );
+            'Rent', $charge, $itemnumber, $issue->branchcode);
     }
 
     # Send a renewal slip according to checkout alert preferencei
