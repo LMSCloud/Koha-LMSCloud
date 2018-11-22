@@ -239,6 +239,7 @@ if ( $print eq 'yes' && $borrowernumber ne '' ) {
     }
     $query->param( 'borrowernumber', '' );
     $borrowernumber = ''; # FIXME This is terrible
+    $patron = undef;
 }
 
 #
