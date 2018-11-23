@@ -49,6 +49,7 @@ use Koha::DateUtils;
 use C4::HTML5Media;
 use C4::CourseReserves qw(GetItemCourseReservesInfo);
 use C4::Divibib::NCIPService;
+use C4::VolumeData;
 
 use Koha::Biblios;
 use Koha::RecordProcessor;
@@ -1351,5 +1352,22 @@ if ( C4::Context->preference('UseCourseReserves') ) {
 $template->param(
     'OpacLocationBranchToDisplay' => C4::Context->preference('OpacLocationBranchToDisplay'),
 );
+
+if (C4::Context->preference('OpacDetailVolumeDisplay')) {
+    my @linkedRecords;
+    foreach my $hostfield ( $record->field('770','772','773','774','775','776','777','780','785','787','800','810','811','830')) {
+        my $linkedbiblionumber = $hostfield->subfield("w");
+        $linkedbiblionumber =~ s/\([^\)]+\)//g;
+        push @linkedRecords, $linkedbiblionumber if ($linkedbiblionumber);
+    }
+    my ($volError,$volumeData,$linkedRecordData) = C4::VolumeData::GetVolumeData($biblionumber,\@linkedRecords);
+    if ( !$volError ) {
+        $template->param(
+            'OpacDetailVolumeDisplay'     =>     C4::Context->preference('OpacDetailVolumeDisplay'),
+            'VolumeData'                  =>     $volumeData,
+            'LinkedRecordData'            =>     $linkedRecordData
+        );
+    }
+}
 
 output_html_with_http_headers $query, $cookie, $template->output;

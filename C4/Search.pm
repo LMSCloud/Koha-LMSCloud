@@ -1870,6 +1870,11 @@ sub searchResults {
 
     require C4::Items;
 
+    my $sysprefname = "XSLTResultsDisplay";
+    if ( $search_context && $search_context =~ /^(.+)volume$/ ) {
+        $search_context = $1;
+        $sysprefname = "XSLTVolumeDisplay";
+    }
     $search_context = 'opac' if !$search_context || $search_context ne 'intranet';
     my ($is_opac, $hidelostitems);
     if ($search_context eq 'opac') {
@@ -1923,7 +1928,7 @@ sub searchResults {
 
     # set stuff for XSLT processing here once, not later again for every record we retrieved
     my $interface = $search_context eq 'opac' ? 'OPAC' : '';
-    my $xslsyspref = $interface . "XSLTResultsDisplay";
+    my $xslsyspref = $interface . $sysprefname;
     my $xslfile = C4::Context->preference($xslsyspref);
     my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
     my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
