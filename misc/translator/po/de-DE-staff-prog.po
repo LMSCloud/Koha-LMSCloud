@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2018-11-16 11:07+0100\n"
-"PO-Revision-Date: 2018-11-16 11:09+0100\n"
+"POT-Creation-Date: 2018-11-22 13:14+0100\n"
+"PO-Revision-Date: 2018-11-22 13:16+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2688,7 +2688,7 @@ msgstr "%s %s von %s%s"
 #. %3$s:  author | html
 #. %4$s:  END
 #. %5$s:  biblionumber
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:147
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:153
 #, c-format
 msgid "%s %s by %s%s (Record #%s)"
 msgstr "%s %s von %s%s (Titelsatznr. %s)"
@@ -5910,7 +5910,7 @@ msgstr "%s Einträge gefunden."
 
 #. For the first occurrence,
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 #: intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:273
 #: intranet-tmpl/prog/en/modules/serials/serials-edit.tt:9
 msgid "%s mandatory fields empty (highlighted)"
@@ -9159,7 +9159,7 @@ msgstr "&rsaquo; Etat %s kopieren %s "
 msgid "&rsaquo; Duplicate warning"
 msgstr "&rsaquo; Warnung: Duplikat"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:146
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:152
 #, c-format
 msgid "&rsaquo; Edit "
 msgstr "&rsaquo; Bearbeiten "
@@ -10302,7 +10302,7 @@ msgstr "(Anzahl in Ziffern eingeben) "
 msgid "(exclusive) "
 msgstr "(ausschließlich) "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:250
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:256
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:424
 #, c-format
 msgid "(fast cataloging)"
@@ -11174,19 +11174,19 @@ msgstr "9999-99-99"
 msgid ": %sa list:%s"
 msgstr ":%seiner Liste:%s"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:158
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:164
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:88
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:24
 #, c-format
 msgid ": Barcode must be unique."
 msgstr ": Barcode muß eindeutig sein."
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:162
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:168
 #, c-format
 msgid ": The items do not belong to your library."
 msgstr ": Die Exemplare gehören nicht Ihrer Bibliothek."
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:159
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:165
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:89
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:25
 #, c-format
@@ -11197,19 +11197,19 @@ msgstr ""
 ": Nicht in der Lage automatisch Barcodes zu erzeugen. Es wurde kein Exemplar "
 "angelegt."
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:161
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:167
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:91
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:27
 #, c-format
 msgid ": item has a waiting hold."
 msgstr ": Exemplar ist vorgemerkt."
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:163
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:169
 #, c-format
 msgid ": item has linked "
 msgstr ": Exemplar ist verknüpft mit "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:160
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:166
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:90
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:26
 #, c-format
@@ -11792,7 +11792,7 @@ msgstr "Aktionen"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_auth_search.tt:91
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:120
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:203
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:209
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:129
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:176
 #: intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:56
@@ -11894,7 +11894,7 @@ msgid "Adam Thick"
 msgstr "Adam Thick"
 
 #. INPUT type=submit name=add_multiple_copies_submit
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:348
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:354
 #: intranet-tmpl/prog/en/modules/patroncards/tables/members_results.tt:22
 #: intranet-tmpl/prog/en/modules/acqui/tables/members_results.tt:21
 #: intranet-tmpl/prog/en/modules/circ/overdue.tt:141
@@ -11928,7 +11928,7 @@ msgid "Add %s items to %s"
 msgstr "%s Titel hinzufügen zu %s"
 
 #. INPUT type=submit name=add_duplicate_submit
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:340
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:346
 msgid "Add & duplicate"
 msgstr "Hinzufügen & duplizieren"
 
@@ -11985,7 +11985,7 @@ msgid "Add a new field"
 msgstr "Neues Feld"
 
 #. INPUT type=button
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:357
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:363
 msgid "Add a new item"
 msgstr "Hinzufügen"
 
@@ -12147,7 +12147,7 @@ msgid "Add internal note"
 msgstr "Interne Notiz hinzufügen"
 
 #. INPUT type=submit name=add_submit
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:339
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:345
 #: intranet-tmpl/prog/en/modules/labels/result.tt:98
 #: intranet-tmpl/prog/en/includes/additem.js.inc:1
 #, c-format
@@ -12155,7 +12155,7 @@ msgid "Add item"
 msgstr "Exemplar hinzufügen"
 
 #. %1$s:  IF (circborrowernumber)
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:250
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:256
 #, c-format
 msgid "Add item %s"
 msgstr "Exemplar hinzufügen %s"
@@ -12223,7 +12223,7 @@ msgid "Add message"
 msgstr "Neue Mitteilung"
 
 #. INPUT type=button name=add_multiple_copies
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:343
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:349
 msgid "Add multiple copies of this item"
 msgstr "Mehrere Exemplare hinzufügen"
 
@@ -14105,7 +14105,7 @@ msgid "Archived"
 msgstr "Archiviert"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 msgid ""
 "Are you sure you want to add a new item? Any changes made on this page will "
 "be lost."
@@ -14407,7 +14407,7 @@ msgid "Are you sure you want to delete this invoice?"
 msgstr "Sind Sie sicher, dass Sie diese Rechnung löschen möchten?"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 msgid "Are you sure you want to delete this item?"
 msgstr "Sind Sie sicher, dass Sie dieses Exemplar löschen wollen?"
 
@@ -17291,8 +17291,8 @@ msgstr ""
 
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_auth_search.tt:69
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:58
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:348
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:358
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:354
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:364
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/EXAMPLE.tt:18
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:532
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:536
@@ -17726,10 +17726,10 @@ msgstr "Ausleihe nicht möglich"
 msgid "Cannot check out! %s "
 msgstr "Ausleihe nicht möglich! %s "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:160
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:161
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:162
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:163
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:166
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:167
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:168
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:169
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:26
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:27
 #, c-format
@@ -18286,7 +18286,7 @@ msgstr "Katalogstatistiken"
 
 #: intranet-tmpl/prog/en/modules/cataloguing/editor.tt:23
 #: intranet-tmpl/prog/en/modules/cataloguing/linkitem.tt:8
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:146
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:152
 #: intranet-tmpl/prog/en/modules/cataloguing/merge.tt:19
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:414
 #: intranet-tmpl/prog/en/modules/cataloguing/moveitem.tt:8
@@ -20068,7 +20068,7 @@ msgid "Client ID"
 msgstr "Client-ID"
 
 #. IMG
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:320
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:326
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:713
 #: intranet-tmpl/prog/en/modules/authorities/authorities.tt:394
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:56
@@ -20088,7 +20088,7 @@ msgid "Clone these rules to:"
 msgstr "Kopiere diese Regeln nach:"
 
 #. IMG
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:320
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:326
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:713
 #: intranet-tmpl/prog/en/modules/authorities/authorities.tt:394
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:264
@@ -23006,7 +23006,7 @@ msgstr ""
 "Karenz ist die Anzahl der Tage, bevor eine Aktion durch eine überfällige "
 "Ausleihe ausgelöst wird. "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:217
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:223
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:716
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:91
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:271
@@ -23280,7 +23280,7 @@ msgid "Delete image"
 msgstr "Bild löschen"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 msgid "Delete item"
 msgstr "Exemplar löschen"
 
@@ -23573,7 +23573,7 @@ msgstr ""
 msgid "Delimiter: "
 msgstr "Trennzeichen: "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:209
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:215
 #, c-format
 msgid "Delink"
 msgstr "Link löschen"
@@ -24549,7 +24549,7 @@ msgstr "Zu ändernde Fälligkeitsdaten: "
 msgid "Duncan Tyler"
 msgstr "Duncan Tyler"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:212
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:218
 #: intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:24
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:258
 #: intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:71
@@ -24760,7 +24760,7 @@ msgstr "Ecole des Mines de Saint Etienne, Philippe Jaillon (OAI-PMH support)"
 msgid "Ed Summers (Some code and Perl packages like MARC::Record)"
 msgstr "Ed Summers (Code und Perl-Pakete wie z.B. MARC::Record)"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:211
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:217
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:235
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:237
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:305
@@ -24864,7 +24864,7 @@ msgstr "Details bearbeiten"
 #. %2$s:  IF ( barcode )
 #. %3$s:  barcode
 #. %4$s:  END
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:252
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:258
 #, c-format
 msgid "Edit Item #%s%s / Barcode %s%s"
 msgstr "Bearbeite Exemplar #%s%s / Barcode %s%s"
@@ -25005,14 +25005,14 @@ msgstr "Hilfe bearbeiten"
 msgid "Edit history"
 msgstr "Historie bearbeiten"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:209
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:215
 #, c-format
 msgid "Edit in host"
 msgstr "In übergeordnetem Titel bearbeiten"
 
 #. For the first occurrence,
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 #: intranet-tmpl/prog/en/includes/catalogue/itemsearch_item.json.inc:24
 #, c-format
 msgid "Edit item"
@@ -25834,14 +25834,14 @@ msgstr "Fehlermeldung des Zebra-Servers: %s "
 msgid "Error performing operation"
 msgstr "Fehler bei der Ausführung"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:158
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:164
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:88
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:24
 #, c-format
 msgid "Error saving item"
 msgstr "Fehler beim Speichern des Exemplars"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:159
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:165
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:89
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:25
 #, c-format
@@ -27466,7 +27466,7 @@ msgstr "erlassen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 #: intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:526
 #: intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:273
 #: intranet-tmpl/prog/en/modules/admin/matching-rules.tt:584
@@ -29012,7 +29012,7 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: intranet-tmpl/prog/en/modules/about.tt:12
 #: intranet-tmpl/prog/en/modules/cataloguing/editor.tt:23
 #: intranet-tmpl/prog/en/modules/cataloguing/linkitem.tt:8
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:145
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:151
 #: intranet-tmpl/prog/en/modules/cataloguing/merge.tt:19
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:414
 #: intranet-tmpl/prog/en/modules/cataloguing/moveitem.tt:8
@@ -31609,7 +31609,7 @@ msgid "Itemnumbers not found"
 msgstr "Exemplarnummern nicht gefunden"
 
 #: intranet-tmpl/prog/en/modules/about.tt:214
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:148
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:154
 #: intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:102
 #: intranet-tmpl/prog/en/modules/circ/reserveratios.tt:40
 #: intranet-tmpl/prog/en/modules/basket/basket.tt:253
@@ -31641,7 +31641,7 @@ msgstr "Erwartete Exemplare"
 #. %3$s:  author | html
 #. %4$s:  END
 #. %5$s:  biblionumber
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:156
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:162
 #, c-format
 msgid "Items for %s %s by %s%s (Record #%s)"
 msgstr "Exemplar für %s %s von %s%s (Titelsatznr. %s)"
@@ -33341,6 +33341,19 @@ msgstr "Koha &rsaquo; Katalogisierung"
 #: intranet-tmpl/prog/en/includes/cateditor-ui.inc:33
 msgid "Koha &rsaquo; Cataloging &rsaquo; "
 msgstr "Koha &rsaquo; Katalogisierung &rsaquo;"
+
+#. %1$s:  title | html
+#. %2$s:  IF ( author )
+#. %3$s:  author | html
+#. %4$s:  END
+#. %5$s:  biblionumber | html
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:6
+#, c-format
+msgid ""
+"Koha &rsaquo; Cataloging &rsaquo; %s %s by %s%s (Record #%s) &rsaquo; Items"
+msgstr ""
+"Koha &rsaquo; Katalogisierung &rsaquo; %s %s von %s%s (Titelsatznr. #%s) "
+"&rsaquo; Exemplare"
 
 #. %1$s:  IF ( biblionumber )
 #. %2$s:  title |html
@@ -40064,7 +40077,7 @@ msgstr ""
 "verarbeiten können"
 
 #. A
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:295
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:301
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:688
 #: intranet-tmpl/prog/en/modules/authorities/authorities.tt:376
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:240
@@ -41022,7 +41035,7 @@ msgstr "Anzahl Ausleihen nach Medientyp"
 msgid "Number of columns:"
 msgstr "Anzahl Spalten:"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:346
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:352
 #, c-format
 msgid "Number of copies of this item to add: "
 msgstr "Anzahl hinzuzufügender Exemplare: "
@@ -41404,7 +41417,7 @@ msgstr "OPAC-Notiz:"
 msgid "OPAC tables"
 msgstr "OPAC-Tabellen"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:221
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:227
 #: intranet-tmpl/prog/en/modules/catalogue/results.tt:472
 #, c-format
 msgid "OPAC view"
@@ -44442,7 +44455,7 @@ msgid "Please enter a name for this pattern"
 msgstr "Bitte geben Sie einen Namen für dieses Muster an"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 msgid "Please enter a number of items to create."
 msgstr "Bitte geben Sie die Anzahl anzulegender Exemplare ein."
 
@@ -45397,7 +45410,7 @@ msgstr "Druck"
 msgid "Print "
 msgstr "Drucken "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:213
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:219
 #, c-format
 msgid "Print Label"
 msgstr "Etikett drucken"
@@ -47424,7 +47437,7 @@ msgstr "Gültige E-Mail-Adresse verlangen:"
 msgid "Require.js JS module system"
 msgstr "Require.js JS module system"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:323
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:329
 #: intranet-tmpl/prog/en/modules/members/housebound.tt:127
 #: intranet-tmpl/prog/en/modules/members/housebound.tt:141
 #: intranet-tmpl/prog/en/modules/members/housebound.tt:224
@@ -48601,7 +48614,7 @@ msgid "Save as new pattern"
 msgstr "Als neues Muster speichern"
 
 #. INPUT type=submit
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:356
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:362
 #: intranet-tmpl/prog/en/modules/members/housebound.tt:191
 #: intranet-tmpl/prog/en/modules/acqui/basket.tt:236
 #: intranet-tmpl/prog/en/modules/admin/marc_subfields_structure.tt:212
@@ -53068,8 +53081,8 @@ msgid "Tag deleted"
 msgstr "Feld gelöscht"
 
 #. A
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:287
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:297
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:293
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:303
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:682
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:690
 #: intranet-tmpl/prog/en/modules/authorities/authorities.tt:372
@@ -53637,7 +53650,7 @@ msgstr "Der Barcode %s wurde nicht gefunden."
 msgid "The barcode was not found: "
 msgstr "Der Barcode wurde nicht gefunden: "
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:349
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:355
 #, c-format
 msgid "The barcode you enter will be incremented for each additional item."
 msgstr "Der eingegebene Barcode wird für jedes weitere Exemplar hochgezählt."
@@ -58277,7 +58290,7 @@ msgstr "Alle unbearbeiteten Änderungswünsche von Benutzern anzeigen"
 msgid "View all plugins"
 msgstr "Alle Plugins anzeigen"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:215
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:221
 #, c-format
 msgid "View analytics"
 msgstr "Zeige Aufsätze"
@@ -59436,7 +59449,7 @@ msgid "You already have a list with that name!"
 msgstr "Sie haben bereits eine Liste mit diesem Namen"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:8
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:14
 msgid "You are about to add %s items. Continue?"
 msgstr "Sie sind dabei %s Exemplare zu erzeugen. Fortsetzen?"
 
@@ -60772,7 +60785,7 @@ msgstr "existiert bereits in der Datenbank"
 msgid "already has a hold"
 msgstr "ist bereits vorgemerkt"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:163
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:169
 #, c-format
 msgid "analytics."
 msgstr "Aufsätze."
@@ -62475,7 +62488,7 @@ msgid "pending offline circulation actions"
 msgstr "Unverarbeitete Offline-Verbuchungsaktionen"
 
 #. INPUT type=submit name=phony_submit
-#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:333
+#: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:339
 msgid "phony_submit"
 msgstr "phony_submit"
 
