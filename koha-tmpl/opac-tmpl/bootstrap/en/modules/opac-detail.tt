@@ -523,6 +523,8 @@
                         <div id="BW_critiques_pro"></div>
                         <div id="BW_citations"></div>
                     [% END # / IF Babeltheque%]
+                    
+                    [% IF (OpacDetailVolumeDisplay) %][% INCLUDE 'opac-detail-volumes.inc' %][% END %]
 
                 </div> <!-- / #catalogue_detail_biblio -->
 

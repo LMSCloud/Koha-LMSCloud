@@ -95,3 +95,12 @@
     padding: .7em .2em;
     text-align: center;
 }
+.detail_volume_list { margin-top: 1em; clear: left; }
+.detail_volume_list .toolbar { border-radius: 0px 0px 0px 0px; }
+.detail_volume_volname { font-size: 100%; font-weight: 600; }
+.detail_volume_header { font-weight: bold; margin-left: 12px; margin-top: 4px; }
+.detail_volume_bibdata .title { font-size: 100%; }
+.detail_linked_record_list { margin-top: 1em; clear: left; }
+.detail_linked_record_list .toolbar { border-radius: 0px 0px 0px 0px; }
+.detail_linked_record_header { font-weight: bold; margin-left: 12px; margin-top: 4px; }
+.detail_linked_record_bibdata .title { font-size: 100%; }

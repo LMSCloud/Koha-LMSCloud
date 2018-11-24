@@ -503,6 +503,37 @@ sub has_overdues {
     return $self->_result->issues->search({ date_due => { '<' => $dtf->format_datetime( dt_from_string() ) } })->count;
 }
 
+=head3 has_family_overdues
+
+my $has_overdues = $patron->has_family_overdues;
+
+Returns the number of patron's family overdues
+
+=cut
+
+sub has_family_overdues {
+    my ($self) = @_;
+    
+    my $overdues = 0;
+    
+    my $familyCardId = $self->get_family_card_id;
+    if ( !$familyCardId && $self->is_family_card ) {
+        $familyCardId = $self->borrowernumber;
+    }
+    
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+    if ( $familyCardId ) {
+        $overdues = Koha::Patrons->find( $familyCardId )->has_overdues;
+        foreach my $familyMember (Koha::Patrons->search( { guarantorid => $familyCardId })) {
+            $overdues += $familyMember->has_overdues;
+        }
+    }
+    else {
+        $overdues = $self->has_overdues;
+    }
+    return $overdues;
+}
+
 =head3 track_login
 
     $patron->track_login;
@@ -631,12 +662,54 @@ sub add_enrolment_fee_if_needed {
 
 my $checkouts = $patron->checkouts
 
+Return the number of patron's checkouts;
+
 =cut
 
 sub checkouts {
     my ($self) = @_;
     my $checkouts = $self->_result->issues;
     return Koha::Checkouts->_new_from_dbic( $checkouts );
+}
+
+=head3 checkout_count
+
+my $countcheckouts = $patron->checkout_count
+
+Return the number of patron's family checkouts;
+
+=cut
+
+sub checkout_count {
+    my ($self) = @_;
+    return $self->_result->issues->count;
+}
+
+=head3 family_checkout_count
+
+my $countcheckouts = $patron->family_checkout_count
+
+=cut
+
+sub family_checkout_count {
+    my ($self) = @_;
+    
+    my $checkoutcount = 0;
+    
+    my $familyCardId = $self->get_family_card_id;
+    if ( !$familyCardId && $self->is_family_card ) {
+        $familyCardId = $self->borrowernumber;
+    }
+    if ( $familyCardId ) {
+        $checkoutcount = Koha::Patrons->find( $familyCardId )->checkout_count;
+        foreach my $familyMember (Koha::Patrons->search( { guarantorid => $familyCardId })) {
+            $checkoutcount += $familyMember->checkout_count;
+        }
+    }
+    else {
+        $checkoutcount = $self->checkout_count;
+    }
+    return $checkoutcount;
 }
 
 =head3 pending_checkouts
@@ -751,6 +824,49 @@ my $account = $patron->account
 sub account {
     my ($self) = @_;
     return Koha::Account->new( { patron_id => $self->borrowernumber } );
+}
+
+=head3 get_account_balance
+
+my $account = $patron->get_account_balance
+
+Return the balance of the patron's account.
+
+=cut
+
+sub get_account_balance {
+    my ($self) = @_;
+    my $account = Koha::Account->new( { patron_id => $self->borrowernumber } );
+    return $account->balance;
+}
+
+=head3 get_family_account_balance
+
+my $account = $patron->get_family_account_balance
+
+Return the balance of the patron's family account.
+
+=cut
+
+sub get_family_account_balance {
+    my ($self) = @_;
+    
+    my $balance = 0.0;
+    
+    my $familyCardId = $self->get_family_card_id;
+    if ( !$familyCardId && $self->is_family_card ) {
+        $familyCardId = $self->borrowernumber;
+    }
+    if ( $familyCardId ) {
+        $balance = Koha::Patrons->find( $familyCardId )->get_account_balance;
+        foreach my $familyMember (Koha::Patrons->search( { guarantorid => $familyCardId })) {
+            $balance += $familyMember->get_account_balance;
+        }
+    }
+    else {
+        $balance = $self->get_account_balance;
+    }
+    return $balance;
 }
 
 =head3 holds

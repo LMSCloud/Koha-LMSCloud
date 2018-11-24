@@ -16,7 +16,6 @@
    <div id="bd">
     <div id="yui-main">
     <div class="yui-b">
-    [% INCLUDE 'notice_sent_dialog.inc' %]
     [% INCLUDE 'members-toolbar.inc' %]
     [% IF ( ItemsOnIssues || charges || guarantees || cash_register_branchcode ) %]
         <div class="dialog alert">

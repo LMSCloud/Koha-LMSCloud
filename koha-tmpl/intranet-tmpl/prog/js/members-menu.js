@@ -65,6 +65,84 @@ $(document).ready(function(){
                 $(".btn-group").removeClass("open");
             }
         });
+        if ( $("#notice_sent_dialog_member").length == 1 ) {
+            $("#notice_sent_dialog_member").hide();
+
+            $.ajax({
+                data: {},
+                type: 'POST',
+                url: '/cgi-bin/koha/svc/members/adhocletters',
+                success: function(data) {
+                    var letterSelect =  $("#adhocNoticeLetterSelection_letter");
+                    letterSelect.find('option').remove();
+                    for (var i=0; i < data.letters.length; i++ ) {
+                       letterSelect.append($('<option></option>').val(data.letters[i].code).html(data.letters[i].name));
+                    }
+
+                },
+                error: function() {
+                    alert( _("An error occured while retrieving available letters for adhoc-notices.") );
+                }
+            });
+            
+            $("#send_notice_letter_select").on('click', function(e){
+                var patronCount = 1;
+                $('#selectAdhocNoticeLetterPatronCount').text(patronCount);
+                $("#selectAdhocNoticeLetter").modal("show");
+
+                return true;
+            });
+            $("#send_notice_submit").on('click', function(e){
+                e.preventDefault();
+                var patronCount = 1;
+
+                var borrowernumbers = [];
+                borrowernumbers.push(borrowernumber);
+
+                var data = {
+                    use_letter: $("#adhocNoticeLetterSelection_letter").val(),
+                    use_email: ($('#preferEmail').is(":checked") ? $("#preferEmail").val() : ''),
+                    no_notice_fees: ($('#dontCharge').is(":checked") ? $("#dontCharge").val() : ''),
+                    borrowernumbers: borrowernumbers
+                };
+
+                $.ajax({
+                    data: data,
+                    type: 'POST',
+                    url: '/cgi-bin/koha/svc/members/sendnotice',
+                    success: function(data) {
+                        var patronExportModal = $("#selectAdhocNoticeLetter");
+                        $("#notice_sent_dialog_member").show();
+                        $("#notice_sent_dialog_member").find(".patrons-length").text(patronCount);
+                        $("#notice_sent_dialog_member").find(".letter-name").text($("#adhocNoticeLetterSelection_letter").find("option:selected").text());
+                        if ( data.letter_mailed > 0 ) {
+                            $("#notice_sent_dialog_member").find(".letter-email-count").text(data.letter_mailed);
+                            $("#notice_sent_dialog_member").find(".letter-email").show();
+                        }
+                        else {
+                            $("#notice_sent_dialog_member").find(".letter-email").hide();
+                        }
+                        if ( data.letter_printed > 0 ) {
+                            $("#notice_sent_dialog_member").find(".letter-print-count").text(data.letter_printed);
+                            $("#notice_sent_dialog_member").find("a").attr("href","/cgi-bin/koha/tools/download-files.pl?filename=" + data.printedfile + "&op=download");
+                            $("#notice_sent_dialog_member").find(".letter-print").show();
+                        }
+                        else {
+                            $("#notice_sent_dialog_member").find(".letter-print").hide();
+                        }
+
+                        //console.log(data);
+                        patronExportModal.modal("hide");
+                        $("#memberresultst").DataTable().ajax.reload();
+                    },
+                    error: function() {
+                        alert( _("A server error occured processing the adhoc notice request.") );
+                    }
+                });
+
+                return true;
+            });
+        }
     }
 
     $("#updatechild, #patronflags, #renewpatron, #deletepatron, #exportbarcodes").tooltip();

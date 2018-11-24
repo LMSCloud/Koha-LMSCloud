@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2018-11-10 21:05+0100\n"
+"POT-Creation-Date: 2018-11-22 13:14+0100\n"
 "PO-Revision-Date: 2018-11-10 19:06+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -940,6 +940,7 @@ msgstr "10-19%%"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:148
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:161
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:452
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:92
 #, c-format
 msgid "100,110,111,700,710,711"
 msgstr "100,110,111,700,710,711"
@@ -2315,6 +2316,7 @@ msgid "Autonomous or semi-autonomous component"
 msgstr "Autonome oder teilautonome Einheit"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1149
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:230
 #, c-format
 msgid "Availability: "
 msgstr "Verfügbarkeit: "
@@ -2697,6 +2699,10 @@ msgstr "Kalender"
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1192
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1207
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1236
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:255
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:272
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:287
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:315
 #, c-format
 msgid "Call number: "
 msgstr "Signatur: "
@@ -2890,6 +2896,7 @@ msgid "Charts"
 msgstr "Diagrammw, graph. Darstellungen"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1255
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:338
 #, c-format
 msgid "Checked out ("
 msgstr "Ausgeliehen ("
@@ -3489,6 +3496,7 @@ msgid "Daily"
 msgstr "Täglich"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1274
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:359
 #, c-format
 msgid "Damaged ("
 msgstr "Beschädigt ("
@@ -4927,6 +4935,7 @@ msgid "Imbibition dye transfer prints"
 msgstr "Farbgetränkte Trägerdrucke"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1286
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:373
 #, c-format
 msgid "In transit ("
 msgstr "Unterwegs ("
@@ -5097,11 +5106,13 @@ msgid "Item type"
 msgstr "Medientyp"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1168
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:249
 #, c-format
 msgid "Items available for loan: "
 msgstr "Ausleihbare Exemplare: "
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1229
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:308
 #, c-format
 msgid "Items available for reference: "
 msgstr "Verfügbarer Präsenzbestand: "
@@ -5531,6 +5542,7 @@ msgid "Local"
 msgstr "Lokal"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1300
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:389
 #, c-format
 msgid "Location(s): "
 msgstr "Standort(e): "
@@ -5559,6 +5571,7 @@ msgid "Lossy"
 msgstr "Mit Verlust"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1268
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:352
 #, c-format
 msgid "Lost ("
 msgstr "Vermisst ("
@@ -6800,6 +6813,7 @@ msgid "No information provided"
 msgstr "Keine Information angegeben"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1163
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:244
 #, c-format
 msgid "No items available "
 msgstr "Keine Exemplare verfügbar "
@@ -7188,11 +7202,13 @@ msgid "Offprints"
 msgstr "Sonderdrucke"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1292
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:380
 #, c-format
 msgid "On hold ("
 msgstr "Bereitgestellt ("
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1280
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:366
 #, c-format
 msgid "On order ("
 msgstr "Im Buchhandel bestellt ("
@@ -11376,6 +11392,7 @@ msgid "Wire recording"
 msgstr "Drahtaufzeichnung"
 
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1262
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:345
 #, c-format
 msgid "Withdrawn ("
 msgstr "Ausgesondert ("
@@ -12115,6 +12132,7 @@ msgstr "aat"
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:593
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1037
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1048
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:110
 #, c-format
 msgid "ab"
 msgstr "ab"
@@ -12123,6 +12141,7 @@ msgstr "ab"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:149
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:162
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:453
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:93
 #, c-format
 msgid "abc"
 msgstr "abc"
@@ -12214,6 +12233,7 @@ msgstr "abcdgo"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1258
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1605
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1351
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:440
 #, c-format
 msgid "abcdn"
 msgstr "abcdn"
@@ -12295,6 +12315,7 @@ msgstr "abchnp"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1349
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1375
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:471
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:111
 #, c-format
 msgid "abcjq"
 msgstr "abcjq"
@@ -12309,6 +12330,7 @@ msgstr "abcjq"
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1491
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1592
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1338
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:427
 #, c-format
 msgid "abcq"
 msgstr "abcq"
@@ -12349,6 +12371,7 @@ msgstr "abh"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:109
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:121
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:404
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:43
 #, c-format
 msgid "abhfgknps"
 msgstr "abhfgknps"
@@ -12442,6 +12465,7 @@ msgstr "acdenq"
 #: intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:2402
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1616
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1362
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:451
 #, c-format
 msgid "acdeq"
 msgstr "acdeq"
@@ -12489,6 +12513,7 @@ msgstr "ae"
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1373
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1441
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:469
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:109
 #, c-format
 msgid "aeq"
 msgstr "aeq"
@@ -13145,6 +13170,7 @@ msgstr "weiter"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:351
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:458
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:98
 #, c-format
 msgid "by "
 msgstr "von "
@@ -13584,6 +13610,7 @@ msgstr "Katalog "
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1411
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1462
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:507
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:147
 #, c-format
 msgid "cdgnt"
 msgstr "cdgnt"
@@ -13611,6 +13638,7 @@ msgstr "cdnp"
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1394
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1478
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:490
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:130
 #, c-format
 msgid "cdnt"
 msgstr "cdnt"
@@ -18182,6 +18210,7 @@ msgstr "dreidimensionales Objekt"
 
 #: intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:311
 #: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:418
+#: opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:57
 #, c-format
 msgid "title"
 msgstr "title"

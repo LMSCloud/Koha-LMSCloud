@@ -30,8 +30,6 @@
             <div id="yui-main">
                 <div class="yui-b">
 
-
-                    [% INCLUDE 'notice_sent_dialog.inc' %]
                     [% INCLUDE 'members-toolbar.inc' %]
 
                     [% IF ( error ) %]
@@ -620,12 +618,12 @@
                             [% END %]
                             [% IF ( divibib_issues_show_tab ) %]
                                 <li>
-                                    <li><a href="#divibib-issues" id="divibib-issues-tab">Onleihen</a></li>
+                                    <a href="#divibib-issues" id="divibib-issues-tab">Onleihen</a>
                                 </li>
                             [% END %]
                             [% IF relatives_issues_count %]
                                 <li>
-                                    <li><a href="#relatives-issues" id="relatives-issues-tab">Relatives' checkouts</a></li>
+                                    <a href="#relatives-issues" id="relatives-issues-tab">Relatives' checkouts</a>
                                 </li>
                             [% END %]
                             <li>

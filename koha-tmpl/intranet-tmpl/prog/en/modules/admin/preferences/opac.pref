@@ -108,6 +108,11 @@ OPAC:
               class: file
             - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="">Leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="default">default</a>" for the default one</li><li>put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language'
         -
+            - 'Display volumes of a title in OPAC details view using XSLT stylesheet at: '
+            - pref: OPACXSLTVolumeDisplay
+              class: file
+            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="">Leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="default">default</a>" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language'
+        -
             - pref: DisplayOPACiconsXSLT
               choices:
                   yes: Show
@@ -358,6 +363,13 @@ OPAC:
                   both: "both top and footer"
                   top: "top"
                   footer: "only footer"
+        -
+            - pref: OpacDetailVolumeDisplay
+              default: 1
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - " linked titles in OPAC detailed view based on the linked records in fields 770$w, 772$w, 773$w, 774$w, 775$w, 776$w, 777$w, 780$w, 785$w, 787$w, 800$w, 810$w, 811$w, 830$w."
     Features:
         -
             - pref: opacuserlogin

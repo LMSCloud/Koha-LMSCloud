@@ -4,6 +4,13 @@
 [% USE Branches %]
 [% USE AuthorisedValues %]
 [% SET NorwegianPatronDBEnable = Koha.Preference( 'NorwegianPatronDBEnable' ) %]
+[% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+    <div id="notice_sent_dialog_member" class="dialog alert" style="display:none;" >
+        Letter "<span class="letter-name"></span>" successfully created as notice to <span class="patrons-length"></span> patron(s).
+        <span class="letter-email"><br /><span class="letter-email-count"></span> patron(s) notified by email.</span>
+        <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Click here to download the notices for printing.</a></span>
+    </div>
+[% END %]
 <div id="toolbar" class="btn-toolbar">
     [% IF CAN_user_borrowers_edit_borrowers %]
         [% IF ( guarantor ) %]
@@ -106,39 +113,43 @@
 </div>
 
 <!-- Modal to send adhoc notices -->
-<div class="modal hide" id="selectAdhocNoticeLetter" tabindex="-1" role="dialog" aria-labelledby="selectAdhocNoticeLetter_label" aria-hidden="true">
-    <form id="noticeform">
-    <div class="modal-header">
-        <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
+<div class="modal" id="selectAdhocNoticeLetter" tabindex="-1" role="dialog" aria-labelledby="selectAdhocNoticeLetter_label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="noticeform">
+                <div class="modal-header">
+                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        Please select the letter that will be used to create notices to the selected patron. Please be aware that patrons might be charged for notices depending on the defined notice fee rules.
+                    </p>
+                    <p>
+                        Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount"></span>
+                    </p>
+                    <p id="adhocNoticeLetterSelection">
+                        <label for="adhocNoticeLetterSelection_letter">Select letter: </label>
+                        <select name="adhocNoticeLetterSelection_letter" id="adhocNoticeLetterSelection_letter">
+                        </select>
+                    </p>
+                    <p>
+                        <label>
+                            Prefer Email notification if an email address is available: <input type="checkbox" id="preferEmail" name="preferEmail" value="yes" checked>
+                        </label>
+                    </p>
+                    <p>
+                        <label>
+                            Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
+                        </label>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <input id="send_notice_submit" type="submit" class="submit" value="Create notices">
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="modal-body">
-        <p>
-            Please select the letter that will be used to create notices to the selected patron. Please be aware that patrons might be charged for notices depending on the defined notice fee rules.
-        </p>
-        <p>
-            Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount"></span>
-        </p>
-        <p id="adhocNoticeLetterSelection">
-            <label for="adhocNoticeLetterSelection_letter">Select letter: </label>
-            <select name="adhocNoticeLetterSelection_letter" id="adhocNoticeLetterSelection_letter">
-            </select>
-        </p>
-        <p>
-            <label>
-                Prefer Email notification if an email address is available: <input type="checkbox" id="preferEmail" name="preferEmail" value="yes" checked>
-            </label>
-        </p>
-        <p>
-            <label>
-                Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
-            </label>
-        </p>
-    </div>
-    <div class="modal-footer">
-        <input id="send_notice_submit" type="submit" class="submit" value="Create notices">
-    </div>
-    </form>
 </div>
 
 <!-- Modal -->

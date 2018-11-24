@@ -16967,6 +16967,14 @@ if( CheckVersion( $DBversion ) ) {
     print "Upgrade to $DBversion done (Bug 21639 - Add phone transports by default)\n";
 }
 
+$DBversion = '18.05.05.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do("INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('OPACXSLTVolumeDisplay','default','','Enable XSL stylesheet control over volume display on OPAC','Free')");
+    $dbh->do("INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('OpacDetailVolumeDisplay','1','','Enable volume display in OPAC detail view.','YesNo')");
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Add system for volume display in OPAC detail view.)\n";
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 
