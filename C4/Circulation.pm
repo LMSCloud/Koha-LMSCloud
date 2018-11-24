@@ -73,7 +73,7 @@ use Date::Calc qw(
   Add_Delta_Days
 );
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-use Koha::Illrequests;
+use Koha::Illrequest;
 
 BEGIN {
 	require Exporter;
@@ -689,9 +689,17 @@ sub CanBookBeIssued {
     my $patron_unblessed = $patron->unblessed;
 
     # check if it is an ILL item and if an alternative datedue is stored in the Illbackend
-    my ( $itisanillitem, $illrequest, $datedueIllbackend, $shippingBackRequired ) = &checkIfIllItem($item,1);
-    if ( $itisanillitem && $datedueIllbackend ) {
-        $duedate = $datedueIllbackend;
+    my ( $itisanillitem, $illrequest ) = ( 0, undef );
+    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+        eval {
+            ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+            if ( $itisanillitem && $illrequest ) {
+                my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
+                if ( $datedueIllbackendString ) {
+                    $duedate = dt_from_string($datedueIllbackendString, 'sql');
+                }
+            }
+        };
     }
     #
     # DUE DATE is OK ? -- should already have checked.
@@ -1362,9 +1370,17 @@ sub AddIssue {
             }
 
             # check if it is an ILL item and if an alternative datedue is stored in the Illbackend
-            my ( $itisanillitem, $illrequest, $datedueIllbackend, $shippingBackRequired ) = &checkIfIllItem($item,1);
-            if ( $itisanillitem && $datedueIllbackend ) {
-                $datedue = $datedueIllbackend;
+            my ( $itisanillitem, $illrequest ) = ( 0, undef );
+            if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+                eval {
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+                    if ( $itisanillitem && $illrequest ) {
+                        my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
+                        if ( $datedueIllbackendString ) {
+                            $datedue = dt_from_string($datedueIllbackendString, 'sql');
+                        }
+                    }
+                };
             }
 
             # Record in the database the fact that the book was issued.
@@ -1444,7 +1460,9 @@ sub AddIssue {
 
             # if it is an ILL item then update also the ILL backend status
             if ( $itisanillitem && $illrequest ) {
-                $illrequest->_backend_capability( "itemCheckedOut", $illrequest );
+                eval {
+                    $illrequest->_backend_capability( "itemCheckedOut", $illrequest );
+                }
             }
 
             # Record the fact that this book was issued.
@@ -1487,8 +1505,13 @@ sub AddIssue {
             ) if C4::Context->preference("IssueLog");
 
             # if it is an ILL item that not needs to be shipped back, then check it in now
-            if ( $itisanillitem && !$shippingBackRequired ) {
-                AddReturn($barcode, C4::Context->userenv->{'branch'});
+            if ( $itisanillitem && $illrequest ) {
+                eval {
+                    my $shippingBackRequired = $illrequest->_backend_capability( "isShippingBackRequired", $illrequest );
+                    if ( ! $shippingBackRequired ) {
+                        AddReturn($barcode, C4::Context->userenv->{'branch'});
+                    }
+                };
             }
         }
     }
@@ -2199,11 +2222,16 @@ sub AddReturn {
         }
     }
 
-    # check if it is an ILL item 
-    my ( $itisanillitem, $illrequest, $datedueIllbackend, $shippingBackRequired ) = &checkIfIllItem($item,0);
-    if ( $itisanillitem && $illrequest ) {
-        # update also the ILL backend status
-        $illrequest->_backend_capability( "itemCheckedIn", $illrequest );
+    # check if it is an ILL item and update also the ILL backend status
+    my ( $itisanillitem, $illrequest ) = ( 0, undef );
+    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+        eval {
+            ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+            if ( $itisanillitem && $illrequest ) {
+                # update also the ILL backend status
+                $illrequest->_backend_capability( "itemCheckedIn", $illrequest );
+            }
+        };
     }
 
     return ( $doreturn, $messages, $issue, ( $patron ? $patron->unblessed : {} ) );
@@ -4336,45 +4364,6 @@ sub _CalculateAndUpdateFine {
             });
         }
     }
-}
-
-# check if it is an ILL item and if an alternative datedue is stored in the Illbackend
-sub  checkIfIllItem {
-    my ($item, $getAdditionalInfo) = @_;
-
-    # return values:
-    my $itisanillitem = 0;
-    my $illrequest;    # stays undefined if the item is not a result of an ILL request
-    my $datedueIllbackend;
-    my $shippingBackRequired = 0;
-
-    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module activated at all
-        # if it is an ILL item then try to read datedue from table illrequestattributes
-        my @illItemtypes = split( /\|/, C4::Context->preference("IllItemtypes") );
-        foreach my $illItemtype (@illItemtypes) {
-            if ( $illItemtype eq $item->{'itype'} ) {
-                $itisanillitem = 1;
-                last;
-            }
-        }
-        if ( $itisanillitem ) {
-            eval {
-                # XXXWH use Koha::Illrequests sollte man (und kann man eigentlich) erst hier benutzen, nicht grundsätzlich immer (wie im Moment)
-                my $illrequests = Koha::Illrequests->new();
-                my $illrequesthits = $illrequests->search( { biblio_id => $item->{'biblionumber'} } );
-                if ( $illrequest = $illrequesthits->next() ) {
-                    if ( $getAdditionalInfo ) {
-                        my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
-                        if ( $datedueIllbackendString ) {
-                            $datedueIllbackend = dt_from_string($datedueIllbackendString, 'sql');
-                        }
-                    }
-                    $shippingBackRequired = $illrequest->_backend_capability( "isShippingBackRequired", $illrequest );
-                }
-            };
-        }
-    }
-    return ($itisanillitem, $illrequest, $datedueIllbackend, $shippingBackRequired);
 }
 
 1;
