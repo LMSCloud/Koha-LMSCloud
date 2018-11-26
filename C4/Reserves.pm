@@ -224,8 +224,24 @@ sub AddReserve {
 
     # add a reserve fee if needed
     if ( C4::Context->preference('HoldFeeMode') ne 'any_time_is_collected' ) {
-        my $reserve_fee = GetReserveFee( $borrowernumber, $biblionumber );
-        ChargeReserveFee( $borrowernumber, $reserve_fee, $title );
+        my $reservefee_acceptable = 1;
+        # check if it is an ILL item and if an (additional) hold fee is acceptable for the involved ILL backend
+        my ( $itisanillitem, $illrequest ) = ( 0, undef );
+        if ( $checkitem && C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+            eval {
+                my $item = GetItem($checkitem);
+                if ( $item ) {
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+                    if ( $itisanillitem && $illrequest ) {
+                        $reservefee_acceptable = $illrequest->_backend_capability( "isReserveFeeAcceptable", $illrequest );
+                    }
+                }
+            };
+        }
+        if ( $reservefee_acceptable ) {
+            my $reserve_fee = GetReserveFee( $borrowernumber, $biblionumber );
+            ChargeReserveFee( $borrowernumber, $reserve_fee, $title );
+        }
     }
 
     _FixPriority({ biblionumber => $biblionumber});
@@ -933,6 +949,7 @@ sub ModReserveFill {
 
     # get the priority on this record....
     my $priority = $hold->priority;
+    my $itemnumber = $hold->itemnumber;
 
     # update the hold statuses, no need to store it though, we will be deleting it anyway
     $hold->set(
@@ -948,8 +965,24 @@ sub ModReserveFill {
     $hold->delete();
 
     if ( C4::Context->preference('HoldFeeMode') eq 'any_time_is_collected' ) {
-        my $reserve_fee = GetReserveFee( $hold->borrowernumber, $hold->biblionumber );
-        ChargeReserveFee( $hold->borrowernumber, $reserve_fee, $hold->biblio->title );
+        my $reservefee_acceptable = 1;
+        # check if it is an ILL item and if an (additional) hold fee is acceptable for the involved ILL backend
+        my ( $itisanillitem, $illrequest ) = ( 0, undef );
+        if ( $itemnumber && C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+            eval {
+                my $item = GetItem($itemnumber);
+                if ( $item ) {
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+                    if ( $itisanillitem && $illrequest ) {
+                        $reservefee_acceptable = $illrequest->_backend_capability( "isReserveFeeAcceptable", $illrequest );
+                    }
+                }
+            };
+        }
+        if ( $reservefee_acceptable ) {
+            my $reserve_fee = GetReserveFee( $hold->borrowernumber, $hold->biblionumber );
+            ChargeReserveFee( $hold->borrowernumber, $reserve_fee, $hold->biblio->title );
+        }
     }
 
     # now fix the priority on the others (if the priority wasn't

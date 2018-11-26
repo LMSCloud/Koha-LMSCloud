@@ -188,6 +188,14 @@
                 '">' + _("Manage request") + '</a>';
         };
 
+        // Render function for field illrequests.updated,
+        // displaying dates conforming to locale, 
+        // but sorting dates by using 'sType': "title-string", 'aTargets': [ 'title-string'] feature of DataTable
+        var createUpdatedOn = function(data, type, row) {
+            var ret = '<span title="' + row.updated + '">' + row.updatedFormatted + '</span>';
+            return ret;
+        };
+
         // Columns that require special treatment
         var specialCols = {
             action: {
@@ -221,6 +229,10 @@
             library: {
                 name: _("Library"),
                 func: createLibrary
+            },
+            updated: {
+                name: _("Updated on"),
+                func: createUpdatedOn
             }
         };
 
@@ -298,8 +310,12 @@
                             'bSortable': false,
                             'bSearchable': false
                         },
+                        {
+                            'sType': "title-string",
+                            'aTargets': [ 'title-string']
+                        }
                     ],
-                    'aaSorting': [[ 6, 'desc' ]], // Default sort, updated descending
+                    'aaSorting': [[ 7, 'desc' ]], // Default sort, updated descending
                     'processing': true, // Display a message when manipulating
                     'iDisplayLength': 10, // 10 results per page
                     'sPaginationType': "full_numbers", // Pagination display
@@ -616,7 +632,7 @@
                                     <th>Patron</th>
                                     <th>Library</th>
                                     <th>Status</th>
-                                    <th>Updated on</th>
+                                    <th class="title-string" >Updated on</th>
                                     <th>Request number</th>
                                     <th class="actions"></th>
                                 </tr>

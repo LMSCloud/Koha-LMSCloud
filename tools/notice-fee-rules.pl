@@ -131,7 +131,8 @@ my @moduleletters = (
     { module => 'circulation', matchcodes => 'ODUE.*'}, # we might add later messages for advance notices like: DUE|DUEDGST|PREDUE|PREDUEDGST
     { module => 'circulation', matchcodes => 'FINES_DUE.*'},
     { module => 'members',     matchcodes => 'FINES_DUE.*'},
-    { module => 'reserves',    matchcodes => 'HOLD'}
+    { module => 'reserves',    matchcodes => 'HOLD'},
+    { module => 'circulation', matchcodes => '.*_CHARGE'}
 );
 my $letters = [];
 foreach my $modulelettercfg (@moduleletters) {

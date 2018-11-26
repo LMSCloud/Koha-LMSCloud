@@ -28,6 +28,7 @@ use Try::Tiny;
 use Data::Dumper;
 
 use Koha::Database;
+use Koha::DateUtils;
 use Koha::Email;
 use Koha::Exceptions::Ill;
 use Koha::Illrequestattributes;
@@ -175,7 +176,8 @@ Getter/Setter for our API object.
 
 sub _backend {
     my ( $self, $backend ) = @_;
-print STDERR "Koha::Illrequest::_backend (backend:", Dumper($backend), ") Start\n";
+#XXXWH print STDERR "Koha::Illrequest::_backend (backend:", Dumper($backend), ") Start\n";
+print STDERR "Koha::Illrequest::_backend  Start\n";
     $self->{_my_backend} = $backend if ( $backend );
     # Dynamically load our backend object, as late as possible.
     $self->load_backend unless ( $self->{_my_backend} );
@@ -217,7 +219,8 @@ print STDERR "Illrequest.pm::backend_capability catched exception, returning 0\n
     if ( $capability ) {
         # XXXWH original: return &{$capability}($args);
         my $backend_capability_ret = &{$capability}($args);
-print STDERR "Illrequest.pm::backend_capability returns backend_capability_ret:", Dumper($backend_capability_ret), ":\n";
+# XXXWH print STDERR "Illrequest.pm::backend_capability returns backend_capability_ret:", Dumper($backend_capability_ret), ":\n";
+print STDERR "Illrequest.pm::backend_capability returns backend_capability_ret\n";
         return $backend_capability_ret;
     } else {
         return 0;
@@ -381,7 +384,8 @@ sub _status_graph_union {
     my @core_status_ids = keys %{$core_status_graph};
     my $status_graph = clone($core_status_graph);
 
-print STDERR "Illrequest.pm::_status_graph_union START backend_status_graph:", Dumper($backend_status_graph), ":\n";
+# XXXWH print STDERR "Illrequest.pm::_status_graph_union START backend_status_graph:", Dumper($backend_status_graph), ":\n";
+print STDERR "Illrequest.pm::_status_graph_union START \n";
     foreach my $backend_status_key ( keys %{$backend_status_graph} ) {
         my $backend_status = $backend_status_graph->{$backend_status_key};
         # Add to new status graph
@@ -1031,6 +1035,10 @@ sub TO_JSON {
     my $object = $self->SUPER::TO_JSON();
     $object->{id_prefix} = $self->id_prefix;
 
+    # Augment the request response with additional illrequest.update date, formatted corresponding to locale
+    my $dt = dt_from_string( $self->updated(), 'iso' );
+    $object->{updatedFormatted} = output_pref({ dt => $dt, dateonly => 0 });
+
     if ( scalar (keys %$embed) ) {
         # Augment the request response with patron details if appropriate
         if ( $embed->{patron} ) {
@@ -1058,6 +1066,43 @@ sub TO_JSON {
     }
 
     return $object;
+}
+
+=head3 checkIfIllItem
+ 
+    my ( $itisanillitem, $illrequest ) = &Koha::Illrequest->checkIfIllItem($item);
+    $json = $illrequest->TO_JSON
+
+Check if item is an ILL item (is indicated by $item->{'itype'}).
+
+=cut
+
+# check if item is an ILL item and if an alternative datedue is stored in the Illbackend
+sub  checkIfIllItem {
+    my ($class, $item) = @_;
+
+    # return values:
+    my $itisanillitem = 0;
+    my $illrequesthit;    # stays undefined if the item is not a result of an ILL request
+
+    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+        # if it is an ILL item then try to read the assigned illrequest record
+        my @illItemtypes = split( /\|/, C4::Context->preference("IllItemtypes") );
+        foreach my $illItemtype (@illItemtypes) {
+            if ( $illItemtype eq $item->{'itype'} ) {
+                $itisanillitem = 1;
+                last;
+            }
+        }
+        if ( $itisanillitem ) {
+            eval {
+                my $illrequests = Koha::Illrequests->new();
+                my $illrequesthits = $illrequests->search( { biblio_id => $item->{'biblionumber'} } );
+                $illrequesthit = $illrequesthits->next();
+            };
+        }
+    }
+    return ($itisanillitem, $illrequesthit);
 }
 
 =head2 Internal methods
