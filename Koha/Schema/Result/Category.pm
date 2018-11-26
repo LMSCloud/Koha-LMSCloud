@@ -275,9 +275,9 @@ __PACKAGE__->might_have(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:TGAiiFICSjlKNvnfa87kFQ
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:36:22
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:+tMjnfvjUkAaiPoUiswhKA
 
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

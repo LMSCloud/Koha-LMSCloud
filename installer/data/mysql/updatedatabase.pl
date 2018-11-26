@@ -12962,7 +12962,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
                 `current_balance` decimal(28,6) NOT NULL, -- current balance of the cashier
                 `action` varchar(20) NOT NULL, -- which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT, ADJUSTMENT, PAYOUT
                 `booking_amount`  decimal(28,6) default NULL, -- booked amount (can be positive or negative)
-                `description` mediumtext, -- explains the transaction
+                `description` longtext, -- explains the transaction
                  PRIMARY KEY (`id`),
                  UNIQUE KEY `cash_reg_account_idx_account_id` (`cash_register_account_id`,`cash_register_id`),
                  KEY `cash_reg_account_idx_id` (`cash_register_id`,`id`),
@@ -13923,7 +13923,7 @@ $DBversion = "16.06.00.033";
 if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         CREATE TABLE authorised_value_categories (
-        category_name VARCHAR(32) NOT NULL,
+        category_name VARCHAR(32) NOT NULL DEFAULT '',
         primary key (category_name)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
         });
@@ -15402,10 +15402,10 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = '17.06.00.009';
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
-        ALTER TABLE borrowers MODIFY COLUMN login_attempts int(4) AFTER lang;
+        ALTER TABLE borrowers MODIFY COLUMN login_attempts int(4) DEFAULT 0 AFTER lang;
     });
     $dbh->do(q{
-        ALTER TABLE deletedborrowers MODIFY COLUMN login_attempts int(4) AFTER lang;
+        ALTER TABLE deletedborrowers MODIFY COLUMN login_attempts int(4) DEFAULT 0 AFTER lang;
     });
 
     SetVersion( $DBversion );
@@ -16973,6 +16973,14 @@ if( CheckVersion( $DBversion ) ) {
     $dbh->do("INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES ('OpacDetailVolumeDisplay','1','','Enable volume display in OPAC detail view.','YesNo')");
     SetVersion( $DBversion );
     print "Upgrade to $DBversion done (Add system for volume display in OPAC detail view.)\n";
+}
+
+$DBversion = '18.05.05.005';
+if( CheckVersion( $DBversion ) ) {
+    # Extend length of letter_code in notice fee rules to 50
+    $dbh->do(q{ ALTER TABLE `notice_fee_rules` MODIFY `letter_code` VARCHAR(50) NOT NULL default '' });
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Extend length of letter_code in notice fee rules to 50)\n";
 }
 
 # SEE bug 13068

@@ -37,7 +37,7 @@ __PACKAGE__->table("aggregated_statistics_parameters");
 
 =head2 value
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =cut
@@ -48,7 +48,7 @@ __PACKAGE__->add_columns(
   "name",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 80 },
   "value",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -66,8 +66,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("statistics_id", "name");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-01-24 11:10:30
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:26zbIZ1dMNgkgOCXhu/1yg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:25:22
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:40htQ3z0bhRhGINNeXooJg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

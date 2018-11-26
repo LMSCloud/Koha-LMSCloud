@@ -606,9 +606,9 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("verification_token", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Vv0bJqR71Ust1MZAkYqTig
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:31:31
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:QkoGSd1ks5hbdRpSQn6n7g
 
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

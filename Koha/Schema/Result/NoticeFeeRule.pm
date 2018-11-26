@@ -55,7 +55,7 @@ __PACKAGE__->table("notice_fee_rules");
   data_type: 'varchar'
   default_value: (empty string)
   is_nullable: 0
-  size: 20
+  size: 50
 
 =head2 notice_fee
 
@@ -75,7 +75,7 @@ __PACKAGE__->add_columns(
   "message_transport_type",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 10 },
   "letter_code",
-  { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
+  { data_type => "varchar", default_value => "", is_nullable => 0, size => 50 },
   "notice_fee",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
 );
@@ -121,8 +121,8 @@ __PACKAGE__->add_unique_constraint(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-19 14:06:02
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:yokFX+KHzovkvbPGslJ3CA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:40:59
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:pkoLUZgw0TWVsusYnPYGyQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

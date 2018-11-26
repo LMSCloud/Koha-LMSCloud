@@ -78,7 +78,7 @@ __PACKAGE__->table("cash_register_account");
 
 =head2 description
 
-  data_type: 'mediumtext'
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 reason
@@ -114,7 +114,7 @@ __PACKAGE__->add_columns(
   "booking_amount",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "description",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "longtext", is_nullable => 1 },
   "reason",
   { data_type => "varchar", is_nullable => 1, size => 250 },
 );
@@ -188,8 +188,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-07-12 13:57:31
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:bABYWAl25Y5Td5S4H1OZMg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:35:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VeIMWJewRpMoOkppwXL1VQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
