@@ -26,6 +26,7 @@ use C4::Items;
 use C4::Output;
 use C4::Circulation;
 use C4::Reserves;
+use Koha::Illrequest;
 
 my $cgi= new CGI;
 
@@ -68,6 +69,19 @@ elsif (defined $itemnotes) { # i.e., itemnotes parameter passed from form
     }
 } elsif ($itemlost ne $item_data_hashref->{'itemlost'}) {
     $item_changes->{'itemlost'} = $itemlost;
+
+    # if $itemlost != 0 and it is an ILL item then update also the ILL backend status
+    if ( $itemlost && $item_data_hashref->{'itemlost'} == 0 ) {
+        if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+            my ( $itisanillitem, $illrequest ) = ( 0, undef );
+            eval {
+                ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_data_hashref);
+                if ( $itisanillitem && $illrequest ) {
+                    $illrequest->_backend_capability( "itemLost", $illrequest );
+                }
+            };
+        }
+    }
 } elsif ($withdrawn ne $item_data_hashref->{'withdrawn'}) {
     $item_changes->{'withdrawn'} = $withdrawn;
 } elsif ($damaged ne $item_data_hashref->{'damaged'}) {
