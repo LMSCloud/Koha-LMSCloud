@@ -1,6 +1,7 @@
 package Koha::Illrequest;
 
 # Copyright PTFS Europe 2016
+# parts Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -145,7 +146,6 @@ sub load_backend {
     my @raw = qw/Koha Illbackends/; # Base Path
 
     my $backend_name = $backend_id || $self->backend;
-print STDERR "Koha::Illrequest::load_backend(backend_id:$backend_id) Start backend_name:$backend_name:\n";
 
     unless ( defined $backend_name && $backend_name ne '' ) {
         Koha::Exceptions::Ill::InvalidBackendId->throw(
@@ -154,13 +154,11 @@ print STDERR "Koha::Illrequest::load_backend(backend_id:$backend_id) Start backe
 
     my $location = join "/", @raw, $backend_name, "Base.pm";    # File to load
     my $backend_class = join "::", @raw, $backend_name, "Base"; # Package name
-print STDERR "Koha::Illrequest::load_backend(backend_id:$backend_id) location:$location: backend_class:$backend_class:\n";
     require $location;
     $backend_class->import("new");
     #$backend_class->import( qw( new name metadata capabilities _data_store status_graph create confirm renew cancel status) );
 
     $self->{_my_backend} = $backend_class->new({ config => $self->_config });
-print STDERR "Koha::Illrequest::load_backend() returns self\n";
     return $self;
 }
 
@@ -176,12 +174,9 @@ Getter/Setter for our API object.
 
 sub _backend {
     my ( $self, $backend ) = @_;
-#XXXWH print STDERR "Koha::Illrequest::_backend (backend:", Dumper($backend), ") Start\n";
-print STDERR "Koha::Illrequest::_backend  Start\n";
     $self->{_my_backend} = $backend if ( $backend );
     # Dynamically load our backend object, as late as possible.
     $self->load_backend unless ( $self->{_my_backend} );
-print STDERR "Koha::Illrequest::_backend returns self->{_my_backend}\n";
     return $self->{_my_backend};
 }
 
@@ -209,19 +204,13 @@ capabilities & custom_capability and their callers.
 sub _backend_capability {
     my ( $self, $name, $args ) = @_;
     my $capability = 0;
-print STDERR "Illrequest.pm::backend_capability START name:$name:\n";
     try {
         $capability = $self->_backend->capabilities($name);
     } catch {
-print STDERR "Illrequest.pm::backend_capability catched exception, returning 0\n";
         return 0;
     };
     if ( $capability ) {
-        # XXXWH original: return &{$capability}($args);
-        my $backend_capability_ret = &{$capability}($args);
-# XXXWH print STDERR "Illrequest.pm::backend_capability returns backend_capability_ret:", Dumper($backend_capability_ret), ":\n";
-print STDERR "Illrequest.pm::backend_capability returns backend_capability_ret\n";
-        return $backend_capability_ret;
+        return &{$capability}($args);
     } else {
         return 0;
     }
@@ -384,8 +373,6 @@ sub _status_graph_union {
     my @core_status_ids = keys %{$core_status_graph};
     my $status_graph = clone($core_status_graph);
 
-# XXXWH print STDERR "Illrequest.pm::_status_graph_union START backend_status_graph:", Dumper($backend_status_graph), ":\n";
-print STDERR "Illrequest.pm::_status_graph_union START \n";
     foreach my $backend_status_key ( keys %{$backend_status_graph} ) {
         my $backend_status = $backend_status_graph->{$backend_status_key};
         # Add to new status graph
@@ -458,7 +445,6 @@ print STDERR "Illrequest.pm::capabilities START status:$status:\n";
     # Extract available actions from graph.
     return $status_graph->{$status} if $status;
     # Or return entire graph.
-#XXXWH print STDERR "Illrequest.pm::capabilities returns status_graph:", Dumper($status_graph), ":\n";
     return $status_graph;
 }
 
@@ -482,7 +468,6 @@ capabilities & custom_capability and their callers.
 
 sub custom_capability {
     my ( $self, $candidate, $params ) = @_;
-#XXXWH print STDERR "Illrequest.pm::custom_capability START candidate:$candidate: params:", Dumper($params), ":\n";
     foreach my $capability ( values %{$self->capabilities} ) {
         if ( $candidate eq $capability->{method} ) {
             my $response =
@@ -519,8 +504,21 @@ sub available_actions {
     my $current_action = $self->capabilities($self->status);
     my @available_actions = map { $self->capabilities($_) }
         @{$current_action->{next_actions}};
-#XXXWH print STDERR "Koha::Illrequest::available_actions current_action:" . Dumper($current_action) . ": current_action->{next_actions}:" . Dumper($current_action->{next_actions}) . ": available_actions:" . Dumper(@available_actions) . ":\n";
-    return \@available_actions;
+    my $available_actions_ret = \@available_actions;
+
+    my $sortActionIsImplemented = $self->_backend_capability( "sortAction", ["", ""] );
+
+    if ( $sortActionIsImplemented ) {
+        my %available_actions_hash;
+        foreach my $action (@available_actions) {
+            $available_actions_hash{$action->{id}} = $action;
+        }
+        $available_actions_ret = [];
+        foreach my $actionId (sort { $self->_backend_capability( "sortAction", [$a, $b] )} keys %available_actions_hash) {
+            push @{$available_actions_ret}, $available_actions_hash{$actionId};
+        }
+    }
+    return $available_actions_ret;
 }
 
 =head3 mark_completed
@@ -558,7 +556,6 @@ Confirm a request. The backend handles setting of mandatory fields in the commit
 
 sub backend_confirm {
     my ( $self, $params ) = @_;
-#XXXWH print STDERR "Koha::Illrequest::backend_confirm(params:" . Dumper($params) . ") Start\n";
 
     my $response = $self->_backend->confirm({
             request    => $self,
@@ -626,7 +623,6 @@ pass it $params, as it does not yet have any other data associated with it.
 
 sub backend_create {
     my ( $self, $params ) = @_;
-print STDERR "Koha::Illrequest::backend_create() Start params->{stage}:" . scalar $params->{stage} . ": self->_backend->name:" . scalar $self->_backend->name . ":\n";
 
     # Establish whether we need to do a generic copyright clearance.
     if ($params->{opac}) {
@@ -652,7 +648,6 @@ print STDERR "Koha::Illrequest::backend_create() Start params->{stage}:" . scala
         request => $self,
         other   => $params,
     };
-print STDERR "Koha::Illrequest::backend_create() now calling self->_backend->create()\n";
     my $result = $self->_backend->create($args);
 
     # ... simple case: we're not at 'commit' stage.
@@ -691,7 +686,6 @@ Return a version of $PARAMS augmented with our required template path.
 sub expandTemplate {
     my ( $self, $params ) = @_;
     my $backend = $self->_backend->name;
-print STDERR "Koha::Illrequest::expandTemplate() Start   backend:$backend: params->{method}:" . $params->{method} . ":\n";
     # Generate path to file to load
     my $backend_dir = $self->_config->backend_dir;
     my $backend_tmpl = join "/", $backend_dir, $backend;
@@ -1031,7 +1025,6 @@ into the unblessed representation of the object.
 sub TO_JSON {
     my ( $self, $embed ) = @_;
 
-#XXXWH print STDERR "Koha::Illrequest::TO_JSON START backend:" . Dumper($self->backend) . ":\n";
     my $object = $self->SUPER::TO_JSON();
     $object->{id_prefix} = $self->id_prefix;
 
