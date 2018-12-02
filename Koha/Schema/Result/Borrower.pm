@@ -431,7 +431,7 @@ __PACKAGE__->table("borrowers");
   data_type: 'timestamp'
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
-  is_nullable: 0
+  is_nullable: 1
 
 =head2 lastseen
 
@@ -642,7 +642,7 @@ __PACKAGE__->add_columns(
     data_type => "timestamp",
     datetime_undef_if_invalid => 1,
     default_value => \"current_timestamp",
-    is_nullable => 0,
+    is_nullable => 1,
   },
   "lastseen",
   {
@@ -702,21 +702,6 @@ __PACKAGE__->add_unique_constraint("cardnumber", ["cardnumber"]);
 __PACKAGE__->add_unique_constraint("userid", ["userid"]);
 
 =head1 RELATIONS
-
-=head2 accountlines
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::Accountline>
-
-=cut
-
-__PACKAGE__->has_many(
-  "accountlines",
-  "Koha::Schema::Result::Accountline",
-  { "foreign.borrowernumber" => "self.borrowernumber" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
 
 =head2 api_keys
 
@@ -1439,8 +1424,8 @@ Composing rels: L</aqorder_users> -> ordernumber
 __PACKAGE__->many_to_many("ordernumbers", "aqorder_users", "ordernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-04-11 19:53:27
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/vLIMxDv4RcJOqKj6Mfg6w
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 14:02:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VpDiasxfgk4polUF/ZOe2A
 
 __PACKAGE__->belongs_to(
     "guarantor",
@@ -1460,4 +1445,5 @@ sub koha_object_class {
     'Koha::Patron';
 }
 
+# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

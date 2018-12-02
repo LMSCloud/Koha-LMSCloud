@@ -190,12 +190,12 @@ __PACKAGE__->add_columns(
   { data_type => "longtext", is_nullable => 1 },
   "opac_info",
   { data_type => "mediumtext", is_nullable => 1 },
-  "mobilebranch",
-  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
   "geolocation",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "marcorgcode",
   { data_type => "varchar", is_nullable => 1, size => 16 },
+  "mobilebranch",
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
 );
 
 =head1 PRIMARY KEY
@@ -587,21 +587,6 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 message_queues
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::MessageQueue>
-
-=cut
-
-__PACKAGE__->has_many(
-  "message_queues",
-  "Koha::Schema::Result::MessageQueue",
-    { "foreign.branchcode" => "self.branchcode" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
 =head2 library_groups
 
 Type: has_many
@@ -613,6 +598,21 @@ Related object: L<Koha::Schema::Result::LibraryGroup>
 __PACKAGE__->has_many(
   "library_groups",
   "Koha::Schema::Result::LibraryGroup",
+  { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 message_queues
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::MessageQueue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "message_queues",
+  "Koha::Schema::Result::MessageQueue",
   { "foreign.branchcode" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -698,8 +698,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-10-09 10:38:33
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:nKWRDScCAwZUDrRhm1kYMA
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:35:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:biETL8VfZABitnag3/14Wg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

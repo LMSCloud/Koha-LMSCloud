@@ -38,7 +38,6 @@ __PACKAGE__->table("accountlines");
 
   data_type: 'integer'
   default_value: 0
-  is_foreign_key: 1
   is_nullable: 0
 
 =head2 accountno
@@ -127,12 +126,7 @@ __PACKAGE__->add_columns(
   "issue_id",
   { data_type => "integer", is_nullable => 1 },
   "borrowernumber",
-  {
-    data_type      => "integer",
-    default_value  => 0,
-    is_foreign_key => 1,
-    is_nullable    => 0,
-  },
+  { data_type => "integer", default_value => 0, is_nullable => 0 },
   "accountno",
   { data_type => "smallint", default_value => 0, is_nullable => 0 },
   "itemnumber",
@@ -216,21 +210,6 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 borrowernumber
-
-Type: belongs_to
-
-Related object: L<Koha::Schema::Result::Borrower>
-
-=cut
-
-__PACKAGE__->belongs_to(
-  "borrowernumber",
-  "Koha::Schema::Result::Borrower",
-  { borrowernumber => "borrowernumber" },
-  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
-);
-
 =head2 branchcode
 
 Type: belongs_to
@@ -287,9 +266,9 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-05-16 17:00:24
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:pygYYKxFDRLX97PyeUeLvg
+# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:25:22
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:0S7lMUgDTjutQDmPUQtOsg
 
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

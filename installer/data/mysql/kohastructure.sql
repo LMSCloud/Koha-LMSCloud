@@ -4337,7 +4337,7 @@ CREATE TABLE `notice_fee_rules` (
   `categorycode` varchar(10) NOT NULL default '', -- patron category this rule is for (categories.categorycode)
   `branchcode` varchar(10) NOT NULL default '', -- the branch this rule applies to (branches.branchcode)
   `message_transport_type` varchar(10) NOT NULL default '', -- message channel this rule is for (message_transport_type.message_transport_types)
-  `letter_code` varchar(20) NOT NULL default '', -- optional letter code thise rule is for (letter.code)
+  `letter_code` varchar(50) NOT NULL default '', -- optional letter code thise rule is for (letter.code)
   `notice_fee` decimal(28,6) default NULL, -- fine amount for notififcations
    PRIMARY KEY (`id`),
    UNIQUE KEY `pseudo_key` (`branchcode`,`categorycode`,`message_transport_type`,`letter_code`)
@@ -4410,7 +4410,7 @@ CREATE TABLE `cash_register_account` (
   `current_balance` decimal(28,6) NOT NULL, -- current balance of the cashier
   `action` varchar(20) NOT NULL, -- which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT, ADJUSTMENT, PAYOUT
   `booking_amount`  decimal(28,6) default NULL, -- booked amount (can be positive or negative)
-  `description` mediumtext, -- explains the transaction
+  `description` longtext, -- explains the transaction
   `reason` varchar(250), -- specify a reason for payouts and payments (controlled with authorised_values category CASHREG_PAYOUT)
    PRIMARY KEY (`id`),
    UNIQUE KEY `cash_reg_account_idx_account_id` (`cash_register_account_id`,`cash_register_id`),
