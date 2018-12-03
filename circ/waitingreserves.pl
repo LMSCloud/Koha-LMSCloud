@@ -121,7 +121,7 @@ while ( my $hold = $holds->next ) {
     my ( $expire_year, $expire_month, $expire_day ) = split (/-/, $hold->expirationdate);
     my $calcDate = Date_to_Days( $expire_year, $expire_month, $expire_day );
 
-    $getreserv{'itemtype'}       = $itemtype->description; # FIXME Should not it be translated_description?
+    $getreserv{'itemtype'}       = $itemtype->description if ($itemtype); # FIXME Should not it be translated_description?
     $getreserv{'subtitle'}       = GetRecordValue(
         'subtitle',
         GetMarcBiblio({ biblionumber => $biblio->biblionumber }),
