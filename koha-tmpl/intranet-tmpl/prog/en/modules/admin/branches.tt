@@ -1,4 +1,5 @@
 [% USE Asset %]
+[% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Administration &rsaquo; Libraries
@@ -147,6 +148,7 @@
                 <li><label for="marcorgccode">MARC organization code</label> <input type="text" name="marcorgcode" id="marcorgcode" size="16" value="[% library.marcorgcode |html %]" /> <span class="hint">If not filled in defaults to system preference MARCOrgCode. You can obtain your code from <a href="http://www.loc.gov/marc/organizations/orgshome.html" target="_blank">Library of Congress</a>.</span>
                 <li><label for="branchnotes">Notes: </label><input type="text" name="branchnotes" id="branchnotes" size="80" value="[% library.branchnotes |html %]" /></li>
                 [% IF ( bookmobileactive ) %]
+                [% mobilebranches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
                 <li>
                      <label for="mobilebranch">Bookmobile branch: </label>
                      <select name="mobilebranch">
