@@ -151,7 +151,7 @@
                                         <label for="backend">Requested from:</label>
                                         [% request.backend %]
                                     </li>
-                                    [% IF request.biblio_id %]
+                                    [% IF (0 && request.biblio_id && request.status != 'COMP') %]
                                         <li>
                                             <label for="biblio">Requested item:</label>
                                             <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% request.biblio_id %]">Click here to view</a>

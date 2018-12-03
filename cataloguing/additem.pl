@@ -40,6 +40,7 @@ use C4::Search;
 use Storable qw(thaw freeze);
 use URI::Escape;
 use C4::Members;
+use Koha::Illrequest;
 
 use MARC::File::XML;
 use URI::Escape;
@@ -702,6 +703,19 @@ if ($op eq "additem") {
         my $newitemlost = $newitem->{itemlost};
         LostItem( $item->{itemnumber}, 'additem' )
             if $newitemlost && $newitemlost ge '1' && !$olditemlost;
+
+        # if $newitemlost != 0 and it is an ILL item then update also the ILL backend status
+        if ( $newitemlost && !$olditemlost ) {
+            if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+                my ( $itisanillitem, $illrequest ) = ( 0, undef );
+                eval {
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+                    if ( $itisanillitem && $illrequest ) {
+                        $illrequest->_backend_capability( "itemLost", $illrequest );
+                    }
+                };
+            }
+        }
     }
     $nextop="additem";
 } elsif ($op eq "delinkitem"){

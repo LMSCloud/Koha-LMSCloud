@@ -108,11 +108,17 @@
 
         // Our 'render' function for biblio link
         var createBiblioLink = function(data, type, row) {
-            return '<a title="' + _("View title details") + '" ' +
-                'href="/cgi-bin/koha/catalogue/detail.pl?' +
-                'biblionumber='+row.biblio_id+'">' +
-                row.metadata_Title + 
-                '</a>';
+            var ret = '';
+            if ( row.biblio_id  && row.status !== 'COMP' ) {
+                ret = '<a title="' + _("View title details") + '" ' +
+                    'href="/cgi-bin/koha/catalogue/detail.pl?' +
+                    'biblionumber='+row.biblio_id+'">' +
+                    row.metadata_Title + 
+                    '</a>';
+            } else {
+                ret = row.metadata_Title;
+            }
+            return ret;
         };
 
         // Our 'render' function for borrowerlink
