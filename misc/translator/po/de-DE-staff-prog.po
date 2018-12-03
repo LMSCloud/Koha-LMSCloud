@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2018-11-22 13:14+0100\n"
-"PO-Revision-Date: 2018-11-22 13:16+0100\n"
+"POT-Creation-Date: 2018-12-03 10:55+0100\n"
+"PO-Revision-Date: 2018-12-03 11:01+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1969,7 +1969,7 @@ msgstr ""
 #. %25$s:  CASE
 #. %26$s:  m.code
 #. %27$s:  END
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:37
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:38
 #, c-format
 msgid ""
 "%s %s An error occurred when updating this library. Perhaps it already "
@@ -3390,7 +3390,7 @@ msgstr ""
 #. %6$s:  ELSIF op == 'delete_confirm'
 #. %7$s:  library.branchcode | html
 #. %8$s:  END
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:22
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:23
 #, c-format
 msgid ""
 "%s &rsaquo; %sModify library%sNew library %s%s %s &rsaquo; Confirm deletion "
@@ -3498,7 +3498,7 @@ msgstr ""
 #. %1$s:  IF query_type == 'create'
 #. %2$s:  ELSIF query_type == 'status'
 #. %3$s:  END
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:326
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:348
 #, c-format
 msgid "%s &rsaquo; New request %s &rsaquo; Status %s "
 msgstr "%s &rsaquo; Neue Bestellung %s &rsaquo; Status %s "
@@ -7589,7 +7589,7 @@ msgstr "%sFrameworktext ändern%sFramework hinzufügen%s"
 #. %1$s:  IF library
 #. %2$s:  ELSE
 #. %3$s:  END
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:87
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:88
 #, c-format
 msgid "%sModify library%sNew library%s"
 msgstr "%sBibliothek bearbeiten%sNeueBibliothek%s"
@@ -11756,7 +11756,7 @@ msgstr "Vorgang: %s "
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:213
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:247
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:338
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:201
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:203
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:68
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:95
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:373
@@ -12619,7 +12619,7 @@ msgstr "Zusätzliche Typen für manuelle Gebühren"
 #: intranet-tmpl/prog/en/modules/members/members-update.tt:26
 #: intranet-tmpl/prog/en/modules/common/patron_search.tt:75
 #: intranet-tmpl/prog/en/modules/circ/request-article.tt:53
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:197
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:199
 #: intranet-tmpl/prog/en/modules/patron_lists/list.tt:123
 #: intranet-tmpl/prog/en/includes/circ-patron-search-results.inc:11
 #, c-format
@@ -12649,17 +12649,17 @@ msgstr "Adresse 2: "
 msgid "Address in question"
 msgstr "Adresse fraglich"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:132
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:133
 #, c-format
 msgid "Address line 1: "
 msgstr "Adresszeile 1: "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:133
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:134
 #, c-format
 msgid "Address line 2: "
 msgstr "Adresszeile 2: "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:134
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:135
 #, c-format
 msgid "Address line 3: "
 msgstr "Adresszeile 3: "
@@ -12719,7 +12719,7 @@ msgstr "Korrekturbetrag: "
 #: intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:18
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:30
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:39
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:21
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:22
 #: intranet-tmpl/prog/en/modules/admin/oai_sets.tt:12
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:13
 #: intranet-tmpl/prog/en/modules/admin/library_groups.tt:116
@@ -14209,7 +14209,7 @@ msgstr "Wirklich löschen? (%s %s)"
 
 #. %1$s:  library.branchname |html
 #. %2$s:  library.branchcode | html
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:177
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:179
 #, c-format
 msgid "Are you sure you want to delete %s (%s)?"
 msgstr "Wirklich löschen? (%s %s)"
@@ -14680,7 +14680,7 @@ msgstr ""
 msgid "Are you sure you wish to delete quote(s) %s?"
 msgstr "Sind Sie sicher, dass Sie %s Zitat(e) löschen wollen? "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:494
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:516
 #, c-format
 msgid "Are you sure you wish to delete this request?"
 msgstr "Sind Sie sicher, dass Sie diese Bestellung löschen wollen?"
@@ -14927,7 +14927,7 @@ msgstr "Authentifizierungsname"
 #: intranet-tmpl/prog/en/modules/circ/request-article.tt:229
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:642
 #: intranet-tmpl/prog/en/modules/plugins/plugins-home.tt:63
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:614
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:636
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:178
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:289
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:361
@@ -16066,7 +16066,7 @@ msgstr "Stapel"
 msgid "BdP de la Meuse, France"
 msgstr "BdP de la Meuse, Frankreich"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:426
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:448
 #, c-format
 msgid "Be sure to provide email addresses for these patrons."
 msgstr ""
@@ -16204,8 +16204,8 @@ msgstr "BibTex"
 msgid "Biblio %s"
 msgstr "Titel %s"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:442
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:543
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:464
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:565
 #, c-format
 msgid "Biblio ID:"
 msgstr "Biblio ID:"
@@ -16454,12 +16454,12 @@ msgstr "Bücherboxrückgabe. (Effektives Rückgabedatum ist %s)"
 msgid "Book fund:"
 msgstr "Konto:"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:151
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:153
 #, c-format
 msgid "Bookmobile branch: "
 msgstr "Bücherbus-Zweigstelle: "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:200
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:202
 #, c-format
 msgid "Bookmobile station of"
 msgstr "Haltestelle von Buszweigstelle "
@@ -17166,7 +17166,7 @@ msgstr "Calyx, Australia"
 msgid "Camden County, USA"
 msgstr "Camden County, USA"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:146
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:147
 #, c-format
 msgid "Can be entered as a single IP, or a subnet such as 192.168.1.*"
 msgstr ""
@@ -17377,7 +17377,7 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:97
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:143
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:288
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:169
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:171
 #: intranet-tmpl/prog/en/modules/admin/oai_sets.tt:53
 #: intranet-tmpl/prog/en/modules/admin/library_groups.tt:217
 #: intranet-tmpl/prog/en/modules/admin/library_groups.tt:267
@@ -17399,9 +17399,9 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:339
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:407
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:580
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:419
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:427
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:487
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:441
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:449
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:509
 #: intranet-tmpl/prog/en/modules/clubs/templates-add-modify.tt:181
 #: intranet-tmpl/prog/en/modules/clubs/patron-enroll.tt:32
 #: intranet-tmpl/prog/en/modules/clubs/clubs-add-modify.tt:123
@@ -17470,7 +17470,7 @@ msgstr "Abbrechen"
 msgid "Cancel "
 msgstr "Abbrechen "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:361
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:383
 #, c-format
 msgid "Cancel a confirmed request"
 msgstr "Eine bestätigte Bestellung stornieren"
@@ -19591,7 +19591,7 @@ msgstr "Stadt:"
 
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:575
 #: intranet-tmpl/prog/en/modules/admin/cities.tt:70
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:135
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:136
 #, c-format
 msgid "City: "
 msgstr "Stadt: "
@@ -20299,7 +20299,7 @@ msgstr "Nicht angemeldet bei folgenden Clubs "
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:209
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:244
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:329
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:196
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:198
 #: intranet-tmpl/prog/en/modules/admin/patron-attr-types.tt:250
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1213
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1240
@@ -20665,7 +20665,7 @@ msgstr "Die Konfiguration der Plugins erfordert Javascript."
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:357
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:379
 #, c-format
 msgid "Confirm ILL request"
 msgstr "Fernleihebestellung bestätigen"
@@ -21272,8 +21272,8 @@ msgid "Cost must be expressed as a decimal number >= 0"
 msgstr ""
 "Die Kosten müssen als Dezimalzahl angegeben werden und grösser als 0 sein."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:465
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:563
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:487
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:585
 #, c-format
 msgid "Cost:"
 msgstr "Kosten:"
@@ -21420,7 +21420,7 @@ msgstr "Staat:"
 
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:592
 #: intranet-tmpl/prog/en/modules/admin/cities.tt:82
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:138
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:139
 #, c-format
 msgid "Country: "
 msgstr "Staat: "
@@ -22720,12 +22720,12 @@ msgstr "Standardwert:"
 msgid "Default values"
 msgstr "Standardwerte:"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:142
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:143
 #, c-format
 msgid "Default: ReplyToDefault system preference"
 msgstr "Voreinstellung: Systemparameter ReplyToDefault"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:143
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:144
 #, c-format
 msgid "Default: ReturnpathDefault system preference"
 msgstr "Voreinstellung: Systemparameter ReturnpathDefault"
@@ -23061,7 +23061,7 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:223
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:256
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:381
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:244
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:246
 #: intranet-tmpl/prog/en/modules/admin/oai_sets.tt:95
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:115
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:217
@@ -23861,7 +23861,7 @@ msgstr "Zieldatensatz"
 msgid "Details"
 msgstr "Details"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:607
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:629
 #, c-format
 msgid "Details for all requests"
 msgstr "Details für alle Bestellungen"
@@ -23876,13 +23876,13 @@ msgstr "Details zur Gebühr"
 msgid "Details for payment"
 msgstr "Details zur Zahlung"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:528
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:550
 #, c-format
 msgid "Details from library"
 msgstr "Details der Bibliothek"
 
 #. %1$s:  request.backend
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:580
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:602
 #, c-format
 msgid "Details from supplier (%s)"
 msgstr "Details des Lieferanten (%s)"
@@ -24799,7 +24799,7 @@ msgstr "Ed Summers (Code und Perl-Pakete wie z.B. MARC::Record)"
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:222
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:255
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:380
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:240
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:242
 #: intranet-tmpl/prog/en/modules/admin/oai_sets.tt:94
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:114
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:216
@@ -25093,11 +25093,11 @@ msgid "Edit record"
 msgstr "Titel bearbeiten"
 
 #. A
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:510
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:532
 msgid "Edit request"
 msgstr "Anforderung bearbeiten"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:511
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:533
 #, c-format
 msgid "Edit request "
 msgstr "Anforderung bearbeiten "
@@ -25331,7 +25331,7 @@ msgstr ""
 msgid "Email required"
 msgstr "E-Mail erforderlich"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:409
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:431
 #, c-format
 msgid "Email text:"
 msgstr "E-Mail-Text"
@@ -25346,7 +25346,7 @@ msgstr "E-Mail:"
 #: intranet-tmpl/prog/en/modules/members/tables/members_results.tt:19
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:16
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:67
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:141
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:142
 #, c-format
 msgid "Email: "
 msgstr "E-Mail: "
@@ -25829,7 +25829,7 @@ msgstr "Fehler beim Import des Frameworks"
 msgid "Error message from Zebra: %s "
 msgstr "Fehlermeldung des Zebra-Servers: %s "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:344
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:366
 #, c-format
 msgid "Error performing operation"
 msgstr "Fehler bei der Ausführung"
@@ -26645,7 +26645,7 @@ msgstr "Fax"
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:65
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:129
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:257
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:140
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:141
 #, c-format
 msgid "Fax: "
 msgstr "Fax: "
@@ -26653,7 +26653,7 @@ msgstr "Fax: "
 #. %1$s:  library.branchfax |html
 #. %2$s:  END
 #. %3$s:  IF library.branchemail
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:226
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:228
 #, c-format
 msgid "Fax: %s%s %s "
 msgstr "Fax: %s%s %s "
@@ -27077,7 +27077,7 @@ msgstr "Gefiltert nach:"
 msgid "Filter paid transactions"
 msgstr "Bezahlte Transaktionen ausblenden"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:390
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:412
 #, c-format
 msgid "Filter partner libraries:"
 msgstr "Partnerbibliotheken filtern:"
@@ -28325,7 +28325,7 @@ msgstr "Gruppen-Code"
 msgid "Group name"
 msgstr "Gruppenname"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:114
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:115
 #, c-format
 msgid "Group(s):"
 msgstr "Gruppe(n)"
@@ -29156,7 +29156,7 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:18
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:29
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:39
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:20
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:21
 #: intranet-tmpl/prog/en/modules/admin/oai_sets.tt:12
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:13
 #: intranet-tmpl/prog/en/modules/admin/library_groups.tt:115
@@ -29171,7 +29171,7 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: intranet-tmpl/prog/en/modules/admin/aqcontract.tt:22
 #: intranet-tmpl/prog/en/modules/admin/systempreferences.tt:15
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:37
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:325
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:347
 #: intranet-tmpl/prog/en/modules/clubs/templates-add-modify.tt:23
 #: intranet-tmpl/prog/en/modules/clubs/clubs-add-modify.tt:20
 #: intranet-tmpl/prog/en/modules/clubs/club-enrollments.tt:15
@@ -29481,13 +29481,13 @@ msgstr "IBERMARC"
 msgid "ID"
 msgstr "ID"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:339
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:361
 #, c-format
 msgid "ILL module configuration problem. Take a look at the "
 msgstr "Problem mit dem Fernleihemodul (ILL). Bitte kontrollieren Sie "
 
 #: intranet-tmpl/prog/en/modules/intranet-main.tt:74
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:326
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:348
 #: intranet-tmpl/prog/en/includes/header.inc:32
 #, c-format
 msgid "ILL requests"
@@ -29513,7 +29513,7 @@ msgstr "INTERMARC"
 msgid "INVOICE"
 msgstr "RECHNUNG"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:199
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:201
 #, c-format
 msgid "IP"
 msgstr "IP"
@@ -29528,7 +29528,7 @@ msgstr "Die IP-Adresse hat sich geändert, bitte melden Sie sich neu an "
 msgid "IP address has changed. Please log in again "
 msgstr "Die IP-Adresse hat sich geändert, bitte melden Sie sich neu an "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:146
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:147
 #, c-format
 msgid "IP: "
 msgstr "IP: "
@@ -29815,7 +29815,7 @@ msgstr ""
 "Falls ein passender Datensatz schon in der Tabelle der Benutzer vorhanden "
 "ist:"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:147
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:148
 #, c-format
 msgid ""
 "If not filled in defaults to system preference MARCOrgCode. You can obtain "
@@ -30638,8 +30638,8 @@ msgstr "Benutzeroberfläche"
 msgid "Interface:"
 msgstr "Schnittstelle:"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:387
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:424
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:409
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:446
 #, c-format
 msgid "Interlibrary loan request details"
 msgstr "Details zur Fernleihebestellung"
@@ -32952,7 +32952,7 @@ msgstr "Koha &rsaquo; Administration &rsaquo; Koha-Benutzungsstatistiken"
 #. %6$s:  ELSIF op == 'delete_confirm'
 #. %7$s:  library.branchcode | html
 #. %8$s:  END
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:4
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:5
 #, c-format
 msgid ""
 "Koha &rsaquo; Administration &rsaquo; Libraries %s &rsaquo;%sModify library"
@@ -35304,8 +35304,8 @@ msgstr "Letzte Änderung: "
 msgid "Last updated"
 msgstr "Letzte Änderung"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:457
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:555
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:479
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:577
 #, c-format
 msgid "Last updated:"
 msgstr "Letzte Aktualisierung:"
@@ -35536,8 +35536,8 @@ msgstr "Mitarbeiter:"
 #: intranet-tmpl/prog/en/modules/circ/pendingreserves.tt:59
 #: intranet-tmpl/prog/en/modules/admin/admin-home.tt:34
 #: intranet-tmpl/prog/en/modules/admin/usage_statistics.tt:184
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:22
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:190
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:23
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:192
 #: intranet-tmpl/prog/en/modules/tools/duedate_change.tt:108
 #: intranet-tmpl/prog/en/includes/admin-menu.inc:12
 #, c-format
@@ -35579,7 +35579,7 @@ msgstr "Einschränkung auf Bibliotheken: "
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:617
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:619
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:617
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:639
 #: intranet-tmpl/prog/en/modules/clubs/clubs.tt:60
 #: intranet-tmpl/prog/en/modules/clubs/clubs.tt:130
 #: intranet-tmpl/prog/en/modules/reports/cat_issues_top.tt:138
@@ -35650,8 +35650,8 @@ msgstr "Die Bibliothek existiert bereits und kann nicht geändert werden!"
 msgid "Library branch"
 msgstr "Bibliothek "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:97
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:101
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:98
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:102
 #: intranet-tmpl/prog/en/modules/onboarding/onboardingstep1.tt:22
 #, c-format
 msgid "Library code: "
@@ -35702,7 +35702,7 @@ msgstr "Bibliotheksverwaltung"
 msgid "Library name: "
 msgstr "Name der Bibliothek: "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:147
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:148
 #, c-format
 msgid "Library of Congress"
 msgstr "Library of Congress"
@@ -35753,8 +35753,8 @@ msgstr "Bibliotheksmanagement"
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:195
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:366
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:738
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:446
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:547
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:468
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:569
 #: intranet-tmpl/prog/en/modules/clubs/templates-add-modify.tt:81
 #: intranet-tmpl/prog/en/modules/clubs/clubs-add-modify.tt:69
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:190
@@ -36621,8 +36621,8 @@ msgstr "Templates für MARC-Modifikationen"
 msgid "MARC modification templates %s"
 msgstr "Templates für MARC-Modifikationen %s"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:147
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:198
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:148
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:200
 #, c-format
 msgid "MARC organization code"
 msgstr "MARC-Organisationscode"
@@ -36888,7 +36888,7 @@ msgstr "Profile für CSV-Export verwalten"
 msgid "Manage EDIFACT transmissions"
 msgstr "EDIFACT-Übertragungen verwalten"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:508
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:530
 #, c-format
 msgid "Manage ILL request"
 msgstr "Fernleihebestellung verwalten"
@@ -38559,7 +38559,7 @@ msgstr "Nahuel Angelinetti"
 #: intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:127
 #: intranet-tmpl/prog/en/modules/admin/items_search_fields.tt:62
 #: intranet-tmpl/prog/en/modules/admin/sms_providers.tt:30
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:195
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:197
 #: intranet-tmpl/prog/en/modules/admin/printers.tt:145
 #: intranet-tmpl/prog/en/modules/admin/aqcontract.tt:145
 #: intranet-tmpl/prog/en/modules/clubs/club-enrollments.tt:26
@@ -38673,7 +38673,7 @@ msgid "Name:"
 msgstr "Name:"
 
 #: intranet-tmpl/prog/en/modules/admin/sms_providers.tt:72
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:107
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:108
 #: intranet-tmpl/prog/en/modules/onboarding/onboardingstep1.tt:27
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:271
 #: intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:303
@@ -38809,7 +38809,7 @@ msgstr "Neues CSV-Profil"
 msgid "New EAN "
 msgstr "Neue EAN "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:353
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:375
 #, c-format
 msgid "New ILL request"
 msgstr "Neue Fernleihebestellung"
@@ -39105,7 +39105,7 @@ msgstr "Medientyp wurde erstellt!"
 msgid "New label batch created: # %s "
 msgstr "Neuer Etikettenstapel erstellt: # %s "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:82
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:83
 #, c-format
 msgid "New library"
 msgstr "Neue Bibliothek"
@@ -39968,7 +39968,7 @@ msgstr "Keine offenen Gebühren"
 msgid "No paid fines during the selected period."
 msgstr "Keine beglichenen Gebühren im ausgewählten Zeitraum."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:425
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:447
 #, c-format
 msgid ""
 "No partners have been defined yet. Please create appropriate patron records "
@@ -40208,7 +40208,7 @@ msgstr "Es gibt keine gespeicherten Reports, die zu Ihrer Suchanfrage passen. "
 msgid "No system preferences matched your search for: "
 msgstr "Keine Systemparameter zu Ihrer Suche nach: "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:368
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:390
 #, c-format
 msgid ""
 "No target email addresses found. Either select at least one partner or check "
@@ -40262,14 +40262,14 @@ msgstr "Nein, nicht löschen"
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:157
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:171
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:318
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:184
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:186
 #: intranet-tmpl/prog/en/modules/admin/currency.tt:158
 #: intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:294
 #: intranet-tmpl/prog/en/modules/admin/patron-attr-types.tt:213
 #: intranet-tmpl/prog/en/modules/admin/printers.tt:115
 #: intranet-tmpl/prog/en/modules/admin/aqcontract.tt:129
 #: intranet-tmpl/prog/en/modules/admin/systempreferences.tt:226
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:501
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:523
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:204
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:443
 #: intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:122
@@ -40842,7 +40842,7 @@ msgstr "Hinweise / Kommentare"
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:765
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:122
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:275
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:575
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:597
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:403
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:607
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:699
@@ -40862,7 +40862,7 @@ msgstr "Hinweise:"
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:240
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:289
 #: intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:339
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:148
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:149
 #, c-format
 msgid "Notes: "
 msgstr "Hinweise: "
@@ -40877,7 +40877,7 @@ msgstr "Hinweise: %s"
 
 #. %1$s:  library.branchnotes |html
 #. %2$s:  END
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:234
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:236
 #, c-format
 msgid "Notes: %s%s "
 msgstr "Hinweise: %s%s "
@@ -41386,7 +41386,7 @@ msgstr "OPAC (%s)"
 msgid "OPAC - %s %s"
 msgstr "OPAC - %s %s"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:232
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:234
 #, c-format
 msgid "OPAC Info: "
 msgstr "OPAC-Info: "
@@ -41396,7 +41396,7 @@ msgstr "OPAC-Info: "
 msgid "OPAC and Koha news"
 msgstr "OPAC- und Koha-Nachrichten"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:145
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:146
 #, c-format
 msgid "OPAC info: "
 msgstr "OPAC-Info: "
@@ -41782,7 +41782,7 @@ msgstr ""
 msgid "Opac Note"
 msgstr "OPAC-Notiz"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:477
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:499
 #, c-format
 msgid "Opac notes:"
 msgstr "OPAC-Notiz"
@@ -41993,15 +41993,15 @@ msgstr "Bestellung "
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:612
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:634
 #, c-format
 msgid "Order ID"
-msgstr "Bestellnummer:"
+msgstr "Bestell-ID"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:531
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:553
 #, c-format
 msgid "Order ID:"
-msgstr "Bestellungs-ID:"
+msgstr "Bestell-ID:"
 
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:100
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:230
@@ -42768,7 +42768,7 @@ msgstr "Patricio Marrone"
 #: intranet-tmpl/prog/en/modules/circ/view_holdsqueue.tt:98
 #: intranet-tmpl/prog/en/modules/circ/overdue.tt:49
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:616
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:638
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:742
 #: intranet-tmpl/prog/en/modules/reports/bor_issues_top.tt:70
 #, c-format
@@ -42790,7 +42790,7 @@ msgstr "Benutzer '%s' wurde hinzugefügt."
 msgid "Patron '%s' is already in the list."
 msgstr "Benutzer '%s' ist bereits auf der Liste."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:438
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:460
 #, c-format
 msgid "Patron ID:"
 msgstr "Benutzernr.:"
@@ -43456,7 +43456,7 @@ msgstr "Der Benutzer bürgt für andere Benutzer."
 msgid "Patron/Barcode"
 msgstr "Benutzer/Barcode"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:535
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:557
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:389
 #, c-format
 msgid "Patron:"
@@ -43942,7 +43942,7 @@ msgstr "Petter Goksøyr Åsen"
 #. %1$s:  library.branchphone |html
 #. %2$s:  END
 #. %3$s:  IF library.branchfax
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:224
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:226
 #, c-format
 msgid "Ph: %s%s %s "
 msgstr "Telefon: %s%s %s "
@@ -43992,7 +43992,7 @@ msgstr "Telefonnummer"
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:63
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:127
 #: intranet-tmpl/prog/en/modules/acqui/supplier.tt:256
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:139
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:140
 #, c-format
 msgid "Phone: "
 msgstr "Telefon: "
@@ -44174,7 +44174,7 @@ msgstr "Bestellung absenden "
 msgid "Place request"
 msgstr "Bestellung absenden"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:365
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:387
 #, c-format
 msgid "Place request with partner libraries"
 msgstr "Anforderung an Partner-Bibliotheken senden"
@@ -47207,7 +47207,7 @@ msgstr "Ersatzpreis"
 msgid "Replacement price:"
 msgstr "Ersatzpreis:"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:142
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:143
 #, c-format
 msgid "Reply-To: "
 msgstr "Reply-To: "
@@ -47367,8 +47367,8 @@ msgstr "Artikel bestellen"
 msgid "Request article from "
 msgstr "Bestelle Artikel von "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:435
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:525
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:457
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:547
 #, c-format
 msgid "Request details"
 msgstr "Bestelldetails"
@@ -47376,13 +47376,13 @@ msgstr "Bestelldetails"
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:620
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:642
 #, c-format
 msgid "Request number"
 msgstr "Bestellnummer"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:469
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:567
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:491
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:589
 #, c-format
 msgid "Request number:"
 msgstr "Bestellnummer:"
@@ -47397,8 +47397,8 @@ msgstr "Bestellung zurückgesetzt"
 msgid "Request specific item type:"
 msgstr "Bestimmten Medientyp verlangen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:461
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:559
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:483
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:581
 #, c-format
 msgid "Request type:"
 msgstr "Bestelltyp:"
@@ -47510,8 +47510,8 @@ msgstr "Require.js JS module system"
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:137
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:116
 #: intranet-tmpl/prog/en/modules/admin/itemtypes.tt:121
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:103
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:109
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:104
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:110
 #: intranet-tmpl/prog/en/modules/admin/oai_sets.tt:34
 #: intranet-tmpl/prog/en/modules/admin/oai_sets.tt:39
 #: intranet-tmpl/prog/en/modules/admin/currency.tt:79
@@ -47939,8 +47939,8 @@ msgid "Return to previous page"
 msgstr "Zurück zur vorherigen Seite"
 
 #. A
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:419
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:427
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:441
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:449
 msgid "Return to request details"
 msgstr "Zurück zu den Bestelldetails"
 
@@ -48001,7 +48001,7 @@ msgstr "Zurück zu Werkzeugen"
 msgid "Return to where you were"
 msgstr "Zurück zur vorherigen Seite"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:143
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:144
 #, c-format
 msgid "Return-Path: "
 msgstr "Return-Path: "
@@ -49839,7 +49839,7 @@ msgstr "Konto der bestellenden Bibliothek wählen: "
 msgid "Select owner"
 msgstr "Besitzer auswählen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:394
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:416
 #, c-format
 msgid "Select partner libraries:"
 msgstr "Partner-Bibliotheken auswählen:"
@@ -50032,7 +50032,7 @@ msgid "Send adhoc notices to patrons"
 msgstr "Adhoc-Benachrichtigungen an Benutzer senden"
 
 #: intranet-tmpl/prog/en/modules/errors/errorpage.tt:29
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:418
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:440
 #, c-format
 msgid "Send email"
 msgstr "E-Mail senden"
@@ -51459,8 +51459,8 @@ msgstr "Interne Notiz"
 msgid "Staff note:"
 msgstr "Interne Notiz:"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:473
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:571
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:495
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:593
 #, c-format
 msgid "Staff notes:"
 msgstr "Interne Notiz:"
@@ -51624,7 +51624,7 @@ msgstr "Anfangsdatum:"
 msgid "Start date: "
 msgstr "Anfangsdatum: "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:252
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:254
 #, c-format
 msgid "Start defining libraries"
 msgstr "Beginnen Sie mit der Definition von Bibliotheken"
@@ -51685,7 +51685,7 @@ msgstr "Bundesland"
 
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:581
 #: intranet-tmpl/prog/en/modules/admin/cities.tt:74
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:136
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:137
 #, c-format
 msgid "State: "
 msgstr "Bundesland: "
@@ -51767,7 +51767,7 @@ msgstr "Statistik Wizards"
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:612
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:614
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:618
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:640
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:280
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:349
 #: intranet-tmpl/prog/en/modules/tags/review.tt:81
@@ -51791,8 +51791,8 @@ msgstr "Status "
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:131
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:282
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:651
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:452
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:551
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:474
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:573
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:102
 #: intranet-tmpl/prog/en/modules/tags/review.tt:196
 #, c-format
@@ -52134,7 +52134,7 @@ msgstr "Untergruppe:"
 msgid "Subject"
 msgstr "Schlagwort"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:405
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:427
 #, c-format
 msgid "Subject Line"
 msgstr "Betreffzeile"
@@ -52220,7 +52220,7 @@ msgstr "Schlagwörter:"
 #: intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:365
 #: intranet-tmpl/prog/en/modules/admin/fieldmapping.tt:45
 #: intranet-tmpl/prog/en/modules/admin/overdrive.tt:48
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:168
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:170
 #: intranet-tmpl/prog/en/modules/admin/clone-rules.tt:58
 #: intranet-tmpl/prog/en/modules/admin/currency.tt:118
 #: intranet-tmpl/prog/en/modules/admin/printers.tt:81
@@ -52230,7 +52230,7 @@ msgstr "Schlagwörter:"
 #: intranet-tmpl/prog/en/modules/onboarding/onboardingstep4.tt:45
 #: intranet-tmpl/prog/en/modules/onboarding/onboardingstep2.tt:125
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:595
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:486
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:508
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:169
 #: intranet-tmpl/prog/en/modules/reports/cat_issues_top.tt:177
 #: intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:297
@@ -54076,7 +54076,7 @@ msgstr ""
 "versendet bzw. für Druck aufbereitet."
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:267
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:269
 msgid ""
 "The library code entered contains whitespace characters. Please remove any "
 "whitespace characters from the library code"
@@ -54625,7 +54625,7 @@ msgstr "Es sind keine Medientypen definiert"
 msgid "There are no late orders."
 msgstr "Es gibt keine verspäteten Bestellungen."
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:252
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:254
 #: intranet-tmpl/prog/en/includes/noadd-warnings.inc:5
 #, c-format
 msgid "There are no libraries defined. "
@@ -55672,7 +55672,7 @@ msgstr "TinyMCE WYSIWYG Editor v3.5.8 "
 #: intranet-tmpl/prog/en/modules/rotating_collections/rotatingCollections.tt:29
 #: intranet-tmpl/prog/en/modules/rotating_collections/addItems.tt:98
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:615
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:637
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:170
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:288
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:360
@@ -56077,7 +56077,7 @@ msgstr "Heutige Ausleihen"
 msgid "Today's notifications"
 msgstr "Aktuelle Hinweise"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:589
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:611
 #, c-format
 msgid "Toggle full supplier metadata"
 msgstr "Vollständige Metadaten des Anbieters ein- und ausblenden"
@@ -56769,7 +56769,7 @@ msgstr "Tumer Garip"
 #: intranet-tmpl/prog/en/modules/admin/categories.tt:361
 #: intranet-tmpl/prog/en/modules/admin/printers.tt:147
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:613
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:635
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:341
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:344
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:170
@@ -56834,7 +56834,7 @@ msgstr "URL(s)"
 msgid "URL:"
 msgstr "URL: "
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:144
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:145
 #, c-format
 msgid "URL: "
 msgstr "URL: "
@@ -57154,7 +57154,7 @@ msgstr "Université de St Etienne, Frankreich"
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:377
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:399
 #, c-format
 msgid "Unknown error processing your request. Contact your administrator. "
 msgstr ""
@@ -57359,7 +57359,10 @@ msgstr "Aktualisieren: %s"
 msgid "Updated SQL"
 msgstr "Aktualisiertes SQL"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:619
+#. For the first occurrence,
+#. SCRIPT
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:641
 #, c-format
 msgid "Updated on"
 msgstr "Aktualisiert am"
@@ -57814,7 +57817,7 @@ msgstr "In Verwendung"
 msgid "Used For"
 msgstr "Benutzt für:"
 
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:162
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:164
 #, c-format
 msgid ""
 "Used for bookmobile stations to refer to the corresponding bookmobile "
@@ -58253,7 +58256,7 @@ msgstr "Zeige "
 msgid "View All"
 msgstr "Alle anzeigen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:605
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:627
 #, c-format
 msgid "View ILL requests"
 msgstr "Fernleihbestellungen anzeigen"
@@ -58298,7 +58301,7 @@ msgstr "Zeige Aufsätze"
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:537
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:559
 msgid "View borrower details"
 msgstr "Ausleiher-Details anzeigen"
 
@@ -58804,7 +58807,7 @@ msgstr "Wir sind bereit für einen Teil der Grundkonfiguration."
 msgid "We are upgrading from Koha %s to %s"
 msgstr "Es wird von Koha %s auf Koha %s aktualisiert."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:346
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:368
 #, c-format
 msgid "We encountered an error:"
 msgstr "Es ist ein Problem aufgetreten:"
@@ -59332,11 +59335,11 @@ msgstr "Ja, schließen (Y)"
 #: intranet-tmpl/prog/en/modules/admin/edi_accounts.tt:232
 #: intranet-tmpl/prog/en/modules/admin/auth_tag_structure.tt:133
 #: intranet-tmpl/prog/en/modules/admin/authtypes.tt:119
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:181
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:183
 #: intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:291
 #: intranet-tmpl/prog/en/modules/admin/printers.tt:112
 #: intranet-tmpl/prog/en/modules/admin/systempreferences.tt:225
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:499
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:521
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:199
 #: intranet-tmpl/prog/en/modules/tools/csv-profiles.tt:228
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:439
@@ -60273,7 +60276,7 @@ msgstr "Ihre Datei wurde verarbeitet."
 msgid "Your koha-conf.xml does not contain a valid upload_path."
 msgstr "koha-conf.xml enthält keinen gültigen upload_path."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:373
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:395
 #, c-format
 msgid "Your library has no usable email address. Please set it. "
 msgstr ""
@@ -60416,7 +60419,7 @@ msgstr "Postleitzahl"
 
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:587
 #: intranet-tmpl/prog/en/modules/admin/cities.tt:78
-#: intranet-tmpl/prog/en/modules/admin/branches.tt:137
+#: intranet-tmpl/prog/en/modules/admin/branches.tt:138
 #, c-format
 msgid "ZIP/Postal code: "
 msgstr "Postleitzahl: "
@@ -60730,7 +60733,7 @@ msgid "a an the"
 msgstr "ein eine einer eines einem einen der die das"
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:537
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:339
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:361
 #, c-format
 msgid "about page"
 msgstr "Über Koha"
