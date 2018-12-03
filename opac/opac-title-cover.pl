@@ -33,13 +33,13 @@ use utf8;
 use CGI qw ( -utf8 );
 use CGI::Cookie;  # need to check cookies before having CGI parse the POST request
 
-use C4::Context;
-use C4::Debug;
-use C4::Output qw(:html :ajax pagination_bar);
 use MARC::File::XML;
 use MARC::File::USMARC;
 use MARC::Record;
+
 use C4::Context;
+use C4::Debug;
+use C4::Output qw(:html :ajax pagination_bar);
 use C4::Search;
 use C4::Charset;
 use C4::Koha;
@@ -67,7 +67,7 @@ if ( $query && $query->param('bibid') ) {
 
 if ( @bibids > 0 ) {
     my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare("SELECT i.biblioitemnumber AS biblioitemnumber, i.biblionumber AS biblionumber, i.marcxml AS marcxml, b.frameworkcode AS frameworkcode FROM biblioitems i, biblio b WHERE i.biblionumber = b.biblionumber AND i.biblionumber IN (" . join(",",@bibids) . ')');
+    my $sth            = $dbh->prepare("SELECT i.biblioitemnumber AS biblioitemnumber, i.biblionumber AS biblionumber, m.metadata AS metadata, b.frameworkcode AS frameworkcode FROM biblioitems i, biblio b, biblio_metadata m WHERE m.biblionumber = i.biblionumber AND i.biblionumber = b.biblionumber AND i.biblionumber IN (" . join(",",@bibids) . ')');
     my $count          = 0;
 
     $sth->execute();
@@ -75,7 +75,7 @@ if ( @bibids > 0 ) {
         
         my $biblionumber = $data->{'biblionumber'};
         my $biblioitemnumber = $data->{'biblioitemnumber'};
-        my $marcxml = StripNonXmlChars( $data->{'marcxml'} );
+        my $marcxml = StripNonXmlChars( $data->{'metadata'} );
         my $frameworkcode = $data->{'frameworkcode'};
         
         MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
