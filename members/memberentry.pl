@@ -767,6 +767,22 @@ $template->param(
   destination   => $destination,#to know wher u come from and wher u must go in redirect
   check_member    => $check_member,#to know if the borrower already exist(=>1) or not (=>0) 
   "op$op"   => 1);
+  
+# The following is really not nice and a temporary solution for the change of patron address data if there is an error.
+# If there is an error the changed input data will get lost if we do not copy the chganged fields to the patron data.
+if ( $patron ) {
+    my $setdata = {};
+    foreach (qw(  streetnumber   streettype   address   address2   city   state   zipcode   country   email   phone mobile fax emailpro phonepro
+                B_streetnumber B_streettype B_address B_address2 B_city B_state B_zipcode B_country B_email B_phone
+                contactname contactfirstname contacttitle contactnote 
+                altcontactfirstname altcontactsurname altcontacttitle altcontactaddress1 altcontactaddress2 altcontactaddress3 altcontactstate 
+                altcontactzipcode altcontactcountry altcontactphone smsalertnumber sms_provider_id
+                )) 
+    {
+        $setdata->{$_} = $data{$_};
+    }
+    $patron->set($setdata);
+}
 
 $guarantorid = $borrower_data->{'guarantorid'} || $guarantorid;
 my $guarantor = $guarantorid ? Koha::Patrons->find( $guarantorid ) : undef;
