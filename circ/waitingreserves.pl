@@ -118,8 +118,12 @@ while ( my $hold = $holds->next ) {
     );
 
     my $itemtype = Koha::ItemTypes->find( $item->effective_itemtype );
-    my ( $expire_year, $expire_month, $expire_day ) = split (/-/, $hold->expirationdate);
-    my $calcDate = Date_to_Days( $expire_year, $expire_month, $expire_day );
+
+    my $calcDate;
+    if ( $hold->expirationdate ) {
+        my ( $expire_year, $expire_month, $expire_day ) = split (/-/, $hold->expirationdate);
+        $calcDate = Date_to_Days( $expire_year, $expire_month, $expire_day );
+    }
 
     $getreserv{'itemtype'}       = $itemtype->description if ($itemtype); # FIXME Should not it be translated_description?
     $getreserv{'subtitle'}       = GetRecordValue(
@@ -132,7 +136,7 @@ while ( my $hold = $holds->next ) {
 
     $getreserv{patron} = $patron;
 
-    if ($today > $calcDate) {
+    if ($calcDate && $today > $calcDate) {
         if ($cancelall) {
             my $res = cancel( $item->itemnumber, $patron->borrowernumber, $holdingbranch, $homebranch, !$transfer_when_cancel_all );
             push @cancel_result, $res if $res;
