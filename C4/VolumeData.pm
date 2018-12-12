@@ -78,7 +78,7 @@ sub GetVolumeData {
     
     my $linkedRecordData = [];
     
-    print STDERR "linkedRecords = @$linkedRecords\n";
+    # print STDERR "linkedRecords = @$linkedRecords\n";
     if ( $linkedRecords && scalar(@$linkedRecords) > 0 ) {
         $searchstring = '';
         foreach my $linknumber(@$linkedRecords) {
@@ -87,7 +87,7 @@ sub GetVolumeData {
         }
         ($error,$linkedRecordData) = SearchVolumeData($searchstring,$lang,'opac',$biblionumber);
         
-        print STDERR $searchstring,"\n";
+        # print STDERR $searchstring,"\n";
     }
     return ($error,$volumes,$linkedRecordData);
 }

@@ -336,35 +336,35 @@ sub GetLogsLeftJoin {
 
     my @parameters;
     $query .=
-      " AND DATE_FORMAT(timestamp, '%Y-%m-%d') >= \"" . $iso_datefrom . "\" "
+      " AND DATE_FORMAT(al.timestamp, '%Y-%m-%d') >= \"" . $iso_datefrom . "\" "
       if $iso_datefrom;    #fix me - mysql specific
     $query .=
-      " AND DATE_FORMAT(timestamp, '%Y-%m-%d') <= \"" . $iso_dateto . "\" "
+      " AND DATE_FORMAT(al.timestamp, '%Y-%m-%d') <= \"" . $iso_dateto . "\" "
       if $iso_dateto;
     if ( $user ne q{} ) {
-        $query .= " AND user = ? ";
+        $query .= " AND al.user = ? ";
         push( @parameters, $user );
     }
     if ( $modules && scalar(@$modules) ) {
         $query .=
-          " AND module IN (" . join( ",", map { "?" } @$modules ) . ") ";
+          " AND al.module IN (" . join( ",", map { "?" } @$modules ) . ") ";
         push( @parameters, @$modules );
     }
     if ( $action && scalar(@$action) ) {
-        $query .= " AND action IN (" . join( ",", map { "?" } @$action ) . ") ";
+        $query .= " AND al.action IN (" . join( ",", map { "?" } @$action ) . ") ";
         push( @parameters, @$action );
     }
     if ($object) {
-        $query .= " AND object = ? ";
+        $query .= " AND al.object = ? ";
         push( @parameters, $object );
     }
     if ($info) {
-        $query .= " AND info LIKE ? ";
+        $query .= " AND al.info LIKE ? ";
         push( @parameters, "%" . $info . "%" );
     }
     if ( $interfaces && scalar(@$interfaces) ) {
         $query .=
-          " AND interface IN (" . join( ",", map { "?" } @$interfaces ) . ") ";
+          " AND al.interface IN (" . join( ",", map { "?" } @$interfaces ) . ") ";
         push( @parameters, @$interfaces );
     }
 
