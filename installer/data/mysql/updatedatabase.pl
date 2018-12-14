@@ -16983,6 +16983,20 @@ if( CheckVersion( $DBversion ) ) {
     print "Upgrade to $DBversion done (Extend length of letter_code in notice fee rules to 50)\n";
 }
 
+$DBversion = '18.05.05.006';
+if( CheckVersion( $DBversion ) ) {
+    # RFID Web-Service settings
+    $dbh->do(q{ 
+            INSERT IGNORE INTO systempreferences (variable,value,explanation,options,type) VALUES 
+                ('RFIDWebService','0','','If ON, the RFID-Web-Service functionality will be enabled. The RFID-Web-Services enables batch checkin/checkout using an RFID-Reader. The Web-Service must be provided by the RFID vendor.','YesNo'),
+                ('RFIDWebServiceCheckinBlocker','',NULL,'The RFID batch checkin stops if the checkin page contains elements of the specified CSS selectors. Overwrite only if you want to change the default: \"#circ_impossible,#circ_needsconfirmation\"','Free'),
+                ('RFIDWebServiceCheckoutBlocker','',NULL,'The RFID batch checkout stops if the checkout page contains elements of the specified CSS selectors. Overwrite only if you want to change the default: \".problem,.error,.alert,.audio-alert-warning,.audio-aler-action\"','Free'),
+                ('RFIDWebServiceURL','',NULL,'URL of the RFID-Web-Service. Example: https://localhost:10004/','Free')
+        });
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (Add RFID-Web-Service system preferences.)\n";
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

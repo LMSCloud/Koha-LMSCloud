@@ -321,6 +321,11 @@ if ($barcode) {
             $input{return_overdue} = 1 if (DateTime->compare($date_due_dt, $dropboxdate) == -1);
         }
         push( @inputloop, \%input );
+        
+        # Mark the last return barcode
+        $template->param(
+            lastReturnedBarcode => $barcode
+        );
 
         if ( C4::Context->preference("FineNotifyAtCheckin") ) {
             my $patron = Koha::Patrons->find( $borrower->{borrowernumber} );
