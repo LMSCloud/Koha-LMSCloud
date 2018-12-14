@@ -348,7 +348,7 @@ sub transferbook {
     # check if it is still issued to someone, return it...
     if ( $issue ) {
         AddReturn( $barcode, $fbr );
-        $messages->{'WasReturned'} = $issue->borrowernumber;
+        $messages->{'WasReturned'} = $issue->{'borrowernumber'};
     }
 
     # find reserves.....
@@ -839,7 +839,7 @@ sub CanBookBeIssued {
     #
     # CHECK IF BOOK ALREADY ISSUED TO THIS BORROWER
     #
-    if ( $issue && $issue->borrowernumber eq $patron->borrowernumber ){
+    if ( $issue && $issue->get_column('borrowernumber') eq $patron->borrowernumber ){
 
         # Already issued to current borrower.
         # If it is an on-site checkout if it can be switched to a normal checkout
@@ -870,7 +870,7 @@ sub CanBookBeIssued {
 
         # issued to someone else
 
-        my $patron = Koha::Patrons->find( $issue->borrowernumber );
+        my $patron = Koha::Patrons->find( $issue->get_column('borrowernumber') );
 
         my ( $can_be_returned, $message ) = CanBookBeReturned( $item, C4::Context->userenv->{branch} );
 
@@ -892,7 +892,7 @@ sub CanBookBeIssued {
           C4::Context->preference('SwitchOnSiteCheckouts')
       and $issue
       and $issue->onsite_checkout
-      and $issue->borrowernumber == $patron->borrowernumber ? 1 : 0 );
+      and $issue->get_column('borrowernumber') == $patron->borrowernumber ? 1 : 0 );
     my $toomany = TooMany( $patron_unblessed, $item->{biblionumber}, $item, { onsite_checkout => $onsite_checkout, switch_onsite_checkout => $switch_onsite_checkout, } );
     # if TooMany max_allowed returns 0 the user doesn't have permission to check out this book
     if ( $toomany && not exists $needsconfirmation{RENEW_ISSUE} ) {
@@ -1320,7 +1320,7 @@ sub AddIssue {
         my $actualissue = Koha::Checkouts->find( { itemnumber => $item->{itemnumber} } );
 
         # check if we just renew the issue.
-        if ( $actualissue and $actualissue->borrowernumber eq $borrower->{'borrowernumber'}
+        if ( $actualissue and $actualissue->get_column('borrowernumber') eq $borrower->{'borrowernumber'}
                 and not $switch_onsite_checkout ) {
             $datedue = AddRenewal(
                 $borrower->{'borrowernumber'},
@@ -1945,8 +1945,8 @@ sub AddReturn {
 
     my $issue  = Koha::Checkouts->find( { itemnumber => $itemnumber } );
     if ( $issue ) {
-        $patron = Koha::Patrons->find( $issue->borrowernumber )
-            or die "Data inconsistency: barcode $barcode (itemnumber:$itemnumber) claims to be issued to non-existent borrowernumber '" . $issue->borrowernumber . "'\n"
+        $patron = Koha::Patrons->find( $issue->get_column('borrowernumber') )
+            or die "Data inconsistency: barcode $barcode (itemnumber:$itemnumber) claims to be issued to non-existent borrowernumber '" . $issue->get_column('borrowernumber') . "'\n"
                 . Dumper($issue->unblessed) . "\n";
     } else {
         $messages->{'NotIssued'} = $barcode;
@@ -2769,7 +2769,7 @@ sub CanBookBeRenewed {
     my $issue = Koha::Checkouts->find( { itemnumber => $itemnumber } ) or return ( 0, 'no_checkout' );
     return ( 0, 'onsite_checkout' ) if $issue->onsite_checkout;
 
-    $borrowernumber ||= $issue->borrowernumber;
+    $borrowernumber ||= $issue->get_column('borrowernumber');
     my $patron = Koha::Patrons->find( $borrowernumber )
       or return;
 
@@ -2995,7 +2995,7 @@ sub SetDueDateOfItems {
             # set the new due date of the issue
             $issue->date_due($newdate)->store();
             # Update the renewal count on the item, and tell zebra to reindex
-            ModItem({ onloan => $newdate }, undef, $issue->itemnumber);
+            ModItem({ onloan => $newdate }, undef, $issue->get_column('itemnumber'));
         }
     }
     
@@ -3044,7 +3044,7 @@ sub AddRenewal {
 
     return unless $issue;
 
-    $borrowernumber ||= $issue->borrowernumber;
+    $borrowernumber ||= $issue->get_column('borrowernumber');
 
     if ( defined $datedue && ref $datedue ne 'DateTime' ) {
         carp 'Invalid date passed to AddRenewal.';
@@ -3231,7 +3231,7 @@ sub GetSoonestRenewDate {
     my $item      = GetItem($itemnumber)      or return;
     my $itemissue = Koha::Checkouts->find( { itemnumber => $itemnumber } ) or return;
 
-    $borrowernumber ||= $itemissue->borrowernumber;
+    $borrowernumber ||= $itemissue->get_column('borrowernumber');
     my $patron = Koha::Patrons->find( $borrowernumber )
       or return;
 
@@ -3290,7 +3290,7 @@ sub GetLatestAutoRenewDate {
     my $item      = GetItem($itemnumber)      or return;
     my $itemissue = Koha::Checkouts->find( { itemnumber => $itemnumber } ) or return;
 
-    $borrowernumber ||= $itemissue->borrowernumber;
+    $borrowernumber ||= $itemissue->get_column('borrowernumber');
     my $patron = Koha::Patrons->find( $borrowernumber )
       or return;
 
@@ -3465,15 +3465,15 @@ sub AddIssuingCharge {
 
     # FIXME What if checkout does not exist?
 
-    my $nextaccntno = C4::Accounts::getnextacctno( $checkout->borrowernumber );
+    my $nextaccntno = C4::Accounts::getnextacctno( $checkout->get_column('borrowernumber') );
 
     my $manager_id  = 0;
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
 
     my $accountline = Koha::Account::Line->new(
         {
-            borrowernumber    => $checkout->borrowernumber,
-            itemnumber        => $checkout->itemnumber,
+            borrowernumber    => $checkout->get_column('borrowernumber'),
+            itemnumber        => $checkout->get_column('itemnumber'),
             issue_id          => $checkout->issue_id,
             accountno         => $nextaccntno,
             amount            => $charge,
@@ -4342,8 +4342,8 @@ sub _CalculateAndUpdateFine {
         if ( $amount > 0 ) {
             C4::Overdues::UpdateFine({
                 issue_id       => $issue->issue_id,
-                itemnumber     => $issue->itemnumber,
-                borrowernumber => $issue->borrowernumber,
+                itemnumber     => $issue->get_column('itemnumber'),
+                borrowernumber => $issue->get_column('borrowernumber'),
                 amount         => $amount,
                 type           => $type,
                 due            => output_pref($datedue),
@@ -4356,8 +4356,8 @@ sub _CalculateAndUpdateFine {
 
             C4::Overdues::UpdateFine({
                 issue_id       => $issue->issue_id,
-                itemnumber     => $issue->itemnumber,
-                borrowernumber => $issue->borrowernumber,
+                itemnumber     => $issue->get_column('itemnumber'),
+                borrowernumber => $issue->get_column('borrowernumber'),
                 amount         => 0,
                 type           => $type,
                 due            => output_pref($datedue),
