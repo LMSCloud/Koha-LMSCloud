@@ -537,7 +537,7 @@ sub get_branch_info {
 
     ## Get branch info for borrowers home library.
     my $patron = Koha::Patrons->find( $borrowernumber );
-    my $branch = Koha::Libraries->find( Koha::Libraries->get_effective_branch(patron->branchcode) )->unblessed;
+    my $branch = Koha::Libraries->find( Koha::Libraries->get_effective_branch($patron->branchcode) )->unblessed;
     my %branch_info;
     foreach my $key( keys %$branch ) {
         $branch_info{"branches.$key"} = $branch->{$key};
