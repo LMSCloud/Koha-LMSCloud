@@ -1048,3 +1048,24 @@ Circulation:
                 pages: Pages
                 chapters: Chapters
             -
+    RFID-Web-Service batch checkin/checkout:
+         -
+            - pref: RFIDWebService
+              choices:
+                  yes: Enable
+                  no: "Don't enable"
+            - "the RFID-Web-Service batch checkin/checkout using an RFID-Reader with an RFID-Web-Service.<br />" 
+            - "The RFID-Web-Service must be provided by the RFID vendor. The RFID-Web-Service is typically running on a Koha-Client."
+         -
+            - pref: RFIDWebServiceCheckinBlocker
+            - "The RFID batch checkin stops if the checkin page contains elements of the specified jQuery selectors.<br />"
+            - "Overwrite only if you want to change the default: #circ_impossible,#circ_needsconfirmation"
+         -
+            - pref: RFIDWebServiceCheckoutBlocker
+            - "The RFID batch checkout stops if the checkout page contains elements of the specified jQuery selectors.<br />"
+            - "Overwrite only if you want to change the default: .problem,.error,.alert,.audio-alert-warning,.audio-aler-action"
+         -
+            - pref: RFIDWebServiceURL
+            - "URL of the RFID-Web-Service.<br />"
+            - "Example: https://localhost:10004/ ."
+            

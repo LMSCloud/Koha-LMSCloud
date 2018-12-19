@@ -2378,7 +2378,13 @@ sub _SearchItems_build_where_fragment {
                 };
             } else {
                 if (defined($filter->{'handleNullLikeValue'}) ) {    # $filter->{'handleNullLikeValue'} specifies that a items record where items.$column IS NULL should be treated like a items record where items.$column = $filter->{'handleNullLikeValue'} (e.g. 0, or '')
-                    if ( ( $op eq '=' && $query == $filter->{'handleNullLikeValue'} ) ||
+                    if ( $column eq 'issues' && $op eq '=' && $query eq '0' && $filter->{'handleNullLikeValue'} == 0 ) {
+                        $where_fragment = {
+                            str => "($column $op ? OR $column IS NULL)",
+                            args => [ $query ],
+                        };
+                    }
+                    elsif ( ( $op eq '=' && $query == $filter->{'handleNullLikeValue'} ) ||
                          ( $op eq '!=' && $query != $filter->{'handleNullLikeValue'} ) ||
                          ( $op eq '>' && $query < $filter->{'handleNullLikeValue'} ) ||
                          ( $op eq '>=' && $query <= $filter->{'handleNullLikeValue'} ) ||

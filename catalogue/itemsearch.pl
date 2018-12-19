@@ -61,13 +61,27 @@ if (defined $format and $format eq 'json') {
         if (defined $sSearch and $sSearch ne '') {
             my @words = split /\s+/, $sSearch;
             foreach my $word (@words) {
-                push @f, $columns[$i];
+                my $searchcol = $columns[$i];
+                push @f, $searchcol;
                 push @c, 'and';
 
-                if ( grep /^$columns[$i]$/, qw( ccode homebranch holdingbranch location notforloan ) ) {
+                if ( grep(/^$searchcol$/, qw( ccode homebranch holdingbranch location notforloan )) ) {
                     push @q, "$word";
                     push @op, '=';
-                } else {
+                }
+                elsif ( grep(/^$searchcol$/, qw( issues )) && $word && $word =~ /^[0-9]+$/ ) {
+                    push @q, "$word";
+                    push @op, '=';
+                }
+                elsif ( grep(/^$searchcol$/, qw( issues )) && $word && $word =~ /^([><=])([0-9]*)$/ ) {
+                    push @q, ($2 ? "$2" : '0');
+                    push @op, $1;
+                }
+                elsif ( grep(/^$searchcol$/, qw( issues )) && !$word ) {
+                    push @q, "0";
+                    push @op, '=';
+                }
+                else {
                     push @q, "%$word%";
                     push @op, 'like';
                 }
@@ -138,10 +152,10 @@ if (scalar keys %params > 0) {
         my $q = shift @q;
         my $op = shift @op;
         if (defined $q and $q ne '') {
+            if (C4::Context->preference("marcflavour") ne "UNIMARC" && $field eq 'publicationyear') {
+                $field = 'copyrightdate';
+            }
             if ($i == 0) {
-                if (C4::Context->preference("marcflavour") ne "UNIMARC" && $field eq 'publicationyear') {
-                    $field = 'copyrightdate';
-                }
                 $f = {
                     field => $field,
                     query => $q,
@@ -167,6 +181,7 @@ if (scalar keys %params > 0) {
         }
     }
     push @{ $filter->{filters} }, $f;
+
 
     # Yes/No parameters
     foreach my $p (qw(damaged itemlost)) {

@@ -660,7 +660,7 @@
                 [% END %]
             </td>
             <td class="ci-author">[% riloo.itemauthor %]</td>
-            <td class="ci-barcode"><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% riloo.itembiblionumber %]&amp;itemnumber=[% riloo.itemnumber %]#item[% riloo.itemnumber %]">[% riloo.barcode %]</a></td>
+            <td class="ci-barcode"><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% riloo.itembiblionumber %]&amp;itemnumber=[% riloo.itemnumber %]#item[% riloo.itemnumber %]">[% IF (lastReturnedBarcode && lastReturnedBarcode == riloo.barcode) %]<span class="lastcheckinbarcode">[% riloo.barcode %]</span>[% ELSE %][% riloo.barcode %][% END %]</a></td>
             <td class="ci-homelibrary">[% Branches.GetName( riloo.homebranch ) %]</td>
             <td class="ci-holdinglibrary">[% Branches.GetName( riloo.holdingbranch ) %]</td>
             <td class="ci-shelvinglocation">[% riloo.location %]</td>
