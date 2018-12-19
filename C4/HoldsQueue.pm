@@ -454,38 +454,40 @@ sub MapItemsToHoldRequests {
         # is this an item-level request?
         if (defined($request->{itemnumber})) {
             # fill it if possible; if not skip it
-            
-            # get effective branches if the request is for a mobile branch station 
-            my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
-            my $effectiveitembranch = $effectivereservebranch;
-            $effectiveitembranch = Koha::Libraries->get_effective_branch(
-                $items_by_itemnumber{ $request->{itemnumber} }->{ $items_by_itemnumber{ $request->{itemnumber} }->{hold_fulfillment_policy} }) 
-                if ($items_by_itemnumber{ $request->{itemnumber} }->{hold_fulfillment_policy} eq 'any');
-                   
-            if (
-                    exists $items_by_itemnumber{ $request->{itemnumber} }
-                and not exists $allocated_items{ $request->{itemnumber} }
-                and ( # Don't fill item level holds that contravene the hold pickup policy at this time
-                    ( $items_by_itemnumber{ $request->{itemnumber} }->{hold_fulfillment_policy} eq 'any' )
-                    || ( $effectivereservebranch eq  $effectiveitembranch )
-                and ( !$request->{itemtype} # If hold itemtype is set, item's itemtype must match
-                    || $items_by_itemnumber{ $request->{itemnumber} }->{itype} eq $request->{itemtype} )
-                )
+            my $itemnumber = $request->{itemnumber};
+            if ( /^$itemnumber$/ ~~ @$available_items ) {    # item-level request has to be satisfied by the specified item only, not by an other item of the same title
+                # get effective branches if the request is for a mobile branch station 
+                my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
+                my $effectiveitembranch = $effectivereservebranch;
+                $effectiveitembranch = Koha::Libraries->get_effective_branch(
+                    $items_by_itemnumber{ $request->{itemnumber} }->{ $items_by_itemnumber{ $request->{itemnumber} }->{hold_fulfillment_policy} }) 
+                        unless ($items_by_itemnumber{ $request->{itemnumber} }->{hold_fulfillment_policy} eq 'any');
+                       
+                if (
+                        exists $items_by_itemnumber{ $request->{itemnumber} }
+                    and not exists $allocated_items{ $request->{itemnumber} }
+                    and ( # Don't fill item level holds that contravene the hold pickup policy at this time
+                        ( $items_by_itemnumber{ $request->{itemnumber} }->{hold_fulfillment_policy} eq 'any' )
+                        || ( $effectivereservebranch eq  $effectiveitembranch )
+                    and ( !$request->{itemtype} # If hold itemtype is set, item's itemtype must match
+                        || $items_by_itemnumber{ $request->{itemnumber} }->{itype} eq $request->{itemtype} )
+                    )
 
-              )
-            {
+                  )
+                {
 
-                $item_map{ $request->{itemnumber} } = {
-                    borrowernumber => $request->{borrowernumber},
-                    biblionumber   => $request->{biblionumber},
-                    holdingbranch  => $items_by_itemnumber{ $request->{itemnumber} }->{holdingbranch},
-                    pickup_branch  => $request->{branchcode} || $request->{borrowerbranch},
-                    item_level     => 1,
-                    reservedate    => $request->{reservedate},
-                    reservenotes   => $request->{reservenotes},
-                };
-                $allocated_items{ $request->{itemnumber} }++;
-                $num_items_remaining--;
+                    $item_map{ $request->{itemnumber} } = {
+                        borrowernumber => $request->{borrowernumber},
+                        biblionumber   => $request->{biblionumber},
+                        holdingbranch  => $items_by_itemnumber{ $request->{itemnumber} }->{holdingbranch},
+                        pickup_branch  => $request->{branchcode} || $request->{borrowerbranch},
+                        item_level     => 1,
+                        reservedate    => $request->{reservedate},
+                        reservenotes   => $request->{reservenotes},
+                    };
+                    $allocated_items{ $request->{itemnumber} }++;
+                    $num_items_remaining--;
+                }
             }
         } else {
             # it's title-level request that will take up one item
@@ -522,7 +524,7 @@ sub MapItemsToHoldRequests {
                 my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
                 my $effectiveitembranch = $effectivereservebranch;
                 $effectiveitembranch = Koha::Libraries->get_effective_branch($item->{ $item->{hold_fulfillment_policy} })
-                    if ($item->{hold_fulfillment_policy} eq 'any');
+                    unless ($item->{hold_fulfillment_policy} eq 'any');
                    
                 if (
                     $request->{borrowerbranch} eq $item->{homebranch}
@@ -551,7 +553,7 @@ sub MapItemsToHoldRequests {
                     my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
                     my $effectiveitembranch = $effectivereservebranch;
                     $effectiveitembranch = Koha::Libraries->get_effective_branch($item->{ $item->{hold_fulfillment_policy} }) 
-                        if ($item->{hold_fulfillment_policy} eq 'any');
+                        unless ($item->{hold_fulfillment_policy} eq 'any');
                      
                     # Don't fill item level holds that contravene the hold pickup policy at this time
                     next unless $item->{hold_fulfillment_policy} eq 'any'
@@ -593,7 +595,7 @@ sub MapItemsToHoldRequests {
                     my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
                     my $effectiveitembranch = $effectivereservebranch;
                     $effectiveitembranch = Koha::Libraries->get_effective_branch($item->{ $item->{hold_fulfillment_policy} }) 
-                        if ($item->{hold_fulfillment_policy} eq 'any');
+                        unless ($item->{hold_fulfillment_policy} eq 'any');
                      
                     # Don't fill item level holds that contravene the hold pickup policy at this time
                     next unless $item->{hold_fulfillment_policy} eq 'any'
@@ -618,7 +620,7 @@ sub MapItemsToHoldRequests {
                         my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
                         my $effectiveitembranch = $effectivereservebranch;
                         $effectiveitembranch = Koha::Libraries->get_effective_branch($current_item->{ $current_item->{hold_fulfillment_policy} }) 
-                            if ($current_item->{hold_fulfillment_policy} eq 'any');
+                            unless ($current_item->{hold_fulfillment_policy} eq 'any');
                          
                         # Don't fill item level holds that contravene the hold pickup policy at this time
                         next unless $current_item->{hold_fulfillment_policy} eq 'any'
@@ -648,7 +650,7 @@ sub MapItemsToHoldRequests {
                         my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
                         my $effectiveitembranch = $effectivereservebranch;
                         $effectiveitembranch = Koha::Libraries->get_effective_branch($item->{ $item->{hold_fulfillment_policy} }) 
-                            if ($item->{hold_fulfillment_policy} eq 'any');
+                            unless ($item->{hold_fulfillment_policy} eq 'any');
                          
                         # Don't fill item level holds that contravene the hold pickup policy at this time
                         next unless $item->{hold_fulfillment_policy} eq 'any'
