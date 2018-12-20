@@ -30,6 +30,7 @@ sub new {
     my ( $class, $value ) = @_;
 
     my $self->{value} = $value || 0;
+    $self->{used_decimal_point} = '.';
 
     bless $self, $class;
     return $self;
@@ -39,6 +40,7 @@ sub format {
     my ( $self, $params ) = @_;
     return unless defined $self->value;
 
+    $self->{used_decimal_point} = undef;
     my $format_params = $self->_format_params( $params );
 
     # To avoid the system to crash, we will not format big number
@@ -60,6 +62,7 @@ sub format_for_editing {
         mon_thousands_sep => '',
         mon_decimal_point => '.',
     };
+    $self->{used_decimal_point} = $format_params->{mon_decimal_point};    # storing the manipulated and used (i.e. displayed to and not modified by user) decimal separator mon_decimal_point for the following unformat_edited
 
     # To avoid the system to crash, we will not format big number
     # We divide per 100 because we want to keep the default DECIMAL_DIGITS (2)
@@ -67,6 +70,25 @@ sub format_for_editing {
     return $self->value if $self->value > Number::Format::MAX_INT/100;
 
     return Number::Format->new(%$format_params)->format_price($self->value);
+}
+
+# The function format_for_editing above does some ugly hard overwriting of Number::Format parameters
+# immediately after setting it nicly via _format_params that is based on C4::Context->preference("CurrencyFormat").
+# So the standard Koha::Number::Price::unformat function can not be used in each case as it may lead to ignoring the decimal point, what leads to a multiplication by 100
+# (e.g. with CurrencyFormat 'FR'). 
+sub unformat_edited {
+    my ( $self, $params ) = @_;
+    return unless defined $self->value;
+
+    my $format_params = $self->_format_params( $params );
+    $format_params = {
+        %$format_params
+    };
+    if ( defined $self->{used_decimal_point} ) {
+        $format_params->{decimal_point} = $self->{used_decimal_point};
+    }
+
+    return Number::Format->new(%$format_params)->unformat_number($self->value);
 }
 
 sub unformat {
