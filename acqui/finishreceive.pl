@@ -58,7 +58,7 @@ my $bookfund         = $input->param("bookfund");
 my $order            = GetOrder($ordernumber);
 my $new_ordernumber  = $ordernumber;
 
-$unitprice = Koha::Number::Price->new( $unitprice )->unformat_edited( {} );
+$unitprice = Koha::Number::Price->new( $unitprice )->unformat_edited( { used_decimal_point => '.' } );
 my $basket = Koha::Acquisition::Orders->find( $ordernumber )->basket;
 
 #need old receivedate if we update the order, parcel.pl only shows the right parcel this way FIXME

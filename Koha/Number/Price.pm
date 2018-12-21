@@ -30,7 +30,6 @@ sub new {
     my ( $class, $value ) = @_;
 
     my $self->{value} = $value || 0;
-    $self->{used_decimal_point} = '.';
 
     bless $self, $class;
     return $self;
@@ -40,7 +39,6 @@ sub format {
     my ( $self, $params ) = @_;
     return unless defined $self->value;
 
-    $self->{used_decimal_point} = undef;
     my $format_params = $self->_format_params( $params );
 
     # To avoid the system to crash, we will not format big number
@@ -62,7 +60,6 @@ sub format_for_editing {
         mon_thousands_sep => '',
         mon_decimal_point => '.',
     };
-    $self->{used_decimal_point} = $format_params->{mon_decimal_point};    # storing the manipulated and used (i.e. displayed to and not modified by user) decimal separator mon_decimal_point for the following unformat_edited
 
     # To avoid the system to crash, we will not format big number
     # We divide per 100 because we want to keep the default DECIMAL_DIGITS (2)
@@ -84,8 +81,11 @@ sub unformat_edited {
     $format_params = {
         %$format_params
     };
-    if ( defined $self->{used_decimal_point} ) {
-        $format_params->{decimal_point} = $self->{used_decimal_point};
+
+    # Contains the manipulated and used (i.e. displayed to and not modified by user) decimal separator mon_decimal_point for the following unformat_edited call.
+    # Required if format_for_editing was called before to fill the corresponding HTML input field (normally via tt-macro [% a_variable | $Price on_editing => 1 %] ). 
+    if ( defined $params->{used_decimal_point} ) {
+        $format_params->{decimal_point} = $params->{used_decimal_point};
     }
 
     return Number::Format->new(%$format_params)->unformat_number($self->value);
