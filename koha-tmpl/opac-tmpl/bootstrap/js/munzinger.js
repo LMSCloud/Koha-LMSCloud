@@ -80,7 +80,19 @@ function showMunzingerResult(facetID, callOpt) {
         $('#userresults').toggle();
     }
     $('#encyclopediahits').html(content);
-    $('.encyclopediasource').html(munzingerData.categories[facetID].name);
+    
+    if ( munzingerData.categories[facetID].name == 'KLG' ) {
+        $('.encyclopediasource').html('Kritisches Lexikon zur deutschsprachigen Gegenwartsliteratur');
+    }
+    else if ( munzingerData.categories[facetID].name == 'KLfG' ) {
+        $('.encyclopediasource').html('Kritisches Lexikon zur fremdsprachigen Gegenwartsliteratur');
+    }
+    else if ( munzingerData.categories[facetID].name == 'KDG' ) {
+        $('.encyclopediasource').html('Komponisten der Gegenwart');
+    }
+    else {
+        $('.encyclopediasource').html(munzingerData.categories[facetID].name);
+    }
     $('.encyclopediaprovider').html('<a href="' + munzingerData.searchmunzinger + '" target="_blank">' + 'Munzinger</a>' );
     $('.encyclopediasearchhitcount').html(munzingerData.categories[facetID].count);
     $('#numresults').html($('#encyclopedianumresults').html());
