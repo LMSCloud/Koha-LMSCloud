@@ -837,7 +837,7 @@ for (my $i=0;$i<@servers;$i++) {
                         my @top_loop;
                         my @old_loop = @{$res->{'available_items_loop'}};
                         foreach my $item ( @old_loop ) {
-                            if ( $item->{'branchcode'} eq $branchcode ) {
+                            if ( $item->{'branchcode'} && $branchcode && $item->{'branchcode'} eq $branchcode ) {
                                 $item->{'this_branch'} = 1;
                                 push( @top_loop, $item );
                             } else {
