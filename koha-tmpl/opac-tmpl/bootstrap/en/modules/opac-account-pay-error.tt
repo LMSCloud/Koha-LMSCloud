@@ -32,6 +32,13 @@
                             [% ELSIF error == "PAYPAL_ERROR_PROCESSING" %]
                                 <p>Unable to verify payment.</p>
                                 <p>Please contact the library to verify your payment.</p>
+                            [% ELSIF error == "GIROSOLUTION_UNABLE_TO_CONNECT" %]
+                                <p>Unable to connect to GiroSolution.</p>
+                                <p>Please try again later.</p>
+                            [% ELSIF error == "GIROSOLUTION_ERROR_PROCESSING" %]
+                                <!-- <p>Unable to verify payment.[% IF girosolutionmsg %] ([% girosolutionmsg %])[% END %]</p> -->
+                                <p>Unable to verify payment.</p>
+                                <p>Please contact the library to verify your payment.</p>
                             [% END %]
                         </div>
                     [% END %]

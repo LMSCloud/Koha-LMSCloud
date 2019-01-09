@@ -79,6 +79,8 @@ sub pay {
     my $payment_type = $params->{payment_type} || undef;
     my $account_type = $params->{account_type};
     my $offset_type  = $params->{offset_type} || $type eq 'writeoff' ? 'Writeoff' : $type eq 'cancelfee' ? 'Cancel Fee' : 'Payment';
+    my $withoutCashRegisterManagement = $params->{withoutCashRegisterManagement};
+    my $onlinePaymentCashRegisterManagerId = $params->{onlinePaymentCashRegisterManagerId};
 
     my $userenv = C4::Context->userenv;
 
@@ -100,7 +102,10 @@ sub pay {
     # Check whether cash registers are activated and mandatory for payment actions.
     # If thats the case than we need to check whether the manager has opened a cash
     # register to use for payments.
-    if ( !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
+    if ( !$withoutCashRegisterManagement && !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
+        if ( $onlinePaymentCashRegisterManagerId > 0 ) {
+            $manager_id = $onlinePaymentCashRegisterManagerId;
+        }
         $cash_register_mngmt = C4::CashRegisterManagement->new($library_id, $manager_id);
         
         # if there is no open cash register of the manager we return without a doing the payment

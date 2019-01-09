@@ -2,6 +2,7 @@
 
 # Copyright Katipo Communications 2002
 # Copyright Biblibre 2007,2010
+# parts Copyright 2019 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -27,6 +28,7 @@ use C4::Output;
 use Koha::Account::Lines;
 use Koha::Patrons;
 use Koha::Plugins;
+use Koha::DateUtils;
 
 my $query = new CGI;
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -45,6 +47,14 @@ my $borrower= $patron->unblessed;
 $borrower->{description} = $category->description;
 $borrower->{category_type} = $category->category_type;
 $template->param( BORROWER_INFO => $borrower );
+
+my $paymentsMinimumPatronAge = C4::Context->preference('PaymentsMinimumPatronAge');    #  minimum age in years for payment permission in OPAC
+if ( !defined $paymentsMinimumPatronAge ) {
+    $paymentsMinimumPatronAge = 0;
+}
+my $dt = DateTime->now;
+$dt->subtract( years => $paymentsMinimumPatronAge+0 );
+my $payment_permitted = DateTime->compare(dt_from_string($patron->dateofbirth()),$dt) <= 0 ? 1 : 0;
 
 my $total = $patron->account->balance;
 my $accts = Koha::Account::Lines->search(
@@ -75,6 +85,7 @@ $template->param(
     message_value => scalar $query->param('message_value') || q{},
     payment       => scalar $query->param('payment') || q{},
     payment_error => scalar $query->param('payment-error') || q{},
+    payment_permitted => $payment_permitted
 );
 
 my $plugins_enabled = C4::Context->preference('UseKohaPlugins') && C4::Context->config("enable_plugins");

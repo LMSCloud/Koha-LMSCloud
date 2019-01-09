@@ -16997,6 +16997,26 @@ if( CheckVersion( $DBversion ) ) {
     print "Upgrade to $DBversion done (Add RFID-Web-Service system preferences.)\n";
 }
 
+$DBversion = "18.05.05.007";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES        
+            ('PaymentsMinimumPatronAge', '18', NULL , 'The minimum patron age in years for permission to the payment functionality', 'Integer' ),
+            ('PaymentsOnlineCashRegisterName', '', NULL , 'Name of the cash register used for online payments', 'Free' ),
+            ('PaymentsOnlineCashRegisterManagerCardnumber', '', NULL , 'Cardnumber of main manager of the cash register used for online payments', 'Free' ),
+            ('GirosolutionCreditcardOpacPaymentsEnabled', '0', NULL , 'Allow patrons to make credit card payments from the OPAC via GiroSolution.', 'YesNo' ),
+            ('GirosolutionCreditcardProjectId', '', NULL , 'The library\'s GiroSolution Project ID for credit card payments', 'Free' ),
+            ('GirosolutionCreditcardProjectPwd', '', NULL , 'The library\'s GiroSolution password for credit card payments', 'Free' ),
+            ('GirosolutionGiropayOpacPaymentsEnabled', '0', NULL , 'Allow patrons to make GiroPay payments from the OPAC via GiroSolution.', 'YesNo' ),
+            ('GirosolutionGiropayProjectId', '', NULL , 'The library\'s GiroSolution Project ID for GiroPay payments', 'Free' ),
+            ('GirosolutionGiropayProjectPwd', '', NULL , 'The library\'s GiroSolution password for GiroPay payments', 'Free' ),
+            ('GirosolutionMerchantId', '', NULL , 'The library\'s GiroSolution Merchant ID', 'Free' )
+    });
+
+    print "Upgrade to $DBversion done (Additional payment methods in OPAC: Credit Card and GiroPay via GiroSolution)\n";
+    SetVersion($DBversion);
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

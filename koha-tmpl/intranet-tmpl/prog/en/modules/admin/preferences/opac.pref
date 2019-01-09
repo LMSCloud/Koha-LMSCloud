@@ -829,7 +829,22 @@ OPAC:
                 subtype: Subtypes
                 sorting: Sorting
                 location: Location and availability
+
     Payments:
+        -
+            - "The minimum patron age for permission to the payment functionality is "
+            - pref: PaymentsMinimumPatronAge
+              default: 18
+              class: integer
+            - " years."
+        -
+            - "Online payments will be registered in the cash register named "
+            - pref: PaymentsOnlineCashRegisterName
+        -
+            - "The main manager of the cash register for online payments has the cardnumber "
+            - pref: PaymentsOnlineCashRegisterManagerCardnumber
+
+    Payments via PayPal:
         -
             - pref: EnablePayPalOpacPayments
               default: 1
@@ -859,3 +874,34 @@ OPAC:
             - "The patron should see the charge description as "
             - pref: PayPalChargeDescription
               class: long
+
+    Payments via GiroSolution:
+        -
+            - pref: GirosolutionCreditcardOpacPaymentsEnabled
+              default: 0
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - "patrons to make credit card payments from the OPAC via GiroSolution."
+        -
+            - "The library's GiroSolution Project ID for credit card payments is "
+            - pref: GirosolutionCreditcardProjectId
+        -
+            - "The library's GiroSolution password for credit card payments is "
+            - pref: GirosolutionCreditcardProjectPwd
+        -
+            - pref: GirosolutionGiropayOpacPaymentsEnabled
+              default: 0
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - "patrons to make GiroPay payments from the OPAC via GiroSolution."
+        -
+            - "The library's GiroSolution Project ID for GiroPay payments is "
+            - pref: GirosolutionGiropayProjectId
+        -
+            - "The library's GiroSolution password for GiroPay payments is "
+            - pref: GirosolutionGiropayProjectPwd
+        -
+            - "The library's GiroSolution Merchant ID is "
+            - pref: GirosolutionMerchantId

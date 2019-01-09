@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright ByWater Solutions 2015
+# parts Copyright 2019 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -28,6 +29,8 @@ use URI;
 use C4::Auth;
 use C4::Output;
 use C4::Accounts;
+use C4::Context;
+use C4::CashRegisterManagement;
 use Koha::Acquisition::Currencies;
 use Koha::Database;
 use Koha::Patrons;
@@ -99,11 +102,59 @@ if ( $response->is_success ) {
             }
         );
 
+        # evaluate configuration of cash register management for online payments
+        my $withoutCashRegisterManagement = 1;    # default: avoiding cash register management in Koha::Account->pay()
+        my $cash_register_manager_id = 0;    # borrowernumber of manager of online cash register
+
+        if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+            my $paymentsOnlineCashRegisterName = C4::Context->preference('PaymentsOnlineCashRegisterName');
+            my $paymentsOnlineCashRegisterManagerCardnumber = C4::Context->preference('PaymentsOnlineCashRegisterManagerCardnumber');
+print STDERR "opac-account-pay-paypal-return.pl: paymentsOnlineCashRegisterName:$paymentsOnlineCashRegisterName: paymentsOnlineCashRegisterManagerCardnumber:$paymentsOnlineCashRegisterManagerCardnumber:\n";
+            if ( length($paymentsOnlineCashRegisterName) && length($paymentsOnlineCashRegisterManagerCardnumber) ) {
+                $withoutCashRegisterManagement = 0;
+
+                my $userenv = C4::Context->userenv;
+                my $library_id = $userenv ? $userenv->{'branch'} : undef;
+                # get cash register manager information
+                my $cash_register_manager = Koha::Patrons->search( { cardnumber => $paymentsOnlineCashRegisterManagerCardnumber } )->next();
+                if ( $cash_register_manager ) {
+                    $cash_register_manager_id = $cash_register_manager->borrowernumber();
+print STDERR "opac-account-pay-paypal-return.pl: cash_register_manager_id:$cash_register_manager_id:\n";
+                    my $cash_register_mngmt = C4::CashRegisterManagement->new($library_id, $cash_register_manager_id);
+
+                    if ( $cash_register_mngmt ) {
+                        my $cashRegisterNeedsToBeOpened = 1;
+                        my $openedCashRegister = $cash_register_mngmt->getOpenedCashRegisterByManagerID($cash_register_manager_id);
+                        if ( defined $openedCashRegister ) {
+print STDERR "opac-account-pay-paypal-return.pl: cash_register_name:", $openedCashRegister->{'cash_register_name'}, ":\n";
+                            if ($openedCashRegister->{'cash_register_name'} eq $paymentsOnlineCashRegisterName) {
+                                $cashRegisterNeedsToBeOpened = 0;
+                            } else {
+                                $cash_register_mngmt->closeCashRegister($openedCashRegister->{'cash_register_id'}, $cash_register_manager_id);
+                            }
+                        }
+                        if ( $cashRegisterNeedsToBeOpened ) {
+                            # try to open the specified cash register by name
+                            my $cash_register_id = $cash_register_mngmt->readCashRegisterIdByName($paymentsOnlineCashRegisterName);
+print STDERR "opac-account-pay-paypal-return.pl: cash_register_id:$cash_register_id:\n";
+                            if ( defined $cash_register_id && $cash_register_mngmt->canOpenCashRegister($cash_register_id, $cash_register_manager_id) ) {
+                                my $opened = $cash_register_mngmt->openCashRegister($cash_register_id, $cash_register_manager_id);
+print STDERR "opac-account-pay-paypal-return.pl: cash_register_mngmt->openCashRegister($library_id, $cash_register_manager_id) returned opened:$opened:\n";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         $account->pay(
             {
                 amount => $amount,
                 lines  => \@lines,
-                note   => 'PayPal'
+                description => 'PayPal',
+                note => 'Online-PayPal',
+                withoutCashRegisterManagement => $withoutCashRegisterManagement,
+                onlinePaymentCashRegisterManagerId => $cash_register_manager_id
             }
         );
     }

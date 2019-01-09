@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright ByWater Solutions 2015
+# parts Copyright 2019 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -25,6 +26,10 @@ use CGI;
 use HTTP::Request::Common;
 use LWP::UserAgent;
 use URI;
+use Digest;
+use Data::Dumper;    # XXXWH
+use JSON;
+use Encode;
 
 use C4::Auth;
 use C4::Output;
@@ -32,13 +37,14 @@ use C4::Context;
 use Koha::Acquisition::Currencies;
 use Koha::Database;
 use Koha::Plugins::Handler;
+use Koha::Patrons;
 
 my $cgi = new CGI;
 my $payment_method = $cgi->param('payment_method');
 my @accountlines   = $cgi->multi_param('accountline');
 
 my $use_plugin;
-if ( $payment_method ne 'paypal' ) {
+if ( $payment_method ne 'paypal' && $payment_method ne 'gs_giropay' && $payment_method ne 'gs_creditcard' ) {
     $use_plugin = Koha::Plugins::Handler->run(
         {
             class  => $payment_method,
@@ -48,9 +54,20 @@ if ( $payment_method ne 'paypal' ) {
     );
 }
 
-unless ( C4::Context->preference('EnablePayPalOpacPayments') || $use_plugin ) {
+unless ( C4::Context->preference('EnablePayPalOpacPayments') || C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') || C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') || $use_plugin ) {
     print $cgi->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
+}
+
+
+my $key = 'dsTFshg5678DGHMO';    # dummy for wrong HMAC md5sum
+sub genHmacMd5 {
+    my ($key, $str) = @_;
+    my $hmac_md5 = Digest->HMAC_MD5($key);
+    $hmac_md5->add($str);
+    my $hashval = $hmac_md5->hexdigest();
+
+    return $hashval;
 }
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -62,6 +79,8 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         debug           => 1,
     }
 );
+# get borrower information
+my $patron = Koha::Patrons->find( $borrowernumber );
 
 my $amount_to_pay =
   Koha::Database->new()->schema()->resultset('Accountline')->search( { accountlines_id => { -in => \@accountlines } } )
@@ -140,6 +159,224 @@ if ( $payment_method eq 'paypal' ) {
 
     output_html_with_http_headers( $cgi, $cookie, $template->output ) if $error;
 }
+
+
+elsif ( $payment_method eq 'gs_giropay' ) {    # Girosolution GiroPay
+
+    my $paytype = 1;    # paytype 1: gs_giropay
+    my $merchantId = C4::Context->preference('GirosolutionMerchantId');
+    my $projectId = C4::Context->preference('GirosolutionGiropayProjectId');    # GiroSolution 'Project ID' for payment method GiroPay
+    $key = C4::Context->preference('GirosolutionGiropayProjectPwd');    # password of GiroSolution project for payment method GiroPay
+
+    my $ua = LWP::UserAgent->new;
+
+
+
+    if ( $error == 0 ) {
+        # Initialisierung einer giropay Zahlung
+        my $url = 'https://payment.girosolution.de/girocheckout/api/v2/transaction/start';
+
+        my $opac_base_url = C4::Context->preference('OPACBaseURL');    # the GiroSolution software seems to work only with https URL (not with http)
+
+        my $message_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-girosolution-message.pl" );
+        $message_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
+
+        my $redirect_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-girosolution-return.pl" );
+        $redirect_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
+
+        my $now = DateTime->now( time_zone => C4::Context->tz() );
+        my $todayMDY = $now->mdy;
+        my $todayDMY = $now->dmy;
+        my $merchantTxIdKey = $todayMDY . $key . $todayDMY . $key . $borrowernumber . $paytype . '_' . $amount_to_pay . '_' . $paytype . $borrowernumber . $key . $todayDMY . $key . $todayMDY;
+        my $merchantTxIdVal = $borrowernumber . '_' . $amount_to_pay;
+        foreach my $accountline (@accountlines) {
+            $merchantTxIdVal .= '_' . $accountline;
+        }
+        $merchantTxIdVal .= '_' . $paytype;
+        $merchantTxIdVal .= '_' . $merchantTxIdVal . '_' . $merchantTxIdVal;
+
+        my $merchantTxId = genHmacMd5($merchantTxIdKey, $merchantTxIdVal);         # unique merchant transaction ID (this MD5 sum is used to check integrity of Koha CGI parameters in opac-account-pay-girosolution-message.pl)
+        my $amount = $amount_to_pay * 100;      # not Euro but Cent are required
+        my $currency = 'EUR';
+        my $purpose = substr('Bibliothek:' . $patron->cardnumber(), 0, 27);   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) / 
+
+        my $urlRedirect = $redirect_url->as_string();
+
+        my $urlNotify = $message_url->as_string();
+
+print STDERR "opac-account-pay.pl merchantTxIdKey:$merchantTxIdKey:\n";
+print STDERR "opac-account-pay.pl merchantTxIdVal:$merchantTxIdVal:\n";
+print STDERR "opac-account-pay.pl merchantTxId:$merchantTxId:\n";
+
+        my $paramstr = 
+            $merchantId .
+            $projectId .
+            $merchantTxId .
+            $amount .
+            $currency .
+            $purpose .
+            $urlRedirect .
+            $urlNotify;
+
+        my $hashval = genHmacMd5($key, $paramstr);
+
+        my $gs_params = {
+            'merchantId' => $merchantId,
+            'projectId'  => $projectId,
+            'merchantTxId' => $merchantTxId,
+            'amount' => $amount,
+            'currency' => $currency,
+            'purpose' => $purpose,
+            'urlRedirect' => $urlRedirect,
+            'urlNotify' => $urlNotify,
+            'hash' => $hashval
+        };
+
+        my $response = $ua->request( POST $url, $gs_params );
+
+print STDERR "opac-account-pay.pl transaction/start response:", Dumper($response), ":\n";
+
+        if ( $response->is_success ) {
+            my $responseHeaderHash = $response->headers->header('hash');
+print STDERR "opac-account-pay.pl response responseHeaderHash:$responseHeaderHash:\n";
+            my $content = Encode::decode("utf8", $response->content);
+            my $compHash = genHmacMd5($key, $content);
+print STDERR "opac-account-pay.pl response responseHeaderHash:$responseHeaderHash: 2. compHash:$compHash: eq:", $responseHeaderHash eq $compHash, ":\n";
+            my $json = from_json( $content );
+print STDERR "opac-account-pay.pl 2. response json:", Dumper($json), ":\n";
+print STDERR "opac-account-pay.pl 2. response json->rc:", scalar $json->{rc}, ":\n";
+print STDERR "opac-account-pay.pl 2. response json->msg:", scalar $json->{msg}, ":\n";
+print STDERR "opac-account-pay.pl 2. response json->reference:", scalar $json->{reference}, ":\n";
+print STDERR "opac-account-pay.pl 2. response json->redirect:", scalar $json->{redirect}, ":\n";
+
+            if ( $responseHeaderHash eq $compHash && $json->{rc} eq '0' ) {
+                $error = 0;
+                my $gs_message_redirect_url = $json->{redirect};
+                print $cgi->redirect( $gs_message_redirect_url );
+
+            } else {
+                $template->param( error => "GIROSOLUTION_ERROR_PROCESSING", girosolutionmsg => $json->{msg} );
+                $error = 1;
+            }
+
+        }
+        else {
+            $template->param( error => "GIROSOLUTION_UNABLE_TO_CONNECT" );
+            $error = 1;
+        }
+    }
+
+    output_html_with_http_headers( $cgi, $cookie, $template->output ) if $error;
+}
+
+
+elsif ( $payment_method eq 'gs_creditcard' ) {    # Girosolution Credit Card
+
+    my $paytype = 11;    # paytype 11: gs_creditcard
+    my $merchantId = C4::Context->preference('GirosolutionMerchantId');
+    my $projectId = C4::Context->preference('GirosolutionCreditcardProjectId');    # GiroSolution 'Project ID' for payment method CreditCard
+    $key = C4::Context->preference('GirosolutionCreditcardProjectPwd');    # password of GiroSolution project for payment method CreditCard
+
+    my $ua = LWP::UserAgent->new;
+
+    if ( $error == 0 ) {
+        # Initialisierung einer creditcard Zahlung
+        my $url = 'https://payment.girosolution.de/girocheckout/api/v2/transaction/start';
+
+        my $opac_base_url = C4::Context->preference('OPACBaseURL');    # the GiroSolution software seems to work only with https URL (not with http)
+
+        my $message_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-girosolution-message.pl" );
+        $message_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
+
+        my $redirect_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-girosolution-return.pl" );
+        $redirect_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
+
+        my $now = DateTime->now( time_zone => C4::Context->tz() );
+        my $todayMDY = $now->mdy;
+        my $todayDMY = $now->dmy;
+        my $merchantTxIdKey = $todayMDY . $key . $todayDMY . $key . $borrowernumber . $paytype . '_' . $amount_to_pay . '_' . $paytype . $borrowernumber . $key . $todayDMY . $key . $todayMDY;
+        my $merchantTxIdVal = $borrowernumber . '_' . $amount_to_pay;
+        foreach my $accountline (@accountlines) {
+            $merchantTxIdVal .= '_' . $accountline;
+        }
+        $merchantTxIdVal .= '_' . $paytype;
+        $merchantTxIdVal .= '_' . $merchantTxIdVal . '_' . $merchantTxIdVal;
+
+        my $merchantTxId = genHmacMd5($merchantTxIdKey, $merchantTxIdVal);         # unique merchant transaction ID (this MD5 sum is used to check integrity of Koha CGI parameters in opac-account-pay-girosolution-message.pl)
+        my $amount = $amount_to_pay * 100;      # not Euro but Cent are required
+        my $currency = 'EUR';
+        my $purpose = substr('Bibliothek:' . $patron->cardnumber(), 0, 27);   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) / 
+
+        my $urlRedirect = $redirect_url->as_string();
+
+        my $urlNotify = $message_url->as_string();
+
+print STDERR "opac-account-pay.pl merchantTxIdKey:$merchantTxIdKey:\n";
+print STDERR "opac-account-pay.pl merchantTxIdVal:$merchantTxIdVal:\n";
+print STDERR "opac-account-pay.pl merchantTxId:$merchantTxId:\n";
+
+        my $paramstr = 
+            $merchantId .
+            $projectId .
+            $merchantTxId .
+            $amount .
+            $currency .
+            $purpose .
+            $urlRedirect .
+            $urlNotify;
+
+        my $hashval = genHmacMd5($key, $paramstr);
+
+        my $gs_params = {
+            'merchantId' => $merchantId,
+            'projectId'  => $projectId,
+            'merchantTxId' => $merchantTxId,
+            'amount' => $amount,
+            'currency' => $currency,
+            'purpose' => $purpose,
+            'urlRedirect' => $urlRedirect,
+            'urlNotify' => $urlNotify,
+            'hash' => $hashval
+        };
+
+        my $response = $ua->request( POST $url, $gs_params );
+
+print STDERR "opac-account-pay.pl transaction/start response:", Dumper($response), ":\n";
+
+        if ( $response->is_success ) {
+            my $responseHeaderHash = $response->headers->header('hash');
+print STDERR "opac-account-pay.pl response responseHeaderHash:$responseHeaderHash:\n";
+            my $content = Encode::decode("utf8", $response->content);
+            my $compHash = genHmacMd5($key, $content);
+print STDERR "opac-account-pay.pl response responseHeaderHash:$responseHeaderHash: 2. compHash:$compHash: eq:", $responseHeaderHash eq $compHash, ":\n";
+            my $json = from_json( $content );
+print STDERR "opac-account-pay.pl 2. response json:", Dumper($json), ":\n";
+print STDERR "opac-account-pay.pl 2. response json->rc:", scalar $json->{rc}, ":\n";
+print STDERR "opac-account-pay.pl 2. response json->msg:", scalar $json->{msg}, ":\n";
+print STDERR "opac-account-pay.pl 2. response json->reference:", scalar $json->{reference}, ":\n";
+print STDERR "opac-account-pay.pl 2. response json->redirect:", scalar $json->{redirect}, ":\n";
+
+            if ( $responseHeaderHash eq $compHash && $json->{rc} eq '0' ) {
+                $error = 0;
+                my $gs_message_redirect_url = $json->{redirect};
+                print $cgi->redirect( $gs_message_redirect_url );
+
+            } else {
+                $template->param( error => "GIROSOLUTION_ERROR_PROCESSING", girosolutionmsg => $json->{msg} );
+                $error = 1;
+            }
+
+        }
+        else {
+            $template->param( error => "GIROSOLUTION_UNABLE_TO_CONNECT" );
+            $error = 1;
+        }
+    }
+
+    output_html_with_http_headers( $cgi, $cookie, $template->output ) if $error;
+}
+
+
 else {
     Koha::Plugins::Handler->run(
         {

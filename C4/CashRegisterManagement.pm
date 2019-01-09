@@ -1,6 +1,6 @@
 package C4::CashRegisterManagement;
 
-# Copyright 2016-2018 (C) LMSCLoud GmbH
+# Copyright 2016-2019 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -641,6 +641,27 @@ sub loadCashRegister {
         };
     }
     return undef;
+}
+
+=head2 readCashRegisterIdByName
+
+  $cash_register_id = $cash_management->readCashRegisterIdByName($cash_register_name)
+
+Read cash_register_id of a cash register, selected by cash_register.name (is unique). Returns the id or undef.
+
+=cut
+
+sub readCashRegisterIdByName {
+    my $self = shift;
+    my $cash_register_name = shift;
+
+    my $cash_register_id = undef;
+    
+    my $cash_register = Koha::CashRegister::CashRegisters->search({ name => $cash_register_name })->next();
+    if ( $cash_register ) {
+        $cash_register_id = $cash_register->id();
+    }
+    return $cash_register_id;
 }
 
 =head2 formatAmountWithCurrency
