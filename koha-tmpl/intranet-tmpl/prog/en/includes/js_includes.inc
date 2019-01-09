@@ -122,7 +122,7 @@
         if (typeof RFIDWebServiceMessageProvider !== 'undefined') {
             rfidMessageProvider = RFIDWebServiceMessageProvider;
         }
-        RFIDWebService.Init('[% Koha.Preference('RFIDWebServiceURL') | html %]', rfidMessageProvider, '[% Koha.Preference('RFIDWebServiceCheckoutBlocker') | html %]', '[% Koha.Preference('RFIDWebServiceCheckinBlocker') | html %]');
+        RFIDWebService.Init('[% Koha.Preference('RFIDWebServiceURL') | html %]', rfidMessageProvider, '[% Koha.Preference('RFIDWebServiceCheckoutBlocker') | html %]', '[% Koha.Preference('RFIDWebServiceCheckinBlocker') | html %]'[% IF (Koha.Preference('RFIDWebServiceActionKey')) %], [% Koha.Preference('RFIDWebServiceActionKey') %][% END %]);
     });
  </script>
 [% END %]

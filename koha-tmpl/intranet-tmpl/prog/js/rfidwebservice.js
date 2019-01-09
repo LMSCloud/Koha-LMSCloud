@@ -1,12 +1,19 @@
 if ( RFIDWebService === undefined ) 
 var RFIDWebService = {
     
+    // initialize de messageServiceProvider as empty object
     messageServiceProvider: {},
     
+    // the default selector for checkout errors
     checkoutBlockingSelector: '#circ_impossible,#circ_needsconfirmation',
     
+    // the default selector for checkin errors
     checkinBlockingSelector: '.problem,.error,.alert,.audio-alert-warning,.audio-aler-action',
     
+    // the action key triggering the RFID batch processing
+    actionKey: 32,
+    
+    // the vendor name of the RFID web service
     vendorName: '',
     
     // Init function if the RFIDWebService
@@ -31,7 +38,7 @@ var RFIDWebService = {
     // will be checked with each call of the Koha staff interface.
     // A change of the configured URL will result in an re-initialization.
     
-    Init: function ( rfidWebServiceURL, rfidWebServiceMessageProvider, checkoutBlocker, checkinBlocker ) {
+    Init: function ( rfidWebServiceURL, rfidWebServiceMessageProvider, checkoutBlocker, checkinBlocker, actionKey ) {
         
         // set the message provider
         this.messageServiceProvider = rfidWebServiceMessageProvider;
@@ -42,6 +49,10 @@ var RFIDWebService = {
         
         if ( checkinBlocker && checkinBlocker.length > 0 ) {
             this.checkinBlockingSelector = checkinBlocker;
+        }
+        
+        if ( actionKey && actionKey > 0 ) {
+            this.actionKey = actionKey;
         }
         
         // check the stored session URL
@@ -241,7 +252,7 @@ var RFIDWebService = {
             var findborrower = $('#patronsearch #findborrower');
             if ( findborrower.length ) {
                 findborrower.keydown( function( event ) {
-                    if ( event.which == 32 ) {
+                    if ( event.which == RFIDWebService.actionKey ) {
                         var barvalue = $('#patronsearch #findborrower').val();
                         if ( barvalue == "" || barvalue == " " ) {
                             event.preventDefault();
@@ -255,7 +266,7 @@ var RFIDWebService = {
             var returnBarcodeField = $('#checkin_search #ret_barcode');
             if ( returnBarcodeField.length ) {
                 returnBarcodeField.keydown( function( event ) {
-                    if ( event.which == 32 ) {
+                    if ( event.which == RFIDWebService.actionKey ) {
                         var barvalue = $('#checkin_search #ret_barcode').val();
                         if ( barvalue == "" || barvalue == " " ) {
                             event.preventDefault();
@@ -268,7 +279,8 @@ var RFIDWebService = {
     },
     
     // The functions checks, whether there was a previous checkout
-    // If so, the item tag needs to be unlocked
+    // If so, the item tag needs to be unlocked or if the previous
+    // action was cancelled then we coontinue with the next item
     CheckLastCheckoutAndContinue: function () {
         var barcode = window.sessionStorage.getItem('RFIDWebServiceCheckoutItem');
         
@@ -279,6 +291,15 @@ var RFIDWebService = {
                     if ( barcode == barcodes[i] ) {
                         RFIDWebService.UnlockItemBarcode(barcode);
                     }
+                }
+            }
+            else {
+                if ( $('#circ_circulation #circ_circulation_issue #barcode:enabled').length 
+                    && $(RFIDWebService.checkoutBlockingSelector).length < 1 ) 
+                {
+                    // it seems that we need to skip the current item and process the following
+                    window.sessionStorage.setItem('RFIDWebServiceCheckoutItem','');
+                    RFIDWebService.CheckoutNextItem();
                 }
             }
         }
@@ -293,7 +314,7 @@ var RFIDWebService = {
             if ( $('.lastcheckinbarcode').length > 0 ) {
                 var barcodes = $('.lastcheckinbarcode').map(function() { return $(this).text(); }).get();
                 for (var i=0; i < barcodes.length; i++) {
-                    console.log("Compare return item " + barcode + " with returned barcode " + barcodes[i].trim());
+                    // console.log("Compare return item " + barcode + " with returned barcode " + barcodes[i].trim());
                     if ( barcode == barcodes[i].trim() ) {
                         RFIDWebService.LockItemBarcode(barcode);
                     }
@@ -310,6 +331,7 @@ var RFIDWebService = {
         var rfidWebServiceURL = window.sessionStorage.getItem('RFIDWebServiceURL');
         rfidWebServiceURL += "/CheckoutItems";
         
+        // send AJAX request to unlock the item
         $.ajax({
             type: 'POST',
             crossDomain: true,
@@ -405,7 +427,7 @@ var RFIDWebService = {
             rfidWebServiceURL.replace(/\/$/, "");
             rfidWebServiceURL += "/GetItems";
             
-            console.log("ReadTagsAndStartCheckout called to read items");
+            // console.log("ReadTagsAndStartCheckout called to read items");
             $.ajax({
                 type: 'GET',
                 url: rfidWebServiceURL,
@@ -512,7 +534,7 @@ var RFIDWebService = {
         window.sessionStorage.setItem('RFIDWebServiceJustCalling', 0);
         if ( barcodefield.length && (enabled && enabled == 'ok') ) {
             barcodefield.keydown( function( event ) {
-                if ( event.which == 32 ) {
+                if ( event.which == RFIDWebService.actionKey ) {
                     //event.preventDefault();
                     var barvalue = $('#barcode').val();
                     if ( barvalue == "" || barvalue == " " ) {
@@ -564,7 +586,7 @@ var RFIDWebService = {
         window.sessionStorage.setItem('RFIDWebServiceJustCalling', 0);
         if ( barcodefield.length && (enabled && enabled == 'ok') ) {
             barcodefield.keydown( function( event ) {
-                if ( event.which == 32 ) {
+                if ( event.which == RFIDWebService.actionKey ) {
                     //event.preventDefault();
                     var barvalue = $('#barcode').val();
                     if ( barvalue == "" || barvalue == " " ) {
@@ -688,7 +710,7 @@ var RFIDWebService = {
         $(popupTemplate).show();
     },
     
-    // Show an error message dialog
+    // show the RFID service status message
     DisplayRFIDServiceStatus: function () {
         var messages = {
                         title:                  "RFID WebService Information",

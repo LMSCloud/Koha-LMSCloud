@@ -181,10 +181,10 @@ if ( $patron ) {
 		elsif ( $patron->is_expired ) {
 			$response->{'status'} = -3; # account expired
 		}
-		elsif ( $patron->gonenoaddress == 1 ) {
+		elsif ( $patron->gonenoaddress && $patron->gonenoaddress == 1 ) {
 			$response->{'status'} = 1; # patron has no valid address, no access
 		}
-		elsif ( $patron->lost == 1 ) {
+		elsif ( $patron->lost && $patron->lost == 1 ) {
 			$response->{'status'} = 1; # account expired (due to a lost card)
 		}
 		elsif ( $non_issue_charges > $amountlimit ) {
@@ -245,7 +245,7 @@ my $output_response_tag_end = "</response>\n";
 
     
 # finally build the response from its components
-my $output = sprintf("%s%s%s%s%s%s%s%s", $output_header, $output_response_tag_start, $output_status_tag, $output_fsk_tag, $output_cardid_tag, $output_userid_tag, $output_response_tag_end);
+my $output = sprintf("%s%s%s%s%s%s%s", $output_header, $output_response_tag_start, $output_status_tag, $output_fsk_tag, $output_cardid_tag, $output_userid_tag, $output_response_tag_end);
 
 # send the response
 &output_divibib_xml( $query, $output );

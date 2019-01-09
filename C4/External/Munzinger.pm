@@ -32,6 +32,7 @@ use Crypt::Twofish;
 use File::Slurp;
 use Crypt::CBC;
 use Encode;
+use Scalar::Util qw(reftype);
 
 use Data::Dumper;
 use Carp;
@@ -97,9 +98,10 @@ sub new {
                                     'Duden Basiswissen Schule'   => 'basiswissen.jsp',
                                     'Duden'                      => 'duden.jsp',
                                     'Filmkritiken'               => 'film.jsp',
+                                    'Kindler'                    => 'kindler.jsp',
                                     'KLG'                        => 'klg.jsp',
                                     'KLFG'                       => 'klfg.jsp',
-                                    'KdG '                       => 'kdg.jsp',
+                                    'KDG '                       => 'kdg.jsp',
                                     'KLL'                        => 'kll.jsp',
                                     'Kindlers Literatur Lexikon' => 'klg.jsp'
                               };
@@ -335,15 +337,21 @@ sub getCategorySummary {
         
         foreach my $categhit (@categhits) {
             if ( defined($categhit->{publikation}) && defined($categhit->{totalCount}) ) {
-                $categories->{categorycount} += 1;
+                
                 my $categentry = { name => $categhit->{publikation}, count => $categhit->{totalCount}, hits => [] };
-                $categories->{hitcount} += $categhit->{totalCount};
-                if ( defined($categhit->{hit}) ) {
+
+                my $hitcount = 0;
+                if ( defined($categhit->{hit}) && reftype($categhit->{hit}) eq 'HASH' ) {
                     foreach my $hit( keys %{$categhit->{'hit'}} ) {
                         push @{$categentry->{hits}}, $self->formatCategoryHit($categhit->{hit}->{$hit});
+                        $hitcount++;
                     }
                 }
-                push @{$categories->{categories}}, $categentry;
+                if ($hitcount) {
+                    push(@{$categories->{categories}}, $categentry);
+                    $categories->{categorycount} += 1;
+                    $categories->{hitcount} += $categhit->{totalCount};
+                }
             }
         }
     }
@@ -381,7 +389,27 @@ sub formatCategoryHit {
     }
     else {
         $entry->{title} = $hit->{title} if (defined($hit->{title}));
-        $entry->{text}  = $hit->{text} if (defined($hit->{text}));
+        if ( defined($hit->{text}) ) {
+            my $text = $hit->{text};
+            if ( reftype($text) eq 'HASH' && defined($text->{content}) && reftype($text->{content}) eq 'ARRAY' && defined($text->{i}) ) {
+                my $settext = '';
+                my @inserttext = ();
+                if ( reftype($text->{i}) && reftype($text->{i}) eq 'ARRAY' ) {
+                    @inserttext = @{$text->{i}};
+                }
+                else {
+                    $inserttext[0] = $text->{i};
+                }
+                my @textlist = @{$text->{content}};
+                
+                for (my $i=0; $i < scalar(@textlist); $i++ ) {
+                    $settext .= $textlist[$i];
+                    $settext .= $inserttext[$i] if ( $i < scalar(@inserttext) );
+                }
+                $text = $settext;
+            }
+            $entry->{text}  = $text;
+        }
         $entry->{link}  = $hit->{url} if (defined($hit->{url}));
     }
     return $entry;
