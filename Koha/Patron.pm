@@ -23,6 +23,11 @@ use Modern::Perl;
 use Carp;
 use List::MoreUtils qw( uniq );
 use Text::Unaccent qw( unac_string );
+use Date::Calc qw(
+  Today
+  Add_Delta_Days
+  Date_to_Days
+);
 
 use C4::Context;
 use C4::Log;
@@ -487,6 +492,48 @@ sub renew_account {
 
     logaction( "MEMBERS", "RENEW", $self->borrowernumber, "Membership renewed" ) if C4::Context->preference("BorrowersLog");
     return dt_from_string( $expiry_date )->truncate( to => 'day' );
+}
+
+sub opac_account_renewal_permitted {
+    my ($self) = @_;
+    my @error;
+
+    # systempreferences conditions for library card renewal in the OPAC
+    my @opacRenewCardPatronCategories = split( /\|/, C4::Context->preference("OpacRenewCardPatronCategories") );
+    my $opacRenewCardLeadTime = C4::Context->preference("OpacRenewCardLeadTime");
+
+    my ( $today_year,  $today_month,  $today_day) = Today();
+    my ($expiry_year, $expiry_month, $expiry_day) = split /-/, $self->dateexpiry();
+    my $days_to_expiry = Date_to_Days( $expiry_year, $expiry_month, $expiry_day ) - Date_to_Days( $today_year, $today_month, $today_day );
+
+    my $enrolment_period = undef;
+    my $category = $self->category();
+    if ( $category ) {
+        $enrolment_period = $category->enrolmentperiod();
+    }
+
+    # 1. Check if the borrower's category is permitted for card renewal in OPAC.
+    my $patronCategoryConditionFulfilled = 0;
+    foreach my $permittedCategory (@opacRenewCardPatronCategories) {
+        if ( $self->categorycode() eq $permittedCategory ) {
+            $patronCategoryConditionFulfilled = 1;
+            last;
+        }
+    }
+    if ( !$patronCategoryConditionFulfilled ) {
+        $error[0] = 'patron_category_not_enabled';
+    }
+    # 2. Check if the lead time before card expiry is not exceeded.
+    elsif ( $days_to_expiry > $opacRenewCardLeadTime ) {
+        $error[0] = 'maximum_lead_time_exceeded';
+        $error[1] = $opacRenewCardLeadTime+0;
+    }
+    # 3. Check if enrolment period is valid (i.e. no renewals based on fixed categories.enrolmentperioddate permitted).
+    elsif ( !$enrolment_period ) {
+        $error[0] = 'enrolment_period_invalid';
+    }
+
+    return \@error;
 }
 
 =head3 has_overdues

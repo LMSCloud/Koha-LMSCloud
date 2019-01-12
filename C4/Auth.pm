@@ -548,6 +548,19 @@ sub get_template_and_user {
             $opac_name = C4::Context->userenv->{'branch'};
         }
 
+        # check for displaying tab 'renew your card'
+        my $opac_renew_card = 0;
+        if ( $borrowernumber ) {
+            my $patron = Koha::Patrons->find( $borrowernumber );
+            if ( $patron ) {
+                my $errors = [];
+                $errors = $patron->opac_account_renewal_permitted();
+                if ( @{$errors} == 0 ) {
+                    $opac_renew_card = 1;
+                }
+            }
+        }
+
         my @search_groups = Koha::Library::Groups->get_search_groups({ interface => 'opac' });
         $template->param(
             OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
@@ -575,6 +588,7 @@ sub get_template_and_user {
             OpacNavRight                          => "" . C4::Context->preference("OpacNavRight"),
             OpacNavBottom                         => "" . C4::Context->preference("OpacNavBottom"),
             OpacPasswordChange                    => C4::Context->preference("OpacPasswordChange"),
+            OpacRenewCard                         => $opac_renew_card,
             OPACPatronDetails                     => C4::Context->preference("OPACPatronDetails"),
             OPACPrivacy                           => C4::Context->preference("OPACPrivacy"),
             OPACFinesTab                          => C4::Context->preference("OPACFinesTab"),

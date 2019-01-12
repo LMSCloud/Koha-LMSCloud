@@ -17017,6 +17017,19 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.008";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('OpacRenewCardPatronCategories','',NULL,'Patrons are allowed to renew their own library card in the OPAC if this list contains the code of their patron category. ( Use separator |, e.g. ADU|SEN )','Free'),
+            ('OpacRenewCardLeadTime','28',NULL,'Patrons are allowed to renew their own library card in the OPAC at most this count of days before its expiry date.','Integer'),
+            ('OpacRenewCardConfirmationText','',NULL,'Text the patron has to confirm in order to renew his library card in the OPAC. (Displayed only if enrollment fee is charged. Will override the default text.)','Textarea')
+    });
+
+    print "Upgrade to $DBversion done (Added systempreferences for renewal of own library card in OPAC)\n";
+    SetVersion($DBversion);
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

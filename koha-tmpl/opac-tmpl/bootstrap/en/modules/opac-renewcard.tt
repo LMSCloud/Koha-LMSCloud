@@ -1,0 +1,140 @@
+[% USE Asset %]
+[% USE Koha %]
+[% USE KohaDates %]
+[% USE Price %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Renew your card</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% BLOCK cssinclude %][% END %]
+</head>
+
+[% INCLUDE 'bodytag.inc' bodyid='opac-renewcard' %]
+[% INCLUDE 'masthead.inc' %]
+
+<div class="main">
+    <ul class="breadcrumb">
+        <li><a href="/cgi-bin/koha/opac-main.pl">Home</a> <span class="divider">&rsaquo;</span></li>
+        <li><a href="/cgi-bin/koha/opac-user.pl">[% BORROWER_INFO.firstname %] [% BORROWER_INFO.surname %]</a> <span class="divider">&rsaquo;</span></li>
+        <li><a href="#">Renew your card</a></li>
+    </ul>
+
+    <div class="container-fluid">
+        <div class="row-fluid">
+            <div class="span2">
+                <div id="navigation">
+                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
+                </div>
+            </div>
+            <div class="span10">
+                <!-- <div id="userrenewcard"> -->
+                    <h3>Renew your library card</h3>
+
+                    [% IF ( errors.0 ) %]
+                        <div class="alert">
+                            <h3>There was a problem with your card renewal</h3>
+                            <p>
+                                [% IF ( errors.0 == 'patron_category_not_enabled' ) %]
+                                    Library card renewal is not enabled for your patron category (code: [% BORROWER_INFO.categorycode %]).
+                                [% END %]
+                                [% IF ( errors.0 == 'maximum_lead_time_exceeded' ) %]
+                                    You may renew your card at most [% errors.1 %] days before its expiry.
+                                [% END %]
+                                [% IF ( errors.0 == 'enrolment_period_invalid' ) %]
+                                    The enrollment period of your patron category seems not to be defined.
+                                [% END %]
+                                [% IF ( errors.0 == 'CardRenewalFailed' ) %]
+                                    The renewal of your library card failed.
+                                [% END %]
+                            </p>
+                        </div>
+                    [% END # /IF errors.0 %]
+
+                    [% IF ( card_renewed ) %]
+                        <div class="alert alert-success">
+                            <h1>Library card renewed</h1>
+                            Your library card has been renewed. Now your card is valid until [% BORROWER_INFO.dateexpiry | $KohaDates %].
+                        </div>
+                        <form action="/cgi-bin/koha/opac-user.pl" method="post" autocomplete="off">
+                            <input type="hidden" name="borrowernumber" value="[% BORROWER_INFO.borrowernumber %]" />
+                            <p><input type="submit" class="btn" value="Return to your record" /></p>
+                        </form>
+                    [% ELSE %]
+                        [% IF ( opacRenewCardDisplay ) %]
+                        <form action="/cgi-bin/koha/opac-renewcard.pl" name="mainform" id="mainform" method="post" autocomplete="off">
+
+                            <fieldset class="rows" id="memberentry_library">
+                                <legend>Your current card data:</legend>
+                                <ol>
+                                    <li>
+                                        <label>Valid until:</label>
+                                        [% BORROWER_INFO.dateexpiry | $KohaDates %]
+                                    </li>
+                                    <li>
+                                        <label>Renewal period:</label>
+                                        [% IF ( enrolment_period ) %]
+                                            [% enrolment_period %] months
+                                        [% ELSE %]
+                                            not defined
+                                        [% END # /IF enrolment_period %]
+                                    </li>
+                                    <li>
+                                        <label>Renewal fee:</label>
+                                        [% enrolment_fee | $Price %]
+                                    </li>
+                                </ol>
+                            </fieldset>
+
+                            <fieldset  class="rows">
+                                <legend></legend>
+                            </fieldset>
+
+                            [% IF ( opacRenewCardPermitted ) %]
+                                [% IF ( enrolment_fee > 0.0 ) %]
+                                    <fieldset class="action">
+                                        <input type="checkbox" name="enrolment_fee_accepted" id="enrolment_fee_accepted" value="1" oninput="actualizeSubmitButton(document.mainform.submit_renew_card)" />
+                                        [% IF ( opacRenewCardConfirmationText ) %]
+                                            [% opacRenewCardConfirmationText %]
+                                        [% ELSE %]
+                                            I agree that the fee quoted above for the renewal of the library card is charged to my account.
+                                        [% END # /IF opacRenewCardConfirmationText %]
+                                    </fieldset>
+                                [% END # /IF enrolment_fee %]
+
+                                <fieldset class="action">
+                                    <input type="hidden" name="submitState" id="submitState" value="submitNotYet" />
+                                    <input type="submit" name="submit_renew_card" id="submit_renew_card" value="Renew card" class="btn" disabled onclick="submitState.value='submitted'" /> 
+                                    <a href="/cgi-bin/koha/opac-user.pl" class="cancel">Cancel</a>
+                                </fieldset>
+                            [% END # /IF opacRenewCardPermitted %]
+                        </form>
+                        [% ELSE %]
+                            <div class="alert">You can't renew your library card.</div>
+                        [% END # /IF opacRenewCardDisplay %]
+                    [% END # /IF card_renewed %]
+
+                <!-- </div> < !-- / #userrenewcard -->
+            </div> <!-- / .span10 -->
+        </div> <!-- / .row-fluid -->
+    </div> <!-- / .container-fluid -->
+</div> <!-- / .main -->
+
+
+
+[% INCLUDE 'opac-bottom.inc' %]
+[% BLOCK jsinclude %]
+    [% Asset.js("lib/jquery/plugins/jquery.validate.min.js") %]
+    <script>
+        $(document).ready(function() {
+            actualizeSubmitButton(document.mainform.submit_renew_card);
+        });
+
+        function actualizeSubmitButton (buttonObj) {
+            if ( ( $("#enrolment_fee_accepted").length > 0 && $("#enrolment_fee_accepted").prop('checked') ) || 
+                 ( $("#enrolment_fee_accepted").length == 0 && parseFloat([% enrolment_fee %]) == parseFloat(0.0) )
+               )
+                buttonObj.disabled = false;
+            else
+                buttonObj.disabled = true;
+        }
+    </script>
+[% END %]

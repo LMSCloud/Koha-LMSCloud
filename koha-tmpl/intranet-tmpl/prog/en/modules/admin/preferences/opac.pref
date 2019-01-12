@@ -541,6 +541,21 @@ OPAC:
             - pref: OPACISBD
               type: textarea
               class: code
+        -
+            - "Patrons are allowed to renew their own library card in the OPAC if the code of their patron category is listed in "
+            - pref: OpacRenewCardPatronCategories
+            - ". ( Use separator |, e.g. ADU|SEN )"
+        -
+            - "Patrons are allowed to renew their own library card in the OPAC at most "
+            - pref: OpacRenewCardLeadTime
+              class: integer
+              default: 28
+            - " days before its expiry date."
+        -
+            - "Text the patron has to confirm in order to renew his library card in the OPAC. (Displayed only if enrollment fee is charged. Will override the default text.)"
+            - pref: OpacRenewCardConfirmationText
+              type: htmlarea
+              class: code
     Policy:
         -
             - pref: SearchMyLibraryFirst

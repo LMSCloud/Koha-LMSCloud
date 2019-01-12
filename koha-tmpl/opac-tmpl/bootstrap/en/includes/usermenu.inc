@@ -42,6 +42,15 @@
                 <a href="/cgi-bin/koha/opac-passwd.pl">change your password</a></li>
             [% END %]
 
+            [% IF ( OpacRenewCard ) %]
+                [% IF ( renewcardview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-renewcard.pl">renew your card</a></li>
+            [% END %]
+
             [% IF EnableOpacSearchHistory %]
                 [% IF ( searchhistoryview ) %]
                     <li class="active">
