@@ -1,6 +1,6 @@
 <script type="text/javascript">
     var RFIDWebServiceMessageProvider = {
-        GetErrorMessage: function (errorCode,errorMessage,vendorName) {
+        GetErrorMessage: function (vendorName,errorCode,errorMessage,errorData) {
             if ( errorCode ) {
                 if ( errorCode == "MULTIPLE_USER_CARDS_ON_PAD" ) {
                     return _("There are multiple user cards on the RFID pad.");
@@ -10,7 +10,7 @@
                 }
                 
                 if ( vendorName && vendorName.toLowerCase().includes("easycheck") ) {
-                    return this.GetEasyCheckErrorMessage(errorCode,errorMessage);
+                    return this.GetEasyCheckErrorMessage(errorCode,errorMessage,errorData);
                 }
                 return _("The RFID Service returned the following error (code ") + errorCode + _("): ") + errorMessage;
             }
@@ -48,26 +48,35 @@
                     };
         },
         
-        GetEasyCheckErrorMessage: function (errorCode,errorMessage) {
+        GetEasyCheckErrorMessage: function (errorCode,errorMessage,errorData) {
             if ( errorCode == "-1001" ) {
-                return "Fehler beim Öffnen des Readers. Der Reader ist möglicherweise nicht angeschlossen, oder am falschen COM Port angeschlossen. Es ist auch möglich, dass ein anderes Programm gerade auf den USB o. COM-Port zugreift.";
+                return "Fehler beim Öffnen des RFID-Readers. Der Reader ist möglicherweise nicht angeschlossen, oder am falschen COM Port angeschlossen. Es ist auch möglich, dass ein anderes Programm gerade auf den USB o. COM-Port zugreift.";
             }
             else if ( errorCode == "-1002" ) {
-                return "Fehler beim Schließen des Readers";
+                return "Fehler beim Schließen des RFID-Readers";
             }
             else if ( errorCode == "-1003" ) {
-                return "Reader nicht geöffnet. OpenReader wurde nicht aufgerufen.";
+                return "RFID-Reader nicht geöffnet. OpenReader wurde nicht aufgerufen.";
             }
             else if ( errorCode == "-1004" ) {
                 return "Es befindet sich kein Transponder im Feld des RFID-Readers.";
             }
             else if ( errorCode == "-1005" ) {
+                if ( errorData ) {
+                    return "Das Medienpaket mit dem Exemplarbarcode " + errorData + " ist unvollständig.";
+                }
                 return "Eines der Medienpakete im Feld des RFID-Readers ist unvollständig.";
             }
             else if ( errorCode == "-1007" ) {
+                if ( errorData ) {
+                    return "Bei Exemplar " + errorData + " konnte der RFID-Transponder nicht entsichert werden.";
+                }
                 return "Der RFID-Transponder konnte nicht entsichert werden.";
             }
             else if ( errorCode == "-1008" ) {
+                if ( errorData ) {
+                    return "Bei Exemplar " + errorData + " konnte der RFID-Transponder nicht gesichert werden.";
+                }
                 return "Der RFID-Transponder konnte nicht gesichert werden.";
             }
             else if ( errorCode == "-1009" ) {
@@ -80,9 +89,15 @@
                 return "Es befinden sich mehrere RFID-Transponder im Feld des RFID-Readers.";
             }
             else if ( errorCode == "-1012" ) {
+                if ( errorData ) {
+                    return "Das Exemplar " + errorData + " stammt nicht aus dieser Bibliothek: falsche CountryID.";
+                }
                 return "Der CountryID auf dem Transponder stimmt nicht mit dem Ländercode in der EasyCheck.ini überein.";
             }
             else if ( errorCode == "-1013" ) {
+                if ( errorData ) {
+                    return "Das Exemplar " + errorData + " stammt nicht aus dieser Bibliothek: falsche LibraryID";
+                }
                 return "Die LibraryID auf dem Transponder stimmt nicht mit der LibraryID in der EasyCheck.ini überein.";
             }
             else if ( errorCode == "-1014" ) {
@@ -92,15 +107,27 @@
                 return "Nicht unterstütztes Datenmodell. Das Datenmodell auf dem Chip wird von der Easy- Check.dll nicht erkannt, nicht unterstützt oder der Transponder ist leer.";
             }
             else if ( errorCode == "-1016" ) {
+                 if ( errorData ) {
+                    return  "Bei Exemplar " + errorData + " ist der ItemStatus auf dem Transponder als nicht ausleihbar gekennzeichnet.";
+                }
                 return "Der ItemStatus auf dem Transponder ist als nicht ausleihbar gekennzeichnet, das Medium kann daher nicht ausgeliehen werden.";
             }
             else if ( errorCode == "-1017" ) {
+                if ( errorData ) {
+                    return "Bei Exemplar " + errorData + " konnte der RFID-Transponder nicht entsichert oder gesichert werden da auf dem Chip ein Passwortschutz für den Alarm aktiviert ist und das richtige Passwort nicht in der EasyCheck.ini steht.";
+                }
                 return "Der Transponder konnte nicht entsichert oder gesichert werden da auf dem Chip ein Passwortschutz für den Alarm aktiviert ist und das richtige Passwort nicht in der EasyCheck.ini steht.";
             }
             else if ( errorCode == "-1018" ) {
+                if ( errorData ) {
+                    return "Bei Exemplar " + errorData + " konnte der Passwortschutz konnte auf dem Transponder nicht gesetzt werden, obwohl das richtige Passwort in der EasyCheck.ini steht.";
+                }
                 return "Der Passwortschutz konnte auf dem Transponder nicht gesetzt werden, obwohl das richtige Passwort in der EasyCheck.ini steht.";
             }
             else if ( errorCode == "-1019" ) {
+                if ( errorData ) {
+                    return "Bei Exemplar " + errorData + " konnte der Schreibschutz konnte auf dem Transponder nicht gesetzt werden, obwohl dies in der EasyCheck.ini aktiviert wurde.";
+                }
                 return "Der Schreibschutz konnte auf dem Transponder nicht gesetzt werden, obwohl dies in der EasyCheck.ini aktiviert wurde.";
             }
             return _("The RFID Service returned the following error (code ") + errorCode + _("): ") + errorMessage;

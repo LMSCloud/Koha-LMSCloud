@@ -79,6 +79,14 @@ var RFIDWebService = {
         // if the reader was already initialized we enable RFID functionality
         if ( status && (status == "ok" || status == "failed") ) {
             
+            // set vendorName
+            if ( status == "ok" ) {
+                var data = JSON.parse(window.sessionStorage.getItem('RFIDWebServiceStatusInfo'));
+                if ( data && data.responseData && data.responseData.vendorName ) {
+                    this.vendorName = data.responseData.vendorName;
+                }
+            }
+            
             // add the top level RFID menu
             this.ActivateTopLevelMenuRFID(true);
             
@@ -91,6 +99,44 @@ var RFIDWebService = {
         // we may need to (re-)initialize the service
         if ( reInit ) {
             this.InitializeRFIDWebService(rfidWebServiceURL);
+        }
+    },
+    
+    ClearRFIDWebServiceSession: function() {
+        if ( window.sessionStorage ) {
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceStatus') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceStatus');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceInitialized') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceInitialized');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceURL') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceURL');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceStatusInfo') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceStatusInfo');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckoutItem') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckoutItem');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckinItem') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckinItem');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckoutItems') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckoutItems');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckinItems') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckinItems');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceJustCalling') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceJustCalling');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckinItemCount') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckinItemCount');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckoutItemCount') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckoutItemCount');
+            }
         }
     },
     
@@ -161,7 +207,7 @@ var RFIDWebService = {
                         
                         if ( showError && data.errorCode && data.errorMessage ) {
                             RFIDWebService.DisplayRFIDServiceErrorMessage(data.errorCode,data.errorMessage);
-                            Console.log("RFIDWebService ServiceInfo failed");
+                            console.log("RFIDWebService ServiceInfo failed");
                         }
                     }
                },
@@ -354,9 +400,9 @@ var RFIDWebService = {
                             }
                         }
                     }
-                    if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == true ) {
+                    if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == false ) {
                         if ( data.itemResult[0].errorCode && data.itemResult[0].errorMessage ) {
-                            RFIDWebService.DisplayRFIDServiceErrorMessage(data.itemResult[0].errorCode,data.itemResult[0].errorMessage);
+                            RFIDWebService.DisplayRFIDServiceErrorMessage(data.itemResult[0].errorCode,data.itemResult[0].errorMessage, barcode);
                             console.log("RFIDWebService CheckoutItems returns error " + data.itemResult[0].errorCode + ": " + data.itemResult[0].errorMessage);
                         }
                     }
@@ -399,9 +445,9 @@ var RFIDWebService = {
                             }
                         }
                     }
-                    if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == true ) {
+                    if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == false ) {
                         if ( data.itemResult[0].errorCode && data.itemResult[0].errorMessage ) {
-                            RFIDWebService.DisplayRFIDServiceErrorMessage(data.itemResult[0].errorCode,data.itemResult[0].errorMessage);
+                            RFIDWebService.DisplayRFIDServiceErrorMessage(data.itemResult[0].errorCode,data.itemResult[0].errorMessage, barcode);
                             console.log("RFIDWebService CheckinItems returns error " + data.itemResult[0].errorCode + ": " + data.itemResult[0].errorMessage);
                         }
                     }
@@ -463,12 +509,18 @@ var RFIDWebService = {
                                 var partNumber      = data.responseData.items[i].partNumber;
                                 var checkoutAllowed = data.responseData.items[i].checkoutAllowed;
                                 var checkedOut      = data.responseData.items[i].checkedOut;
+                                var errorCode       = data.responseData.items[i].errorCode;
                                 
                                 if ( deleted && deleted != 0 ) { continue; }
                                 if ( isUserCard && isUserCard && barcode ) {
                                     countUserCards++;
                                     userCard = barcode;
                                     continue;
+                                }
+                                if ( errorCode && errorCode != 0 ) {
+                                    RFIDWebService.DisplayRFIDServiceErrorMessage(errorCode,"",barcode);
+                                    window.sessionStorage.setItem('RFIDWebServiceJustCalling',0);
+                                    return;
                                 }
                                 if ( barcode ) {
                                     if ( context == "checkout" && checkoutAllowed && checkoutAllowed == false ) {
@@ -481,11 +533,13 @@ var RFIDWebService = {
                             }
                             if ( countUserCards > 1 ) {
                                 RFIDWebService.DisplayRFIDServiceErrorMessage("MULTIPLE_USER_CARDS_ON_PAD","");
+                                window.sessionStorage.setItem('RFIDWebServiceJustCalling',0);
                                 return;
                             }
                             if ( !context.startsWith("checkin") && checkoutNotAllowedItems.length >= 1 ) {
                                 var msg = checkoutNotAllowedItems.join(", ");
                                 RFIDWebService.DisplayRFIDServiceErrorMessage("CHECKOUT_NOT_ALLOWED_ITEMS",msg);
+                                window.sessionStorage.setItem('RFIDWebServiceJustCalling',0);
                                 return;
                             }
                             if (!(context == "borrower" && countUserCards == 0)) {
@@ -677,7 +731,7 @@ var RFIDWebService = {
     },
     
     // Show an error message dialog
-    DisplayRFIDServiceErrorMessage: function (errorCode, errorMessage) {
+    DisplayRFIDServiceErrorMessage: function (errorCode, errorMessage, errorData) {
         var messages = {
                         title:                  "RFID Error Message",
                         actionClose:            "Close"
@@ -685,8 +739,13 @@ var RFIDWebService = {
         var text  = errorMessage;
 
         if ( this.messageServiceProvider ) {
+            var vendor = this.vendorName;
             messages = this.messageServiceProvider.GetRFIDErrorDialogNames();
-            text  = this.messageServiceProvider.GetErrorMessage(errorCode, errorMessage,RFIDWebService.vendorName);
+            console.log("vendor: " + vendor +";errorCode: " + errorCode + "; errorMessage: " + errorMessage + "errorData: " + errorData);
+            text = this.messageServiceProvider.GetErrorMessage(vendor, errorCode, errorMessage, errorData);
+        }
+        else {
+            text = 'Error code: ' + errorCode + '<br />ErrorMessage: ' + errorMessage + '<br />Error data:' + errorData;
         }
         
         var popupTemplate =
