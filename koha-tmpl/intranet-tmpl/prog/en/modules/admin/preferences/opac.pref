@@ -856,8 +856,9 @@ OPAC:
             - "Online payments will be registered in the cash register named "
             - pref: PaymentsOnlineCashRegisterName
         -
-            - "The main manager of the cash register for online payments has the cardnumber "
+            - "Online payments will be registered using the following cash register manager (provide cardnumber)."
             - pref: PaymentsOnlineCashRegisterManagerCardnumber
+            - "Please make sure the user account has the necessary permissions enabled and is configured as cash register manager."
 
     Payments via PayPal:
         -
