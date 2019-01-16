@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2018-12-14 15:59+0100\n"
+"POT-Creation-Date: 2019-01-14 15:39+0100\n"
 "PO-Revision-Date: 2018-11-10 19:06+0100\n"
 "Last-Translator: Marc <veron@veron.ch>\n"
 "Language-Team: \n"
@@ -43,8 +43,8 @@ msgstr "(automatisch)"
 msgid "(su"
 msgstr "(su"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:211
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:411
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:211
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:399
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:240
 #, c-format
@@ -67,10 +67,10 @@ msgstr "/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber="
 msgid "/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber="
 msgstr "/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber="
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:251
 #: intranet-tmpl/prog/en/xslt/NORMARCslimUtils.xsl:72
 #: intranet-tmpl/prog/en/xslt/NORMARCslimUtils.xsl:84
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:451
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:251
 #, c-format
 msgid "/cgi-bin/koha/catalogue/detail.pl?biblionumber="
 msgstr "/cgi-bin/koha/catalogue/detail.pl?biblionumber="
@@ -87,8 +87,8 @@ msgstr "/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber="
 msgid "/cgi-bin/koha/catalogue/search.pl?q="
 msgstr "/cgi-bin/koha/catalogue/search.pl?q="
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:245
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:445
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:245
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
@@ -98,12 +98,12 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
 msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:109
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:124
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:138
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:309
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:324
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:346
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:109
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:124
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:138
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=an:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=an:"
@@ -138,8 +138,8 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=se:"
 msgid "/cgi-bin/koha/catalogue/search.pl?q=su"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=su"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:256
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:456
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:256
 #, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=ti,phr:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=ti,phr:"
@@ -162,8 +162,8 @@ msgstr "/cgi-bin/koha/opac-MARCdetail.pl?biblionumber="
 msgid "/cgi-bin/koha/opac-authoritiesdetail.pl?authid="
 msgstr "/cgi-bin/koha/opac-authoritiesdetail.pl?authid="
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:606
 #: intranet-tmpl/prog/en/xslt/NORMARCslimUtils.xsl:230
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:606
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:439
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslimUtils.xsl:71
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslimUtils.xsl:80
@@ -478,8 +478,8 @@ msgstr "AND "
 msgid "Adressebøker"
 msgstr "Adressebøker"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:207
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:407
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:207
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:395
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:236
 #, c-format
@@ -661,8 +661,8 @@ msgstr "Barn og ungdom;"
 msgid "Barn over 7 år;"
 msgstr "Barn over 7 år;"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:307
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:361
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:307
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:336
 #, c-format
 msgid "Beskrivelse: "
@@ -765,8 +765,8 @@ msgid "Blu-ray-plate"
 msgstr "Blu-ray"
 
 #. IMG
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:157
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:474
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:157
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:463
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:185
 #, c-format
@@ -938,8 +938,8 @@ msgstr "Essays"
 msgid "Eventyr"
 msgstr "Eventyr"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:50
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:44
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:50
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:46
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:52
 #, c-format
@@ -958,10 +958,10 @@ msgstr "Fantasikart"
 msgid "Festskrift "
 msgstr "Festskrift "
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:54
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:159
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:48
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:476
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:54
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:159
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:50
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:465
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:56
@@ -970,10 +970,9 @@ msgstr "Festskrift "
 msgid "Fil"
 msgstr "Fil"
 
-#. IMG
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:161
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:89
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:478
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:161
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:134
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:467
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:189
@@ -1151,10 +1150,9 @@ msgstr "Generell;"
 msgid "Grafisk blad"
 msgstr "Grafisk blad"
 
-#. IMG
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:163
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:94
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:480
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:163
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:139
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:469
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:191
@@ -1212,15 +1210,15 @@ msgstr "Hovedoppgaver/diplomoppgaver"
 msgid "Håndbøker"
 msgstr "Håndbøker"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:325
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:376
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:325
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:354
 #, c-format
 msgid "ISBN: "
 msgstr "ISBN: "
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:344
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:386
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:344
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:373
 #, c-format
 msgid "ISSN: "
@@ -1237,8 +1235,8 @@ msgstr "Ikke skjønnlitteratur"
 msgid "In transit ("
 msgstr "Unterwegs ("
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:228
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:428
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:228
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:416
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:257
 #, c-format
@@ -1273,20 +1271,20 @@ msgstr "Verfügbarer Präsenzbestand: "
 msgid "Jordglobus"
 msgstr "Jordglobus"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:52
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:46
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:52
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:48
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:54
 #, c-format
 msgid "Kar"
 msgstr "Kar"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:38
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:40
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:160
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:76
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:123
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:477
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:160
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:38
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:40
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:121
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:168
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:466
@@ -1357,8 +1355,8 @@ msgid "Kombidokument"
 msgstr "Kombidokument"
 
 #. IMG
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:164
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:481
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:164
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:470
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:192
 #, c-format
@@ -1506,8 +1504,8 @@ msgstr "Manuskripter"
 msgid "Maskinlesbare filer"
 msgstr "Maskinlesbare filer"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:155
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:472
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:155
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:461
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:183
 #, c-format
@@ -1566,10 +1564,10 @@ msgstr "Mikroskopdia"
 msgid "Modell"
 msgstr "Modell"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:49
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:59
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:43
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:53
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:49
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:59
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:45
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:55
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:51
@@ -1590,17 +1588,17 @@ msgstr "Monografier"
 msgid "Monografiserie"
 msgstr "Monografiserie"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:51
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:45
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:51
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:47
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:53
 #, c-format
 msgid "Mus"
 msgstr "Mus"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:162
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:84
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:479
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:162
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:129
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:468
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:190
@@ -1614,10 +1612,11 @@ msgstr "Musikk"
 msgid "Musikktrykk"
 msgstr "Musikktrykk"
 
+#. IMG
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:479
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:162
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:28
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:30
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:162
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:479
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:468
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:190
 #, c-format
@@ -1670,8 +1669,8 @@ msgstr "Numeriske data"
 
 #. INPUT type=submit
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_007.tt:70
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_leader.tt:198
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:205
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_leader.tt:198
 msgid "OK"
 msgstr "OK"
 
@@ -1760,8 +1759,8 @@ msgstr "Ortofoto"
 msgid "Oversiktsverker innenfor et emne"
 msgstr "Oversiktsverker innenfor et emne"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:364
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:701
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:364
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:779
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:393
 #, c-format
@@ -1774,19 +1773,19 @@ msgstr "Paralleltitel: "
 msgid "Pekebok"
 msgstr "Pekebok"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:60
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:54
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:60
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:56
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:62
 #, c-format
 msgid "Per"
 msgstr "Per"
 
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:18
-#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:20
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:158
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:106
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:475
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:158
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:18
+#: intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:20
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:151
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:464
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:186
@@ -1920,8 +1919,8 @@ msgstr "Selvbiografier"
 msgid "Series: "
 msgstr "Reihen: "
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:217
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:417
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:217
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:405
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:246
 #, c-format
@@ -2042,8 +2041,8 @@ msgstr "Storskrift;"
 msgid "Studieplansje"
 msgstr "Studieplansje"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:69
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:252
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:69
 #, c-format
 msgid "Suppressed in OPAC"
 msgstr "wird im OPAC unterdrückt"
@@ -2157,8 +2156,8 @@ msgid "Transparent"
 msgstr "Folie"
 
 #. IMG
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:165
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:482
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:165
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:471
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:193
 #, c-format
@@ -2206,16 +2205,16 @@ msgstr "Undervisning"
 msgid "Ungdom over 12 år;"
 msgstr "Ungdom over 12 år;"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:290
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:396
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:290
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:384
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:319
 #, c-format
 msgid "Utgave: "
 msgstr "Utgave: "
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:273
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:689
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:273
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:767
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:302
 #, c-format
@@ -2349,10 +2348,10 @@ msgstr "a Kartografisk materiale (unntatt globus)"
 msgid "a Tekstlig materiale"
 msgstr "a Drehbuch-Material"
 
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:440
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:240
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:541
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:591
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:440
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:428
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:269
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:602
@@ -2361,10 +2360,10 @@ msgstr "a Drehbuch-Material"
 msgid "a_t"
 msgstr "a_t"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:295
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2OAIDC.xsl:79
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:399
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:704
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:295
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:387
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:782
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:324
@@ -2449,8 +2448,8 @@ msgstr "aq"
 msgid "av"
 msgstr "av"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:104
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:304
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:104
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:343
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:99
 #, c-format
@@ -2595,8 +2594,8 @@ msgstr "g Filmer og videoopptak (kap.7)"
 msgid "g Grafisk materiale som er tenkt projisert eller gjennomlyst"
 msgstr "g Grafisk materiale som er tenkt projisert eller gjennomlyst"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:53
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:47
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:53
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:49
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:55
 #, c-format
@@ -2645,8 +2644,8 @@ msgstr "k Grafisk materiale som er ugjennomtrengelig for lys"
 msgid "koha:biblionumber:{marc:datafield[@tag=999]/marc:subfield[@code='c']}"
 msgstr "koha:biblionumber:{marc:datafield[@tag=999]/marc:subfield[@code='c']}"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:55
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:49
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:55
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:51
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:57
 #, c-format
@@ -2703,8 +2702,8 @@ msgstr "n Ukjent år"
 msgid "notated music"
 msgstr "Noten"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:94
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:287
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:94
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:326
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:89
 #, c-format
@@ -2817,8 +2816,8 @@ msgstr "dreidimensionales Objekt"
 msgid "title"
 msgstr "title"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:56
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:50
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:56
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:52
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:58
 #, c-format
@@ -2863,8 +2862,8 @@ msgstr "vxyz"
 msgid "x Løpende (periodika)"
 msgstr "x Løpende (periodika)"
 
-#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:454
 #: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:722
+#: intranet-tmpl/prog/en/xslt/NORMARCslim2intranetDetail.xsl:454
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:815
 #: opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACDetail.xsl:512
 #, c-format

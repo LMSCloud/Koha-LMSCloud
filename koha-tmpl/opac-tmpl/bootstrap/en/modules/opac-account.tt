@@ -176,8 +176,8 @@
                                                 <label class="radio">
                                                     <input type="radio" name="payment_method" id="payment_method-gs_creditcard" value="gs_creditcard" checked="checked"><br>
                                                     <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:377px;">
-                                                        <strong style="margin:5px;" > Kreditkartenzahlung über GiroSolution </strong><br>
-                                                        <a href="https://www.girosolution.de/" title="GiroSolution - Ein Unternehmen der Sparkassen-Finanzgruppe" >                                                    
+                                                        <strong style="margin:5px;" > credit card payment via GiroSolution </strong><br>
+                                                        <a href="https://www.girosolution.de/" title="GiroSolution - A member of the Sparkassen group" >                                                    
                                                             <img style="max-width:64px; height:auto; max-height:48px; margin:8px;" src="https://www.girosolution.de/fileadmin/user_upload/girosolution/logos/mc_acc_opt_70_3x.png" >
                                                             <img style="max-width:64px; height:auto; max-height:48px; margin:5px;" src="https://www.girosolution.de/fileadmin/user_upload/girosolution/logos/visa_color.png">
                                                             <img style="max-width:64px; height:auto; max-height:48px; margin:5px;" src="https://www.girosolution.de/fileadmin/user_upload/girosolution/logos/ax-logo-2.gif">
@@ -194,7 +194,7 @@
                                                 <label class="radio">
                                                     <input type="radio" name="payment_method" id="payment_method-gs_giropay" value="gs_giropay" checked="checked"><br>
                                                     <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:210px;">
-                                                    <!-- giropay Logo --><a href="https://www.giropay.de" title="GIROPAY – SICHER ONLINE ÜBERWEISEN" ><img style="margin:5px;" src="https://www.giropay.de/fileadmin/user_upload/giropay/logos/onlineueberweisung_giropay_200px.png" border="0" alt="giropay logo"></a><!-- giropay Logo -->
+                                                    <!-- giropay Logo --><a href="https://www.giropay.de" title="GIROPAY – SECURE ONLINE PAYMENT" ><img style="margin:5px;" src="https://www.giropay.de/fileadmin/user_upload/giropay/logos/onlineueberweisung_giropay_200px.png" border="0" alt="giropay logo"></a><!-- giropay Logo -->
                                                     </div>
                                                 </label>
                                             </div>

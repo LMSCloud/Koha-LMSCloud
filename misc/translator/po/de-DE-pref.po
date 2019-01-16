@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2018-12-14 16:18+0100\n"
-"Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
+"PO-Revision-Date: 2019-01-14 15:43+0100\n"
+"Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
@@ -7519,6 +7519,14 @@ msgstr "Funktionen"
 msgid "opac.pref Payments"
 msgstr "Zahlungen"
 
+# OPAC > Payments via GiroSolution
+msgid "opac.pref Payments via GiroSolution"
+msgstr "Zahlungen mit GiroSolution"
+
+# OPAC > Payments via PayPal
+msgid "opac.pref Payments via PayPal"
+msgstr "Zahlungen mit PayPal"
+
 # OPAC > Policy
 msgid "opac.pref Policy"
 msgstr "Parameter"
@@ -7679,27 +7687,27 @@ msgstr "Speichere"
 msgid "opac.pref#EnableOpacSearchHistory# patron search history in the OPAC."
 msgstr "Benutzer-Suchhistorie im OPAC."
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid "opac.pref#EnablePayPalOpacPayments# Allow"
 msgstr "Erlaube"
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid "opac.pref#EnablePayPalOpacPayments# Don't allow"
 msgstr "Erlaube nicht"
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid "opac.pref#EnablePayPalOpacPayments# Production"
 msgstr "Produktion"
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid "opac.pref#EnablePayPalOpacPayments# Sandbox"
 msgstr "Sandbox"
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid "opac.pref#EnablePayPalOpacPayments# mode."
 msgstr "Modus."
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid ""
 "opac.pref#EnablePayPalOpacPayments# patrons to make payments from the OPAC "
 "via PayPal in"
@@ -7722,6 +7730,68 @@ msgid ""
 msgstr ""
 " (Werte getrennt durch | angeben: z.B. 4|8). Das #-Zeichen kann anstelle des "
 "Leerzeichens als Indikator angegeben werden."
+
+# OPAC > Payments via GiroSolution
+msgid "opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# Allow"
+msgstr "Erlaube"
+
+# OPAC > Payments via GiroSolution
+msgid "opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# Don't allow"
+msgstr "Erlaube nicht"
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# patrons to make credit "
+"card payments from the OPAC via GiroSolution."
+msgstr "Kreditkartenzahlungen im OPAC mit GiroSolution."
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionCreditcardProjectId# The library's GiroSolution "
+"Project ID for credit card payments is "
+msgstr ""
+"Die GiroSolution-Projekt-ID der Bibliothek für Kreditkartenzahlungen ist "
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionCreditcardProjectPwd# The library's GiroSolution "
+"password for credit card payments is "
+msgstr ""
+"Das zugehörige Passwort des GiroSolution-Projekts der Bibliothek für "
+"Kreditkartenzahlungen ist "
+
+# OPAC > Payments via GiroSolution
+msgid "opac.pref#GirosolutionGiropayOpacPaymentsEnabled# Allow"
+msgstr "Erlaube"
+
+# OPAC > Payments via GiroSolution
+msgid "opac.pref#GirosolutionGiropayOpacPaymentsEnabled# Don't allow"
+msgstr "Erlaube nicht"
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionGiropayOpacPaymentsEnabled# patrons to make GiroPay "
+"payments from the OPAC via GiroSolution."
+msgstr "GiroPay-Zahlungen per Online-Banking im OPAC mit GiroSolution."
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionGiropayProjectId# The library's GiroSolution Project "
+"ID for GiroPay payments is "
+msgstr "Die GiroSolution-Projekt-ID der Bibliothek für GiroPay-Zahlungen ist "
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionGiropayProjectPwd# The library's GiroSolution password "
+"for GiroPay payments is "
+msgstr ""
+"Das zugehörige Passwort des GiroSolution-Projekts der Bibliothek für GiroPay-"
+"Zahlungen ist "
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionMerchantId# The library's GiroSolution Merchant ID is "
+msgstr "Die GiroSolution-Kundennummer der Bibliothek ist "
 
 # OPAC > Appearance
 msgid "opac.pref#GoogleIndicTransliteration# Don't show"
@@ -8794,6 +8864,42 @@ msgstr ""
 " den öffentlichen OPAC. Ein privater OPAC erfordert die Anmeldung des "
 "Benutzers bevor der Zugriff möglich ist. "
 
+# OPAC > Features
+msgid ""
+"opac.pref#OpacRenewCardConfirmationText# Text the patron has to confirm in "
+"order to renew his library card in the OPAC. (Displayed only if enrollment "
+"fee is charged. Will override the default text.)"
+msgstr ""
+"Der folgende Text wir dem Benutzer zur Bestätigung der Bibliothekskonto-"
+"Belastung bei der Biblioheksausweis-Verlängerung im OPAC angezeigt. (Wenn "
+"nicht angegeben wird der folgende Standardtext angezeigt: \"Ich erkläre mich "
+"damit einverstanden, dass mein Benutzerkonto mit dem oben angegebenen Betrag "
+"für die Verlängerung meines Bibliotheksausweises belastet wird.\")"
+
+# OPAC > Features
+msgid "opac.pref#OpacRenewCardLeadTime#  days before its expiry date."
+msgstr " Tage vor Ablauf verlängern."
+
+# OPAC > Features
+msgid ""
+"opac.pref#OpacRenewCardLeadTime# Patrons are allowed to renew their own "
+"library card in the OPAC at most "
+msgstr "Benutzer können im OPAC ihren Bibliotheksausweis "
+
+# OPAC > Features
+msgid ""
+"opac.pref#OpacRenewCardPatronCategories# . ( Use separator |, e.g. ADU|SEN )"
+msgstr ". (Werte getrennt durch | angeben z.B: ADU|SEN )"
+
+# OPAC > Features
+msgid ""
+"opac.pref#OpacRenewCardPatronCategories# Patrons are allowed to renew their "
+"own library card in the OPAC if the code of their patron category is listed "
+"in "
+msgstr ""
+"Benutzer folgender Benutzerkategorien können im OPAC ihren "
+"Bibliotheksausweis verlängern"
+
 # OPAC > Policy
 msgid "opac.pref#OpacRenewalAllowed# Allow"
 msgstr "Erlaube,"
@@ -9138,27 +9244,61 @@ msgid ""
 msgstr ""
 "dass Benutzer, die online ein Konto eröffnen, sich über E-Mail verifizieren."
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid ""
 "opac.pref#PayPalChargeDescription# The patron should see the charge "
 "description as "
 msgstr "Dem Benutzer die Belastungsanzeige mit folgendem Text anzeigen:"
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid ""
 "opac.pref#PayPalPwd# The password for the PayPal account to receive payments "
 "is "
 msgstr "Passwort des PayPal-Kontos des Zahlungsempfängers:"
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid ""
 "opac.pref#PayPalSignature# The signature for the PayPal account to receive "
 "payments is "
 msgstr "Signatur des PayPal-Kontos des Zahlungsempfängers:"
 
-# OPAC > Payments
+# OPAC > Payments via PayPal
 msgid "opac.pref#PayPalUser# The email address to receive PayPal payments is "
 msgstr "E-Mail-Adresse des PayPal-Kontos des Zahlungsempfängers:"
+
+# OPAC > Payments
+msgid "opac.pref#PaymentsMinimumPatronAge#  years."
+msgstr " Jahre."
+
+# OPAC > Payments
+msgid ""
+"opac.pref#PaymentsMinimumPatronAge# The minimum patron age for permission to "
+"the payment functionality is "
+msgstr "Das Mindestalter eines Benutzers für Online-Zahlungen im OPAC ist"
+
+# OPAC > Payments
+msgid ""
+"opac.pref#PaymentsOnlineCashRegisterManagerCardnumber# Online payments will "
+"be registered using the following cash register manager (provide cardnumber)."
+msgstr ""
+"Online-Zahlungen werden mit folgendem Mitarbeiter-Account in der Kasse "
+"verbucht (bitte Ausweisnummer angeben) : "
+
+# OPAC > Payments
+msgid ""
+"opac.pref#PaymentsOnlineCashRegisterManagerCardnumber# Please make sure the "
+"user account has the necessary permissions enabled and is configured as cash "
+"register manager."
+msgstr ""
+"Bitte stellen Sie sicher, dass der Mitarbeiter-Account die Berechtigung für "
+"die Benutzung von Kassen besitzt und für die ausgewählte Kasse zugelassen "
+"ist."
+
+# OPAC > Payments
+msgid ""
+"opac.pref#PaymentsOnlineCashRegisterName# Online payments will be registered "
+"in the cash register named "
+msgstr "Online-Zahlungen werden unter der folgenden Kasse verbucht "
 
 # OPAC > Features
 msgid "opac.pref#QuoteOfTheDay# Disable"
