@@ -76,6 +76,8 @@
 
                     [% IF ( ACCOUNT_LINES ) %]
                         <form method="post" action="opac-account-pay.pl" class="form-horizontal">
+                        <p><input type="checkbox" class="cb" name="cb_outstanding_fines_only" id="cb_outstanding_fines_only" checked="checked" value="1"> Show outstanding fines only </p>
+
                         <table class="table table-bordered table-striped" id="finestable">
                             <thead>
                                 <tr>
@@ -237,6 +239,28 @@ $( document ).ready(function() {
              { "sType": "title-string", "aTargets" : [ "title-string" ] }
          ]
     } ));
+
+    function filterByAmountoutstanding () {
+      [% IF ENABLE_OPAC_PAYMENTS %]
+        var colAmountoutstanding = 4;
+      [% ELSE %]
+        var colAmountoutstanding = 3;
+      [% END %]
+
+        if ( $("#cb_outstanding_fines_only").prop('checked') ) {
+            $("#finestable").dataTable().fnFilter( '[1-9]', colAmountoutstanding, true, false );;
+        } else {
+            $("#finestable").dataTable().fnFilter( '.*', colAmountoutstanding, true, false );
+        }
+    };
+
+    filterByAmountoutstanding();
+
+    $("#cb_outstanding_fines_only").on( 'change', function () {
+        filterByAmountoutstanding();
+    } );
+
+
 
     $(".paypal").on("click", function() {
         window.open('https://www.paypal.com/webapps/mpp/paypal-popup','WIPaypal','toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=1060, height=700');
