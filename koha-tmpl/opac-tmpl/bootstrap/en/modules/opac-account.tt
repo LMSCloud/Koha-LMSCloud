@@ -248,8 +248,10 @@ $( document ).ready(function() {
       [% END %]
 
         if ( $("#cb_outstanding_fines_only").prop('checked') ) {
-            $("#finestable").dataTable().fnFilter( '[1-9]', colAmountoutstanding, true, false );;
+            // accept amountoutstanding > 0.00
+            $("#finestable").dataTable().fnFilter( '^[^-].*[1-9].*$|^[1-9].*$', colAmountoutstanding, true, false );
         } else {
+            // accept any amountoutstanding
             $("#finestable").dataTable().fnFilter( '.*', colAmountoutstanding, true, false );
         }
     };
