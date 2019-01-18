@@ -374,7 +374,7 @@
                                 <form id="renewall" action="/cgi-bin/koha/opac-renew.pl" method="post">
                                     <input type="hidden" name="from" value="opac_user" />
                                     <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
-                                    [% FOREACH ISSUE IN ISSUES %]
+                                    [% FOREACH ISSUE IN KOHA_ISSUES %]
                                         <input type="hidden" name="item" value="[% ISSUE.itemnumber %]" />
                                     [% END %]
                                     <input type="submit" class="btn" value="Renew all" />
