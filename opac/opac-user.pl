@@ -198,7 +198,7 @@ if (C4::Context->preference('DivibibEnabled')) {
         
     if ( $divibib_issues ) {
         foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$divibib_issues} ) {
-            my $marcrecord = GetMarcBiblio( $issue->{'biblionumber'} );
+            my $marcrecord = GetMarcBiblio( { biblionumber => $issue->{'biblionumber'} } );
             $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
             
             my $itemtype = $issue->{'itemtype'};                
