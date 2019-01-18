@@ -60,14 +60,22 @@
 
                     [% IF ( BORROWER_INFO.warndeparture ) %]
                         <div class="alert" id="warndeparture">
-                            <strong>Please note:</strong><span> Your card will expire on <span id="warndeparture_date">[% BORROWER_INFO.warndeparture | $KohaDates %]</span>. Please contact the library for more information.</span>
+                            [% IF ( BORROWER_INFO.opaccardrenewalpermitted ) %]
+                                <strong>Please note:</strong><span> Your card will expire on <span id="warndeparture_date">[% BORROWER_INFO.warndeparture | $KohaDates %]</span>. You may contact the library for more information or <a href="/cgi-bin/koha/opac-renewcard.pl">renew your card yourself</a>.</span>
+                            [% ELSE %]
+                                <strong>Please note:</strong><span> Your card will expire on <span id="warndeparture_date">[% BORROWER_INFO.warndeparture | $KohaDates %]</span>. Please contact the library for more information.</span>
+                            [% END %]
                                 [% IF ( BORROWER_INFO.returnbeforeexpiry ) %]<span id="warndeparture_returnbeforeexpiry"> Also note that you must return all checked out items before your card expires.</span>[% END %]
                         </div>
                     [% END %]
 
                     [% IF ( BORROWER_INFO.warnexpired ) %]
                         <div class="alert" id="warnexpired">
-                            <strong>Please note: </strong><span>Your account has expired as of [% BORROWER_INFO.warnexpired | $KohaDates %]. Please contact the library if you wish to renew your account.</span>
+                            [% IF ( BORROWER_INFO.opaccardrenewalpermitted ) %]
+                                <strong>Please note: </strong><span>Your account has expired as of [% BORROWER_INFO.warnexpired | $KohaDates %]. In order to renew your account you may contact the library or <a href="/cgi-bin/koha/opac-renewcard.pl">renew it yourself</a>.</span>
+                            [% ELSE %]
+                                <strong>Please note: </strong><span>Your account has expired as of [% BORROWER_INFO.warnexpired | $KohaDates %]. Please contact the library if you wish to renew your account.</span>
+                            [% END %]
                         </div>
                     [% END %]
 

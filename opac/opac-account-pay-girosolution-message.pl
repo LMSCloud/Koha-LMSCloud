@@ -49,6 +49,14 @@ sub genHmacMd5 {
 
     return $hashval;
 }
+# round float $flt to precision of $decimaldigits behind the decimal separator. E. g. roundGS(-1.234567, 2) == -1.23
+sub roundGS ()
+{
+    my ($flt, $decimaldigits) = @_;
+    my $decimalshift = 10 ** $decimaldigits;
+
+    return (int(($flt * $decimalshift) + (($flt < 0) ? -0.5 : 0.5)) / $decimalshift);
+}
 
 print STDERR "opac-account-pay-girosolution-message.pl: START\n";
 
@@ -128,8 +136,11 @@ print STDERR "opac-account-pay-girosolution-message.pl ($gcResultPayment == 4000
 print STDERR "opac-account-pay-girosolution-message.pl ($amountKoha * 100.0):", ($amountKoha * 100.0), ":\n";
 print STDERR "opac-account-pay-girosolution-message.pl ($gcAmount == $amountKoha * 100.0):", ($gcAmount == $amountKoha * 100.0), ":\n";
 print STDERR "opac-account-pay-girosolution-message.pl ($gcAmount == ($amountKoha * 100.0)):", ($gcAmount == ($amountKoha * 100.0)), ":\n";
+print STDERR "opac-account-pay-girosolution-message.pl ($gcAmount/100.0 == $amountKoha):", ($gcAmount/100.0 == $amountKoha), ":\n";
+print STDERR "opac-account-pay-girosolution-message.pl (roundGS($gcAmount/100.0,2) == roundGS($amountKoha,2)):", (&roundGS($gcAmount/100.0, 2) == &roundGS($amountKoha, 2)), ":\n";
+
     my $paymentId;
-    if ( ($gcHash eq $compHash) && (genHmacMd5($merchantTxIdKey, $merchantTxIdVal) eq $gcMerchantTxId) && ($gcResultPayment == 4000) && ($gcAmount/100.0 == $amountKoha)  ) {
+    if ( ($gcHash eq $compHash) && (genHmacMd5($merchantTxIdKey, $merchantTxIdVal) eq $gcMerchantTxId) && ($gcResultPayment == 4000) && (&roundGS($gcAmount/100.0, 2) == &roundGS($amountKoha, 2))  ) {
 print STDERR "opac-account-pay-girosolution-message.pl: The hash values are valid!\n";
 
         my $account = Koha::Account->new( { patron_id => $borrowernumberKoha } );

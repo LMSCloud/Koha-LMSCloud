@@ -66,32 +66,44 @@ print STDERR "opac-account-pay-girosolution-return.pl: gcAmount:$gcAmount: gcCur
     my $error = "GIROSOLUTION_ERROR_PROCESSING";
     # If money transfer has succeeded (i.e. $gcResultPayment == 4000) we have to check if the selected accountlines now are also paid in Koha.
     if ( $gcResultPayment == 4000 ) {
-        my $account = Koha::Account->new( { patron_id => $borrowernumberKoha } );
-        my @lines = Koha::Account::Lines->search(
-            {
-                accountlines_id => { -in => \@accountlinesKoha }
-            }
-        );
+        # There may be a concurrency with opac-account-pay-girosolution-message.pl (simultanously called by GiroSolution),
+        # so we wait here for a certain maximum time to give opac-account-pay-girosolution-message.pl the chance to finish.
+        # The 'certain maximum time' depends on the number of accountlines to be paid; it ranges from 5*2 to 5*4 seconds.
+        my $waitSingleDuration = 2 + (@accountlinesKoha + 0)/10;
+        if ( $waitSingleDuration > 4 ) {
+            $waitSingleDuration = 4;
+        }
+        for ( my $waitCount = 0; $waitCount < 6; $waitCount += 1 ) {
+            my $account = Koha::Account->new( { patron_id => $borrowernumberKoha } );
+            my @lines = Koha::Account::Lines->search(
+                {
+                    accountlines_id => { -in => \@accountlinesKoha }
+                }
+            );
 
-        my $sumAmountoutstanding = 0.0;
-        foreach my $accountline ( @lines ) {
+            my $sumAmountoutstanding = 0.0;
+            foreach my $accountline ( @lines ) {
 ###print STDERR "opac-account-pay-girosolution-message.pl: accountline:", Dumper($accountline), ":\n";
 print STDERR "opac-account-pay-girosolution-return.pl: accountline->amountoutstanding:", Dumper($accountline->amountoutstanding()), ":\n";
-            $sumAmountoutstanding += $accountline->amountoutstanding();
-        }
-        $sumAmountoutstanding = sprintf( "%.2f", $sumAmountoutstanding );    # this roundig was also done in the complimentary opac-account-pay-pl
+                $sumAmountoutstanding += $accountline->amountoutstanding();
+            }
+            $sumAmountoutstanding = sprintf( "%.2f", $sumAmountoutstanding );    # this rounding was also done in the complimentary opac-account-pay-pl
 print STDERR "opac-account-pay-girosolution-return.pl: sumAmountoutstanding:$sumAmountoutstanding: amountKoha:$amountKoha: gcAmount:$gcAmount:\n";
 
-        if ( $sumAmountoutstanding == 0.00 ) {
+            if ( $sumAmountoutstanding == 0.00 ) {
 print STDERR "opac-account-pay-girosolution-return.pl: sumAmountoutstanding == 0.00 --- NO error!\n";
-            $error = '';
+                $error = '';
+                last;
+            }
+print STDERR "opac-account-pay-girosolution-return.pl: not all accountlines paid - now waiting $waitSingleDuration seconds and than trying again ...\n";
+            sleep($waitSingleDuration);
         }
     }
 
 
     my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {
-            template_name   => "opac-account-pay-return.tt",    # name of non existent tt-file is sufficient
+            template_name   => "opac-account-pay-return.tt",    # name of non existing tt-file is sufficient
             query           => $cgi,
             type            => "opac",
             authnotrequired => 0,

@@ -167,6 +167,15 @@ if ( $borr->{'dateexpiry'} && C4::Context->preference('NotifyBorrowerDeparture')
             $borr->{'returnbeforeexpiry'} = 1;
         }
     }
+    # check if card renewal in OPAC is allowed for the borrower
+    if ( $patron ) {
+        my $errors = [];
+        $errors = $patron->opac_account_renewal_permitted();
+
+        if ( @$errors == 0 ) {    # all checks passed, no error
+            $borr->{'opaccardrenewalpermitted'} = 1;
+        }
+    }
 }
 
 # pass on any renew errors to the template for displaying
