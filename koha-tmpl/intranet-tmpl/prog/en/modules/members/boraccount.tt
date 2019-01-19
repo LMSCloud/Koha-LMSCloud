@@ -78,7 +78,7 @@
             [% ELSE %]
                 <a href="boraccount.pl?action=reverse&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-default btn-xs"><i class="fa fa-undo"></i> Reverse</a>
             [% END %]
-            <a href="boraccount.pl?action=void&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-default btn-xs"><i class="fa fa-ban"></i> Void</a>
+            <!-- <a href="boraccount.pl?action=void&amp;accountlines_id=[% account.accountlines_id %]&amp;borrowernumber=[% account.borrowernumber %]" class="btn btn-default btn-xs"><i class="fa fa-ban"></i> Void</a> -->
           [% ELSE %][% SET footerjs = 1 %]
             &nbsp;
           [% END %]
