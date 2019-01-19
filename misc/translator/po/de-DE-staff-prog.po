@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2019-01-18 15:20+0100\n"
+"POT-Creation-Date: 2019-01-19 13:11+0100\n"
 "PO-Revision-Date: 2018-12-14 15:51+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -58635,11 +58635,6 @@ msgstr "Sichtbarkeit: "
 #, c-format
 msgid "Vitor Fernandes"
 msgstr "Vitor Fernandes"
-
-#: intranet-tmpl/prog/en/modules/members/boraccount.tt:81
-#, c-format
-msgid "Void"
-msgstr "Ungültig erklären"
 
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:506
 #, c-format
