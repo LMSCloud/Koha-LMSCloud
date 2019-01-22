@@ -27,9 +27,11 @@ use C4::Auth qw(check_cookie_auth haspermission get_session);
 use C4::Biblio qw(GetMarcBiblio GetFrameworkCode GetRecordValue);
 use C4::Context;
 use C4::Divibib::NCIPService;
+use C4::Items;
 
 use Koha::DateUtils;
 use Koha::Libraries;
+use Koha::ItemTypes;
 
 my $input = new CGI;
 
@@ -73,23 +75,25 @@ my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search(
 foreach my $c ( @{$divibib_issues} ) {
 
     # read dummy items record of divibib title
-    my $items = &C4::Items::GetItemsByBiblioitemnumber( $c->{biblionumber} );
+    my @all_items = GetItemsInfo( $c->{biblionumber} );
     my $item;
-    if ( defined($items) && defined($items->[0]) ) {
-        $item = $items->[0];
-    }    
+    if ( scalar @all_items  >= 1) {
+        $item = $all_items[0];
+    } else {
+        $item = {};
+    }
 
-    my $itemtype = C4::Koha::getitemtypeinfo( $item_level_itypes ? $item->{itype} : lc($c->{itemtype}) );
+    my $itemtype = Koha::ItemTypes->find($item_level_itypes ? $item->{itype} : lc($c->{itemtype}));
     my $checkout = {
-        DT_RowId             => $c->{itemnumber} . '-' . $c->{borrowernumber},
+        DT_RowId             => ($c->{itemnumber} ? $c->{itemnumber} : '') . '-' . ( $c->{borrowernumber} ? $c->{borrowernumber} : ''),
         title                => $c->{title},
         author               => $c->{author},
-        barcode              => $item->{barcode} ? $item->{barcode} : $c->{barcode},    # $c->{barcode} contains the Onleihe itemtype
-        itemtype             => $item_level_itypes ? $item->{itype} : lc($c->{itemtype}),
-        itemtype_description => $itemtype->{translated_description},
+        barcode              => ( $item->{barcode} ? $item->{barcode} : $c->{barcode} ),    # $c->{barcode} contains the Onleihe itemtype
+        itemtype             => ( $item_level_itypes ? $item->{itype} : lc($c->{itemtype})),
+        itemtype_description => ( $itemtype ? $itemtype->translated_description : '' ),
         itemnotes            => $item->{itemnotes},
         itemnotes_nonpublic  => $item->{itemnotes_nonpublic},
-        branchname           => defined($item->{homebranch}) && defined($branches{$item->{homebranch}}->{'branchname'}) ? $branches{$item->{homebranch}}->{'branchname'} : '',
+        branchname           => ( defined($item->{homebranch}) && defined($branches{$item->{homebranch}}) ? $branches{$item->{homebranch}} : ''),
         branchcode           => $item->{homebranch},
         itemnumber          => $item->{itemnumber},
         borrowernumber      => $c->{borrowernumber},
@@ -113,7 +117,7 @@ foreach my $c ( @{$divibib_issues} ) {
             }
         ),
         subtitle =>
-          GetRecordValue( 'subtitle', GetMarcBiblio( $c->{biblionumber} ), GetFrameworkCode( $c->{biblionumber} ) ),
+          GetRecordValue( 'subtitle', GetMarcBiblio( { biblionumber => $c->{biblionumber} } ), GetFrameworkCode( $c->{biblionumber} ) ),
     };
 
     push( @checkouts, $checkout );

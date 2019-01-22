@@ -82,7 +82,8 @@ if ($add){
             item_id     => $item_id,
             note        => $note,
             type        => $type,
-            user_id     => $logged_in_user->borrowernumber
+            user_id     => $logged_in_user->borrowernumber,
+            branchcode  => C4::Context->userenv->{'branch'}
         });
 
         print $input->redirect("/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber");

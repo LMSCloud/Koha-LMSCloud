@@ -8,7 +8,7 @@ var RFIDWebService = {
     checkoutBlockingSelector: '#circ_impossible,#circ_needsconfirmation',
     
     // the default selector for checkin errors
-    checkinBlockingSelector: '.problem,.error,.alert,.audio-alert-warning,.audio-aler-action',
+    checkinBlockingSelector: '.problem,.error,.alert,.audio-alert-warning,.audio-alert-action,#hold-found1,#hold-found2',
     
     // the action key triggering the RFID batch processing
     actionKey: 32,

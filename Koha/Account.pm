@@ -333,6 +333,9 @@ sub add_credit {
     my $payment_type = $params->{payment_type};
     my $type         = $params->{type} || 'payment';
     my $item_id      = $params->{item_id};
+    my $branchcode   = $params->{branchcode};
+    
+    $branchcode = C4::Context->userenv->{'branch'} if (! $branchcode );
 
     my $schema = Koha::Database->new->schema;
 
@@ -361,7 +364,8 @@ sub add_credit {
                     payment_type      => $payment_type,
                     note              => $note,
                     manager_id        => $user_id,
-                    itemnumber        => $item_id
+                    itemnumber        => $item_id,
+                    branchcode        => $branchcode
                 }
             )->store();
 

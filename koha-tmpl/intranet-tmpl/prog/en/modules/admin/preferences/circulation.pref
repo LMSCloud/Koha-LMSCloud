@@ -1059,11 +1059,11 @@ Circulation:
          -
             - pref: RFIDWebServiceCheckinBlocker
             - "The RFID batch checkin stops if the checkin page contains elements of the specified jQuery selectors.<br />"
-            - "Overwrite only if you want to change the default: #circ_impossible,#circ_needsconfirmation"
+            - "Overwrite only if you want to change the default: .problem,.error,.alert,.audio-alert-warning,.audio-alert-action,#hold-found1,#hold-found2"
          -
             - pref: RFIDWebServiceCheckoutBlocker
             - "The RFID batch checkout stops if the checkout page contains elements of the specified jQuery selectors.<br />"
-            - "Overwrite only if you want to change the default: .problem,.error,.alert,.audio-alert-warning,.audio-aler-action"
+            - "Overwrite only if you want to change the default: #circ_impossible,#circ_needsconfirmation"
          -
             - pref: RFIDWebServiceURL
             - "URL of the RFID-Web-Service.<br />"
