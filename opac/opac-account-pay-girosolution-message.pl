@@ -173,6 +173,14 @@ print STDERR "opac-account-pay-girosolution-message.pl: now calling account->pay
             }
 print STDERR "opac-account-pay-girosolution-message.pl: noteText:$noteText:\n";
 
+            # we take the borrowers branchcode also for the payment accountlines record to be created
+            my $library_id = undef;
+            my $patron = Koha::Patrons->find( $borrowernumberKoha );
+            if ( $patron ) {
+                $library_id = $patron->branchcode();
+            }
+print STDERR "opac-account-pay-girosolution-message.pl: library_id:$library_id:\n";
+
             # evaluate configuration of cash register management for online payments
             my $withoutCashRegisterManagement = 1;    # default: avoiding cash register management in Koha::Account->pay()
             my $cash_register_manager_id = 0;    # borrowernumber of manager of cash register for online payments
@@ -184,14 +192,13 @@ print STDERR "opac-account-pay-girosolution-message.pl: paymentsOnlineCashRegist
                 if ( length($paymentsOnlineCashRegisterName) && length($paymentsOnlineCashRegisterManagerCardnumber) ) {
                     $withoutCashRegisterManagement = 0;
 
-                    my $userenv = C4::Context->userenv;
-                    my $library_id = $userenv ? $userenv->{'branch'} : undef;
                     # get cash register manager information
                     my $cash_register_manager = Koha::Patrons->search( { cardnumber => $paymentsOnlineCashRegisterManagerCardnumber } )->next();
                     if ( $cash_register_manager ) {
                         $cash_register_manager_id = $cash_register_manager->borrowernumber();
-print STDERR "opac-account-pay-girosolution-message.pl: cash_register_manager_id:$cash_register_manager_id:\n";
-                        my $cash_register_mngmt = C4::CashRegisterManagement->new($library_id, $cash_register_manager_id);
+                        my $cash_register_manager_branchcode = $cash_register_manager->branchcode();
+print STDERR "opac-account-pay-girosolution-message.pl: cash_register_manager_id:$cash_register_manager_id: cash_register_manager_branchcode:$cash_register_manager_branchcode:\n";
+                        my $cash_register_mngmt = C4::CashRegisterManagement->new($cash_register_manager_branchcode, $cash_register_manager_id);
 
                         if ( $cash_register_mngmt ) {
                             my $cashRegisterNeedsToBeOpened = 1;
@@ -210,7 +217,7 @@ print STDERR "opac-account-pay-girosolution-message.pl: cash_register_name:", $o
 print STDERR "opac-account-pay-girosolution-message.pl: cash_register_id:$cash_register_id:\n";
                                 if ( defined $cash_register_id && $cash_register_mngmt->canOpenCashRegister($cash_register_id, $cash_register_manager_id) ) {
                                     my $opened = $cash_register_mngmt->openCashRegister($cash_register_id, $cash_register_manager_id);
-print STDERR "opac-account-pay-girosolution-message.pl: cash_register_mngmt->openCashRegister($library_id, $cash_register_manager_id) returned opened:$opened:\n";
+print STDERR "opac-account-pay-girosolution-message.pl: cash_register_mngmt->openCashRegister($cash_register_manager_branchcode, $cash_register_manager_id) returned opened:$opened:\n";
                                 }
                             }
                         }
@@ -224,6 +231,7 @@ print STDERR "opac-account-pay-girosolution-message.pl: cash_register_manager_id
                 {
                     amount => $amountKoha,
                     lines => \@lines,
+                    library_id => $library_id,
                     description => $descriptionText,
                     note => $noteText,
                     withoutCashRegisterManagement => $withoutCashRegisterManagement,
