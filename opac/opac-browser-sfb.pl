@@ -129,7 +129,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $level = $query->param('level') || 0;
 my $filter = $query->param('filter');
 my $prefix = $query->param('prefixed');
-my ($countEntries,$countFolders,$youthcount,$adultcount,$childcount,$levelEntries)=(0,0,0,0,0,0);
+my ($countEntries,$countFolders,$youthcount,$adultcount,$childcount,$musiccount,$levelEntries)=(0,0,0,0,0,0,0);
 
 $filter = '' unless defined $filter;
 $level++; # the level passed is the level of the PREVIOUS list, not the current one. Thus the ++
@@ -144,6 +144,7 @@ my @level_folder_loop;
 my @youth_loop;
 my @child_loop;
 my @adult_loop;
+my @music_loop;
 my $myentry;
 
 my $i=0;
@@ -206,6 +207,16 @@ if ($level == 1) {
         push @adult_loop, $line;
         $adultcount++;
     }
+    
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^N[:]' ORDER BY description");
+    $sth->execute();
+    while (my $line = $sth->fetchrow_hashref) {
+        $line->{'browse_classification'} = $line->{'classification'};
+        $line->{'classification'} =~ s/^[CZMYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'search'} = createSearchString($line);
+        push @music_loop, $line;
+        $musiccount++;
+    }
 }
 
 my $have_hierarchy = 0;
@@ -246,12 +257,14 @@ $template->param(
     YOUTH_LOOP => \@youth_loop,
     CHILD_LOOP => \@child_loop,
     ADULT_LOOP => \@adult_loop,
+    MUSIC_LOOP => \@music_loop,
     HIERARCHY_LOOP => \@hierarchy_loop,
     ENTRY_COUNT => $countEntries,
     FOLDER_COUNT => $countFolders,
     YOUTH_COUNT => $youthcount,
     CHILD_COUNT => $childcount,
     ADULT_COUNT => $adultcount,
+    MUSIC_COUNT => $musiccount,
     LEVEL_COUNT => $levelEntries,
     LOOP_COUNT => scalar(@level_loop),
     LEVEL => $level,

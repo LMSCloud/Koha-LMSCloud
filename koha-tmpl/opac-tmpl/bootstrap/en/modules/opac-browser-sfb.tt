@@ -55,6 +55,29 @@
  [% FOREACH ENTRY IN LEVEL_LOOP %]
  <div class="row-fluid">
  	<div class="span12">
+		[% CLASSPART = '' %]
+		[% IF ( ENTRY.prefix == 'NOTEN' || ENTRY.prefix == 'MUSIK' ) %][% CLASSPART = ENTRY.classval _ ' ' _ ENTRY.startrange _ ' - ' %][% END %]
+ 		[% IF ( ENTRY.endnode ) %]
+ 		<a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% CLASSPART %][% ENTRY.description |html %]</a>
+ 		[% ELSE %]
+ 		<a href="opac-browser-sfb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% CLASSPART %][% ENTRY.description |html %]</a>
+ 		[% END %]
+                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number %] titles)</a></i></span>
+ 	</div>
+ </div>
+ [% END %]
+ <div class="row-fluid">
+ 	<div class="span12">&nbsp;</div>
+ </div>
+ [% END %]
+ 
+ [% IF ( LEVEL == 1 && MUSIC_COUNT > 0 ) %]
+ <div class="row-fluid">
+	<div class="span12"><strong>Music library</strong></div>
+ </div>
+ [% FOREACH ENTRY IN MUSIC_LOOP %]
+ <div class="row-fluid">
+ 	<div class="span12">
  		[% IF ( ENTRY.endnode ) %]
  		<a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
  		[% ELSE %]
