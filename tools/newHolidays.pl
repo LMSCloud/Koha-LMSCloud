@@ -33,21 +33,26 @@ use Koha::DateUtils;
 my $input               = new CGI;
 my $dbh                 = C4::Context->dbh();
 
-our $branchcode          = $input->param('newBranchName');
+my $branchcode          = $input->param('newBranchName');
 my $originalbranchcode  = $branchcode;
-our $weekday             = $input->param('newWeekday');
-our $day                 = $input->param('newDay');
-our $month               = $input->param('newMonth');
-our $year                = $input->param('newYear');
+my $weekday             = $input->param('newWeekday');
+my $day                 = $input->param('newDay');
+my $month               = $input->param('newMonth');
+my $year                = $input->param('newYear');
 my $dateofrange         = $input->param('dateofrange');
-our $title               = $input->param('newTitle');
-our $description         = $input->param('newDescription');
-our $newoperation        = $input->param('newOperation');
+my $title               = $input->param('newTitle');
+my $description         = $input->param('newDescription');
+my $newoperation        = $input->param('newOperation');
 my $allbranches         = $input->param('allBranches');
 
 
 my $first_dt = DateTime->new(year => $year, month  => $month,  day => $day);
-my $end_dt   = eval { dt_from_string( $dateofrange ); };
+my $end_dt;
+if ( $dateofrange ) {
+    $end_dt = eval { dt_from_string( $dateofrange ); };
+} else {
+    $end_dt = $first_dt->clone();
+}
 
 my $calendardate = output_pref( { dt => $first_dt, dateonly => 1, dateformat => 'iso' } );
 
@@ -60,7 +65,7 @@ if ($description) {
 }
 
 # We make an array with holiday's days
-our @holiday_list;
+my @holiday_list = ();
 if ($end_dt){
     for (my $dt = $first_dt->clone();
     $dt <= $end_dt;
@@ -73,49 +78,49 @@ if ($end_dt){
 if($allbranches) {
     my $libraries = Koha::Libraries->search;
     while ( my $library = $libraries->next ) {
-        add_holiday($newoperation, $library->branchcode, $weekday, $day, $month, $year, $title, $description);
+        add_holiday($newoperation, $library->branchcode, $weekday, $day, $month, $year, $title, $description, \@holiday_list);
     }
 } else {
-    add_holiday($newoperation, $branchcode, $weekday, $day, $month, $year, $title, $description);
+    add_holiday($newoperation, $branchcode, $weekday, $day, $month, $year, $title, $description, \@holiday_list);
 }
 
 print $input->redirect("/cgi-bin/koha/tools/holidays.pl?branch=$originalbranchcode&calendardate=$calendardate");
 
 #FIXME: move add_holiday() to a better place
 sub add_holiday {
-	($newoperation, $branchcode, $weekday, $day, $month, $year, $title, $description) = @_;  
-	my $calendar = C4::Calendar->new(branchcode => $branchcode);
+    my ($newoperation, $branchcode, $weekday, $day, $month, $year, $title, $description, $holiday_list) = @_;  
+    my $calendar = C4::Calendar->new(branchcode => $branchcode);
 
-	if ($newoperation eq 'weekday') {
-		unless ( $weekday && ($weekday ne '') ) { 
-			# was dow calculated by javascript?  original code implies it was supposed to be.
-			# if not, we need it.
-			$weekday = &Date::Calc::Day_of_Week($year, $month, $day) % 7 unless($weekday);
-		}
-		unless($calendar->isHoliday($day, $month, $year)) {
-			$calendar->insert_week_day_holiday(weekday => $weekday,
-							           title => $title,
-							           description => $description);
-		}
-	} elsif ($newoperation eq 'repeatable') {
-		unless($calendar->isHoliday($day, $month, $year)) {
-			$calendar->insert_day_month_holiday(day => $day,
-	                                    month => $month,
-							            title => $title,
-							            description => $description);
-		}
-	} elsif ($newoperation eq 'holiday') {
-		unless($calendar->isHoliday($day, $month, $year)) {
-			$calendar->insert_single_holiday(day => $day,
-	                                 month => $month,
-						             year => $year,
-						             title => $title,
-						             description => $description);
-		}
+    if ($newoperation eq 'weekday') {
+            unless ( $weekday && ($weekday ne '') ) { 
+                    # was dow calculated by javascript?  original code implies it was supposed to be.
+                    # if not, we need it.
+                    $weekday = &Date::Calc::Day_of_Week($year, $month, $day) % 7 unless($weekday);
+            }
+            unless($calendar->isHoliday($day, $month, $year)) {
+                    $calendar->insert_week_day_holiday(weekday => $weekday,
+                                                               title => $title,
+                                                               description => $description);
+            }
+    } elsif ($newoperation eq 'repeatable') {
+            unless($calendar->isHoliday($day, $month, $year)) {
+                    $calendar->insert_day_month_holiday(day => $day,
+                                        month => $month,
+                                                                title => $title,
+                                                                description => $description);
+            }
+    } elsif ($newoperation eq 'holiday') {
+            unless($calendar->isHoliday($day, $month, $year)) {
+                    $calendar->insert_single_holiday(day => $day,
+                                     month => $month,
+                                                         year => $year,
+                                                         title => $title,
+                                                         description => $description);
+            }
 
-	} elsif ( $newoperation eq 'holidayrange' ) {
-        if (@holiday_list){
-            foreach my $date (@holiday_list){
+    } elsif ( $newoperation eq 'holidayrange' ) {
+        if ( scalar(@$holiday_list) ){
+            foreach my $date (@$holiday_list){
                 unless ( $calendar->isHoliday( $date->{local_c}->{day}, $date->{local_c}->{month}, $date->{local_c}->{year} ) ) {
                     $calendar->insert_single_holiday(
                         day         => $date->{local_c}->{day},
@@ -128,8 +133,8 @@ sub add_holiday {
             }
         }
     } elsif ( $newoperation eq 'holidayrangerepeat' ) {
-        if (@holiday_list){
-            foreach my $date (@holiday_list){
+        if ( scalar(@$holiday_list) ){
+            foreach my $date (@$holiday_list){
                 unless ( $calendar->isHoliday( $date->{local_c}->{day}, $date->{local_c}->{month}, $date->{local_c}->{year} ) ) {
                     $calendar->insert_day_month_holiday(
                         day         => $date->{local_c}->{day},
@@ -143,5 +148,6 @@ sub add_holiday {
     }
     # we updated the single_holidays table, so wipe its cache
     my $cache = Koha::Caches->get_instance();
-    $cache->clear_from_cache( 'single_holidays') ;
+    $cache->clear_from_cache( $branchcode . '_' . 'single_holidays');
+    $cache->clear_from_cache( $branchcode . '_' . 'exception_holidays') ;
 }
