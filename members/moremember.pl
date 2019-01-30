@@ -310,7 +310,8 @@ if (C4::Context->preference('EnhancedMessagingPreferences')) {
 
 # Check whether the library uses cash registers and if so, that the current staff user
 # has opened the cash for payment actions
-my $checkCashRegisterOk = passCashRegisterCheck($data->{branchcode},$loggedinuser);
+my $branch = C4::Context->userenv->{'branch'};
+my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 
 if ( C4::Context->preference("ExportCircHistory") ) {
     $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc' }) ]);
