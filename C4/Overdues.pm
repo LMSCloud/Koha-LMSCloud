@@ -948,7 +948,7 @@ sub parse_overdues_letter {
     $substitute->{fines} = currency_format($currency_format, "$fines_sum", FMT_SYMBOL);
     $substitute->{fines} = sprintf('%.2f', $fines_sum) unless $substitute->{fines};
     $substitute->{total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
-    $substitute->{total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{fines};
+    $substitute->{total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{total_fines};
     $substitute->{overdue_count} = $overdue_count;
     $substitute->{issue_count} = $issue_count;
     
@@ -956,7 +956,7 @@ sub parse_overdues_letter {
     $issue_count   = $patron->family_checkout_count();
     $total_fines   = $patron->get_family_account_balance();
     $substitute->{family_total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
-    $substitute->{family_total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{fines};
+    $substitute->{family_total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{family_total_fines};
     $substitute->{family_overdue_count} = $overdue_count;
     $substitute->{family_issue_count} = $issue_count;
         
