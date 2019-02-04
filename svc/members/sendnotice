@@ -139,7 +139,7 @@ sub SendAdhocNotices {
             my $transport_type = 'print';
             my $notice_email = '';
             if ( $prefer_email && $prefer_email eq 'yes' ) {
-                $notice_email = $patron>-notice_email_address;
+                $notice_email = $patron->notice_email_address;
                 if ( $notice_email ) {
                     $transport_type = 'email';
                 }
