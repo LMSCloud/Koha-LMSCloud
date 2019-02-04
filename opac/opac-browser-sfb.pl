@@ -277,6 +277,16 @@ sub createSearchString {
     my $class = shift;
     my $search = '';
     
+    if ( $class->{prefix} && $class->{prefix} eq 'JUGMUS' ) {
+        if ( $class->{level} && $class->{level} == 1 ) {
+            $search .= 'su:"Jugend Musiziert" and su,rtrn:Grad';
+        }
+        elsif ( $class->{level} && $class->{level} =~ /^(3|4)$/ && $class->{classval} ) {
+            $search .= 'su:"Jugend Musiziert ' . $class->{classval} . '"';
+        }
+        return $search;
+    }
+    
     if ( $class->{classification} =~ /,[0-9]$/ ) {
         $search .= 'sys,phr,ext,rtrn:"' . $class->{classification} . '"';
         return $search;

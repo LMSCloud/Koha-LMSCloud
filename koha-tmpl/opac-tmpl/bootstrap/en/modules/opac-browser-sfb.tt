@@ -37,8 +37,13 @@
  	<div class="span12"></div>
  </div>
  <div class="row-fluid">
+	[% IF ( MYENTRY.search ) %]
  	<div class="span12"><a href='opac-search.pl?q=[% MYENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% MYENTRY.search |uri %]'>([% MYENTRY.number %] titles)</a></i></span></div>
+        [% ELSE %]
+        <div class="span12"><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles
+            <span style="font-size:0.75em"><i> ([% MYENTRY.number %] titles)</i></span></div>
+        [% END %]
  </div>
  <div class="row-fluid">
  	<div class="span12">&nbsp;</div>
@@ -58,11 +63,19 @@
 		[% CLASSPART = '' %]
 		[% IF ( ENTRY.prefix == 'NOTEN' || ENTRY.prefix == 'MUSIK' ) %][% CLASSPART = ENTRY.classval _ ' ' _ ENTRY.startrange _ ' - ' %][% END %]
  		[% IF ( ENTRY.endnode ) %]
- 		<a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% CLASSPART %][% ENTRY.description |html %]</a>
+			[% IF ( ENTRY.search ) %]
+			<a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% CLASSPART %][% ENTRY.description |html %]</a>
+			[% ELSE %]
+			<i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% CLASSPART %][% ENTRY.description |html %]
+			[% END %]
  		[% ELSE %]
  		<a href="opac-browser-sfb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% CLASSPART %][% ENTRY.description |html %]</a>
  		[% END %]
+ 		[% IF ( ENTRY.search ) %]
                 <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number %] titles)</a></i></span>
+                [% ELSE %]
+		<span style="font-size:0.75em"><i> ([% ENTRY.number %] titles)</i></span>
+		[% END %]
  	</div>
  </div>
  [% END %]
