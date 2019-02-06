@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2017 LMSCloud
+# Copyright 2017-2019 (C) LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -72,6 +72,15 @@ Datum voraussichtliche Rückgabe: 04.07.2017
 <status>2 </status><br>
 <ruckdat>20170704</ruckdat><br>
 
+addition february 2019:
+introduction of system preference BZSHAvailabilityBranches to limit the search to selected branchcodes.
+Format: list of elements, separated by '|', of the form BZSHID_x:branchcode_1,...,branchcode_n
+example: 802:HST,ZW1|803:ZW2|809:ZW2,ZW4,HST
+The selection for branchcodes will only be activated if
+ - the system preference BZSHAvailabilityBranches is set
+ - BZSHAvailabilityBranches contains an entry for this BZSHID (i.e. sigel)
+ - the entry for this BZSHID (i.e. sigel) in BZSHAvailabilityBranches contains at least 1 branchcode
+
 
 =cut
 
@@ -90,13 +99,13 @@ use C4::Search qw(SimpleSearch);
 
 my $cgi = new CGI;
 
-my $sel_sigel = $cgi->param("sigel");       # not used; it seems not to be the official ISIL
+my $sel_sigel = $cgi->param("sigel");       # this seems not to be the official ISIL but a so called BZSHID (library identifier within Schleswig-Holstein)
 my $sel_titel = $cgi->param("TITEL");
 my $sel_srisbn = $cgi->param("SRISBN");
-my $sel_srtit = $cgi->param("SRTIT");       # not used
-my $sel_sraut = $cgi->param("SRAUT");       # not used
-my $sel_srkorp = $cgi->param("SRKORP");     # not used
-my $sel_lang = $cgi->param("LANG");         # optional, not used
+my $sel_srtit = $cgi->param("SRTIT");       # not used here
+my $sel_sraut = $cgi->param("SRAUT");       # not used here
+my $sel_srkorp = $cgi->param("SRKORP");     # not used here
+my $sel_lang = $cgi->param("LANG");         # optional, not used here
 
 my $query = "cn:\"-1\"";                    # control number search, definition for no hit
 my @itemnumbers = ();
@@ -109,6 +118,27 @@ my $best_item_date_due_month = '';
 my $best_item_date_due_day = '';
 my ( $error, $marcresults, $total_hits, $hits ) = ( undef, (), 0, 0 );
 my $marc_titledata = '';
+
+my $selbranchcodecheck = 0;
+my $bzshAvailabilityBranches = C4::Context->preference('BZSHAvailabilityBranches');
+my @selbranchcodes = ();
+my %selbranchcodehash = ();
+if ( $bzshAvailabilityBranches ) {
+    my @bzshAvailabilityLibs = split('\|',$bzshAvailabilityBranches);
+    foreach my $lib ( @bzshAvailabilityLibs ) {
+        my @bzshid = split(':',$lib);
+        if ( $bzshid[0] && $bzshid[0] eq $sel_sigel) {
+            if ( $bzshid[1] ) {
+                @selbranchcodes = split(',',$bzshid[1]);
+                foreach my $branchcode (@selbranchcodes) {
+                    $selbranchcodecheck = 1;
+                    $selbranchcodehash{$branchcode} = $branchcode;
+                }
+            }
+            last;
+        }
+    }
+}
 
 # Try the search only if param TITEL ('Kontrollnummer') is sent.
 # Try the search for MARC21 category 001 ('Kontrollnummer').
@@ -326,11 +356,25 @@ sub genPermalink {
 }
 
 
+my $querybranchcodes = '';
+if ( $selbranchcodecheck ) {
+    for (my $i = 0; $selbranchcodes[$i]; $i += 1 ) {
+        if ( $i == 0 ) {
+            $querybranchcodes .= " and (branch:$selbranchcodes[$i]";
+        } else {
+            $querybranchcodes .= " or branch:$selbranchcodes[$i]";
+        }
+    }
+    if ( length($querybranchcodes) > 0 ) {
+        $querybranchcodes .= ")";
+    }
+}
+
 # start the title search
 if (defined $sel_titel)
 {
     # search for catalog title record by MARC21 category 001 (control number)
-    $query = "zkshid:\"$sel_titel\"";
+    $query = "zkshid:\"$sel_titel\"" . $querybranchcodes;
     ( $error, $marcresults, $total_hits ) = ( '', (), 0 );
     ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
 
@@ -348,7 +392,7 @@ if ($total_hits == 0)
     } else
     {
         # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-        $query = "nb:\"$sel_srisbn\" or id-other:\"$sel_srisbn\"";
+        $query = "(nb:\"$sel_srisbn\" or id-other:\"$sel_srisbn\")" . $querybranchcodes;
         ( $error, $marcresults, $total_hits ) = ( '', (), 0 );
         ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
         
@@ -384,9 +428,12 @@ for (my $i = 0; $i < $hits and defined $marcresults->[$i] and $best_item_status 
         @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };    # read items of this biblio number
         for my $itemnumber ( @itemnumbers )
         {
-            # check if this item has a "better" status
             my $itemrecord = C4::Items::GetItem( $itemnumber, 0, 0);
+            if ( $selbranchcodecheck && !defined($selbranchcodehash{$itemrecord->{'homebranch'}}) ) {
+                next;    # not in the set of relevant items
+            }
 
+            # check if this item has a "better" status
             my $item_notforloan = $itemrecord->{'notforloan'};
             my $item_damaged = $itemrecord->{'damaged'};
             my $item_itemlost = $itemrecord->{'itemlost'};
@@ -408,7 +455,7 @@ for (my $i = 0; $i < $hits and defined $marcresults->[$i] and $best_item_status 
                 next;
             }
             my $item_onloan = $itemrecord->{'onloan'};
-            if (length($item_onloan) > 0 && $best_item_status != 1)
+            if ($item_onloan && length($item_onloan) > 0 && $best_item_status != 1)
             {
                 $best_item_status = 2;      # this is the second best status of all: item on loan
                 $best_itemnumber = $itemnumber;
