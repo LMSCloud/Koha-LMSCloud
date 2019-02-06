@@ -175,8 +175,9 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
         delSingleRecord( biblionumber );
     });
     $(".clearsh").on("click", function(e){
-        e.preventDefault();
-        return confirmDelete(MSG_DELETE_SEARCH_HISTORY);
+        if (! confirmDelete(MSG_DELETE_SEARCH_HISTORY) ) {
+            e.preventDefault();
+        }
     });
     //]]>
 </script>
