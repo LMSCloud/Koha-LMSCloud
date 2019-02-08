@@ -31,6 +31,7 @@
     <xsl:variable name="Show856uAsImage" select="marc:sysprefs/marc:syspref[@name='OPACDisplay856uAsImage']"/>
     <xsl:variable name="OPACTrackClicks" select="marc:sysprefs/marc:syspref[@name='TrackClicks']"/>
     <xsl:variable name="theme" select="marc:sysprefs/marc:syspref[@name='opacthemes']"/>
+    <xsl:variable name="IncludeAdditionalMARCFields" select="marc:sysprefs/marc:syspref[@name='IncludeAdditionalMARCFieldsInOPACDetailView']"/>
     <xsl:variable name="biblionumber" select="marc:datafield[@tag=999]/marc:subfield[@code='c']"/>
     <xsl:variable name="TracingQuotesLeft">
       <xsl:choose>
@@ -1092,6 +1093,12 @@
         </xsl:if>
         </xsl:for-each>
         </xsl:if>
+        
+        <xsl:if test="string-length($IncludeAdditionalMARCFields) > 0">
+             <xsl:call-template name="additionalFields">
+                <xsl:with-param name="marcFieldList" select="$IncludeAdditionalMARCFields"/>
+            </xsl:call-template>
+        </xsl:if>
 
         <xsl:for-each select="marc:datafield[@tag=511]">
             <span class="results_summary perf_note">
@@ -1688,4 +1695,72 @@
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
+    
+    <xsl:template name="additionalFields">
+        <xsl:param name="marcFieldList" select="." />
+        <xsl:if test="string-length($marcFieldList) > 0">
+            <xsl:variable name="marcContentField" select="substring-before(concat($marcFieldList, '|'), '|')"/>
+            <xsl:if test="string-length($marcContentField) > 0">
+                <xsl:variable name="marcField">
+                    <xsl:choose>
+                        <xsl:when test="substring-before(concat($marcContentField,'='),'=') != $marcContentField">
+                            <xsl:value-of select="substring-before($marcContentField,'=')"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$marcContentField"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="fieldName">
+                    <xsl:choose>
+                        <xsl:when test="substring-before(concat($marcContentField,'='),'=') != $marcContentField">
+                            <xsl:value-of select="substring-after($marcContentField,'=')"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text></xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="subfields">
+                    <xsl:choose>
+                        <xsl:when test="substring-before(concat($marcField,'&#36;'),'&#36;') != $marcField">
+                            <xsl:value-of select="substring-after($marcField,'&#36;')"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>a</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="useField">
+                    <xsl:choose>
+                        <xsl:when test="substring-before(concat($marcField,'&#36;'),'&#36;') != $marcField">
+                            <xsl:value-of select="substring-before($marcField,'&#36;')"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$marcField"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                
+                <xsl:if test="marc:datafield[@tag=$useField and marc:subfield[contains($subfields, @code)] ]">
+                    <div class="results_summary additionalfield">
+                    <xsl:if test="string-length($fieldName) > 0">
+                        <span class="label"><xsl:value-of select="$fieldName" />: </span>
+                    </xsl:if>
+                    <xsl:for-each select="marc:datafield[@tag=$useField and marc:subfield[contains($subfields, @code)]]">
+                        <xsl:if test="position() != 1"><xsl:text> | </xsl:text></xsl:if>
+                            <xsl:call-template name="subfieldSelect">
+                                <xsl:with-param name="codes"><xsl:value-of select="$subfields"/></xsl:with-param>
+                                <xsl:with-param name="delimeter"> | </xsl:with-param>
+                            </xsl:call-template>
+                    </xsl:for-each>
+                    </div>
+                </xsl:if>
+                
+            </xsl:if>
+            <xsl:call-template name="additionalFields">
+                <xsl:with-param name="marcFieldList" select="substring-after($marcFieldList, '|')"/>
+            </xsl:call-template>
+        </xsl:if>
+     </xsl:template>
 </xsl:stylesheet>

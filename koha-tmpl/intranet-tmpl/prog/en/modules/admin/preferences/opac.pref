@@ -556,6 +556,30 @@ OPAC:
             - pref: OpacRenewCardConfirmationText
               type: htmlarea
               class: code
+        -
+            - Specify the number of monthes 
+            - pref: OpacSelectNewAcquisitionsMonthes
+              class: integer
+            - used to build the selection date in the past that can be used in OPAC to select new acquisitions of a library.
+        -
+            - Do not display MARC field 520 content if the value of the first indicator of the field 520 content is contained in following list 
+            - pref: ExcludeReviewsWithMARC520Indicator1Value
+            - "seperated by | (e.g. 4|8). Use # instead of a space."
+        -
+            - "List of additional MARC fields to be embedded with the OPAC search detail view "
+            - pref: IncludeAdditionalMARCFieldsInOPACDetailView
+            - ".<br /> Each field will be displayed in a single line. Multiple field values or subfield values are separated by |.<br />"
+            - "A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code)."
+        -
+            - "List of additional MARC fields to be embedded with the OPAC search result view "
+            - pref: IncludeAdditionalMARCFieldsInOPACResultView
+            - ".<br /> Each field will be displayed in a single line. Multiple field values or subfield values are separated by |.<br />"
+            - "A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code)."
+        -
+            - "List of additional MARC fields to be embedded with the OPAC volume display "
+            - pref: IncludeAdditionalMARCFieldsInOPACVolumeView
+            - ".<br /> Each field will be displayed in a single line. Multiple field values or subfield values are separated by |.<br />"
+            - "A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code)."
     Policy:
         -
             - pref: SearchMyLibraryFirst
@@ -650,15 +674,6 @@ OPAC:
                 yes: "Block"
                 no: "Don't block"
             - expired patrons from OPAC actions such as placing a hold or renewing.  Note that the setting for a patron category takes priority over this system preference.
-        -
-            - Specify the number of monthes 
-            - pref: OpacSelectNewAcquisitionsMonthes
-              class: integer
-            - used to build the selection date in the past that can be used in OPAC to select new acquisitions of a library.
-        -
-            - Do not display MARC field 520 content if the value of the first indicator of the field 520 content is contained in following list 
-            - pref: ExcludeReviewsWithMARC520Indicator1Value
-            - "seperated by | (e.g. 4|8). Use # instead of a space."
         -
             - Limit patrons to
             - pref: MaxOpenSuggestions

@@ -181,7 +181,12 @@ sub get_xslt_sysprefs {
                               AlternateHoldingsField AlternateHoldingsSeparator
                               TrackClicks opacthemes IdRef OpacSuppression
                               OPACResultsLibrary DivibibEnabled 
-                              ExcludeReviewsWithMARC520Indicator1Value / )
+                              ExcludeReviewsWithMARC520Indicator1Value
+                              IncludeAdditionalMARCFieldsInOPACDetailView
+                              IncludeAdditionalMARCFieldsInOPACResultView
+                              IncludeAdditionalMARCFieldsInOPACVolumeView
+                              IncludeAdditionalMARCFieldsInStaffDetailView
+                              IncludeAdditionalMARCFieldsInStaffResultView / )
     {
         my $sp = C4::Context->preference( $syspref );
         next unless defined($sp);

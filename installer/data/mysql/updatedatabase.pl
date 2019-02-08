@@ -17030,6 +17030,21 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.009";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('IncludeAdditionalMARCFieldsInOPACDetailView','',NULL,'List of additional MARC fields to be embedded with the OPAC search detail view. Each field will be displayed in a single line. Multiple field values or subfield values are separated by |. A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code).','Free'),
+            ('IncludeAdditionalMARCFieldsInOPACResultView','',NULL,'List of additional MARC fields to be embedded with the OPAC search result view. Each field will be displayed in a single line. Multiple field values or subfield values are separated by |. A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code).','Free'),
+            ('IncludeAdditionalMARCFieldsInOPACVolumeView','',NULL,'List of additional MARC fields to be embedded with the OPAC volume display. Each field will be displayed in a single line. Multiple field values or subfield values are separated by |. A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code).','Free'),
+            ('IncludeAdditionalMARCFieldsInStaffDetailView','',NULL,'List of additional MARC fields to be embedded with the staff search detail view. Each field will be displayed in a single line. Multiple field values or subfield values are separated by |. A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code).','Free'),
+            ('IncludeAdditionalMARCFieldsInStaffResultView','',NULL,'List of additional MARC fields to be embedded with the staff search result view. Each field will be displayed in a single line. Multiple field values or subfield values are separated by |. A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code).','Free')
+    });
+
+    print "Upgrade to $DBversion done (Added systempreferences for additional MARC fields to be displayed with the OPAC and staff sarch result and detail views)\n";
+    SetVersion($DBversion);
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

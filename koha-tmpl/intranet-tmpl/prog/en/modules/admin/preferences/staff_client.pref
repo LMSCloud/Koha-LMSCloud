@@ -112,6 +112,16 @@ Staff Client:
             - pref: StaffLoginInstructions
               type: htmlarea
               class: code
+        -
+            - "List of additional MARC fields to be embedded with the staff search detail view "
+            - pref: IncludeAdditionalMARCFieldsInStaffDetailView
+            - ".<br /> Each field will be displayed in a single line. Multiple field values or subfield values are separated by |.<br />"
+            - "A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code)."
+        -
+            - "List of additional MARC fields to be embedded with the staff search result view "
+            - pref: IncludeAdditionalMARCFieldsInStaffResultView
+            - ".<br /> Each field will be displayed in a single line. Multiple field values or subfield values are separated by |.<br />"
+            - "A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code)."
     Options:
         -
             - pref: viewMARC
