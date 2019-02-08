@@ -83,7 +83,7 @@ if ($is_ajax) {
                 my $letter = C4::Letters::GetPreparedLetter (
                     module => 'circulation',
                     letter_code => 'CHECKOUT_NOTE',
-                    branchcode => $branch,
+                    branchcode => $branch->branchcode,
                     tables => {
                         'biblio' => $biblionumber,
                         'borrowers' => $borrowernumber,
@@ -100,6 +100,7 @@ if ($is_ajax) {
                     borrowernumber => $patron->borrowernumber,
                     to_address => $to_address,
                     from_address => $from_address,
+                    branchcode => $branch->branchcode
                 });
             } else { # note empty, i.e removed
                 $status = "removed";
