@@ -260,6 +260,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             my @items = ();
             while ( my $item_info = $sth->fetchrow_hashref()) {
                 $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
+                push @items, $item_info;
             }
 
             ## Get branch info for borrowers home library.
@@ -295,6 +296,7 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             my @items = ();
             while ( my $item_info = $sth->fetchrow_hashref()) {
                 $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
+                push @items, $item_info;
             }
 
             ## Get branch info for borrowers home library.
@@ -363,6 +365,7 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$upcoming_digest ) {
     my @items = ();
     while ( my $item_info = $sth->fetchrow_hashref()) {
         $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
+        push @items, $item_info;
     }
 
     ## Get branch info for borrowers home library.
@@ -422,6 +425,7 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %$due_digest ) {
     my @items = ();
     while ( my $item_info = $sth->fetchrow_hashref()) {
         $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
+        push @items, $item_info;
     }
 
     ## Get branch info for borrowers home library.
