@@ -46,6 +46,7 @@ $as_values->{'gen_branchcount'} = { 'id' => '', 'name' => 'gen_branchcount', 'va
 $as_values->{'gen_buscount'} = { 'id' => '', 'name' => 'gen_buscount', 'value' => '', 'type' => 'int' };
 $as_values->{'gen_extservlocation'} = { 'id' => '', 'name' => 'gen_extservlocation', 'value' => '', 'type' => 'int' };
 $as_values->{'gen_publicarea'} = { 'id' => '', 'name' => 'gen_publicarea', 'value' => '', 'type' => 'float' };
+$as_values->{'gen_publicarea_central'} = { 'id' => '', 'name' => 'gen_publicarea_central', 'value' => '', 'type' => 'float' };    # new since DBS 2018
 $as_values->{'gen_openinghours_year'} = { 'id' => '', 'name' => 'gen_openinghours_year', 'value' => '', 'type' => 'float' };
 $as_values->{'gen_openinghours_week'} = { 'id' => '', 'name' => 'gen_openinghours_week', 'value' => '', 'type' => 'float' };
 
@@ -104,7 +105,7 @@ $as_values->{'fin_cur_exp_staff'} = { 'id' => '', 'name' => 'fin_cur_exp_staff',
 $as_values->{'fin_cur_exp_other'} = { 'id' => '', 'name' => 'fin_cur_exp_other', 'value' => '', 'type' => 'float' };
 $as_values->{'fin_singulary_investments'} = { 'id' => '', 'name' => 'fin_singulary_investments', 'value' => '', 'type' => 'float' };
 $as_values->{'fin_expenses_tot'} = { 'id' => '', 'name' => 'fin_expenses_tot', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_costunit_funds_tot'} = { 'id' => '', 'name' => 'fin_costunit_funds_tot', 'value' => '', 'type' => 'float' };
+$as_values->{'fin_costunit_funds_tot'} = { 'id' => '', 'name' => 'fin_costunit_funds_tot', 'value' => '', 'type' => 'float' };    # not used since DBS 2018
 $as_values->{'fin_costunit_expenses'} = { 'id' => '', 'name' => 'fin_costunit_expenses', 'value' => '', 'type' => 'float' };
 $as_values->{'fin_external_funds_tot'} = { 'id' => '', 'name' => 'fin_external_funds_tot', 'value' => '', 'type' => 'float' };
 $as_values->{'fin_ext_funds_EU'} = { 'id' => '', 'name' => 'fin_ext_funds_EU', 'value' => '', 'type' => 'float' };
@@ -144,6 +145,7 @@ $as_values->{'srv_activeinfo_yn'} = { 'id' => '', 'name' => 'srv_activeinfo_yn',
 $as_values->{'srv_publicwlan_yn'} = { 'id' => '', 'name' => 'srv_publicwlan_yn', 'value' => '', 'type' => 'bool' };
 $as_values->{'srv_socialwork_yn'} = { 'id' => '', 'name' => 'srv_socialwork_yn', 'value' => '', 'type' => 'bool' };
 $as_values->{'srv_events_tot'} = { 'id' => '', 'name' => 'srv_events_tot', 'value' => '', 'type' => 'int' };
+$as_values->{'srv_events_tot_visits'} = { 'id' => '', 'name' => 'srv_events_tot_visits', 'value' => '', 'type' => 'int' };    # new since DBS 2018
 $as_values->{'srv_evt_libintro'} = { 'id' => '', 'name' => 'srv_evt_libintro', 'value' => '', 'type' => 'int' };
 $as_values->{'srv_evt_juvenile'} = { 'id' => '', 'name' => 'srv_evt_juvenile', 'value' => '', 'type' => 'int' };
 $as_values->{'srv_evt_adult'} = { 'id' => '', 'name' => 'srv_evt_adult', 'value' => '', 'type' => 'int' };

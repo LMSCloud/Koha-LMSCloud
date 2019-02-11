@@ -44,20 +44,20 @@
             exportTableToCSV.call(this, $('#dbs_values_table'), 'export.tab', 'tab');
         });
 
-        $('#DBSdownload_dbs105').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs105.csv', 'dbs105');
+        $('#DBSdownload_dbs106').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs106.csv', 'dbs106');
         });
 
-        $('#DBSdownload_dbs116').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs116.csv', 'dbs116');
+        $('#DBSdownload_dbs117').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs117.csv', 'dbs117');
         });
 
-        $('#DBSdownload_dbs123').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs123.csv', 'dbs123');
+        $('#DBSdownload_dbs124').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs124.csv', 'dbs124');
         });
 
-        $('#DBSdownload_dbs145').click(function() {
-            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs145.csv', 'dbs145');
+        $('#DBSdownload_dbs146').click(function() {
+            exportTableToCSV.call(this, $('#dbs_values_table'), 'exportdbs146.csv', 'dbs146');
         });
 
     });
@@ -95,7 +95,7 @@
         rowDelim = '\r\n';
         if ( format == "tab" ) {
             colDelim = '\t';
-        } else if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
+        } else if ( format == "dbs106" || format == "dbs117" || format == "dbs124" || format == "dbs146" ) {
             colDelim = ';';
         } else {
             [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
@@ -127,7 +127,7 @@
         }
 
 
-        if ( format == "dbs105" || format == "dbs116" || format == "dbs123" || format == "dbs145" ) {
+        if ( format == "dbs106" || format == "dbs117" || format == "dbs124" || format == "dbs146" ) {
             var values = $rows.map(
                 function(i, row) {
                     var $row = $(row);
@@ -136,13 +136,13 @@
                     return $cols.map(getcolvalues).get()[2];
                 }
             );
-            // default length corresponds to dbs145
-            if ( format == "dbs105" ) {
-                values = values.slice(0,105);
-            } else if ( format == "dbs116" ) {
-                values = values.slice(0,116);
-            } else if ( format == "dbs123" ) {
-                values = values.slice(0,123);
+            // default length corresponds to dbs146
+            if ( format == "dbs106" ) {
+                values = values.slice(0,106);
+            } else if ( format == "dbs117" ) {
+                values = values.slice(0,117);
+            } else if ( format == "dbs124" ) {
+                values = values.slice(0,124);
             }
             csv += '"' + values.get().join(tmpColDelim)
                     .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
@@ -272,10 +272,10 @@
                     <ul class="dropdown-menu">
                         <li><a id="DBSdownload_csv" >Comma separated text</a></li>
                         <li><a id="DBSdownload_tab" >Tab separated text</a></li>
-                        <li><a id="DBSdownload_dbs105" >DBS base questionaire (105 col.)</a></li>
-                        <li><a id="DBSdownload_dbs116" > + patients' library (116 col.)</a></li>
-                        <li><a id="DBSdownload_dbs123" > + mobile library (123 col.)</a></li>
-                        <li><a id="DBSdownload_dbs145" > + music library (145 col.)</a></li>
+                        <li><a id="DBSdownload_dbs106" >DBS base questionaire (106 col.)</a></li>
+                        <li><a id="DBSdownload_dbs117" > + patients' library (117 col.)</a></li>
+                        <li><a id="DBSdownload_dbs124" > + mobile library (124 col.)</a></li>
+                        <li><a id="DBSdownload_dbs146" > + music library (146 col.)</a></li>
                     </ul>
                 </div>
             
@@ -353,6 +353,14 @@
                     <td>Publikumsfläche (m²)</td>
                     <td>
                         <input type="text" id="st_gen_publicarea" name="st_gen_publicarea" value="[% st.gen_publicarea | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_publicarea,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_publicarea)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>6.1</td>
+                    <td>... davon: Publikumsfläche der Hauptstelle (m²)</td>
+                    <td>
+                        <input type="text" id="st_gen_publicarea_central" name="st_gen_publicarea_central" value="[% st.gen_publicarea_central | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_publicarea_central,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_publicarea_central)" />
                     </td>
                 </tr>
 
@@ -748,7 +756,7 @@
 
                 <tr>
                     <td>50</td>
-                    <td>... davon: Ausgaben für Erwerbung (inkl. Einband, Lizenzen, Portalkosten)</td>
+                    <td>... davon: Ausgaben für Erwerbung (inkl. Einband und Lizenzen)</td>
                     <td>
                         <input type="text" id="st_fin_cur_exp_acquisitions" name="st_fin_cur_exp_acquisitions" value="[% st.fin_cur_exp_acquisitions | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acquisitions,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acquisitions)" />
                     </td>
@@ -756,7 +764,7 @@
 
                 <tr>
                     <td>50.1</td>
-                    <td>... darunter: Ausgaben für Lizenzen, Datenbanken und Portalkosten</td>
+                    <td>... darunter: Ausgaben für virtuelle Medien (Lizenzen)</td>
                     <td>
                         <input type="text" id="st_fin_cur_exp_acq_licences" name="st_fin_cur_exp_acq_licences" value="[% st.fin_cur_exp_acq_licences | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acq_licences,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acq_licences)" />
                     </td>
@@ -772,7 +780,7 @@
 
                 <tr>
                     <td>52</td>
-                    <td>... davon: sonstige laufende Ausgaben</td>
+                    <td>... davon: sonstige laufende Ausgaben (inklusive Portalkosten)</td>
                     <td>
                         <input type="text" id="st_fin_cur_exp_other" name="st_fin_cur_exp_other" value="[% st.fin_cur_exp_other | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_other,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_other)" />
                     </td>
@@ -794,13 +802,14 @@
                     </td>
                 </tr>
 
+                <!-- not used since DBS 2018
                 <tr>
                     <td>54.1</td>
                     <td>Höhe des Gesamthaushalts des Hauptträgers</td>
                     <td>
                         <input type="text" id="st_fin_costunit_funds_tot" name="st_fin_costunit_funds_tot" value="[% st.fin_costunit_funds_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_costunit_funds_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_costunit_funds_tot)" />
                     </td>
-                </tr>
+                </tr> -->
 
                 <tr>
                     <td>55</td>
@@ -1143,8 +1152,16 @@
                 </tr>
 
                 <tr>
+                    <td>94.1</td>
+                    <td>Anzahl der Besuche bei Veranstaltungen</td>
+                    <td>
+                        <input type="number" id="st_srv_events_tot_visits" name="st_srv_events_tot_visits" min="0" size="12" maxlength="12" value="[% st.srv_events_tot_visits %]" />
+                    </td>
+                </tr>
+
+                <tr>
                     <td>95</td>
-                    <td>... davon: Einführungen in die Bibliotheksnutzung</td>
+                    <td>Veranstaltungen, Führungen, Ausstellungen, davon: Einführungen in die Bibliotheksbenutzung</td>
                     <td>
                         <input type="number" id="st_srv_evt_libintro" name="st_srv_evt_libintro" min="0" size="12" maxlength="12" value="[% st.srv_evt_libintro %]" />
                     </td>
@@ -1152,7 +1169,7 @@
 
                 <tr>
                     <td>96</td>
-                    <td>... davon: für Kinder und Jugendliche</td>
+                    <td>Veranstaltungen, Führungen, Ausstellungen, davon: für Kinder und Jugendliche</td>
                     <td>
                         <input type="number" id="st_srv_evt_juvenile" name="st_srv_evt_juvenile" min="0" size="12" maxlength="12" value="[% st.srv_evt_juvenile %]" />
                     </td>
@@ -1160,7 +1177,7 @@
 
                 <tr>
                     <td>97</td>
-                    <td>... davon: für Erwachsene</td>
+                    <td>Veranstaltungen, Führungen, Ausstellungen, davon: für Erwachsene</td>
                     <td>
                         <input type="number" id="st_srv_evt_adult" name="st_srv_evt_adult" min="0" size="12" maxlength="12" value="[% st.srv_evt_adult %]" />
                     </td>
@@ -1168,7 +1185,7 @@
 
                 <tr>
                     <td>98</td>
-                    <td>... davon: Ausstellungen</td>
+                    <td>Veranstaltungen, Führungen, Ausstellungen, davon: Ausstellungen</td>
                     <td>
                         <input type="number" id="st_srv_evt_exhibition" name="st_srv_evt_exhibition" min="0" size="12" maxlength="12" value="[% st.srv_evt_exhibition %]" />
                     </td>
@@ -1176,7 +1193,7 @@
 
                 <tr>
                     <td>99</td>
-                    <td>... davon: Sonstige</td>
+                    <td>Veranstaltungen, Führungen, Ausstellungen, davon: Sonstige</td>
                     <td>
                         <input type="number" id="st_srv_evt_other" name="st_srv_evt_other" min="0" size="12" maxlength="12" value="[% st.srv_evt_other %]" />
                     </td>
