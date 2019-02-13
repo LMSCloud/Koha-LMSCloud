@@ -1234,7 +1234,7 @@
                     <td>400</td>
                     <td>Noten - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_sheetmusic_stock" name="st_mus_sheetmusic_stock" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_stock %]" />
+                        <input type="number" id="st_mus_sheetmusic_stock" name="st_mus_sheetmusic_stock" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1242,7 +1242,7 @@
                     <td>401</td>
                     <td>Noten - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_sheetmusic_issues" name="st_mus_sheetmusic_issues" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_issues %]" />
+                        <input type="number" id="st_mus_sheetmusic_issues" name="st_mus_sheetmusic_issues" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1250,7 +1250,7 @@
                     <td>402</td>
                     <td>Bücher (Sekundärlit. Musik) - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_secondarylit_stock" name="st_mus_secondarylit_stock" min="0" size="12" maxlength="12" value="[% st.mus_secondarylit_stock %]" />
+                        <input type="number" id="st_mus_secondarylit_stock" name="st_mus_secondarylit_stock" min="0" size="12" maxlength="12" value="[% st.mus_secondarylit_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1258,7 +1258,7 @@
                     <td>403</td>
                     <td>Bücher (Sekundärlit. Musik) - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_secondarylit_issues" name="st_mus_secondarylit_issues" min="0" size="12" maxlength="12" value="[% st.mus_secondarylit_issues %]" />
+                        <input type="number" id="st_mus_secondarylit_issues" name="st_mus_secondarylit_issues" min="0" size="12" maxlength="12" value="[% st.mus_secondarylit_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1266,7 +1266,7 @@
                     <td>404</td>
                     <td>Musik-CDs - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_cd_stock" name="st_mus_cd_stock" min="0" size="12" maxlength="12" value="[% st.mus_cd_stock %]" />
+                        <input type="number" id="st_mus_cd_stock" name="st_mus_cd_stock" min="0" size="12" maxlength="12" value="[% st.mus_cd_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1274,7 +1274,7 @@
                     <td>405</td>
                     <td>Musik-CDs - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_cd_issues" name="st_mus_cd_issues" min="0" size="12" maxlength="12" value="[% st.mus_cd_issues %]" />
+                        <input type="number" id="st_mus_cd_issues" name="st_mus_cd_issues" min="0" size="12" maxlength="12" value="[% st.mus_cd_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1282,7 +1282,7 @@
                     <td>406</td>
                     <td>Musik-Kassetten - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_cassette_stock" name="st_mus_cassette_stock" min="0" size="12" maxlength="12" value="[% st.mus_cassette_stock %]" />
+                        <input type="number" id="st_mus_cassette_stock" name="st_mus_cassette_stock" min="0" size="12" maxlength="12" value="[% st.mus_cassette_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1290,7 +1290,7 @@
                     <td>407</td>
                     <td>Musik-Kassetten - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_cassette_issues" name="st_mus_cassette_issues" min="0" size="12" maxlength="12" value="[% st.mus_cassette_issues %]" />
+                        <input type="number" id="st_mus_cassette_issues" name="st_mus_cassette_issues" min="0" size="12" maxlength="12" value="[% st.mus_cassette_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1298,7 +1298,7 @@
                     <td>408</td>
                     <td>Schallplatten (Vinyl) - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_record_stock" name="st_mus_record_stock" min="0" size="12" maxlength="12" value="[% st.mus_record_stock %]" />
+                        <input type="number" id="st_mus_record_stock" name="st_mus_record_stock" min="0" size="12" maxlength="12" value="[% st.mus_record_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1306,7 +1306,7 @@
                     <td>409</td>
                     <td>Schallplatten (Vinyl) - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_record_issues" name="st_mus_record_issues" min="0" size="12" maxlength="12" value="[% st.mus_record_issues %]" />
+                        <input type="number" id="st_mus_record_issues" name="st_mus_record_issues" min="0" size="12" maxlength="12" value="[% st.mus_record_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1314,7 +1314,7 @@
                     <td>410</td>
                     <td>Musik-Videos (VHS) - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_VHS_stock" name="st_mus_VHS_stock" min="0" size="12" maxlength="12" value="[% st.mus_VHS_stock %]" />
+                        <input type="number" id="st_mus_VHS_stock" name="st_mus_VHS_stock" min="0" size="12" maxlength="12" value="[% st.mus_VHS_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1322,7 +1322,7 @@
                     <td>411</td>
                     <td>Musik-Videos (VHS) - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_VHS_issues" name="st_mus_VHS_issues" min="0" size="12" maxlength="12" value="[% st.mus_VHS_issues %]" />
+                        <input type="number" id="st_mus_VHS_issues" name="st_mus_VHS_issues" min="0" size="12" maxlength="12" value="[% st.mus_VHS_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1330,7 +1330,7 @@
                     <td>412</td>
                     <td>Musik-DVDs - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_DVD_stock" name="st_mus_DVD_stock" min="0" size="12" maxlength="12" value="[% st.mus_DVD_stock %]" />
+                        <input type="number" id="st_mus_DVD_stock" name="st_mus_DVD_stock" min="0" size="12" maxlength="12" value="[% st.mus_DVD_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1338,7 +1338,7 @@
                     <td>413</td>
                     <td>Musik-DVDs - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_DVD_issues" name="st_mus_DVD_issues" min="0" size="12" maxlength="12" value="[% st.mus_DVD_issues %]" />
+                        <input type="number" id="st_mus_DVD_issues" name="st_mus_DVD_issues" min="0" size="12" maxlength="12" value="[% st.mus_DVD_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1346,7 +1346,7 @@
                     <td>414</td>
                     <td>Musik-Zeitschriften - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_periodicals_stock" name="st_mus_periodicals_stock" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_stock %]" />
+                        <input type="number" id="st_mus_periodicals_stock" name="st_mus_periodicals_stock" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1354,7 +1354,7 @@
                     <td>415</td>
                     <td>Musik-Zeitschriften - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_periodicals_issues" name="st_mus_periodicals_issues" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_issues %]" />
+                        <input type="number" id="st_mus_periodicals_issues" name="st_mus_periodicals_issues" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1362,7 +1362,7 @@
                     <td>416</td>
                     <td>Sonstige - Bestand</td>
                     <td>
-                        <input type="number" id="st_mus_other_stock" name="st_mus_other_stock" min="0" size="12" maxlength="12" value="[% st.mus_other_stock %]" />
+                        <input type="number" id="st_mus_other_stock" name="st_mus_other_stock" min="0" size="12" maxlength="12" value="[% st.mus_other_stock %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1370,7 +1370,7 @@
                     <td>417</td>
                     <td>Sonstige - Entleihungen</td>
                     <td>
-                        <input type="number" id="st_mus_other_issues" name="st_mus_other_issues" min="0" size="12" maxlength="12" value="[% st.mus_other_issues %]" />
+                        <input type="number" id="st_mus_other_issues" name="st_mus_other_issues" min="0" size="12" maxlength="12" value="[% st.mus_other_issues %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1378,7 +1378,7 @@
                     <td>418</td>
                     <td>BESTAND insgesamt (Summe 400,...,416)</td>
                     <td>
-                        <input type="number" id="st_mus_stock_tot" name="st_mus_stock_tot" min="0" size="12" maxlength="12" value="[% st.mus_stock_tot %]" />
+                        <input type="number" id="st_mus_stock_tot" name="st_mus_stock_tot" min="0" size="12" maxlength="12" value="[% st.mus_stock_tot %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
@@ -1386,7 +1386,7 @@
                     <td>419</td>
                     <td>ENTLEIHUNGEN insgesamt (Summe 401,...,417)</td>
                     <td>
-                        <input type="number" id="st_mus_issues_tot" name="st_mus_issues_tot" min="0" size="12" maxlength="12" value="[% st.mus_issues_tot %]" />
+                        <input type="number" id="st_mus_issues_tot" name="st_mus_issues_tot" min="0" size="12" maxlength="12" value="[% st.mus_issues_tot %]" /> <b style="font-size: 125%">*</b>
                     </td>
                 </tr>
 
