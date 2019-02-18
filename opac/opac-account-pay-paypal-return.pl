@@ -86,6 +86,8 @@ my $nvp_params = {
 my $response = $ua->request( POST $url, $nvp_params );
 
 my $error = q{};
+my $patron = Koha::Patrons->find( $borrowernumber );
+
 if ( $response->is_success ) {
 
     my $urlencoded = $response->content;
@@ -102,6 +104,12 @@ if ( $response->is_success ) {
             }
         );
 
+        # we take the borrowers branchcode also for the payment accountlines record to be created
+        my $library_id = undef;
+        if ( $patron ) {
+            $library_id = $patron->branchcode();
+        }
+
         # evaluate configuration of cash register management for online payments
         my $withoutCashRegisterManagement = 1;    # default: avoiding cash register management in Koha::Account->pay()
         my $cash_register_manager_id = 0;    # borrowernumber of manager of online cash register
@@ -109,24 +117,20 @@ if ( $response->is_success ) {
         if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
             my $paymentsOnlineCashRegisterName = C4::Context->preference('PaymentsOnlineCashRegisterName');
             my $paymentsOnlineCashRegisterManagerCardnumber = C4::Context->preference('PaymentsOnlineCashRegisterManagerCardnumber');
-print STDERR "opac-account-pay-paypal-return.pl: paymentsOnlineCashRegisterName:$paymentsOnlineCashRegisterName: paymentsOnlineCashRegisterManagerCardnumber:$paymentsOnlineCashRegisterManagerCardnumber:\n";
             if ( length($paymentsOnlineCashRegisterName) && length($paymentsOnlineCashRegisterManagerCardnumber) ) {
                 $withoutCashRegisterManagement = 0;
 
-                my $userenv = C4::Context->userenv;
-                my $library_id = $userenv ? $userenv->{'branch'} : undef;
                 # get cash register manager information
                 my $cash_register_manager = Koha::Patrons->search( { cardnumber => $paymentsOnlineCashRegisterManagerCardnumber } )->next();
                 if ( $cash_register_manager ) {
                     $cash_register_manager_id = $cash_register_manager->borrowernumber();
-print STDERR "opac-account-pay-paypal-return.pl: cash_register_manager_id:$cash_register_manager_id:\n";
-                    my $cash_register_mngmt = C4::CashRegisterManagement->new($library_id, $cash_register_manager_id);
+                    my $cash_register_manager_branchcode = $cash_register_manager->branchcode();
+                    my $cash_register_mngmt = C4::CashRegisterManagement->new($cash_register_manager_branchcode, $cash_register_manager_id);
 
                     if ( $cash_register_mngmt ) {
                         my $cashRegisterNeedsToBeOpened = 1;
                         my $openedCashRegister = $cash_register_mngmt->getOpenedCashRegisterByManagerID($cash_register_manager_id);
                         if ( defined $openedCashRegister ) {
-print STDERR "opac-account-pay-paypal-return.pl: cash_register_name:", $openedCashRegister->{'cash_register_name'}, ":\n";
                             if ($openedCashRegister->{'cash_register_name'} eq $paymentsOnlineCashRegisterName) {
                                 $cashRegisterNeedsToBeOpened = 0;
                             } else {
@@ -136,10 +140,8 @@ print STDERR "opac-account-pay-paypal-return.pl: cash_register_name:", $openedCa
                         if ( $cashRegisterNeedsToBeOpened ) {
                             # try to open the specified cash register by name
                             my $cash_register_id = $cash_register_mngmt->readCashRegisterIdByName($paymentsOnlineCashRegisterName);
-print STDERR "opac-account-pay-paypal-return.pl: cash_register_id:$cash_register_id:\n";
                             if ( defined $cash_register_id && $cash_register_mngmt->canOpenCashRegister($cash_register_id, $cash_register_manager_id) ) {
                                 my $opened = $cash_register_mngmt->openCashRegister($cash_register_id, $cash_register_manager_id);
-print STDERR "opac-account-pay-paypal-return.pl: cash_register_mngmt->openCashRegister($library_id, $cash_register_manager_id) returned opened:$opened:\n";
                             }
                         }
                     }
@@ -151,6 +153,7 @@ print STDERR "opac-account-pay-paypal-return.pl: cash_register_mngmt->openCashRe
             {
                 amount => $amount,
                 lines  => \@lines,
+                library_id => $library_id,
                 description => 'PayPal',
                 note => 'Online-PayPal',
                 withoutCashRegisterManagement => $withoutCashRegisterManagement,
@@ -167,7 +170,6 @@ else {
     $error = "PAYPAL_UNABLE_TO_CONNECT";
 }
 
-my $patron = Koha::Patrons->find( $borrowernumber );
 $template->param(
     borrower    => $patron->unblessed,
     accountview => 1
