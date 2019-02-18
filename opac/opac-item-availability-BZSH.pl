@@ -74,12 +74,12 @@ Datum voraussichtliche Rückgabe: 04.07.2017
 
 addition february 2019:
 introduction of system preference BZSHAvailabilityBranches to limit the search to selected branchcodes.
-Format: list of elements, separated by '|', of the form BZSHID_x:branchcode_1,...,branchcode_n
+Format: list of elements, separated by '|', of the form BZSH-Sigel_x:branchcode_1,...,branchcode_n
 example: 802:HST,ZW1|803:ZW2|809:ZW2,ZW4,HST
 The selection for branchcodes will only be activated if
  - the system preference BZSHAvailabilityBranches is set
- - BZSHAvailabilityBranches contains an entry for this BZSHID (i.e. sigel)
- - the entry for this BZSHID (i.e. sigel) in BZSHAvailabilityBranches contains at least 1 branchcode
+ - BZSHAvailabilityBranches contains an entry for this BZSH-Sigel
+ - the entry for this BZSH-Sigel in BZSHAvailabilityBranches contains at least 1 branchcode
 
 
 =cut
@@ -99,7 +99,7 @@ use Koha::Items;
 
 my $cgi = new CGI;
 
-my $sel_sigel = $cgi->param("sigel");       # this seems not to be the official ISIL but a so called BZSHID (library identifier within Schleswig-Holstein)
+my $sel_sigel = $cgi->param("sigel");       # this seems not to be the official ISIL but a so called BZSH-Sigel (library identifier within Schleswig-Holstein)
 my $sel_titel = $cgi->param("TITEL");
 my $sel_srisbn = $cgi->param("SRISBN");
 my $sel_srtit = $cgi->param("SRTIT");       # not used here
@@ -126,10 +126,10 @@ my %selbranchcodehash = ();
 if ( $bzshAvailabilityBranches ) {
     my @bzshAvailabilityLibs = split('\|',$bzshAvailabilityBranches);
     foreach my $lib ( @bzshAvailabilityLibs ) {
-        my @bzshid = split(':',$lib);
-        if ( $bzshid[0] && $bzshid[0] eq $sel_sigel) {
-            if ( $bzshid[1] ) {
-                @selbranchcodes = split(',',$bzshid[1]);
+        my @bzshsigelbranchcodes = split(':',$lib);
+        if ( $bzshsigelbranchcodes[0] && $bzshsigelbranchcodes[0] eq $sel_sigel) {
+            if ( $bzshsigelbranchcodes[1] ) {
+                @selbranchcodes = split(',',$bzshsigelbranchcodes[1]);
                 foreach my $branchcode (@selbranchcodes) {
                     $selbranchcodecheck = 1;
                     $selbranchcodehash{$branchcode} = $branchcode;
