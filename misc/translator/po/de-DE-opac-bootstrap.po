@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2019-02-08 17:13+0100\n"
-"PO-Revision-Date: 2019-02-04 15:54+0100\n"
+"POT-Creation-Date: 2019-02-21 16:33+0100\n"
+"PO-Revision-Date: 2019-02-21 11:39+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2123,7 +2123,7 @@ msgstr "%sJa%sNein%s "
 #: opac-tmpl/bootstrap/en/modules/opac-addbybiblionumber.tt:17
 #, c-format
 msgid "%sa list:%s"
-msgstr "%seine Liste:%s"
+msgstr "%seiner Liste:%s"
 
 #: opac-tmpl/bootstrap/en/includes/page-numbers.inc:7
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1078
