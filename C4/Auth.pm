@@ -1221,6 +1221,14 @@ sub checkauth {
         }
 
         track_login_daily( $userid );
+        
+        # In case, that this request was a login attempt, we want to prevent that users can repost the opac login
+        # request. We therefore redirect the user to the requested page again without the login parameters.
+        # See Post/Redirect/Get (PRG) design pattern: https://en.wikipedia.org/wiki/Post/Redirect/Get
+        if ( $type eq "opac" && $query->param('password') && $query->param('userid') ) {
+            print $query->redirect(-uri => $query->url(-relative=>1), -cookie => $cookie, -status=>'303 See other');
+            exit;
+        }
 
         return ( $userid, $cookie, $sessionID, $flags );
     }
