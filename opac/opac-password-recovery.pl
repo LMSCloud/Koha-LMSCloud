@@ -192,4 +192,4 @@ else {    #password recovery form (to send email)
     $template->param( password_recovery => 1 );
 }
 
-output_html_with_http_headers $query, $cookie, $template->output;
+output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

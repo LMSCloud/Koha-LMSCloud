@@ -90,4 +90,4 @@ else {
     );
 }
 
-output_html_with_http_headers $cgi, $cookie, $template->output;
+output_html_with_http_headers $cgi, $cookie, $template->output, undef, { force_no_caching => 1 };
