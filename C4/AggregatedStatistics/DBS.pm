@@ -261,7 +261,7 @@ $dbs_sql_statements->{'med_tot_phys_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -273,7 +273,7 @@ $dbs_sql_statements->{'med_tot_phys_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -291,9 +291,9 @@ $dbs_sql_statements->{'med_tot_issues'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -303,7 +303,7 @@ $dbs_sql_statements->{'med_tot_issues'} = q{
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -312,7 +312,7 @@ $dbs_sql_statements->{'med_tot_issues'} = q{
                                     )
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -333,9 +333,9 @@ $dbs_sql_statements->{'med_phys_issues'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -345,7 +345,7 @@ $dbs_sql_statements->{'med_phys_issues'} = q{
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -354,7 +354,7 @@ $dbs_sql_statements->{'med_phys_issues'} = q{
                                     )
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -374,7 +374,7 @@ $dbs_sql_statements->{'med_openaccess_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -386,7 +386,7 @@ $dbs_sql_statements->{'med_openaccess_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' ) 
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -404,9 +404,9 @@ $dbs_sql_statements->{'med_openaccess_issues'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M' )) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' )) 
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M' )) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' )) 
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -416,7 +416,7 @@ $dbs_sql_statements->{'med_openaccess_issues'} = q{
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M' ) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -425,7 +425,7 @@ $dbs_sql_statements->{'med_openaccess_issues'} = q{
                                     )
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M' ) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -445,7 +445,7 @@ $dbs_sql_statements->{'med_stack_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -457,7 +457,7 @@ $dbs_sql_statements->{'med_stack_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -829,7 +829,7 @@ $dbs_sql_statements->{'med_nonbook_tot_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_M' ) 
+          and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -841,7 +841,7 @@ $dbs_sql_statements->{'med_nonbook_tot_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_M' ) 
+          and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -859,9 +859,9 @@ $dbs_sql_statements->{'med_nonbook_tot_issues'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_M' ))
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ))
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_M' ))
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ))
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -871,7 +871,7 @@ $dbs_sql_statements->{'med_nonbook_tot_issues'} = q{
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_M' )
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' )
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -880,7 +880,7 @@ $dbs_sql_statements->{'med_nonbook_tot_issues'} = q{
                                     )
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_M' )
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' )
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -971,7 +971,7 @@ $dbs_sql_statements->{'med_nonbook_other_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_M' )
+          and coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_B' )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -983,7 +983,7 @@ $dbs_sql_statements->{'med_nonbook_other_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_M' )
+          and coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_B' )
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -1001,9 +1001,9 @@ $dbs_sql_statements->{'med_nonbook_other_issues'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_M' ))
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_B' ))
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_M' ))
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_B' ))
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -1013,7 +1013,7 @@ $dbs_sql_statements->{'med_nonbook_other_issues'} = q{
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier  IN ( 'F_N_O', 'F_B_W', 'F_M_M' )
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier  IN ( 'F_N_O', 'F_B_W', 'F_M_B' )
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1022,7 +1022,7 @@ $dbs_sql_statements->{'med_nonbook_other_issues'} = q{
                                     )
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier  IN ( 'F_N_O', 'F_B_W', 'F_M_M' )
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier  IN ( 'F_N_O', 'F_B_W', 'F_M_B' )
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1041,7 +1041,7 @@ $dbs_sql_statements->{'med_access_units'} = q{
     (   select count(*) as cnt from items
         where ( dateaccessioned >= (@startdatum := ?) ) 
           and ( dateaccessioned <= (@enddatum := ?) )
-          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) )
+          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -1052,7 +1052,7 @@ $dbs_sql_statements->{'med_access_units'} = q{
         select count(*) as cnt from deleteditems 
         where ( dateaccessioned >= @startdatum )
           and ( dateaccessioned <= @enddatum )
-          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) )
+          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) )
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1068,7 +1068,7 @@ $dbs_sql_statements->{'med_withdrawal_units'} = q{
         where ( withdrawn != 0 ) 
           and ( date(withdrawn_on) >= (@startdatum := ?) ) 
           and ( date(withdrawn_on) <= (@enddatum := ?) )
-          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) )
+          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -1079,7 +1079,7 @@ $dbs_sql_statements->{'med_withdrawal_units'} = q{
         select count(*) as cnt from deleteditems
         where ( date(timestamp) >= (@startdatum) ) 
           and ( date(timestamp) <= (@enddatum) )
-          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) )
+          and ( coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) )
           and ( ((@branchgroupSelect0or1) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel) COLLATE utf8mb4_unicode_ci)
@@ -1142,7 +1142,7 @@ $dbs_sql_statements->{'mol_stock_media_units'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -1155,7 +1155,7 @@ $dbs_sql_statements->{'mol_stock_media_units'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -1174,9 +1174,9 @@ $dbs_sql_statements->{'mol_media_unit_issues'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -1187,7 +1187,7 @@ $dbs_sql_statements->{'mol_media_unit_issues'} = q{
                   and ( exists ( select branchcode from branches where branches.branchcode = s.branch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1197,7 +1197,7 @@ $dbs_sql_statements->{'mol_media_unit_issues'} = q{
                                 and ( exists ( select branchcode from branches where branches.branchcode = i.homebranch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1786,7 +1786,7 @@ $dbs_sql_statements->{'mus_other_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier in ( 'F_M_O', 'F_M_M', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -1798,7 +1798,7 @@ $dbs_sql_statements->{'mus_other_stock'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier in ( 'F_M_O', 'F_M_M', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' ) 
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -1816,9 +1816,9 @@ $dbs_sql_statements->{'mus_other_issues'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_M_O', 'F_M_M', 'M_M_O', 'M_M_M' )) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' )) 
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_M_O', 'F_M_M', 'M_M_O', 'M_M_M' )) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' )) 
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -1828,7 +1828,7 @@ $dbs_sql_statements->{'mus_other_issues'} = q{
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_M_O', 'F_M_M', 'M_M_O', 'M_M_M' ) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1837,7 +1837,7 @@ $dbs_sql_statements->{'mus_other_issues'} = q{
                                     )
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_M_O', 'F_M_M', 'M_M_O', 'M_M_M' ) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1857,7 +1857,7 @@ $dbs_sql_statements->{'mus_stock_tot'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= (@enddatum := ?) 
-          and coded_location_qualifier in ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -1869,7 +1869,7 @@ $dbs_sql_statements->{'mus_stock_tot'} = q{
         where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
           and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
           and dateaccessioned <= @enddatum 
-          and coded_location_qualifier in ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+          and coded_location_qualifier in ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and date(timestamp) >= @startdatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
@@ -1887,9 +1887,9 @@ $dbs_sql_statements->{'mus_issues_tot'} = q{
           and ( date(s.datetime) <= (@enddatum := ?) )
           and s.type in ('issue', 'renew')
           and ( ( !(s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' )) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' )) 
                       ) 
                   and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                         or
@@ -1899,7 +1899,7 @@ $dbs_sql_statements->{'mus_issues_tot'} = q{
                       )
                 ) or
                 ( (s.branch is null or s.branch = 'OPACRenew')
-                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                  and ( exists (select itemnumber from items i where i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                                       or
                                      (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and i.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1908,7 +1908,7 @@ $dbs_sql_statements->{'mus_issues_tot'} = q{
                                     )
                                )
                         or
-                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_M', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_M' ) 
+                        exists (select itemnumber from deleteditems d where d.itemnumber = s.itemnumber and d.coded_location_qualifier IN ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
                                 and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci)) 
                                       or
                                       (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and d.homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
