@@ -22,6 +22,8 @@ use warnings;
 use Digest::MD5 qw(md5_base64);
 use File::Spec;
 use JSON qw/encode_json/;
+use URI;
+use URI::QueryParam;
 use URI::Escape;
 use CGI::Session;
 
@@ -1225,8 +1227,12 @@ sub checkauth {
         # In case, that this request was a login attempt, we want to prevent that users can repost the opac login
         # request. We therefore redirect the user to the requested page again without the login parameters.
         # See Post/Redirect/Get (PRG) design pattern: https://en.wikipedia.org/wiki/Post/Redirect/Get
-        if ( $type eq "opac" && $query->param('password') && $query->param('userid') ) {
-            print $query->redirect(-uri => $query->url(-relative=>1), -cookie => $cookie, -status=>'303 See other');
+        if ( $type eq "opac" && $query->param('koha_login_context') && $query->param('password') && $query->param('userid') ) {
+            my $uri = URI->new($query->url(-relative=>1, -query_string=>1));
+            $uri->query_param_delete('userid');
+            $uri->query_param_delete('password');
+            $uri->query_param_delete('koha_login_context');
+            print $query->redirect(-uri => $uri->as_string, -cookie => $cookie, -status=>'303 See other');
             exit;
         }
 
