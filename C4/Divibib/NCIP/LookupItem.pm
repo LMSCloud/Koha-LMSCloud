@@ -67,11 +67,17 @@ sub new {
             'xsi:schemaLocation' => 'http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_0/ncip_v2_0.xsd'
         };
 
+    my $agency = C4::Context->preference("DivibibAgencyId");
+    if ( $agency ) {
+        my @agencies = split(",",$agency);
+        $agency = $agencies[0];
+    }
+    
     $command->{'LookupItem'} = {
         'ItemId' => [ { 'ItemIdentifierValue' => [ $itemId ] } ],
 	,
 	'Ext' => [ {
-			'AgencyId' => [ C4::Context->preference("DivibibAgencyId") ],
+			'AgencyId' => [ $agency ],
 			'Language' => [ 'de' ]
 			} ]
     };
