@@ -190,6 +190,9 @@ sub DeleteCollection {
 
     my $sth;
 
+    $sth = $dbh->prepare("DELETE FROM collections_tracking WHERE colId = ?");
+    $sth->execute($colId) or return ( 0, 4, $sth->errstr() );
+
     $sth = $dbh->prepare("DELETE FROM collections WHERE colId = ?");
     $sth->execute($colId) or return ( 0, 4, $sth->errstr() );
 
