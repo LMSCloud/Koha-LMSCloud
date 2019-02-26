@@ -233,5 +233,5 @@ $template->param(
     patrons_pending_suggestions_count => $patrons_pending_suggestions_count,
 );
 
-output_html_with_http_headers $input, $cookie, $template->output;
+output_html_with_http_headers $input, $cookie, $template->output, undef, { force_no_caching => 1 };
 

@@ -451,6 +451,33 @@
             </span>
         </xsl:if>
 
+        <!-- Build EAN/ISMN/UPC/SICI -->
+        <xsl:if test="marc:datafield[@tag=024]/marc:subfield[@code='a']">
+          <span class="results_summary ean">
+            <xsl:for-each select="marc:datafield[@tag=024 and marc:subfield[@code='a']]">
+              <xsl:if test="position()&gt;1">
+                <xsl:text>, </xsl:text>
+              </xsl:if>
+              <span class="label"> 
+                  <xsl:choose>
+                      <xsl:when test="@ind1 = '0'"><xsl:text>ISRC: </xsl:text></xsl:when>
+                      <xsl:when test="@ind1 = '1'"><xsl:text>UPC: </xsl:text></xsl:when>
+                      <xsl:when test="@ind1 = '2'"><xsl:text>ISMN: </xsl:text></xsl:when>
+                      <xsl:when test="@ind1 = '3'"><xsl:text>EAN: </xsl:text></xsl:when>
+                      <xsl:when test="@ind1 = '4'"><xsl:text>SICI: </xsl:text></xsl:when>
+                      <xsl:when test="marc:subfield[@code='2']"><xsl:value-of select="marc:subfield[@code='2']"/></xsl:when>
+                      <xsl:otherwise><xsl:text>EAN: </xsl:text></xsl:otherwise>
+                  </xsl:choose>
+              </span>
+              <span property="ean">
+                <xsl:value-of select="marc:subfield[@code='a']"/>
+              </span>
+              <xsl:if test="position()=last()">
+                <xsl:text>.</xsl:text>
+              </xsl:if>
+            </xsl:for-each>
+          </span>
+        </xsl:if>
 
         <!-- Build ISBN -->
         <xsl:if test="marc:datafield[@tag=020]/marc:subfield[@code='a']">
@@ -521,7 +548,7 @@
                 <span class="label">Interest group: </span>
                 <xsl:for-each select="marc:datafield[@tag=72]">
                     <a>
-                        <xsl:attribute name="href"><xsl:text>/cgi-bin/koha/catalogue/search.pl?q=sbg:"</xsl:text><xsl:value-of select="marc:subfield[@code='a']"/><xsl:text>"</xsl:text></xsl:attribute>
+                        <xsl:attribute name="href"><xsl:text>/cgi-bin/koha/catalogue/search.pl?q=sbg:"</xsl:text><xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/><xsl:text>"</xsl:text></xsl:attribute>
                         <xsl:value-of select="marc:subfield[@code='a']"/>
                     </a>
                     <xsl:choose><xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><span class="separator"><xsl:text> | </xsl:text></span></xsl:otherwise></xsl:choose>
@@ -535,7 +562,7 @@
                 <span class="label">Location: </span>
                 <xsl:for-each select="marc:datafield[@tag=852]">
                     <a>
-                        <xsl:attribute name="href"><xsl:text>/cgi-bin/koha/catalogue/search.pl?q=sys,phr,ext:"</xsl:text><xsl:value-of select="marc:subfield[@code='a']"/><xsl:text>"</xsl:text></xsl:attribute>
+                        <xsl:attribute name="href"><xsl:text>/cgi-bin/koha/catalogue/search.pl?q=sys,phr,ext:"</xsl:text><xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/><xsl:text>"</xsl:text></xsl:attribute>
                         <xsl:value-of select="marc:subfield[@code='a']"/>
                     </a>
                     <xsl:choose><xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><span class="separator"><xsl:text> | </xsl:text></span></xsl:otherwise></xsl:choose>
