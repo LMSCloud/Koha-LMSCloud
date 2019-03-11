@@ -32,7 +32,6 @@ sub json {
     $json =~ s/^"|"$//g; # Remove quotes around the strings
     $json =~ s/\\r/\\\\r/g; # Convert newlines to escaped newline characters
     $json =~ s/\\n/\\\\n/g;
-    $json =~ s/\\"/\\\\"/g;
     return $json;
 }
 
