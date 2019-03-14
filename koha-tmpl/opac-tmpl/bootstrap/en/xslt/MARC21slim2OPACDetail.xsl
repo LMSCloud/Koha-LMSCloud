@@ -125,34 +125,44 @@
         </xsl:if>
 
             <!--Bug 13381 -->
-            <xsl:if test="marc:datafield[@tag=245]">
-                <h1 class="title" property="name">
-                    <xsl:for-each select="marc:datafield[@tag=245]">
-                        <xsl:call-template name="subfieldSelect">
-                            <xsl:with-param name="codes">a</xsl:with-param>
-                        </xsl:call-template>
-                        <xsl:text> </xsl:text>
-                        <!-- 13381 add additional subfields-->
-                        <!-- bug17625 adding f and g subfields -->
-                        <xsl:for-each select="marc:subfield[contains('bcfghknps', @code)]">
-                            <xsl:choose>
-                                <xsl:when test="@code='h'">
-                                    <!--  13381 Span class around subfield h so it can be suppressed via css -->
-                                    <span class="title_medium"><xsl:apply-templates/> <xsl:text> </xsl:text> </span>
-                                </xsl:when>
-                                <xsl:when test="@code='c'">
-                                    <!--  13381 Span class around subfield c so it can be suppressed via css -->
-                                    <span class="title_resp_stmt"><xsl:apply-templates/> <xsl:text> </xsl:text> </span>
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <xsl:apply-templates/>
-                                    <xsl:text> </xsl:text>
-                                </xsl:otherwise>
-                            </xsl:choose>
+            <xsl:choose>
+                <xsl:when test="marc:datafield[@tag=245]">
+                    <h1 class="title" property="name">
+                        <xsl:if test="marc:datafield[@tag=246 and @ind1='1' and @ind2 = '9']/marc:subfield[@code='a']">
+                            <xsl:text>[</xsl:text><xsl:value-of select="marc:datafield[@tag=246 and @ind1='1' and @ind2 = '9']/marc:subfield[@code='a']" /><xsl:text>]: </xsl:text>
+                        </xsl:if>
+                        <xsl:for-each select="marc:datafield[@tag=245]">
+                            <xsl:call-template name="subfieldSelect">
+                                <xsl:with-param name="codes">a</xsl:with-param>
+                            </xsl:call-template>
+                            <xsl:text> </xsl:text>
+                            <!-- 13381 add additional subfields-->
+                            <xsl:for-each select="marc:subfield[contains('bchknps', @code)]">
+                                <xsl:choose>
+                                    <xsl:when test="@code='h'">
+                                        <!--  13381 Span class around subfield h so it can be suppressed via css -->
+                                        <!-- <span class="title_medium"><xsl:apply-templates/> </span> -->
+                                    </xsl:when>
+                                    <xsl:when test="@code='c'">
+                                        <!--  13381 Span class around subfield c so it can be suppressed via css -->
+                                        <span class="title_resp_stmt"><xsl:apply-templates/> </span>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <xsl:text>: </xsl:text><xsl:apply-templates/>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:for-each>
                         </xsl:for-each>
-                    </xsl:for-each>
-                </h1>
-            </xsl:if>
+                    </h1>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:if test="marc:datafield[@tag=246 and @ind1='1' and @ind2 = '9']/marc:subfield[@code='a']">
+                        <h1 class="title" property="name">
+                            <xsl:text>[</xsl:text><xsl:value-of select="marc:datafield[@tag=246 and @ind1='1' and @ind2 = '9']/marc:subfield[@code='a']" /><xsl:text>] </xsl:text>
+                        </h1>
+                    </xsl:if>
+                </xsl:otherwise>
+            </xsl:choose>
 
 
         <!-- Author Statement: Alternate Graphic Representation (MARC 880) -->
