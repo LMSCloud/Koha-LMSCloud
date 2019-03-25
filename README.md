@@ -3,11 +3,11 @@
 
 Koha is distributed under the GNU GPL version 3 or later.
 
-**Note:** This is a synced mirror of the official Koha repo.
+**Note:** This Koha version combines the community version of Koha with additional extensions for public libraries in Germany contributed by the LMSCloud GmbH.
 
-**Note:** Koha does not accept pull requests from git hosting sites.
+**Note:** Koha community version does not accept pull requests from git hosting sites.
 
-**Note:** This project has its own bug tracker, to report a bug or submit a patch visit http://bugs.koha-community.org.
+**Note:** The Koha community project has its own bug tracker, to report a bug or submit a patch visit http://bugs.koha-community.org.
 
 For guidelines on submitting patches for Koha please visit https://wiki.koha-community.org/wiki/SubmitingAPatch
 
