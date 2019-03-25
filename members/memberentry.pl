@@ -607,6 +607,7 @@ if(!defined($data{'sex'})){
 ##Now all the data to modify a member.
 
 my @typeloop;
+my $categorycodeHasBeenSelected = 0;
 my $no_categories = 1;
 my $no_add;
 foreach my $category_type (qw(C A S P I X)) {
@@ -615,11 +616,14 @@ foreach my $category_type (qw(C A S P I X)) {
 
     my @categoryloop;
     while ( my $patron_category = $patron_categories->next ) {
+        my $categorycodeSelected = ( defined($categorycode) && $patron_category->categorycode eq $categorycode );
+        if ( $categorycodeSelected ) {
+            $categorycodeHasBeenSelected = 1;
+        }
         push @categoryloop,
           { 'categorycode' => $patron_category->categorycode,
             'categoryname' => $patron_category->description,
-            'categorycodeselected' =>
-              ( defined($categorycode) && $patron_category->categorycode eq $categorycode ),
+            'categorycodeselected' => $categorycodeSelected,
           };
     }
     my %typehash;
@@ -631,6 +635,21 @@ foreach my $category_type (qw(C A S P I X)) {
         $typedescription => 1,
         'categoryloop'   => \@categoryloop
       };
+}
+
+if ( !defined($categorycode) && !$categorycodeHasBeenSelected ) {    # then select the first usable category in the list
+    TYPELOOP:
+    foreach my $typeloo ( @typeloop ) {
+        if ( $typeloo && $typeloo->{categoryloop} ) {
+            foreach my $categoryloo ( @{$typeloo->{categoryloop}} ) {
+                if ( $categoryloo->{categorycode} && length($categoryloo->{categorycode}) ) {
+                    $categorycode = $categoryloo->{categorycode};
+                    $categoryloo->{categorycodeselected} = 1;
+                    last TYPELOOP;
+                }
+            }
+        }
+    }
 }
 
 $template->param('typeloop' => \@typeloop,
