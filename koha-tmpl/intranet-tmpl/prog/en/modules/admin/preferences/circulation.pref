@@ -799,7 +799,7 @@ Circulation:
               type: textarea
         -
             - pref: EnableHoldsNotForLoanStatus
-            - Enable patrons to place holds for ordered items with the specified negative not for loan status if on shelf holds are allowed only if all items are unavailable. Seperate multiple status by | (e.g. -1|-2).
+            - Enable patrons to place holds for ordered items with the specified negative not for loan status. Seperate multiple status by | (e.g. -1|-2).
     Interlibrary Loans:
         -
             - pref: ILLModule
