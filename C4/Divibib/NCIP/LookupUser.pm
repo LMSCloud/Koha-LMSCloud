@@ -90,7 +90,17 @@ sub new {
     die "borrower not found" unless (  $borrower );
 
     if ( $borrower ) {
-        
+        my $agency = C4::Context->preference("DivibibAgencyId");
+        if ( $agency ) {
+            my @agencies = split(",",$agency);
+            $agency = $agencies[0];
+            for (my $i=1; $i<=$#agencies; $i++) {
+                my @agencysplit = split("=",$agencies[$i]);
+                if ( scalar(@agencysplit) == 2 && $borrower->{'branchcode'} eq $agencysplit[1] ) {
+                    $agency = $agencysplit[0];
+                }
+            }
+        }
         $command->{'LookupUser'} = {
                 'AuthenticationInput' => [
                      {
@@ -117,7 +127,7 @@ sub new {
                  'LoanedItemsDesired' => [ 'true' ],
                  'RequestedItemsDesired' => [ 'true' ],
                  'Ext' => {
-                         'AgencyId' => [ C4::Context->preference("DivibibAgencyId") ],
+                         'AgencyId' => [ $agency ],
                          'Language' => [ 'de' ]
                       }
              };
