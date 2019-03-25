@@ -330,6 +330,8 @@ var RFIDWebService = {
     CheckLastCheckoutAndContinue: function () {
         var barcode = window.sessionStorage.getItem('RFIDWebServiceCheckoutItem');
         
+        window.sessionStorage.setItem('RFIDWebServiceCheckinItem','');
+        
         if ( barcode ) {
             if ( $('.lastcheckoutbarcode').length > 0 ) {
                 var barcodes = $('.lastcheckoutbarcode').map(function() { return $(this).text(); }).get();
@@ -355,6 +357,8 @@ var RFIDWebService = {
     // If so, the item tag needs to be unlocked
     CheckLastCheckinAndContinue: function () {
         var barcode = window.sessionStorage.getItem('RFIDWebServiceCheckinItem');
+        
+        window.sessionStorage.setItem('RFIDWebServiceCheckoutItem','');
         
         if ( barcode ) {
             if ( $('.lastcheckinbarcode').length > 0 ) {
@@ -417,7 +421,7 @@ var RFIDWebService = {
     
     // Lock item barcode with the RFID Web service
     LockItemBarcode: function(barcode) {
-        console.log("LockItemBarcode called to unlock item");
+        console.log("LockItemBarcode called to lock item");
         
         // read URL and status from the sessionStorage
         var rfidWebServiceURL = window.sessionStorage.getItem('RFIDWebServiceURL');
@@ -547,11 +551,22 @@ var RFIDWebService = {
                                     if ( context.startsWith("checkin") ) {
                                         window.sessionStorage.setItem('RFIDWebServiceCheckinItems',JSON.stringify(items));
                                         window.sessionStorage.setItem('RFIDWebServiceCheckinItemCount',items.length);
+                                        
+                                        // reset checkout queue
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckoutItems',JSON.stringify([]));
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckoutItemCount',0);
                                     }
                                     else {
                                         window.sessionStorage.setItem('RFIDWebServiceCheckoutItems',JSON.stringify(items));
                                         window.sessionStorage.setItem('RFIDWebServiceCheckoutItemCount',items.length);
+                                        
+                                        // reset checkin queue
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckinItems',JSON.stringify([]));
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckinItemCount',0  );
                                     }
+                                    
+                                    window.sessionStorage.setItem('RFIDWebServiceCheckoutItem','');
+                                    window.sessionStorage.setItem('RFIDWebServiceCheckinItem','');
                                 }
                             }
                             if ( countUserCards == 1 && !context.startsWith("checkin") ) {
