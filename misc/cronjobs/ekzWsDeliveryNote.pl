@@ -56,15 +56,19 @@ $yesterdayDate = `date -d "1 day ago" +%d.%m.%C%y`;                             
 chomp($yesterdayDate);
 
 if ( $simpleTest ) {
-    my $von = "01.08.2016";
-    print STDERR "ekzWsLieferschein read lieferscheinList von:$von; calling readLSFromEkzWsLieferscheinList ($von,undef,undef)\n" if $debugIt;
-    my $lsListe = &readLSFromEkzWsLieferscheinList ($von,undef,undef);
+    # some libraries use different ekz Kundennummer for different branches, so we have to call the delivery note synchronization for each of these.
+    my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
+    foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
+        my $von = "01.08.2016";
+        print STDERR "ekzWsLieferschein read lieferscheinList von:$von; calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef)\n" if $debugIt;
+        my $lsListe = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef);
 
-    foreach my $lieferschein ( @{$lsListe->{'lieferscheinRecords'}} ) {
-        print STDERR "ekzWsLieferschein read lieferschein via id:$lieferschein->{id}: calling readLSFromEkzWsLieferscheinDetail($lieferschein->{id},undef)\n" if $debugIt;
-        my $lsListe = &readLSFromEkzWsLieferscheinDetail($lieferschein->{id},undef);
-        print STDERR "ekzWsLieferschein read lieferschein via lieferscheinnummer:$lieferschein->{nummer}: calling readLSFromEkzWsLieferscheinDetail(undef,$lieferschein->{nummer})\n" if $debugIt;
-        $lsListe = &readLSFromEkzWsLieferscheinDetail(undef,$lieferschein->{nummer});
+        foreach my $lieferschein ( @{$lsListe->{'lieferscheinRecords'}} ) {
+            print STDERR "ekzWsLieferschein read lieferschein via id:$lieferschein->{id}: calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,$lieferschein->{id},undef)\n" if $debugIt;
+            my $lsListe = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,$lieferschein->{id},undef);
+            print STDERR "ekzWsLieferschein read lieferschein via lieferscheinnummer:$lieferschein->{nummer}: calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer})\n" if $debugIt;
+            $lsListe = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer});
+        }
     }
 }
 
@@ -72,18 +76,22 @@ if ( $simpleTest ) {
 if ( $genKohaRecords ) {
     my $res = 0;
 
-    # read all new delivery notes since $lastRunDate until including yesterday
-    print STDERR "ekzWsLieferschein read delivery notes since:$lastRunDate to:$yesterdayDate; calling readLSFromEkzWsLieferscheinList ($lastRunDate,$yesterdayDate,undef)\n" if $debugIt;
-    my $lsListe = &readLSFromEkzWsLieferscheinList ($lastRunDate,$yesterdayDate,undef);
-    
-    foreach my $lieferschein ( @{$lsListe->{'lieferscheinRecords'}} ) {
-        print STDERR "ekzWsLieferschein read lieferschein via lieferscheinnummer:$lieferschein->{nummer}: calling readLSFromEkzWsLieferscheinDetail(undef,$lieferschein->{nummer})\n" if $debugIt;
-        $result = &readLSFromEkzWsLieferscheinDetail(undef,$lieferschein->{nummer},\$lieferscheinDetailElement);    # read *complete* info (i.e. all titles) of the delivery note
+    # some libraries use different ekz Kundennummer for different branches, so we have to call the delivery note synchronization for each of these.
+    my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
+    foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
+        # read all new delivery notes since $lastRunDate until including yesterday
+        print STDERR "ekzWsLieferschein read delivery notes since:$lastRunDate to:$yesterdayDate; calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)\n" if $debugIt;
+        my $lsListe = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef);
+        
+        foreach my $lieferschein ( @{$lsListe->{'lieferscheinRecords'}} ) {
+            print STDERR "ekzWsLieferschein read lieferschein via lieferscheinnummer:$lieferschein->{nummer}: calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer})\n" if $debugIt;
+            $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);    # read *complete* info (i.e. all titles) of the delivery note
 
 print STDERR "Dumper(\$result->{'lieferscheinRecords'}->[0]):\n", Dumper($result->{'lieferscheinRecords'}->[0]) if $debugIt;
-        if ( $result->{'lieferscheinCount'} > 0 ) {
-            if ( &genKohaRecords($result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0]) ) {
-                $res = 1;
+            if ( $result->{'lieferscheinCount'} > 0 ) {
+                if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0]) ) {
+                    $res = 1;
+                }
             }
         }
     }

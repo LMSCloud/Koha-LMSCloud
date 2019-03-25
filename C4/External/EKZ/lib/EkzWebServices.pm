@@ -98,17 +98,148 @@ sub new {
 
 
     ## Get credentials of customer specific login at ekz for the other ekz web services from system preferences.
+    ## Some libraries use different ekz Kundennummer for different branches; in this case the system preferences contain '|'-separated lists.
     my $ekzWebServicesCustomerNumber = C4::Context->preference('ekzWebServicesCustomerNumber');
     my $ekzWebServicesPassword = C4::Context->preference('ekzWebServicesPassword');
     my $ekzWebServicesUserName = C4::Context->preference('ekzWebServicesUserName');
+    my $ekzProcessingNoticesEmailAddress = C4::Context->preference('ekzProcessingNoticesEmailAddress');
+    my $ekzWebServicesDefaultBranch = C4::Context->preference('ekzWebServicesDefaultBranch');
+
     carp "ekzWebServicesCustomerNumber value not defined in system preferences" if ( !defined($ekzWebServicesCustomerNumber) );
     carp "ekzWebServicesPassword value not defined in system preferences" if ( !defined($ekzWebServicesPassword) );
     carp "ekzWebServicesUserName value not defined in system preferences" if ( !defined($ekzWebServicesUserName) );
-    $self->{'ekzKundenNr'} = defined($ekzWebServicesCustomerNumber) ? $ekzWebServicesCustomerNumber : 'UNDEFINED';
-    $self->{'passwort'}  = defined($ekzWebServicesPassword) ? $ekzWebServicesPassword : 'UNDEFINED';
-    $self->{'lmsNutzer'}  = defined($ekzWebServicesUserName) ? $ekzWebServicesUserName : 'UNDEFINED';
+    carp "ekzProcessingNoticesEmailAddress value not defined in system preferences" if ( !defined($ekzProcessingNoticesEmailAddress) );
+    carp "ekzWebServicesDefaultBranch value not defined in system preferences" if ( !defined($ekzWebServicesDefaultBranch) );
+print STDERR "EkzWebServices::new() ekzWebServicesCustomerNumber:$ekzWebServicesCustomerNumber:\n" if $debugIt;
+
+    my @ekzWebServicesCustomerNumbers = split( /\|/, $ekzWebServicesCustomerNumber );
+    my @ekzWebServicesPasswords = split( /\|/, $ekzWebServicesPassword );
+    my @ekzWebServicesUserNames = split( /\|/, $ekzWebServicesUserName );
+    my @ekzProcessingNoticesEmailAddresses = split( /\|/, $ekzProcessingNoticesEmailAddress );
+    my @ekzWebServicesDefaultBranches = split( /\|/, $ekzWebServicesDefaultBranch );
+
+    if ( defined($ekzProcessingNoticesEmailAddresses[0]) ){
+        $self->{'fallBackEkzProcessingNoticesEmailAddress'} = $ekzProcessingNoticesEmailAddresses[0];
+    } else {
+        $self->{'fallBackEkzProcessingNoticesEmailAddress'} = '';
+    }
+
+    if ( defined($ekzWebServicesDefaultBranches[0]) ){
+        $self->{'fallBackEkzWebServicesDefaultBranch'} = $ekzWebServicesDefaultBranches[0];
+    } else {
+        $self->{'fallBackEkzWebServicesDefaultBranch'} = '';
+    }
+
+    my $ekzWebServicesCustomerNumbersCnt = scalar @ekzWebServicesCustomerNumbers;
+print STDERR "EkzWebServices::new() ekzWebServicesCustomerNumbersCnt:$ekzWebServicesCustomerNumbersCnt:\n" if $debugIt;
+#print STDERR "EkzWebServices::new() Dumper(ekzWebServicesCustomerNumbers):", Dumper(@ekzWebServicesCustomerNumbers), ":\n" if $debugIt;
+
+    for ( my $i = 0; $i < $ekzWebServicesCustomerNumbersCnt; $i += 1 ) {
+        if ( defined($ekzWebServicesCustomerNumbers[$i]) && length($ekzWebServicesCustomerNumbers[$i]) ) {
+            $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzKundenNr'} = $ekzWebServicesCustomerNumbers[$i];
+            if ( defined($ekzWebServicesPasswords[$i]) && length($ekzWebServicesPasswords[$i]) ) {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzPasswort'} = $ekzWebServicesPasswords[$i];
+            } else {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzPasswort'} = defined($self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzPasswort'}) ? $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzPasswort'} : 'UNDEFINED';
+            }
+            if ( defined($ekzWebServicesUserNames[$i]) && length($ekzWebServicesUserNames[$i]) ) {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzLmsNutzer'} = $ekzWebServicesUserNames[$i];
+            } else {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzLmsNutzer'} = defined($self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzLmsNutzer'}) ? $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzLmsNutzer'} : 'UNDEFINED';
+            }
+            if ( defined($ekzProcessingNoticesEmailAddresses[$i]) && length($ekzProcessingNoticesEmailAddresses[$i]) ) {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzProcessingNoticesEmailAddress'} = $ekzProcessingNoticesEmailAddresses[$i];
+            } else {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzProcessingNoticesEmailAddress'} = defined($self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzProcessingNoticesEmailAddress'}) ? $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzProcessingNoticesEmailAddress'} : 'UNDEFINED';
+            }
+            if ( defined($ekzWebServicesDefaultBranches[$i]) && length($ekzWebServicesDefaultBranches[$i]) ) {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzWebServicesDefaultBranch'} = $ekzWebServicesDefaultBranches[$i];
+            } else {
+                $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}->{'ekzWebServicesDefaultBranch'} = defined($self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzWebServicesDefaultBranch'}) ? $self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[0]}->{'ekzWebServicesDefaultBranch'} : 'UNDEFINED';
+            }
+        }
+#print STDERR "EkzWebServices::new() Dumper(self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}):", Dumper($self->{'ekzCustomerBranch'}->{$ekzWebServicesCustomerNumbers[$i]}), ":\n" if $debugIt;
+    }
 
 	return $self;
+}
+
+sub getEkzKundenNr {
+	my $self = shift;
+    my $ekzCustomerNumber = shift;
+    my $ret = 'UNDEFINED';
+
+    if ( defined($ekzCustomerNumber) && length($ekzCustomerNumber) ) {
+        if ( defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}) && defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzKundenNr'}) ) {
+            $ret = $self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzKundenNr'};
+        }
+    }
+print STDERR "EkzWebServices::getEkzKundenNr(ekzCustomerNumber:$ekzCustomerNumber) returns ret:$ret:\n" if $debugIt;
+    return $ret;
+}
+
+sub getEkzPasswort {
+	my $self = shift;
+    my $ekzCustomerNumber = shift;
+    my $ret = 'UNDEFINED';
+
+    if ( defined($ekzCustomerNumber) && length($ekzCustomerNumber) ) {
+        if ( defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}) && defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzPasswort'}) ) {
+            $ret = $self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzPasswort'};
+        }
+    }
+print STDERR "EkzWebServices::getEkzPasswort(ekzCustomerNumber:$ekzCustomerNumber) returns ret:$ret:\n" if $debugIt;
+    return $ret;
+}
+
+sub getEkzLmsNutzer {
+	my $self = shift;
+    my $ekzCustomerNumber = shift;
+    my $ret = 'UNDEFINED';
+
+    if ( defined($ekzCustomerNumber) && length($ekzCustomerNumber) ) {
+        if ( defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}) && defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzLmsNutzer'}) ) {
+            $ret = $self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzLmsNutzer'};
+        }
+    }
+print STDERR "EkzWebServices::getEkzLmsNutzer(ekzCustomerNumber:$ekzCustomerNumber) returns ret:$ret:\n" if $debugIt;
+    return $ret;
+}
+
+sub getEkzProcessingNoticesEmailAddress {
+	my $self = shift;
+    my $ekzCustomerNumber = shift;
+    my $ret = $self->{'fallBackEkzProcessingNoticesEmailAddress'};
+
+    if ( defined($ekzCustomerNumber) && length($ekzCustomerNumber) ) {
+        if ( defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}) && defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzProcessingNoticesEmailAddress'}) && $self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzProcessingNoticesEmailAddress'} ne 'UNDEFINED' ) {
+            $ret = $self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzProcessingNoticesEmailAddress'};
+        }
+    }
+print STDERR "EkzWebServices::getEkzProcessingNoticesEmailAddress(ekzCustomerNumber:$ekzCustomerNumber) returns ret:$ret:\n" if $debugIt;
+    return $ret;
+}
+
+sub getEkzWebServicesDefaultBranch {
+	my $self = shift;
+    my $ekzCustomerNumber = shift;
+    my $ret = $self->{'fallBackEkzWebServicesDefaultBranch'};
+
+    if ( defined($ekzCustomerNumber) && length($ekzCustomerNumber) ) {
+        if ( defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}) && defined($self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzWebServicesDefaultBranch'}) && $self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzWebServicesDefaultBranch'} ne 'UNDEFINED' ) {
+            $ret = $self->{'ekzCustomerBranch'}->{$ekzCustomerNumber}->{'ekzWebServicesDefaultBranch'};
+        }
+    }
+print STDERR "EkzWebServices::getEkzProcessingNoticesEmailAddress(ekzCustomerNumber:$ekzCustomerNumber) returns ret:$ret:\n" if $debugIt;
+    return $ret;
+}
+
+sub getEkzCustomerNumbers {
+	my $self = shift;
+
+    my @ekzWebServicesCustomerNumbers = keys $self->{'ekzCustomerBranch'};
+
+    return @ekzWebServicesCustomerNumbers;
 }
 
 # read ekz title data in MARC21 XML format using web service MedienDaten, search by ekzArtikelNr
@@ -229,6 +360,7 @@ print STDERR Dumper($result->{'records'}->[0]) if $debugIt;
 # read standing order information using web service StoList
 sub callWsStoList {
 	my $self = shift;
+    my $ekzCustomerNumber = shift;                  # mandatory
 	my $selJahr = shift;                            # mandatory
 	my $selStoId = shift;                           # optional
 	my $selMitTitel = shift;                        # optional
@@ -244,7 +376,7 @@ sub callWsStoList {
     };
 	
 	
-print STDERR "EkzWebServices::callWsStoList() selJahr:", $selJahr, ": selStoId:", defined($selStoId) ? $selStoId : 'undef', ": selMitTitel:", defined($selMitTitel) ? $selMitTitel : 'undef',
+print STDERR "EkzWebServices::callWsStoList() ekzCustomerNumber:", $ekzCustomerNumber, ": selJahr:", $selJahr, ": selStoId:", defined($selStoId) ? $selStoId : 'undef', ": selMitTitel:", defined($selMitTitel) ? $selMitTitel : 'undef',
                                 ": selMitKostenstellen:", defined($selMitKostenstellen) ? $selMitKostenstellen : 'undef', ": selMitEAN:", defined($selMitEAN) ? $selMitEAN : 'undef',
                                 ": selStatusUpdate:", defined($selStatusUpdate) ? $selStatusUpdate : 'undef', ": selErweitert:", defined($selErweitert) ? $selErweitert : 'undef', ":\n" if $debugIt;
 
@@ -272,9 +404,9 @@ print STDERR "EkzWebServices::callWsStoList() selJahr:", $selJahr, ": selStoId:"
     $xmlwriter->startTag(   'soap:Body');
     $xmlwriter->startTag(     'bes:StoListElement',
                                   'xmlns:bes' => 'http://www.ekz.de/BestellsystemWSDL');
-    $xmlwriter->dataElement(    'kundenNummer' => $self->{'ekzKundenNr'});
-    $xmlwriter->dataElement(    'passwort' => $self->{'passwort'});
-    $xmlwriter->dataElement(    'lmsNutzer' => $self->{'lmsNutzer'});
+    $xmlwriter->dataElement(    'kundenNummer' => $self->getEkzKundenNr($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'passwort' => $self->getEkzPasswort($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'lmsNutzer' => $self->getEkzLmsNutzer($ekzCustomerNumber));
     $xmlwriter->dataElement(    'jahr' => $selJahr);
 
     if ( defined $selStoId && length($selStoId) > 0 ) {
@@ -368,6 +500,7 @@ print STDERR Dumper($result->{'standingOrderRecords'}->[$result->{'standingOrder
 # search delivery notes using web service LieferscheinList
 sub callWsLieferscheinList {
 	my $self = shift;
+    my $ekzCustomerNumber = shift;                  # mandatory
 	my $selVon = shift;                            # mandatory
 	my $selBis = shift;                            # optional
 	my $selKundennummerWarenEmpfaenger = shift;    # optional
@@ -376,7 +509,7 @@ sub callWsLieferscheinList {
                     'lieferscheinRecords' => []
     };
 
-print STDERR "EkzWebServices::callWsLieferscheinList() selVon:", $selVon, ": selBis:", defined($selBis) ? $selBis : 'undef', ": selkundennummerWarenEmpfaenger:", defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : 'undef', ":\n" if $debugIt;
+print STDERR "EkzWebServices::callWsLieferscheinList() ekzCustomerNumber:", $ekzCustomerNumber, ": selVon:", $selVon, ": selBis:", defined($selBis) ? $selBis : 'undef', ": selkundennummerWarenEmpfaenger:", defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : 'undef', ":\n" if $debugIt;
 
     my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
 
@@ -402,9 +535,9 @@ print STDERR "EkzWebServices::callWsLieferscheinList() selVon:", $selVon, ": sel
     $xmlwriter->startTag(   'soap:Body');
     $xmlwriter->startTag(     'bes:LieferscheinListElement',
                                   'xmlns:bes' => 'http://www.ekz.de/BestellsystemWSDL');
-    $xmlwriter->dataElement(    'kundenNummer' => $self->{'ekzKundenNr'});
-    $xmlwriter->dataElement(    'passwort' => $self->{'passwort'});
-    $xmlwriter->dataElement(    'lmsNutzer' => $self->{'lmsNutzer'});
+    $xmlwriter->dataElement(    'kundenNummer' => $self->getEkzKundenNr($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'passwort' => $self->getEkzPasswort($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'lmsNutzer' => $self->getEkzLmsNutzer($ekzCustomerNumber));
     $xmlwriter->dataElement(    'von' => $selVon);
 
     if ( defined $selBis && length($selBis) > 0 ) {
@@ -463,6 +596,7 @@ print STDERR Dumper($result->{'lieferscheinRecords'}->[$result->{'lieferscheinCo
 # read all data of one delivery note using web service LieferscheinDetail
 sub callWsLieferscheinDetail {
 	my $self = shift;
+    my $ekzCustomerNumber = shift;                  # mandatory
 	my $selId = shift;                            # alternative for selLieferscheinnummer
 	my $selLieferscheinnummer = shift;            # alternative for selId
     my $refLieferscheinDetailElement = shift;     # for storing the read LieferscheinDetailResponseElement of the SOAP response body
@@ -473,7 +607,7 @@ sub callWsLieferscheinDetail {
 	};
 	
 	
-print STDERR "EkzWebServices::callWsLieferscheinDetail() selId:", defined($selId) ? $selId : "undef", ": selLieferscheinnummer:", defined($selLieferscheinnummer) ? $selLieferscheinnummer : "undef", ":\n" if $debugIt;
+print STDERR "EkzWebServices::callWsLieferscheinDetail() ekzCustomerNumber:", $ekzCustomerNumber, ": selId:", defined($selId) ? $selId : "undef", ": selLieferscheinnummer:", defined($selLieferscheinnummer) ? $selLieferscheinnummer : "undef", ":\n" if $debugIt;
 
     my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
 
@@ -499,9 +633,9 @@ print STDERR "EkzWebServices::callWsLieferscheinDetail() selId:", defined($selId
     $xmlwriter->startTag(   'soap:Body');
     $xmlwriter->startTag(     'bes:LieferscheinDetailElement',
                                   'xmlns:bes' => 'http://www.ekz.de/BestellsystemWSDL');
-    $xmlwriter->dataElement(    'kundenNummer' => $self->{'ekzKundenNr'});
-    $xmlwriter->dataElement(    'passwort' => $self->{'passwort'});
-    $xmlwriter->dataElement(    'lmsNutzer' => $self->{'lmsNutzer'});
+    $xmlwriter->dataElement(    'kundenNummer' => $self->getEkzKundenNr($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'passwort' => $self->getEkzPasswort($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'lmsNutzer' => $self->getEkzLmsNutzer($ekzCustomerNumber));
 
     if ( defined $selId && length($selId) > 0 ) {
         $xmlwriter->dataElement('id' => $selId);    # alternativ zu lieferscheinnummer

@@ -70,8 +70,7 @@ sub init {
 
     $self->{debugIt} = 1;
     $self->{dateTimeNow} = DateTime->now(time_zone => 'local');
-    $self->{homebranch} = C4::Context->preference("ekzWebServicesDefaultBranch");
-    $self->{homebranch} =~ s/^\s+|\s+$//g;    # trim spaces
+    $self->{homebranch} = undef;    # will be set later, in function process()
     $self->{titleSourceSequence} = C4::Context->preference("ekzTitleDataServicesSequence");
     if ( !defined($self->{titleSourceSequence}) ) {
         $self->{titleSourceSequence} = '_LMSC|_EKZWSMD|DNB|_WS';
@@ -112,7 +111,8 @@ print STDERR Dumper($soapEnvelopeBody->{'ns2:BestellInfoElement'}) if $self->{de
 
 print STDERR "BestellInfoElement::process() HTTP request request->body:", $soapEnvelopeBody, ":\n" if $self->{debugIt};
 print STDERR "BestellInfoElement::process() HTTP request request messageID:", $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'messageID'}, ":\n" if $self->{debugIt};
-print STDERR "BestellInfoElement::process() HTTP request request ekzBestellNr:", $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'ekzBestellNr'}, ":\n" if $self->{debugIt}; 
+print STDERR "BestellInfoElement::process() HTTP request request ekzBestellNr:", $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'ekzBestellNr'}, ":\n" if $self->{debugIt};
+print STDERR "BestellInfoElement::process() HTTP request request hauptstelle:", $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'}, ":\n" if $self->{debugIt};
 
 foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     print STDERR "BestellInfoElement::process() HTTP request tag:", $tag, ":\n" if $self->{debugIt};
@@ -131,6 +131,10 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     my $reqEkzBestellDatum = DateTime->new( year => substr($zeitstempel,0,4), month => substr($zeitstempel,5,2), day => substr($zeitstempel,8,2), time_zone => 'local' );
     my $reqWaehrung = defined $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'waehrung'} && length($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'waehrung'})
                             ? $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'waehrung'} : 'EUR';
+    
+    $self->{homebranch} = C4::External::EKZ::lib::EkzWebServices->new()->getEkzWebServicesDefaultBranch($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'});
+    $self->{homebranch} =~ s/^\s+|\s+$//g;    # trim spaces
+print STDERR "BestellInfoElement::process() self->{homebranch}:", $self->{homebranch}, ":\n" if $self->{debugIt};
 
     # result values
     my $respStatusCode = 'UNDEF';
@@ -366,7 +370,7 @@ print STDERR "BestellInfoElement::process() is calling CloseBasketgroup basketgr
     print STDERR "BestellInfoElement::process() idPaarListe:",@idPaarListe, "\n" if $self->{debugIt};
 
     #$dbh->rollback;    # roll it back for TEST XXXWH
-    #@idPaarListe = ();
+    #@idPaarListe = (); # roll it back for TEST XXXWH
 
 
     $respStatusCode = 'ERROR';
@@ -424,7 +428,7 @@ print STDERR Dumper(\@logresult) if $self->{debugIt};
     if ( scalar(@logresult) > 0 ) {
         my @importIds = keys %{$self->{importIds}};
         my ($message, $subject, $haserror) = C4::External::EKZ::lib::EkzKohaRecords->createProcessingMessageText(\@logresult, "headerTEXT", $self->{dt}, \@importIds, $reqEkzBestellNr);  # we use ekzBestellNr as part of importID in MARc field 025.a: (EKZImport)$importIDs[0]
-        C4::External::EKZ::lib::EkzKohaRecords->sendMessage($message, $subject);
+        C4::External::EKZ::lib::EkzKohaRecords->sendMessage($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'}, $message, $subject);
     }
 
     my $soapResponseElement = SOAP::Data->name( 'ns2:BestellInfoResultatElement' )->SOAP::Header::value(

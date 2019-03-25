@@ -54,6 +54,7 @@ my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 # read standing orders using ekz web service 'StoList' (overview data)
 ###################################################################################################
 sub readStoFromEkzWsStoList {
+    my $ekzCustomerNumber = shift;
     my $selJahr = shift;
     my $selStoId = shift;
 	my $selMitTitel = shift;
@@ -64,7 +65,7 @@ sub readStoFromEkzWsStoList {
     my $refStoListElement = shift;    # for storing the StoListElement of the SOAP request body
 
     my $result = ();    # hash reference
-print STDERR "ekzWsStoList::readStoFromEkzWsStoList() selJahr:", $selJahr, ": selStoId:", defined($selStoId) ? $selStoId : 'undef', ": selMitTitel:", defined($selMitTitel) ? $selMitTitel : 'undef', 
+print STDERR "ekzWsStoList::readStoFromEkzWsStoList() ekzCustomerNumber:", $ekzCustomerNumber, ": selJahr:", $selJahr, ": selStoId:", defined($selStoId) ? $selStoId : 'undef', ": selMitTitel:", defined($selMitTitel) ? $selMitTitel : 'undef', 
                                 ": selMitKostenstellen:", defined($selMitKostenstellen) ? $selMitKostenstellen : 'undef', ": selMitEAN:", defined($selMitEAN) ? $selMitEAN : 'undef', 
                                 ": selStatusUpdate:", defined($selStatusUpdate) ? $selStatusUpdate : 'undef', ": selErweitert:", defined($selErweitert) ? $selErweitert : 'undef', ":\n" if $debugIt;
     
@@ -72,7 +73,7 @@ print STDERR "ekzWsStoList::readStoFromEkzWsStoList() \$refStoListElement:", $re
 print STDERR Dumper($refStoListElement) if $debugIt;
 	
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
-    $result = $ekzwebservice->callWsStoList($selJahr, $selStoId, $selMitTitel, $selMitKostenstellen, $selMitEAN, $selStatusUpdate, $selErweitert,$refStoListElement);
+    $result = $ekzwebservice->callWsStoList($ekzCustomerNumber, $selJahr, $selStoId, $selMitTitel, $selMitKostenstellen, $selMitEAN, $selStatusUpdate, $selErweitert,$refStoListElement);
 print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderCount'}:$result->{'standingOrderCount'}:\n" if $debugIt;
 print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderRecords'}:$result->{'standingOrderRecords'}:\n" if $debugIt;
 
@@ -84,7 +85,7 @@ print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderRec
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
+    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
 
     my $ekzBestellNr = '';
     my $lastRunDateIsSet = 0;
@@ -104,10 +105,10 @@ sub genKohaRecords {
     my $cntTitlesHandled = 0;
     my $cntItemsHandled = 0;
     
-    print STDERR "ekzWsStoList::genKohaRecords() Start;  messageID:$messageID stoID:$stoWithNewState->{'stoID'}: stoWithNewState->{'titelCount'}:$stoWithNewState->{'titelCount'}: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
+    print STDERR "ekzWsStoList::genKohaRecords() Start;  ekzCustomerNumber:$ekzCustomerNumber messageID:$messageID stoID:$stoWithNewState->{'stoID'}: stoWithNewState->{'titelCount'}:$stoWithNewState->{'titelCount'}: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
 
     my $zweigstellencode = '';
-    my $homebranch = C4::Context->preference("ekzWebServicesDefaultBranch");
+    my $homebranch = C4::External::EKZ::lib::EkzWebServices->new()->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     $homebranch =~ s/^\s+|\s+$//g; # trim spaces
     if ( defined $homebranch && length($homebranch) > 0 && &C4::External::EKZ::lib::EkzKohaRecords::checkbranchcode($homebranch) ) {
         $zweigstellencode = $homebranch;
@@ -701,7 +702,7 @@ print STDERR "ekzWsStoList::genKohaRecords() cntTitlesHandled:$cntTitlesHandled:
         if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {
             my @importIds = keys %importIds;
             ($message, $subject, $haserror) = C4::External::EKZ::lib::EkzKohaRecords->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
-            C4::External::EKZ::lib::EkzKohaRecords->sendMessage($message, $subject);
+            C4::External::EKZ::lib::EkzKohaRecords->sendMessage($ekzCustomerNumber, $message, $subject);
         }
     }
 

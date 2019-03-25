@@ -1346,9 +1346,9 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
 ##############################################################################
 sub sendMessage {
 	my $class = shift;
-    my ($message, $subject) = @_;
+    my ( $ekzCustomerNumber, $message, $subject ) = @_;
 
-    my $ekzAdminEmailAddress = C4::Context->preference("ekzProcessingNoticesEmailAddress");
+    my $ekzAdminEmailAddress = C4::External::EKZ::lib::EkzWebServices->new()->getEkzProcessingNoticesEmailAddress($ekzCustomerNumber);
     my $adminEmailAddress = C4::Context->preference("KohaAdminEmailAddress");
     if( !( defined $ekzAdminEmailAddress && length($ekzAdminEmailAddress) > 0 ) ) {
         $ekzAdminEmailAddress = $adminEmailAddress;

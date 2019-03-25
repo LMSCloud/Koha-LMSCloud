@@ -48,15 +48,16 @@ my $debugIt = 1;
 # read Lieferschein (delivery notes) using ekz web service 'LieferscheinList' (overview data)
 ###################################################################################################
 sub readLSFromEkzWsLieferscheinList {
+    my $ekzCustomerNumber = shift;
     my $selVon = shift;
     my $selBis = shift;
 	my $selKundennummerWarenEmpfaenger = shift;
 
     my $result = ();    # hash reference
-print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() selVon:", $selVon, ": selBis:", defined($selBis) ? $selBis : "undef", ": selKundennummerWarenEmpfaenger:", defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : "undef", ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() ekzCustomerNumber:", $ekzCustomerNumber, ": selVon:", $selVon, ": selBis:", defined($selBis) ? $selBis : "undef", ": selKundennummerWarenEmpfaenger:", defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : "undef", ":\n" if $debugIt;
 
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
-    $result = $ekzwebservice->callWsLieferscheinList($selVon, $selBis, $selKundennummerWarenEmpfaenger);
+    $result = $ekzwebservice->callWsLieferscheinList($ekzCustomerNumber, $selVon, $selBis, $selKundennummerWarenEmpfaenger);
 print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() result->{'lieferscheinCount'}:$result->{'lieferscheinCount'}:\n" if $debugIt;
 print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() result->{'lieferscheinRecords'}:$result->{'lieferscheinRecords'}:\n" if $debugIt;
 
@@ -68,18 +69,19 @@ print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinList() result->{'lie
 # read single Lieferschein (delivery note) using ekz web service 'LieferscheinDetail' (detailed data)
 ###################################################################################################
 sub readLSFromEkzWsLieferscheinDetail {
+    my $ekzCustomerNumber = shift;
     my $selId = shift;
     my $selLieferscheinnummer = shift;
     my $refLieferscheinDetailElement = shift;    # for storing the LieferscheinDetailElement of the SOAP response body
 
     my $result = ();    # hash reference
-print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() selId:", defined($selId) ? $selId : "undef", ": selLieferscheinnummer:", defined($selLieferscheinnummer) ? $selLieferscheinnummer : "undef", ":\n" if $debugIt;
+print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() ekzCustomerNumber:", $ekzCustomerNumber, ": selId:", defined($selId) ? $selId : "undef", ": selLieferscheinnummer:", defined($selLieferscheinnummer) ? $selLieferscheinnummer : "undef", ":\n" if $debugIt;
     
 print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() \$refLieferscheinDetailElement:", $refLieferscheinDetailElement, ":\n" if $debugIt;
 print STDERR Dumper($refLieferscheinDetailElement) if $debugIt;
 
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
-    $result = $ekzwebservice->callWsLieferscheinDetail($selId, $selLieferscheinnummer, $refLieferscheinDetailElement);
+    $result = $ekzwebservice->callWsLieferscheinDetail($ekzCustomerNumber, $selId, $selLieferscheinnummer, $refLieferscheinDetailElement);
 print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() result->{'lieferscheinCount'}:$result->{'lieferscheinCount'}:\n" if $debugIt;
 print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() result->{'lieferscheinRecords'}:$result->{'lieferscheinRecords'}:\n" if $debugIt;
 
@@ -92,7 +94,7 @@ print STDERR "ekzWsDeliveryNote::readLSFromEkzWsLieferscheinDetail() result->{'l
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($messageID, $lieferscheinDetailElement, $lieferscheinRecord) = @_;
+    my ($ekzCustomerNumber, $messageID, $lieferscheinDetailElement, $lieferscheinRecord) = @_;
 
     my $lieferscheinNummerIsDuplicate = 0;
     my $lieferscheinNummer = '';
@@ -110,11 +112,11 @@ sub genKohaRecords {
     $emaillog->{'dt'}->set_time_zone( 'Europe/Berlin' );
     my ($message, $subject, $haserror) = ('','',0);
 
-    print STDERR "ekzWsDeliveryNote::genKohaRecords() Start;  messageID:$messageID id:$lieferscheinRecord->{'id'}: Lieferscheinnummer:$lieferscheinRecord->{'nummer'}: lieferscheinRecord->{'teilLieferungCount'}:$lieferscheinRecord->{'teilLieferungCount'}\n" if $debugIt;
+    print STDERR "ekzWsDeliveryNote::genKohaRecords() Start;  ekzCustomerNumber:$ekzCustomerNumber messageID:$messageID id:$lieferscheinRecord->{'id'}: Lieferscheinnummer:$lieferscheinRecord->{'nummer'}: lieferscheinRecord->{'teilLieferungCount'}:$lieferscheinRecord->{'teilLieferungCount'}\n" if $debugIt;
 
     my $updOrInsItemsCount = 0;
     my $zweigstellencode = '';
-    my $homebranch = C4::Context->preference("ekzWebServicesDefaultBranch");
+    my $homebranch = C4::External::EKZ::lib::EkzWebServices->new()->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     $homebranch =~ s/^\s+|\s+$//g; # trim spaces
     if ( defined $homebranch && length($homebranch) > 0 ) {
         $zweigstellencode = $homebranch;
@@ -878,7 +880,7 @@ print STDERR Dumper($emaillog->{'logresult'}) if $debugIt;
         if ( scalar(@{$emaillog->{'logresult'}}) > 0 ) {
             my @importIds = keys %{$emaillog->{'importIds'}};
             ($message, $subject, $haserror) = C4::External::EKZ::lib::EkzKohaRecords->createProcessingMessageText($emaillog->{'logresult'}, "headerTEXT", $emaillog->{'dt'}, \@importIds, $lieferscheinNummer);
-            C4::External::EKZ::lib::EkzKohaRecords->sendMessage($message, $subject);
+            C4::External::EKZ::lib::EkzKohaRecords->sendMessage($ekzCustomerNumber, $message, $subject);
         }
 
         # attaching ekz order to Koha acquisition:

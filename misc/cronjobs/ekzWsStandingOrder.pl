@@ -56,13 +56,17 @@ chomp($todayDate);
 print STDERR "ekzWsStoList currentYear:$currentYear: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
 
 if ( $simpleTest ) {
-    print STDERR "ekzWsStoList read STO of year 2017; calling readStoFromEkzWsStoList (2017,undef,false,false,false,undef,undef)\n" if $debugIt;
-    # read all stoIDs of 2017
-    my $stoOf2017 = &readStoFromEkzWsStoList ('2017',undef,'false','false','false',undef,undef);
-    
-    foreach my $sto ( @{$stoOf2017->{'standingOrderRecords'}} ) {
-        print STDERR "ekzWsStoList read StoId $sto->{stoID}: calling readStoFromEkzWsStoList (2017,$sto->{stoID},true,true,true,'2017-09-01','true')\n" if $debugIt;
-        &readStoFromEkzWsStoList ('2017',$sto->{stoID},'true','true','true','2017-09-01','true');
+    # some libraries use different ekz Kundennummer for different branches, so we have to call the standing order synchronization for each of these.
+    my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
+    foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
+        # read all stoIDs of 2017
+        print STDERR "ekzWsStoList read STO of year 2017; calling readStoFromEkzWsStoList ($ekzCustomerNumber,2017,undef,false,false,false,undef,undef)\n" if $debugIt;
+        my $stoOf2017 = &readStoFromEkzWsStoList ($ekzCustomerNumber,'2017',undef,'false','false','false',undef,undef);
+
+        foreach my $sto (@{$stoOf2017->{'standingOrderRecords'}} ) {
+            print STDERR "ekzWsStoList read StoId $sto->{stoID}: calling readStoFromEkzWsStoList ($ekzCustomerNumber,2017,$sto->{stoID},true,true,true,'2017-09-01','true')\n" if $debugIt;
+            &readStoFromEkzWsStoList ($ekzCustomerNumber,'2017',$sto->{stoID},'true','true','true','2017-09-01','true');
+        }
     }
 }
 
@@ -70,19 +74,23 @@ if ( $simpleTest ) {
 if ( $genKohaRecords ) {
     my $res = 0;
 
-    # read all stoIDs of current year
-    print STDERR "ekzWsStoList read STO of year:$currentYear; calling readStoFromEkzWsStoList ($currentYear,undef,false,false,false,undef,undef)\n" if $debugIt;
-    my $stoOfYear = &readStoFromEkzWsStoList ($currentYear,undef,'false','false','false',undef,undef,undef);
-    
-    foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
-        print STDERR "ekzWsStoList read StoId:$sto->{stoID}: state changes since lastRunDate:$lastRunDate; calling readStoFromEkzWsStoList ($currentYear,$sto->{stoID},true,true,true,$lastRunDate,'true',\\\$stoListElement)\n" if $debugIt;
-        $result = &readStoFromEkzWsStoList ($currentYear,$sto->{stoID},'true','true','true',undef,'true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
-        $result = &readStoFromEkzWsStoList ($currentYear,$sto->{stoID},'true','true','true',$lastRunDate,'true',undef);        # read titles with modified state of the standig order 
+    # some libraries use different ekz Kundennummer for different branches, so we have to call the standing order synchronization for each of these.
+    my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
+    foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
+        # read all stoIDs of current year
+        print STDERR "ekzWsStoList read STO of year:$currentYear; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,false,false,false,undef,undef)\n" if $debugIt;
+        my $stoOfYear = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,'false','false','false',undef,undef,undef);
+        
+        foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
+            print STDERR "ekzWsStoList read StoId:$sto->{stoID}: state changes since lastRunDate:$lastRunDate; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},true,true,true,$lastRunDate,'true',\\\$stoListElement)\n" if $debugIt;
+            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',undef,'true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
+            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',$lastRunDate,'true',undef);        # read titles with modified state of the standig order 
 print STDERR Dumper($result->{'standingOrderRecords'}->[0]) if $debugIt;
 
-        if ( $result->{'standingOrderCount'} > 0 ) {
-            if ( &genKohaRecords($result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate) ) {
-                $res = 1;
+            if ( $result->{'standingOrderCount'} > 0 ) {
+                if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate) ) {
+                    $res = 1;
+                }
             }
         }
     }
