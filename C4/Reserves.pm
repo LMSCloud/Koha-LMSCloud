@@ -1206,7 +1206,13 @@ sub IsAvailableForItemLevelRequest {
 
         return $any_available ? 0 : 1;
     } else { # on_shelf_holds == 0 "If any unavailable" (the description is rather cryptic and could still be improved)
-        return $item->{onloan} || IsItemOnHoldAndFound( $item->{itemnumber} );
+        my $reserveNotForLoan = 0;
+        if ( C4::Context->preference('EnableHoldsNotForLoanStatus') ) {
+            my $notforloan = $item->{notforloan} || '';
+            $reserveNotForLoan = scalar(grep { /^$notforloan$/ } split(/\|/,C4::Context->preference('EnableHoldsNotForLoanStatus')));
+        }
+        
+        return $item->{onloan} || $reserveNotForLoan || IsItemOnHoldAndFound( $item->{itemnumber} );
     }
 }
 
