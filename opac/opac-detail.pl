@@ -708,6 +708,12 @@ if ( C4::Context->preference('OPACAcquisitionDetails' ) ) {
     };
 }
 
+my @EnableHoldsNotForLoanStatus = ();
+if ( C4::Context->preference('EnableHoldsNotForLoanStatus') ) {
+    @EnableHoldsNotForLoanStatus = split(/\|/,C4::Context->preference('EnableHoldsNotForLoanStatus'));
+}
+my $enabledNotForLoanStatus = 0;
+
 my $allow_onshelf_holds;
 if ( not $viewallitems and @items > $max_items_to_display ) {
     $template->param(
@@ -731,6 +737,9 @@ if ( not $viewallitems and @items > $max_items_to_display ) {
     if ( $item ) {
         $allow_onshelf_holds = Koha::IssuingRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
             unless $allow_onshelf_holds;
+        my $notforloan = $itm->{'itemnotforloan'} || '';
+        $enabledNotForLoanStatus = scalar(grep { /^$notforloan$/ } @EnableHoldsNotForLoanStatus)
+            if (!$enabledNotForLoanStatus);
     }
 
     # get collection code description, too
@@ -778,7 +787,7 @@ if ( not $viewallitems and @items > $max_items_to_display ) {
   }
 }
 
-if( $allow_onshelf_holds || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
+if( $allow_onshelf_holds || $enabledNotForLoanStatus || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
     $template->param( ReservableItems => 1 );
 }
 
