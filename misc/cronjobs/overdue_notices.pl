@@ -657,8 +657,8 @@ END_SQL
                     $borrower_sql .= ' AND bo.categorycode=? ';
                     push @borrower_parameters, $overdue_rules->{categorycode};
                 }
-                $borrower_sql .= '  ORDER BY borrowernumber';
             }
+            $borrower_sql .= ' ORDER BY borrowernumber';
 
             # $sth gets borrower info if at least one overdue item has triggered the overdue action.
 	        my $sth = $dbh->prepare($borrower_sql);
