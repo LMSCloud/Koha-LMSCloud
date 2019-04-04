@@ -31,6 +31,7 @@ use Date::Calc qw(
 
 use C4::Context;
 use C4::Log;
+use C4::Members;
 use Koha::Checkouts;
 use Koha::Database;
 use Koha::DateUtils;
@@ -491,6 +492,8 @@ sub renew_account {
     $self->add_enrolment_fee_if_needed;
 
     logaction( "MEMBERS", "RENEW", $self->borrowernumber, "Membership renewed" ) if C4::Context->preference("BorrowersLog");
+    C4::Members::UpdateFamilyCardMembers($self->borrowernumber, $self->dateexpiry);
+
     return dt_from_string( $expiry_date )->truncate( to => 'day' );
 }
 
