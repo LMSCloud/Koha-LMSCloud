@@ -727,7 +727,7 @@ END_SQL
                 $notice_email =~ s/^\s+// if ($notice_email);
                 $notice_email =~ s/\s+$// if ($notice_email);
                 
-                if ( !$notice_email && $familyCardOwner && GetMemberAge($borrowernumber) < 18 ) {
+                if ( !$notice_email && $familyCardOwner && $patron->get_age() < 18 ) {
                     $notice_email = Koha::Patrons->find( $familyCardOwner )->notice_email_address;
                 }
                 unless ($nomail) {
