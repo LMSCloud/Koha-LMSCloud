@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2019-03-25 16:23+0100\n"
+"POT-Creation-Date: 2019-04-11 12:18+0200\n"
 "PO-Revision-Date: 2019-02-21 16:37+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
@@ -3090,7 +3090,7 @@ msgstr "%s %sNicht angegeben"
 #. %1$s:  END 
 #. %2$s:  ELSE 
 #. %3$s:  END 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:680
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:686
 #, c-format
 msgid "%s %sNot checked out%s"
 msgstr "%s %sNicht ausgeliehen%s"
@@ -3666,7 +3666,7 @@ msgid "%s (inactive) %s %s %s "
 msgstr "%s (inaktiv) %s %s %s "
 
 #. %1$s:  riloo.duedate 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:654
 #, c-format
 msgid "%s (overdue)"
 msgstr "%s (überfällig)"
@@ -6308,7 +6308,7 @@ msgstr "%s | Status: %s %s "
 #. %3$s:  END 
 #. %4$s:  ELSE 
 #. %5$s:  END 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:654
 #, c-format
 msgid "%s%s %s %sNot checked out %s "
 msgstr "%s%s %s %sNicht ausgeliehen %s "
@@ -11286,7 +11286,7 @@ msgstr ""
 msgid "A pattern with this name already exists."
 msgstr "Es existiert bereits ein Muster mit diesem Namen."
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:511
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:517
 #, c-format
 msgid "A refund has been applied to the borrowing patron's account."
 msgstr "Der Buchersatzpreis wurde auf dem Benutzerkonto rückerstattet."
@@ -13950,7 +13950,7 @@ msgstr "Irgendein Medientyp"
 msgid "Any library"
 msgstr "Alle Bibliotheken"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:516
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:522
 #, c-format
 msgid "Any lost item fees for this item will remain on the patron's account."
 msgstr ""
@@ -14919,7 +14919,7 @@ msgstr "Authentifizierungsname"
 #: intranet-tmpl/prog/en/modules/serials/result.tt:16
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:636
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/branchtransfers.tt:174
 #: intranet-tmpl/prog/en/modules/circ/request-article.tt:229
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:99
@@ -15499,7 +15499,7 @@ msgstr "Baptiste Wojtkowski"
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:155
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:173
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/circulation_batch_checkouts.tt:101
 #: intranet-tmpl/prog/en/modules/circ/branchtransfers.tt:175
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:913
@@ -16433,13 +16433,13 @@ msgstr "Gesperrt!"
 msgid "Bonnie Crawford"
 msgstr "Bonnie Crawford"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:622
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:628
 #, c-format
 msgid "Book drop mode"
 msgstr "Bücherboxrückgabe"
 
 #. %1$s:  dropboxdate 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:560
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:566
 #, c-format
 msgid "Book drop mode. (Effective checkin date is %s )."
 msgstr "Bücherboxrückgabe. (Effektives Rückgabedatum ist %s)"
@@ -17067,7 +17067,7 @@ msgstr "Signatur"
 #: intranet-tmpl/prog/en/modules/serials/subscription-batchedit.tt:41
 #: intranet-tmpl/prog/en/modules/serials/serials-search.tt:57
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:79
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:150
 #: intranet-tmpl/prog/en/modules/circ/pendingreserves.tt:149
@@ -17705,8 +17705,8 @@ msgid "Cannot cancel receipt. Possible reasons : "
 msgstr "Eingang kann nicht abgebrochen werden. Mögliche Gründe: "
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:122
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:513
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:521
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:519
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:527
 #, c-format
 msgid "Cannot check in"
 msgstr "Rückgabe nicht möglich"
@@ -18657,7 +18657,7 @@ msgstr "Auf vorherige Ausleihen überprüfen: "
 #: intranet-tmpl/prog/en/includes/circ-search.inc:36
 #: intranet-tmpl/prog/en/includes/circ-nav.inc:12
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:46
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:567
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:573
 #: intranet-tmpl/prog/en/modules/circ/circulation-home.tt:25
 #, c-format
 msgid "Check in"
@@ -18671,7 +18671,7 @@ msgstr "Rückgabe "
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:224
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:469
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:475
 #, c-format
 msgid "Check in message"
 msgstr "Rückgabehinweis"
@@ -18948,7 +18948,7 @@ msgid "Checked out: "
 msgstr "Ausgeliehen: "
 
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:104
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:640
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:646
 #, c-format
 msgid "Checked-in items"
 msgstr "Zurückgegebene Exemplare"
@@ -19105,7 +19105,7 @@ msgstr "Ausleihen sind GESPERRT, da der Benutzer überfällige Medien hat."
 msgid "Checkouts overdue level: "
 msgstr "Ausleihe mit Mahnstufe:"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:676
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:682
 #, c-format
 msgid "Checkouts:"
 msgstr "Ausleihen:"
@@ -19746,7 +19746,7 @@ msgstr "Importdatei #%s gelöscht"
 #: intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1056
 #: intranet-tmpl/prog/en/modules/members/member.tt:343
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:136
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:591
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:597
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:551
 #: intranet-tmpl/prog/en/modules/cataloguing/editor.tt:123
 #: intranet-tmpl/prog/en/modules/tools/notice-fee-rules.tt:181
@@ -20757,12 +20757,12 @@ msgid "Confirm deletion of this vendor ?"
 msgstr "Diesen Lieferanten wirklich löschen?"
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:235
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:449
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:455
 #, c-format
 msgid "Confirm hold "
 msgstr "Vormerkung bestätigen "
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:442
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:448
 #, c-format
 msgid "Confirm hold and transfer "
 msgstr "Vormerkung und Transport bestätigen "
@@ -22281,7 +22281,7 @@ msgid "Date"
 msgstr "Datum"
 
 #: intranet-tmpl/prog/en/columns.def:71
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #, c-format
 msgid "Date acquired"
 msgstr "Zugangsdatum"
@@ -24522,7 +24522,7 @@ msgstr "Fällig am %s"
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:685
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:153
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:171
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:238
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:861
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:878
@@ -25640,7 +25640,7 @@ msgid "Enter item barcode:"
 msgstr "Exemplarbarcode eingeben:"
 
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:95
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:568
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:574
 #: intranet-tmpl/prog/en/modules/circ/renew.tt:154
 #, c-format
 msgid "Enter item barcode: "
@@ -27205,7 +27205,7 @@ msgstr "Gebühren &amp; Entgelte"
 msgid "Fines &amp; charges"
 msgstr "Gebühren &amp; Entgelte"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:557
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:563
 #, c-format
 msgid "Fines are not charged for manually cancelled holds."
 msgstr "Es werden keine Gebühren für manuell stornierte Vormerkungen erhoben."
@@ -27216,7 +27216,7 @@ msgstr "Es werden keine Gebühren für manuell stornierte Vormerkungen erhoben."
 msgid "Fines description"
 msgstr "Beschreibung Gebührenart"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:554
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:560
 #, c-format
 msgid "Fines for returned items are forgiven."
 msgstr "Mahngebühren für zurückgegebene Exemplare werden erlassen"
@@ -27469,7 +27469,7 @@ msgstr "Für immer"
 msgid "Forget %s %s (%s)"
 msgstr "Vergiss %s %s (%s)"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:631
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:637
 #, c-format
 msgid "Forgive fees for manually expired holds"
 msgstr "Gebühren für manuell stornierte Vormerkungen erlassen"
@@ -27479,7 +27479,7 @@ msgstr "Gebühren für manuell stornierte Vormerkungen erlassen"
 msgid "Forgive fines on return: "
 msgstr "Gebührenerlass bei Rückgabe: "
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:613
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:619
 #, c-format
 msgid "Forgive overdue charges"
 msgstr "Mahngebühren erlassen"
@@ -28696,7 +28696,7 @@ msgstr "Vormerkung"
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:209
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:270
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:415
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:421
 #, c-format
 msgid "Hold at"
 msgstr "Vorgemerkt für"
@@ -28733,7 +28733,7 @@ msgstr "Vormerkgebühr: "
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:137
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:182
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:337
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:378
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:382
 #, c-format
 msgid "Hold for:"
 msgstr "Vorgemerkt für:"
@@ -28754,7 +28754,7 @@ msgstr "Vormerkung gefunden (Exemplar ist bereitgestellt): "
 msgid "Hold found for (%s), please transfer"
 msgstr "Vormerkung gefunden für (%s), bitte transportieren"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:366
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:370
 #, c-format
 msgid "Hold found: "
 msgstr "Vormerkung gefunden: "
@@ -28841,7 +28841,7 @@ msgstr "Aktuelle Bibliotheken"
 #: intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:262
 #: intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:68
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/reports/reserves_stats.tt:172
 #: intranet-tmpl/prog/en/modules/reports/issues_stats.tt:253
 #, c-format
@@ -29322,7 +29322,7 @@ msgstr "Heimatbibliothek"
 #: intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:261
 #: intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:67
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/bookcount.tt:29
 #: intranet-tmpl/prog/en/modules/circ/transferstoreceive.tt:38
 #: intranet-tmpl/prog/en/modules/circ/request-article.tt:159
@@ -30023,7 +30023,7 @@ msgstr ""
 msgid "Ignore"
 msgstr "Ignorieren"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:457
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:463
 #, c-format
 msgid "Ignore "
 msgstr "Ignoriere "
@@ -31269,7 +31269,7 @@ msgstr "Das Exemplar ist <strong>bereitgestellt</strong>"
 msgid "Item is already at destination library."
 msgstr "Exemplar ist bereits in der Zielbibliothek."
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:505
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:511
 #, c-format
 msgid "Item is lost, cannot be checked in."
 msgstr "Medium verloren, kann nicht zurückgebucht werden."
@@ -31299,7 +31299,7 @@ msgstr ""
 msgid "Item is restricted."
 msgstr "Exemplar ist gesperrt."
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:524
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:530
 #, c-format
 msgid "Item is withdrawn."
 msgstr "Medium wurde zurückgenommen"
@@ -31596,7 +31596,7 @@ msgstr ""
 "Medientypen werden zur Verwaltung verwandter Medien verwendet. Beispiele "
 "sind Bücher, CDs oder DVDs. "
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:507
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:513
 #, c-format
 msgid "Item was lost, now found."
 msgstr "Exemplar war vermisst, wurde jetzt gefunden."
@@ -36274,7 +36274,7 @@ msgstr "Lokale Verwendung"
 msgid "Local use preferences"
 msgstr "Benutzerdefinierte Parameter"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:501
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:507
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:310
 #, c-format
 msgid "Local use recorded"
@@ -38555,8 +38555,8 @@ msgid "NORMARC"
 msgstr "NORMARC"
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:124
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:514
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:522
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:520
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:528
 #, c-format
 msgid "NOT CHECKED IN"
 msgstr "NICHT ZURÜCKGEGEBEN"
@@ -39326,7 +39326,7 @@ msgstr "Neuer Wert"
 #. %2$s:  AuthorisedValues.GetByCode( 'NOT_LOAN', errmsgloo.NotForLoanStatusUpdated.to ) 
 #. %3$s:  ELSE 
 #. %4$s:  END 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:483
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:489
 #, c-format
 msgid "New value: %s %s. %s Available for loan. %s "
 msgstr "Neuer Wert: %s %s. %s Ausleihbar. %s "
@@ -39869,7 +39869,7 @@ msgstr ""
 "(Transaktion wurde dennoch aufgezeichnet): %s"
 
 #. %1$s:  errmsgloo.msg | html 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:492
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:498
 #, c-format
 msgid "No item with barcode: %s"
 msgstr "Kein Exemplar mit Barcode: %s"
@@ -40627,7 +40627,7 @@ msgstr "Nicht verfügbar"
 msgid "Not checked out since: "
 msgstr "Nicht ausgeliehen seit: "
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:498
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:504
 #, c-format
 msgid "Not checked out."
 msgstr "Nicht ausgeliehen."
@@ -40647,7 +40647,7 @@ msgstr "Nicht ausleihbar"
 msgid "Not for loan status"
 msgstr "Status für \"Nicht ausleihbar\""
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:475
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:481
 #, c-format
 msgid "Not for loan status updated. "
 msgstr "Status für \"Nicht ausleihbar\" geändert. "
@@ -40685,7 +40685,7 @@ msgstr "Keine Auswahl"
 #: intranet-tmpl/prog/en/modules/members/printinvoice.tt:44
 #: intranet-tmpl/prog/en/modules/members/boraccount.tt:43
 #: intranet-tmpl/prog/en/modules/members/printfeercpt.tt:45
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/catalogue/detail.tt:652
 #, c-format
 msgid "Note"
@@ -40931,7 +40931,7 @@ msgstr "Hinweise: "
 #. For the first occurrence,
 #. %1$s:  reservenotes 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:179
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:376
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:380
 #, c-format
 msgid "Notes: %s"
 msgstr "Hinweise: %s"
@@ -41402,7 +41402,7 @@ msgstr "AUS"
 #: intranet-tmpl/prog/en/modules/serials/claims.tt:59
 #: intranet-tmpl/prog/en/modules/serials/claims.tt:76
 #: intranet-tmpl/prog/en/modules/serials/acqui-search.tt:14
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:341
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:345
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:43
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:54
 #: intranet-tmpl/prog/en/modules/circ/branchoverdues.tt:30
@@ -41627,7 +41627,7 @@ msgstr "Alter Wert"
 #. %2$s:  AuthorisedValues.GetByCode( 'NOT_LOAN', errmsgloo.NotForLoanStatusUpdated.from ) 
 #. %3$s:  ELSE 
 #. %4$s:  END 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:477
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:483
 #, c-format
 msgid "Old value: %s %s. %s Available for loan. %s "
 msgstr "Bisheriger Wert: %s %s. %s Ausleihbar. %s "
@@ -42010,7 +42010,7 @@ msgstr "Anzahl Tage vor Ende der Gültigkeitsdauer"
 msgid "Optional parameter to use another notice than the default one."
 msgstr "Benachrichtigungsformular"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:605
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:611
 #: intranet-tmpl/prog/en/modules/tools/export.tt:119
 #: intranet-tmpl/prog/en/modules/tools/export.tt:202
 #: intranet-tmpl/prog/en/modules/tools/upload-images.tt:94
@@ -42824,7 +42824,7 @@ msgstr "Patricio Marrone"
 #: intranet-tmpl/prog/en/modules/members/discharges.tt:26
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:638
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:76
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:147
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:888
@@ -43071,7 +43071,7 @@ msgstr ""
 "Benutzer hat bereits ein Exemplar dieses Titels ausgeliehen. %s  Trotzdem "
 "ausleihen? %s "
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:533
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:539
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:403
 #, c-format
 msgid "Patron has an indefinite restriction."
@@ -43174,7 +43174,7 @@ msgstr "Benutzerfotos wurden mit einigen Fehlern hochgeladen"
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:224
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:198
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:264
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:405
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:411
 #, c-format
 msgid "Patron is RESTRICTED"
 msgstr "Benutzer ist GESPERRT"
@@ -43371,7 +43371,7 @@ msgstr ""
 "Ausleihfeld. Stellen Sie sicher dass Sie mit dem richtigen Benutzer arbeiten."
 
 #. %1$s:  errmsgloo.prevdebarred | $KohaDates 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:530
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:536
 #, c-format
 msgid "Patron was earlier restricted until %s."
 msgstr "Der Benutzer wurde gesperrt bis %s."
@@ -43417,7 +43417,7 @@ msgstr "Benutzeranschrift unklar"
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:202
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:265
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:409
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:415
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:359
 #, c-format
 msgid "Patron's address is in doubt"
@@ -44812,7 +44812,7 @@ msgstr "Bitte das Medium zur Heimatbibliothek zurückschicken: %s"
 #. %1$s:  Branches.GetName( TransferWaitingAt ) 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:133
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:299
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:495
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:501
 #, c-format
 msgid "Please return item to: %s"
 msgstr "Bitte zurücksenden an: %s"
@@ -45573,7 +45573,7 @@ msgid "Print slip and confirm"
 msgstr "Quittung drucken und bestätigen"
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:240
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:452
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:458
 #, c-format
 msgid "Print slip and confirm "
 msgstr "Quittung drucken und bestätigen "
@@ -45583,7 +45583,7 @@ msgstr "Quittung drucken und bestätigen "
 msgid "Print slip and continue"
 msgstr "Quittung drucken und fortfahren"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:445
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:451
 #, c-format
 msgid "Print slip, transfer, and confirm "
 msgstr "Quittung drucken, Transport und Vormerkung bestätigen "
@@ -46856,7 +46856,7 @@ msgstr ""
 msgid "Remaining system parameters permissions"
 msgstr "Übrige Berechtigungen für die Administration"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:584
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:590
 #, c-format
 msgid "Remember for next check in:"
 msgstr "Für nächste Rückgabe speichern:"
@@ -46882,8 +46882,8 @@ msgstr "Remi Mayrand-Provencher"
 msgid "Reminder date"
 msgstr "Erinnerungsdatum"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:530
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:533
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:536
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:539
 #, c-format
 msgid "Reminder: "
 msgstr "Erinnerung: "
@@ -50638,7 +50638,7 @@ msgstr "Magazinnummer"
 #: intranet-tmpl/prog/en/includes/search_indexes.inc:25
 #: intranet-tmpl/prog/en/columns.def:98
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/branchtransfers.tt:176
 #: intranet-tmpl/prog/en/modules/catalogue/itemsearch.tt:19
 #: intranet-tmpl/prog/en/modules/catalogue/itemsearch.tt:210
@@ -51451,7 +51451,7 @@ msgid "Specify how the holiday should repeat."
 msgstr "Geben Sie an, auf welche Weise der Schließtag wiederholt werden soll."
 
 #. %1$s:  INCLUDE 'date-format.inc' 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:580
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:586
 #, c-format
 msgid "Specify return date %s: "
 msgstr "Rückgabedatum festlegen %s: "
@@ -52384,7 +52384,7 @@ msgstr "Schlagwörter:"
 #: intranet-tmpl/prog/en/modules/serials/subscription-renew.tt:45
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:508
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:97
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:576
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:582
 #: intranet-tmpl/prog/en/modules/circ/pendingreserves.tt:192
 #: intranet-tmpl/prog/en/modules/circ/branchtransfers.tt:155
 #: intranet-tmpl/prog/en/modules/circ/renew.tt:158
@@ -54184,7 +54184,7 @@ msgstr "Der Titel wurde von der Liste gelöscht."
 msgid "The item has been removed from your cart"
 msgstr "Dieser Titel wurde aus Ihrem Korb gelöscht"
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:537
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:543
 #, c-format
 msgid ""
 "The item has not been checked in due to a configuration issue in your "
@@ -55805,7 +55805,7 @@ msgstr "TinyMCE WYSIWYG Editor v3.5.8 "
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:154
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:172
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/reserveratios.tt:42
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:75
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:146
@@ -56762,7 +56762,7 @@ msgstr "Bestellposten in diese Bestellung verschieben?"
 
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:207
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:268
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:413
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:419
 #, c-format
 msgid "Transfer to:"
 msgstr "Transportieren nach:"
@@ -56929,7 +56929,7 @@ msgstr "Tumer Garip"
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:635
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:642
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:279
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:341
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:344
@@ -60932,7 +60932,7 @@ msgid "a an the"
 msgstr "ein eine einer eines einem einen der die das"
 
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:361
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:537
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:543
 #, c-format
 msgid "about page"
 msgstr "Über Koha"
@@ -61013,7 +61013,7 @@ msgstr "und wurde zurückgegeben."
 msgid "and mark one currency as active."
 msgstr "und markieren Sie eine Währung als aktiv."
 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:537
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:543
 #, c-format
 msgid "and search for the \"data problems\" section"
 msgstr "anzusehen und dort insbesondere den Bereich \"Datenprobleme\""
@@ -62113,7 +62113,7 @@ msgid "is not"
 msgstr "ist nicht"
 
 #. %1$s:  errmsgloo.debarred | $KohaDates 
-#: intranet-tmpl/prog/en/modules/circ/returns.tt:527
+#: intranet-tmpl/prog/en/modules/circ/returns.tt:533
 #, c-format
 msgid "is now debarred until %s."
 msgstr "ist nun gesperrt bis %s."
