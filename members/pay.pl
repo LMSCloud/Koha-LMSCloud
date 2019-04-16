@@ -142,6 +142,7 @@ for (@names) {
 
 $template->param(
     finesview => 1,
+    checkCashRegisterFailed   => (! $checkCashRegisterOk)
 );
 
 add_accounts_to_template();
