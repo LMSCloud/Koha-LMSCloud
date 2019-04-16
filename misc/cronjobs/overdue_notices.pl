@@ -866,7 +866,7 @@ END_SQL
                     # check whether there are claiming fee rules defined
                     if ( $nocharge==0 && $new_overdue_item == 1 && $claimFees->checkForClaimingRules() == 1 ) {
                         # check whether there is a matching claiming fee rule
-                        my $claimFeeRule = $claimFees->getFittingClaimingRule($patron->category, $item_info->{itype}, $usebranch);
+                        my $claimFeeRule = $claimFees->getFittingClaimingRule($patron->categorycode, $item_info->{itype}, $usebranch);
                         
                         if ( $claimFeeRule ) {
                             my $fee = 0.0;
