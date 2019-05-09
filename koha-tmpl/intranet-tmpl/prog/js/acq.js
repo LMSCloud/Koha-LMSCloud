@@ -192,7 +192,7 @@ function updateCosts(){
     $("#rrp").val(rrp.toFixed(2));
     $("#ecost").val(ecost.toFixed(2));
     $("#total").val(total.toFixed(2));
-    $("listprice").val(listprice.toFixed(2));
+    $("#listprice").val(listprice.toFixed(2));
 
     return true;
 }
