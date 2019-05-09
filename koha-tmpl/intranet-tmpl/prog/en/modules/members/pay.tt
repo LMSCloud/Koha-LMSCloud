@@ -175,7 +175,11 @@ Please open a cash register to enable cash payments.
             // Enable/disable controls if checkboxes are checked
             var checkedBoxes = $("input.cb:checked");
             if ($(checkedBoxes).size()) {
+              [% IF (checkCashRegisterFailed) %] 
+              $("#payselected").prop("disabled",true);
+              [% ELSE %]
               $("#payselected").prop("disabled",false);
+              [% END %]
             } else {
               $("#payselected").prop("disabled",true);
             }

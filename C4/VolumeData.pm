@@ -21,6 +21,7 @@ use Modern::Perl;
 
 use C4::Search;
 use C4::Languages;
+use C4::Context;
 
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
@@ -65,13 +66,17 @@ names to values.  If C<$serial> is true, include serial publication data.
 =cut
 
 sub GetVolumeData {
+    my $refnumber = shift;
     my $biblionumber = shift;
     my $linkedRecords = shift;
     my $lang = shift;
     
     $lang = C4::Languages::getlanguage() if (! $lang );
 
-    my $searchstring = "rcn:$biblionumber"; # not (bib-level:a or bib-level:b)";
+    my $marcOrgCode =  C4::Context->preference('MARCOrgCode') || '';
+
+    my $searchstring = "rcn:$refnumber"; # not (bib-level:a or bib-level:b)";
+    $searchstring .= " AND cna:$marcOrgCode" if ( $marcOrgCode );
 
     my ($error,$volumes) = SearchVolumeData($searchstring,$lang,'opacvolume');
     return ($error,$volumes,undef) if ($error);

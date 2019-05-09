@@ -1364,12 +1364,19 @@ $template->param(
 
 if (C4::Context->preference('OpacDetailVolumeDisplay')) {
     my @linkedRecords;
+    my $marcOrgCode =  C4::Context->preference('MARCOrgCode') || '';
+    my $checkRecNum = $biblionumber;
+    $checkRecNum = $record->field("001")->data() if ( $record->field("001") );
     foreach my $hostfield ( $record->field('770','772','773','774','775','776','777','780','785','787','800','810','811','830')) {
         my $linkedbiblionumber = $hostfield->subfield("w");
-        $linkedbiblionumber =~ s/\([^\)]+\)//g;
+        if ( $linkedbiblionumber =~ /\(([^\)]+)\)/ ) {
+            my $isil = $1;
+            next if ( $marcOrgCode ne $isil );
+            $linkedbiblionumber =~ s/\([^\)]+\)//g;
+        }
         push @linkedRecords, $linkedbiblionumber if ($linkedbiblionumber);
     }
-    my ($volError,$volumeData,$linkedRecordData) = C4::VolumeData::GetVolumeData($biblionumber,\@linkedRecords);
+    my ($volError,$volumeData,$linkedRecordData) = C4::VolumeData::GetVolumeData($checkRecNum,$biblionumber,\@linkedRecords);
     if ( !$volError ) {
         $template->param(
             'OpacDetailVolumeDisplay'     =>     C4::Context->preference('OpacDetailVolumeDisplay'),
