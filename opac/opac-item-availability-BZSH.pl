@@ -154,7 +154,7 @@ sub get_date_due_for_item
 
     for my $item ( Koha::Items->search({ biblionumber => $biblionumber }) ) {
         if ( $item->itemnumber == $itemnumber ) {
-            $date_due = $item->{date_due};
+            $date_due = $item->onloan;
             last;
         }
     }
@@ -465,7 +465,7 @@ for (my $i = 0; $i < $hits and defined $marcresults->[$i] and $best_item_status 
 
 if ($best_item_status == 2)    # For performance reasons, we search for date due only if we really have to. 
 {
-    $best_item_date_due = &get_date_due_for_item( $best_biblionumber, $best_itemnumber );
+    $best_item_date_due = get_date_due_for_item( $best_biblionumber, $best_itemnumber );
     if ( length($best_item_date_due) >= 10 ) {
         $best_item_date_due_year = substr($best_item_date_due,0,4);
         $best_item_date_due_month = substr($best_item_date_due,5,2);
@@ -480,7 +480,7 @@ my $BZSH_output_bibldata = '';
 my $BZSH_output_statustext = "Status: Titel nicht vorhanden\n";
 my $BZSH_output_ruckdattext = "";
 my $BZSH_output_permalink = "";
-my $BZSH_output_statuscode = "\n<status>0 </status><br>\n";
+my $BZSH_output_statuscode = "\n<status>0</status><br>\n";
 my $BZSH_output_ruckdatcode = "<ruckdat></ruckdat><br>\n";
 
 if (length($marc_titledata) > 0) {
@@ -488,17 +488,17 @@ if (length($marc_titledata) > 0) {
 }
 if ( $best_item_status == 1) {
     $BZSH_output_statustext = "Status: nicht entliehen\n";
-    $BZSH_output_statuscode = "\n<status>1 </status><br>\n";
+    $BZSH_output_statuscode = "\n<status>1</status><br>\n";
 } elsif ( $best_item_status == 2) {
     $BZSH_output_statustext = "Status: ausgeliehen\n";
-    $BZSH_output_statuscode = "\n<status>2 </status><br>\n";
+    $BZSH_output_statuscode = "\n<status>2</status><br>\n";
     if ( length($best_item_date_due_year) == 4 &&  length($best_item_date_due_month) == 2 && length($best_item_date_due_day) == 2 ) {
         $BZSH_output_ruckdattext = sprintf("Datum voraussichtliche Rückgabe: %02d.%02d.%04d\n", $best_item_date_due_day, $best_item_date_due_month, $best_item_date_due_year);
         $BZSH_output_ruckdatcode = sprintf("<ruckdat>%04d%02d%02d</ruckdat><br>\n", $best_item_date_due_year, $best_item_date_due_month, $best_item_date_due_day);
     }
 } elsif ( $best_item_status == 4) {
     $BZSH_output_statustext = "Status: nicht ausleihbar\n";
-    $BZSH_output_statuscode = "\n<status>4 </status><br>\n";
+    $BZSH_output_statuscode = "\n<status>4</status><br>\n";
 }
 if ( $best_biblionumber > 0 ) {
     $BZSH_output_permalink = sprintf("<p><a href=\"%s\">Weitere Informationen zu diesem Titel</a></p>\n", &genPermalink($best_biblionumber));
