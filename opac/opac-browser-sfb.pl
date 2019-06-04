@@ -287,6 +287,18 @@ sub createSearchString {
         return $search;
     }
     
+    if ( $class->{prefix} && $class->{prefix} eq 'NOTEN' && $class->{classification} ) {
+        my $sval = $class->{classification};
+        $sval =~ s/^(NOTEN \/ [A-Y])([^O]?)/$1.'O'.($2 ? $2 : '')/e;
+        $search .= 'sys,phr,ext,rtrn:"' . $class->{classification} . '"';
+        $search .= ' or sys,phr,ext,rtrn:"' . $sval . '"' if ( $sval ne $class->{classification});
+        return $search;
+    }
+    if ( $class->{prefix} && $class->{prefix} eq 'MUSIK' && $class->{classification} ) {
+        $search .= 'sys,phr,ext,rtrn:"' . $class->{classification} . '"';
+        return $search;
+    }
+    
     if ( $class->{classification} =~ /,[0-9]$/ ) {
         $search .= 'sys,phr,ext,rtrn:"' . $class->{classification} . '"';
         return $search;
