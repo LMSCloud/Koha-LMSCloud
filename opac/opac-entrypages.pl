@@ -35,6 +35,7 @@ use C4::Output;
 use CGI qw ( -utf8 );
 use C4::Biblio;
 use C4::Koha;       # use getitemtypeinfo
+use C4::NewsChannels;    # GetNewsToDisplay
 
 my $query = new CGI;
 
@@ -84,6 +85,35 @@ if ( $page ) {
         debug           => 1,
     }
 );
+
+if ( defined($query->param('shownews')) ) {
+    my $shownews = $query->param('shownews');
+    
+    if ( $shownews eq '1' || lc($shownews) eq 'y' ) {
+	    
+	my $homebranch;
+	if (C4::Context->userenv) {
+	    $homebranch = C4::Context->userenv->{'branch'};
+	}
+	if (defined $query->param('branch') and length $query->param('branch')) {
+	    $homebranch = $query->param('branch');
+	}
+	elsif (C4::Context->userenv and defined $query->param('branch') and length $query->param('branch') == 0 ){
+	    $homebranch = "";
+	}
+   
+	# Display news
+	# use cookie setting for language, bug default to syspref if it's not set
+	my ($theme, $news_lang, $availablethemes) = C4::Templates::themelanguage(C4::Context->config('opachtdocs'),$templatename,'opac',$query);
+	my $all_koha_news   = &GetNewsToDisplay($news_lang,$homebranch);
+	my $koha_news_count = scalar @$all_koha_news;
+
+	$template->param(
+	    koha_news           => $all_koha_news,
+	    koha_news_count     => $koha_news_count
+	);
+    }
+}
 
 if ( $enduser eq 'A' ) {
     # select top-level CD-DVD-BD entries of the ASB classification if available

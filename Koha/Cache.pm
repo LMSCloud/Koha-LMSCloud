@@ -41,6 +41,7 @@ The first, traditional OO interface provides the following functions:
 use strict;
 use warnings;
 use Carp;
+use Scalar::Util qw(blessed);
 use Module::Load::Conditional qw(can_load);
 use Sereal::Encoder;
 use Sereal::Decoder;
@@ -264,6 +265,7 @@ sub set_in_cache {
         # We only save the frozen form: we do want to save $value in L1
         # directly in order to protect it. And thawing now may not be
         # needed, so improves performance.
+        $L1_encoder = Sereal::Encoder->new if (!blessed($L1_encoder));
         $value = $L1_encoder->encode($value);
         $L1_cache{$self->{namespace}}{$key}->{frozen} = $value;
         $flag = '-CF1';
@@ -325,6 +327,7 @@ sub get_from_cache {
     # Return L1 cache value if exists
     if ( exists $L1_cache{$self->{namespace}}{$key} ) {
         if (ref($L1_cache{$self->{namespace}}{$key})) {
+            $L1_decoder = Sereal::Decoder->new if (!blessed($L1_decoder));
             if ($unsafe) {
                 # ONLY use thawed for unsafe calls !!!
                 $L1_cache{$self->{namespace}}{$key}->{thawed} ||= $L1_decoder->decode($L1_cache{$self->{namespace}}{$key}->{frozen});

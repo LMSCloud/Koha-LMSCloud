@@ -272,11 +272,11 @@ sub output_with_http_headers {
     my $options = {
         type              => $content_type_map{$content_type},
         status            => $status,
-        charset           => $characterset,
         Pragma            => 'no-cache',
         'Cache-Control'   => $cache_policy,
         'X-Frame-Options' => 'SAMEORIGIN',
     };
+    $options->{charset} = $characterset if ( $content_type ne 'zip' );
     $options->{expires} = 'now' if $extra_options->{force_no_caching};
     $options->{attachment} = $extra_options->{filename} if $extra_options->{filename};
 
@@ -286,12 +286,16 @@ sub output_with_http_headers {
         $options->{'Content-Script-Type'} = 'text/javascript';
     }
 
-# We can't encode here, that will double encode our templates, and xslt
-# We need to fix the encoding as it comes out of the database, or when we pass the variables to templates
+    # We can't encode here, that will double encode our templates, and xslt
+    # We need to fix the encoding as it comes out of the database, or when we pass the variables to templates
 
-    $data =~ s/\&amp\;amp\; /\&amp\; /g;
-    binmode(STDOUT, ":encoding($characterset)");
-    print $query->header($options), $data;
+    if ( $content_type ne 'zip' ) {
+        $data =~ s/\&amp\;amp\; /\&amp\; /g;
+        binmode(STDOUT, ":encoding($characterset)");
+        print $query->header($options), $data;
+    } else {
+        print $query->header($options), $data;
+    }
 }
 
 sub output_html_with_http_headers {

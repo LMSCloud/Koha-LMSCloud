@@ -178,7 +178,9 @@ if ($filter eq '' and $level == 1) {
 else {
     $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ?");
     my $val = $filter;
-    while (length($val)>0) {
+    my $maxloop = 100;
+    while ( length($val)>0 && $maxloop > 0 ) {
+        $maxloop--;
         $sth->execute($val);
         my $line = $sth->fetchrow_hashref;
         if ( $line ) {
@@ -187,7 +189,9 @@ else {
             unshift @hierarchy_loop, $line;
             last if ( $line->{'level'} eq '1' );
         }
-
+        else {
+            $val = '';
+        }
     }
     $have_hierarchy = 1 if @hierarchy_loop;
 }
