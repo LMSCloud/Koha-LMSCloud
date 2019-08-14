@@ -72,7 +72,7 @@
         <optgroup label="Custom search fields">
           [% FOREACH field IN items_search_fields %]
             [% marcfield = field.tagfield %]
-            [% IF field.tagsubfield %]
+            [% IF (field.tagsubfield || field.tagsubfield == "0" ) %]
               [% marcfield = marcfield _ '$' _ field.tagsubfield %]
             [% END %]
             <option value="marc:[% marcfield %]" data-authorised-values-category="[% field.authorised_values_category %]">[% field.label %] ([% marcfield %])</option>
