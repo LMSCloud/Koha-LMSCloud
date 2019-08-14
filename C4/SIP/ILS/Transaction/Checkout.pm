@@ -63,14 +63,14 @@ sub do_checkout {
 	my $noerror=1;
 	my $chargeerror=0;
     if (scalar keys %$issuingimpossible) {
-        foreach (keys %$issuingimpossible) {
+        foreach (sort keys %$issuingimpossible) {
             # do something here so we pass these errors
             $self->screen_msg("Issue failed : $_");
             $noerror = 0;
             last;
         }
-    } else {
-        foreach my $confirmation (keys %{$needsconfirmation}) {
+    } elsif (scalar keys %$needsconfirmation) {
+        foreach my $confirmation (sort keys %{$needsconfirmation}) {
             if ($confirmation eq 'RENEW_ISSUE'){
                 $self->screen_msg("Item already checked out to you: renewing item.");
             } elsif ($confirmation eq 'RESERVED' or $confirmation eq 'RESERVE_WAITING') {
