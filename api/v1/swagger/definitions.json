@@ -22,5 +22,11 @@
   },
   "vendor": {
     "$ref": "definitions/vendor.json"
+  },
+  "zksha_illrequest": {
+    "$ref": "definitions/zksha_illrequest.json"
+  },
+  "zkshp_illrequest": {
+    "$ref": "definitions/zkshp_illrequest.json"
   }
 }

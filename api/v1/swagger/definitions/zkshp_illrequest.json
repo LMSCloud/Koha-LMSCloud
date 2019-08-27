@@ -1,0 +1,123 @@
+{
+  "type": "object",
+  "properties": {
+    "Art": {
+      "type": ["string", "null"],
+      "description": "'RLV-Bestellung'"
+    },
+    "BestellID": {
+      "type": ["string", "null"],
+      "description": "zksh_item_order.id (serial)"
+    },
+    "ItemOrderExtid": {
+      "type": ["string", "null"],
+      "description": "zksh_item_order.extid (UUID) used in CGI calls"
+    },
+    "Bestellnummer": {
+      "type": ["string", "null"],
+      "description": "zksh_order_item.id (serial)"
+    },
+    "BZID": {
+      "type": ["string", "null"],
+      "description": "title ID of Buechereizentrale Schleswig-Holstein"
+    },
+    "Titel": {
+      "type": ["string", "null"],
+      "description": "text of ordered title"
+    },
+    "Verfasser": {
+      "type": ["string", "null"],
+      "description": "author of ordered title"
+    },
+    "ISBD": {
+      "type": ["string", "null"],
+      "description": "ISBD of ordered title"
+    },
+    "Serientitel": {
+      "type": ["string", "null"],
+      "description": "series title of ordered title"
+    },
+    "ISBN": {
+      "type": ["string", "null"],
+      "description": "ISBN/ISSN/EAN of ordered title"
+    },
+    "ISNTyp": {
+      "type": ["string", "null"],
+      "description": "type of IS*-number of ordered title"
+    },
+    "Medienart": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "Interessenkreis": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "VerlagJahrSonst": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "LeserName": {
+      "type": ["string", "null"],
+      "description": "name of ordering borrower"
+    },
+    "LeserNummer": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "LeserEmail": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "LeserTelNr": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "LeserAnmerkung": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "URLzkshBase": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "URLzksh": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "Bemerkung": {
+      "type": ["string", "null"],
+      "description": "Bemerkung der besitzenden Bibliothek"
+    },
+    "BestelltAm": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "BestelltBeiSigel": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "BestelltBeiName": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "LieferungGeplant": {
+      "type": ["string", "null"],
+      "description": "geplantes Datum der Lieferung an die nehmende Bibliothek"
+    },
+    "Lieferweg": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "VerfuegbarkeitDatum": {
+      "type": ["string", "null"],
+      "description": "___"
+    },
+    "VerfuegbarkeitText": {
+      "type": ["string", "null"],
+      "description": "___"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["Art", "BestellID", "ItemOrderExtid", "Bestellnummer", "BZID", "LeserName"]
+}

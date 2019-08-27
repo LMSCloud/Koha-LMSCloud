@@ -31,5 +31,11 @@
   },
   "/illrequests": {
     "$ref": "paths/illrequests.json#/~1illrequests"
+  },
+  "/zksha_illrequests": {
+    "$ref": "paths/zksha_illrequests.json#/~1zksha_illrequests"
+  },
+  "/zkshp_illrequests": {
+    "$ref": "paths/zkshp_illrequests.json#/~1zkshp_illrequests"
   }
 }
