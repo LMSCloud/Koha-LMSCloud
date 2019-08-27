@@ -32,6 +32,9 @@
   "/illrequests": {
     "$ref": "paths/illrequests.json#/~1illrequests"
   },
+  "/bzshid_mapping": {
+    "$ref": "paths/bzshid_mapping.json#/~1bzshid_mapping"
+  },
   "/zksha_illrequests": {
     "$ref": "paths/zksha_illrequests.json#/~1zksha_illrequests"
   },
