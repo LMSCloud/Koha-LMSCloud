@@ -1,0 +1,66 @@
+[% USE To %]
+[% USE AuthorisedValues %]
+[% USE KohaDates %]
+[% USE Price %]
+{
+    "sEcho": [% sEcho %],
+    "iTotalRecords": [% iTotalRecords %],
+    "iTotalDisplayRecords": [% iTotalDisplayRecords %],
+    "aaData": [
+        [% FOREACH data IN aaData %]
+            {
+                [% IF CAN_user_borrowers_edit_borrowers || CAN_user_tools_manage_patron_lists %]
+                "dt_borrowernumber":
+                    "<input type='checkbox' class='selection' name='borrowernumber' value='[% data.borrowernumber %]' />",
+                [% END %]
+                "dt_cardnumber":
+                    "[% data.cardnumber | html %]",
+                "dt_name":
+                    "<span style='white-space:nowrap'><a href='/cgi-bin/koha/members/moremember.pl?borrowernumber=[% data.borrowernumber %]'>[% INCLUDE 'patron-title.inc' borrowernumber = data.borrowernumber category_type = data.category_type firstname = To.json(data.firstname) surname = To.json(data.surname) othernames = To.json(data.othernames) invert_name = 1 %]</a><br />[% INCLUDE escape_address data = data %][% IF (data.city) %]<br/>[% IF (data.zipcode) %][% To.json(data.zipcode) %] [% END %][% To.json(data.city) | html %][% END %][% IF data.phone %]<br/>Tel: [% data.phone | html %][% END %][% IF data.email %]<br/>Email: <a href='mailto:[% data.email | html %]'>[% data.email | html %][% END %]</a></span>",
+                "dt_phone":
+                    "[% data.phone |html %][% data.mobile |html %]",
+                "dt_dateofbirth":
+                    "[% data.dateofbirth | $KohaDates %]",
+                "dt_category":
+                    "[% data.category_description |html %] ([% data.category_type |html %])",
+                "dt_branch":
+                    "[% data.branchname |html %]",
+                "dt_debarred":
+                    "<span class='circ-hlt'>[% IF data.debarred %][% data.debarredcomment|html %] [% END %][% IF data.gonenoaddress %]Address data imcomplete. [% END %][% IF data.lost %]Member card lost. [% END %]</span>",
+                "dt_dateexpiry":
+                    "[% data.dateexpiry %]",
+                "dt_od_checkouts":
+                    "[% IF data.overdues %]<span class='overdue'><strong>[% data.overdues %]</strong></span>[% ELSE %][% data.overdues %][% END %] / [% data.issues %]",
+                "dt_fines":
+                    "<span style='text-align: right; display: block;'>[% IF data.fines < 0 %]<span class='credit'>[% data.fines | $Price %]</span> [% ELSIF data.fines > 0 %] <span class='debit'><strong>[% data.fines | $Price %]</strong></span> [% ELSE %] [% data.fines | $Price %] [% END %]</span>",
+                "dt_borrowernotes":
+                    "[% data.borrowernotes.replace('\\\\' , '\\\\') |html |html_line_break |collapse %]",
+                "dt_address":
+                    "[% INCLUDE escape_address2 data=data | html %]",
+                "dt_action":
+                    "<a href=\"#\" class=\"btn btn-default btn-xs select_user\" data-borrowernumber=\"[% data.borrowernumber %]\">Select</a><input type=\"hidden\" id=\"borrower_data[% data.borrowernumber %]\" name=\"borrower_data[% data.borrowernumber %]\" value=\"[% To.json(data) | html %]\" />",
+                "borrowernumber":
+                    "[% data.borrowernumber %]"
+            }[% UNLESS loop.last %],[% END %]
+        [% END %]
+    ]
+}
+[% BLOCK escape_address %]
+[%~ SET address = data.streetnumber _ ' ' %]
+[%~ IF data.streettype %][% address = address _ AuthorisedValues.GetByCode( 'ROADTYPE', data.streettype ) _ ' ' %][% END %]
+[%~ IF data.address %][% address = address _ data.address _ ' ' %][% END %]
+[%~ IF data.address2 %][% address = address _ data.address2 _ ' ' %][% END %]
+[%~ To.json( address ) ~%]
+[% END %]
+
+[% BLOCK escape_address2 %]
+[%~ SET address = data.streetnumber _ ' ' %]
+[%~ IF data.address %][% SET address = address _ data.address _ ' ' %][% END %]
+[%~ IF data.address2 %][% SET address = address _ data.address2 _ ' ' %][% END %]
+[%~ IF data.city %][% SET address = address _ data.city _ ' ' %][% END %]
+[%~ IF data.state %][% SET address = address _ data.state _ ' ' %][% END %]
+[%~ IF data.zipcode %][% SET address = address _ data.zipcode _ ' ' %][% END %]
+[%~ IF data.country %][% SET address = address _ data.country _ ' ' %][% END %]
+[%~ SET address = address _ Branches.GetName( data.branchcode ) %]
+[%~ To.jsonForHTMLEscaping( address ) ~%]
+[% END %]

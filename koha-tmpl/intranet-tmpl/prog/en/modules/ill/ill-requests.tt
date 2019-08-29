@@ -18,7 +18,6 @@
         // Fields we don't want to display
         var ignore = [
             'accessurl',
-            'backend',
             'branchcode',
             'completed',
             'capabilities',
@@ -42,6 +41,7 @@
         // The core fields that should be displayed first
         var core = [
             'orderid',
+            'backend',
             'medium',
             'metadata_Author',
             'metadata_Title',
@@ -123,14 +123,27 @@
 
         // Our 'render' function for borrowerlink
         var createPatronLink = function(data, type, row) {
-            var patronLink = '<a title="' + _("View borrower details") + '" ' +
+            var patronLink = '';
+            if ( row.borrowernumber ) {
+                patronLink = '<a title="' + _("View borrower details") + '" ' +
                 'href="/cgi-bin/koha/members/moremember.pl?' +
                 'borrowernumber='+row.borrowernumber+'">';
                 if ( row.patron_firstname ) {
                     patronLink = patronLink + row.patron_firstname + ' ';
                 }
                 patronLink = patronLink + row.patron_surname + '</a>';
-            return patronLink
+            } else {
+                if ( row.patron_cardnumber ) {
+                    patronLink = row.patron_cardnumber;
+                }
+                if ( row.patron_surname ) {
+                    if ( patronLink.length ) {
+                        patronLink = patronLink + ' ';
+                    }
+                    patronLink = patronLink + row.patron_surname;
+                }
+            }
+            return patronLink;
         };
 
         // Our 'render' function for the library name
@@ -140,12 +153,37 @@
 
         // Render function for orderid
         var createOrderId = function(data, type, row) {
+//alert("createOrderId START");
             return row.id_prefix + row.orderid;
         };
 
         // Render function for medium type
         var createMediumType = function(data, type, row) {
-            return row.id_prefix + row.medium;
+//alert("createMediumType START");
+            var res = row.medium;
+            if ( res ) {
+                var medium = row.medium;
+                switch( medium ) {
+                    case "Book":
+                        $medium = _("Book (Translate!)");
+                    break;
+                    case "Article":
+                        $medium = _("Article (Translate!)");
+                    break;
+                    case "Journal":
+                        $medium = _("Journal (Translate!)");
+                    break;
+                    case "Other":
+                        $medium = _("Other (Translate!)");
+                    break;
+                    default:
+                        $medium = $medium;
+                }
+                //res = row.id_prefix + $medium;    # XXXWH
+                res = $medium;
+            }
+//alert("createMediumType END");
+            return res;
         };
 
         // Render function for request ID
@@ -155,34 +193,55 @@
 
         // Render function for request status
         var createStatus = function(data, type, row, meta) {
+            var res = 'undef';
+            if ( row.status ) {
+                res = row.status;
+            }
             var origData = meta.settings.oInit.originalData;
-            if (origData.length > 0) {
-                var status_name = meta.settings.oInit.originalData[meta.row].capabilities[
-                    row.status
-                ].name;
+            if ( origData && 
+                 origData.length > 0 && 
+                 origData[meta.row] && 
+                 origData[meta.row].capabilities && 
+                 origData[meta.row].capabilities[row.status] && 
+                 origData[meta.row].capabilities[row.status].name ) {
+
+                var status_name = origData[meta.row].capabilities[row.status].name;
                 switch( status_name ) {
                     case "New request":
-                        return _("New request");
+                        res = _("New request");
+                    break;
                     case "Requested":
-                        return _("Requested");
+                        res = _("Requested");
+                    break;
                     case "Requested from partners":
-                        return _("Requested from partners");
+                        res = _("Requested from partners");
+                    break;
                     case "Request reverted":
-                        return _("Request reverted");
+                        res = _("Request reverted");
+                    break;
                     case "Queued request":
-                        return _("Queued request");
+                        res = _("Queued request");
+                    break;
                     case "Cancellation requested":
-                        return _("Cancellation requested");
+                        res = _("Cancellation requested");
+                    break;
                     case "Completed":
-                        return _("Completed");
+                        res = _("Completed");
+                    break;
                     case "Delete request":
-                        return _("Delete request");
+                        res = _("Delete request");
+                    break;
                     default:
-                        return status_name;
+                        res = status_name;
                 }
-            } else {
-                return '';
             }
+            return res;
+        };
+
+        // Render function for backend designation
+        var createBackendDesignation = function(data, type, row, meta) {
+            var backend_designation = backendNameToDesignation(row.backend);
+            return backend_designation;
         };
 
         // Render function for creating a row's action link
@@ -239,6 +298,10 @@
             updated: {
                 name: _("Updated on"),
                 func: createUpdatedOn
+            },
+            backend: {
+                name: _("ClassOMio"),
+                func: createBackendDesignation
             }
         };
 
@@ -267,13 +330,27 @@
 
         // Get our data from the API and process it prior to passing
         // it to datatables
-        var ajax = $.ajax(
-            [% IF infilter %]
-                '/api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=[% infilter %]'
-            [% ELSE %]
-                '/api/v1/illrequests?embed=metadata,patron,capabilities,library'
+
+        [% SET prefilterselections = '' %]
+        [% IF prefilters %]
+            [% FOREACH select IN prefilters %]
+                [% SET prefilterselections = '&' _ select.name _ '=' _ select.value %]
             [% END %]
+        [% END %]
+        [% IF infilter %]
+            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=' _ infilter _ prefilterselections %]
+//alert(" ajax AJAX URL1: /api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=[% infilter %][% prefilterselections %]");
+//alert(" ajax AJAX URL1: [% restApiUrl %]");
+        [% ELSE %]
+            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library' _ prefilterselections %]
+//alert(" ajax AJAX UR2: /api/v1/illrequests?embed=metadata,patron,capabilities,library[% prefilterselections %]");
+//alert(" ajax AJAX URL1: [% restApiUrl %]");
+        [% END %]
+
+        var ajax = $.ajax(
+                '[% restApiUrl %]'
             ).done(function() {
+//alert(" ajax done ");
                 var data = JSON.parse(ajax.responseText);
                 // Make a copy, we'll be removing columns next and need
                 // to be able to refer to data that has been removed
@@ -283,6 +360,8 @@
                 // Expand columns that need it and create an array
                 // of all column names
                 $.each(dataCopy, function(k, row) {
+//alert(" next data copy expand row: ");
+//alert(row);
                     expandExpand(row);
                 });
 
@@ -295,6 +374,8 @@
                         name: thisCol,
                         className: thisCol
                     };
+//alert(" nextcolData.push thisCol: ");
+//alert(thisCol);
                     // We may need to process the data going in this
                     // column, so do it if necessary
                     if (
@@ -305,6 +386,8 @@
                     } else {
                         colObj.data = thisCol;
                     }
+//alert(" nextcolData.push colObj: ");
+//alert(colObj.data);
                     colData.push(colObj);
                 });
 
@@ -321,7 +404,7 @@
                             'aTargets': [ 'title-string']
                         }
                     ],
-                    'aaSorting': [[ 7, 'desc' ]], // Default sort, updated descending
+                    'aaSorting': [[ 8, 'desc' ]], // Default sort, updated descending
                     'processing': true, // Display a message when manipulating
                     'iDisplayLength': 10, // 10 results per page
                     'sPaginationType': "full_numbers", // Pagination display
@@ -331,6 +414,9 @@
                     'originalData': data // Enable render functions to access
                                        // our original data
                 }));
+
+                // focus on Search input field
+                $('div.dataTables_filter input').focus();
             }
         );
 
@@ -550,20 +636,39 @@
                             <h4>Details from library</h4>
                             <div class="rows">
                                 <div class="orderid">
+                                    <!-- <span class="label orderid">Order ID:</span>
+                                    [% request.orderid || "N/A" %] -->
                                     <span class="label orderid">Order ID:</span>
-                                    [% request.orderid || "N/A" %]
+                                    [% IF ( request_orderidlink ) %]
+                                        <a target="_blank" href="[% request_orderidlink %]" title="View order details">
+                                        [% request.orderid %]
+                                        </a>
+                                    [% ELSE %]
+                                        [% request.orderid || "N/A" %]
+                                    [% END %]
                                 </div>
                                 <div class="borrowernumber">
                                     <span class="label borrowernumber">Patron:</span>
+                                    [% IF request.patron.borrowernumber %]
                                     [% borrowerlink = "/cgi-bin/koha/members/moremember.pl" _ "?borrowernumber=" _ request.patron.borrowernumber %]
-                                    <a href="[% borrowerlink %]" title="View borrower details">
+                                    <a target="_blank" href="[% borrowerlink %]" title="View borrower details">
                                     [% request.patron.firstname _ " " _ request.patron.surname _ " [" _ request.patron.cardnumber _ "]" %]
                                     </a>
+                                    [% ELSE %]
+                                        N/A
+                                    [% END %]
                                 </div>
 
                                 <div class="biblio_id">
                                     <span class="label biblio_id">Biblio ID:</span>
-                                    [% request.biblio_id || "N/A" %]
+                                    [% IF request.biblio_id %]
+                                        [% bibliolink = "/cgi-bin/koha/catalogue/detail.pl" _ "?biblionumber=" _ request.biblio_id %]
+                                        <a target="_blank" href="[% bibliolink %]" title="View biblio details">
+                                        [% request.biblio_id %]
+                                        </a>
+                                    [% ELSE %]
+                                        N/A
+                                    [% END %]
                                 </div>
                                 <div class="branchcode">
                                     <span class="label branchcode">Library:</span>
@@ -579,7 +684,18 @@
                                 </div>
                                 <div class="medium">
                                     <span class="label medium">Request type:</span>
-                                    [% request.medium %]
+                                    [% SWITCH request.medium %]
+                                        [% CASE 'Book' %]
+                                            Book (Translate!)
+                                        [% CASE 'Article' %]
+                                            Article (Translate!)
+                                        [% CASE 'Journal' %]
+                                            Journal (Translate!)
+                                        [% CASE 'Other' %]
+                                            Other (Translate!)
+                                        [% CASE %]
+                                            [% request.medium %]
+                                    [% END %]
                                 </div>
                                 <div class="cost">
                                     <span class="label cost">Cost:</span>
@@ -599,10 +715,32 @@
                                 </div>
                             </div>
                             <div class="rows">
-                                <h4>Details from supplier ([% request.backend %])</h4>
+[% SWITCH request.backend %]
+    [% CASE 'ILLSLNPKoha' %]
+        [% SET backend_name = 'SLNP-nehmend' %]
+    [% CASE 'ILLZKSHA' %]
+        [% SET backend_name = 'RLV-gebend' %]
+    [% CASE 'ILLZKSHP' %]
+        [% SET backend_name = 'RLV-nehmend' %]
+    [% CASE %]
+        [% SET backend_name = request.backend %]
+[% END %]
+                                <h4>Details from supplier ([% backend_name %])</h4>
                                 [% FOREACH meta IN request.metadata %]
+                                    [% SWITCH meta.key %]
+                                        [% CASE 'Author' %]
+                                            [% SET translated_meta_key = 'Author' %]
+                                        [% CASE 'ISBN' %]
+                                            [% SET translated_meta_key = 'ISBN' %]
+                                        [% CASE 'Order ID' %]
+                                            [% SET translated_meta_key = 'Order ID' %]
+                                        [% CASE 'Title' %]
+                                            [% SET translated_meta_key = 'Title' %]
+                                        [% CASE %]
+                                            [% SET translated_meta_key = meta.key %]
+                                    [% END %]
                                     <div class="requestmeta-[% meta.key %]">
-                                        <span class="label">[% meta.key %]:</span>
+                                        <span class="label">[% translated_meta_key %]:</span>
                                         [% meta.value %]
                                     </div>
                                 [% END %]
@@ -626,12 +764,13 @@
                     <!-- illlist -->
                     <h1>View ILL requests</h1>
                     <div id="results">
-                        <h3>Details for all requests</h3>
+                        <h3 id="hitheader" name="hitheader" >[% IF hitname %][% hitname %][% ELSE %]Details for all requests[% END %]</h3>
 
                         <table id="ill-requests">
                             <thead>
                                 <tr id="illview-header">
                                     <th>Order ID</th>
+                                    <th>Class</th>
                                     <th>Type</th>
                                     <th>Author</th>
                                     <th>Title</th>

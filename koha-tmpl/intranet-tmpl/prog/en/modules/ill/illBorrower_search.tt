@@ -1,0 +1,258 @@
+[% USE Asset %]
+[% USE Koha %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Koha &rsaquo; Benutzersuche</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% Asset.css("css/datatables.css") %]
+</head>
+
+<body id="ill_illBorrower_search" class="common">
+<div id="illBorrower_search" class="yui-t7">
+  <div id="bd">
+    <div class="yui-g">
+
+        <form id="searchform">
+            <fieldset class="brief">
+                <h3>Benutzer suchen</h3>
+                <ol>
+                    <li>
+                        <label for="searchmember_filter">Suche:</label>
+                        <input type="text" id="searchmember_filter" value="[% searchmember %]"/>
+                    </li>
+                    <li>
+                        <label for="categorycode_filter">Kategorie:</label>
+                        <select id="categorycode_filter">
+                            <option value="">Alle</option>
+                            [% FOREACH category IN categories %]
+                                <option value="[% category.categorycode %]">[% category.description %]</option>
+                            [% END %]
+                        </select>
+                    </li>
+                    <li>
+                        <label for="branchcode_filter">Bibliothek:</label>
+                        <select id="branchcode_filter">
+                            [% SET libraries = Branches.all( only_from_group => 1 ) %]
+                            [% IF libraries.size != 1 %]
+                                <option value="">Alle</option>
+                            [% END %]
+                            [% FOREACH l IN libraries %]
+                                <option value="[% l.branchcode %]">[% l.branchname %]</option>
+                            [% END %]
+                        </select>
+                    </li>
+                </ol>
+                <fieldset class="action">
+                    <input type="submit" value="Suche" />
+                </fieldset>
+            </fieldset>
+        </form>
+
+        [% IF patrons_with_acq_perm_only %]
+            <div class="hint">Nur Bibliotheksmitarbeiter mit 'superlibrarian' oder Erwerbungsberechtigungen werden in der Ergebnisliste angezeigt</div>
+        [% END %]
+
+        <div class="browse">
+            Nach Nachname suchen:
+            [% FOREACH letter IN alphabet.split(' ') %]
+                <a href="#" class="filterByLetter">[% letter %]</a>
+            [% END %]
+        </div>
+
+        <div id="info" class="dialog message"></div>
+        <div id="error" class="dialog alert"></div>
+
+        <input type="hidden" id="firstletter_filter" value="" />
+        <div id="searchresults">
+            <table id="memberresultst">
+                <thead>
+                    <tr>
+                        [% FOR column IN columns %]
+                            [% SWITCH column %]
+                                [% CASE 'cardnumber' %]<th>Karte</th>
+                                [% CASE 'dateofbirth' %]<th>Geburtsdatum</th>
+                                [% CASE 'address' %]<th>Adresse</th>
+                                [% CASE 'name' %]<th>Name</th>
+                                [% CASE 'branch' %]<th>Bibliothek</th>
+                                [% CASE 'category' %]<th>Kategorie</th>
+                                [% CASE 'dateexpiry' %]<th>Läuft ab am</td>
+                                [% CASE 'borrowernotes' %]<th>Hinweise</th>
+                                [% CASE 'action' %]<th>&nbsp;</th>
+                            [% END %]
+                        [% END %]
+                    </tr>
+                  </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+<div id="closewindow"><a href="#" class="btn btn-default btn-default close">Schließen</a></div>
+</div>
+</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+
+    <script type="text/javascript">
+        var search = 1;
+        $(document).ready(function(){
+            $("#info").hide();
+            $("#error").hide();
+
+            [% IF view != "show_results" %]
+                $("#searchresults").hide();
+                search = 0;
+            [% END %]
+
+            // Apply DataTables on the results table
+            dtMemberResults = $("#memberresultst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'bServerSide': true,
+                'sAjaxSource': "/cgi-bin/koha/svc/members/search",
+                'fnServerData': function(sSource, aoData, fnCallback) {
+                    if ( ! search ) {
+                        return;
+                    }
+                    aoData.push({
+                        'name': 'searchmember',
+                        'value': $("#searchmember_filter").val()
+                    },{
+                        'name': 'firstletter',
+                        'value': $("#firstletter_filter").val()
+                    },{
+                        'name': 'categorycode',
+                        'value': $("#categorycode_filter").val()
+                    },{
+                        'name': 'branchcode',
+                        'value': $("#branchcode_filter").val()
+                    },{
+                        'name': 'name_sorton',
+                        'value': 'borrowers.surname borrowers.firstname'
+                    },{
+                        'name': 'category_sorton',
+                        'value': 'categories.description',
+                    },{
+                        'name': 'branch_sorton',
+                        'value': 'branches.branchname'
+                    },{
+                        'name': 'template_path',
+                        'value': '[% json_template %]',
+                    },{
+                        'name': 'selection_type',
+                        'value': '[% selection_type %]',
+                    }
+                    [% IF patrons_with_acq_perm_only %]
+                    ,{
+                        'name': 'has_permission',
+                        'value': 'acquisition.order_manage',
+                    }
+                    [% END %]
+                    );
+                    $.ajax({
+                        'dataType': 'json',
+                        'type': 'POST',
+                        'url': sSource,
+                        'data': aoData,
+                        'success': function(json){
+                            fnCallback(json);
+                        }
+                    });
+                },
+                'aoColumns':[
+                    [% FOR column IN columns %]
+                        [% IF column == 'action' %]
+                            { 'mDataProp': 'dt_action', 'bSortable': false, 'sClass': 'actions' }
+                        [% ELSIF column == 'address' %]
+                            { 'mDataProp': 'dt_address', 'bSortable': false }
+                        [% ELSE %]
+                            { 'mDataProp': 'dt_[% column %]' }
+                        [% END %]
+                        [% UNLESS loop.last %],[% END %]
+                    [% END %]
+                ],
+                'bAutoWidth': false,
+                [% IF patrons_with_acq_perm_only %]
+                    'bPaginate': false,
+                [% ELSE %]
+                    'sPaginationType': 'full_numbers',
+                    "iDisplayLength": [% Koha.Preference('PatronsPerPage') %],
+                [% END %]
+                'aaSorting': [[[% aaSorting || 0 %], 'asc']],
+                'bFilter': false,
+                'bProcessing': true,
+            }));
+
+            $("#searchform").on('submit', filter);
+            $(".filterByLetter").on("click",function(e){
+                e.preventDefault();
+                filterByFirstLetterSurname($(this).text());
+            });
+            $("body").on("click",".add_user",function(e){
+                e.preventDefault();
+                var borrowernumber = $(this).data("borrowernumber");
+                var firstname = $(this).data("firstname");
+                var surname = $(this).data("surname");
+                add_user( borrowernumber, firstname + " " + surname );
+            });
+
+            $("body").on("click",".select_user",function(e){
+                e.preventDefault();
+                var borrowernumber = $(this).data("borrowernumber");
+                var borrower_data = $("#borrower_data"+borrowernumber).val();
+                select_user( borrowernumber, JSON.parse(borrower_data), 'boro' );
+            });
+
+        });
+
+        function filter() {
+            search = 1;
+            $("#firstletter_filter").val('');
+            $("#searchresults").show();
+            dtMemberResults.fnDraw();
+            return false;
+        }
+
+        // User has clicked on a letter
+        function filterByFirstLetterSurname(letter) {
+            $("#firstletter_filter").val(letter);
+            search = 1;
+            $("#searchresults").show();
+            dtMemberResults.fnDraw();
+        }
+
+        // modify parent window owner element
+        [% IF selection_type == 'add' %]
+            function add_user(borrowernumber, borrowername) {
+                var p = window.opener;
+                // In one place (serials/routing.tt), the page is reload on every add
+                // We have to wait for the page to be there
+                function wait_for_opener () {
+                    if ( ! $(opener.document).find('body').size() ) {
+                        setTimeout(wait_for_opener, 500);
+                    } else {
+                        [%# Note that add_user could sent data instead of borrowername too %]
+                        $("#info").hide();
+                        $("#error").hide();
+                        if ( p.add_user(borrowernumber, borrowername) < 0 ) {
+                            $("#error").html(_("Benutzer '%s' ist bereits auf der Liste.").format(borrowername));
+                            $("#error").show();
+                        } else {
+                            $("#info").html(_("Benutzer '%s' wurde hinzugefügt.").format(borrowername));
+                            $("#info").show();
+                        }
+                    }
+                }
+                wait_for_opener();
+            }
+        [% ELSIF selection_type == 'select' %]
+            function select_user(borrowernumber, data, type) {
+                var p = window.opener;
+                p.select_user(borrowernumber, data, type);
+                window.close();
+            }
+        [% END %]
+    </script>
+[% END %]
+
+[% SET popup_window = 1 %]
+[% INCLUDE 'intranet-bottom.inc' %]
