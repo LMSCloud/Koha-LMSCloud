@@ -1,6 +1,6 @@
 [% USE Koha %]
 <select class="advsearch" name="idx">
-    <option value="kw">Keyword</option>
+    <option value="kw,wrdl">Keyword</option>
     <option value="kw,phr">&nbsp;&nbsp;&nbsp;&nbsp; Keyword as phrase</option>
     <option value="au">Author</option>
     <option value="au,phr">&nbsp;&nbsp;&nbsp;&nbsp; Author as phrase</option>
