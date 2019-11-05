@@ -2,7 +2,7 @@
 [% USE Koha %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Fernleihbibliothek suchen</title>
+<title>Koha &rsaquo; ILL library search</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/datatables.css") %]
 </head>
@@ -14,14 +14,14 @@
 
  <form id="searchform">
  <fieldset class="brief">
- <h3>Suche nach Fernleihbibliothek</h3>
+ <h3>Search for ILL library</h3>
  <ol>
  <li>
- <label for="searchmember_filter">Suche:</label>
+ <label for="searchmember_filter">Search:</label>
  <input type="text" id="searchmember_filter" value="[% searchmember %]"/>
  </li>
  <li>
- <label for="categorycode_filter">Kategorie:</label>
+ <label for="categorycode_filter">Category:</label>
  <select id="categorycode_filter">
  [% FOREACH category IN categories %]
  <option value="[% category.categorycode %]">[% category.description %]</option>
@@ -30,13 +30,13 @@
  </li>
  </ol>
  <fieldset class="action">
- <input value="Suche" type="submit" />
+ <input value="Search" type="submit" />
  </fieldset>
  </fieldset>
  </form>
 
  <div class="browse">
- Nach Nachname suchen: [% FOREACH letter IN alphabet.split(' ') %] <a href="#" class="filterByLetter">[% letter %]</a>
+ Search for surname: [% FOREACH letter IN alphabet.split(' ') %] <a href="#" class="filterByLetter">[% letter %]</a>
  [% END %]
  </div>
 
@@ -50,10 +50,10 @@
  <tr>
  [% FOR column IN columns %]
  [% SWITCH column %]
- [% CASE 'cardnumber' %]<th>Karte</th>
+ [% CASE 'cardnumber' %]<th>Card</th>
  [% CASE 'name' %]<th>Name</th>
  [% CASE 'borr_attr_attribute_SIGEL' %]<th>ISIL</th>
- [% CASE 'city' %]<th>Stadt</th>
+ [% CASE 'city' %]<th>City</th>
  [% CASE 'action' %]<th>&nbsp;</th>
  [% END %]
  [% END %]
@@ -63,7 +63,7 @@
  </table>
  </div>
 
-<div id="closewindow"><a href="#" class="btn btn-default btn-default close">Schließen</a></div>
+<div id="closewindow"><a href="#" class="btn btn-default btn-default close">Close</a></div>
 </div>
 </div>
 
@@ -161,7 +161,7 @@
                 e.preventDefault();
                 var borrowernumber = $(this).data("borrowernumber");
                 var borrower_data = $("#borrower_data"+borrowernumber).val();
-                select_user( borrowernumber, JSON.parse(borrower_data), 'owni' );
+                select_user( borrowernumber, JSON.parse(borrower_data), '[% patrontype %]' );
             });
 
         });

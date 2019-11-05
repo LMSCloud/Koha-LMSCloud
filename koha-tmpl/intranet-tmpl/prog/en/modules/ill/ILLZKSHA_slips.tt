@@ -31,11 +31,8 @@
 
     [% FOREACH generatedSlip IN generatedSlips %]
         <div class="message">
-            <!-- <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%;" -->
-            <!-- <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%; margin: 15px;" -->
-            <!-- <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%; margin-top: 20px; margin-right: 10px; margin-bottom: 15px; margin-left: 10px;" -->
-            <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%; margin-top: 20px; margin-left: 10px;"
-                title="Laufzettel [% generatedSlip.illrequestid %]"
+            <iframe id="ProcessingSlip_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%; margin-top: 20px; margin-left: 10px;"
+                title="ProcessingSlip [% generatedSlip.illrequestid %]"
                 src="https:/cgi-bin/koha/tools/download-files.pl?filename=[% generatedSlip.filename %]&op=download">
             </iframe>
         </div>

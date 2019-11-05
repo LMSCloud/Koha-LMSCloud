@@ -49,6 +49,7 @@
             'library',
             'status',
             'updated',
+            'checkedBy',
             'illrequest_id',
             'action'
         ];
@@ -165,16 +166,16 @@
                 var medium = row.medium;
                 switch( medium ) {
                     case "Book":
-                        $medium = _("Book (Translate!)");
+                        $medium = _("Book");
                     break;
                     case "Article":
-                        $medium = _("Article (Translate!)");
+                        $medium = _("Article");
                     break;
                     case "Journal":
-                        $medium = _("Journal (Translate!)");
+                        $medium = _("Journal");
                     break;
                     case "Other":
-                        $medium = _("Other (Translate!)");
+                        $medium = _("Other");
                     break;
                     default:
                         $medium = $medium;
@@ -261,6 +262,12 @@
             return ret;
         };
 
+        // Render function for Checked by
+        var createCheckedBy = function(data, type, row) {
+            //return row.checkedBy.login + ' (' + row.checkedBy.timestamp + ')';
+            return row.checkedBy.login;
+        };
+
         // Columns that require special treatment
         var specialCols = {
             action: {
@@ -299,8 +306,12 @@
                 name: _("Updated on"),
                 func: createUpdatedOn
             },
+            checkedBy: {
+                name: _("Checked by"),
+                func: createCheckedBy
+            },
             backend: {
-                name: _("ClassOMio"),
+                name: _("Ordertype"),
                 func: createBackendDesignation
             }
         };
@@ -338,12 +349,12 @@
             [% END %]
         [% END %]
         [% IF infilter %]
-            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=' _ infilter _ prefilterselections %]
-//alert(" ajax AJAX URL1: /api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=[% infilter %][% prefilterselections %]");
+            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy&infilter=' _ infilter _ prefilterselections %]
+//alert(" ajax AJAX URL1: /api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy&infilter=[% infilter %][% prefilterselections %]");
 //alert(" ajax AJAX URL1: [% restApiUrl %]");
         [% ELSE %]
-            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library' _ prefilterselections %]
-//alert(" ajax AJAX UR2: /api/v1/illrequests?embed=metadata,patron,capabilities,library[% prefilterselections %]");
+            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy' _ prefilterselections %]
+//alert(" ajax AJAX UR2: /api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy[% prefilterselections %]");
 //alert(" ajax AJAX URL1: [% restApiUrl %]");
         [% END %]
 
@@ -686,13 +697,13 @@
                                     <span class="label medium">Request type:</span>
                                     [% SWITCH request.medium %]
                                         [% CASE 'Book' %]
-                                            Book (Translate!)
+                                            Book
                                         [% CASE 'Article' %]
-                                            Article (Translate!)
+                                            Article
                                         [% CASE 'Journal' %]
-                                            Journal (Translate!)
+                                            Journal
                                         [% CASE 'Other' %]
-                                            Other (Translate!)
+                                            Other
                                         [% CASE %]
                                             [% request.medium %]
                                     [% END %]
@@ -717,11 +728,11 @@
                             <div class="rows">
 [% SWITCH request.backend %]
     [% CASE 'ILLSLNPKoha' %]
-        [% SET backend_name = 'SLNP-nehmend' %]
+        [% SET backend_name = 'SLNP-passive' %]
     [% CASE 'ILLZKSHA' %]
-        [% SET backend_name = 'RLV-gebend' %]
+        [% SET backend_name = 'RLV-active' %]
     [% CASE 'ILLZKSHP' %]
-        [% SET backend_name = 'RLV-nehmend' %]
+        [% SET backend_name = 'RLV-passive' %]
     [% CASE %]
         [% SET backend_name = request.backend %]
 [% END %]
@@ -778,6 +789,7 @@
                                     <th>Library</th>
                                     <th>Status</th>
                                     <th class="title-string" >Updated on</th>
+                                    <th>CheckedBy</th>
                                     <th>Request number</th>
                                     <th class="actions"></th>
                                 </tr>
