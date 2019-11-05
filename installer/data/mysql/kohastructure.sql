@@ -4245,7 +4245,40 @@ CREATE TABLE illrequests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Table structure for table `illrequestattributes`
+-- Table structure for table `old_illrequests`
+--
+
+DROP TABLE IF EXISTS `old_illrequests`;
+CREATE TABLE old_illrequests ( -- lists ILL request that have been completed and after a delay deleted to keep illrequests table small
+    illrequest_id bigint(20) unsigned NOT NULL PRIMARY KEY,          -- ILL request number
+    borrowernumber integer DEFAULT NULL,        -- Patron associated with request
+    biblio_id integer DEFAULT NULL,             -- Potential bib linked to request
+    branchcode varchar(10) DEFAULT NULL,        -- The branch associated with the request
+    status varchar(50) DEFAULT NULL,            -- Current Koha status of request
+    placed date DEFAULT NULL,                   -- Date the request was placed
+    replied date DEFAULT NULL,                  -- Last API response
+    updated timestamp DEFAULT CURRENT_TIMESTAMP -- Last modification to request
+      ON UPDATE CURRENT_TIMESTAMP,
+    completed date DEFAULT NULL,                -- Date the request was completed
+    medium varchar(30) DEFAULT NULL,            -- The Koha request type
+    accessurl varchar(500) DEFAULT NULL,        -- Potential URL for accessing item
+    cost varchar(20) DEFAULT NULL,              -- Cost of request
+    notesopac MEDIUMTEXT DEFAULT NULL,          -- Patron notes attached to request
+    notesstaff MEDIUMTEXT DEFAULT NULL,         -- Staff notes attached to request
+    orderid varchar(50) DEFAULT NULL,           -- Backend id attached to request
+    backend varchar(20) DEFAULT NULL,           -- The backend used to create request
+    CONSTRAINT `old_illrequests_bnfk`
+      FOREIGN KEY (`borrowernumber`)
+      REFERENCES `borrowers` (`borrowernumber`)
+      ON DELETE SET NULL ON UPDATE SET NULL,
+    CONSTRAINT `old_illrequests_bcfk2`
+      FOREIGN KEY (`branchcode`)
+      REFERENCES `branches` (`branchcode`)
+      ON UPDATE SET NULL ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `old_illrequestattributes`
 --
 
 DROP TABLE IF EXISTS `illrequestattributes`;
@@ -4257,6 +4290,22 @@ CREATE TABLE illrequestattributes (
     CONSTRAINT `illrequestattributes_ifk`
       FOREIGN KEY (illrequest_id)
       REFERENCES `illrequests` (`illrequest_id`)
+      ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `illrequestattributes`
+--
+
+DROP TABLE IF EXISTS `old_illrequestattributes`;
+CREATE TABLE old_illrequestattributes (
+    illrequest_id bigint(20) unsigned NOT NULL, -- ILL request number
+    type varchar(200) NOT NULL,                 -- API ILL property name
+    value MEDIUMTEXT NOT NULL,                        -- API ILL property value
+    PRIMARY KEY  (`illrequest_id`, `type` (191)),
+    CONSTRAINT `old_illrequestattributes_ifk`
+      FOREIGN KEY (illrequest_id)
+      REFERENCES `old_illrequests` (`illrequest_id`)
       ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

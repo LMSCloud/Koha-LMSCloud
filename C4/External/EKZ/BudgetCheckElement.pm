@@ -351,13 +351,13 @@ print STDERR "BudgetCheckElement::handleBudgetCheck() exemplar loop:$i: haushalt
                         if ( !defined($self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{1}) ) {
                             $self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{1} = [];
                         }
-                        push $self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{1}, $reqEkzArtikelNr;
+                        push @{$self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{1}}, $reqEkzArtikelNr;
                     } else {
                         $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{checkResult} |= 16;
                         if ( !defined($self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{16}) ) {
                             $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{16} = [];
                         }
-                        push $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{16}, $reqEkzArtikelNr;
+                        push @{$self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{16}}, $reqEkzArtikelNr;
                     }
                 } else {
                     my ($budgetperiodId, $budgetperiodDescription, $budgetId, $budgetCode) = C4::External::EKZ::lib::EkzKohaRecords->checkAqbudget($haushaltsstelle, $kostenstelle, 0);
@@ -378,7 +378,7 @@ print STDERR "BudgetCheckElement::handleBudgetCheck() created self->{budgetEkz}-
                         if ( !defined($self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{2}) ) {
                             $self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{2} = [];
                         }
-                        push $self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{2}, $reqEkzArtikelNr;
+                        push @{$self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{2}}, $reqEkzArtikelNr;
                     }
                     if ( !(defined($budgetId) && $budgetId > 0) ) {
                         $inBudget = 0;
@@ -386,7 +386,7 @@ print STDERR "BudgetCheckElement::handleBudgetCheck() created self->{budgetEkz}-
                         if ( !defined($self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{32}) ) {
                             $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{32} = [];
                         }
-                        push $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{32}, $reqEkzArtikelNr;
+                        push @{$self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{32}}, $reqEkzArtikelNr;
                     } else {
                         my $unittotal = $exemplarquantity * $gesamtpreis;    # discounted, tax incl.  (if aqbooksellers.invoiceincgst)
                         if ( !defined($self->{budgetKoha}->{$budgetId} ) ) {
@@ -419,7 +419,7 @@ print STDERR "BudgetCheckElement::handleBudgetCheck() budget_used:$budget_used: 
                                 if ( !defined($self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{256}) ) {
                                     $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{256} = [];
                                 }
-                                push $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{256}, $reqEkzArtikelNr;
+                                push @{$self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{256}}, $reqEkzArtikelNr;
                             } else {
                                 if ( ($self->{budgetKoha}->{$budgetId}->{budg_encumbrance}+0) && ($budget_used + $unittotal) > $self->{budgetKoha}->{$budgetId}->{budg_encumbrance} ) {
                                     $self->{budgetKoha}->{$budgetId}->{warn_encumbrance} = sprintf("Warning! You will exceed %s %% of your fund.",$self->{budgetKoha}->{$budgetId}->{budget_encumb});
@@ -427,7 +427,7 @@ print STDERR "BudgetCheckElement::handleBudgetCheck() budget_used:$budget_used: 
                                     if ( !defined($self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{512}) ) {
                                         $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{512} = [];
                                     }
-                                    push $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{512}, $reqEkzArtikelNr;
+                                    push @{$self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{512}}, $reqEkzArtikelNr;
                                 }
                                 if ( ($self->{budgetKoha}->{$budgetId}->{budget_expend}+0) && ($budget_used + $unittotal) > $self->{budgetKoha}->{$budgetId}->{budget_expend} ) {
                                     $self->{budgetKoha}->{$budgetId}->{warn_expenditure} = sprintf("Warning! You will exceed maximum limit %s %s for your fund.",$self->{budgetKoha}->{$budgetId}->{budget_expend},'EUR');
@@ -435,7 +435,7 @@ print STDERR "BudgetCheckElement::handleBudgetCheck() budget_used:$budget_used: 
                                     if ( !defined($self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{1024}) ) {
                                         $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{1024} = [];
                                     }
-                                    push $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{1024}, $reqEkzArtikelNr;
+                                    push @{$self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{1024}}, $reqEkzArtikelNr;
                                 }
                             }
                             $self->{budgetKoha}->{$budgetId}->{budg_ordered} += $unittotal;

@@ -17045,6 +17045,54 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.010";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        CREATE TABLE IF NOT EXISTS old_illrequests (
+            illrequest_id bigint(20) unsigned NOT NULL PRIMARY KEY,
+            borrowernumber integer DEFAULT NULL,
+            biblio_id integer DEFAULT NULL,
+            branchcode varchar(10) DEFAULT NULL,
+            status varchar(50) DEFAULT NULL,
+            placed date DEFAULT NULL,
+            replied date DEFAULT NULL,
+            updated timestamp DEFAULT CURRENT_TIMESTAMP
+              ON UPDATE CURRENT_TIMESTAMP,
+            completed date DEFAULT NULL,
+            medium varchar(30) DEFAULT NULL,
+            accessurl varchar(500) DEFAULT NULL,
+            cost varchar(20) DEFAULT NULL,
+            notesopac MEDIUMTEXT DEFAULT NULL,
+            notesstaff MEDIUMTEXT DEFAULT NULL,
+            orderid varchar(50) DEFAULT NULL,
+            backend varchar(20) DEFAULT NULL,
+            CONSTRAINT `old_illrequests_bnfk`
+              FOREIGN KEY (`borrowernumber`)
+              REFERENCES `borrowers` (`borrowernumber`)
+              ON DELETE SET NULL ON UPDATE SET NULL,
+            CONSTRAINT `old_illrequests_bcfk2`
+              FOREIGN KEY (`branchcode`)
+              REFERENCES `branches` (`branchcode`)
+              ON UPDATE SET NULL ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    });
+    $dbh->do(q{
+        CREATE TABLE IF NOT EXISTS old_illrequestattributes (
+            illrequest_id bigint(20) unsigned NOT NULL,
+            type varchar(200) NOT NULL,
+            value MEDIUMTEXT NOT NULL,
+            PRIMARY KEY  (`illrequest_id`, `type` (191)),
+            CONSTRAINT `old_illrequestattributes_ifk`
+              FOREIGN KEY (illrequest_id)
+              REFERENCES `old_illrequests` (`illrequest_id`)
+              ON UPDATE CASCADE ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    });
+
+    print "Upgrade to $DBversion done (Added archive tables old_illrequests and old_illrequestattributes)\n";
+    SetVersion($DBversion);
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

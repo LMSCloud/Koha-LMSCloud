@@ -8,8 +8,18 @@
                     <i class="fa fa-plus"></i> New ILL request <span class="caret"></span>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="ill-backend-dropdown">
-                    [% FOREACH backend IN backends %]
-                        <li><a href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend %]">[% backend %]</a></li>
+                    [% FOREACH backend IN backends %]         
+[% SWITCH backend %]
+    [% CASE 'ILLSLNPKoha' %]
+        [% SET backend_name = 'SLNP-nehmend' %]
+    [% CASE 'ILLZKSHA' %]
+        [% SET backend_name = 'RLV-gebend' %]
+    [% CASE 'ILLZKSHP' %]
+        [% SET backend_name = 'RLV-nehmend' %]
+    [% CASE %]
+        [% SET backend_name = backend %]
+[% END %]
+                        <li><a href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend %]">[% backend_name %]</a></li>
                     [% END %]
                 </ul>
             </div>
@@ -23,14 +33,53 @@
                 <i class="fa fa-plus"></i> New ILL request
             </a>
         [% END %]
-        <a id="ill-list" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist">
-            <i class="fa fa-list"></i> List requests
-        </a>
-        <a id="ill-list" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&amp;infilter=status,-not_in,COMP,QUEUED">
-            <i class="fa fa-list"></i> List open requests
-        </a>
-        <a id="ill-list" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&amp;infilter=status,-in,COMP">
+        <a id="ill-list_closed" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-in,COMP&hitname=Details for all completed requests">
             <i class="fa fa-list"></i> List completed requests
         </a>
+        <a id="ill-list_all" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-not_in, &hitname=Details for all requests">
+            <i class="fa fa-list"></i> List all requests
+        </a>
+        <a id="ill-list_open" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests">
+            <i class="fa fa-list"></i> List open requests
+        </a>
+        [% IF Koha.Preference('ILLZKSHADeliverySlipCode') %]
+          <a id="ill-list_open_ILLZKSHA" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHA&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-gebend)">
+              <i class="fa fa-list"></i> List open ZKSHA requests
+          </a>
+        [% END %]
+        [% IF Koha.Preference('ILLZKSHPNotDeliveredLettercode') %]
+          <a id="ill-list_open_ILLZKSHP" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHP&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-nehmend)">
+              <i class="fa fa-list"></i> List open ZKSHP requests
+          </a>
+        [% END %]
     </div>
 [% END %]
+
+
+
+
+<script type= "text/javascript">
+
+    function backendNameToDesignation (backend_name) {
+//alert("backendNameToDesignation backend_name:");
+//alert(backend_name);
+        var backend_designation = '';
+        if ( backend_name ) {
+            switch( backend_name ) {
+                case "ILLSLNPKoha":
+                    backend_designation =  _("SLNP-nehmend");
+                break;
+                case "ILLZKSHA":
+                    backend_designation =  _("RLV-gebend");
+                break;
+                case "ILLZKSHP":
+                    backend_designation =  _("RLV-nehmend");
+                break;
+                default:
+                    backend_designation = backend_name;
+            }
+        }
+        return backend_designation;
+    };
+
+</script>

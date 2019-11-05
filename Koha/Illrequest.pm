@@ -112,6 +112,7 @@ available for request.
 
 =head2 Class methods
 
+
 =head3 illrequestattributes
 
 =cut
@@ -129,9 +130,11 @@ sub illrequestattributes {
 
 sub patron {
     my ( $self ) = @_;
-    return Koha::Patron->_new_from_dbic(
-        scalar $self->_result->borrowernumber
-    );
+    my $patron = undef;
+    if ( defined $self->_result->borrowernumber ) {
+        $patron = Koha::Patron->_new_from_dbic( scalar $self->_result->borrowernumber );
+    }
+    return $patron;
 }
 
 =head3 load_backend
@@ -433,7 +436,6 @@ capabilities & custom_capability and their callers.
 
 sub capabilities {
     my ( $self, $status ) = @_;
-print STDERR "Illrequest.pm::capabilities START status:$status:\n";
     # Generate up to date status_graph
     my $status_graph = $self->_status_graph_union(
         $self->_core_status_graph,
@@ -983,10 +985,15 @@ file.
 
 sub id_prefix {
     my ( $self ) = @_;
+    if ( ! defined $self->patron ) {
+        return '';
+    }
     my $brw = $self->patron;
     my $brw_cat = "dummy";
-    $brw_cat = $brw->categorycode
-        unless ( 'HASH' eq ref($brw) && $brw->{deleted} );
+    if( $brw ) {
+        $brw_cat = $brw->categorycode
+            unless ( 'HASH' eq ref($brw) && $brw->{deleted} );
+    }
     my $prefix = $self->getPrefix( {
         brw_cat => $brw_cat,
         branch  => $self->branchcode,
@@ -1036,11 +1043,29 @@ sub TO_JSON {
         # Augment the request response with patron details if appropriate
         if ( $embed->{patron} ) {
             my $patron = $self->patron;
-            $object->{patron} = {
-                firstname  => $patron->firstname,
-                surname    => $patron->surname,
-                cardnumber => $patron->cardnumber
-            };
+            if ( defined $patron ) {
+                $object->{patron} = {
+                    firstname  => $patron->firstname,
+                    surname    => $patron->surname,
+                    cardnumber => $patron->cardnumber
+                };
+            } else {
+                # try your luck in the backend
+                my $patronInfo = $self->_backend_capability( "getPatronInfo", $self );
+                if ( $patronInfo ) {
+                    $object->{patron} = {
+                        firstname  => $patronInfo->{firstname},
+                        surname    => $patronInfo->{surname},
+                        cardnumber => $patronInfo->{cardnumber}
+                    };
+                } else {
+                    $object->{patron} = {
+                        firstname  => '',
+                        surname    => '',
+                        cardnumber => ''
+                    };
+                }
+            }
         }
         # Augment the request response with metadata details if appropriate
         if ( $embed->{metadata} ) {
@@ -1055,6 +1080,14 @@ sub TO_JSON {
             $object->{library} = Koha::Libraries->find(
                 $self->branchcode
             )->TO_JSON;
+        }
+        # Augment the request response with backend details if appropriate
+        if ( $embed->{backenddesignation} ) {
+            my $backendDesignation = $self->_backend_capability( "getBackendDesignation" );
+            if ( ! $backendDesignation ) {
+                $backendDesignation = $self->backend->name();
+            }
+            $object->{backenddesignation} = $backendDesignation;
         }
     }
 

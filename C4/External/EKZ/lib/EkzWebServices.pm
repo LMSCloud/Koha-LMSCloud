@@ -237,7 +237,7 @@ print STDERR "EkzWebServices::getEkzProcessingNoticesEmailAddress(ekzCustomerNum
 sub getEkzCustomerNumbers {
 	my $self = shift;
 
-    my @ekzWebServicesCustomerNumbers = keys $self->{'ekzCustomerBranch'};
+    my @ekzWebServicesCustomerNumbers = keys %{$self->{'ekzCustomerBranch'}};
 
     return @ekzWebServicesCustomerNumbers;
 }

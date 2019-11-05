@@ -34,5 +34,11 @@
   },
   "/bzshid_mapping": {
     "$ref": "paths/bzshid_mapping.json#/~1bzshid_mapping"
+  },
+  "/zksha_illrequests": {
+    "$ref": "paths/zksha_illrequests.json#/~1zksha_illrequests"
+  },
+  "/zkshp_illrequests": {
+    "$ref": "paths/zkshp_illrequests.json#/~1zkshp_illrequests"
   }
 }

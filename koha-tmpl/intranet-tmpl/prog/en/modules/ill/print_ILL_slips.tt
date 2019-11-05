@@ -1,0 +1,13 @@
+[% INCLUDE 'doc-head-open.inc' %]
+    <title>Print ILL delivery slips for [% today %]</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    [% IF ( stylesheet ) %]
+    <link rel="stylesheet" type="text/css" href="[% stylesheet %]">
+    [% END %]
+</head>
+<body id="print_ill_delivery_slips" class="batch">
+[% FOREACH message IN messages %]
+[% message.content %]
+[% END %]
+</body>
+</html>

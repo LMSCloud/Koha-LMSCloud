@@ -1,0 +1,45 @@
+
+<title>Print all ILL order slips</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="[% IF ( IntranetFavicon ) %][% IntranetFavicon %][% ELSE %][% interface %]/[% theme %]/img/favicon.ico[% END %]" type="image/x-icon" />
+
+    <style type="text/css">
+        @media screen {
+        .message {
+            color: black;
+            background-color:white
+            display: block;
+            page-break-after: always;
+            border-bottom: 1px solid black; 
+            font-weight: bold;
+        }
+    }
+    </style>
+
+
+    <script>
+        function resizeIframe(obj) {
+            obj.style.height = '297mm';    // DIN A4 height
+            //obj.style.width = '210mm';    // DIN A4 width; right margin is too small by about 10 mm
+            obj.style.width = '170mm';    // results in same (or more precise: comparable) right margin as in single slip print
+
+        }
+    </script>
+</head>
+
+<body id="ill_slips_print_all" class="batch">
+
+    [% FOREACH generatedSlip IN generatedSlips %]
+        <div class="message">
+            <!-- <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%;" -->
+            <!-- <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%; margin: 15px;" -->
+            <!-- <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%; margin-top: 20px; margin-right: 10px; margin-bottom: 15px; margin-left: 10px;" -->
+            <iframe id="Laufzettel_[% generatedSlip.illrequestid %]"  onload="resizeIframe(this)"  style="border:none; width: 100%; margin-top: 20px; margin-left: 10px;"
+                title="Laufzettel [% generatedSlip.illrequestid %]"
+                src="https:/cgi-bin/koha/tools/download-files.pl?filename=[% generatedSlip.filename %]&op=download">
+            </iframe>
+        </div>
+    [% END %]
+
+</body>
+</html>
