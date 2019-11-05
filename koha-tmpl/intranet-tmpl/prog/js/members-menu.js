@@ -67,28 +67,27 @@ $(document).ready(function(){
         });
         if ( $("#notice_sent_dialog_member").length == 1 ) {
             $("#notice_sent_dialog_member").hide();
-
-            $.ajax({
-                data: {},
-                type: 'POST',
-                url: '/cgi-bin/koha/svc/members/adhocletters',
-                success: function(data) {
-                    var letterSelect =  $("#adhocNoticeLetterSelection_letter");
-                    letterSelect.find('option').remove();
-                    for (var i=0; i < data.letters.length; i++ ) {
-                       letterSelect.append($('<option></option>').val(data.letters[i].code).html(data.letters[i].name));
-                    }
-
-                },
-                error: function() {
-                    alert( _("An error occured while retrieving available letters for adhoc-notices.") );
-                }
-            });
             
             $("#send_notice_letter_select").on('click', function(e){
                 var patronCount = 1;
                 $('#selectAdhocNoticeLetterPatronCount').text(patronCount);
-                $("#selectAdhocNoticeLetter").modal("show");
+
+                $.ajax({
+                    data: {},
+                    type: 'POST',
+                    url: '/cgi-bin/koha/svc/members/adhocletters',
+                    success: function(data) {
+                        var letterSelect =  $("#adhocNoticeLetterSelection_letter");
+                        letterSelect.find('option').remove();
+                        for (var i=0; i < data.letters.length; i++ ) {
+                           letterSelect.append($('<option></option>').val(data.letters[i].code).html(data.letters[i].name));
+                        }
+                        $("#selectAdhocNoticeLetter").modal("show");
+                    },
+                    error: function() {
+                        alert( _("An error occured while retrieving available letters for adhoc-notices.") );
+                    }
+                });
 
                 return true;
             });
