@@ -10,12 +10,14 @@
                 <ul class="dropdown-menu" aria-labelledby="ill-backend-dropdown">
                     [% FOREACH backend IN backends %]         
 [% SWITCH backend %]
+    [% CASE 'ILLALV' %]
+        [% SET backend_name = 'ALV' %]
     [% CASE 'ILLSLNPKoha' %]
-        [% SET backend_name = 'SLNP-nehmend' %]
+        [% SET backend_name = 'SLNP-passive' %]
     [% CASE 'ILLZKSHA' %]
-        [% SET backend_name = 'RLV-gebend' %]
+        [% SET backend_name = 'RLV-active' %]
     [% CASE 'ILLZKSHP' %]
-        [% SET backend_name = 'RLV-nehmend' %]
+        [% SET backend_name = 'RLV-passive' %]
     [% CASE %]
         [% SET backend_name = backend %]
 [% END %]
@@ -42,13 +44,18 @@
         <a id="ill-list_open" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests">
             <i class="fa fa-list"></i> List open requests
         </a>
+        [% IF Koha.Preference('ILLALVSources') %]
+          <a id="ill-list_open_ILLALV" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLALV&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (ALV)">
+              <i class="fa fa-list"></i> List open ALV requests
+          </a>
+        [% END %]
         [% IF Koha.Preference('ILLZKSHADeliverySlipCode') %]
-          <a id="ill-list_open_ILLZKSHA" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHA&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-gebend)">
+          <a id="ill-list_open_ILLZKSHA" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHA&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-active)">
               <i class="fa fa-list"></i> List open ZKSHA requests
           </a>
         [% END %]
         [% IF Koha.Preference('ILLZKSHPNotDeliveredLettercode') %]
-          <a id="ill-list_open_ILLZKSHP" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHP&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-nehmend)">
+          <a id="ill-list_open_ILLZKSHP" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHP&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-passive)">
               <i class="fa fa-list"></i> List open ZKSHP requests
           </a>
         [% END %]
@@ -66,14 +73,17 @@
         var backend_designation = '';
         if ( backend_name ) {
             switch( backend_name ) {
+                case "ILLALV":
+                    backend_designation =  _("ALV");
+                break;
                 case "ILLSLNPKoha":
-                    backend_designation =  _("SLNP-nehmend");
+                    backend_designation =  _("SLNP-passive");
                 break;
                 case "ILLZKSHA":
-                    backend_designation =  _("RLV-gebend");
+                    backend_designation =  _("RLV-active");
                 break;
                 case "ILLZKSHP":
-                    backend_designation =  _("RLV-nehmend");
+                    backend_designation =  _("RLV-passive");
                 break;
                 default:
                     backend_designation = backend_name;
