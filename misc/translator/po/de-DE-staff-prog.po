@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2019-11-05 18:43+0100\n"
-"PO-Revision-Date: 2019-11-05 18:46+0100\n"
+"POT-Creation-Date: 2019-11-24 17:25+0100\n"
+"PO-Revision-Date: 2019-11-24 17:33+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1575,6 +1575,19 @@ msgstr ""
 "vor dem heutigen Tagesdatum. Diese Änderung ist nicht erlaubt. %sDas neue "
 "Fälligkeitsdatum liegt vor dem heutigen Tagesdatum. Diese Änderung ist nicht "
 "erlaubt. %s%s %s %s "
+
+#. %1$s:  jno = 0
+#. %2$s:  IF (showstat.cash_register_journalno)
+#. %3$s:  jno = 1
+#. %4$s:  showstat.cash_register_journalno
+#. %5$s:  IF (showstat.description)
+#. %6$s:  END
+#. %7$s:  END
+#. %8$s:  showstat.description
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:244
+#, c-format
+msgid "%s %s %sJournal no: %s%s; %s %s %s "
+msgstr "%s %s %sJournalnummer: %s%s; %s %s %s "
 
 #. %1$s:  BLOCK translate_justification_types
 #. %2$s:   SWITCH type
@@ -7247,7 +7260,7 @@ msgstr "%sAbbrechen"
 #. %4$s:  END
 #. %5$s:  IF (trans.accountlines_description)
 #. %6$s:  IF (contentbefore == 1)
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:378
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:379
 #, c-format
 msgid "%sCharge description: %s%s%s %s%s"
 msgstr "%sBeschreibung: %s%s%s %s%s"
@@ -7258,7 +7271,7 @@ msgstr "%sBeschreibung: %s%s%s %s%s"
 #. %4$s:  END
 #. %5$s:  IF (trans.title)
 #. %6$s:  IF contentbefore == 1
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:379
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:380
 #, c-format
 msgid "%sCharge note: %s%s%s %s%s"
 msgstr "%sNotiz: %s%s%s, %s%s"
@@ -7870,7 +7883,7 @@ msgstr ""
 #. %2$s:  trans.title
 #. %3$s:  contentbefore = 1
 #. %4$s:  END
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:380
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:381
 #, c-format
 msgid "%sTitle: %s%s%s "
 msgstr "%sTitel: %s%s%s "
@@ -8257,8 +8270,10 @@ msgstr "&lt;&lt; Zurück zu den Vorschlägen"
 msgid "&lt;&lt; Previous"
 msgstr "&lt;&lt; Zurück"
 
+#. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:257
 msgid "&lt;No value&gt;"
 msgstr "&lt;Ohne Wert&gt;"
 
@@ -11578,6 +11593,8 @@ msgid "Accession date:"
 msgstr "Erwerbungsdatum:"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:139
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:91
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:109
 #: intranet-tmpl/prog/en/modules/members/mancredit.tt:26
 #: intranet-tmpl/prog/en/modules/members/paycollect.tt:29
 #: intranet-tmpl/prog/en/modules/members/pay.tt:28
@@ -11628,6 +11645,7 @@ msgid "Account management fee"
 msgstr "Benutzungsgebühr"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:385
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:171
 #, c-format
 msgid "Account management fees"
 msgstr "Benutzungsgebühren"
@@ -11831,7 +11849,7 @@ msgid "Action if no match is found: "
 msgstr "Aktion, wenn keine Übereinstimmung gefunden wurde: "
 
 #. %1$s:  INCLUDE cashActionName
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:466
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:471
 #, c-format
 msgid "Action: %s"
 msgstr "Vorgang: %s "
@@ -12786,11 +12804,11 @@ msgid "Address: "
 msgstr "Adresse: "
 
 #. INPUT type=submit
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:281
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:282
 msgid "Adjust"
 msgstr "Adjust"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:259
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:260
 #, c-format
 msgid "Adjustment amount: "
 msgstr "Korrekturbetrag: "
@@ -13371,7 +13389,7 @@ msgstr "Alle Tags"
 msgid "All transactions"
 msgstr "Alle Transaktionen"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:342
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:343
 #, c-format
 msgid "All transactions since previous cash register opening "
 msgstr "Alle Transaktionen seit dem letzten Öffnen "
@@ -13449,7 +13467,7 @@ msgid "Already validated discharges"
 msgstr "Bereits geprüfte Entlastungen"
 
 #. %1$s:  additionalOpener.name
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:457
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:462
 #, c-format
 msgid "Also in use by: %s"
 msgstr " Auch geöffnet von: %s"
@@ -13643,6 +13661,10 @@ msgstr "Amit Gupta"
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:58
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:465
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:472
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:31
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:59
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:215
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:221
 #: intranet-tmpl/prog/en/modules/offline_circ/list.tt:33
 #: intranet-tmpl/prog/en/modules/acqui/acqui-home.tt:83
 #: intranet-tmpl/prog/en/modules/members/moremember-print.tt:103
@@ -13656,7 +13678,7 @@ msgstr "Amit Gupta"
 #: intranet-tmpl/prog/en/modules/members/boraccount.tt:44
 #: intranet-tmpl/prog/en/modules/members/printfeercpt.tt:46
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:193
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:356
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:357
 #: intranet-tmpl/prog/en/modules/tools/overduerules.tt:217
 #: intranet-tmpl/prog/en/modules/tools/overduerules.tt:218
 #: intranet-tmpl/prog/en/modules/tools/overduerules.tt:219
@@ -13695,7 +13717,7 @@ msgid "Amount: "
 msgstr "Betrag: "
 
 #. %1$s:  lastTransaction.booking_amount_formatted
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:467
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:472
 #, c-format
 msgid "Amount: %s"
 msgstr "Betrag: %s"
@@ -16624,6 +16646,7 @@ msgid "Borrower '%s' already in list."
 msgstr "Benutzer '%s' ist bereits auf der Liste."
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:393
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:178
 #, c-format
 msgid "Borrower category"
 msgstr "Benutzerkategorie"
@@ -17532,11 +17555,11 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:455
 #: intranet-tmpl/prog/en/modules/circ/selectbranchprinter.tt:78
 #: intranet-tmpl/prog/en/modules/circ/branchoverdues.tt:75
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:160
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:221
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:282
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:329
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:437
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:161
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:222
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:283
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:330
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:442
 #: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:354
 #: intranet-tmpl/prog/en/modules/cataloguing/additem.tt:364
 #: intranet-tmpl/prog/en/modules/cataloguing/value_builder/EXAMPLE.tt:18
@@ -18177,11 +18200,11 @@ msgstr "Caroline Cyr La Rose"
 msgid "Carry-over"
 msgstr "Übertrag"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:117
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:178
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:239
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:300
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:408
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:118
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:179
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:240
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:301
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:413
 #, c-format
 msgid "Carry-over:"
 msgstr "Übertrag:"
@@ -18199,22 +18222,22 @@ msgid "Cas login"
 msgstr "CAS-Login"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-macros.inc:69
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:357
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:358
 #, c-format
 msgid "Cash balance"
 msgstr "Kassenstand"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:129
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:190
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:251
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:315
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:423
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:130
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:191
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:252
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:316
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:428
 #, c-format
 msgid "Cash balance: "
 msgstr "Kassenstand:"
 
 #. %1$s:  cash_register.cash_register_balance_formatted
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:453
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:458
 #, c-format
 msgid "Cash balance: %s"
 msgstr "Kassenstand: %s"
@@ -18225,7 +18248,7 @@ msgid "Cash journal"
 msgstr "Kassenjournal"
 
 #: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:95
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:103
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:104
 #, c-format
 msgid "Cash payment"
 msgstr "Auszahlung"
@@ -18235,17 +18258,17 @@ msgstr "Auszahlung"
 msgid "Cash payments"
 msgstr "Auszahlungen"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:125
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:186
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:247
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:308
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:416
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:126
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:187
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:248
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:309
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:421
 #, c-format
 msgid "Cash payments: "
 msgstr "Auszahlungen:"
 
 #. %1$s:  cash_register_info.payouts_amount_formatted
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:461
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:466
 #, c-format
 msgid "Cash payments: %s"
 msgstr "Auszahlungen: %s"
@@ -18260,17 +18283,17 @@ msgstr "Kassenstand"
 msgid "Cash receipts"
 msgstr "Einzahlungen"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:121
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:182
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:243
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:304
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:412
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:122
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:183
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:244
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:305
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:417
 #, c-format
 msgid "Cash receipts: "
 msgstr "Einzahlungen: "
 
 #. %1$s:  cash_register_info.inpayments_amount_formatted
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:460
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:465
 #, c-format
 msgid "Cash receipts: %s"
 msgstr "Einzahlungen: %s"
@@ -18284,7 +18307,7 @@ msgstr "Einzahlungen: %s"
 msgid "Cash register"
 msgstr "Kasse"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:349
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:350
 #, c-format
 msgid "Cash register journal"
 msgstr "Kassenjournal"
@@ -18301,7 +18324,7 @@ msgstr "Kassenverwaltung"
 msgid "Cash register management "
 msgstr "Kassenverwaltung"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:360
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:361
 #, c-format
 msgid "Cash register manager"
 msgstr "Zugelassene Mitarbeiter: "
@@ -18311,11 +18334,11 @@ msgstr "Zugelassene Mitarbeiter: "
 msgid "Cash register name: "
 msgstr "Name der Kasse: "
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:113
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:174
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:235
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:296
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:404
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:114
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:175
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:236
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:297
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:409
 #, c-format
 msgid "Cash register opened on:"
 msgstr "Kasse geöffnet am:"
@@ -18327,6 +18350,7 @@ msgid "Cash register overview"
 msgstr "Kassenübersicht"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:12
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:12
 #, c-format
 msgid "Cash register overview "
 msgstr "Kassenübersicht"
@@ -20326,8 +20350,8 @@ msgstr "Bestellgruppe schließen"
 msgid "Close budget "
 msgstr "Etat schliessen "
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:286
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:394
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:287
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:399
 #, c-format
 msgid "Close cash register"
 msgstr "Kasse schließen"
@@ -20688,7 +20712,7 @@ msgstr "Kommagetrennter Text (.csv)"
 #: intranet-tmpl/prog/en/includes/borrower_debarments.inc:9
 #: intranet-tmpl/prog/en/columns.def:64
 #: intranet-tmpl/prog/en/modules/members/memberentrygen.tt:915
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:361
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:362
 #, c-format
 msgid "Comment"
 msgstr "Kommentar"
@@ -20706,9 +20730,9 @@ msgid "Comment:"
 msgstr "Kommentar:"
 
 #: intranet-tmpl/prog/en/modules/members/memberentrygen.tt:956
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:153
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:214
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:275
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:154
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:215
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:276
 #, c-format
 msgid "Comment: "
 msgstr "Kommentar: "
@@ -20842,8 +20866,8 @@ msgid "Confirm ILL request"
 msgstr "Fernleihebestellung bestätigen"
 
 #. INPUT type=submit
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:328
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:436
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:329
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:441
 msgid "Confirm closing"
 msgstr "Schließen bestätigen"
 
@@ -21517,6 +21541,10 @@ msgstr ""
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:360
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:394
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:421
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:92
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:110
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:143
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:179
 #: intranet-tmpl/prog/en/modules/catalogue/results.tt:323
 #: intranet-tmpl/prog/en/modules/reports/itemtypes.tt:32
 #, c-format
@@ -22461,7 +22489,7 @@ msgstr "Zugangsdatum (Exemplar)"
 msgid "Date added"
 msgstr "Erstellungsdatum"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:358
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:359
 #, c-format
 msgid "Date and Time"
 msgstr "Datum/Zeit"
@@ -22729,6 +22757,7 @@ msgid "David Strainchamps"
 msgstr "David Strainchamps"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:464
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:214
 #: intranet-tmpl/prog/en/modules/reports/bor_issues_top.tt:144
 #: intranet-tmpl/prog/en/modules/reports/cat_issues_top.tt:141
 #: intranet-tmpl/prog/en/modules/reports/issues_avg_stats.tt:91
@@ -22936,9 +22965,9 @@ msgstr ""
 "gleichen Weise, wie Sie Medientypen und MARC-Biblio-Strukturen definieren. "
 "Normdaten werden durch Plugins verwaltet"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:110
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:293
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:401
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:111
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:294
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:406
 #, c-format
 msgid "Define cash payment amount"
 msgstr "Auszahlungsbetrag angeben"
@@ -22997,12 +23026,12 @@ msgstr "Definieren SIe Währungen und Wechselkurse für die Erwerbung."
 msgid "Define days when the library is closed"
 msgstr "Definieren der Schließungstage der Bibliothek"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:171
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:172
 #, c-format
 msgid "Define deposit amount"
 msgstr "Einzahlungsbetrag angeben"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:232
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:233
 #, c-format
 msgid "Define difference posting amount"
 msgstr "Betrag für Korrekturbuchung angeben"
@@ -23845,18 +23874,18 @@ msgid "Department:"
 msgstr "Abteilung:"
 
 #: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:96
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:164
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:220
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:165
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:221
 #, c-format
 msgid "Deposit"
 msgstr "Einzahlung"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:198
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:199
 #, c-format
 msgid "Deposit amount: "
 msgstr "Betrag der Einzahlung:"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:206
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:207
 #, c-format
 msgid "Deposit reason: "
 msgstr "Einzahlungsgrund: "
@@ -23868,6 +23897,8 @@ msgstr "Abt."
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:162
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:470
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:142
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:220
 #: intranet-tmpl/prog/en/modules/admin/authorised_values.tt:228
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:210
 #: intranet-tmpl/prog/en/modules/admin/classsources.tt:245
@@ -24030,6 +24061,11 @@ msgstr "Zielbibliothek: "
 msgid "Destination record"
 msgstr "Zieldatensatz"
 
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:205
+#, c-format
+msgid "Detailed outpayments"
+msgstr "Detaillierte Übersicht der Auszahlungen"
+
 #: intranet-tmpl/prog/en/includes/circ-menu.inc:89
 #: intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:367
 #: intranet-tmpl/prog/en/modules/basket/basket.tt:118
@@ -24160,7 +24196,7 @@ msgid "Diff"
 msgstr "Diff"
 
 #: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:97
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:225
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:226
 #, c-format
 msgid "Difference posting"
 msgstr "Korrekturbuchung"
@@ -27406,9 +27442,10 @@ msgid "Fines overview: %s (%s%s - %s%s)"
 msgstr "Gebührenauswertung: %s (%s%s - %s%s)"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:132
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:84
 #: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:64
 #: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:88
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:100
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:101
 #: intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:19
 #, c-format
 msgid "Fines overviews"
@@ -30758,13 +30795,16 @@ msgstr "Innerer Zähler"
 msgid "Inner counter "
 msgstr "Innere Zählung "
 
+#. For the first occurrence,
 #. %1$s:  cash_register.cash_register_name
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:25
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:26
 #, c-format
 msgid "Inpayment overview (%s)"
 msgstr "Übersicht der Einzahlungen (%s)"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:29
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:30
 #, c-format
 msgid "Inpayment type"
 msgstr "Einzahlungsart"
@@ -32152,12 +32192,12 @@ msgstr "Joshua Ferraro (3.0 Release Manager and Translation Manager)"
 msgid "Journal"
 msgstr "Zeitschrift"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:337
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:338
 #, c-format
 msgid "Journal from "
 msgstr "Kassenjournal vom "
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:354
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:355
 #, c-format
 msgid "Journal number"
 msgstr "Laufende Journalnummer"
@@ -35510,7 +35550,7 @@ msgstr "Zuletzt geprüft:"
 msgid "Last sync: "
 msgstr "Zuletzt synchronisiert:"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:464
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:469
 #, c-format
 msgid "Last transaction"
 msgstr "Letzte Transaktion"
@@ -36028,7 +36068,7 @@ msgstr "Bibliothek: "
 #. %1$s:  Branches.GetName( branch )
 #: intranet-tmpl/prog/en/modules/acqui/invoices.tt:196
 #: intranet-tmpl/prog/en/modules/members/moremember-print.tt:28
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:452
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:457
 #, c-format
 msgid "Library: %s"
 msgstr "Bibliothek: %s"
@@ -36182,7 +36222,7 @@ msgid "Link:"
 msgstr "Link:"
 
 #: intranet-tmpl/prog/en/includes/cat-toolbar.inc:107
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:343
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:344
 #, c-format
 msgid "List"
 msgstr "Liste"
@@ -37456,6 +37496,7 @@ msgstr "Mitarbeitername"
 #. %2$s:  datetimenow
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:6
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:127
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:6
 #, c-format
 msgid "Manager: %s, Date: %s"
 msgstr "Mitarbeiter: %s, Datum: %s"
@@ -39139,9 +39180,9 @@ msgstr "Neuer Normdatentyp"
 msgid "New authorized value for %s"
 msgstr "Neuer normierter Wert für %s"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:141
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:202
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:263
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:142
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:203
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:264
 #, c-format
 msgid "New balance: "
 msgstr "Neuer Kassenstand: "
@@ -39199,7 +39240,7 @@ msgstr "Neuer Eltern-Etat ist unterhalb des Etats"
 msgid "New card"
 msgstr "Neuer Ausweis"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:137
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:138
 #, c-format
 msgid "New cash payment: "
 msgstr "Neue Auszahlung: "
@@ -39794,6 +39835,11 @@ msgstr ""
 "Es wurde kein normierter Wert TERM gefunden! Bitte erstellen Sie einen oder "
 "mehrere Einträge für die Kategorie TERM."
 
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:198
+#, c-format
+msgid "No account management fees accrued during the selected period."
+msgstr "Keine Benutzungsgebühren im ausgewählten Zeitraum."
+
 #: intranet-tmpl/prog/en/modules/tools/batch_record_modification.tt:227
 #, c-format
 msgid "No action defined for the template. "
@@ -39846,7 +39892,12 @@ msgid "No cards created (empty batch or list?) "
 msgstr "Keine Ausweise erstellt (leerer Stapel oder leere Liste?) "
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:482
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:257
+msgid "No cash register outpayments during the selected period."
+msgstr "Keine Kassenauszahlungen im ausgewählten Zeitraum."
+
+#. SCRIPT
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:487
 msgid "No cash register transactions during the selected period."
 msgstr "Keine Kassentransaktionen im ausgewählten Zeitraum."
 
@@ -39869,8 +39920,10 @@ msgstr "Es wurden keine Benutzertypen definiert. "
 msgid "No change"
 msgstr "Keine Änderung"
 
+#. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:257
 msgid "No changes during the selected period."
 msgstr "Keine Zahlvorgänge im ausgewählten Zeitraum."
 
@@ -40221,6 +40274,8 @@ msgstr "Keine offenen Gebühren"
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:98
+#, c-format
 msgid "No paid fines during the selected period."
 msgstr "Keine beglichenen Gebühren im ausgewählten Zeitraum."
 
@@ -42143,7 +42198,7 @@ msgid "Opened By"
 msgstr "Gegenwärtig geöffnet von"
 
 #. %1$s:  cash_register_info.opening_manager
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:455
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:460
 #, c-format
 msgid "Opened by: %s"
 msgstr "Geöffnet von: %s"
@@ -42154,13 +42209,13 @@ msgid "Opened on:"
 msgstr "Geöffnet am:"
 
 #. %1$s:  cash_register_info.opening_booking_time
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:454
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:459
 #, c-format
 msgid "Opened on: %s"
 msgstr "Geöffnet am: %s"
 
 #. %1$s:  cash_register_info.opening_balance_formatted
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:459
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:464
 #, c-format
 msgid "Opening balance: %s"
 msgstr "Anfangsbestand: %s"
@@ -42568,13 +42623,16 @@ msgstr "Weitere Telefonnummer: "
 msgid "Others..."
 msgstr "Andere.."
 
+#. For the first occurrence,
 #. %1$s:  cash_register.cash_register_name
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:53
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:54
 #, c-format
 msgid "Outpayment overview (%s)"
 msgstr "Übersicht der Auszahlungen (%s)"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:57
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:58
 #, c-format
 msgid "Outpayment type"
 msgstr "Auszahlungsart"
@@ -42841,6 +42899,7 @@ msgid "Pages:"
 msgstr "Seiten:"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:388
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:173
 #, c-format
 msgid "Paid account management fee by borrower category"
 msgstr "Übersicht der eingenommener Benutzungsgebühren nach Benutzerkategorie"
@@ -42852,6 +42911,8 @@ msgstr ""
 "Übersicht der eingenommener Benutzungsgebühren nach Heimatort des Benutzers"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:135
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:87
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:105
 #, c-format
 msgid "Paid fines by account"
 msgstr "Übersicht beglichener Gebühren nach Kontozuordnung"
@@ -43036,7 +43097,7 @@ msgstr "Patricio Marrone"
 #: intranet-tmpl/prog/en/modules/circ/article-requests.tt:73
 #: intranet-tmpl/prog/en/modules/circ/article-requests.tt:201
 #: intranet-tmpl/prog/en/modules/circ/branchoverdues.tt:38
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:359
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:360
 #: intranet-tmpl/prog/en/modules/circ/overdue.tt:49
 #: intranet-tmpl/prog/en/modules/circ/on-site_checkouts.tt:28
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:742
@@ -43726,6 +43787,7 @@ msgid "Patron's record has guaranteed accounts attached."
 msgstr "Der Benutzer bürgt für andere Benutzer."
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:469
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:219
 #, c-format
 msgid "Patron/Barcode"
 msgstr "Benutzer/Barcode"
@@ -43979,7 +44041,7 @@ msgstr "Bezahlen"
 msgid "Payment note"
 msgstr "Notiz zur Zahlung"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:145
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:146
 #, c-format
 msgid "Payment reason: "
 msgstr "Zahlungsgrund: "
@@ -43989,8 +44051,14 @@ msgstr "Zahlungsgrund: "
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:357
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:392
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:419
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:177
 #, c-format
 msgid "Payment type"
+msgstr "Zahlungsart"
+
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:216
+#, c-format
+msgid "Payment type "
 msgstr "Zahlungsart"
 
 #: intranet-tmpl/prog/en/modules/members/paycollect.tt:101
@@ -44005,7 +44073,7 @@ msgid "Payments"
 msgstr "Zahlungen"
 
 #. INPUT type=submit
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:159
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:160
 msgid "Payout"
 msgstr "Auszahlen"
 
@@ -44907,8 +44975,8 @@ msgid "Please log in to Koha and try again. (Error: '%s')"
 msgstr ""
 "Bitte melden Sie sich bei Koha an und versuchen Sie es erneut. (Fehler: '%s')"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:321
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:429
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:322
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:434
 #, c-format
 msgid ""
 "Please make sure the displayed cash balance matches the amount of cash of "
@@ -45902,6 +45970,7 @@ msgstr "Printmedien insgesamt - Entleihungen"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:18
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:121
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:18
 #, c-format
 msgid "Printview"
 msgstr "Druckansicht"
@@ -46669,7 +46738,9 @@ msgstr "RFID-Lesegerät Hersteller"
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:31
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:59
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:358
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:362
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:32
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:60
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:363
 #: intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:180
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:320
 #, c-format
@@ -46689,7 +46760,7 @@ msgstr "Begründung für die Stornierung:"
 msgid "Reason for suggestion: "
 msgstr "Begründung für die Vorschläge: "
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:267
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:268
 #, c-format
 msgid "Reason: "
 msgstr "Grund: "
@@ -48351,6 +48422,21 @@ msgstr "Return-Path: "
 msgid "Returns"
 msgstr "Rückgaben"
 
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:100
+#, c-format
+msgid "Revenues and expenditures"
+msgstr "Einnahmen und Ausgaben"
+
+#. %1$s:  Branches.GetName(sessionbranch)
+#. %2$s:  journalfrom
+#. %3$s:  IF (journalfrom != journalto)
+#. %4$s:  journalto
+#. %5$s:  END
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:5
+#, c-format
+msgid "Revenues and expenditures overview: %s (%s%s - %s%s)"
+msgstr "Übersicht der Einnahmen und Ausgaben: %s (%s%s - %s%s)"
+
 #: intranet-tmpl/prog/en/modules/members/boraccount.tt:77
 #: intranet-tmpl/prog/en/modules/members/boraccount.tt:79
 #, c-format
@@ -49847,6 +49933,7 @@ msgstr "gesehen"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:17
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:120
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:17
 #: intranet-tmpl/prog/en/modules/acqui/tables/members_results.tt:19
 #: intranet-tmpl/prog/en/modules/patroncards/manage.tt:61
 #: intranet-tmpl/prog/en/modules/patroncards/edit-batch.tt:82
@@ -49855,7 +49942,7 @@ msgstr "gesehen"
 #: intranet-tmpl/prog/en/modules/members/tables/illBorrower_results.tt:41
 #: intranet-tmpl/prog/en/modules/serials/acqui-search-result.tt:24
 #: intranet-tmpl/prog/en/modules/circ/request-article.tt:70
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:340
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:341
 #: intranet-tmpl/prog/en/modules/cataloguing/linkitem.tt:50
 #: intranet-tmpl/prog/en/modules/tools/overduerules.tt:38
 #: intranet-tmpl/prog/en/modules/tools/duedate_change.tt:68
@@ -53016,6 +53103,10 @@ msgstr "Anschaffungsvorschläge suchen:"
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:361
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:395
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:422
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:93
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:111
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:144
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:180
 #: intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:163
 #: intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:165
 #, c-format
@@ -54349,6 +54440,15 @@ msgid ""
 msgstr ""
 "Es gibt folgende Mappings für items.permanent_location, die nicht existieren "
 "sollten. "
+
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:207
+#, c-format
+msgid ""
+"The following payment overview lists detailed outpayments of the selected "
+"branch during the selected period. "
+msgstr ""
+"Die folgende Übersicht listet Kassenauszahlungen für die ausgewählte "
+"Zweigstelle im gewählten Zeitraum auf. "
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:457
 #, c-format
@@ -56009,7 +56109,7 @@ msgid "Time:"
 msgstr "Zeit:"
 
 #. %1$s:  lastTransaction.booking_time
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:468
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:473
 #, c-format
 msgid "Time: %s"
 msgstr "Datum/Uhrzeit: %s"
@@ -56719,6 +56819,10 @@ msgstr "Gesamt"
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:73
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:251
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:339
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:46
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:74
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:126
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:160
 #: intranet-tmpl/prog/en/includes/cashregister-fines-macros.inc:101
 #: intranet-tmpl/prog/en/modules/acqui/ordered.tt:77
 #, c-format
@@ -56955,7 +57059,7 @@ msgstr "Ort"
 msgid "Transacting librarian"
 msgstr "BibliotheksmitarbeiterIn"
 
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:355
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:356
 #, c-format
 msgid "Transaction"
 msgstr "Transaktionsart"
@@ -57630,11 +57734,13 @@ msgid "Unlimited"
 msgstr "Unbegrenzt"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:161
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:141
 #, c-format
 msgid "Unmapped fine type"
 msgstr "Nicht zugeordnete Gebührenart"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:157
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:137
 #, c-format
 msgid "Unmapped paid fines (to above accounts)"
 msgstr "Nicht zugeordnete Gebühren (zu Konten)"
@@ -63519,7 +63625,8 @@ msgstr "Mal"
 
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:13
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:89
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:338
+#: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:13
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:339
 #: intranet-tmpl/prog/en/modules/course_reserves/add_items-step2.tt:27
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:467
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:474
