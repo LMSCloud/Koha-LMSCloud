@@ -265,6 +265,50 @@ elsif ( $op eq 'finesreport' ) {
     
     $template->param( reportbranch => $reportbranch );
 }
+elsif ( $op eq 'payinoutoverview' ) {
+    ($bookingstats,$journalfrom,$journalto) = $cash_management->getCashTransactionOverviewByBranch($branch, $journalfrom, $journalto);
+    
+    my $reportbranch = $query->param('reportbranch');
+    
+    my ($inoutstat,$overview,$cashregstat);
+
+    my $cashreg;
+    $cashreg = $cash_register->{cash_register_id} if ( $cash_register && $cash_register->{cash_register_id} );
+    
+    ($cashregstat,$journalfrom,$journalto) = $cash_management->getCashRegisterPaymentAndDepositOverview($cashreg, $journalfrom, $journalto);
+    
+    ($inoutstat,$journalfrom,$journalto) = $cash_management->getFinesOverview(
+            { 
+                branchcode => $reportbranch,
+                from => $journalfrom,
+                to => $journalto,
+                type => 'payoutbytype',
+                cash_register_id => $cashreg
+            }
+        );
+        
+        
+    ($overview,$journalfrom,$journalto) = $cash_management->getFinesOverview(
+            { 
+                branchcode => $reportbranch,
+                from => $journalfrom,
+                to => $journalto,
+                type => 'finesoverview',
+                cash_register_id => $cashreg
+            }
+        );
+        
+    $manageaction = 'payinoutoverview';
+    
+    $finesstats = {
+                        type => 'payinoutoverview',
+                        cashinout => $cashregstat,
+                        overview => $overview,
+                        payments => $inoutstat
+                   };
+    
+    $template->param( reportbranch => $reportbranch );
+}
 
 my $wrongBranch=0;
 my @transactions = ();

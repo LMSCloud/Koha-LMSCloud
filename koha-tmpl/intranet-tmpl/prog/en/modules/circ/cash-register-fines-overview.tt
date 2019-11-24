@@ -10,7 +10,11 @@
     <div id="doc3" class="yui-t1">
         <div id="bd">
             <div id="yui-main">
+                [% IF ( manageaction == 'payinoutoverview' ) %]
+                [% PROCESS 'cashregister-payin-payout-overview.inc' %]
+                [% ELSE %]
                 [% PROCESS 'cashregister-fines-overview.inc' %]
+                [% END %]
             </div>
         </div>
     </div>
