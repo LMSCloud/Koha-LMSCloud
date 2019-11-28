@@ -2,6 +2,9 @@
   "account_line": {
     "$ref": "definitions/account_line.json"
   },
+  "alv_illrequest": {
+    "$ref": "definitions/alv_illrequest.json"
+  },
   "bzshid_mapping": {
     "$ref": "definitions/bzshid_mapping.json"
   },

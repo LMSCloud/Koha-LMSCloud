@@ -1,0 +1,101 @@
+{
+  "type": "object",
+  "properties": {
+    "additionalInfo": {
+      "type": ["string", "null"],
+      "description": "additional information on the order"
+    },
+    "altIssues": {
+      "type": ["string", "null"],
+      "description": "alternate issue accepted J/N"
+    },
+    "altTitle": {
+      "type": ["string", "null"],
+      "description": "if ordered title is not available: alternate LEB title accepted J/N"
+    },
+    "copyCosts": {
+      "type": ["string", "null"],
+      "description": "costs for copying article accepted J/N"
+    },
+    "dataPrivacyAgreed": {
+      "type": ["string", "null"],
+      "description": "data privacy agreement accepted J/N"
+    },
+    "digitalMedium": {
+      "type": ["string", "null"],
+      "description": "digital delivery of medium accepted J/N"
+    },
+    "intlILL": {
+      "type": ["string", "null"],
+      "description": "international ILL having higher price accepted J/N"
+    },
+    "mediumAuthor": {
+      "type": ["string", "null"],
+      "description": "author of ordered medium"
+    },
+    "mediumIsbn": {
+      "type": ["string", "null"],
+      "description": "ISBN/ISSN/EAN of ordered medium"
+    },
+    "mediumTitle": {
+      "type": ["string", "null"],
+      "description": "title of ordered medium"
+    },
+    "nonCommercial": {
+      "type": ["string", "null"],
+      "description": "non commercial purpose J/N"
+    },
+    "orderDate": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "date when ILL request was placed"
+    },
+    "orderLibEmail": {
+      "type": ["string", "null"],
+      "description": "e-mail address of ordering library"
+    },
+    "orderLibIsil": {
+      "type": ["string", "null"],
+      "description": "ISIL of ordering library"
+    },
+    "orderLibName": {
+      "type": ["string", "null"],
+      "description": "name of ordering library"
+    },
+    "orderType": {
+      "type": ["string", "null"],
+      "description": "Books have to be sent back, article copies not."
+    },
+    "patronAddress": {
+      "type": ["string", "null"],
+      "description": "address of ordering patron"
+    },
+    "patronEmail": {
+      "type": ["string", "null"],
+      "description": "email address of ordering patron"
+    },
+    "patronName": {
+      "type": ["string", "null"],
+      "description": "name of ordering patron"
+    },
+    "patronNumber": {
+      "type": ["string", "null"],
+      "description": "cardnumber of ordering patron"
+    },
+    "patronRemark": {
+      "type": ["string", "null"],
+      "description": "patron's remark on the order"
+    },
+    "requiredDate": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "latest date accepted for delivery"
+    },
+    "titleHitZKSH": {
+      "type": ["string", "null"],
+      "description": "URL of title hit at ZKSH"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["mediumTitle", "orderLibIsil", "orderLibName", "orderLibEmail", "patronName", "patronEmail", "altIssues", "digitalMedium", "dataPrivacyAgreed", "nonCommercial"]
+}
