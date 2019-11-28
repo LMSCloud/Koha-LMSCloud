@@ -2706,6 +2706,9 @@ sub getFinesOverview {
         
         if ( $type eq 'payoutbytype' ) {
             $selectpaytype = qq{ (c.action = 'PAYOUT' or (c.action = 'ADJUSTMENT' and c.booking_amount < 0.0 ) ) };
+            if ( $cash_register_id && $cash_register_id =~ /^[0-9]+$/ ) {
+                $selectpaytype .= " and c.cash_register_id = $cash_register_id ";
+            }
         }
         
         my $query  = qq{
