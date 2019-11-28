@@ -29,6 +29,7 @@ use Koha::Patron::Categories;
 
 my $input = new CGI;
 print STDERR "ill::illLibrary_search input:", Dumper($input), ":\n";
+my $patrontype = ($input->param('patrontype') || 'owni');
 my @illPatronCategories = split(/,/,$input->param('illcategories'));
 my $kohaIllPatronCategories = [];
 foreach my $catcode (@illPatronCategories) {
@@ -55,6 +56,7 @@ $template->param(
     selection_type => 'select',
     return_borrower_attributes => 'SIGEL',
     alphabet        => ( C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' ),
+    patrontype      => $patrontype,
     categories      => $kohaIllPatronCategories,
     searchmember    => $searchmember,
     aaSorting       => 1,

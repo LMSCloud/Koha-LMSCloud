@@ -7,7 +7,7 @@
 [% Asset.css("css/datatables.css") %]
 </head>
 
-<body id="common_illLibrary_search" class="common">
+<body id="common_illLibrary_search" class="common" onload="dofocus();">
 <div id="illLibrary_search" class="yui-t7">
  <div id="bd">
  <div class="yui-g">
@@ -18,7 +18,7 @@
  <ol>
  <li>
  <label for="searchmember_filter">Search:</label>
- <input type="text" id="searchmember_filter" value="[% searchmember %]"/>
+ <input type="text" id="searchmember_filter" value="[% searchmember %]" class="focus" />
  </li>
  <li>
  <label for="categorycode_filter">Category:</label>
@@ -190,6 +190,11 @@
                 window.close();
             }
         [% END %]
+
+        // named function req'd for body onload event by some FF and IE7 security models
+        function dofocus() {
+            $(".focus:last").select();
+        }
     </script>
 [% END %]
 
