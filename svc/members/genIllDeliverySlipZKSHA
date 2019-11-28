@@ -188,11 +188,12 @@ sub genIllDeliverySlipZKSHA {
             if ( exists($lettertemplates->{$transport_type}) ) {
                 my $repeat = {};
                 my $borrowernumber = $illrequest->borrowernumber();
+                my $biblionumber = $illrequest->biblio_id();
 
                 my $fieldResults = $illrequest->illrequestattributes->search( {  } );    # no selection, find all illrequestattributes having this illrequest_id
                 my $illreqattr = { map { ( $_->type => $_->value ) } ($fieldResults->as_list) };
                 
-                my %tables = ( 'borrowers' => $borrowernumber, 'branches' => $branchcode, 'illrequests' => $illrequestid, 'illrequestattributes' => $illreqattr );
+                my %tables = ( 'biblio' => $biblionumber, 'biblioitems' => $biblionumber, 'borrowers' => $borrowernumber, 'branches' => $branchcode, 'illrequests' => $illrequestid, 'illrequestattributes' => $illreqattr );
                 
                 my $prepared_letter = C4::Letters::GetPreparedLetter (
                     module => $module,
