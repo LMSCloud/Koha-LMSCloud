@@ -88,6 +88,7 @@
 <table id="mappedaccountoverview">
     <thead>
         <tr>
+            <th>Payment type</th>
             <th>Account</th>
             <th>Count</th>
             <th>Sum</th>
@@ -95,78 +96,110 @@
     </thead>
     <tbody>
         <tr>
-            <td colspan="3">No paid fines during the selected period.</td>
+            <td colspan="4">No paid fines during the selected period.</td>
         </tr>
     </tbody>
 </table>
 [% END %]
 
-[% IF (finesstats.overview.data.account.mapped) %]
+[% IF (finesstats.overview.data.mapaccount) %]
 <h4 style="margin-top:20px">Paid fines by account</h4>
 <table id="mappedaccountoverview">
     <thead>
         <tr>
+            <th>Payment type</th>
             <th>Account</th>
             <th>Count</th>
             <th>Sum</th>
         </tr>
     </thead>
     <tbody>
-        [% FOREACH ptype IN finesstats.overview.data.account.mapped.keys.sort %]
-            [% showstat = finesstats.overview.data.account.mapped.$ptype %]
+        [% FOREACH ptype IN finesstats.overview.data.mapaccount.paid.mapped.keys.sort %]
+            [% showstat = finesstats.overview.data.mapaccount.paid.mapped.$ptype %]
             <tr>
+                <td>Payment</td>
                 <td>[% ptype %]</td>
+                <td style="text-align:right;">[% showstat.count %]</td>
+                <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+            </tr>
+        [% END %]
+        [% FOREACH ptype IN finesstats.overview.data.mapaccount.paid.unmapped.keys.sort %]
+            [% showstat = finesstats.overview.data.mapaccount.paid.unmapped.$ptype %]
+            <tr>
+                <td>Payment</td>
+                <td>
+                    [% resolveFinesTypeName(ptype) %] (no account mapped)
+                </td>
+                <td style="text-align:right;">[% showstat.count %]</td>
+                <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+            </tr>
+        [% END %]
+        [% FOREACH ptype IN finesstats.overview.data.mapaccount.reversed.mapped.keys.sort %]
+            [% showstat = finesstats.overview.data.mapaccount.reversed.mapped.$ptype %]
+            <tr>
+                <td>Reverse Payment</td>
+                <td>[% ptype %]</td>
+                <td style="text-align:right;">[% showstat.count %]</td>
+                <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+            </tr>
+        [% END %]
+        [% FOREACH ptype IN finesstats.overview.data.mapaccount.reversed.unmapped.keys.sort %]
+            [% showstat = finesstats.overview.data.mapaccount.reversed.unmapped.$ptype %]
+            <tr>
+                <td>Reverse Payment</td>
+                <td>
+                    [% resolveFinesTypeName(ptype) %] (no account mapped)
+                </td>
                 <td style="text-align:right;">[% showstat.count %]</td>
                 <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
             </tr>
         [% END %]
     </tbody>
     <tfoot>
+        [% IF (finesstats.overview.sum.paid && finesstats.overview.sum.paid.count > 0 ) %]
         <tr>
-            <td>
-                Total
+            <td colspan="2">
+                Total fines paid
             </td>
-            <td style="text-align:right;">[% finesstats.overview.sum.mapped.count %]</td>
-            <td style="text-align:right;">[% finesstats.overview.sum.mapped.fines_amount_formatted %]</td>
+            <td style="text-align:right;">[% finesstats.overview.sum.paid.count %]</td>
+            <td style="text-align:right;">[% finesstats.overview.sum.paid.fines_amount_formatted %]</td>
         </tr>
-    </tfoot>
-</table>
-[% END %]
-    
-[% IF (finesstats.overview.data.account.unmapped) %]
-<h4 style="margin-top:20px">Unmapped paid fines (to above accounts)</h4>
-<table id="unmappedaccountoverview">
-    <thead>
         <tr>
-            <th>Unmapped fine type</th>
-            <th>Description</th>
-            <th>Count</th>
-            <th>Sum</th>
+            <td colspan="2">
+                ... paid by card
+            </td>
+            <td style="text-align:right;">[% finesstats.overview.sum.cashtype.card.payment.count %]</td>
+            <td style="text-align:right;">[% finesstats.overview.sum.cashtype.card.payment.payment_amount_formatted %]</td>
         </tr>
-    </thead>
-    <tbody>
-        [% FOREACH ptype IN finesstats.overview.data.account.unmapped.keys.sort %]
-            [% showstat = finesstats.overview.data.account.unmapped.$ptype %]
-            <tr>
-                <td>[% ptype %]</td>
-                <td>[% resolveFinesTypeName(ptype) %] </td>
-                <td style="text-align:right;">[% showstat.count %]</td>
-                <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
-            </tr>
+        <tr>
+            <td colspan="2">
+                ... paid cash
+            </td>
+            <td style="text-align:right;">[% finesstats.overview.sum.cashtype.cash.payment.count %]</td>
+            <td style="text-align:right;">[% finesstats.overview.sum.cashtype.cash.payment.payment_amount_formatted %]</td>
+        </tr>
         [% END %]
-    </tbody>
-    <tfoot>
+        [% IF (finesstats.overview.sum.reversed && finesstats.overview.sum.reversed.count > 0) %]
+        <tr>
+            <td colspan="2">
+                Total reversed
+            </td>
+            <td style="text-align:right;">[% finesstats.overview.sum.reversed.count %]</td>
+            <td style="text-align:right;">[% finesstats.overview.sum.reversed.fines_amount_formatted %]</td>
+        </tr>
+        [% END %]
+        [% IF (finesstats.overview.sum.overall && finesstats.overview.sum.overall.count > 0) %]
         <tr>
             <td colspan="2">
                 Total
             </td>
-            <td style="text-align:right;">[% finesstats.overview.sum.unmapped.count %]</td>
-            <td style="text-align:right;">[% finesstats.overview.sum.unmapped.fines_amount_formatted %]</td>
+            <td style="text-align:right;">[% finesstats.overview.sum.overall.count %]</td>
+            <td style="text-align:right;">[% finesstats.overview.sum.overall.fines_amount_formatted %]</td>
         </tr>
+        [% END %]
     </tfoot>
 </table>
 [% END %]
-
 
 <h3 style="margin-top:30px">Account management fees</h3>
 
@@ -180,8 +213,8 @@
             <th>Sum</th>
         </tr>
     </thead>
-    <tbody>
     [% IF (finesstats.overview.data.accountfee.borrower_type) %]
+        <tbody>
         [% FOREACH ptype IN finesstats.overview.data.accountfee.borrower_type.keys.sort %]
             [% FOREACH categ IN finesstats.overview.data.accountfee.borrower_type.$ptype.keys.sort %]
                 [% showstat = finesstats.overview.data.accountfee.borrower_type.$ptype.$categ %]
@@ -193,25 +226,36 @@
                 </tr>
             [% END %]
         [% END %]
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2">
+                    Total
+                </td>
+                <td style="text-align:right;"></td>
+                <td style="text-align:right;">[% finesstats.overview.sum.accountfee.borrower_type.fines_amount_formatted %]</td>
+            </tr>
+        </tfoot>
     [% ELSE %]
-        <tr>
-            <td colspan="4">No account management fees accrued during the selected period.</td>
-        </tr>
+        <tbody>
+            <tr>
+                <td colspan="4">No account management fees accrued during the selected period.</td>
+            </tr>
+        </tbody>
     [% END %]
-    </tbody>
 </table>
 
 
-<h3 style="margin-top:20px">Detailed outpayments</h4>
+<h3 style="margin-top:20px">Detailed cash register outpayments</h4>
 
 <p>
-    The following payment overview lists detailed outpayments of the selected branch during the selected period.
+    The following payment overview lists detailed outpayments (without reverse payments) of the selected branch during the selected period.
 </p>
 
 <table id="finesbydate">
     <thead>
         <tr>
-            <th class="title-string" >Day</th>
+            <th class="title-string">Day</th>
             <th>Amount</th>
             <th>
                 Payment type

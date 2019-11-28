@@ -268,8 +268,6 @@ elsif ( $op eq 'finesreport' ) {
 elsif ( $op eq 'payinoutoverview' ) {
     ($bookingstats,$journalfrom,$journalto) = $cash_management->getCashTransactionOverviewByBranch($branch, $journalfrom, $journalto);
     
-    my $reportbranch = $query->param('reportbranch');
-    
     my ($inoutstat,$overview,$cashregstat);
 
     my $cashreg;
@@ -279,7 +277,7 @@ elsif ( $op eq 'payinoutoverview' ) {
     
     ($inoutstat,$journalfrom,$journalto) = $cash_management->getFinesOverview(
             { 
-                branchcode => $reportbranch,
+                branchcode => $branch,
                 from => $journalfrom,
                 to => $journalto,
                 type => 'payoutbytype',
@@ -290,7 +288,7 @@ elsif ( $op eq 'payinoutoverview' ) {
         
     ($overview,$journalfrom,$journalto) = $cash_management->getFinesOverview(
             { 
-                branchcode => $reportbranch,
+                branchcode => $branch,
                 from => $journalfrom,
                 to => $journalto,
                 type => 'finesoverview',
@@ -306,8 +304,6 @@ elsif ( $op eq 'payinoutoverview' ) {
                         overview => $overview,
                         payments => $inoutstat
                    };
-    
-    $template->param( reportbranch => $reportbranch );
 }
 
 my $wrongBranch=0;

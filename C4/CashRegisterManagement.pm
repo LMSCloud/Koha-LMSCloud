@@ -1880,6 +1880,14 @@ sub getFinesOverview {
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
             }
+            
+            if (! exists($result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}) ) {
+                $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account} = { amount => 0.0, count => 0, '0.00', '0.00' };
+            }
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{amount} += $amount;
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{count}  += $row->{count};
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{amount});
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{amount});
 
             $result->{sum}->{paid}->{amount} += $amount;
             $result->{sum}->{paid}->{count}  += $row->{count};
@@ -2044,6 +2052,15 @@ sub getFinesOverview {
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
             }
+            
+            if (! exists($result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}) ) {
+                $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account} = { amount => 0.0, count => 0, '0.00', '0.00' };
+            }
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{amount} += $amount;
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{count}  += $row->{count};
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{amount});
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{amount});
+
             
             $result->{sum}->{$mapped}->{amount} += $amount;
             $result->{sum}->{$mapped}->{count}  += $row->{count};
@@ -2427,6 +2444,8 @@ sub getFinesOverview {
 
             $sth = $dbh->prepare($query);
             $sth->execute();
+            
+            $result->{sum}->{accountfee}->{$accoutfeegroup}->{amount} = 0.0;
         
             while (my $row = $sth->fetchrow_hashref) {
                 my $amount       = $row->{'amount'};
@@ -2438,8 +2457,14 @@ sub getFinesOverview {
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{count}  += $count;
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{fines_amount} = sprintf('%.2f', $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount});
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount});
+                
+                $result->{sum}->{accountfee}->{$accoutfeegroup}->{amount} += $amount;
+                $result->{sum}->{accountfee}->{$accoutfeegroup}->{count} += $count;
             }
             $sth->finish;
+            
+            $result->{sum}->{accountfee}->{$accoutfeegroup}->{fines_amount} = sprintf('%.2f', $result->{sum}->{accountfee}->{$accoutfeegroup}->{amount});
+            $result->{sum}->{accountfee}->{$accoutfeegroup}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{accountfee}->{$accoutfeegroup}->{amount});
         }
     }
     elsif ( $type eq 'paidfinesbyday' || $type eq 'paidfinesbymanager' || $type eq 'paidfinesbytype' ) {
