@@ -1374,10 +1374,12 @@ sub AddIssue {
             if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
                 eval {
                     ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
-                    if ( $itisanillitem && $illrequest ) {
-                        my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
-                        if ( $datedueIllbackendString ) {
-                            $datedue = dt_from_string($datedueIllbackendString, 'sql');
+                    if ( ! $datedue ) {    # explicitly set datedue has higher priority than the datedue that is stored in the Illbackend
+                        if ( $itisanillitem && $illrequest ) {
+                            my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
+                            if ( $datedueIllbackendString ) {
+                                $datedue = dt_from_string($datedueIllbackendString, 'sql');
+                            }
                         }
                     }
                 };
