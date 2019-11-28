@@ -44,7 +44,7 @@
                     </li>
                 </ol>
                 <fieldset class="action">
-                    <input type="submit" value="Suche" />
+                    <input type="submit" value="Search" />
                 </fieldset>
             </fieldset>
         </form>
