@@ -105,21 +105,27 @@ if ($writeoff_all || $cancel_all) {
 
     $amount = $accountline->amountoutstanding if (abs($amount - $accountline->amountoutstanding) < 0.01);
     if ( $amount > $accountline->amountoutstanding ) {
-        print $input->redirect( "/cgi-bin/koha/members/paycollect.pl?"
-              . "borrowernumber=$borrowernumber"
-              . "&amount=" . $accountline->amount
-              . "&amountoutstanding=" . $accountline->amountoutstanding
-              . "&accounttype=" . $accountline->accounttype
-              . "&accountlines_id=" . $accountlines_id
-              . "&writeoff_individual=1"
-              . "&error_over=1" );
+        my $redirectURL = "/cgi-bin/koha/members/paycollect.pl?"
+            . "borrowernumber=$borrowernumber"
+            . "&amount=" . $accountline->amount
+            . "&amountoutstanding=" . $accountline->amountoutstanding
+            . "&accounttype=" . $accountline->accounttype
+            . "&accountlines_id=" . $accountlines_id
+            . "&error_over=1";
+        if ($cancel_item) {
+            $redirectURL .= "&cancel_individual=1";
+        } else {
+            $redirectURL .= "&writeoff_individual=1";
+        }
+        print $input->redirect( $redirectURL );
 
     } else {
+        my $actiontype = $cancel_item ? 'cancelfee' : 'writeoff';
         Koha::Account->new( { patron_id => $borrowernumber } )->pay(
             {
                 amount     => $amount,
                 lines      => [ scalar Koha::Account::Lines->find($accountlines_id) ],
-                type       => 'writeoff',
+                type       => $actiontype,
                 note       => $payment_note,
                 library_id => $branch,
             }
