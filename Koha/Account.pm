@@ -256,7 +256,7 @@ sub pay {
     
     # If it is not SIP it is a cash payment and if cash registers are activated as too,
     # the cash payment need to registered for the opened cash register as cash receipt
-    if ( !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
+    if ( !$withoutCashRegisterManagement && !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
         $cash_register_mngmt->registerPayment($library_id, $manager_id, $amount, $payment->id());
     }
 
