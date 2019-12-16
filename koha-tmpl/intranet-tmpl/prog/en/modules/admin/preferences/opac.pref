@@ -936,3 +936,39 @@ OPAC:
         -
             - "The library's GiroSolution Merchant ID is "
             - pref: GirosolutionMerchantId
+
+    Payments via epay21:
+        -
+            - pref: Epay21PaypageOpacPaymentsEnabled
+              default: 0
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - "patrons to make paypage payments from the OPAC via epay21."
+        -
+            - "The URL for accessing epay21 paypage webservices is "
+            - pref: Epay21PaypageWebservicesURL
+        -
+            - "The library's epay21 mandator designation ('Mandant') is "
+            - pref: Epay21Mandant
+        -
+            - "The library's epay21 application designation ('App') is "
+            - pref: Epay21App
+        -
+            - "The library's epay21 user name for basic authentication is "
+            - pref: Epay21BasicAuthUser
+        -
+            - "The library's epay21 passwort for basic authentication is "
+            - pref: Epay21BasicAuthPw
+        -
+            - "The library's epay21 mandator description that will be displayed on paypage is "
+            - pref: Epay21MandantDesc
+        -
+            - "The library's epay21 order description that will be displayed on paypage is "
+            - pref: Epay21OrderDesc
+        -
+            - "Additional information transferred to the library's financial accounting system:"
+            - pref: Epay21AccountingSystemInfo
+              type: htmlarea
+              class: code
+            - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
