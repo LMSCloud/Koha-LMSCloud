@@ -3,7 +3,7 @@
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
 [% USE Price %]
-[% SET ENABLE_OPAC_PAYMENTS = Koha.Preference('EnablePayPalOpacPayments') || Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || plugins %]
+[% SET ENABLE_OPAC_PAYMENTS = Koha.Preference('EnablePayPalOpacPayments') || Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || Koha.Preference('Epay21PaypageOpacPaymentsEnabled') || plugins %]
 [% SET DISPLAY_PAYMENT_BLOCK = 0 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Your fines and charges</title>
@@ -57,6 +57,7 @@
                             [% ELSIF payment_error == "PAYPAL_ERROR_PROCESSING" %]
                                 <p>Unable to verify payment.</p>
                                 <p>Please contact a librarian to verify your payment.</p>
+
                             [% ELSIF payment_error == "GIROSOLUTION_UNABLE_TO_CONNECT" %]
                                 <p>Unable to connect to GiroSolution.</p>
                                 <p>Please try again later.</p>
@@ -64,6 +65,15 @@
                                 <!-- <p>Unable to verify payment.[% IF girosolutionmsg %] ([% girosolutionmsg %])[% END %]</p> -->
                                 <p>Unable to verify payment.</p>
                                 <p>Please contact the library to verify your payment.</p>
+
+                            [% ELSIF payment_error == "EPAY21_UNABLE_TO_CONNECT" %]
+                                <p>Unable to connect to ekom21/epay21.</p>
+                                <p>Please try again later.</p>
+                            [% ELSIF payment_error == "EPAY21_ERROR_PROCESSING" %]
+                                <p>Unable to verify payment via ekom21/epay21.[% IF epay21msg %] ([% epay21msg %])[% END %]</p>
+                                <!-- <p>Unable to verify payment via ekom21/epay21.</p> -->
+                                <p>Please contact the library to verify your payment.</p>
+
                             [% END %]
                         </div>
                     [% ELSIF payment %]
@@ -77,6 +87,7 @@
                     [% IF ( ACCOUNT_LINES ) %]
                         <form method="post" action="opac-account-pay.pl" class="form-horizontal">
                         <p><input type="checkbox" class="cb" name="cb_outstanding_fines_only" id="cb_outstanding_fines_only" checked="checked" value="1"> Show outstanding fines only </p>
+<p>Select any or <a href="#" id="CheckOpenFees">select all</a> / <a href="#" id="UncheckOpenFees">deselect all</a> open fees for payment.</p>
 
                         <table class="table table-bordered table-striped" id="finestable">
                             <thead>
@@ -200,6 +211,18 @@
                                             </div>
                                         [% END %]
 
+                                        [% IF Koha.Preference('Epay21PaypageOpacPaymentsEnabled')  %]
+                                            <div class="control-group">
+                                                <label class="radio">
+                                                    <input type="radio" name="payment_method" id="payment_method_epay21_paypage" value="epay21_paypage" checked="checked"><br>
+                                                    <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:210px;">
+                                                    <!-- eKom21 Logo --><a href="https://www.ekom21.de/loesungen/epay21/" title="epay21 – payment in any situation" ><img style="margin:5px;" src="https://www.ekom21.de/:download/ekom21-156-45-px.svg?cid=tf.afr&amp;resize=ca12f7:175x" alt="ekom21 logo"</a><!-- ekom21 Logo -->
+                                                    <!-- giropay Logo -- ><a href="https://www.giropay.de" title="GIROPAY – SECURE ONLINE PAYMENT" ><img style="margin:5px;" src="https://www.giropay.de/fileadmin/user_upload/giropay/logos/onlineueberweisung_giropay_200px.png" border="0" alt="giropay logo"></a><! -- giropay Logo -->
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        [% END %]
+
                                         [% FOREACH p IN plugins %]
                                             <div class="control-group">
                                                 <label class="radio">
@@ -293,6 +316,23 @@ $( document ).ready(function() {
             $("#amount-to-pay-label").hide();
         }
     });
+
+    $("#CheckOpenFees").on("click", function() {
+        $(".checkbox-pay").each( function() {
+            if ( !$(this).is(":checked") ) {
+                $(this).click();
+            }
+        })
+    });
+
+    $("#UncheckOpenFees").on("click", function() {
+        $(".checkbox-pay").each( function() {
+            if ( $(this).is(":checked") ) {
+                $(this).click();
+            }
+        })
+    });
+
 });
 </script>
 [% END %]
