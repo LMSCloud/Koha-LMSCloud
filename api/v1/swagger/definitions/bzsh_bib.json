@@ -1,15 +1,11 @@
 {
   "type": "object",
   "properties": {
-    "localId": {
-      "type": "integer",
-      "description": "Local ID (biblionumber) of the bib record"
-    },
     "bzshId": {
       "type": "string",
       "description": "BZSH catalog ID of the library network catalog (ZKSH)"
     }
   },
   "additionalProperties": false,
-  "required": ["localId", "bzshId"]
+  "required": ["bzshId"]
 }

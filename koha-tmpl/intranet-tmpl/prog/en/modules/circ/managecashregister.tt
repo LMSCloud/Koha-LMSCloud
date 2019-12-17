@@ -97,6 +97,7 @@
                                 <a id="linkadjustcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=doadjust"><i class="fa fa-adjust"></i> Difference posting</a>
                                 <a id="linkshowcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op="><i class="fa fa-list"></i> Cash journal</a>
                                 <a id="linkcashregisteroverview" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=dayview"><i class="fa fa-balance-scale"></i> Cash register overview</a>
+                                <a id="linkcashregisterpayinpayout" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=payinoutoverview"><i class="fa fa-balance-scale"></i> Revenues and expenditures</a>
                                 <a id="linkfinesreport" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                             </div>
                             [% IF manageaction == 'payout' %]
@@ -387,8 +388,12 @@
                                 </div>
                             [% END %]
                         [% END %]
-                        [% IF ( manageaction == 'dayview' || manageaction == 'finesreport') %]
+                        [% IF ( manageaction == 'dayview' || manageaction == 'finesreport' || manageaction == 'payinoutoverview' ) %]
+                            [% IF ( manageaction == 'payinoutoverview' ) %]
+                            [% PROCESS 'cashregister-payin-payout-overview.inc' used_perl_script="circ/managecashregister.pl" %]
+                            [% ELSE %]
                             [% PROCESS 'cashregister-fines-overview.inc' used_perl_script="circ/managecashregister.pl" %]
+                            [% END %]
                         [% END %]
                         [% IF status == 'close' && manageaction == 'close' %]
                             <h3>Close cash register</h3>

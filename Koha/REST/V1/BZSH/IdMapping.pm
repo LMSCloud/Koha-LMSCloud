@@ -1,4 +1,4 @@
-package Koha::REST::V1::BZSHIdMapping;
+package Koha::REST::V1::BZSH::IdMapping;
 
 # Copyright 2019 LMSCloud GmbH
 #
@@ -101,8 +101,8 @@ sub handleBZSHIdMappingRequest {
                 $biblionumber = $mapping->{localId};
             }
             
-            if ( exists($mapping->{bszshId}) ) {
-                $bzshid = $mapping->{bszshId};
+            if ( exists($mapping->{bzshId}) ) {
+                $bzshid = $mapping->{bzshId};
             }
             
             if ( $biblionumber && $bzshid ) {

@@ -1,7 +1,7 @@
 {
-    "/bzshid_mapping": {
+    "/bzsh/id_mapping": {
     "post": {
-      "x-mojo-to": "BZSHIdMapping#add",
+      "x-mojo-to": "BZSH::IdMapping#add",
       "operationId": "add_bzshid_mapping",
       "tags": ["bzshid_mapping"],
       "parameters": [{

@@ -11,6 +11,9 @@
   "/alv_illrequests": {
     "$ref": "paths/alv_illrequests.json#/~1alv_illrequests"
   },
+  "/authorised_values": {
+    "$ref": "paths/authorised_values.json#/~1authorised_values"
+  },
   "/cities": {
     "$ref": "paths/cities.json#/~1cities"
   },
@@ -22,6 +25,12 @@
   },
   "/holds/{reserve_id}": {
     "$ref": "paths/holds.json#/~1holds~1{reserve_id}"
+  },
+  "/libraries": {
+    "$ref": "paths/libraries.json#/~1libraries"
+  },
+  "/libraries/{library_id}": {
+    "$ref": "paths/libraries.json#/~1libraries~1{library_id}"
   },
   "/patrons": {
     "$ref": "paths/patrons.json#/~1patrons"
@@ -35,8 +44,11 @@
   "/illrequests": {
     "$ref": "paths/illrequests.json#/~1illrequests"
   },
-  "/bzshid_mapping": {
-    "$ref": "paths/bzshid_mapping.json#/~1bzshid_mapping"
+  "/bzsh/id_mapping": {
+    "$ref": "paths/bzshid_mapping.json#/~1bzsh~1id_mapping"
+  },
+  "/bzsh/bib_updates": {
+    "$ref": "paths/bzsh_bib_updates.json#/~1bzsh~1bib_updates"
   },
   "/zksha_illrequests": {
     "$ref": "paths/zksha_illrequests.json#/~1zksha_illrequests"

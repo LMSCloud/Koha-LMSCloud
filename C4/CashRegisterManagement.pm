@@ -1811,6 +1811,14 @@ sub getFinesOverview {
                 amount => 0.0,
                 count => 0
             };
+        $result->{sum}->{mapped} = {
+                amount => 0.0,
+                count => 0
+            };
+        $result->{sum}->{unmapped} = {
+                amount => 0.0,
+                count => 0
+            };
             
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{amount};
@@ -1872,14 +1880,25 @@ sub getFinesOverview {
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
             }
+            
+            if (! exists($result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}) ) {
+                $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account} = { amount => 0.0, count => 0, '0.00', '0.00' };
+            }
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{amount} += $amount;
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{count}  += $row->{count};
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{amount});
+            $result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{mapaccount}->{paid}->{$mapped}->{$account}->{amount});
 
             $result->{sum}->{paid}->{amount} += $amount;
-            $result->{sum}->{paid}->{count} += $row->{count};
+            $result->{sum}->{paid}->{count}  += $row->{count};
+            
+            $result->{sum}->{$mapped}->{amount} += $amount;
+            $result->{sum}->{$mapped}->{count}  += $row->{count};
         }
         
         $result->{sum}->{paid}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{paid}->{amount});
         $result->{sum}->{paid}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{paid}->{amount});
-        
+                
         $sth->finish;
         
         $query = qq{
@@ -2033,7 +2052,19 @@ sub getFinesOverview {
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{account}->{$mapped}->{$account}->{amount});
                 $result->{data}->{account}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{account}->{$mapped}->{$account}->{amount});
             }
+            
+            if (! exists($result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}) ) {
+                $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account} = { amount => 0.0, count => 0, '0.00', '0.00' };
+            }
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{amount} += $amount;
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{count}  += $row->{count};
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{fines_amount} = sprintf('%.2f', $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{amount});
+            $result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{mapaccount}->{reversed}->{$mapped}->{$account}->{amount});
 
+            
+            $result->{sum}->{$mapped}->{amount} += $amount;
+            $result->{sum}->{$mapped}->{count}  += $row->{count};
+            
             $result->{sum}->{reversed}->{amount} += $amount;
             $result->{sum}->{reversed}->{count} += $row->{count};
         }
@@ -2048,6 +2079,12 @@ sub getFinesOverview {
         $result->{sum}->{overall}->{fines_amount}           = sprintf('%.2f', $result->{sum}->{overall}->{amount});
         $result->{sum}->{overall}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{overall}->{amount});
         
+        $result->{sum}->{mapped}->{fines_amount}           = sprintf('%.2f', exists( $result->{sum}->{mapped}->{amount}) ? $result->{sum}->{mapped}->{amount} : 0.0);
+        $result->{sum}->{mapped}->{fines_amount_formatted} = $self->formatAmountWithCurrency( exists( $result->{sum}->{mapped}->{amount}) ? $result->{sum}->{mapped}->{amount} : 0.0 );
+
+        $result->{sum}->{unmapped}->{fines_amount}           = sprintf('%.2f', exists( $result->{sum}->{unmapped}->{amount}) ? $result->{sum}->{unmapped}->{amount} : 0.0);
+        $result->{sum}->{unmapped}->{fines_amount_formatted} = $self->formatAmountWithCurrency( exists( $result->{sum}->{unmapped}->{amount}) ? $result->{sum}->{unmapped}->{amount} : 0.0 );
+
         
         # calculate overall sum of fines
         $result->{sum}->{fines} = {
@@ -2407,6 +2444,8 @@ sub getFinesOverview {
 
             $sth = $dbh->prepare($query);
             $sth->execute();
+            
+            $result->{sum}->{accountfee}->{$accoutfeegroup}->{amount} = 0.0;
         
             while (my $row = $sth->fetchrow_hashref) {
                 my $amount       = $row->{'amount'};
@@ -2418,8 +2457,14 @@ sub getFinesOverview {
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{count}  += $count;
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{fines_amount} = sprintf('%.2f', $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount});
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount});
+                
+                $result->{sum}->{accountfee}->{$accoutfeegroup}->{amount} += $amount;
+                $result->{sum}->{accountfee}->{$accoutfeegroup}->{count} += $count;
             }
             $sth->finish;
+            
+            $result->{sum}->{accountfee}->{$accoutfeegroup}->{fines_amount} = sprintf('%.2f', $result->{sum}->{accountfee}->{$accoutfeegroup}->{amount});
+            $result->{sum}->{accountfee}->{$accoutfeegroup}->{fines_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{accountfee}->{$accoutfeegroup}->{amount});
         }
     }
     elsif ( $type eq 'paidfinesbyday' || $type eq 'paidfinesbymanager' || $type eq 'paidfinesbytype' ) {
@@ -2654,30 +2699,20 @@ sub getFinesOverview {
         $sth_bor->finish();
         $sth->finish();
     }
-    elsif ( $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' ) {
+    elsif ( $type eq 'paymentsbyday' || $type eq 'paymentsbymanager' || $type eq 'paymentsbytype' || $type eq 'payoutbytype' ) {
         # get the accountlines statistics by type
-        my $query = qq{
-            SELECT 
-                    1 as entrytype,
-                    DATE(ao.created_on) as date,
-                    a.accounttype as accounttype,
-                    IF(ao.type = 'Payment', SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
-                    a.borrowernumber as borrowernumber,
-                    a.description as description,
-                    a.manager_id as manager_id,
-                    '' as reason,
-                    '' as cash_register_name
-             FROM 
-                    branches br, account_offsets ao 
-                    JOIN accountlines a ON (a.accountlines_id = ao.credit_id)
-             WHERE      a.branchcode = br.branchcode
-                    AND ao.type IN ('Payment','Reverse Payment')
-                    AND $dateselect $branchselect
-             GROUP BY
-                    ao.type, ao.credit_id, ao.created_on, a.accounttype, a.borrowernumber,
-                    a.description, a.manager_id
-             UNION ALL
-             SELECT 2 as entrytype,
+        
+        my $selectpaytype = qq{ c.action IN ('PAYOUT','ADJUSTMENT','DEPOSIT') };
+        
+        if ( $type eq 'payoutbytype' ) {
+            $selectpaytype = qq{ (c.action = 'PAYOUT' or (c.action = 'ADJUSTMENT' and c.booking_amount < 0.0 ) ) };
+            if ( $cash_register_id && $cash_register_id =~ /^[0-9]+$/ ) {
+                $selectpaytype .= " and c.cash_register_id = $cash_register_id ";
+            }
+        }
+        
+        my $query  = qq{
+            SELECT 2 as entrytype,
                     DATE(c.booking_time) as date,
                     c.action as accounttype,
                     c.booking_amount as amount,
@@ -2685,14 +2720,42 @@ sub getFinesOverview {
                     c.description as description,
                     c.manager_id as manager_id,
                     c.reason as reason,
-                    r.name as cash_register_name
+                    r.name as cash_register_name,
+                    c.cash_register_account_id as journalno
              FROM   branches br, cash_register r, cash_register_account c
-             WHERE      c.action IN ('PAYOUT','ADJUSTMENT','DEPOSIT')
+             WHERE      $selectpaytype
                     AND $cashdateselect $cashregisterselect
                     AND r.branchcode = br.branchcode
                     AND c.cash_register_id  = r.id
              ORDER BY date, borrowernumber
-            }; $query =~ s/^\s+/ /mg;
+            };
+        
+        if ( $type ne 'payoutbytype' ) {
+            $query = qq{
+                SELECT 
+                        1 as entrytype,
+                        DATE(ao.created_on) as date,
+                        a.accounttype as accounttype,
+                        IF(ao.type = 'Payment', SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
+                        a.borrowernumber as borrowernumber,
+                        a.description as description,
+                        a.manager_id as manager_id,
+                        '' as reason,
+                        '' as cash_register_name,
+                        0 as journalno
+                 FROM 
+                        branches br, account_offsets ao 
+                        JOIN accountlines a ON (a.accountlines_id = ao.credit_id)
+                 WHERE      a.branchcode = br.branchcode
+                        AND ao.type IN ('Payment','Reverse Payment')
+                        AND $dateselect $branchselect
+                 GROUP BY
+                        ao.type, ao.credit_id, ao.created_on, a.accounttype, a.borrowernumber,
+                        a.description, a.manager_id
+                 UNION ALL } . $query;
+         };
+         
+        $query =~ s/^\s+/ /mg;
         
         my $sth = $dbh->prepare($query);
         
@@ -2772,7 +2835,8 @@ sub getFinesOverview {
                 patron_is_deleted => $row->{patron_is_deleted}, # constructed from %borrowers
                 manager_id => $row->{manager_id},
                 manager_name => $row->{manager_name},           # constructed from %borrowers
-                cash_register_name => $row->{cash_register_name}
+                cash_register_name => $row->{cash_register_name},
+                cash_register_journalno => $row->{journalno}
             };
         }
     }

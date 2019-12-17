@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+        "description": "The internal id for this authorised value"
+    },
+    "category": {
+      "description": "The category of this authorised value"
+    },
+    "authorised_value": {
+      "description": "The code for this authorised value"
+    },
+    "lib": {
+      "description": "The staff interface description for this authorised value"
+    },
+    "lib_opac": {
+      "type": ["string", "null"],
+      "description": "The public interface description of this authorised value, if set"
+    },
+    "imageurl": {
+      "type": ["string", "null"],
+      "description": "The url of the image associated with this authorised value, if any"
+    }
+  }
+}
