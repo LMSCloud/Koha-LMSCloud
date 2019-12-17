@@ -1,0 +1,66 @@
+{
+  "/bzsh/bib_updates": {
+    "get": {
+      "x-mojo-to": "BZSH::BibUpdates#getBibUpdates",
+      "operationId": "getBibUpdates",
+      "tags": ["BZSH"],
+      "produces": [
+        "application/json"
+      ],
+      "parameters": [{
+        "name": "since",
+        "in": "query",
+        "description": "Provide a timestamp to check for bibliographic records which are updated since that time. ",
+        "required": false,
+        "type": "string",
+        "format": "date"
+      }],
+      "responses": {
+        "200": {
+          "description": "Provide cataloge updates in blocks of created, updated and deleted that contains list of bib record identifiers.",
+          "schema": {
+            "type": "object",
+            "items": {
+              "$ref": "../definitions.json#/bzsh_bib_updates"
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "Vendor not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": {
+          "permissions": "edit_catalogue"
+        }
+      }
+    }
+  }
+}

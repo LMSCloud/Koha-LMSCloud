@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "updated": {
+        "type": "array",
+        "items": {
+            "$ref": "bzsh_bib.json"
+        }
+    },
+    "created": {
+        "type": "array",
+        "items": {
+            "$ref": "bzsh_bib.json"
+        }
+    },
+    "deleted": {
+        "type": "array",
+        "items": {
+            "$ref": "bzsh_bib.json"
+        }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "updated",
+    "created",
+    "deleted"
+  ]
+}

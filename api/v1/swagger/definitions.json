@@ -2,8 +2,14 @@
   "account_line": {
     "$ref": "definitions/account_line.json"
   },
+  "authorised_value": {
+    "$ref": "definitions/authorised_value.json"
+  },
   "bzshid_mapping": {
     "$ref": "definitions/bzshid_mapping.json"
+  },
+  "bzsh_bib_updates": {
+    "$ref": "definitions/bzsh_bib_updates.json"
   },
   "city": {
     "$ref": "definitions/city.json"
@@ -16,6 +22,9 @@
   },
   "holds": {
     "$ref": "definitions/holds.json"
+  },
+  "library": {
+    "$ref": "definitions/library.json"
   },
   "patron": {
     "$ref": "definitions/patron.json"

@@ -1,0 +1,54 @@
+{
+  "/authorised_values": {
+    "get": {
+      "x-mojo-to": "AuthorisedValue#list",
+      "operationId": "listAuthorisedValues",
+      "tags": ["authorised", "values"],
+      "produces": [
+        "application/json"
+      ],
+      "parameters": [{
+        "name": "category",
+        "in": "query",
+        "description": "Search authorised values by category",
+        "required": false,
+        "type": "string"
+      }, {
+        "name": "value",
+        "in": "query",
+        "description": "Search authorised values by value",
+        "required": false,
+        "type": "string"
+      }],
+      "responses": {
+        "200": {
+          "description": "A list of authorised values",
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "../definitions.json#/authorised_value"
+            }
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      }
+    }
+  }
+}
