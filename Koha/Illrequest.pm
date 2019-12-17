@@ -1089,6 +1089,20 @@ sub TO_JSON {
             }
             $object->{backenddesignation} = $backendDesignation;
         }
+        if ( $embed->{checkedBy} ) {
+            my $checkedBy = $self->_backend_capability( "getCheckedBy", $self );
+            if ( $checkedBy ) {
+                $object->{checkedBy} = {
+                    login  => $checkedBy->{login},
+                    timestamp =>  output_pref( { str => $checkedBy->{timestamp}, dateonly => 0 } )
+                };
+            } else {
+                $object->{checkedBy} = {
+                    login  => '',
+                    timestamp => ''
+                };
+            }
+        }
     }
 
     return $object;

@@ -17093,6 +17093,25 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.011";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('Epay21AccountingSystemInfo', '', NULL , 'Additional information transferred to the library\'s financial accounting system. Permitted characters: a-z A-Z 0-9 \':?,-(+.)/', 'Textarea' ),
+            ('Epay21App', '', NULL , 'The library\'s epay21 application designation (\'App\').', 'Free' ),
+            ('Epay21BasicAuthPw', '', NULL , 'The library\'s epay21 passwort for basic authentication.', 'Free' ),
+            ('Epay21BasicAuthUser', '', NULL , 'The library\'s epay21 user name for basic authentication.', 'Free' ),
+            ('Epay21Mandant', '', NULL , 'The library\'s epay21 mandator designation (\'Mandant\').', 'Free' ),
+            ('Epay21MandantDesc', '', NULL , 'The library\'s epay21 mandator description, displayed on paypage.', 'Free' ),
+            ('Epay21OrderDesc', '', NULL , 'The library\'s epay21 order description, displayed on paypage.', 'Free' ),
+            ('Epay21PaypageOpacPaymentsEnabled', '0', NULL , 'Allow patrons to make paypage payments from the OPAC via epay21.', 'YesNo' ),
+            ('Epay21PaypageWebservicesURL', '', NULL , 'URL for accessing epay21 paypage webservices.', 'Free' )
+    });
+
+    print "Upgrade to $DBversion done (Added systempreferences for online payment via epay21.)\n";
+    SetVersion($DBversion);
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

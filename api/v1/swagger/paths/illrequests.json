@@ -17,7 +17,8 @@
                         "patron",
                         "library",
                         "capabilities",
-                        "metadata"
+                        "metadata",
+                        "checkedBy"
                     ]
                 }
             }, {
@@ -30,6 +31,12 @@
                 "items": {
                     "type": "string"
                 }
+            }, {
+                "name": "hitname",
+                "in": "query",
+                "description": "text for header line describing the search criteria",
+                "required": false,
+                "type": "string"
             }, {
                 "name": "backend",
                 "in": "query",

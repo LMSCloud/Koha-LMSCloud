@@ -172,11 +172,21 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
         {
             print STDERR "DublettenCheckElement::DublettenCheckElement(); dupExemplar->{'zweigstelle'}:",$dupExemplar->{'zweigstelle'},":\n" if $self->{debugIt};
 
-            my $soapExemplar = SOAP::Data->name( 'exemplar' => \SOAP::Data->value(
-                SOAP::Data->name( 'zweigstelle' => $dupExemplar->{'zweigstelle'} )->type( 'string' ),
-                SOAP::Data->name( 'erscheinungsjahr' => $dupExemplar->{'erscheinungsjahr'} )->type( 'string' ),
-                SOAP::Data->name( 'auflage' => $dupExemplar->{'auflage'} )->type( 'string' )
-            ));
+            my $soapExemplarVal;
+            # Avoid sending an empty or invalid 'erscheinungsjahr' because this would cause an 'Unmarshalling Error' in the ekz software.
+            if ( $dupExemplar->{'erscheinungsjahr'} && length($dupExemplar->{'erscheinungsjahr'}) == 4 ) {
+                $soapExemplarVal = \SOAP::Data->value(
+                    SOAP::Data->name( 'zweigstelle' => $dupExemplar->{'zweigstelle'} )->type( 'string' ),                
+                    SOAP::Data->name( 'erscheinungsjahr' => $dupExemplar->{'erscheinungsjahr'} )->type( 'string' ),
+                    SOAP::Data->name( 'auflage' => $dupExemplar->{'auflage'} )->type( 'string' )
+                );
+            } else {
+                $soapExemplarVal = \SOAP::Data->value(
+                    SOAP::Data->name( 'zweigstelle' => $dupExemplar->{'zweigstelle'} )->type( 'string' ), 
+                    SOAP::Data->name( 'auflage' => $dupExemplar->{'auflage'} )->type( 'string' )
+                );
+            }
+            my $soapExemplar = SOAP::Data->name( 'exemplar' => $soapExemplarVal );
 
             push @soapExemplare, $soapExemplar;
         }

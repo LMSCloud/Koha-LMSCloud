@@ -1,0 +1,16 @@
+{
+    "letter_created": [% letter_created %],
+    "letter_printed": [% letter_printed %],
+    "letter_mailed": [% letter_mailed %],
+    "printedfile": "[% printedfile | html %]",
+    "letter": [
+        [% FOREACH letter IN letters %]
+            {
+                "borrowernumber": [% letter.borrowernumber | html %],
+                "lettertype": "[% letter.lettertype | html %]",
+                "message_id": "[% letter.message_id | html %]"
+            }[% UNLESS loop.last %],[% END %]
+        [% END %]
+    ]
+}
+

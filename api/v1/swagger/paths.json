@@ -8,6 +8,9 @@
   "/acquisitions/vendors/{vendor_id}": {
     "$ref": "paths/acquisitions_vendors.json#/~1acquisitions~1vendors~1{vendor_id}"
   },
+  "/alv_illrequests": {
+    "$ref": "paths/alv_illrequests.json#/~1alv_illrequests"
+  },
   "/authorised_values": {
     "$ref": "paths/authorised_values.json#/~1authorised_values"
   },

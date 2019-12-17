@@ -2,6 +2,9 @@
   "account_line": {
     "$ref": "definitions/account_line.json"
   },
+  "alv_illrequest": {
+    "$ref": "definitions/alv_illrequest.json"
+  },
   "authorised_value": {
     "$ref": "definitions/authorised_value.json"
   },

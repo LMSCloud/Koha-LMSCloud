@@ -176,6 +176,8 @@
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
     <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note %]" />
+    <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
+    <input type="hidden" name="confirm_cancelfee" id="confirm_cancelfee" value="1" />
     <table>
     <thead><tr>
             <th>Description</th>
@@ -192,7 +194,8 @@
         </tr></tbody>
     </table>
     </fieldset>
-    <div class="action"><input type="submit" name="confirm_cancelfee" id="confirm_cancelfee" value="Cancel this charge" />
+    <div class="action">
+        <input type="submit" value="Cancel this charge" />
         <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a></div>
     </form>
 
@@ -315,7 +318,7 @@
 
 
         $(document).ready(function() {
-            $('#payindivfine, #woindivfine, #payfine').preventDoubleFormSubmit();
+            $('#payindivfine, #woindivfine, #cancelindivfine, #payfine').preventDoubleFormSubmit();
 
         // Same structure of IF/ELSIF/ELSE/END as below for better readability.
         [% IF ( pay_individual ) %]

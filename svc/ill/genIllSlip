@@ -39,10 +39,15 @@ use Koha::DateUtils qw( output_pref dt_from_string );
 
 my $input = new CGI;
 
+print STDERR "svc::ill::genIllSlip Start input->param('use_letter'):", scalar $input->param('use_letter'), ":\n";
+print STDERR "svc::ill::genIllSlip Start Dumper input:", Dumper($input), ":\n";
+
 my $selectslipprint = scalar $input->param('selectslipprint');
+my $templatenameSinglePrint = scalar $input->param('templatenameSinglePrint') ? scalar $input->param('templatenameSinglePrint') : 'ill/print_ILL_slips.tt';
+my $templatenameMultiplePrint = scalar $input->param('templatenameMultiplePrint') ? scalar $input->param('templatenameMultiplePrint') : 'ill/ILLZKSHA_slips.tt';
 
 my ($template, $user, $cookie) = get_template_and_user({
-    template_name   => "members/tables/sendnotice.tt",
+    template_name   => "ill/sendIllSlip.tt",
     query           => $input,
     type            => "intranet",
     authnotrequired => 0,
@@ -56,10 +61,13 @@ if ( $selectslipprint == 1 ) {
     my $params = {
         lettercode      => scalar $input->param('use_letter'),
         illrequestid    => scalar $input->param('illrequestid'),
+        itemnumber      => scalar $input->param('itemnumber'),
+        issuesitemnumber=> scalar $input->param('issuesitemnumber'),
         filenameid      => $filenameid,
-        templatename    => 'ill/print_ILL_slips.tt',
+        templatename    => $templatenameSinglePrint,
     };
-    my $result = genIllDeliverySlipZKSHA($params);
+    # generate a single slip
+    my $result = genIllSlip($params);
 
     # generate the response for the ajax call
     $template->param(
@@ -71,6 +79,7 @@ if ( $selectslipprint == 1 ) {
     );
 
     # return the response for the ajax call
+print STDERR "svc::ill::genIllSlip / case selectslipprint == 1 / template->output:" . Dumper($template->output) . ":\n";
     output_with_http_headers $input, $cookie, $template->output, 'json';
 
 } else {
@@ -79,6 +88,8 @@ if ( $selectslipprint == 1 ) {
     my @illrequestsOrdered = $input->param('illrequestsOrdered[]');
     my @generatedSlips = ();
     my $filenr = 0;
+print STDERR "svc::ill::genIllSlip / case selectslipprint != 1 / input->param('illrequestsOrdered[]'):" . Dumper($input->param('illrequestsOrdered[]')) . ":\n";
+print STDERR "svc::ill::genIllSlip / case selectslipprint != 1 / illrequestsOrdered:" . Dumper(@illrequestsOrdered) . ":\n";
     foreach my $illrequestIdOrdered ( @illrequestsOrdered ) {
         # create a batch output file containing one slip
         $filenr += 1;
@@ -87,14 +98,15 @@ if ( $selectslipprint == 1 ) {
             lettercode      => scalar $input->param('use_letter'),
             illrequestid    => $illrequestIdOrdered,
             filenameid      => $filenameid,
-            templatename    => 'ill/print_ILL_slips.tt',
+            templatename    => $templatenameSinglePrint,
         };
-        my $result = genIllDeliverySlipZKSHA($params);
+        my $result = genIllSlip($params);
         
         push @generatedSlips, { illrequestid => $illrequestIdOrdered, filename => $result->{printedfile} };
         
     }
 
+print STDERR "svc::ill::genIllSlip / case selectslipprint != 1 / generatedSlips'):" . Dumper(@generatedSlips) . ":\n";
     # create a summary batch output file that contains a file link within an iframe for each slip
     my $replacefunction = sub {
         my ($str) = @_;
@@ -106,7 +118,8 @@ if ( $selectslipprint == 1 ) {
         return $$str;
     };
     my $filenameid = sprintf("_%s_%03d", $user, 0);
-    my $printfilename = CreatePrintOutput( { lettercode => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips, filenameid => $filenameid, templatename => 'ill/ILLZKSHA_slips.tt', modtemplateoutput => $replacefunction } );
+    # generate a set of slips
+    my $printfilename = CreatePrintOutput( { lettercode => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips, filenameid => $filenameid, templatename => $templatenameMultiplePrint, modtemplateoutput => $replacefunction } );
 
     my $result = {};
     $result->{letters} = [];
@@ -126,10 +139,11 @@ if ( $selectslipprint == 1 ) {
     );
 
     # return the response for the ajax call
+print STDERR "svc::ill::genIllSlip / case selectslipprint != 1 / template->output:" . Dumper($template->output) . ":\n";
     output_with_http_headers $input, $cookie, $template->output, 'json';
 }
 
-sub genIllDeliverySlipZKSHA {
+sub genIllSlip {
     my $params = shift;
     
     my $lettercode;
@@ -151,6 +165,7 @@ sub genIllDeliverySlipZKSHA {
     my @emailmessages = ();
     my $today = output_pref( { dt => dt_from_string(), dateonly => 0, dateformat => 'iso' } );
     
+print STDERR "svc::ill::genIllSlip::genIllSlip lettercode:$lettercode: illrequestid:$illrequestid: templatename:$templatename:\n";
     if ($lettercode) {    
 
         my $dbh = C4::Context->dbh();
@@ -167,6 +182,7 @@ sub genIllDeliverySlipZKSHA {
         
         
         my @transferTypes = ('print');
+print STDERR "svc::ill::genIllSlip::genIllSlip transferTypes:", Dumper(@transferTypes), ":\n";
         for my $transfer (@transferTypes) {
             my $letter = C4::Letters::getletter($module, $lettercode, $branchcode, $transfer );
             if ( $letter && $letter->{'content'} ) {
@@ -194,7 +210,15 @@ sub genIllDeliverySlipZKSHA {
                 my $illreqattr = { map { ( $_->type => $_->value ) } ($fieldResults->as_list) };
                 
                 my %tables = ( 'biblio' => $biblionumber, 'biblioitems' => $biblionumber, 'borrowers' => $borrowernumber, 'branches' => $branchcode, 'illrequests' => $illrequestid, 'illrequestattributes' => $illreqattr );
+                if ( $params->{itemnumber} ) {
+                    $tables{'items'} = $params->{itemnumber};
+                }
+                if ( $params->{issuesitemnumber} ) {
+                    $tables{'issues'} = $params->{issuesitemnumber};
+                }
+print STDERR "svc::ill::genIllSlip tables:" . Dumper(%tables) . ":\n";
                 
+print STDERR "svc::ill::genIllSlip now is calling C4::Letters::GetPreparedLetter\n";
                 my $prepared_letter = C4::Letters::GetPreparedLetter (
                     module => $module,
                     letter_code => $lettercode,
@@ -204,6 +228,7 @@ sub genIllDeliverySlipZKSHA {
                     repeat => $repeat,
                     message_transport_type => $lettertemplates->{$transport_type}->{'transportType'},
                 );
+print STDERR "svc::ill::genIllSlip C4::Letters::GetPreparedLetter returned  prepared_letter:", Dumper($prepared_letter), ":\n";
                 
                 my $message_id = C4::Letters::EnqueueLetter(
                                             {   letter                 => $prepared_letter,
@@ -226,6 +251,7 @@ sub genIllDeliverySlipZKSHA {
     
     $letter_printed = scalar @printmessages;
     $letter_mailed = scalar @emailmessages;
+print STDERR "svc::ill::genIllSlip letter_created:$letter_created: letter_printed:$letter_printed: letter_mailed:$letter_mailed:\n";
     
     if ( $letter_printed ) {
         $printfilename = CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages, filenameid => $filenameid, templatename => $templatename } );
@@ -234,6 +260,7 @@ sub genIllDeliverySlipZKSHA {
         SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
     }
 
+print STDERR "svc::ill::genIllSlip returns printfilename:$printfilename:\n";    
     return  {
         letters        => $letters,
         letter_created => $letter_created,
@@ -260,6 +287,7 @@ sub SendMailMessages {
 
 sub CreatePrintOutput {
     my $params = shift;
+print STDERR "svc::ill::genIllSlip::CreatePrintOutput START params:", Dumper($params), ":\n";
     
     my @messageIDs;        # must be set for single slip print
     @messageIDs = @{$params->{printmessages}} if ( $params->{printmessages} );
@@ -287,8 +315,11 @@ sub CreatePrintOutput {
     $printfilename .= ".html";
     
     my $outputdir = C4::Context->config('outputdownloaddir');
+print STDERR "svc::ill::genIllSlip::CreatePrintOutput 1.outputdir:$outputdir:\n";
     $outputdir = File::Spec->catpath( "", $outputdir, "batchprint" );
+print STDERR "svc::ill::genIllSlip::CreatePrintOutput 2.outputdir:$outputdir:\n";
     my $generatefilename = File::Spec->catdir( $outputdir, $printfilename );
+print STDERR "svc::ill::genIllSlip::CreatePrintOutput generatefilename:$generatefilename:\n";
     
     Generate_html(
         {   messages => \@messages,
@@ -308,16 +339,19 @@ sub CreatePrintOutput {
         );
     }
 
+print STDERR "svc::ill::genIllSlip::CreatePrintOutput returns generatefilename:$generatefilename:\n";
     return $printfilename;
 }
 
 sub Generate_html {
     my ( $params ) = @_;
+print STDERR "svc::ill::genIllSlip::Generate_html START params:", Dumper($params), ":\n";
     my $messages = $params->{messages};                # must be set for single slip print
     my $generatedSlips = $params->{generatedSlips};    # must be set for summary print
     my $filepath = $params->{filepath};
     my $templatename = $params->{templatename};
     my $modtemplateoutput = $params->{modtemplateoutput};
+print STDERR "svc::ill::genIllSlip::Generate_html Start filepath:$filepath: templatename:$templatename:\n";
 
     my $template =
       C4::Templates::gettemplate( $templatename, 'intranet',
@@ -331,6 +365,7 @@ sub Generate_html {
         messages   => $messages,               # set in case of single slip print
         generatedSlips => $generatedSlips,     # set in case of summary print
     );
+print STDERR "svc::ill::genIllSlip::Generate_html template->output:", Dumper($template->output), ":\n";
     my $template_output = $template->output;
     if ( $modtemplateoutput ) {
         &$modtemplateoutput(\$template_output);

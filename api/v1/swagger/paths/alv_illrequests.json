@@ -1,0 +1,75 @@
+{
+  "/alv_illrequests": {
+    "post": {
+      "x-mojo-to": "ALV_illrequests#add",
+      "operationId": "addalv_illrequest",
+      "tags": ["alv_illrequests"],
+      "parameters": [{
+        "name": "body",
+        "in": "body",
+        "description": "A JSON object containing information about the new ILLALV request",
+        "required": true,
+        "schema": {
+          "$ref": "../definitions.json#/alv_illrequest"
+        }
+      }],
+      "consumes": ["application/json"],
+      "produces": ["application/json"],
+      "responses": {
+        "201": {
+          "description": "A successfully created ILLALV request",
+          "schema": {
+            "items": {
+              "$ref": "../definitions.json#/alv_illrequest"
+            }
+          }
+        },
+        "400": {
+          "description": "Bad parameter",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "Resource not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "409": {
+          "description": "Conflict in creating resource",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": "ill"
+      }
+    }
+  }
+}
