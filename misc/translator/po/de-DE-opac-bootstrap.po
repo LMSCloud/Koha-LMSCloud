@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "POT-Creation-Date: 2019-12-18 14:54+0100\n"
-"PO-Revision-Date: 2019-12-18 15:07+0100\n"
+"PO-Revision-Date: 2020-01-07 15:40+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -7229,7 +7229,7 @@ msgstr "Medien für Kinder bis 10 Jahre"
 #: opac-tmpl/bootstrap/en/modules/opac-browser-kab.tt:74
 #, c-format
 msgid "Media for kids up to 7 years"
-msgstr "Medien für Kinder bis 7 jahre"
+msgstr "Medien für Kinder bis 7 Jahre"
 
 #: opac-tmpl/bootstrap/en/modules/opac-browser-kab.tt:116
 #: opac-tmpl/bootstrap/en/modules/opac-browser-sfb.tt:131
