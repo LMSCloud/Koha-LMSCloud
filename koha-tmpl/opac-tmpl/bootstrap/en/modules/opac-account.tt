@@ -90,7 +90,7 @@
                     [% IF ( ACCOUNT_LINES ) %]
                         <form method="post" action="opac-account-pay.pl" class="form-horizontal">
                         <p><input type="checkbox" class="cb" name="cb_outstanding_fines_only" id="cb_outstanding_fines_only" checked="checked" value="1"> Show outstanding fines only </p>
-                        <p>Select any or all open fees for online payment. <a href="#" id="CheckOpenFees">Select all</a> | <a href="#" id="UncheckOpenFees">Clear all</a></p>
+                        <p>Select any or all open fees for online payment. <a href="#" id="CheckOpenFees"> Select all</a> | <a href="#" id="UncheckOpenFees">Clear all</a></p>
 
                         <table class="table table-bordered table-striped" id="finestable">
                             <thead>
@@ -218,9 +218,16 @@
                                             <div class="control-group">
                                                 <label class="radio">
                                                     <input type="radio" name="payment_method" id="payment_method_epay21_paypage" value="epay21_paypage" checked="checked"><br>
-                                                    <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:210px;">
-                                                    <!-- eKom21 Logo --><a href="https://www.ekom21.de/loesungen/epay21/" title="epay21 – payment in any situation" ><img style="margin:5px;" src="https://www.ekom21.de/:download/ekom21-156-45-px.svg?cid=tf.afr&amp;resize=ca12f7:175x" alt="ekom21 logo"</a><!-- ekom21 Logo -->
-                                                    <!-- giropay Logo -- ><a href="https://www.giropay.de" title="GIROPAY – SECURE ONLINE PAYMENT" ><img style="margin:5px;" src="https://www.giropay.de/fileadmin/user_upload/giropay/logos/onlineueberweisung_giropay_200px.png" border="0" alt="giropay logo"></a><! -- giropay Logo -->
+                                                    <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:394px;">
+                                                        <strong style="margin:5px;" > online payment via ekom21/epay21 </strong><br>
+                                                        <a href="https://www.ekom21.de/loesungen/epay21/" title="epay21 – payment in any situation" >
+                                                            <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/mastercard.png">
+                                                            <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/visa.png">
+                                                            <img style="max-width:64px; width:auto; max-height:28px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paypal.png">
+                                                            <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/giropay.png">
+                                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paydirekt.png">
+                                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/sepa-logo-neu.png">
+                                                        </a>
                                                     </div>
                                                 </label>
                                             </div>
