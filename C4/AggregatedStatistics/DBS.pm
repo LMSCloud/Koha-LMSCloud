@@ -38,24 +38,25 @@ my $dbh = C4::Context->dbh;
 
 my $as_values = {};    # hash for storing all read records from table aggregated_statistics_values for one statistics_id, with aggregated_statistics_values.name as key
 # general information / 1. ALLGEMEINE ANGABEN
-$as_values->{'gen_dbs_id'} = { 'id' => '', 'name' => 'gen_dbs_id', 'value' => '', 'type' => 'text' };
-$as_values->{'gen_population'} = { 'id' => '', 'name' => 'gen_population', 'value' => '', 'type' => 'int' };
-$as_values->{'gen_libcount'} = { 'id' => '', 'name' => 'gen_libcount', 'value' => '', 'type' => 'int' };
-$as_values->{'gen_branchcount'} = { 'id' => '', 'name' => 'gen_branchcount', 'value' => '', 'type' => 'int' };
-$as_values->{'gen_buscount'} = { 'id' => '', 'name' => 'gen_buscount', 'value' => '', 'type' => 'int' };
-$as_values->{'gen_extservlocation'} = { 'id' => '', 'name' => 'gen_extservlocation', 'value' => '', 'type' => 'int' };
-$as_values->{'gen_publicarea'} = { 'id' => '', 'name' => 'gen_publicarea', 'value' => '', 'type' => 'float' };
-$as_values->{'gen_publicarea_central'} = { 'id' => '', 'name' => 'gen_publicarea_central', 'value' => '', 'type' => 'float' };    # new since DBS 2018
-$as_values->{'gen_openinghours_year'} = { 'id' => '', 'name' => 'gen_openinghours_year', 'value' => '', 'type' => 'float' };
-$as_values->{'gen_openinghours_week'} = { 'id' => '', 'name' => 'gen_openinghours_week', 'value' => '', 'type' => 'float' };
-
+$as_values->{'gen_dbs_id'} = { 'id' => '', 'name' => 'gen_dbs_id', 'value' => '', 'type' => 'text' };                                                                                                           # DBS2017:0 (for cvs downloads)
+$as_values->{'gen_population'} = { 'id' => '', 'name' => 'gen_population', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:1
+$as_values->{'gen_libcount'} = { 'id' => '', 'name' => 'gen_libcount', 'value' => '', 'type' => 'int' };                                                                                                        # DBS2017:2
+$as_values->{'gen_branchcount'} = { 'id' => '', 'name' => 'gen_branchcount', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2017:3
+$as_values->{'gen_buscount'} = { 'id' => '', 'name' => 'gen_buscount', 'value' => '', 'type' => 'int' };                                                                                                        # DBS2017:4
+$as_values->{'gen_extservlocation'} = { 'id' => '', 'name' => 'gen_extservlocation', 'value' => '', 'type' => 'int' };                                                                                          # DBS2017:5
+$as_values->{'gen_publicarea'} = { 'id' => '', 'name' => 'gen_publicarea', 'value' => '', 'type' => 'float' };                                                                                                  # DBS2017:6
+$as_values->{'gen_publicarea_central'} = { 'id' => '', 'name' => 'gen_publicarea_central', 'value' => '', 'type' => 'float' };                                                                                  # DBS2018:6.1 (new since DBS 2018)
+$as_values->{'gen_openinghours_year'} = { 'id' => '', 'name' => 'gen_openinghours_year', 'value' => '', 'type' => 'float' };                                                                                    # DBS2017:7
+$as_values->{'gen_openinghours_year_open_library'} = { 'id' => '', 'name' => 'gen_openinghours_year_open_library', 'value' => '', 'type' => 'float' };                                                          # DBS2019:7.1 (new since DBS 2019)
+$as_values->{'gen_openinghours_week'} = { 'id' => '', 'name' => 'gen_openinghours_week', 'value' => '', 'type' => 'float' };                                                                                    # DBS2017:8
+$as_values->{'gen_openinghours_week_open_library'} = { 'id' => '', 'name' => 'gen_openinghours_week_open_library', 'value' => '', 'type' => 'float' };                                                          # DBS2019:8.1 (new since DBS 2019)
 # patron information / 2. BENUTZER
 $as_values->{'pat_active'} = { 'id' => '', 'name' => 'pat_active', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active'] };                                                      # DBS2017:9
 $as_values->{'pat_active_to_12'} = { 'id' => '', 'name' => 'pat_active_to_12', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_to_12'] };                                    # DBS2017:10.1
 $as_values->{'pat_active_from_60'} = { 'id' => '', 'name' => 'pat_active_from_60', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_from_60'] };                              # DBS2017:10.2
 $as_values->{'pat_new_registrations'} = { 'id' => '', 'name' => 'pat_new_registrations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_new_registrations'] };                     # DBS2017:11
-$as_values->{'pat_visits'} = { 'id' => '', 'name' => 'pat_visits', 'value' => '', 'type' => 'int' };
-$as_values->{'pat_visits_virt'} = { 'id' => '', 'name' => 'pat_visits_virt', 'value' => '', 'type' => 'int' };    # input deactivated
+$as_values->{'pat_visits'} = { 'id' => '', 'name' => 'pat_visits', 'value' => '', 'type' => 'int' };                                                                                                            # DBS2017:12
+$as_values->{'pat_visits_virt'} = { 'id' => '', 'name' => 'pat_visits_virt', 'value' => '', 'type' => 'int' };    # input deactivated                                                                           # DBS2017:12.1
 
 # media offers and usage / 3. MEDIENANGEBOTE UND NUTZUNG
 $as_values->{'med_tot_phys_stock'} = { 'id' => '', 'name' => 'med_tot_phys_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_tot_phys_stock'] };                              # DBS2017:13
@@ -66,118 +67,120 @@ $as_values->{'med_openaccess_issues'} = { 'id' => '', 'name' => 'med_openaccess_
 $as_values->{'med_stack_stock'} = { 'id' => '', 'name' => 'med_stack_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_stack_stock'] };                                       # DBS2017:17
 $as_values->{'med_print_stock'} = { 'id' => '', 'name' => 'med_print_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_print_stock'] };                                       # DBS2017:18
 $as_values->{'med_print_issues'} = { 'id' => '', 'name' => 'med_print_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_print_issues'] };                                    # DBS2017:19
-$as_values->{'med_nonfiction_stock'} = { 'id' => '', 'name' => 'med_nonfiction_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonfiction_stock'] };                        # DBS2017:20
-$as_values->{'med_nonfiction_issues'} = { 'id' => '', 'name' => 'med_nonfiction_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonfiction_issues'] };                     # DBS2017:21
-$as_values->{'med_fiction_stock'} = { 'id' => '', 'name' => 'med_fiction_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_fiction_stock'] };                                 # DBS2017:22
-$as_values->{'med_fiction_issues'} = { 'id' => '', 'name' => 'med_fiction_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_fiction_issues'] };                              # DBS2017:23
+#$as_values->{'med_nonfiction_stock'} = { 'id' => '', 'name' => 'med_nonfiction_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonfiction_stock'] };                        # DBS2017:20 (dropped since DBS 2019)
+#$as_values->{'med_nonfiction_issues'} = { 'id' => '', 'name' => 'med_nonfiction_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonfiction_issues'] };                     # DBS2017:21 (dropped since DBS 2019)
+#$as_values->{'med_fiction_stock'} = { 'id' => '', 'name' => 'med_fiction_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_fiction_stock'] };                                 # DBS2017:22 (dropped since DBS 2019)
+#$as_values->{'med_fiction_issues'} = { 'id' => '', 'name' => 'med_fiction_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_fiction_issues'] };                              # DBS2017:23 (dropped since DBS 2019)
 $as_values->{'med_juvenile_stock'} = { 'id' => '', 'name' => 'med_juvenile_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_juvenile_stock'] };                              # DBS2017:24
 $as_values->{'med_juvenile_issues'} = { 'id' => '', 'name' => 'med_juvenile_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_juvenile_issues'] };                           # DBS2017:25
-$as_values->{'med_printissue_stock'} = { 'id' => '', 'name' => 'med_printissue_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_printissue_stock'] };                        # DBS2017:26
-$as_values->{'med_printissue_issues'} = { 'id' => '', 'name' => 'med_printissue_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_printissue_issues'] };                     # DBS2017:27
+#$as_values->{'med_printissue_stock'} = { 'id' => '', 'name' => 'med_printissue_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_printissue_stock'] };                        # DBS2017:26 (dropped since DBS 2019)
+#$as_values->{'med_printissue_issues'} = { 'id' => '', 'name' => 'med_printissue_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_printissue_issues'] };                     # DBS2017:27 (dropped since DBS 2019)
 $as_values->{'med_nonbook_tot_stock'} = { 'id' => '', 'name' => 'med_nonbook_tot_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_tot_stock'] };                     # DBS2017:28
 $as_values->{'med_nonbook_tot_issues'} = { 'id' => '', 'name' => 'med_nonbook_tot_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_tot_issues'] };                  # DBS2017:29
-$as_values->{'med_nonbook_anadig_stock'} = { 'id' => '', 'name' => 'med_nonbook_anadig_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_anadig_stock'] };            # DBS2017:30
-$as_values->{'med_nonbook_anadig_issues'} = { 'id' => '', 'name' => 'med_nonbook_anadig_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_anadig_issues'] };         # DBS2017:31
-$as_values->{'med_nonbook_other_stock'} = { 'id' => '', 'name' => 'med_nonbook_other_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_other_stock'] };               # DBS2017:32
-$as_values->{'med_nonbook_other_issues'} = { 'id' => '', 'name' => 'med_nonbook_other_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_other_issues'] };            # DBS2017:33
-$as_values->{'med_virtsupply_stock'} = { 'id' => '', 'name' => 'med_virtsupply_stock', 'value' => '', 'type' => 'int' };
-$as_values->{'med_virtconsort_stock'} = { 'id' => '', 'name' => 'med_virtconsort_stock', 'value' => '', 'type' => 'int' };
-$as_values->{'med_consort_libcount'} = { 'id' => '', 'name' => 'med_consort_libcount', 'value' => '', 'type' => 'int' };
-$as_values->{'med_virtsupply_issues'} = { 'id' => '', 'name' => 'med_virtsupply_issues', 'value' => '', 'type' => 'int' };
+#$as_values->{'med_nonbook_anadig_stock'} = { 'id' => '', 'name' => 'med_nonbook_anadig_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_anadig_stock'] };            # DBS2017:30 (dropped since DBS 2019)
+#$as_values->{'med_nonbook_anadig_issues'} = { 'id' => '', 'name' => 'med_nonbook_anadig_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_anadig_issues'] };         # DBS2017:31 (dropped since DBS 2019)
+#$as_values->{'med_nonbook_other_stock'} = { 'id' => '', 'name' => 'med_nonbook_other_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_other_stock'] };               # DBS2017:32 (dropped since DBS 2019)
+#$as_values->{'med_nonbook_other_issues'} = { 'id' => '', 'name' => 'med_nonbook_other_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_other_issues'] };            # DBS2017:33 (dropped since DBS 2019)
+$as_values->{'med_virtsupply_stock'} = { 'id' => '', 'name' => 'med_virtsupply_stock', 'value' => '', 'type' => 'int' };                                                                                        # DBS2017:34
+$as_values->{'med_virtconsort_stock'} = { 'id' => '', 'name' => 'med_virtconsort_stock', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:34.1
+$as_values->{'med_consort_libcount'} = { 'id' => '', 'name' => 'med_consort_libcount', 'value' => '', 'type' => 'int' };                                                                                        # DBS2017:34.2
+$as_values->{'med_virtsupply_issues'} = { 'id' => '', 'name' => 'med_virtsupply_issues', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:35
 $as_values->{'med_access_units'} = { 'id' => '', 'name' => 'med_access_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_access_units'] };                                    # DBS2017:36
-$as_values->{'med_withdrawal_units'} = { 'id' => '', 'name' => 'med_withdrawal_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_withdrawal_units'] };                        # DBS2017:37
-$as_values->{'med_database_cnt'} = { 'id' => '', 'name' => 'med_database_cnt', 'value' => '', 'type' => 'int' };
+#$as_values->{'med_withdrawal_units'} = { 'id' => '', 'name' => 'med_withdrawal_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_withdrawal_units'] };                        # DBS2017:37 (dropped since DBS 2019)
+$as_values->{'med_database_cnt'} = { 'id' => '', 'name' => 'med_database_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:38
+$as_values->{'med_database_login_cnt'} = { 'id' => '', 'name' => 'med_database_login_cnt', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_database_login_cnt'] };                  # DBS2019:38.1 (new since DBS 2019)
+$as_values->{'med_database_authsso_yn'} = { 'id' => '', 'name' => 'med_database_authsso_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2019:38.2 (new since DBS 2019, always true with Divibib)
 $as_values->{'med_subscription_print'} = { 'id' => '', 'name' => 'med_subscription_print', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_subscription_print'] };                  # DBS2017:39
-
-$as_values->{'med_subscription_elect'} = { 'id' => '', 'name' => 'med_subscription_elect', 'value' => '', 'type' => 'int' };
-$as_values->{'med_blockcollection_rcvd'} = { 'id' => '', 'name' => 'med_blockcollection_rcvd', 'value' => '', 'type' => 'int' };
-$as_values->{'med_blockcollection_lent'} = { 'id' => '', 'name' => 'med_blockcollection_lent', 'value' => '', 'type' => 'int' };
-$as_values->{'med_ILL_borrowing_orders'} = { 'id' => '', 'name' => 'med_ILL_borrowing_orders', 'value' => '', 'type' => 'int' };
-$as_values->{'med_ILL_lending_orders'} = { 'id' => '', 'name' => 'med_ILL_lending_orders', 'value' => '', 'type' => 'int' };
-$as_values->{'med_document_delivery'} = { 'id' => '', 'name' => 'med_document_delivery', 'value' => '', 'type' => 'int' };
+$as_values->{'med_subscription_elect'} = { 'id' => '', 'name' => 'med_subscription_elect', 'value' => '', 'type' => 'int' };                                                                                    # DBS2017:40
+#$as_values->{'med_blockcollection_rcvd'} = { 'id' => '', 'name' => 'med_blockcollection_rcvd', 'value' => '', 'type' => 'int' };                                                                                # DBS2017:41  (dropped since DBS 2019)
+$as_values->{'med_blockcollection_used_yn'} = { 'id' => '', 'name' => 'med_blockcollection_used_yn', 'value' => '', 'type' => 'bool' };                                                                         # DBS2019:41.1 (new since DBS 2019) 
+#$as_values->{'med_blockcollection_lent'} = { 'id' => '', 'name' => 'med_blockcollection_lent', 'value' => '', 'type' => 'int' };                                                                                # DBS2017:42 (dropped since DBS 2019)
+$as_values->{'med_ILL_borrowing_orders'} = { 'id' => '', 'name' => 'med_ILL_borrowing_orders', 'value' => '', 'type' => 'int' };                                                                                # DBS2017:43
+$as_values->{'med_ILL_lending_orders'} = { 'id' => '', 'name' => 'med_ILL_lending_orders', 'value' => '', 'type' => 'int' };                                                                                    # DBS2017:44
+#$as_values->{'med_document_delivery'} = { 'id' => '', 'name' => 'med_document_delivery', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:45 (dropped since DBS 2019)
 
 # finance / 4. FINANZEN
-$as_values->{'fin_current_expenses_tot'} = { 'id' => '', 'name' => 'fin_current_expenses_tot', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_cur_exp_acquisitions'} = { 'id' => '', 'name' => 'fin_cur_exp_acquisitions', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_cur_exp_acq_licences'} = { 'id' => '', 'name' => 'fin_cur_exp_acq_licences', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_cur_exp_staff'} = { 'id' => '', 'name' => 'fin_cur_exp_staff', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_cur_exp_other'} = { 'id' => '', 'name' => 'fin_cur_exp_other', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_singulary_investments'} = { 'id' => '', 'name' => 'fin_singulary_investments', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_expenses_tot'} = { 'id' => '', 'name' => 'fin_expenses_tot', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_costunit_funds_tot'} = { 'id' => '', 'name' => 'fin_costunit_funds_tot', 'value' => '', 'type' => 'float' };    # not used since DBS 2018
-$as_values->{'fin_costunit_expenses'} = { 'id' => '', 'name' => 'fin_costunit_expenses', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_external_funds_tot'} = { 'id' => '', 'name' => 'fin_external_funds_tot', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_ext_funds_EU'} = { 'id' => '', 'name' => 'fin_ext_funds_EU', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_ext_funds_national'} = { 'id' => '', 'name' => 'fin_ext_funds_national', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_ext_funds_fedstate'} = { 'id' => '', 'name' => 'fin_ext_funds_fedstate', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_ext_funds_communal'} = { 'id' => '', 'name' => 'fin_ext_funds_communal', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_ext_funds_church'} = { 'id' => '', 'name' => 'fin_ext_funds_church', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_ext_funds_other'} = { 'id' => '', 'name' => 'fin_ext_funds_other', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_lib_revenue'} = { 'id' => '', 'name' => 'fin_lib_revenue', 'value' => '', 'type' => 'float' };
-$as_values->{'fin_user_charge_yn'} = { 'id' => '', 'name' => 'fin_user_charge_yn', 'value' => '', 'type' => 'bool' };
+$as_values->{'fin_current_expenses_tot'} = { 'id' => '', 'name' => 'fin_current_expenses_tot', 'value' => '', 'type' => 'float' };                                                                              # DBS2017:49
+$as_values->{'fin_cur_exp_acquisitions'} = { 'id' => '', 'name' => 'fin_cur_exp_acquisitions', 'value' => '', 'type' => 'float' };                                                                              # DBS2017:50
+$as_values->{'fin_cur_exp_acq_licences'} = { 'id' => '', 'name' => 'fin_cur_exp_acq_licences', 'value' => '', 'type' => 'float' };                                                                              # DBS2017:50.1
+$as_values->{'fin_cur_exp_staff'} = { 'id' => '', 'name' => 'fin_cur_exp_staff', 'value' => '', 'type' => 'float' };                                                                                            # DBS2017:51
+$as_values->{'fin_cur_exp_other'} = { 'id' => '', 'name' => 'fin_cur_exp_other', 'value' => '', 'type' => 'float' };                                                                                            # DBS2017:52
+$as_values->{'fin_singulary_investments'} = { 'id' => '', 'name' => 'fin_singulary_investments', 'value' => '', 'type' => 'float' };                                                                            # DBS2017:53
+$as_values->{'fin_expenses_tot'} = { 'id' => '', 'name' => 'fin_expenses_tot', 'value' => '', 'type' => 'float' };                                                                                              # DBS2017:54
+#$as_values->{'fin_costunit_funds_tot'} = { 'id' => '', 'name' => 'fin_costunit_funds_tot', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:54.1 (not used since DBS 2018)
+$as_values->{'fin_costunit_expenses'} = { 'id' => '', 'name' => 'fin_costunit_expenses', 'value' => '', 'type' => 'float' };                                                                                    # DBS2017:55
+$as_values->{'fin_external_funds_tot'} = { 'id' => '', 'name' => 'fin_external_funds_tot', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:56
+$as_values->{'fin_ext_funds_EU'} = { 'id' => '', 'name' => 'fin_ext_funds_EU', 'value' => '', 'type' => 'float' };                                                                                              # DBS2017:57
+$as_values->{'fin_ext_funds_national'} = { 'id' => '', 'name' => 'fin_ext_funds_national', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:58
+$as_values->{'fin_ext_funds_fedstate'} = { 'id' => '', 'name' => 'fin_ext_funds_fedstate', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:59
+$as_values->{'fin_ext_funds_communal'} = { 'id' => '', 'name' => 'fin_ext_funds_communal', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:60
+$as_values->{'fin_ext_funds_church'} = { 'id' => '', 'name' => 'fin_ext_funds_church', 'value' => '', 'type' => 'float' };                                                                                      # DBS2017:61
+$as_values->{'fin_ext_funds_other'} = { 'id' => '', 'name' => 'fin_ext_funds_other', 'value' => '', 'type' => 'float' };                                                                                        # DBS2017:62
+$as_values->{'fin_lib_revenue'} = { 'id' => '', 'name' => 'fin_lib_revenue', 'value' => '', 'type' => 'float' };                                                                                                # DBS2017:63
+$as_values->{'fin_user_charge_yn'} = { 'id' => '', 'name' => 'fin_user_charge_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:65
 
 # staff capacity / 5. PERSONALKAPAZITÄT
-$as_values->{'stf_staff_scheme_appointments'} = { 'id' => '', 'name' => 'stf_staff_scheme_appointments', 'value' => '', 'type' => 'int' };
-$as_values->{'stf_staff_cnt'} = { 'id' => '', 'name' => 'stf_staff_cnt', 'value' => '', 'type' => 'int' };
-$as_values->{'stf_capacity_FTE'} = { 'id' => '', 'name' => 'stf_capacity_FTE', 'value' => '', 'type' => 'float' };
-$as_values->{'stf_cap_FTE_librarians'} = { 'id' => '', 'name' => 'stf_cap_FTE_librarians', 'value' => '', 'type' => 'float' };
-$as_values->{'stf_cap_FTE_assistants'} = { 'id' => '', 'name' => 'stf_cap_FTE_assistants', 'value' => '', 'type' => 'float' };
-$as_values->{'stf_cap_FTE_promotional'} = { 'id' => '', 'name' => 'stf_cap_FTE_promotional', 'value' => '', 'type' => 'float' };
-$as_values->{'stf_cap_FTE_others'} = { 'id' => '', 'name' => 'stf_cap_FTE_others', 'value' => '', 'type' => 'float' };
-$as_values->{'stf_honorary_cnt'} = { 'id' => '', 'name' => 'stf_honorary_cnt', 'value' => '', 'type' => 'int' };
-$as_values->{'stf_cap_FTE_honorary'} = { 'id' => '', 'name' => 'stf_cap_FTE_honorary', 'value' => '', 'type' => 'float' };
-$as_values->{'stf_apprentices_cnt'} = { 'id' => '', 'name' => 'stf_apprentices_cnt', 'value' => '', 'type' => 'int' };
-$as_values->{'stf_advanced_training_hrs'} = { 'id' => '', 'name' => 'stf_advanced_training_hrs', 'value' => '', 'type' => 'float' };
+$as_values->{'stf_staff_scheme_appointments'} = { 'id' => '', 'name' => 'stf_staff_scheme_appointments', 'value' => '', 'type' => 'int' };                                                                      # DBS2017:66
+$as_values->{'stf_staff_cnt'} = { 'id' => '', 'name' => 'stf_staff_cnt', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:67
+$as_values->{'stf_capacity_FTE'} = { 'id' => '', 'name' => 'stf_capacity_FTE', 'value' => '', 'type' => 'float' };                                                                                              # DBS2017:68
+$as_values->{'stf_cap_FTE_librarians'} = { 'id' => '', 'name' => 'stf_cap_FTE_librarians', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:69
+$as_values->{'stf_cap_FTE_assistants'} = { 'id' => '', 'name' => 'stf_cap_FTE_assistants', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:70
+$as_values->{'stf_cap_FTE_promotional'} = { 'id' => '', 'name' => 'stf_cap_FTE_promotional', 'value' => '', 'type' => 'float' };                                                                                # DBS2017:72
+$as_values->{'stf_cap_FTE_others'} = { 'id' => '', 'name' => 'stf_cap_FTE_others', 'value' => '', 'type' => 'float' };                                                                                          # DBS2017:74
+$as_values->{'stf_honorary_cnt'} = { 'id' => '', 'name' => 'stf_honorary_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:75
+$as_values->{'stf_cap_FTE_honorary'} = { 'id' => '', 'name' => 'stf_cap_FTE_honorary', 'value' => '', 'type' => 'float' };                                                                                      # DBS2017:76
+$as_values->{'stf_apprentices_cnt'} = { 'id' => '', 'name' => 'stf_apprentices_cnt', 'value' => '', 'type' => 'int' };                                                                                          # DBS2017:77
+$as_values->{'stf_advanced_training_hrs'} = { 'id' => '', 'name' => 'stf_advanced_training_hrs', 'value' => '', 'type' => 'float' };                                                                            # DBS2017:78
 
 # services / 6. SERVICES / DIENSTLEISTUNGEN
-$as_values->{'srv_patron_recherches'} = { 'id' => '', 'name' => 'srv_patron_recherches', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_patron_workplaces'} = { 'id' => '', 'name' => 'srv_patron_workplaces', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_pat_workplc_inclopac'} = { 'id' => '', 'name' => 'srv_pat_workplc_inclopac', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_pat_workplc_web'} = { 'id' => '', 'name' => 'srv_pat_workplc_web', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_libhomepage_yn'} = { 'id' => '', 'name' => 'srv_libhomepage_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_webopac_yn'} = { 'id' => '', 'name' => 'srv_webopac_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_interactive_yn'} = { 'id' => '', 'name' => 'srv_interactive_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_socialweb_yn'} = { 'id' => '', 'name' => 'srv_socialweb_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_emailquery_yn'} = { 'id' => '', 'name' => 'srv_emailquery_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_virtualstock_yn'} = { 'id' => '', 'name' => 'srv_virtualstock_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_activeinfo_yn'} = { 'id' => '', 'name' => 'srv_activeinfo_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_publicwlan_yn'} = { 'id' => '', 'name' => 'srv_publicwlan_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_socialwork_yn'} = { 'id' => '', 'name' => 'srv_socialwork_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_events_tot'} = { 'id' => '', 'name' => 'srv_events_tot', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_events_tot_visits'} = { 'id' => '', 'name' => 'srv_events_tot_visits', 'value' => '', 'type' => 'int' };    # new since DBS 2018
-$as_values->{'srv_evt_libintro'} = { 'id' => '', 'name' => 'srv_evt_libintro', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_evt_juvenile'} = { 'id' => '', 'name' => 'srv_evt_juvenile', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_evt_adult'} = { 'id' => '', 'name' => 'srv_evt_adult', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_evt_exhibition'} = { 'id' => '', 'name' => 'srv_evt_exhibition', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_evt_other'} = { 'id' => '', 'name' => 'srv_evt_other', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_school_libs'} = { 'id' => '', 'name' => 'srv_school_libs', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_admin_libs'} = { 'id' => '', 'name' => 'srv_admin_libs', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_contracts'} = { 'id' => '', 'name' => 'srv_contracts', 'value' => '', 'type' => 'int' };
-$as_values->{'srv_rfidcheckio_yn'} = { 'id' => '', 'name' => 'srv_rfidcheckio_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_mobiledevices_yn'} = { 'id' => '', 'name' => 'srv_mobiledevices_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'srv_remarks'} = { 'id' => '', 'name' => 'srv_remarks', 'value' => '', 'type' => 'text' };
+#$as_values->{'srv_patron_recherches'} = { 'id' => '', 'name' => 'srv_patron_recherches', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:79 (dropped since DBS 2019)
+$as_values->{'srv_patron_workplaces'} = { 'id' => '', 'name' => 'srv_patron_workplaces', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:80
+$as_values->{'srv_pat_workplc_inclopac'} = { 'id' => '', 'name' => 'srv_pat_workplc_inclopac', 'value' => '', 'type' => 'int' };                                                                                # DBS2017:81
+$as_values->{'srv_pat_workplc_web'} = { 'id' => '', 'name' => 'srv_pat_workplc_web', 'value' => '', 'type' => 'int' };                                                                                          # DBS2017:82
+$as_values->{'srv_libhomepage_yn'} = { 'id' => '', 'name' => 'srv_libhomepage_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:83
+$as_values->{'srv_webopac_yn'} = { 'id' => '', 'name' => 'srv_webopac_yn', 'value' => '', 'type' => 'bool' };                                                                                                   # DBS2017:85
+$as_values->{'srv_interactive_yn'} = { 'id' => '', 'name' => 'srv_interactive_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:86
+$as_values->{'srv_socialweb_yn'} = { 'id' => '', 'name' => 'srv_socialweb_yn', 'value' => '', 'type' => 'bool' };                                                                                               # DBS2017:87
+$as_values->{'srv_emailquery_yn'} = { 'id' => '', 'name' => 'srv_emailquery_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2017:88
+$as_values->{'srv_virtualstock_yn'} = { 'id' => '', 'name' => 'srv_virtualstock_yn', 'value' => '', 'type' => 'bool' };                                                                                         # DBS2017:89
+$as_values->{'srv_activeinfo_yn'} = { 'id' => '', 'name' => 'srv_activeinfo_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2017:90
+$as_values->{'srv_publicwlan_yn'} = { 'id' => '', 'name' => 'srv_publicwlan_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2017:91
+$as_values->{'srv_socialwork_yn'} = { 'id' => '', 'name' => 'srv_socialwork_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2017:92
+$as_values->{'srv_events_tot'} = { 'id' => '', 'name' => 'srv_events_tot', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:94
+$as_values->{'srv_events_tot_visits'} = { 'id' => '', 'name' => 'srv_events_tot_visits', 'value' => '', 'type' => 'int' };                                                                                      # DBS2018:94.1 DBS2019:99.1 (new since DBS 2018) (99.1 since DBS 2019)
+$as_values->{'srv_evt_libintro'} = { 'id' => '', 'name' => 'srv_evt_libintro', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:95
+$as_values->{'srv_evt_juvenile'} = { 'id' => '', 'name' => 'srv_evt_juvenile', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:96
+$as_values->{'srv_evt_adult'} = { 'id' => '', 'name' => 'srv_evt_adult', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:97
+$as_values->{'srv_evt_exhibition'} = { 'id' => '', 'name' => 'srv_evt_exhibition', 'value' => '', 'type' => 'int' };                                                                                            # DBS2017:98
+$as_values->{'srv_evt_other'} = { 'id' => '', 'name' => 'srv_evt_other', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:99
+$as_values->{'srv_school_libs'} = { 'id' => '', 'name' => 'srv_school_libs', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2017:100
+$as_values->{'srv_admin_libs'} = { 'id' => '', 'name' => 'srv_admin_libs', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:101
+$as_values->{'srv_contracts'} = { 'id' => '', 'name' => 'srv_contracts', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:102
+$as_values->{'srv_rfidcheckio_yn'} = { 'id' => '', 'name' => 'srv_rfidcheckio_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:103
+$as_values->{'srv_mobiledevices_yn'} = { 'id' => '', 'name' => 'srv_mobiledevices_yn', 'value' => '', 'type' => 'bool' };                                                                                       # DBS2017:104
+$as_values->{'srv_remarks'} = { 'id' => '', 'name' => 'srv_remarks', 'value' => '', 'type' => 'text' };                                                                                                         # DBS2017:199
 
 # patients' libraries / PATIENTENBIBLIOTHEKEN
-$as_values->{'ptl_clinical_network_yn'} = { 'id' => '', 'name' => 'ptl_clinical_network_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'ptl_clinet_clinics'} = { 'id' => '', 'name' => 'ptl_clinet_clinics', 'value' => '', 'type' => 'int' };
-$as_values->{'ptl_clinet_patientslibs'} = { 'id' => '', 'name' => 'ptl_clinet_patientslibs', 'value' => '', 'type' => 'int' };
-$as_values->{'ptl_clinic_beds'} = { 'id' => '', 'name' => 'ptl_clinic_beds', 'value' => '', 'type' => 'int' };
-$as_values->{'ptl_outpatients'} = { 'id' => '', 'name' => 'ptl_outpatients', 'value' => '', 'type' => 'int' };
-$as_values->{'ptl_trolley_service_yn'} = { 'id' => '', 'name' => 'ptl_trolley_service_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'ptl_trolley_service_hrs'} = { 'id' => '', 'name' => 'ptl_trolley_service_hrs', 'value' => '', 'type' => 'float' };
-$as_values->{'ptl_laptop_service_yn'} = { 'id' => '', 'name' => 'ptl_laptop_service_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'ptl_mediaplayer_service_yn'} = { 'id' => '', 'name' => 'ptl_mediaplayer_service_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'ptl_medical_lib_yn'} = { 'id' => '', 'name' => 'ptl_medical_lib_yn', 'value' => '', 'type' => 'bool' };
-$as_values->{'ptl_combined_lib_yn'} = { 'id' => '', 'name' => 'ptl_combined_lib_yn', 'value' => '', 'type' => 'bool' };
+$as_values->{'ptl_clinical_network_yn'} = { 'id' => '', 'name' => 'ptl_clinical_network_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2017:200
+$as_values->{'ptl_clinet_clinics'} = { 'id' => '', 'name' => 'ptl_clinet_clinics', 'value' => '', 'type' => 'int' };                                                                                            # DBS2017:201
+$as_values->{'ptl_clinet_patientslibs'} = { 'id' => '', 'name' => 'ptl_clinet_patientslibs', 'value' => '', 'type' => 'int' };                                                                                  # DBS2017:202
+$as_values->{'ptl_clinic_beds'} = { 'id' => '', 'name' => 'ptl_clinic_beds', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2017:203
+$as_values->{'ptl_outpatients'} = { 'id' => '', 'name' => 'ptl_outpatients', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2017:204
+$as_values->{'ptl_trolley_service_yn'} = { 'id' => '', 'name' => 'ptl_trolley_service_yn', 'value' => '', 'type' => 'bool' };                                                                                   # DBS2017:205
+$as_values->{'ptl_trolley_service_hrs'} = { 'id' => '', 'name' => 'ptl_trolley_service_hrs', 'value' => '', 'type' => 'float' };                                                                                # DBS2017:206
+$as_values->{'ptl_laptop_service_yn'} = { 'id' => '', 'name' => 'ptl_laptop_service_yn', 'value' => '', 'type' => 'bool' };                                                                                     # DBS2017:207
+$as_values->{'ptl_mediaplayer_service_yn'} = { 'id' => '', 'name' => 'ptl_mediaplayer_service_yn', 'value' => '', 'type' => 'bool' };                                                                           # DBS2017:208
+$as_values->{'ptl_medical_lib_yn'} = { 'id' => '', 'name' => 'ptl_medical_lib_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:209
+$as_values->{'ptl_combined_lib_yn'} = { 'id' => '', 'name' => 'ptl_combined_lib_yn', 'value' => '', 'type' => 'bool' };                                                                                         # DBS2017:210
 
 # mobile libraries / FAHRBIBLIOTHEKEN
 $as_values->{'mol_vehicles'} = { 'id' => '', 'name' => 'mol_vehicles', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_vehicles'] };                                                # DBS2017:300
-$as_values->{'mol_multiple_communes_yn'} = { 'id' => '', 'name' => 'mol_multiple_communes_yn', 'value' => '', 'type' => 'bool' };
+$as_values->{'mol_multiple_communes_yn'} = { 'id' => '', 'name' => 'mol_multiple_communes_yn', 'value' => '', 'type' => 'bool' };                                                                               # DBS2017:301
 $as_values->{'mol_stop_stations'} = { 'id' => '', 'name' => 'mol_stop_stations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_stop_stations'] };                                 # DBS2017:302
-$as_values->{'mol_cycle_days'} = { 'id' => '', 'name' => 'mol_cycle_days', 'value' => '', 'type' => 'int' };
-$as_values->{'mol_openinghours_week'} = { 'id' => '', 'name' => 'mol_openinghours_week', 'value' => '', 'type' => 'float' };
+$as_values->{'mol_cycle_days'} = { 'id' => '', 'name' => 'mol_cycle_days', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:303
+$as_values->{'mol_openinghours_week'} = { 'id' => '', 'name' => 'mol_openinghours_week', 'value' => '', 'type' => 'float' };                                                                                    # DBS2017:304
 $as_values->{'mol_stock_media_units'} = { 'id' => '', 'name' => 'mol_stock_media_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_stock_media_units'] };                     # DBS2017:305
-$as_values->{'mol_media_unit_issues'} = { 'id' => '', 'name' => 'mol_media_unit_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_media_unit_issues'] };                     # DBS2017:306
+$as_values->{'mol_media_unit_issues'} = { 'id' => '', 'name' => 'mol_media_unit_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_media_unit_issues'] };                     # DBS2017:307
 
 # music libraries / MUSIKBIBLIOTHEKEN
 $as_values->{'mus_sheetmusic_stock'} = { 'id' => '', 'name' => 'mus_sheetmusic_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mus_sheetmusic_stock'] };                        # DBS2017:400
@@ -200,8 +203,8 @@ $as_values->{'mus_other_stock'} = { 'id' => '', 'name' => 'mus_other_stock', 'va
 $as_values->{'mus_other_issues'} = { 'id' => '', 'name' => 'mus_other_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mus_other_issues'] };                                    # DBS2017:417
 $as_values->{'mus_stock_tot'} = { 'id' => '', 'name' => 'mus_stock_tot', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mus_stock_tot'] };                                             # DBS2017:418
 $as_values->{'mus_issues_tot'} = { 'id' => '', 'name' => 'mus_issues_tot', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mus_issues_tot'] };                                          # DBS2017:419
-$as_values->{'mus_audioplaybacks'} = { 'id' => '', 'name' => 'mus_audioplaybacks', 'value' => '', 'type' => 'int' };
-$as_values->{'mus_acq_expenses'} = { 'id' => '', 'name' => 'mus_acq_expenses', 'value' => '', 'type' => 'float' };
+$as_values->{'mus_audioplaybacks'} = { 'id' => '', 'name' => 'mus_audioplaybacks', 'value' => '', 'type' => 'int' };                                                                                            # DBS2017:420
+$as_values->{'mus_acq_expenses'} = { 'id' => '', 'name' => 'mus_acq_expenses', 'value' => '', 'type' => 'float' };                                                                                              # DBS2017:421
 
 
 my $dbs_sql_statements = {};    # hash for storing the sql statements for calculating DBS values based on standard Koha DB tables
@@ -1083,6 +1086,22 @@ $dbs_sql_statements->{'med_withdrawal_units'} = q{
           and ( ((@branchgroupSelect0or1) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel) COLLATE utf8mb4_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+              )
+    ) x
+};
+# DBS2019:38.1
+$dbs_sql_statements->{'med_database_login_cnt'} = q{
+    select sum(cnt) as res from
+    (   select count(*) as cnt from action_logs a, borrowers b
+        where ( a.user = b.borrowernumber )
+          and ( a.timestamp >= (@startdatum := ?) )
+          and ( a.timestamp <= (@enddatum := ?) )
+          and ( a.module = 'DIVIBIB' and a.action = 'AUTHENTICATION' and a.interface = 'opac' )
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and b.branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
+                or
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and b.branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
                 (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
