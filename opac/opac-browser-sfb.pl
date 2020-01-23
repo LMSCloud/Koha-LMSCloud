@@ -156,7 +156,7 @@ if ( $filter ne '' ) {
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
         if ( defined($line->{'classification'}) ) {
-            $line->{'classification'} =~ s/^[CZMYS]:\s*//;
+            $line->{'classification'} =~ s/^[CZMNYS]:\s*//;
         }
         $line->{'search'} = createSearchString($line);
         push @level_entries_loop, $line if $line->{endnode};
@@ -171,7 +171,7 @@ if ( $filter ne '' ) {
     $sth->execute($filter);
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{'search'} = createSearchString($line);
         $myentry = $line;
     }
@@ -182,7 +182,7 @@ if ($level == 1) {
     $sth->execute();
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{'search'} = createSearchString($line);
         push @child_loop, $line;
         $childcount++;
@@ -192,7 +192,7 @@ if ($level == 1) {
     $sth->execute();
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{'search'} = createSearchString($line);
         push @youth_loop, $line;
         $youthcount++;
@@ -202,7 +202,7 @@ if ($level == 1) {
     $sth->execute();
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{'search'} = createSearchString($line);
         push @adult_loop, $line;
         $adultcount++;
@@ -212,7 +212,7 @@ if ($level == 1) {
     $sth->execute();
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{'search'} = createSearchString($line);
         push @music_loop, $line;
         $musiccount++;
