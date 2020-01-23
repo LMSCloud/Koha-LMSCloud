@@ -352,7 +352,13 @@ foreach my $budget ( @{$budgets} ) {
     push @budgets_loop, $budget;
 }
 
-$template->param( budgetsloop => \@budgets_loop);
+my $active_budgets = {};
+foreach my $budgper( @{C4::Budgets::GetBudgetPeriods( { budget_period_active => 1 } ) } ) {
+    $active_budgets->{$budgper->{budget_period_id}}=1;
+}
+
+$template->param( budgetsloop => \@budgets_loop, activebudgets => $active_budgets);
+
 if( $suggestion_ref->{STATUS} ) {
     $template->param(
         "statusselected_".$suggestion_ref->{STATUS} => 1,
