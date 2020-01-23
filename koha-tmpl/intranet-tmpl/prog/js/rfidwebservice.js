@@ -336,7 +336,7 @@ var RFIDWebService = {
             if ( $('.lastcheckoutbarcode').length > 0 ) {
                 var barcodes = $('.lastcheckoutbarcode').map(function() { return $(this).text(); }).get();
                 for (var i=0; i < barcodes.length; i++) {
-                    if ( barcode == barcodes[i] ) {
+                    if ( barcode.trim().toLowerCase() == barcodes[i].trim().toLowerCase() ) {
                         RFIDWebService.UnlockItemBarcode(barcode);
                     }
                 }
@@ -365,7 +365,7 @@ var RFIDWebService = {
                 var barcodes = $('.lastcheckinbarcode').map(function() { return $(this).text(); }).get();
                 for (var i=0; i < barcodes.length; i++) {
                     // console.log("Compare return item " + barcode + " with returned barcode " + barcodes[i].trim());
-                    if ( barcode == barcodes[i].trim() ) {
+                    if ( barcode.trim().toLowerCase() == barcodes[i].trim().toLowerCase() ) {
                         RFIDWebService.LockItemBarcode(barcode);
                     }
                 }
