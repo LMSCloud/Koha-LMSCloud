@@ -107,7 +107,7 @@ sub getbyISBN {
 				$isbnlong = $isbn13->as_string([]);
 				$isbnlongdash = $isbn13->as_string();
 				$isbnshort = $isbn13->as_isbn10->as_string([]);
-				$isbnshortdash = $isbn13->as_string();
+				$isbnshortdash = $isbn13->as_isbn10->as_string();
 			}
 		};
 		

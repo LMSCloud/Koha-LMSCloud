@@ -43,9 +43,8 @@ our $VERSION = '0.01';
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-#use constant EKZWSURL => 'https://87.137.73.13:9443/epmw-2.0/services/BestellsystemService'; # do not use regularily, because fixed IP address is inflexible
-use constant EKZWSURL => 'https://mbk.ekz.de:9443/epmw-2.0/services/BestellsystemService'; # explicitly not a system preference
-#use constant EKZWSURL => 'http://mbk.ekz.de:9080/epmw-2.0/services/BestellsystemService'; # do not use regularily, because credentials are sent in cleartext
+# ekz Medienwelten ( since 14.01.2020 (old URL of ekz Medienservices: https://mbk.ekz.de:9443/epmw-2.0/services/BestellsystemService ) )
+use constant EKZWSURL => 'https://medienwelten.ekz.de/epmw-2.0/services/BestellsystemService'; # explicitly not a system preference
 
 my $debugIt = 1;
 

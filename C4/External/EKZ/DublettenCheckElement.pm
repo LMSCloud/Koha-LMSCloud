@@ -94,49 +94,53 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
             print STDERR "DublettenCheckElement::DublettenCheckElement() title loop $i\n" if $self->{debugIt};
             my $titel = $titelArrayRef->[$i];
 
-            # extracting the search criteria
-            my $reqParamTitelInfo->{'ekzArtikelNr'} = $titel->{'ekzArtikelNr'};
-            $reqParamTitelInfo->{'isbn'} = $titel->{'titelInfo'}->{'isbn'};
-            $reqParamTitelInfo->{'isbn13'} = $titel->{'titelInfo'}->{'isbn13'};
-            $reqParamTitelInfo->{'issn'} = $titel->{'titelInfo'}->{'issn'};
-            $reqParamTitelInfo->{'ismn'} = $titel->{'titelInfo'}->{'ismn'};
-            $reqParamTitelInfo->{'ean'} = $titel->{'titelInfo'}->{'ean'};
-            $reqParamTitelInfo->{'author'} = $titel->{'titelInfo'}->{'author'};
-            $reqParamTitelInfo->{'titel'} = $titel->{'titelInfo'}->{'titel'};
-            $reqParamTitelInfo->{'erscheinungsJahr'} = $titel->{'titelInfo'}->{'erscheinungsJahr'};
-    
-            if ( $self->{debugIt} ) {
-                # log request parameters
-                my $logstr = $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ekzArtikelNr:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'isbn'} ? $reqParamTitelInfo->{'isbn'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request isbn:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'isbn13'} ? $reqParamTitelInfo->{'isbn13'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request isbn13:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'issn'} ? $reqParamTitelInfo->{'issn'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request issn:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'ismn'} ? $reqParamTitelInfo->{'ismn'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ismn:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'ean'} ? $reqParamTitelInfo->{'ean'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ean:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'author'} ? $reqParamTitelInfo->{'author'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request author:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'titel'} ? $reqParamTitelInfo->{'titel'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:$logstr:\n";
-                $logstr = $reqParamTitelInfo->{'erscheinungsJahr'} ? $reqParamTitelInfo->{'erscheinungsJahr'} : "<undef>";
-                print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request erscheinungsJahr:$logstr:\n";
+            # handle title block only if title info is not empty
+            if ( $titel && defined($titel->{'titelInfo'}) && ref($titel->{'titelInfo'}) eq 'HASH' ) {
+
+                # extracting the search criteria
+                my $reqParamTitelInfo->{'ekzArtikelNr'} = $titel->{'ekzArtikelNr'};
+                $reqParamTitelInfo->{'isbn'} = $titel->{'titelInfo'}->{'isbn'};
+                $reqParamTitelInfo->{'isbn13'} = $titel->{'titelInfo'}->{'isbn13'};
+                $reqParamTitelInfo->{'issn'} = $titel->{'titelInfo'}->{'issn'};
+                $reqParamTitelInfo->{'ismn'} = $titel->{'titelInfo'}->{'ismn'};
+                $reqParamTitelInfo->{'ean'} = $titel->{'titelInfo'}->{'ean'};
+                $reqParamTitelInfo->{'author'} = $titel->{'titelInfo'}->{'author'};
+                $reqParamTitelInfo->{'titel'} = $titel->{'titelInfo'}->{'titel'};
+                $reqParamTitelInfo->{'erscheinungsJahr'} = $titel->{'titelInfo'}->{'erscheinungsJahr'};
+        
+                if ( $self->{debugIt} ) {
+                    # log request parameters
+                    my $logstr = $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ekzArtikelNr:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'isbn'} ? $reqParamTitelInfo->{'isbn'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request isbn:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'isbn13'} ? $reqParamTitelInfo->{'isbn13'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request isbn13:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'issn'} ? $reqParamTitelInfo->{'issn'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request issn:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'ismn'} ? $reqParamTitelInfo->{'ismn'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ismn:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'ean'} ? $reqParamTitelInfo->{'ean'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ean:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'author'} ? $reqParamTitelInfo->{'author'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request author:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'titel'} ? $reqParamTitelInfo->{'titel'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:$logstr:\n";
+                    $logstr = $reqParamTitelInfo->{'erscheinungsJahr'} ? $reqParamTitelInfo->{'erscheinungsJahr'} : "<undef>";
+                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request erscheinungsJahr:$logstr:\n";
+                }
+
+                my @dublettenInfo = $self->searchDubletten($reqParamTitelInfo);
+
+                if(scalar(@dublettenInfo) > 0 ) {
+                    $titleWithDubCount += 1;
+                }
+
+                print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": Anzahl dublettenInfo:",@dublettenInfo+0, "\n" if $self->{debugIt};
+                print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": dublettenInfo:",@dublettenInfo, "\n" if $self->{debugIt};
+
+                push @dublettenInfoListe, @dublettenInfo;
             }
-
-            my @dublettenInfo = $self->searchDubletten($reqParamTitelInfo);
-
-            if(scalar(@dublettenInfo) > 0 ) {
-                $titleWithDubCount += 1;
-            }
-
-            print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": Anzahl dublettenInfo:",@dublettenInfo+0, "\n" if $self->{debugIt};
-            print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": dublettenInfo:",@dublettenInfo, "\n" if $self->{debugIt};
-
-            push @dublettenInfoListe, @dublettenInfo;
         }
     }
 

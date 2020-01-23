@@ -231,7 +231,7 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
         }
         print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
 
-        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+        my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
         ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
         
         if (defined $error) {
@@ -250,29 +250,45 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
         carp("EkzKohaRecords::readTitleDubletten() isbn and isbn13 are empty -> not searching for isbn or isbn13.\n");
     } else
     {
-        # build search query for isbn/isbn13 search
-        # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-        $query = '';
-        if ( defined $selParam->{'isbn'} && length($selParam->{'isbn'}) > 0 ) {
-            $query .= "nb:\"$selParam->{'isbn'}\" or id-other:\"$selParam->{'isbn'}\"";
-        }
-        if ( defined $selParam->{'isbn13'} && length($selParam->{'isbn13'}) > 0 ) {
-            if ( length($query) > 0 ) {
-                $query .= ' or ';
-            }
-            $query .= "nb:\"$selParam->{'isbn13'}\" or id-other:\"$selParam->{'isbn13'}\"";
-        }
-        print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+        my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
+        my @isbnSelFields = ('isbn', 'isbn13');
+        ISBNSEARCH: for ( my $k = 0; $k < 2; $k += 1 ) {
+            if ( defined $selParam->{$isbnSelFields[$k]} && length($selParam->{$isbnSelFields[$k]}) > 0 ) {
+		        my @selISBN = ();
+		        eval {
+			        my $businessIsbn = Business::ISBN->new($selParam->{$isbnSelFields[$k]});
+			        if ( defined($businessIsbn) && ! $businessIsbn->error ) {
+				        $selISBN[0] = $businessIsbn->as_string([]);
+				        $selISBN[1] = $businessIsbn->as_string();
+				        $selISBN[2] = $businessIsbn->as_isbn10->as_string([]);
+				        $selISBN[3] = $businessIsbn->as_isbn10->as_string();
+			        }
+		        };
+                if ( ! defined($selISBN[0]) ) {
+                        carp("EkzKohaRecords::readTitleDubletten() $isbnSelFields[$k] not valid -> not searching for $isbnSelFields[$k] $selParam->{$isbnSelFields[$k]}.\n");
+		        } else {
+                    for ( my $i = 0; $i < 4; $i += 1 ) {
+                        if ( defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
+                            # build search query for isbn/isbn13 search
+                            # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
+                            my $query = "nb:\"$selISBN[$i]\" or id-other:\"$selISBN[$i]\"";
+                            print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+            
+                            ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
         
-        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
-        ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
-    
-        if (defined $error) {
-            my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for isbn:%s: or isbn13:%s: returned error:%d/%s:\n", $selParam->{'isbn'}, $selParam->{'isbn13'}, $error,$error);
-            carp $log_str;
-        } else
-        {
-            mergeMarcresults(\@allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                            if (defined $error) {
+                                my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for %s:%s: returned error:%d/%s:\n", $isbnSelFields[$k], $selISBN[$i], $error,$error);
+                                carp $log_str;
+                            } else {
+                                if ( $total_hits > 0 ) {
+                                    mergeMarcresults(\@allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                                    last ISBNSEARCH;
+                                }
+                            }
+                        }
+                    }
+		        }
+            }
         }
         print STDERR "EkzKohaRecords::readTitleDubletten() isbn/isbn13 search total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
     }
@@ -307,7 +323,7 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
         $query = $query1 . $query2;
         print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
         
-        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+        my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
         ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
     
         if (defined $error) {
@@ -325,7 +341,7 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
             $query = $query1 . $query3;
             print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
             
-            ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+            ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
             ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
         
             if (defined $error) {
@@ -348,7 +364,7 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
         $query = "au,phr:\"$selParam->{'author'}\" and ti,phr,ext:\"$selParam->{'titel'}\" and yr,st-year:\"$selParam->{'erscheinungsJahr'}\"";
         print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
         
-        my ( $error, $marcresults, $total_hits ) = ( '', \(), 0 );
+        my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
         ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
     
         if (defined $error) {
@@ -501,11 +517,26 @@ print STDERR "EkzKohaRecords::readTitleFromZ3950Target() z3950kohaservername:$z3
             title => '',
             author => ''
         };
+
         if ( defined($selIsbn13) && length($selIsbn13) > 0 ) {
-            $params->{'isbn'} = $selIsbn13;
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: isbn:$params->{'isbn'}:\n" if $debugIt;
-            C4::Breeding::Z3950SearchGeneral($params, \$result, \$errors);
-            $params->{'isbn'} = '';
+		    my @selISBN = ();
+		    eval {
+			    my $businessIsbn = Business::ISBN->new($selIsbn13);
+			    if ( defined($businessIsbn) && ! $businessIsbn->error ) {
+				    $selISBN[0] = $businessIsbn->as_string([]);
+				    $selISBN[1] = $businessIsbn->as_string();
+				    $selISBN[2] = $businessIsbn->as_isbn10->as_string([]);
+				    $selISBN[3] = $businessIsbn->as_isbn10->as_string();
+			    }
+		    };
+            for ( my $i = 0; $i < 4; $i += 1 ) {
+                if ( $result->{'count'} == 0 && defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
+                    $params->{'isbn'} = $selISBN[$i];
+print STDERR "EkzKohaRecords::readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: isbn:$selISBN[$i]:\n" if $debugIt;
+                    C4::Breeding::Z3950SearchGeneral($params, \$result, \$errors);
+                    $params->{'isbn'} = '';
+                }
+            }
         }
         if ( $result->{'count'} == 0 && defined($selIssn) && length($selIssn) > 0 ) {
             $params->{'issn'} = $selIssn;

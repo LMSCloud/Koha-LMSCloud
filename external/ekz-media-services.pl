@@ -57,7 +57,8 @@ while (<STDIN>) {
 print STDERR ("ekz-media-services.pl STDIN:" . "\n") if $debugIt;
   
 my $p1 = new XML::Parser(Style => 'Tree', ProtocolEncoding => 'UTF-8');
-my $soapEnvelopeDeserialized = $p1->parse($soapEnvelope);                    # this is an array ref on ('soap:Envelope', [ ... ])
+my $soapEnvelopeDeserialized;
+eval { $soapEnvelopeDeserialized = $p1->parse($soapEnvelope); };                    # this is an array ref on ('soap:Envelope', [ ... ])
 print STDERR "ekz-media-services.pl soapEnvelopeDeserialized:\n" if $debugIt;
 print STDERR Dumper($soapEnvelopeDeserialized) if $debugIt;
 

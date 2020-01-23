@@ -125,6 +125,7 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
 
 
     my $ekzBestellNrIsDuplicate = 0;
+    my $ekzArtikelNrNotValid = 0;
     my $reqEkzBestellNr = defined $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'ekzBestellNr'} && length($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'ekzBestellNr'})
                             ? $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'ekzBestellNr'} : 'UNDEFINED';
     my $zeitstempel = $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'zeitstempel'};
@@ -207,10 +208,61 @@ print STDERR "BestellInfoElement::process() acquisitionImportIdBestellInfo:", $a
 
         my $titleCount = scalar @$titelArrayRef;
         print STDERR "BestellInfoElement::process() HTTP titleCount:",$titleCount, ":\n" if $self->{debugIt};
+        print STDERR "BestellInfoElement::process() HTTP reqEkzBestellNr:" . $reqEkzBestellNr . ":\n" if $self->{debugIt};
+        print STDERR "BestellInfoElement::process() HTTP ekzBestellNrIsDuplicate:" . $ekzBestellNrIsDuplicate . ":\n" if $self->{debugIt};
+
+        # for each titel: check if there is sent a real ekzArtikelNr or if it can be generated from isbn13, isbn, ean at least
+        for ( my $i = 0; $i < $titleCount && $reqEkzBestellNr ne 'UNDEFINED' && !$ekzBestellNrIsDuplicate; $i++ ) {
+            my $titel = $titelArrayRef->[$i];
+            print STDERR "BestellInfoElement::process() title check-loop i:$i: titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+
+            if ( ! defined($titel->{'ekzArtikelNr'}) || $titel->{'ekzArtikelNr'}+0 == 0 || index($titel->{'ekzArtikelNr'},'-') >= 0 ) {
+                if ( defined($titel->{'ekzArtikelNr'}) ) {    # do some normalization
+                    $titel->{'ekzArtikelNr'} =~ s/\s//g;
+                    if ( index($titel->{'ekzArtikelNr'},'-') >= 0 ) {    # probably an ISBN, so remove the '-'
+                        $titel->{'ekzArtikelNr'} =~ tr/-//d;
+                        $titel->{'ekzArtikelNr'} += 0;    # remove the trailing X, if there is one
+                        if ( $titel->{'ekzArtikelNr'}+0 > 99999999 ) {    # it was at least an ISBN 10 (which may end with an 'X')
+print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNotValid: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+                            next;    # this value may be used as ekzArtikelNr
+                        }
+                    }
+                }
+                $ekzArtikelNrNotValid = 1;    # this is our pessimistic assumption
+                # handle title block only if title info is not empty
+                if ( $titel && defined($titel->{'titelInfo'}) && ref($titel->{'titelInfo'}) eq 'HASH' ) {
+                    if ( defined($titel->{'titelInfo'}->{'isbn13'}) && $titel->{'titelInfo'}->{'isbn13'} && length($titel->{'titelInfo'}->{'isbn13'}) >= 13 ) {
+                        $titel->{'ekzArtikelNr'} = $titel->{'titelInfo'}->{'isbn13'};
+                        $titel->{'ekzArtikelNr'} =~ s/\s//g;
+                        $titel->{'ekzArtikelNr'} =~ tr/-//d;
+                        $ekzArtikelNrNotValid = 0;
+                    } elsif ( defined($titel->{'titelInfo'}->{'ean'}) && $titel->{'titelInfo'}->{'ean'} && length($titel->{'titelInfo'}->{'ean'}) >= 13 ) {
+                        $titel->{'ekzArtikelNr'} = $titel->{'titelInfo'}->{'ean'};
+                        $titel->{'ekzArtikelNr'} =~ s/\s//g;
+                        $titel->{'ekzArtikelNr'} += 0;    # ensure to use only the number part
+                        $ekzArtikelNrNotValid = 0;
+                    } elsif ( defined($titel->{'titelInfo'}->{'isbn'}) && $titel->{'titelInfo'}->{'isbn'} && length($titel->{'titelInfo'}->{'isbn'}) >= 10 ) {
+                        $titel->{'ekzArtikelNr'} = $titel->{'titelInfo'}->{'isbn'};    # the ISBN may end with 'X', we evaluate the number before this 'X'
+                        $titel->{'ekzArtikelNr'} =~ s/\s//g;
+                        $titel->{'ekzArtikelNr'} =~ tr/-//d;
+                        $titel->{'ekzArtikelNr'} += 0;    # remove the trailing X, if there is one
+                        $ekzArtikelNrNotValid = 0;
+                    }
+                }
+                print STDERR "BestellInfoElement::process() title check-loop i:$i: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+                if ( !$ekzArtikelNrNotValid && $titel->{'ekzArtikelNr'} > 0 && length($titel->{'ekzArtikelNr'}) >= 9 ) {
+                    $ekzArtikelNrNotValid = 0;    # we had luck
+                } else {
+                    $ekzArtikelNrNotValid = 1;    # we had no luck
+                    last;   # so at least one title can not be supplied with an ekzArtikelNr
+                }
+            }
+print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNotValid: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+        }
 
         # attaching ekz order to Koha acquisition: Create new basket.
         # if system preference ekzAqbooksellersId is not empty: create a Koha order basket for collecting the Koha orders created for each title contained in the request in the following steps.
-        if ( $titleCount > 0 && $reqEkzBestellNr ne 'UNDEFINED' && !$ekzBestellNrIsDuplicate ) {
+        if ( $titleCount > 0 && $reqEkzBestellNr ne 'UNDEFINED' && !$ekzBestellNrIsDuplicate && !$ekzArtikelNrNotValid ) {
             # policy: if ekzAqbooksellersId is not empty but does not identify an aqbooksellers record: create such an record and update ekzAqbooksellersId
             $self->{ekzAqbooksellersId} = C4::External::EKZ::lib::EkzKohaRecords->checkEkzAqbooksellersId($self->{ekzAqbooksellersId},1);
             if ( length($self->{ekzAqbooksellersId}) ) {
@@ -247,7 +299,7 @@ print STDERR "BestellInfoElement::process() acquisitionImportIdBestellInfo:", $a
 
 
         # for each titel
-        for ( my $i = 0; $i < $titleCount && $reqEkzBestellNr ne 'UNDEFINED' && !$ekzBestellNrIsDuplicate && !$acquisitionError; $i++ ) {
+        for ( my $i = 0; $i < $titleCount && $reqEkzBestellNr ne 'UNDEFINED' && !$ekzBestellNrIsDuplicate && !$ekzArtikelNrNotValid && !$acquisitionError; $i++ ) {
             print STDERR "BestellInfoElement::process() title loop $i\n" if $self->{debugIt};
             my $titel = $titelArrayRef->[$i];
 
@@ -372,7 +424,6 @@ print STDERR "BestellInfoElement::process() is calling CloseBasketgroup basketgr
     #$dbh->rollback;    # roll it back for TEST XXXWH
     #@idPaarListe = (); # roll it back for TEST XXXWH
 
-
     $respStatusCode = 'ERROR';
     if ( !$authenticated ) {
         $respStatusMessage = "nicht authentifiziert";
@@ -381,6 +432,9 @@ print STDERR "BestellInfoElement::process() is calling CloseBasketgroup basketgr
     } elsif ( $reqEkzBestellNr eq 'UNDEFINED' )
     {
         $respStatusMessage = "keine ekzBestellNr empfangen";
+    } elsif ( $ekzArtikelNrNotValid )
+    {
+        $respStatusMessage = "Mindestens einer der Titel hat keine gültige ekz-Artikelnummer.";
     } elsif ( $acquisitionError )
     {
         $respStatusMessage = "Die Koha-Erwerbung kann nicht angesprochen werden.";
