@@ -66,6 +66,7 @@ use Koha::Patrons;
 use Koha::AuthUtils qw(hash_password);
 use C4::Auth qw(&checkpw_hash);
 use C4::Log qw( logaction );
+use C4::Stats qw( UpdateStats );
 
 my $query = new CGI;
 
@@ -226,9 +227,20 @@ if ( $patron ) {
         logaction(  "DIVIBIB", 
                     "AUTHENTICATION", 
                     $patron->borrowernumber, 
-                    $dumper->Terse(1)->Dump
+                    $dumper->Indent(0)->Terse(1)->Dump
                 );
     }
+    # also log to table statistics (required since DBS 2019)
+    my $dumper = Data::Dumper->new( [{ request_userid => $borrowernumber, requester_ip => $ENV{'REMOTE_ADDR'}, response => $response }]);
+    UpdateStats(
+        {
+            branch         => $patron->branchcode,
+            type           => 'auth-ext',
+            borrowernumber => $patron->borrowernumber,
+            other          => $dumper->Indent(0)->Terse(1)->Dump
+        }
+    );
+    
 }
 
 # In order to avoid errors caused by translation of templates containing a xml prolog, we do not use a template here but
