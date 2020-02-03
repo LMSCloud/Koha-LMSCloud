@@ -227,7 +227,8 @@ if ( $patron ) {
         logaction(  "DIVIBIB", 
                     "AUTHENTICATION", 
                     $patron->borrowernumber, 
-                    $dumper->Indent(0)->Terse(1)->Dump
+                    $dumper->Indent(0)->Terse(1)->Dump,
+                    'opac'
                 );
     }
     # also log to table statistics (required since DBS 2019)
