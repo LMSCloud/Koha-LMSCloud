@@ -1,5 +1,28 @@
 #!/usr/bin/perl
 
+# Copyright 2020 (C) LMSCLoud GmbH
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Koha; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# In order to count single sign on actions (borrower authentications for DIVIBIB, Munzinger etc.) in DBS 2019 and later,
+# corresponding entries are written to table statistics by opac-divibib-auth.pl since february 2020.
+# To achieve counting since 01.01.2019 for DBS, we evaluate table action_logs and insert the found 'AUTHENTICATION' actions
+# into table statistics in modified form.
+
 use strict;
 use warnings;
 use Data::Dumper;
