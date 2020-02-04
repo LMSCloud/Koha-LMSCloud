@@ -42,7 +42,7 @@ binmode( STDOUT, ":utf8" );
 binmode( STDERR, ":utf8" );
 
 
-my $debug = 1;
+my $debug = 0;
 my $rollItBack = 0;
 
 
@@ -249,7 +249,8 @@ if ( index($ekzKundenNr, '|') == -1 ) {
     # modify ekzOrderNr in aqbasket
     $modifiedCountAqbasket = &modify_aqbasket($ekzKundenNr,$ekzBooksellersId);
 }
-print "upgrade_ekzOrderNr_for_STO.pl END modifiedCountAcquisitionImport:$modifiedCountAcquisitionImport:  modifiedCountAqbasketgroups:$modifiedCountAqbasketgroups:  modifiedCountAqbasket:$modifiedCountAqbasket:\n" if $debug;
+#print "upgrade_ekzOrderNr_for_STO.pl END modifiedCountAcquisitionImport:$modifiedCountAcquisitionImport:  modifiedCountAqbasketgroups:$modifiedCountAqbasketgroups:  modifiedCountAqbasket:$modifiedCountAqbasket:\n" if $debug;
+print "upgrade_ekzOrderNr_for_STO.pl END modifiedCountAcquisitionImport:$modifiedCountAcquisitionImport:  modifiedCountAqbasketgroups:$modifiedCountAqbasketgroups:  modifiedCountAqbasket:$modifiedCountAqbasket:\n";
 
 if ( $rollItBack ) {
     # roll it back for TEST
