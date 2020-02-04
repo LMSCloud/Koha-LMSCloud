@@ -86,8 +86,10 @@ sub UpdateStats {
     my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber accountno ccode location);
     my @allowed_circulation_types = qw (renew issue localuse return onsite_checkout);
     my @allowed_accounts_types = qw (writeoff payment cancelfee);
+    my @allowed_authentication_types = qw (auth-ext);
     my @circulation_mandatory_keys = qw (type branch borrowernumber itemnumber ccode itemtype);
     my @accounts_mandatory_keys = qw (type branch borrowernumber amount);
+    my @authentication_mandatory_keys = qw (type branch borrowernumber other);
 
     my @mandatory_keys = ();
     if (! exists $params->{type} or ! defined $params->{type}) {
@@ -97,6 +99,8 @@ sub UpdateStats {
         @mandatory_keys = @circulation_mandatory_keys;
     } elsif (grep ($_ eq $params->{type}, @allowed_accounts_types )) {
         @mandatory_keys = @accounts_mandatory_keys;
+    } elsif (grep ($_ eq $params->{type}, @allowed_authentication_types )) {
+        @mandatory_keys = @authentication_mandatory_keys;
     } else {
         croak ("UpdateStats received forbidden type param: ".$params->{type});
     }

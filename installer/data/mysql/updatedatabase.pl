@@ -17112,6 +17112,18 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = '18.05.05.012';
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    my $upgrade_script = C4::Context->config("intranetdir") . "/installer/data/mysql/insert_statistics_type_auth-ext.pl";
+    system("perl $upgrade_script");
+
+    $upgrade_script = C4::Context->config("intranetdir") . "/installer/data/mysql/upgrade_ekzOrderNr_for_STO.pl";
+    system("perl $upgrade_script");
+
+    print "Upgrade to $DBversion done (Copied DIVIBIB authentications to table statistics for DBS 2019. Migrated pseudo ekzOrderNr of STOs from stoIDxxx to sto.yyy.IDxxx for ekz media services.)\n";
+    SetVersion ($DBversion);
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

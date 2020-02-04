@@ -1094,14 +1094,13 @@ $dbs_sql_statements->{'med_withdrawal_units'} = q{
 # DBS2019:38.1
 $dbs_sql_statements->{'med_database_login_cnt'} = q{
     select sum(cnt) as res from
-    (   select count(*) as cnt from action_logs a, borrowers b
-        where ( a.user = b.borrowernumber )
-          and ( a.timestamp >= (@startdatum := ?) )
-          and ( a.timestamp <= (@enddatum := ?) )
-          and ( a.module = 'DIVIBIB' and a.action = 'AUTHENTICATION' and a.interface = 'opac' )
-          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and b.branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
+    (   select count(*) as cnt from statistics s 
+        where ( date(s.datetime) >= (@startdatum := ?) ) 
+          and ( date(s.datetime) <= (@enddatum := ?) )
+          and s.type = 'auth-ext'
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
-                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and b.branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
                 or
                 (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
               )
