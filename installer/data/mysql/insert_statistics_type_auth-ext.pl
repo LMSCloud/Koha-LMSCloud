@@ -36,7 +36,7 @@ binmode( STDOUT, ":utf8" );
 binmode( STDERR, ":utf8" );
 
 
-my $debug = 1;
+my $debug = 0;
 my $rollItBack = 0;
 
 my $dbh = C4::Context->dbh;
@@ -154,7 +154,7 @@ my $inseredStatistics = 0;
 # insert statistics records with type 'auth-ext' based on action_logs where module = 'DIVIBIB' and action = 'AUTHENTICATION'
 $inseredStatistics = &insert_auth_ext();
 
-print "main END inseredStatistics:$inseredStatistics:\n" if $debug;
+print "insert_statistics_type_auth-ext.pl END inseredStatistics:$inseredStatistics:\n";
 
 if ( $rollItBack ) {
     # roll it back for TEST
