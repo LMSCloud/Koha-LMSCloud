@@ -1088,7 +1088,7 @@ print STDERR "ekzWsDeliveryNote::processItemHit() insert acquisition_import reco
 print STDERR "ekzWsDeliveryNote::processItemHit() insert acquisition_import record for item res:", Dumper($res->{_column_data}), ":\n" if $debugIt;
 }
 
-# If it's an item for Standing Order (<ekzexemplarid> is not sent, but ekzArtikelNr matches a record in acquisition_import with object_number like 'stoID%' ):
+# If it's an item for Standing Order (<ekzexemplarid> is not sent, but ekzArtikelNr matches a record in acquisition_import with object_number like 'sto.%.ID%' ):
 #   Search the matching aqorders record via aqorders_items.
 #   Create a basket for this delivery note if not existing,
 #   'shift' the order into this basket. Append the old basketname in note field of the new basket (may become a list). Do not delete the old basket even if empty now.
@@ -1107,7 +1107,7 @@ print STDERR "ekzWsDeliveryNote::processItemOrder() Start biblionumber:$biblionu
 print STDERR "ekzWsDeliveryNote::processItemOrder() Start acquisitionImportTitleItemHit object_number:", $acquisitionImportTitleItemHit->object_number, ":\n" if $debugIt;
 
     my $isSTO = 0;
-    if ( $acquisitionImportTitleItemHit->object_number =~ /^stoID/ ) {
+    if ( $acquisitionImportTitleItemHit->object_number =~ /^sto\.\d+\.ID\d+/ ) {
         $isSTO = 1;
     }
 print STDERR "ekzWsDeliveryNote::processItemOrder() Start acquisitionImportTitleItemHit isSTO:$isSTO:\n" if $debugIt;
@@ -1130,7 +1130,7 @@ print STDERR "ekzWsDeliveryNote::processItemOrder() Dumper aqbasket_order:", Dum
     }
 
     if ( $isSTO ) {
-        # search/create new basket of same bookseller with basketname derived from Delivery note plus stoID
+        # search/create new basket of same bookseller with basketname derived from Delivery note plus pseudo order number derived from customer number and stoID
         my $aqbasket_delivery_name = 'L-' . $lieferscheinNummer . '/' . $aqbasket_order->{basketname};
         my $aqbasket_delivery = undef;
         my $params = {
