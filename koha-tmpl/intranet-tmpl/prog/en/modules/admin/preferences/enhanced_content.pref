@@ -426,7 +426,7 @@ Enhanced Content:
               choices:
                   yes: Enable
                   no: "Don't enable"
-            - the local ekz web services that will create title data and items as required for media ordered online in the <a href='https://mbk.ekz.de/Login.do'>media shop</a> of <a href='https://www.ekz.de'>ekz.bibliotheksservice GmbH</a>.
+            - the local ekz web services that will create title data and items as required for media ordered online in the media shop of ekz.bibliotheksservice GmbH.
         -
             - The handlers of ekz web services will send their processing notices to the e-mail address
             - pref: ekzProcessingNoticesEmailAddress
