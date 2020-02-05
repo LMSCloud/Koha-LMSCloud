@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2019-12-18 14:54+0100\n"
-"PO-Revision-Date: 2019-12-17 11:32+0100\n"
+"POT-Creation-Date: 2020-02-04 16:28+0100\n"
+"PO-Revision-Date: 2020-01-23 15:27+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -6659,6 +6659,14 @@ msgstr "%s%s (%s angezeigt)%s."
 msgid "%s%s (%s)%sDefault MARC framework%s"
 msgstr "%s%s (%s)%sStandard-MARC-Framework%s"
 
+#. %1$s:  budgetsloo.budget_name 
+#. %2$s:  IF (! activebudgets.exists(budgetsloo.budget_period_id) ) 
+#. %3$s:  END 
+#: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:379
+#, c-format
+msgid "%s%s (inactive budget)%s"
+msgstr "%s%s (inaktiver Haushalt)%s "
+
 #. %1$s:  IF ( Supplier ) 
 #. %2$s:  Supplier 
 #. %3$s:  END 
@@ -10638,18 +10646,18 @@ msgstr "** MWSt ist bereits in den Preisen des Lieferanten enthalten."
 
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:50
 #, c-format
-msgid "+ mobile library (124 col.)"
-msgstr "+ Fahrbibliothek (124 Spalten)"
+msgid "+ mobile library"
+msgstr "+ Fahrbibliothek"
 
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:51
 #, c-format
-msgid "+ music library (146 col.)"
-msgstr "+ Musikbibliothek (146 Spalten)"
+msgid "+ music library"
+msgstr "+ Musikbibliothek"
 
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:49
 #, c-format
-msgid "+ patients' library (117 col.)"
-msgstr "+ Patientenbibliothek (117 Spalten)"
+msgid "+ patients' library"
+msgstr "+ Patientenbibliothek"
 
 #: intranet-tmpl/prog/en/modules/about.tt:453
 #, c-format
@@ -10874,57 +10882,57 @@ msgstr ".%sIhr Administrator muss mindestens eine Bibliothek definieren.%s"
 msgid ".%sAn administrator must define at least one patron category.%s"
 msgstr "%sIhr Administrator muss mindestens eine Benutzergruppe definieren.%s"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:885
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:805
 #, c-format
 msgid "... Aktive Informationsdienste"
 msgstr "... Aktive Informationsdienste"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:861
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:781
 #, c-format
 msgid "... Auskunftsdienst per E-Mail"
 msgstr "... Auskunftsdienst per E-Mail"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:849
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:769
 #, c-format
 msgid "... Socialweb / Web 2.0 Angebote"
 msgstr "... Socialweb / Web 2.0 Angebote"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:873
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:793
 #, c-format
 msgid "... Virtuelle Bestände"
 msgstr "... Virtuelle Bestände"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:897
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:817
 #, c-format
 msgid "... W-LAN Angebot"
 msgstr "... W-LAN Angebot"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1055
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:975
 #, c-format
 msgid "... Zahl der Krankenhäuser im Verbund"
 msgstr "... Zahl der Krankenhäuser im Verbund"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1063
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:983
 #, c-format
 msgid "... Zahl der Patientenbibliotheken im Verbund"
 msgstr "... Zahl der Patientenbibliotheken im Verbund"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:184
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:200
 #, c-format
 msgid "... darunter: Aktive Benutzer ab einschl. 60 Jahre"
 msgstr "... darunter: Aktive Benutzer ab einschl. 60 Jahre"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:176
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:192
 #, c-format
 msgid "... darunter: Aktive Benutzer bis einschl. 12 Jahre"
 msgstr "... darunter: Aktive Benutzer bis einschl. 12 Jahre"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:540
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:477
 #, c-format
 msgid "... darunter: Ausgaben für virtuelle Medien (Lizenzen)"
 msgstr "... darunter: Ausgaben für virtuelle Medien (Lizenzen)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:797
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:717
 #, c-format
 msgid ""
 "... darunter: Computerarbeitsplätze einschließlich OPACs und "
@@ -10938,147 +10946,118 @@ msgstr ""
 msgid "... darunter: Fahrbibliotheken"
 msgstr "... darunter: Fahrbibliotheken"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:805
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:725
 #, c-format
 msgid "... darunter: Internetterminals"
 msgstr "... darunter: Internetterminals"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:306
+#, c-format
+msgid "... darunter: Kinder- und Jugendliteratur - Bestand"
+msgstr "... darunter: Kinder- und Jugendliteratur - Bestand"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:314
+#, c-format
+msgid "... darunter: Kinder- und Jugendliteratur - Entleihungen"
+msgstr "... darunter: Kinder- und Jugendliteratur - Entleihungen"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:134
+#, c-format
+msgid "... darunter: Publikumsfläche der Hauptstelle (m²)"
+msgstr "... darunter: Publikumsfläche der Hauptstelle (m²)"
 
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:102
 #, c-format
 msgid "... darunter: Zweigstellen"
 msgstr "... darunter: Zweigstellen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:370
-#, c-format
-msgid "... davon: Analoge und digitale Medien - Bestand"
-msgstr "... davon: Analoge und digitale Medien - Bestand"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:378
-#, c-format
-msgid "... davon: Analoge und digitale Medien - Entleihungen"
-msgstr "... davon: Analoge und digitale Medien - Entleihungen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:386
-#, c-format
-msgid "... davon: Andere Non-Book-Medien (z.B. Spiele) - Bestand"
-msgstr "... davon: Andere Non-Book-Medien (z.B. Spiele) - Bestand"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:394
-#, c-format
-msgid "... davon: Andere Non-Book-Medien (z.B. Spiele) - Entleihungen"
-msgstr "... davon: Andere Non-Book-Medien (z.B. Spiele) - Entleihungen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:532
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:469
 #, c-format
 msgid "... davon: Ausgaben für Erwerbung (inkl. Einband und Lizenzen)"
 msgstr "... davon: Ausgaben für Erwerbung (inkl. Einband und Lizenzen)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:548
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:485
 #, c-format
 msgid "... davon: Ausgaben für Personal"
 msgstr "... davon: Ausgaben für Personal"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:306
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:873
 #, c-format
-msgid "... davon: Belletristik - Bestand"
-msgstr "... davon: Belletristik - Bestand"
+msgid "... davon: Ausstellungen"
+msgstr "... davon: Ausstellungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:314
-#, c-format
-msgid "... davon: Belletristik - Entleihungen"
-msgstr "... davon: Belletristik - Entleihungen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:637
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:565
 #, c-format
 msgid "... davon: Bistum/Landeskirche"
 msgstr "... davon: Bistum/Landeskirche"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:613
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:541
 #, c-format
 msgid "... davon: Bund"
 msgstr "... davon: Bund"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:605
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:849
+#, c-format
+msgid "... davon: Einführungen in die Bibliotheksbenutzung"
+msgstr "... davon: Einführungen in die Bibliotheksbenutzung"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:533
 #, c-format
 msgid "... davon: Europäische Union"
 msgstr "... davon: Europäische Union"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:715
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:643
 #, c-format
 msgid "... davon: Fachangestellte/Bibliotheksassist. (VZÄ)"
 msgstr "... davon: Fachangestellte/Bibliotheksassist. (VZÄ)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:707
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:635
 #, c-format
 msgid "... davon: Fachbibliothekare (VZÄ)"
 msgstr "... davon: Fachbibliothekare (VZÄ)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:322
-#, c-format
-msgid "... davon: Kinder- und Jugendliteratur - Bestand"
-msgstr "... davon: Kinder- und Jugendliteratur - Bestand"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:330
-#, c-format
-msgid "... davon: Kinder- und Jugendliteratur - Entleihungen"
-msgstr "... davon: Kinder- und Jugendliteratur - Entleihungen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:621
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:549
 #, c-format
 msgid "... davon: Land"
 msgstr "... davon: Land"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:629
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:557
 #, c-format
 msgid "... davon: Landkreis"
 msgstr "... davon: Landkreis"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:723
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:651
 #, c-format
 msgid "... davon: Mitarb. aus Förderprogrammen (VZÄ)"
 msgstr "... davon: Mitarb. aus Förderprogrammen (VZÄ)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:134
-#, c-format
-msgid "... davon: Publikumsfläche der Hauptstelle (m²)"
-msgstr "... davon: Publikumsfläche der Hauptstelle (m²)"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:290
-#, c-format
-msgid "... davon: Sachliteratur - Bestand"
-msgstr "... davon: Sachliteratur - Bestand"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:298
-#, c-format
-msgid "... davon: Sachliteratur - Entleihungen"
-msgstr "... davon: Sachliteratur - Entleihungen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:645
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:573
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:881
 #, c-format
 msgid "... davon: Sonstige"
 msgstr "... davon: Sonstige"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:338
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:865
 #, c-format
-msgid "... davon: Zeitschriftenhefte in Printform - Bestand"
-msgstr "... davon: Zeitschriftenhefte in Printform - Bestand"
+msgid "... davon: für Erwachsene"
+msgstr "... davon: für Erwachsene"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:346
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:857
 #, c-format
-msgid "... davon: Zeitschriftenhefte in Printform - Entleihungen"
-msgstr "... davon: Zeitschriftenhefte in Printform - Entleihungen"
+msgid "... davon: für Kinder und Jugendliche"
+msgstr "... davon: für Kinder und Jugendliche"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:556
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:493
 #, c-format
 msgid "... davon: sonstige laufende Ausgaben (inklusive Portalkosten)"
 msgstr "... davon: sonstige laufende Ausgaben (inklusive Portalkosten)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:731
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:659
 #, c-format
 msgid "... davon: sonstiges Personal (VZÄ)"
 msgstr "... davon: sonstiges Personal (VZÄ)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:837
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:757
 #, c-format
 msgid "... interaktive Funktionen"
 msgstr "... interaktive Funktionen"
@@ -11174,22 +11153,22 @@ msgstr "1. ALLGEMEINE ANGABEN"
 msgid "1/2"
 msgstr "1/2"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:175
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:191
 #, c-format
 msgid "10.1"
 msgstr "10.1"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:183
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:199
 #, c-format
 msgid "10.2"
 msgstr "10.2"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:207
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:223
 #, c-format
 msgid "12.1"
 msgstr "12.1"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:241
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:257
 #, c-format
 msgid "14.1"
 msgstr "14.1"
@@ -11209,7 +11188,7 @@ msgstr "1."
 msgid "1st overdue fine"
 msgstr "1. Mahnung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:160
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:176
 #, c-format
 msgid "2. BENUTZER"
 msgstr "2. BENUTZER"
@@ -11219,30 +11198,45 @@ msgstr "2. BENUTZER"
 msgid "2nd overdue fine"
 msgstr "2. Mahnung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:218
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:234
 #, c-format
 msgid "3. MEDIENANGEBOTE UND -NUTZUNG"
 msgstr "3. MEDIENANGEBOTE UND -NUTZUNG"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:409
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:345
 #, c-format
 msgid "34.1"
 msgstr "34.1"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:417
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:353
 #, c-format
 msgid "34.2"
 msgstr "34.2"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:385
+#, c-format
+msgid "38.1"
+msgstr "38.1"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:393
+#, c-format
+msgid "38.2"
+msgstr "38.2"
 
 #: intranet-tmpl/prog/en/modules/tools/overduerules.tt:211
 #, c-format
 msgid "3rd overdue fine"
 msgstr "3. Mahnung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:516
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:453
 #, c-format
 msgid "4. FINANZEN"
 msgstr "4. FINANZEN"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:422
+#, c-format
+msgid "41.1"
+msgstr "41.1"
 
 #: intranet-tmpl/prog/en/modules/tools/overduerules.tt:212
 #, c-format
@@ -11256,12 +11250,12 @@ msgstr "4. Mahnung"
 msgid "5"
 msgstr "5"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:675
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:603
 #, c-format
 msgid "5. PERSONALKAPAZITÄT"
 msgstr "5. PERSONALKAPAZITÄT"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:539
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:476
 #, c-format
 msgid "50.1"
 msgstr "50.1"
@@ -11271,7 +11265,7 @@ msgstr "50.1"
 msgid "5th overdue fine"
 msgstr "5. Mahnung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:773
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:701
 #, c-format
 msgid "6. SERVICES / DIENSTLEISTUNGEN"
 msgstr "6. SERVICES / DIENSTLEISTUNGEN"
@@ -11281,10 +11275,35 @@ msgstr "6. SERVICES / DIENSTLEISTUNGEN"
 msgid "6.1"
 msgstr "6.1"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:928
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:955
 #, c-format
-msgid "94.1"
-msgstr "94.1"
+msgid "7. PATIENTENBIBLIOTHEKEN"
+msgstr "7. PATIENTENBIBLIOTHEKEN"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:149
+#, c-format
+msgid "7.1"
+msgstr "7.1"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1077
+#, c-format
+msgid "8. FAHRBIBLIOTHEKEN"
+msgstr "8. FAHRBIBLIOTHEKEN"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:165
+#, c-format
+msgid "8.1"
+msgstr "8.1"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1147
+#, c-format
+msgid "9. MUSIKBIBLIOTHEKEN"
+msgstr "9. MUSIKBIBLIOTHEKEN"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:888
+#, c-format
+msgid "99.1"
+msgstr "99.1"
 
 #. SPAN
 #: intranet-tmpl/prog/en/modules/acqui/booksellers.tt:143
@@ -11491,11 +11510,6 @@ msgstr "Aaron Wells"
 msgid "Abby Robertson"
 msgstr "Abby Robertson"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:442
-#, c-format
-msgid "Abgang an Medieneinheiten"
-msgstr "Abgang an Medieneinheiten"
-
 #: intranet-tmpl/prog/en/includes/header.inc:49
 #: intranet-tmpl/prog/en/modules/about.tt:19
 #: intranet-tmpl/prog/en/modules/intranet-main.tt:121
@@ -11503,7 +11517,7 @@ msgstr "Abgang an Medieneinheiten"
 msgid "About Koha"
 msgstr "Über Koha"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1395
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1315
 #, c-format
 msgid "Abspielungen von Tonträgern"
 msgstr "Abspielungen von Tonträgern"
@@ -13068,7 +13082,7 @@ msgstr "Altersbeschränkung %s. %s Trotzdem ausleihen? %s "
 msgid "Aggregated statistics"
 msgstr "Spezielle Auswertungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:168
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:184
 #, c-format
 msgid "Aktive Benutzer"
 msgstr "Aktive Benutzer"
@@ -13994,7 +14008,7 @@ msgstr "Andrew Isherwood"
 msgid "Andrew Moore"
 msgstr "Andrew Moore"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1025
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:945
 #, c-format
 msgid "Anmerkungen"
 msgstr "Anmerkungen"
@@ -14146,22 +14160,22 @@ msgstr "Freitext (alle): "
 msgid "Anyone seeing this list"
 msgstr "Jeder der diese Liste anzeigen kann"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:929
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:889
 #, c-format
-msgid "Anzahl der Besuche bei Veranstaltungen"
-msgstr "Anzahl der Besuche bei Veranstaltungen"
+msgid "Anzahl der Besuche bei Veranstaltungen, Führungen, Ausstellungen"
+msgstr "Anzahl der Besuche bei Veranstaltungen, Führungen, Ausstellungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1071
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:991
 #, c-format
 msgid "Anzahl der Betten des Krankenhauses"
 msgstr "Anzahl der Betten des Krankenhauses"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1079
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:999
 #, c-format
 msgid "Anzahl der ambulant behandelten Patienten"
 msgstr "Anzahl der ambulant behandelten Patienten"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1099
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1019
 #, c-format
 msgid "Anzahl der wöchentlichen Wagenausleihstunden"
 msgstr "Anzahl der wöchentlichen Wagenausleihstunden"
@@ -14794,7 +14808,7 @@ msgstr ""
 "ersetzen möchten? Dies kann nicht rückgängig gemacht werden."
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1423
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1343
 msgid "Are you sure you want to reset all entries of statistics %s?"
 msgstr ""
 "Sind Sie sicher, dass Sie alle Werte der Auswertung %s zurücksetzen möchten?"
@@ -15013,22 +15027,22 @@ msgstr "Aug"
 msgid "August"
 msgstr "August"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:589
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:517
 #, c-format
 msgid "Ausgaben des Trägers für die Bibliothek"
 msgstr "Ausgaben des Trägers für die Bibliothek"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1403
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1323
 #, c-format
 msgid "Ausgaben für Erwerbung"
 msgstr "Ausgaben für Erwerbung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1119
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1039
 #, c-format
 msgid "Ausleihe von Abspielgeräten (Hardware)"
 msgstr "Ausleihe von Abspielgeräten (Hardware)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:755
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:683
 #, c-format
 msgid "Auszubildende (Personen)"
 msgstr "Auszubildende (Personen)"
@@ -15556,7 +15570,7 @@ msgstr "Statistik der durchschnittlichen Ausleihdauer"
 msgid "Average loan time"
 msgstr "Durchschnittliche Leihdauer"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1379
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1299
 #, c-format
 msgid "BESTAND insgesamt (Summe 400,...,416)"
 msgstr "BESTAND insgesamt (Summe 400,...,416)"
@@ -16290,7 +16304,7 @@ msgstr "Benedykt P. Barszcz (Polnisch für 2.0)"
 msgid "Benjamin Rokseth"
 msgstr "Benjamin Rokseth"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:789
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:709
 #, c-format
 msgid "Benutzerarbeitsplätze insgesamt"
 msgstr "Benutzerarbeitsplätze insgesamt"
@@ -16314,27 +16328,27 @@ msgstr ""
 "Bernardo González Kriegel (3.14 - 17.11 Translation Manager; 3.10 Release "
 "Maintainer)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1209
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1129
 #, c-format
 msgid "Bestand in Medieneinh. insges."
 msgstr "Bestand in Medieneinh. insges."
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:498
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:443
 #, c-format
 msgid "Bestellungen im gebenden (aktiven) Leihverkehr"
 msgstr "Bestand in Medieneinh. insges."
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:490
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:435
 #, c-format
 msgid "Bestellungen im nehmenden (passiven) Leihverkehr"
 msgstr "Bestellungen im nehmenden (passiven) Leihverkehr"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:200
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:216
 #, c-format
 msgid "Besuche"
 msgstr "Besuche"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:985
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:905
 #, c-format
 msgid "Betreuung von Verwaltungsbibliotheken"
 msgstr "Betreuung von Verwaltungsbibliotheken"
@@ -16484,12 +16498,12 @@ msgstr "Titel im Datenpool"
 msgid "Biblios: "
 msgstr "Titel: "
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:418
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:354
 #, c-format
 msgid "Bibliotheken im Verbund"
 msgstr "Bibliotheken im Verbund"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:813
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:733
 #, c-format
 msgid "Bibliothekshomepage"
 msgstr "Bibliothekshomepage"
@@ -16989,12 +17003,12 @@ msgstr "ByWater Solutions, USA"
 msgid "Bytes"
 msgstr "Bytes"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1251
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1171
 #, c-format
 msgid "Bücher (Sekundärlit. Musik) - Bestand"
 msgstr "Bücher (Sekundärlit. Musik) - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1259
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1179
 #, c-format
 msgid "Bücher (Sekundärlit. Musik) - Entleihungen"
 msgstr "Bücher (Sekundärlit. Musik) - Entleihungen"
@@ -22243,8 +22257,8 @@ msgstr "DBS"
 
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:48
 #, c-format
-msgid "DBS base questionaire (106 col.)"
-msgstr "DBS base questionaire (106 col.)"
+msgid "DBS base questionaire"
+msgstr "DBS Grundfragebogen"
 
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:78
 #, c-format
@@ -22702,11 +22716,6 @@ msgstr "Datum: "
 #, c-format
 msgid "Date: from "
 msgstr "Datum: von "
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:450
-#, c-format
-msgid "Datenbanken"
-msgstr "Datenbanken"
 
 #. OPTGROUP
 #: intranet-tmpl/prog/en/includes/resort_form.inc:49
@@ -24193,6 +24202,11 @@ msgstr "Meinten Sie: "
 msgid "Did you mean?"
 msgstr "Meinten Sie?"
 
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:394
+#, c-format
+msgid "Die Authentifizierung wird über Single-Sign-On vorgenommen"
+msgstr "Die Authentifizierung wird über Single-Sign-On vorgenommen"
+
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:352
 #, c-format
 msgid "Diff"
@@ -24476,11 +24490,6 @@ msgstr "Dokumenttyp:"
 #, c-format
 msgid "Documentation Team:"
 msgstr "Dokumentations-Team:"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:506
-#, c-format
-msgid "Dokumentlieferungen an den Endnutzer"
-msgstr "Dokumentlieferungen an den Endnutzer"
 
 #: intranet-tmpl/prog/en/modules/admin/sms_providers.tt:31
 #, c-format
@@ -24847,6 +24856,21 @@ msgstr "Warnung: Dublette"
 msgid "Duy Tinh Nguyen"
 msgstr "Duy Tinh Nguyen"
 
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:338
+#, c-format
+msgid "E-Medien im Bestand"
+msgstr "E-Medien im Bestand"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:362
+#, c-format
+msgid "E-Medien im Bestand - Entleihungen"
+msgstr "E-Medien im Bestand - Entleihungen"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:346
+#, c-format
+msgid "E-Medien im Verbund"
+msgstr "E-Medien im Verbund"
+
 #: intranet-tmpl/prog/en/modules/acqui/basket.tt:86
 #, c-format
 msgid "E-mail order"
@@ -24906,7 +24930,7 @@ msgstr "Edifact-Benachrichtigungen"
 msgid "EMN (Ecole des Mines de Nantes)"
 msgstr "EMN (Ecole des Mines de Nantes)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1387
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1307
 #, c-format
 msgid "ENTLEIHUNGEN insgesamt (Summe 401,...,417)"
 msgstr "ENTLEIHUNGEN insgesamt (Summe 401,...,417)"
@@ -25449,17 +25473,17 @@ msgstr "Edmund Balnaves"
 msgid "Edward Allen"
 msgstr "Edward Allen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:739
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:667
 #, c-format
 msgid "Ehrenamtliches Personal (Personen)"
 msgstr "Ehrenamtliches Personal (Personen)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:653
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:581
 #, c-format
 msgid "Eigene Einnahmen"
 msgstr "Eigene Einnahmen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:564
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:501
 #, c-format
 msgid "Einmalige Investitionen"
 msgstr "Einmalige Investitionen"
@@ -25584,11 +25608,6 @@ msgstr "Emma Smith"
 #, c-format
 msgid "Emojiarea plug-in for jQuery"
 msgstr "Emojiarea plug-in for jQuery"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:474
-#, c-format
-msgid "Empfangene Austausch-/Blockbestände"
-msgstr "Empfangene Austausch-/Blockbestände"
 
 #: intranet-tmpl/prog/en/modules/basket/basket.tt:61
 #, c-format
@@ -25951,7 +25970,7 @@ msgstr "Geben Sie die Begriffe ein nach denen Sie suchen wollen"
 msgid "Entity"
 msgstr "Entität"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1217
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1137
 #, c-format
 msgid "Entleihungen in Medieneinheiten insgesamt"
 msgstr "Entleihungen in Medieneinheiten insgesamt"
@@ -26670,11 +26689,6 @@ msgstr "Heute zurückgebuchte Barcodes exportieren"
 msgid "Exporting to Dublin Core..."
 msgstr "Exportiere als Dublin Core..."
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1157
-#, c-format
-msgid "FAHRBIBLIOTHEKEN"
-msgstr "FAHRBIBLIOTHEKEN"
-
 #: intranet-tmpl/prog/en/modules/members/nl-search.tt:120
 #, c-format
 msgid "FEIDE:"
@@ -26700,7 +26714,7 @@ msgstr "Fabio Tiana"
 msgid "Facetable"
 msgstr "Facettierbar"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1193
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1113
 #, c-format
 msgid "Fahrplanturnus in Tagen"
 msgstr "Fahrplanturnus in Tagen"
@@ -27723,7 +27737,7 @@ msgstr "Format: "
 msgid "Formatting"
 msgstr "Formatierung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:763
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:691
 #, c-format
 msgid "Fortbildungsstunden der Mitarbeiter"
 msgstr "Fortbildungsstunden der Mitarbeiter"
@@ -27820,7 +27834,7 @@ msgstr "Frederic Durand"
 msgid "Free"
 msgstr "Frei"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:597
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:525
 #, c-format
 msgid "Fremdmittel insgesamt"
 msgstr "Fremdmittel insgesamt"
@@ -28196,7 +28210,7 @@ msgstr "Konten"
 msgid "Fyneworks.com"
 msgstr "Fyneworks.com"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1173
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1093
 #, c-format
 msgid "Für mehrere Gemeinden tätig"
 msgstr "Für mehrere Gemeinden tätig"
@@ -28364,7 +28378,7 @@ msgstr "Interessenkreise"
 msgid "Geolocation: "
 msgstr "Geolokalisierung: "
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:572
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:509
 #, c-format
 msgid "Gesamtausgaben"
 msgstr "Gesamtausgaben"
@@ -30929,7 +30943,7 @@ msgstr "Interner Fehler (Suche)"
 msgid "Internationalization and localization"
 msgstr "Internationalisierung und lokale Anpassung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:825
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:745
 #, c-format
 msgid "Internet-Angebot: WEB-OPAC / Internet-Katalog"
 msgstr "Internet-Angebot: WEB-OPAC / Internet-Katalog"
@@ -31973,10 +31987,15 @@ msgstr "JSZip"
 msgid "Jacek Ablewicz"
 msgstr "Jacek Ablewicz"
 
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:150
+#, c-format
+msgid "Jahresöffnungsstunden für Open Library (servicefreie Zeit)"
+msgstr "Jahresöffnungsstunden für Open Library (servicefreie Zeit)"
+
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:142
 #, c-format
-msgid "Jahresöffnungsstunden"
-msgstr "Jahresöffnungsstunden"
+msgid "Jahresöffnungsstunden mit Bibliothekspersonal"
+msgstr "Jahresöffnungsstunden mit Bibliothekspersonal"
 
 #: intranet-tmpl/prog/en/modules/about.tt:867
 #, c-format
@@ -32272,7 +32291,7 @@ msgstr "Justin Vos"
 msgid "Juvenile"
 msgstr "Jugendliche"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:661
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:589
 #, c-format
 msgid "Jährliche Benutzungsgebühren"
 msgstr "Jährliche Benutzungsgebühren"
@@ -35219,7 +35238,7 @@ msgstr "KohaAloha, Neuseeland"
 msgid "Kohala"
 msgstr "Kohala"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1143
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1063
 #, c-format
 msgid "Kombinierte Fach- und Patientenbibliothek vorhanden"
 msgstr "Kombinierte Fach- und Patientenbibliothek vorhanden"
@@ -35424,7 +35443,7 @@ msgstr "Sprachen"
 msgid "Lao Anousak Anthony Souphavanh"
 msgstr "Lao Anousak Anthony Souphavanh"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1107
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1027
 #, c-format
 msgid "Laptop-Einsatz auf Stationen (z.B. EDV-Ausleihe)"
 msgstr "Laptop-Einsatz auf Stationen (z.B. EDV-Ausleihe)"
@@ -35603,17 +35622,17 @@ msgstr "Überfällige Bestellungen"
 msgid "Latina (Latin)"
 msgstr "Latina (Latein)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:524
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:461
 #, c-format
 msgid "Laufende Ausgaben insgesamt"
 msgstr "Laufende Ausgaben insgesamt"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:458
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:407
 #, c-format
 msgid "Laufende Zeitungs- und Zeitschriftenabos in Printform"
 msgstr "Laufende Zeitungs- und Zeitschriftenabos in Printform"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:466
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:415
 #, c-format
 msgid "Laufende Zeitungs- und Zeitschriftenabos in elektronischer Form"
 msgstr "Laufende Zeitungs- und Zeitschriftenabos in elektronischer Form"
@@ -36371,6 +36390,11 @@ msgstr "Listen, auf denen dieser Titel steht: "
 msgid "Liz Rea"
 msgstr "Liz Rea"
 
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:378
+#, c-format
+msgid "Lizenzierte virtuelle Plattformen, Dienste und Datenbanken"
+msgstr "Lizenzierte virtuelle Plattformen, Dienste und Datenbanken"
+
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/includes/cateditor-ui.inc:33
@@ -37034,11 +37058,6 @@ msgstr "MJ Ray (2.0 Release Maintainer)"
 msgid "MODS (XML)"
 msgstr "MODS (XML)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1227
-#, c-format
-msgid "MUSIKBIBLIOTHEKEN"
-msgstr "MUSIKBIBLIOTHEKEN"
-
 #: intranet-tmpl/prog/en/modules/cataloguing/editor.tt:236
 #, c-format
 msgid "Macros"
@@ -37049,12 +37068,12 @@ msgstr "Makros"
 msgid "Macros..."
 msgstr "Makros..."
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:266
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:282
 #, c-format
 msgid ""
-"Magazinbestand - Printmedien und Non-Book-Medien in physischen Einheiten"
+"Magazinbestand - Printmedien und Non-Print-Medien in physischen Einheiten"
 msgstr ""
-"Magazinbestand - Printmedien und Non-Book-Medien in physischen Einheiten"
+"Magazinbestand - Printmedien und Non-Print-Medien in physischen Einheiten"
 
 #: intranet-tmpl/prog/en/modules/about.tt:620
 #, c-format
@@ -37897,7 +37916,7 @@ msgstr "Md. Aftabuddin"
 msgid "Meaning"
 msgstr "Bedeutung"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:258
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:274
 #, c-format
 msgid ""
 "Medien in Freihandaufstellung bzw. im 'direkten Zugriff' insges. - "
@@ -37906,17 +37925,17 @@ msgstr ""
 "Medien in Freihandaufstellung bzw. im 'direkten Zugriff' insges. - "
 "Entleihungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:250
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:266
 #, c-format
 msgid "Medien in Freihandaufstellung insges. - Bestand"
 msgstr "Medien in Freihandaufstellung insges. - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:234
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:250
 #, c-format
 msgid "Medien insgesamt - Entleihungen"
 msgstr "Medien insgesamt - Entleihungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:226
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:242
 #, c-format
 msgid "Medien insgesamt - physischer Bestand"
 msgstr "Medien insgesamt - physischer Bestand"
@@ -37926,7 +37945,7 @@ msgstr "Medien insgesamt - physischer Bestand"
 msgid "Medium"
 msgstr "Medium"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1131
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1051
 #, c-format
 msgid "Medizinische Fachbibliothek vorhanden"
 msgstr "Medizinische Fachbibliothek vorhanden"
@@ -38698,52 +38717,52 @@ msgstr "Zugang mehrerer Hefte"
 msgid "Musical recording"
 msgstr "Musikaufnahme"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1267
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1187
 #, c-format
 msgid "Musik-CDs - Bestand"
 msgstr "Musik-CDs - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1275
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1195
 #, c-format
 msgid "Musik-CDs - Entleihungen"
 msgstr "Musik-CDs - Entleihungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1331
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1251
 #, c-format
 msgid "Musik-DVDs - Bestand"
 msgstr "Musik-DVDs - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1339
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1259
 #, c-format
 msgid "Musik-DVDs - Entleihungen"
 msgstr "Musik-DVDs - Entleihungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1283
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1203
 #, c-format
 msgid "Musik-Kassetten - Bestand"
 msgstr "Musik-Kassetten - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1291
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1211
 #, c-format
 msgid "Musik-Kassetten - Entleihungen"
 msgstr "Musik-Kassetten - Entleihungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1315
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1235
 #, c-format
 msgid "Musik-Videos (VHS) - Bestand"
 msgstr "Musik-Videos (VHS) - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1323
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1243
 #, c-format
 msgid "Musik-Videos (VHS) - Entleihungen"
 msgstr "Musik-Videos (VHS) - Entleihungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1347
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1267
 #, c-format
 msgid "Musik-Zeitschriften - Bestand"
 msgstr "Musik-Zeitschriften - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1355
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1275
 #, c-format
 msgid "Musik-Zeitschriften - Entleihungen"
 msgstr "Musik-Zeitschriften - Entleihungen"
@@ -39053,7 +39072,7 @@ msgstr "Hilfe finden Sie im Manual für %s "
 msgid "Nelsonville Public Library, Ohio, USA"
 msgstr "Nelsonville Public Library, Ohio, USA"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:192
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:208
 #, c-format
 msgid "Neuanmeldungen"
 msgstr "Neuanmeldungen"
@@ -40650,15 +40669,15 @@ msgstr "Niemand"
 msgid "Nodes: "
 msgstr "Knoten: "
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:354
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:322
 #, c-format
-msgid "Non-Book-Medien insgesamt - Bestand"
-msgstr "Non-Book-Medien insgesamt - Bestand"
+msgid "Non-Prints und Sonstiges - Bestand"
+msgstr "Non-Prints und Sonstiges - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:362
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:330
 #, c-format
-msgid "Non-Book-Medien insgesamt - Entleihungen"
-msgstr "Non-Book-Medien insgesamt - Entleihungen"
+msgid "Non-Prints und Sonstiges - Entleihungen"
+msgstr "Non-Prints und Sonstiges - Entleihungen"
 
 #: intranet-tmpl/prog/en/modules/catalogue/advsearch.tt:182
 #, c-format
@@ -41093,12 +41112,12 @@ msgstr ""
 msgid "Note: one of the two following fields must be equal to 1"
 msgstr "Hinweis: eines der beiden folgenden Felder muss 1 sein"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1235
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1155
 #, c-format
 msgid "Noten - Bestand"
 msgstr "Noten - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1243
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1163
 #, c-format
 msgid "Noten - Entleihungen"
 msgstr "Noten - Entleihungen"
@@ -41573,6 +41592,16 @@ msgstr "Nummerierungsmuster:"
 #, c-format
 msgid "Numbering patterns"
 msgstr "Nummerierungsmuster"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:423
+#, c-format
+msgid "Nutzen Sie Austausch-,Blockbestände?"
+msgstr "Nutzen Sie Austausch-,Blockbestände?"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:386
+#, c-format
+msgid "Nutzung lizenzierter virtueller Plattformen (Anzahl der Logins)"
+msgstr "Nutzung lizenzierter virtueller Plattformen (Anzahl der Logins)"
 
 #: intranet-tmpl/prog/en/modules/about.tt:526
 #, c-format
@@ -42822,11 +42851,6 @@ msgstr "Nur Besitzer"
 #, c-format
 msgid "Owner: "
 msgstr "Besitzer: "
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1035
-#, c-format
-msgid "PATIENTENBIBLIOTHEKEN"
-msgstr "PATIENTENBIBLIOTHEKEN"
 
 #: intranet-tmpl/prog/en/modules/admin/z3950servers.tt:101
 #, c-format
@@ -44261,12 +44285,12 @@ msgstr "Diese Benutzer endgültig löschen"
 msgid "Permitted Staff"
 msgstr "Zugelassene Mitarbeiter"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:699
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:627
 #, c-format
 msgid "Personalkapazität aller Beschäftigten (VZÄ)"
 msgstr "Personalkapazität aller Beschäftigten (VZÄ)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:747
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:675
 #, c-format
 msgid "Personalkapazität des ehrenamtl. Personals (VZÄ)"
 msgstr "Personalkapazität des ehrenamtl. Personals (VZÄ)"
@@ -44363,7 +44387,7 @@ msgstr "Besuchsadresse: "
 msgid "Physical details:"
 msgstr "Physische Details:"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:242
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:258
 #, c-format
 msgid "Physische Medien insgesamt - Entleihungen"
 msgstr "Physische Medien insgesamt - Entleihungen"
@@ -45967,12 +45991,12 @@ msgstr "Drucker: "
 msgid "Printers"
 msgstr "Drucker"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:274
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:290
 #, c-format
 msgid "Printmedien insgesamt - Bestand"
 msgstr "Printmedien insgesamt - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:282
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:298
 #, c-format
 msgid "Printmedien insgesamt - Entleihungen"
 msgstr "Printmedien insgesamt - Entleihungen"
@@ -46335,8 +46359,8 @@ msgstr "Erscheinungsjahr: ältestes bis neuestes"
 
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:126
 #, c-format
-msgid "Publikumsfläche (m²)"
-msgstr "Publikumsfläche (m²)"
+msgid "Publikumsfläche gesamt (m²)"
+msgstr "Publikumsfläche gesamt (m²)"
 
 #: intranet-tmpl/prog/en/modules/acqui/lateorders.tt:97
 #: intranet-tmpl/prog/en/modules/catalogue/detail.tt:172
@@ -46639,7 +46663,7 @@ msgstr "RFID-Service Information"
 msgid "RFID-Tools"
 msgstr "RFID-Werkzeuge"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1001
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:921
 #, c-format
 msgid "RFID-Verbuchung"
 msgstr "RFID-Verbuchung"
@@ -46907,11 +46931,6 @@ msgstr "Erhält Mahnungen: "
 #: intranet-tmpl/prog/en/modules/installer/step1.tt:80
 msgid "Recheck dependencies"
 msgstr "Abhängigkeiten nochmals überprüfen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:781
-#, c-format
-msgid "Recherchen (Auskunftsanfragen)"
-msgstr "Recherchen (Auskunftsanfragen)"
 
 #: intranet-tmpl/prog/en/modules/serials/routing.tt:46
 #, c-format
@@ -49205,12 +49224,12 @@ msgstr "Registersuche:"
 msgid "Scan indexes:"
 msgstr "Indexe durchsuchen:"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1299
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1219
 #, c-format
 msgid "Schallplatten (Vinyl) - Bestand"
 msgstr "Schallplatten (Vinyl) - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1307
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1227
 #, c-format
 msgid "Schallplatten (Vinyl) - Entleihungen"
 msgstr "Schallplatten (Vinyl) - Entleihungen"
@@ -49243,7 +49262,7 @@ msgstr "Für automatische Verlängerung geplant"
 msgid "School"
 msgstr "Schule"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:977
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:897
 #, c-format
 msgid "Schulbibliothekarische Dienstleistungen"
 msgstr "Schulbibliothekarische Dienstleistungen"
@@ -51552,17 +51571,17 @@ msgstr ""
 msgid "Sonia Lemaire"
 msgstr "Sonia Lemaire"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1363
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1283
 #, c-format
 msgid "Sonstige - Bestand"
 msgstr "Sonstige - Bestand"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1371
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1291
 #, c-format
 msgid "Sonstige - Entleihungen"
 msgstr "Sonstige - Entleihungen"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:993
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:913
 #, c-format
 msgid "Sonstige vertraglich geregelte Dienstleistungen"
 msgstr "Sonstige vertraglich geregelte Dienstleistungen"
@@ -51753,7 +51772,7 @@ msgstr "South-East Kansas Library System (SEKLS), USA"
 msgid "Southeastern University"
 msgstr "Southeastern University"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:909
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:829
 #, c-format
 msgid "Soziale Bibliotheksarbeit"
 msgstr "Soziale Bibliotheksarbeit"
@@ -52325,12 +52344,12 @@ msgstr "Stefan Weil"
 msgid "Stefano Bargioni"
 msgstr "Stefano Bargioni"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1013
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:933
 #, c-format
 msgid "Stellen Sie mobile Endgeräte zur Verfügung?"
 msgstr "Stellen Sie mobile Endgeräte zur Verfügung?"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:683
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:611
 #, c-format
 msgid "Stellen laut Stellenplan"
 msgstr "Stellen laut Stellenplan"
@@ -53698,7 +53717,7 @@ msgstr "Te Rauhina Jackson"
 msgid "Technical reports"
 msgstr "Technische Berichte"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1043
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:963
 #, c-format
 msgid "Teil eines Klinikverbundes"
 msgstr "Teil eines Klinikverbundes"
@@ -58739,41 +58758,10 @@ msgstr "Lieferant: "
 msgid "Vendor: %s"
 msgstr "Lieferant: %s"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:921
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:841
 #, c-format
 msgid "Veranstaltungen, Führungen, Ausstellungen insgesamt"
 msgstr "Veranstaltungen, Führungen, Ausstellungen insgesamt"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:961
-#, c-format
-msgid "Veranstaltungen, Führungen, Ausstellungen, davon: Ausstellungen"
-msgstr "Veranstaltungen, Führungen, Ausstellungen, davon: Ausstellungen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:937
-#, c-format
-msgid ""
-"Veranstaltungen, Führungen, Ausstellungen, davon: Einführungen in die "
-"Bibliotheksbenutzung"
-msgstr ""
-"Veranstaltungen, Führungen, Ausstellungen, davon: Einführungen in die "
-"Bibliotheksbenutzung"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:969
-#, c-format
-msgid "Veranstaltungen, Führungen, Ausstellungen, davon: Sonstige"
-msgstr "Veranstaltungen, Führungen, Ausstellungen, davon: Sonstige"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:953
-#, c-format
-msgid "Veranstaltungen, Führungen, Ausstellungen, davon: für Erwachsene"
-msgstr "Veranstaltungen, Führungen, Ausstellungen, davon: für Erwachsene"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:945
-#, c-format
-msgid ""
-"Veranstaltungen, Führungen, Ausstellungen, davon: für Kinder und Jugendliche"
-msgstr ""
-"Veranstaltungen, Führungen, Ausstellungen, davon: für Kinder und Jugendliche"
 
 #: intranet-tmpl/prog/en/modules/tools/cleanborrowers.tt:116
 #, c-format
@@ -58784,11 +58772,6 @@ msgstr "Bestätigen Sie, dass die Ausleihhistorie gelöscht werden soll"
 #, c-format
 msgid "Verify you want to delete patrons"
 msgstr "Bestätigen Sie, dass die Benutzer gelöscht werden sollen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:482
-#, c-format
-msgid "Verliehene Austausch-/Blockbestände"
-msgstr "Verliehene Austausch-/Blockbestände"
 
 #: intranet-tmpl/prog/en/modules/about.tt:955
 #, c-format
@@ -59016,25 +58999,10 @@ msgstr "Ville de Victoriaville, Kanada"
 msgid "Vincent Danjean"
 msgstr "Vincent Danjean"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:208
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:224
 #, c-format
 msgid "Virtuelle Besuche (visits) - Eingabe gesperrt"
 msgstr "Virtuelle Besuche (visits) - Eingabe gesperrt"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:402
-#, c-format
-msgid "Virtueller Bestand - Bestand"
-msgstr "Virtueller Bestand - Bestand"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:426
-#, c-format
-msgid "Virtueller Bestand - Entleihungen"
-msgstr "Virtueller Bestand - Entleihungen"
-
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:410
-#, c-format
-msgid "Virtueller Bestand im Verbund"
-msgstr "Virtueller Bestand im Verbund"
 
 #: intranet-tmpl/prog/en/modules/admin/marc_subfields_structure.tt:124
 #, c-format
@@ -59088,7 +59056,7 @@ msgstr "Band:"
 msgid "WARNING:"
 msgstr "WARNUNG:"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1087
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1007
 #, c-format
 msgid "Wagenausleihe"
 msgstr "Wagenausleihe"
@@ -59687,10 +59655,15 @@ msgstr "Ausgeschieden Status:"
 msgid "Wk"
 msgstr "Wo"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:150
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:166
 #, c-format
-msgid "Wochenöffnungsstunden"
-msgstr "Wochenöffnungsstunden"
+msgid "Wochenöffnungsstunden für Open Library (servicefreie Zeit)"
+msgstr "Wochenöffnungsstunden für Open Library (servicefreie Zeit)"
+
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:158
+#, c-format
+msgid "Wochenöffnungsstunden mit Bibliothekspersonal"
+msgstr "Wochenöffnungsstunden mit Bibliothekspersonal"
 
 #: intranet-tmpl/prog/en/modules/about.tt:674
 #, c-format
@@ -61020,7 +60993,7 @@ msgstr "Postleitzahl: "
 msgid "Zach Sim"
 msgstr "Zach Sim"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:691
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:619
 #, c-format
 msgid "Zahl der Beschäftigten (Personen)"
 msgstr "Zahl der Beschäftigten (Personen)"
@@ -61030,12 +61003,12 @@ msgstr "Zahl der Beschäftigten (Personen)"
 msgid "Zahl der Bibliotheken (Einrichtungen)"
 msgstr "Zahl der Bibliotheken (Einrichtungen)"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1165
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1085
 #, c-format
 msgid "Zahl der Fahrzeuge"
 msgstr "Zahl der Fahrzeuge"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1185
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1105
 #, c-format
 msgid "Zahl der Haltepunkte"
 msgstr "Zahl der Haltepunkte"
@@ -61082,7 +61055,7 @@ msgstr "Zoe Bennett"
 msgid "Zoe Schoeler"
 msgstr "Zoe Schoeler"
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:434
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:370
 #, c-format
 msgid "Zugang an Medieneinheiten"
 msgstr "Zugang an Medieneinheiten"
@@ -64004,7 +63977,7 @@ msgstr "| Status: %s "
 msgid "| "
 msgstr "| "
 
-#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1201
+#: intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1121
 #, c-format
 msgid "Öffnungsstunden pro Woche"
 msgstr "Öffnungsstunden pro Woche"

@@ -2992,7 +2992,8 @@ sub SetDueDateOfItems {
         while ( my $issue = $checkoutsearch->next()) {
             $changedissues++;
             
-            my $newdate = $newDueDate->strftime('%Y-%m-%d %H:%M');
+            my $currDateDue = dt_from_string($issue->date_due, 'iso');
+            my $newdate = $newDueDate->strftime('%Y-%m-%d ') . $currDateDue->strftime('%H:%M');
             
             # set the new due date of the issue
             $issue->date_due($newdate)->store();
