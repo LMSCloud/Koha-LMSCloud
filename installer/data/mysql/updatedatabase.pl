@@ -17113,11 +17113,21 @@ if ( CheckVersion($DBversion) ) {
 }
 
 $DBversion = '18.05.05.012';
-if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
-    my $upgrade_script = C4::Context->config("intranetdir") . "/installer/data/mysql/insert_statistics_type_auth-ext.pl";
-    system("perl $upgrade_script");
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        DELETE FROM statistics WHERE type = 'auth-ext'
+    });
+    $dbh->do(q{
+        INSERT INTO statistics (datetime, branch, type, other, borrowernumber)
+            SELECT IFNULL(a.timestamp,'2018-12-31 23:59:59') as timestamp, b.branchcode, 'auth-ext' AS type, IFNULL(a.info,''), a.object
+              FROM action_logs a LEFT JOIN borrowers b ON b.borrowernumber = a.object
+             WHERE a.module = 'DIVIBIB'
+               AND a.action = 'AUTHENTICATION'
+               AND a.timestamp > '2019-01-01'
+               AND a.object IS NOT NULL
+    });
 
-    $upgrade_script = C4::Context->config("intranetdir") . "/installer/data/mysql/upgrade_ekzOrderNr_for_STO.pl";
+    my $upgrade_script = C4::Context->config("intranetdir") . "/installer/data/mysql/upgrade_ekzOrderNr_for_STO.pl";
     system("perl $upgrade_script");
 
     print "Upgrade to $DBversion done (Copied DIVIBIB authentications to table statistics for DBS 2019. Migrated pseudo ekzOrderNr of STOs from stoIDxxx to sto.yyy.IDxxx for ekz media services.)\n";
