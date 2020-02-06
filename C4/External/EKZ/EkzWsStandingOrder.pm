@@ -164,7 +164,7 @@ print STDERR "ekzWsStoList::genKohaRecords() insOrUpd:$insOrUpd:\n" if $debugIt;
         $dbh = C4::Context->dbh;
         $dbh->{AutoCommit} = 0;
 
-        $ekzBestellNr = 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'}+0;    # StoList response contains no order number, so we create this dummy order number
+        $ekzBestellNr = 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'};    # StoList response contains no order number, so we create this dummy order number
 
         my $selParam = {
             vendor_id => "ekz",
