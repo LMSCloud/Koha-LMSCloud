@@ -62,7 +62,11 @@ sub IsFamilyCard {
 
     return unless $borrowernumber;
 
-    return Koha::Patrons->find( $borrowernumber )->is_family_card;
+    my $guarantor = Koha::Patrons->find( $borrowernumber );
+
+    return $guarantor->is_family_card if ($guarantor);
+
+    return;
 }
 
 sub GetGuarantor {
@@ -70,7 +74,11 @@ sub GetGuarantor {
 
     return unless $borrowernumber;
 
-    return Koha::Patrons->find( $borrowernumber )->unblessed;
+    my $guarantor = Koha::Patrons->find( $borrowernumber );
+
+    return $guarantor->unblessed if ($guarantor);
+
+    return;
 }
 
 1;
