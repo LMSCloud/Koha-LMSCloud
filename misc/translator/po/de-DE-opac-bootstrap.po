@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2020-02-04 16:28+0100\n"
+"POT-Creation-Date: 2020-02-06 15:54+0100\n"
 "PO-Revision-Date: 2020-01-23 15:29+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
@@ -409,7 +409,7 @@ msgstr ""
 #. %38$s:  IF ACCOUNT_LINE.title 
 #. %39$s:  ACCOUNT_LINE.title 
 #. %40$s:  END 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:131
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:134
 #, c-format
 msgid ""
 "%s %sPayment, thanks %sPayment, thanks (cash via SIP2) %sPayment, thanks "
@@ -3094,7 +3094,7 @@ msgstr ".%sSie haben ausstehende Gebühren.%s %s "
 msgid "...or..."
 msgstr "... oder ..."
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:249
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:252
 #, c-format
 msgid "0.00"
 msgstr "0.00"
@@ -3462,12 +3462,12 @@ msgstr "Alternativer Kontakt"
 msgid "Amount"
 msgstr "Betrag"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:102
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:105
 #, c-format
 msgid "Amount outstanding"
 msgstr "Offener Betrag"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:248
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:251
 #, c-format
 msgid "Amount to pay: "
 msgstr "Zu bezahlender Betrag:"
@@ -4397,7 +4397,7 @@ msgstr "Löschen"
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:136
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:173
 #: opac-tmpl/bootstrap/en/modules/opac-basket.tt:35
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:93
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:95
 #: opac-tmpl/bootstrap/en/modules/opac-results-grouped.tt:283
 #: opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:279
 #, c-format
@@ -4856,7 +4856,7 @@ msgstr "DVD-Video / Video-CD"
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:148
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:185
 #: opac-tmpl/bootstrap/en/modules/opac-full-serial-issues.tt:75
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:99
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:102
 #: opac-tmpl/bootstrap/en/modules/opac-user.tt:1102
 #: opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:80
 #, c-format
@@ -5024,7 +5024,7 @@ msgstr "Abt."
 msgid "Descending"
 msgstr "Absteigend"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:100
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:103
 #: opac-tmpl/bootstrap/en/modules/clubs/clubs-tab.tt:11
 #: opac-tmpl/bootstrap/en/modules/clubs/clubs-tab.tt:46
 #, c-format
@@ -5588,7 +5588,7 @@ msgstr "Belletristik:"
 msgid "Filmographies"
 msgstr "Filmographie"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:101
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:104
 #, c-format
 msgid "Fine amount"
 msgstr "Gebühr"
@@ -5754,7 +5754,7 @@ msgid "Full subscription history for %s"
 msgstr "Vollständige Historie für %s"
 
 #. A
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:211
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:214
 msgid "GIROPAY – SECURE ONLINE PAYMENT"
 msgstr "GIROPAY – SICHER ONLINE ÜBERWEISEN"
 
@@ -5822,7 +5822,7 @@ msgid "GetServices"
 msgstr "GetServices"
 
 #. A
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:194
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:197
 msgid "GiroSolution - A member of the Sparkassen group"
 msgstr "GiroSolution - Ein Unternehmen der Sparkassen-Finanzgruppe"
 
@@ -6121,7 +6121,7 @@ msgid "Home library:"
 msgstr "Heimatbibliothek:"
 
 #. A
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:183
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:186
 msgid "How PayPal Works"
 msgstr "Funktionsweise von PayPal"
 
@@ -7156,7 +7156,7 @@ msgstr "Machen Sie einen "
 msgid "Make an "
 msgstr "Machen Sie eine "
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:247
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:250
 #, c-format
 msgid "Make payment"
 msgstr "Bezahlen"
@@ -8235,13 +8235,13 @@ msgstr "Patentdokument"
 msgid "Patron comment on %s"
 msgstr "Kommentar vom %s"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:176
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:179
 #, c-format
 msgid "Pay selected fines and charges"
 msgstr "Gebühren und Entgelte bezahlen "
 
 #. IMG
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:183
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:186
 msgid "PayPal Acceptance Mark"
 msgstr "PayPal Acceptance Mark"
 
@@ -8256,7 +8256,7 @@ msgstr "Die Online-Bezahlung wurde vom Benutzer abgebrochen."
 msgid "Payment applied:"
 msgstr "Ausgeführte Zahlung:"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:177
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:180
 #, c-format
 msgid "Payment method"
 msgstr "Zahlungsmethode"
@@ -9703,14 +9703,14 @@ msgstr "Bestimmtes Exemplar auswählen:"
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:135
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:172
 #: opac-tmpl/bootstrap/en/modules/opac-basket.tt:34
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:93
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:95
 #: opac-tmpl/bootstrap/en/modules/opac-results-grouped.tt:283
 #: opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:279
 #, c-format
 msgid "Select all"
 msgstr "Alle auswählen"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:93
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:95
 #, c-format
 msgid "Select any or all open fees for online payment. "
 msgstr ""
@@ -9946,7 +9946,7 @@ msgstr "Mehr zeigen"
 msgid "Show more options"
 msgstr "Zeige weitere Optionen"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:92
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:93
 #, c-format
 msgid "Show outstanding fines only "
 msgstr "Zeige nur offene Gebühren "
@@ -11332,7 +11332,7 @@ msgstr "Oberste Ebene"
 msgid "Topics"
 msgstr "Themen"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:113
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:116
 #, c-format
 msgid "Total due"
 msgstr "Gebühren insgesamt"
@@ -12022,7 +12022,7 @@ msgstr "Sie haben diesen Titel bereits vorgemerkt."
 msgid "You have no article requests currently."
 msgstr "Sie haben im Moment keine Vormerkungen."
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:256
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:259
 #, c-format
 msgid "You have no fines or charges"
 msgstr "Sie haben keine Gebühren"
@@ -12692,7 +12692,7 @@ msgstr "Login"
 msgid "contains"
 msgstr "enthält"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:193
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:196
 #, c-format
 msgid "credit card payment via GiroSolution "
 msgstr "Kreditkartenzahlung über GiroSolution"
@@ -12761,7 +12761,7 @@ msgid "email address"
 msgstr "E-Mail-Adresse"
 
 #. A
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:223
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:226
 msgid "epay21 – payment in any situation"
 msgstr "epay21 – Zahlen in jeder Lage"
 
@@ -12778,7 +12778,7 @@ msgstr ""
 "wird."
 
 #. IMG
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:211
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:214
 msgid "giropay logo"
 msgstr "giropay logo"
 
@@ -12999,7 +12999,7 @@ msgstr "negcap "
 msgid "not"
 msgstr "nicht"
 
-#: opac-tmpl/bootstrap/en/modules/opac-account.tt:222
+#: opac-tmpl/bootstrap/en/modules/opac-account.tt:225
 #, c-format
 msgid "online payment via ekom21/epay21 "
 msgstr "Zahlungen mit epay21"
