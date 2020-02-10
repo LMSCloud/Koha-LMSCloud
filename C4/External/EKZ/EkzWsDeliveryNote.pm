@@ -289,7 +289,7 @@ print STDERR "ekzWsDeliveryNote::genKohaRecords() method1: titleObjectRS->{_colu
                                 $titleHits = { 'count' => 0, 'records' => [] };
                                 $biblionumber = 0;
                                 $lsEkzArtikelNr = '';
-                                my $record = C4::Biblio::GetMarcBiblio( $selBiblionumber, 0);
+                                my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
                                 if ( defined($record) ) {
                                     $titleHits->{'count'} = 1;
                                     $titleHits->{'records'}->[0] = $record;

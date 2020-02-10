@@ -105,10 +105,20 @@ sub search_order_by_item {
     my ( $self, $itemnumber )  = @_;
     my $schema = Koha::Database->new->schema;
     my $rs = $schema->resultset('AqordersItem');
-    my $orderno = $rs->find({ itemnumber => $itemnumber },
-        { result_class => 'DBIx::Class::ResultClass::HashRefInflator' } )->{ordernumber};
+    my $aqorder;
+    my $aqordersitem = $rs->find({ itemnumber => $itemnumber });
 
-    return Koha::Acquisition::Order->fetch( { 'ordernumber' => $orderno } );
+    if ( $aqordersitem ) {
+        # progressive form:
+        #$aqorder = $aqordersitem->ordernumber();    # Since 18.05 the function 'ordernumber()' is not a field accessor any more, but it is the belongs-to method.
+
+        # conservative form:
+        my $ordernumber = $aqordersitem->get_column('ordernumber');    # Since 18.05 the function 'ordernumber()' is not a field accessor any more, but it is the belongs-to method. So we use get_column('ordernumber') to access the field.
+        my $rs = $schema->resultset('Aqorder');
+        $aqorder = $rs->find({ ordernumber => $ordernumber });
+    }
+
+    return $aqorder;
 }
 
 =head3 basket
