@@ -11,6 +11,10 @@
 [% INCLUDE 'datatables.inc' %]
 <script type="text/javascript">
     //<![CDATA[
+    var mypatrons;    // introduced for efficiency reasons in method illlist
+    var mybranches;    // introduced for efficiency reasons in method illlist
+    var mybackendcapabilities;    // introduced for efficiency reasons in method illlist
+
     $(document).ready(function() {
 
         // Illview Datatable setup
@@ -49,7 +53,7 @@
             'library',
             'status',
             'updated',
-            'checkedBy',
+            'metadata_checkedBy',
             'illrequest_id',
             'action'
         ];
@@ -154,13 +158,11 @@
 
         // Render function for orderid
         var createOrderId = function(data, type, row) {
-//alert("createOrderId START");
             return row.id_prefix + row.orderid;
         };
 
         // Render function for medium type
         var createMediumType = function(data, type, row) {
-//alert("createMediumType START");
             var res = row.medium;
             if ( res ) {
                 var medium = row.medium;
@@ -183,7 +185,6 @@
                 //res = row.id_prefix + $medium;    # XXXWH
                 res = $medium;
             }
-//alert("createMediumType END");
             return res;
         };
 
@@ -258,14 +259,17 @@
         // displaying dates conforming to locale, 
         // but sorting dates by using 'sType': "title-string", 'aTargets': [ 'title-string'] feature of DataTable
         var createUpdatedOn = function(data, type, row) {
-            var ret = '<span title="' + row.updated + '">' + row.updatedFormatted + '</span>';
+            var ret = '<span title="' + row.updated + '">' + row.updated_formatted + '</span>';
             return ret;
         };
 
         // Render function for Checked by
         var createCheckedBy = function(data, type, row) {
-            //return row.checkedBy.login + ' (' + row.checkedBy.timestamp + ')';
-            return row.checkedBy.login;
+            var res = '';
+            if ( row.metadata_checkedBy ) {
+                res = row.metadata_checkedBy;
+            }
+            return res;
         };
 
         // Columns that require special treatment
@@ -306,7 +310,7 @@
                 name: _("Updated on"),
                 func: createUpdatedOn
             },
-            checkedBy: {
+            metadata_checkedBy: {
                 name: _("Checked by"),
                 func: createCheckedBy
             },
@@ -342,94 +346,131 @@
         // Get our data from the API and process it prior to passing
         // it to datatables
 
-        [% SET prefilterselections = '' %]
-        [% IF prefilters %]
-            [% FOREACH select IN prefilters %]
-                [% SET prefilterselections = '&' _ select.name _ '=' _ select.value %]
+        [% IF ( query_type == 'illlist' ) %]    // call ajax only if method = illlist
+            [% SET prefilterselections = '' %]
+            [% IF prefilters %]
+                [% FOREACH select IN prefilters %]
+                    [% SET prefilterselections = '&' _ select.name _ '=' _ select.value %]
+                [% END %]
             [% END %]
-        [% END %]
-        [% IF infilter %]
-            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy&infilter=' _ infilter _ prefilterselections %]
-//alert(" ajax AJAX URL1: /api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy&infilter=[% infilter %][% prefilterselections %]");
-//alert(" ajax AJAX URL1: [% restApiUrl %]");
-        [% ELSE %]
-            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy' _ prefilterselections %]
-//alert(" ajax AJAX UR2: /api/v1/illrequests?embed=metadata,patron,capabilities,library,checkedBy[% prefilterselections %]");
-//alert(" ajax AJAX URL1: [% restApiUrl %]");
-        [% END %]
 
-        var ajax = $.ajax(
-                '[% restApiUrl %]'
-            ).done(function() {
+            [% IF infilter %]
+                [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=' _ infilter _ prefilterselections %]
+//alert(" ajax AJAX URL1: /api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=[% infilter %][% prefilterselections %]");
+//alert(" ajax AJAX URL1: [% restApiUrl %]");
+            [% ELSE %]
+                [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library' _ prefilterselections %]
+//alert(" ajax AJAX UR2: /api/v1/illrequests?embed=metadata,patron,capabilities,library[% prefilterselections %]");
+//alert(" ajax AJAX URL1: [% restApiUrl %]");
+            [% END %]
+
+            var ajax = $.ajax(
+                    '[% restApiUrl %]'
+                ).done(function() {
 //alert(" ajax done ");
-                var data = JSON.parse(ajax.responseText);
-                // Make a copy, we'll be removing columns next and need
-                // to be able to refer to data that has been removed
-                var dataCopy = $.extend(true, [], data);
-                // Remove all columns we're not interested in
-                removeIgnore(dataCopy);
-                // Expand columns that need it and create an array
-                // of all column names
-                $.each(dataCopy, function(k, row) {
-//alert(" next data copy expand row: ");
-//alert(row);
-                    expandExpand(row);
-                });
+                    var dataAll = JSON.parse(ajax.responseText);
+                    var data = dataAll[0];    // all illrequests fields and some illrequestattributes fields
+                    mypatrons = dataAll[1];    // all required  patrons
+                    mybranches = dataAll[2];    // all required  branches
+                    mybackendcapabilities = dataAll[3];    // all required  backend capabilities
 
-                // Assemble an array of column definitions for passing
-                // to datatables
-                var colData = [];
-                Object.keys(allCols).forEach(function(thisCol) {
-                    // Create the base column object
-                    var colObj = {
-                        name: thisCol,
-                        className: thisCol
-                    };
-//alert(" nextcolData.push thisCol: ");
-//alert(thisCol);
-                    // We may need to process the data going in this
-                    // column, so do it if necessary
-                    if (
-                        specialCols.hasOwnProperty(thisCol) &&
-                        specialCols[thisCol].hasOwnProperty('func')
-                    ) {
-                        colObj.render = specialCols[thisCol].func;
-                    } else {
-                        colObj.data = thisCol;
-                    }
-//alert(" nextcolData.push colObj: ");
-//alert(colObj.data);
-                    colData.push(colObj);
-                });
-
-                // Initialise the datatable
-                $('#ill-requests').DataTable($.extend(true, {}, dataTablesDefaults, {
-                    'aoColumnDefs': [  // Last column shouldn't be sortable or searchable
-                        {
-                            'aTargets': [ 'actions' ],
-                            'bSortable': false,
-                            'bSearchable': false
-                        },
-                        {
-                            'sType': "title-string",
-                            'aTargets': [ 'title-string']
+                    // links from illrequests to patrons, branches, backend capabilities
+                    $.each(data, function(k, row) {
+                        var illrequests_borrowernumber = row.borrowernumber;
+                        if ( !illrequests_borrowernumber || !mypatrons[illrequests_borrowernumber] ) {
+                            var patronObj = {
+                                patron_id: '',
+                                firstname: '',
+                                surname: '',
+                                cardnumber: ''
+                            };
+                            mypatrons[illrequests_borrowernumber] = patronObj;
                         }
-                    ],
-                    'aaSorting': [[ 8, 'desc' ]], // Default sort, updated descending
-                    'processing': true, // Display a message when manipulating
-                    'iDisplayLength': 10, // 10 results per page
-                    'sPaginationType': "full_numbers", // Pagination display
-                    'deferRender': true, // Improve performance on big datasets
-                    'data': dataCopy,
-                    'columns': colData,
-                    'originalData': data // Enable render functions to access
-                                       // our original data
-                }));
+                        row.patron = mypatrons[illrequests_borrowernumber];
 
-                // focus on Search input field
-                $('div.dataTables_filter input').focus();
-            }
-        );
+                        var illrequests_branchcode = row.branchcode;
+                        if ( !illrequests_branchcode || !mybranches[illrequests_branchcode] ) {
+                            if ( illrequests_branchcode ) {
+                                mybranches[illrequests_branchcode].branchname = illrequests_branchcode;
+                            } else {
+                                mybranches[illrequests_branchcode].branchname = 'branchcode not set';
+                            }
+                        }
+                        row.library = mybranches[illrequests_branchcode];
+
+                        var illrequests_backend = row.backend;
+                        if ( !illrequests_backend || !mybackendcapabilities[illrequests_backend] ) {
+                            row.capabilities = undefined;
+                        } else {
+                            row.capabilities = mybackendcapabilities[illrequests_backend];
+                        }
+
+                    });
+
+
+                    // Make a copy, we'll be removing columns next and need
+                    // to be able to refer to data that has been removed
+                    var dataCopy = $.extend(true, [], data);
+                    // Remove all columns we're not interested in
+                    removeIgnore(dataCopy);
+                    // Expand columns that need it and create an array
+                    // of all column names
+                    $.each(dataCopy, function(k, row) {
+                        expandExpand(row);
+                    });
+
+                    // Assemble an array of column definitions for passing
+                    // to datatables
+                    var colData = [];
+                    Object.keys(allCols).forEach(function(thisCol) {
+                        // Create the base column object
+                        var colObj = {
+                            name: thisCol,
+                            className: thisCol
+                        };
+                        // We may need to process the data going in this
+                        // column, so do it if necessary
+                        if (
+                            specialCols.hasOwnProperty(thisCol) &&
+                            specialCols[thisCol].hasOwnProperty('func')
+                        ) {
+                            colObj.render = specialCols[thisCol].func;
+                        } else {
+                            colObj.data = thisCol;
+                        }
+                        colData.push(colObj);
+                    });
+
+                    // Initialise the datatable
+                    $('#ill-requests').DataTable($.extend(true, {}, dataTablesDefaults, {
+                        'aoColumnDefs': [  // Last column shouldn't be sortable or searchable
+                            {
+                                'aTargets': [ 'actions' ],
+                                'bSortable': false,
+                                'bSearchable': false
+                            },
+                            {
+                                'sType': "title-string",
+                                'aTargets': [ 'title-string']
+                            }
+                        ],
+                        'aaSorting': [[ 8, 'desc' ]], // Default sort, updated descending
+                        'processing': true, // Display a message when manipulating
+                        'iDisplayLength': 10, // 10 results per page
+                        'sPaginationType': "full_numbers", // Pagination display
+                        'deferRender': true, // Improve performance on big datasets
+                        'data': dataCopy,
+                        'columns': colData,
+                        'originalData': data // Enable render functions to access
+                                           // our original data
+                    }));
+
+                    // focus on Search input field
+                    $('div.dataTables_filter input').focus();
+                }
+
+            );
+        [% END %]
 
     });
     //]]>

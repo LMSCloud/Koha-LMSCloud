@@ -67,6 +67,9 @@ sub new {
         C4::Context->config("interlibrary_loans")
       );
 
+    foreach my $type ('default', 'brw_cat', 'branch') {
+        $self->{cachedConfigPrefixes}->{$type} = $self->{configuration}->{prefixes}->{$type};
+    }
     bless $self, $class;
 
     return $self;
@@ -159,8 +162,9 @@ Return the prefix for ILLs defined by our config.
 sub getPrefixes {
     my ( $self, $type ) = @_;
     die "Unexpected type." unless ( $type eq 'brw_cat' || $type eq 'branch' );
-    my $values = $self->{configuration}->{prefixes}->{$type};
-    $values->{default} = $self->{configuration}->{prefixes}->{default};
+    my $values = {};
+    $values->{$type} = $self->{cachedConfigPrefixes}->{$type};
+    $values->{default} = $self->{cachedConfigPrefixes}->{default};
     return $values;
 }
 
