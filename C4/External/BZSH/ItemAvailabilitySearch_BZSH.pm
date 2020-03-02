@@ -73,6 +73,11 @@ sub new {
             $self->{querybranchcodes} .= ")";
         }
     }
+    $self->{illItemtypeCheck}->{Fernleihe} = 'Fernleihe';    # dummy itype for ILL items in backends ILLZKSHP and ILLALV
+    my @illItemtypes = split( /\|/, C4::Context->preference("ILLItemTypes") );    # system preference that may contain a list of possible ILL item types (separated by '|')
+    foreach my $it (@illItemtypes) {
+        $self->{illItemtypeCheck}->{$it} = $it;
+    }
     
     bless $self, $class;
     
@@ -192,6 +197,9 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
         my $itemrecord = $item->unblessed;
         if ( $self->{selbranchcodecheck} && !defined($self->{selbranchcodehash}->{$itemrecord->{'homebranch'}}) ) {
             next;    # not in the set of relevant items
+        }
+        if ( $self->{illItemtypeCheck} && $self->{illItemtypeCheck}->{$itemrecord->{'itype'}} ) {
+            next;    # it is an ILL item, so it is not in the set of relevant items
         }
 
         # check if this item has a "better" status
