@@ -118,114 +118,30 @@ sub genIllDeliverySlip {
             my $letter = C4::Letters::getletter($module, $lettercode, $branchcode, $transfer );
             if ( $letter && $letter->{'content'} ) {
                 $lettertemplates->{$transfer}->{'letter'} = $letter;
-                $lettertemplates->{$transfer}->{'readItems'}    = ( $letter->{'content'} =~ /(<item>.*<\/item>)/s || $letter->{'content'} =~ /(<checkedout>.*<\/checkedout>)/s ) ? 1 : 0;
-                $lettertemplates->{$transfer}->{'readOverdues'} = ( $letter->{'content'} =~ /(<overdue>.*<\/overdue>)/s ) ? 1 : 0;
-                $lettertemplates->{$transfer}->{'readNews'}     = ( $letter->{'content'} =~ /(<news>.*<\/news>)/s ) ? 1 : 0;
                 $lettertemplates->{$transfer}->{'transportType'}  = $transfer;
             }
         }
         $lettertemplates->{'print'} = $lettertemplates->{'email'} if ( !exists($lettertemplates->{'print'}) && exists($lettertemplates->{'email'} ) );
         $lettertemplates->{'email'} = $lettertemplates->{'print'} if ( !exists($lettertemplates->{'email'}) && exists($lettertemplates->{'print'} ) );
         
-
-        #foreach my $borrowernumber(@borrowernumbers) {
         my $borrowernumber = $borrowernumbers[1];    # [0] is sending ILL library, [1] is ordering borrower
-        {
+        my $illrequest = Koha::Illrequests->find({ illrequest_id => $illrequestid });
+        if ( $illrequest ) {
             my $transport_type = 'print';
-            my $notice_email = '';
-            if ( $prefer_email && $prefer_email eq 'yes' ) {
-                $notice_email = C4::Members::GetNoticeEmailAddress($borrowernumber);
-                if ( $notice_email ) {
-                    $transport_type = 'email';
-                }
-            }
             
             my $substitute = { bib => $library->branchname, 'count' => 1 };
             $substitute->{today} = output_pref( { dt => dt_from_string, dateonly => 1} );
             $substitute->{illreqattr_duedate} = output_pref( { dt => dt_from_string($duedate), dateonly => 1} );
-
             if ( exists($lettertemplates->{$transport_type}) ) {
-                # get fines
-
-                my $readItems    = $lettertemplates->{$transport_type}->{'readItems'};
-                my $readOverdues = $lettertemplates->{$transport_type}->{'readOverdues'};
-                my $readNews     = $lettertemplates->{$transport_type}->{'readNews'};
-                
                 my $repeat = {};
-                
-                my @items;
-                if ( $readItems || $readOverdues ) {
-                    
-                    # Select all items of the user 
-                    my $select = "SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
-                                    FROM items,biblio, biblioitems, branches b, issues
-                                    LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
-                                    WHERE items.itemnumber=issues.itemnumber
-                                    AND biblio.biblionumber = items.biblionumber
-                                    AND b.branchcode = items.homebranch
-                                    AND biblio.biblionumber   = biblioitems.biblionumber
-                                    AND ( issues.borrowernumber = ? OR issues.borrowernumber IN 
-                                           (
-                                            SELECT DISTINCT b.borrowernumber 
-                                               FROM borrowers b, borrowers o, categories c 
-                                               WHERE b.guarantorid = ? 
-                                                 AND o.borrowernumber = b.guarantorid
-                                                 AND c.categorycode = o.categorycode 
-                                                 AND c.family_card = 1
-                                           )
-                                        )";
-                     
-                    $select =~ s/\s*\n\s*/ /;
-                    my $selectitems = $dbh->prepare( $select );
-                    $selectitems->execute($borrowernumber,$borrowernumber); #,$branchcode,$branchcode);
-                    
-                    my @item_tables;
-                    my @overdue_tables;
-                    my $fines_sum = 0.0;
-                    while ( my $iteminfo = $selectitems->fetchrow_hashref() ) {
-                        
-                        my $fine = GetFine($iteminfo->{'itemnumber'}, $iteminfo->{'borrowernumber'});
-                        $iteminfo->{'fine'} = currency_format($currency_format, "$fine", FMT_SYMBOL);
-                        # if active currency isn't correct ISO code fallback to sprintf
-                        $iteminfo->{'fine'} = sprintf('%.2f', $fine) unless $iteminfo->{'fine'};
-                        $fines_sum += $fine;
-                        push @items, $iteminfo;
-                        
-                        push @item_tables, {
-                            'biblio' => $iteminfo->{'biblionumber'},
-                            'biblioitems' => $iteminfo->{'biblionumber'},
-                            'items' => $iteminfo,
-                            'issues' => $iteminfo->{'itemnumber'},
-                        } if ( $readItems );
-                        
-                        if ( $readOverdues && $today gt $iteminfo->{'date_due'} ) {
-                            push @overdue_tables, {
-                                'biblio' => $iteminfo->{'biblionumber'},
-                                'biblioitems' => $iteminfo->{'biblionumber'},
-                                'items' => $iteminfo,
-                                'issues' => $iteminfo->{'itemnumber'},
-                            };
-                        }
-                    }
-                    $selectitems->finish();
-                    
-                    $substitute->{fines} = currency_format($currency_format, "$fines_sum", FMT_SYMBOL);
-                    $substitute->{fines} = sprintf('%.2f', $fines_sum) unless $substitute->{fines};
-            
-                    $repeat->{item} = \@item_tables if ( $readItems );
-                    $repeat->{checkedout} = \@item_tables if ( $readItems );
-                    $repeat->{overdue} = \@overdue_tables if ( $readOverdues );
-                    
-                    if ( $readNews ) {
-                        $repeat->{news} = [ map {
-                                                $_->{'timestamp'} = $_->{'newdate'};
-                                                { opac_news => $_ }
-                                            } @{ GetNewsToDisplay("slip",$branchcode) } ];
-                    }
-                }
-                
-                my %tables = ( 'account' => $borrowernumbers[0], 'borrowers' => $borrowernumber, 'branches' => $branchcode, 'illrequests' => $illrequestid, 'biblio' => $biblionumber, 'items' => $itemnumber );    # 'account' is used for the ILL sending library
-                
+                #my $borrowernumber = $illrequest->borrowernumber();    # would be viable, but $borrowernumber is already set via $borrowernumbers[1]
+                my $biblionumber = $illrequest->biblio_id();
+
+                my $fieldResults = $illrequest->illrequestattributes->search( {  } );    # no selection, find all illrequestattributes having this illrequest_id
+                my $illreqattr = { map { ( $_->type => $_->value ) } ($fieldResults->as_list) };
+
+                my %tables = ( 'biblio' => $biblionumber, 'biblioitems' => $biblionumber, 'borrowers' => $borrowernumber, 'branches' => $branchcode, 'illrequests' => $illrequestid, 'illrequestattributes' => $illreqattr, 'items' => $itemnumber, 'account' => $borrowernumbers[0] );    # 'account' is used for the ILL sending library
+
                 my $prepared_letter = C4::Letters::GetPreparedLetter (
                     module => $module,
                     letter_code => $lettercode,
@@ -241,7 +157,7 @@ sub genIllDeliverySlip {
                                                 borrowernumber         => $borrowernumber,
                                                 message_transport_type => $transport_type,
                                                 from_address           => $admin_email_address,
-                                                to_address             => $notice_email,
+                                                to_address             => '',
                                                 branchcode             => $branchcode
                                             }
                                         );
