@@ -18,7 +18,6 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Data::Dumper;
 
 use CGI qw ( -utf8 );
 use C4::Auth;
@@ -28,7 +27,7 @@ use C4::Members;
 use Koha::Patron::Categories;
 
 my $input = new CGI;
-print STDERR "ill::illLibrary_search input:", Dumper($input), ":\n";
+
 my $patrontype = ($input->param('patrontype') || 'owni');
 my @illPatronCategories = split(/,/,$input->param('illcategories'));
 my $kohaIllPatronCategories = [];

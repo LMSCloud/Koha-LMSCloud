@@ -21,6 +21,7 @@ use strict;
 use warnings;
 use CGI::Carp;
 use Data::Dumper;
+use Business::ISBN;
 
 
 use MARC::Record;
@@ -72,6 +73,11 @@ sub new {
             $self->{querybranchcodes} .= ")";
         }
     }
+    $self->{illItemtypeCheck}->{Fernleihe} = 'Fernleihe';    # dummy itype for ILL items in backends ILLZKSHP and ILLALV
+    my @illItemtypes = split( /\|/, C4::Context->preference("ILLItemTypes") );    # system preference that may contain a list of possible ILL item types (separated by '|')
+    foreach my $it (@illItemtypes) {
+        $self->{illItemtypeCheck}->{$it} = $it;
+    }
     
     bless $self, $class;
     
@@ -109,18 +115,44 @@ sub search_title_with_best_item_status {
         }
     }
     if ($total_hits == 0) {
-        if (!defined $sel_srisbn) {
+        if (!defined $sel_srisbn || length($sel_srisbn) == 0 ) {
             my $log_str = sprintf("ItemAvailabilitySearch_BZSH: Title not found by sel_titel:%s: and sel_srisbn is empty - no 2nd search done. Returning status 0.\n", $sel_titel);
             carp $log_str;
         } else {
             # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-            $query = "(nb:\"$sel_srisbn\" or id-other:\"$sel_srisbn\")" . $self->{querybranchcodes};
-            ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
-            ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
-            
-            if (defined $error) {
-                my $log_str = sprintf("ItemAvailabilitySearch_BZSH: search for sel_srisbn:%s: returned error:%d/%s:\n", $sel_srisbn,$error,$error);
+            # (search in length 10 and 13, with and without hyphens)
+            my @selISBN = ();
+            eval {
+                my $businessIsbn = Business::ISBN->new($sel_srisbn);
+                if ( defined($businessIsbn) && ! $businessIsbn->error ) {
+                    $selISBN[0] = $businessIsbn->as_string([]);
+                    $selISBN[1] = $businessIsbn->as_string();
+                    $selISBN[2] = $businessIsbn->as_isbn10->as_string([]);
+                    $selISBN[3] = $businessIsbn->as_isbn10->as_string();
+                }
+            };
+            if ( ! defined($selISBN[0]) || length($selISBN[0]) == 0 ) {
+                my $log_str = sprintf("ItemAvailabilitySearch_BZSH: ISBN/EAN not valid -> not searching for ISBN/EAN %s.\n", $sel_srisbn);
                 carp $log_str;
+            } else {
+                for ( my $i = 0; $i < 4; $i += 1 ) {
+                    if ( defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
+                        # build search query for ISBN/EAN search
+                        # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
+                        $query = '(nb:"' . $selISBN[$i] . '" or id-other:"' . $selISBN[$i] . '")' . $self->{querybranchcodes};
+                        ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
+                        ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
+            
+                        if (defined $error) {
+                            my $log_str = sprintf("ItemAvailabilitySearch_BZSH: search for ISBN/EAN:%s: returned error:%d/%s:\n", $selISBN[$i],$error,$error);
+                            carp $log_str;
+                        } else {
+                            if ( $total_hits > 0 ) {
+                                last;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -166,6 +198,9 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
         if ( $self->{selbranchcodecheck} && !defined($self->{selbranchcodehash}->{$itemrecord->{'homebranch'}}) ) {
             next;    # not in the set of relevant items
         }
+        if ( $self->{illItemtypeCheck} && $self->{illItemtypeCheck}->{$itemrecord->{'itype'}} ) {
+            next;    # it is an ILL item, so it is not in the set of relevant items
+        }
 
         # check if this item has a "better" status
         my $itemnumber = $itemrecord->{'itemnumber'};
@@ -204,118 +239,118 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
 sub genISBD {
     my $self = shift;
     my $koharecord = shift;
-		
-	# get title / author info (ISBD Area 1)
+    
+    # get title / author info (ISBD Area 1)
     my $field = $koharecord->field('245');
-	my $titleblock;
-	if ( $field ) {
-		my $title = $field->subfield('a');
-		my $subtitle = $field->subfield('b');
-		my $author = $field->subfield('c');
-	
-		$titleblock = $title;
-		if ( $subtitle ) {
-			$titleblock .= ': ' . $subtitle;
-		}
-		if ( $author ) {
-			$titleblock .= ' / ' . $author;
-		}
-		if ( $titleblock && $titleblock !~ /\.$/ ) {
-			$titleblock .= '.';
-		}
-	}
-	# get edition statement info (ISBD Area 2)
-	$field = $koharecord->field('250');
-	if ( $field ) {
-		my $edition = $field->subfield('a');
-	
-		if ( $edition ) {
-			$titleblock .= ' - ' . $edition;
-			if ( $titleblock !~ /\.$/ ) {
-				$titleblock .= '.';
-			} 
-		}
-	}
-	# get publication info (ISBD Area 4)
-	$field = $koharecord->field('260');
+    my $titleblock;
+    if ( $field ) {
+        my $title = $field->subfield('a');
+        my $subtitle = $field->subfield('b');
+        my $author = $field->subfield('c');
+    
+        $titleblock = $title;
+        if ( $subtitle ) {
+            $titleblock .= ': ' . $subtitle;
+        }
+        if ( $author ) {
+            $titleblock .= ' / ' . $author;
+        }
+        if ( $titleblock && $titleblock !~ /\.$/ ) {
+            $titleblock .= '.';
+        }
+    }
+    # get edition statement info (ISBD Area 2)
+    $field = $koharecord->field('250');
+    if ( $field ) {
+        my $edition = $field->subfield('a');
+    
+        if ( $edition ) {
+            $titleblock .= ' - ' . $edition;
+            if ( $titleblock !~ /\.$/ ) {
+                $titleblock .= '.';
+            } 
+        }
+    }
+    # get publication info (ISBD Area 4)
+    $field = $koharecord->field('260');
     if (! defined($field) ) {
         $field = $koharecord->field('264');
     }
-	if ( $field ) {
-		my $location = $field->subfield('a');
-		my $publisher = $field->subfield('b');
-		my $year = $field->subfield('c');
-	
-		my $publisherblock = $location;
-		if ( $publisherblock && ( defined($publisher) || defined($year) )) {
-			$publisherblock .= ': ';
-		}
-		if ( $publisher ) {
-			$publisherblock .=  $publisher;
-		}
-		if ( $year ) {
-			if ( $publisherblock ) {
-				$publisherblock .= ', ';
-			}
-			$publisherblock .=  $year;
-		}
-		if ( $publisherblock ) {
-			$titleblock .= ' - ' . $publisherblock;
-			if ( $titleblock !~ /\.$/ ) {
-				$titleblock .= '.';
-			}
-		}
-	}
+    if ( $field ) {
+        my $location = $field->subfield('a');
+        my $publisher = $field->subfield('b');
+        my $year = $field->subfield('c');
+    
+        my $publisherblock = $location;
+        if ( $publisherblock && ( defined($publisher) || defined($year) )) {
+            $publisherblock .= ': ';
+        }
+        if ( $publisher ) {
+            $publisherblock .=  $publisher;
+        }
+        if ( $year ) {
+            if ( $publisherblock ) {
+                $publisherblock .= ', ';
+            }
+            $publisherblock .=  $year;
+        }
+        if ( $publisherblock ) {
+            $titleblock .= ' - ' . $publisherblock;
+            if ( $titleblock !~ /\.$/ ) {
+                $titleblock .= '.';
+            }
+        }
+    }
     
     # get physical description info (ISBD Area 5)
     my @physicaldescription = ();
-	foreach $field ($koharecord->field('300')) {
-		my $pagescnt = $field->subfield('a');
-		my $dimensions = $field->subfield('c');
-	
-		if ( $dimensions && length($dimensions) > 0 ) {
-			$pagescnt .= ' ' . $dimensions;
-		}
-		push @physicaldescription, $pagescnt if $pagescnt;
-	}
+    foreach $field ($koharecord->field('300')) {
+        my $pagescnt = $field->subfield('a');
+        my $dimensions = $field->subfield('c');
+    
+        if ( $dimensions && length($dimensions) > 0 ) {
+            $pagescnt .= ' ' . $dimensions;
+        }
+        push @physicaldescription, $pagescnt if $pagescnt;
+    }
     
     # get series statement info (ISBD Area 6)
     my @seriesstatement = ();
-	foreach $field ($koharecord->field('490')) {
-		my $seriesstmnt = $field->subfield('a');
-		my $volumedesig = $field->subfield('v');
-	
-		if ( $volumedesig && length($volumedesig) > 0 ) {
+    foreach $field ($koharecord->field('490')) {
+        my $seriesstmnt = $field->subfield('a');
+        my $volumedesig = $field->subfield('v');
+    
+        if ( $volumedesig && length($volumedesig) > 0 ) {
             $seriesstmnt =~ s/\s*;\s*$//;
             $seriesstmnt =~ s/\s*$//;
-			$seriesstmnt .= ' ; ' . $volumedesig;
-		}
-		push @seriesstatement, $seriesstmnt if $seriesstmnt;
-	}
-	
-	# get ISBN / EAN info (ISBD Area 8)
+            $seriesstmnt .= ' ; ' . $volumedesig;
+        }
+        push @seriesstatement, $seriesstmnt if $seriesstmnt;
+    }
+    
+    # get ISBN / EAN info (ISBD Area 8)
     my @isbns = ();
-	foreach $field ($koharecord->field('020')) {
-		my $isbn = $field->subfield('a');
-		eval {
-			my $val = Business::ISBN->new($isbn);
-			$isbn = $val->as_isbn13()->as_string("-");
-		};
-		my $isbnprice = $field->subfield('c');
+    foreach $field ($koharecord->field('020')) {
+        my $isbn = $field->subfield('a');
+        eval {
+            my $val = Business::ISBN->new($isbn);
+            $isbn = $val->as_isbn13()->as_string("-");
+        };
+        my $isbnprice = $field->subfield('c');
         if ( $isbnprice && length($isbnprice) > 0 ) {
             $isbn .= " : " . $isbnprice;
         }
-		push @isbns, $isbn if $isbn;
-	}
+        push @isbns, $isbn if $isbn;
+    }
     my @eans = ();
-	foreach $field ($koharecord->field('024')) {
-		my $ean = $field->subfield('a');
-		my $eanprice = $field->subfield('c');
+    foreach $field ($koharecord->field('024')) {
+        my $ean = $field->subfield('a');
+        my $eanprice = $field->subfield('c');
         if ( $eanprice && length($eanprice) > 0 ) {
             $ean .= " : " . $eanprice;
         }
-		push @eans, $ean if $ean;
-	}
+        push @eans, $ean if $ean;
+    }
     
     
     

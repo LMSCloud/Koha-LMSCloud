@@ -243,8 +243,8 @@ sub _config {
 =cut
 
 sub metadata {
-    my ( $self ) = @_;
-    return $self->_backend->metadata($self);
+    my ( $self, $metadataHash ) = @_;
+    return $self->_backend->metadata($self, $metadataHash);
 }
 
 =head3 _core_status_graph
@@ -747,10 +747,12 @@ sub getPrefix {
     my $brn_prefixes = $self->_config->getPrefixes('branch');
     my $brw_prefixes = $self->_config->getPrefixes('brw_cat');
 
-    return $brw_prefixes->{$params->{brw_cat}}
-        || $brn_prefixes->{$params->{branch}}
+    my $helper = $brw_prefixes->{brw_cat}->{$params->{brw_cat}}
+        || $brn_prefixes->{branch}->{$params->{branch}}
         || $brw_prefixes->{default}
         || "";                  # "the empty prefix"
+
+    return $helper; 
 }
 
 #### Illrequests Imports
@@ -985,7 +987,8 @@ file.
 
 sub id_prefix {
     my ( $self ) = @_;
-    if ( ! defined $self->patron ) {
+
+    if ( ! $self->_config->getPrefixes('brw_cat')->{'brw_cat'} || ! defined $self->patron ) {
         return '';
     }
     my $brw = $self->patron;
