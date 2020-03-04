@@ -105,6 +105,11 @@ elsif ( $op eq 'run' ) {
             $runCmd .= ' -s';
         }
         
+        my $splitbylettercode = $input->param('gather_print_notices_output_splitcode') || '';
+        if ( $splitbylettercode && $splitbylettercode eq 'yes' ) {
+            $runCmd .= ' -sc';
+        }
+        
         my $setsent = $input->param('gather_print_notices_output_sent') || '';
         if ( $setsent && $setsent eq 'no' ) {
             $runCmd .= ' --nosend';

@@ -27,6 +27,7 @@ my (
     $stylesheet,
     $help,
     $split,
+    $splitcode,
     $html,
     $csv,
     $ods,
@@ -40,6 +41,7 @@ $send = 1;
 GetOptions(
     'h|help'  => \$help,
     's|split' => \$split,
+    'sc|splitcode' => \$splitcode,
     'html'    => \$html,
     'csv'     => \$csv,
     'ods'     => \$ods,
@@ -99,6 +101,7 @@ my ( $html_filenames, $csv_filenames, $ods_filenames );
 $csv_filenames = print_notices({
     messages => \@all_messages,
     split => $split,
+    splitcode => $splitcode,
     output_directory => $output_directory,
     format => 'csv',
 }) if $csv;
@@ -106,6 +109,7 @@ $csv_filenames = print_notices({
 $ods_filenames = print_notices({
     messages => \@all_messages,
     split => $split,
+    splitcode => $splitcode,
     output_directory => $output_directory,
     format => 'ods',
 }) if $ods;
@@ -123,6 +127,7 @@ if ( $html ) {
     $html_filenames = print_notices({
         messages => \@all_messages,
         split => $split,
+        splitcode => $splitcode,
         output_directory => $output_directory,
         format => 'html',
     });
@@ -149,6 +154,7 @@ sub print_notices {
 
     my $messages = $params->{messages};
     my $split = $params->{split};
+    my $splitcode = $params->{splitcode};
     my $output_directory = $params->{output_directory};
     my $format = $params->{format} // 'html';
 
@@ -159,15 +165,27 @@ sub print_notices {
 
     if ( $split ) {
         foreach my $message (@$messages) {
-            push( @{ $messages_by_branch->{ $message->{'branchcode'} } }, $message );
+            my $bybranch = $message->{'branchcode'};
+            if ( $splitcode ) {
+                my $bycode = $message->{'letter_code'} || 'MISC';
+                $bybranch .= '_' . $bycode ;
+            }
+            push( @{ $messages_by_branch->{ $bybranch } }, $message );
         }
     } else {
-        $messages_by_branch->{all_branches} = $messages;
+        if ( $splitcode ) {
+            foreach my $message (@$messages) {
+                my $bycode = $message->{'letter_code'}  || 'MISC';
+                push( @{ $messages_by_branch->{ $bycode } }, $message );
+            }
+        } else {
+            $messages_by_branch->{all_branches} = $messages;
+        }
     }
 
     while ( my ( $branchcode, $branch_messages ) = each %$messages_by_branch ) {
         my $letter_codes = @letter_codes == 0 ? 'all' : join '_', @letter_codes;
-        my $filename = $split
+        my $filename = ( $split || $splitcode )
             ? "notices_$letter_codes-" . $today_iso . "-$branchcode.$format"
             : "notices_$letter_codes-" . $today_iso . ".$format";
         my $filepath = File::Spec->catdir( $output_directory, $filename );
