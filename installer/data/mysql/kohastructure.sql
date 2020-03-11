@@ -797,6 +797,25 @@ CREATE TABLE `export_format` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used for CSV export';
 
 --
+-- Table structure for table `external_order`
+--
+DROP TABLE IF EXISTS `external_order`
+CREATE TABLE `external_order` (
+  `id`                       int(13)       NOT NULL auto_increment,
+  `branchcode`               varchar(10)   NOT NULL,
+  `borrowernumber`           int(11)       NOT NULL,
+  `external_order_id`        varchar(255)  NOT NULL,
+  `order_type`               varchar(255)  NOT NULL,
+  `order_time`               timestamp     NOT NULL,
+  `order_data`               mediumtext    NOT NULL,
+  `processing_status`        enum('new','progress','ready') NOT NULL default 'new',
+  `created`                  timestamp     NOT NULL default CURRENT_TIMESTAMP,
+  `last_update`              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `external_order_extid`      (`order_type`,`external_order_id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used for processing external orders';
+  
+--
 -- Table structure for table `import_batches`
 --
 

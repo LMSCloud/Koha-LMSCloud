@@ -17134,6 +17134,29 @@ if ( CheckVersion($DBversion) ) {
     SetVersion ($DBversion);
 }
 
+$DBversion = "18.05.05.013";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        CREATE TABLE IF NOT EXISTS `external_order` (
+              `id`                       int(13)       NOT NULL auto_increment,
+              `branchcode`               varchar(10)   NOT NULL,
+              `borrowernumber`           int(11)       NOT NULL,
+              `external_order_id`        varchar(255)  NOT NULL,
+              `order_type`               varchar(255)  NOT NULL,
+              `order_time`               timestamp     NOT NULL,
+              `order_data`               mediumtext    NOT NULL,
+              `processing_status`        enum('new','progress','ready') NOT NULL default 'new',
+              `created`                  timestamp     NOT NULL default CURRENT_TIMESTAMP,
+              `last_update`              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (`id`),
+              UNIQUE KEY `external_order_extid`      (`order_type`,`external_order_id`)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    });
+
+    print "Upgrade to $DBversion done (Added new table external_orders.)\n";
+    SetVersion($DBversion);
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 

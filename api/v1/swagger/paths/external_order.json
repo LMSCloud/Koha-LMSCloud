@@ -1,0 +1,81 @@
+{
+    "/bzsh/external_order": {
+    "post": {
+      "x-mojo-to": "BZSH::ExternalOrder#addExternalOrder",
+      "operationId": "add_external_order",
+      "tags": ["external_order"],
+      "parameters": [{
+        "name": "body",
+        "in": "body",
+        "description": "Create an external order request for processing with the Koha acquisition module",
+        "required": true,
+        "schema": {
+           "type": "object",
+           "items": {
+              "$ref": "../definitions.json#/external_order"
+           }
+        }
+      }],
+      "consumes": ["application/json"],
+      "produces": ["application/json"],
+      "responses": {
+        "200": {
+          "description": "The order was stored for stored for further processing.",
+          "schema": {
+            "type": "object",
+            "properties": {
+                "process_info": {
+	            "type": "string"
+                }
+            }
+          }
+        },
+        "400": {
+          "description": "Bad parameter",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "Resource not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "409": {
+          "description": "Conflict in creating resource",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": "order_manage"
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "external_order_id": {
+      "type": "string",
+      "description": "external order id of an external system"
+    },
+    "order_type": {
+      "type": "string",
+      "description": "type of the order"
+    },
+    "library_id": {
+      "$ref": "../x-primitives.json#/library_id"
+    },
+    "order_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "order creation time"
+    },
+    "patron_id": {
+      "$ref": "../x-primitives.json#/patron_id"
+    },
+    "order_items": {
+        "type": "array",
+        "items": {
+            "$ref": "external_order_items.json"
+        }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "library_id",
+    "patron_id",
+    "order_items",
+    "external_order_id",
+    "order_type"
+  ]
+}

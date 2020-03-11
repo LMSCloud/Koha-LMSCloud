@@ -50,6 +50,9 @@
   "/bzsh/bib_updates": {
     "$ref": "paths/bzsh_bib_updates.json#/~1bzsh~1bib_updates"
   },
+  "/bzsh/external_order": {
+    "$ref": "paths/external_order.json#/~1bzsh~1external_order"
+  },
   "/zksha_illrequests": {
     "$ref": "paths/zksha_illrequests.json#/~1zksha_illrequests"
   },
