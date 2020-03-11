@@ -19,6 +19,14 @@
         "description": "Search authorised values by value",
         "required": false,
         "type": "string"
+      }, {
+        "$ref": "../parameters.json#/match"
+      }, {
+        "$ref": "../parameters.json#/order_by"
+      }, {
+        "$ref": "../parameters.json#/page"
+      }, {
+        "$ref": "../parameters.json#/per_page"
       }],
       "responses": {
         "200": {
@@ -47,6 +55,11 @@
           "schema": {
             "$ref": "../definitions.json#/error"
           }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": {
+          "parameters_remaining_permissions": "1"
         }
       }
     }
