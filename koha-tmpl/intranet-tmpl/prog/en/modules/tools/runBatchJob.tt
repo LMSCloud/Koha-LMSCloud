@@ -240,6 +240,13 @@ produced by other features of Koha. The message queue must be processed regularl
                                             </td>
                                         </tr>
                                         <tr>
+                                            <td><label for="gather_print_notices_output_split">Seperate by letter code</label></td>
+                                            <td>
+                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_splitcode_no">No separation by letter code </label><input type="radio" name="gather_print_notices_output_splitcode" id="gather_print_notices_output_splitcode_no" value="no" checked="checked" /></div>
+                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_splitcode_yes">Seperated by letter code </label><input type="radio" name="gather_print_notices_output_splitcode" id="gather_print_notices_output_splitcode_yes" value="yes" /></div>
+                                            </td>
+                                        </tr>
+                                        <tr>
                                             <td><label for="gather_print_notices_output_sent">Set sent mark</label></td>
                                             <td>
                                                 <div style="white-space:nowrap"><label for="gather_print_notices_output_sent_yes">Mark processed notices as sent </label><input type="radio" name="gather_print_notices_output_sent" id="gather_print_notices_output_sent_yes" value="yes" checked="checked" /></div>

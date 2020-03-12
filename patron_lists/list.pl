@@ -41,7 +41,7 @@ my ( $template, $logged_in_user, $cookie ) = get_template_and_user(
 my ($list) =
   GetPatronLists( { patron_list_id => scalar $cgi->param('patron_list_id') } );
 
-my @existing = $list->patron_list_patrons;
+my @existing = $list->patron_list_patrons if ($list);
 
 my $cardnumbers = $cgi->param('patrons_by_barcode');
 my @patrons_by_barcode;

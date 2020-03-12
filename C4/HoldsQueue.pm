@@ -455,7 +455,7 @@ sub MapItemsToHoldRequests {
         if (defined($request->{itemnumber})) {
             # fill it if possible; if not skip it
             my $itemnumber = $request->{itemnumber};
-            if ( /^$itemnumber$/ ~~ @$available_items ) {    # item-level request has to be satisfied by the specified item only, not by an other item of the same title
+            if ( grep { $_ == $itemnumber } @$available_items ) {    # item-level request has to be satisfied by the specified item only, not by any other item of the same title
                 # get effective branches if the request is for a mobile branch station 
                 my $effectivereservebranch = Koha::Libraries->get_effective_branch($request->{branchcode});
                 my $effectiveitembranch = $effectivereservebranch;
