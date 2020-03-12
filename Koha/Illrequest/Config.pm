@@ -105,6 +105,21 @@ sub backend_dir {
     return $self->{configuration}->{backend_directory};
 }
 
+=head3 backends_available
+
+    $backends_available = $config->backends_available('ILLZKSHA,ILLZKSHP');
+    $backends_available = $config->backends_available;
+
+Standard setter/accessor for our backends_available.
+
+=cut
+
+sub backends_available {
+    my ( $self, $new ) = @_;
+    $self->{configuration}->{backends_available} = $new if $new;
+    return $self->{configuration}->{backends_available};
+}
+
 =head3 available_backends
 
 Return a list of available backends.
@@ -114,10 +129,29 @@ Return a list of available backends.
 sub available_backends {
     my ( $self ) = @_;
     my $backend_dir = $self->backend_dir;
-    my @backends = ();
-    @backends = glob "$backend_dir/*" if ( $backend_dir );
-    @backends = map { basename($_) } @backends;
-    return \@backends;
+    my $backends_available = $self->backends_available;
+    my $backendsRef = [];
+    if ( $backends_available ) {
+        my @backends = ();
+        @backends = glob "$backend_dir/*" if ( $backend_dir );
+        @backends = map { basename($_) } @backends;
+        if ( scalar @backends ) {
+            my @backendsAvailable = split(/,/, $backends_available);
+            my %backendsAll;
+            my $i = 0;
+            $backendsAll{$_} = $i++ for (@backends);
+            my @backendsAvail = ();
+            foreach my $backendAvail (@backendsAvailable) {
+                if ( defined($backendsAll{$backendAvail}) ) {
+                    push @backendsAvail, $backendAvail;
+                }
+            }
+            $backendsRef = \@backendsAvail;
+        } else {
+            $backendsRef = \@backends;
+        }
+    }
+    return $backendsRef;
 }
 
 =head3 partner_code
@@ -235,10 +269,12 @@ file to ensure we have only valid input there.
 sub _load_configuration {
     my ( $xml_config ) = @_;
     my $xml_backend_dir = $xml_config->{backend_directory};
+    my $xml_backends_available = $xml_config->{backends_available};
 
     # Default data structure to be returned
     my $configuration = {
         backend_directory  => $xml_backend_dir,
+        backends_available  => $xml_backends_available,
         censorship         => {
             censor_notes_staff => 0,
             censor_reply_date => 0,

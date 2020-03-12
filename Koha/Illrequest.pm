@@ -137,6 +137,28 @@ sub patron {
     return $patron;
 }
 
+=head3 backend_is_available
+
+Check if the backend is available.
+
+    my $ILLALV_is_available = $illrequest->backend_is_available('ILLALV');
+
+=cut
+
+sub backend_is_available {
+    my ( $self, $backend_id ) = @_;
+    my $this_backend_is_available = 0;
+
+    my $backends_available = $self->_config->available_backends;
+    foreach my $backendAvailable (@{$backends_available}) {
+        if ( $backend_id eq $backendAvailable ) {
+            $this_backend_is_available = 1;
+            last;
+        }
+    }
+    return $this_backend_is_available;
+}
+
 =head3 load_backend
 
 Require "Base.pm" from the relevant ILL backend.
@@ -149,10 +171,11 @@ sub load_backend {
     my @raw = qw/Koha Illbackends/; # Base Path
 
     my $backend_name = $backend_id || $self->backend;
-
-    unless ( defined $backend_name && $backend_name ne '' ) {
+    unless ( defined $backend_name && $backend_name ne '' && $self->backend_is_available($backend_name) ) {
         Koha::Exceptions::Ill::InvalidBackendId->throw(
-            "An invalid backend ID was requested ('')");
+            "An invalid backend ID was requested ('$backend_name')");
+        # This also means that a record in illrequests with an backend that is not contained in $self->_config->available_backends
+        # will block the ILL request hit list. This is by intention ( of RG).
     }
 
     my $location = join "/", @raw, $backend_name, "Base.pm";    # File to load
