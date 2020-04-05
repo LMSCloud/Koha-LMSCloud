@@ -172,7 +172,7 @@ sub handleBZSHExternalOrderRequest {
             
             # check count of copies  of order item > 0
             if ( $orderItem && exists($orderItem->{copies}) ) {
-                push @errors, "Count of copies value " . $orderItem->{copies} . " is not correct for order item $i." if ( $orderItem->{copies} != /^[0-9]+$/ || $orderItem->{copies} <= 0 );
+                push @errors, "Count of copies value " . $orderItem->{copies} . " is not correct for order item $i." if ( $orderItem->{copies} !~ /^[0-9]+$/ || $orderItem->{copies} <= 0 );
             } else {
                 push @errors, "Count of copies is not specified for order item $i.";
             }
