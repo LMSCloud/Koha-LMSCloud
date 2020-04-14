@@ -1178,15 +1178,27 @@ sub getValidFromToPeriod {
         }
         else {
             $date_to = dt_from_string($to);
-            $date_to = DateTime->new(
-                year      => $date_to->year,
-                month     => $date_to->month,
-                day       => $date_to->day,
-                hour      => 23,
-                minute    => 59,
-                second    => 59,
-                time_zone => C4::Context->tz
-            );
+            if ( DateTime->compare( $date_from, $date_to ) == 0 && $date_to->hour == 0 && $date_to->minute == 0  ) {
+                $date_to = DateTime->new(
+                    year      => $date_to->year,
+                    month     => $date_to->month,
+                    day       => $date_to->day,
+                    hour      => 23,
+                    minute    => 59,
+                    second    => 59,
+                    time_zone => C4::Context->tz
+                );
+            } else {
+                $date_to = DateTime->new(
+                    year      => $date_to->year,
+                    month     => $date_to->month,
+                    day       => $date_to->day,
+                    hour      => $date_to->hour,
+                    minute    => $date_to->minute,
+                    second    => 59,
+                    time_zone => C4::Context->tz
+                );
+            }
         }
     }
     else {
@@ -1404,7 +1416,7 @@ sub getLastBookingsFromTo {
     $sth_bor->finish();
     $sth->finish();
 
-    return (\@result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
+    return (\@result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
 }
 
 =head2 getCashRegisterPaymentAndDepositOverview
@@ -1482,7 +1494,7 @@ sub getCashRegisterPaymentAndDepositOverview {
     
     $result->{type} = 'inoutpaymentoverview';
     
-    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
+    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
 }
 
 =head2 getFinesOverviewByBranch
@@ -2942,7 +2954,7 @@ sub getFinesOverview {
         }
     }
     
-    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
+    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
 }
 
 =head2 getCashTransactionOverviewByBranch
@@ -3183,7 +3195,7 @@ sub getCashTransactionOverviewByBranch {
     $result->{sum}->{final_balance}->{booking_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{final_balance}->{amount});
     
     
-    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 1}),output_pref({dt => dt_from_string($date_to), dateonly => 1}));
+    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
 }
 
 
