@@ -767,7 +767,7 @@ sub copy_to_branch_special {
 
     my $exception_holidays = $self->get_exception_holidays;
     my $target_exceptions = $target_calendar->get_exception_holidays;
-    foreach my $values ( grep {$_->{date} gt $datefrom && $_->{date} le $dateto} values %{ $exception_holidays }) {
+    foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $exception_holidays }) {
         unless ( grep { $_->{date} eq $values->{date} } values %$target_exceptions) {
             $target_calendar->insert_exception_holiday(%{ $values });
         }
@@ -775,7 +775,7 @@ sub copy_to_branch_special {
 
     my $single_holidays = $self->get_single_holidays;
     my $target_singles = $target_calendar->get_single_holidays;
-    foreach my $values ( grep {$_->{date} gt $datefrom && $_->{date} le $dateto} values %{ $single_holidays }) {
+    foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $single_holidays }) {
         unless ( grep { $_->{date} eq $values->{date} } values %$target_singles){
             $target_calendar->insert_single_holiday(%{ $values });
         }
