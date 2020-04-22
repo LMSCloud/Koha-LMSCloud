@@ -828,7 +828,7 @@ sub copy_to_group_special {
     if ( $group ) {
         foreach my $library( $group->all_libraries ) {
             if ( $library->branchcode ne $self->{branchcode} ) {
-                $self->copy_to_branch_special($library->branchcode);
+                $self->copy_to_branch_special($library->branchcode, $datefrom, $dateto);
             }
         }
     }
