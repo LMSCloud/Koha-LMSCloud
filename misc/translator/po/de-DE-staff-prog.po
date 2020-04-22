@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2020-04-14 15:03+0200\n"
-"PO-Revision-Date: 2020-04-14 15:28+0100\n"
+"POT-Creation-Date: 2020-04-22 14:30+0200\n"
+"PO-Revision-Date: 2020-04-22 14:33+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -10114,7 +10114,7 @@ msgstr "' ~%%] %s %s [%%~ action_block = action_block _ ' "
 msgid "' ~%%] [%%~ action_block = action_block _ '"
 msgstr "' ~%%] [%%~ action_block = action_block _ '"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:396
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:398
 #, c-format
 msgid "') |html %%]"
 msgstr "') |html %%]"
@@ -13303,7 +13303,7 @@ msgstr "Alle erforderlichen Abhängigkeiten sind installiert."
 msgid "All funds"
 msgstr "Alle Konten"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:277
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:279
 #, c-format
 msgid ""
 "All holidays repeating weekly and holidays repeating yearly that are not "
@@ -13313,7 +13313,7 @@ msgstr ""
 "ausgewählten Kalender in die Zielkalender übernommen, wenn sie dort nicht "
 "bereits definiert wurden."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:240
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:241
 #, c-format
 msgid ""
 "All holidays repeating weekly and holidays repeating yearly that are not "
@@ -13501,8 +13501,8 @@ msgstr ""
 msgid "Allow transfer?"
 msgstr "Transport erlauben?"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:243
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:280
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:244
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:282
 #, c-format
 msgid "Already defined holidays of the target calendar will remain unchanged. "
 msgstr ""
@@ -13775,8 +13775,8 @@ msgstr "Betrag: "
 msgid "Amount: %s"
 msgstr "Betrag: %s"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:242
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:279
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:243
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:281
 #, c-format
 msgid ""
 "An additional option allows to copy all unique holidays and holiday "
@@ -20114,7 +20114,7 @@ msgstr "Verwendete Normdaten abwählen"
 msgid "Click ID to select/deselect quote"
 msgstr "Klicken Sie auf die jeweilige ID um ein Zitat zu wählen / abzuwählen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:297
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:299
 #, c-format
 msgid "Click Save to finish."
 msgstr "Klicken Sie abschließend auf 'Speichern'."
@@ -20260,7 +20260,7 @@ msgstr ""
 "Klicken Sie auf die Schaltfläche 'Zitate speichen' um die ganze Serie zu "
 "speichern."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:294
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:296
 #, c-format
 msgid "Click the date to add or edit a holiday."
 msgstr ""
@@ -21389,8 +21389,8 @@ msgstr "Exemplare:"
 #. SCRIPT
 #: intranet-tmpl/prog/en/includes/columns_settings.inc:3
 #: intranet-tmpl/prog/en/modules/admin/z3950servers.tt:183
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:237
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:274
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:238
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:276
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:124
 #: intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:208
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:69
@@ -21403,7 +21403,7 @@ msgstr "Kopieren"
 msgid "Copy and replace"
 msgstr "Kopieren und ersetzen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:255
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:256
 #, c-format
 msgid "Copy holidays to all libraries of group:"
 msgstr "Schließtage für alle Zweigstellen der Gruppe kopieren:"
@@ -21440,7 +21440,7 @@ msgid "Copy number:"
 msgstr "Exemplarnr.:"
 
 #: intranet-tmpl/prog/en/modules/tools/holidays.tt:229
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:266
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:267
 #, c-format
 msgid "Copy only unique holidays and holiday exceptions"
 msgstr "Nur einmalige Schließtage und Ausnahmen kopieren"
@@ -22532,8 +22532,8 @@ msgstr "Datenbank: "
 #: intranet-tmpl/prog/en/modules/circ/on-site_checkouts.tt:28
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:100
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:161
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:315
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:386
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:317
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:388
 #: intranet-tmpl/prog/en/modules/tools/download-files.tt:76
 #: intranet-tmpl/prog/en/modules/tools/viewlog.tt:199
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:744
@@ -22836,7 +22836,7 @@ msgstr "David Strainchamps"
 msgid "Day"
 msgstr "Tag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:337
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:339
 #: intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:108
 #: intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:130
 #: intranet-tmpl/prog/en/modules/reports/issues_stats.tt:120
@@ -22844,7 +22844,7 @@ msgstr "Tag"
 msgid "Day of week"
 msgstr "Wochentag:"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:361
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:363
 #, c-format
 msgid "Day/month"
 msgstr "Tag/Monat"
@@ -23743,7 +23743,7 @@ msgid "Delete this category"
 msgstr "Benutzertyp löschen"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Delete this exception."
 msgstr "Ausnahme löschen"
 
@@ -23754,7 +23754,7 @@ msgstr "Schließtag löschen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Delete this holiday."
 msgstr "Schließtag löschen"
 
@@ -23768,6 +23768,16 @@ msgstr "Diesen gespeicherten Report löschen"
 #: intranet-tmpl/prog/en/modules/authorities/authorities.tt:397
 msgid "Delete this subfield"
 msgstr "Dieses Unterfeld löschen"
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:233
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:271
+#, c-format
+msgid ""
+"Delete unique holidays and holiday exceptions of the target calendar during "
+"the selected date range before copying. "
+msgstr ""
+"Einmalige Schließtage und Ausnahmen des ausgewählten Zeitraums im "
+"Zielkalender vor dem Kopieren entfernen."
 
 #: intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:85
 #: intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:526
@@ -23998,10 +24008,10 @@ msgstr "Abt."
 #: intranet-tmpl/prog/en/modules/members/update-child.tt:24
 #: intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:271
 #: intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:131
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:317
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:339
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:366
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:388
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:319
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:341
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:368
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:390
 #: intranet-tmpl/prog/en/modules/tools/csv-profiles.tt:252
 #: intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:91
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:66
@@ -25856,7 +25866,7 @@ msgstr ""
 "Geben Sie einen Text ein, der den Standard in der Liste der Suchresultate "
 "überschreibt. Z. B. für eine Webseite als Medientyp: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:295
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:297
 #, c-format
 msgid "Enter a title and description for the holiday."
 msgstr "Geben Sie einen Titel und eine Beschreibung für den Schließtag an."
@@ -26373,11 +26383,11 @@ msgid "Excel"
 msgstr "Excel"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Exception: %s"
 msgstr "Ausnahme: %s"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:312
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:314
 #, c-format
 msgid "Exceptions"
 msgstr "Ausnahmen"
@@ -27943,7 +27953,7 @@ msgid "Friday"
 msgstr "Freitag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Fridays"
 msgstr "Freitags"
 
@@ -28928,7 +28938,7 @@ msgstr ""
 msgid "Hint:"
 msgstr "Tipp:"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:291
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:293
 #, c-format
 msgid "Hints"
 msgstr "Tipps"
@@ -29267,8 +29277,8 @@ msgstr "Vormerkungen:"
 msgid "Holger Meißner"
 msgstr "Holger Meißner"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:305
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:307
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Holiday exception"
 msgstr "Ausnahme"
@@ -29288,14 +29298,14 @@ msgstr "Schließtag, der sich jede Woche an diesem Tag wiederholt"
 msgid "Holiday repeated yearly on the same date"
 msgstr "Schließtag, der jedes Jahr auf das gleiche Datum fällt"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:303
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:305
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Holiday repeating weekly"
 msgstr "Wöchentlich wiederholter Schließtag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:304
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:306
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Holiday repeating yearly"
 msgstr "Jährlich wiederholter Schließtag"
@@ -32430,7 +32440,7 @@ msgstr "Belasse Nachrichten mit Status vorbereitet "
 msgid "Kenza Zaki"
 msgstr "Kenza Zaki"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:299
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:301
 #, c-format
 msgid "Key"
 msgstr "Schlüssel"
@@ -38575,7 +38585,7 @@ msgid "Monday"
 msgstr "Montag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Mondays"
 msgstr "Montags"
 
@@ -38593,7 +38603,7 @@ msgstr "Montags"
 msgid "Month"
 msgstr "Monat"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:363
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:365
 #, c-format
 msgid "Month/day"
 msgstr "Monat/Tag"
@@ -40852,7 +40862,7 @@ msgid "Normal"
 msgstr "Normal"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Normal day"
 msgstr "Normaler Tag"
 
@@ -48984,7 +48994,7 @@ msgid "Saturday"
 msgstr "Samstag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Saturdays"
 msgstr "Samstags"
 
@@ -49637,7 +49647,7 @@ msgstr "Konten suchen:"
 msgid "Search history"
 msgstr "Suchhistorie"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:293
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:295
 #, c-format
 msgid "Search in the calendar the day you want to set as holiday."
 msgstr ""
@@ -51515,7 +51525,7 @@ msgid "Since"
 msgstr "Seit"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Single holiday: %s"
 msgstr "Einmaliger Schließtag: %s"
 
@@ -51891,7 +51901,7 @@ msgstr "Datum für die Reaktivierung %s: "
 msgid "Specify due date %s: "
 msgstr "Fälligkeitsdatum festlegen %s: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:296
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:298
 #, c-format
 msgid "Specify how the holiday should repeat."
 msgstr "Geben Sie an, auf welche Weise der Schließtag wiederholt werden soll."
@@ -53273,7 +53283,7 @@ msgid "Sunday"
 msgstr "Sonntag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Sundays"
 msgstr "Sonntags"
 
@@ -56168,7 +56178,7 @@ msgid "Thursday"
 msgstr "Donnerstag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Thursdays"
 msgstr "Donnerstags"
 
@@ -56297,10 +56307,10 @@ msgstr "TinyMCE WYSIWYG Editor v3.5.8 "
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:98
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:69
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:159
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:316
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:338
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:365
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:387
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:318
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:340
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:367
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:389
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:159
 #: intranet-tmpl/prog/en/modules/tools/koha-news.tt:167
 #: intranet-tmpl/prog/en/modules/tools/inventory.tt:169
@@ -57371,7 +57381,7 @@ msgid "Tuesday"
 msgstr "Dienstag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Tuesdays"
 msgstr "Dienstage"
 
@@ -57663,19 +57673,19 @@ msgstr "Uniform Resource Identifier"
 msgid "Uninstall"
 msgstr "Deinstallieren"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:302
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:304
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Unique holiday"
 msgstr "Einmaliger Schließtag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:382
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:384
 #, c-format
 msgid "Unique holidays"
 msgstr "Einmalige Schließtage"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:241
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:278
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:242
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:280
 #, c-format
 msgid ""
 "Unique holidays and holiday exceptions of the curent calendar are copied, if "
@@ -59569,7 +59579,7 @@ msgid "Wednesday"
 msgstr "Mittwoch"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Wednesdays"
 msgstr "Mittwochs"
 
@@ -59582,13 +59592,13 @@ msgstr "Mittwochs"
 msgid "Week"
 msgstr "Woche"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:333
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:335
 #, c-format
 msgid "Weekly - Repeatable holidays"
 msgstr "Wöchentlich - Wiederholbare Schließtage"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Weekly holiday: %s"
 msgstr "Wöchentlicher Schließtag: %s"
 
@@ -59757,7 +59767,7 @@ msgstr "Wolfgang Heymans"
 msgid "Women"
 msgstr "Frauen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:301
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:303
 #, c-format
 msgid "Working day"
 msgstr "Werktag"
@@ -59857,13 +59867,13 @@ msgstr "Jahr"
 msgid "Year: "
 msgstr "Jahr: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:356
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:358
 #, c-format
 msgid "Yearly - Repeatable holidays"
 msgstr "Jährlich - Wiederholbare Schließtage"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:417
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Yearly holiday: %s"
 msgstr "Jährlicher Schließtag: %s"
 
@@ -61205,7 +61215,7 @@ msgstr ""
 "[% patron.firstname | html %] [% patron.surname | html %] ([% patron."
 "cardnumber | html %])"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:396
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:398
 #, c-format
 msgid "[%% HOLIDAYS_LOO.DESCRIPTION.replace('\\\\\\r\\\\\\n', '"
 msgstr "[%% HOLIDAYS_LOO.DESCRIPTION.replace('\\\\\\r\\\\\\n', '"
@@ -62288,7 +62298,7 @@ msgstr "von"
 
 #: intranet-tmpl/prog/en/modules/admin/library_groups.tt:305
 #: intranet-tmpl/prog/en/modules/tools/holidays.tt:230
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:267
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:268
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:466
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:473
 #, c-format
@@ -63693,7 +63703,7 @@ msgstr "Mal"
 #: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:13
 #: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:339
 #: intranet-tmpl/prog/en/modules/tools/holidays.tt:231
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:268
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:269
 #: intranet-tmpl/prog/en/modules/course_reserves/add_items-step2.tt:27
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:467
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:474
