@@ -759,12 +759,28 @@ Copy all exception and single holidays of a date range from a source calendar to
 =cut
 
 sub copy_to_branch_special {
-    my ($self, $target_branch, $datefrom, $dateto) = @_;
+    my ($self, $target_branch, $datefrom, $dateto, $deleteExisting) = @_;
 
     croak "No target_branch" unless $target_branch;
 
     my $target_calendar = C4::Calendar->new(branchcode => $target_branch);
-
+    
+    if ( $deleteExisting && $datefrom && $dateto ) {
+        my $exception_holidays = $target_calendar->get_exception_holidays;
+        foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $exception_holidays }) {
+            my %options = %$values;
+            @options{qw(year month day)} = ( $options{date} =~ m/(\d+)-(\d+)-(\d+)/o ) if $options{date} && !$options{day};
+            $target_calendar->delete_exception_holiday_range(%options);
+        }
+        my $single_holidays = $target_calendar->get_single_holidays;
+        foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $single_holidays }) {
+            my %options = %$values;
+            @options{qw(year month day)} = ( $options{date} =~ m/(\d+)-(\d+)-(\d+)/o ) if $options{date} && !$options{day};
+            $target_calendar->delete_holiday_range(%options);
+        }
+        $target_calendar = C4::Calendar->new(branchcode => $target_branch);
+    }
+    
     my $exception_holidays = $self->get_exception_holidays;
     my $target_exceptions = $target_calendar->get_exception_holidays;
     foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $exception_holidays }) {
@@ -819,7 +835,7 @@ Copy all exception and single holidays of a date range from a source calendar to
 =cut
 
 sub copy_to_group_special {
-    my ($self, $targetgroup, $datefrom, $dateto) = @_;
+    my ($self, $targetgroup, $datefrom, $dateto, $deleteExisting) = @_;
 
     croak "No targetgroup" unless $targetgroup;
     
@@ -828,7 +844,7 @@ sub copy_to_group_special {
     if ( $group ) {
         foreach my $library( $group->all_libraries ) {
             if ( $library->branchcode ne $self->{branchcode} ) {
-                $self->copy_to_branch_special($library->branchcode, $datefrom, $dateto);
+                $self->copy_to_branch_special($library->branchcode, $datefrom, $dateto, $deleteExisting);
             }
         }
     }
