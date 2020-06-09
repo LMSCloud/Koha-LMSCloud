@@ -1113,6 +1113,7 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
         if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
             my $link = $tag->subfield('u');
             $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+            $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
             push @titlecoverurls,$link;
             $coverfound = 1;
         }

@@ -170,6 +170,7 @@ if ( @bibids > 0 ) {
                 if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
                     $coverurl = $field->subfield('u');
                     $coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+                    $coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
                     last;
                 }
             }
