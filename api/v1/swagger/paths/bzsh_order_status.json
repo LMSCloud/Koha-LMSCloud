@@ -1,0 +1,104 @@
+{
+  "/bzsh/order_status": {
+    "get": {
+      "x-mojo-to": "BZSH::OrderStatus#getOrderItemStatus",
+      "operationId": "getBZSHOrderItemStatus",
+      "tags": ["bzsh_order_status"],
+      "produces": ["application/json"],
+      "parameters": [{
+        "name": "biblionumber",
+        "in": "query",
+        "description": "Search by biblionumber",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "pipes",
+        "items": {
+            "type": "integer"
+        }
+      }, {
+        "name": "external_order_id",
+        "in": "query",
+        "description": "Search by external order number",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "pipes",
+        "items": {
+          "type": "string"
+        }
+      }, {
+        "name": "library_id",
+        "in": "query",
+        "description": "Search by library id",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "pipes",
+        "items": {
+           "type": "string"
+        }
+      }, {
+        "name": "order_status_code",
+        "in": "query",
+        "description": "Search by order status code",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "pipes",
+        "items": {
+            "type": "integer"
+        }
+      }, {
+        "$ref": "../parameters.json#/order_by"
+      }, {
+        "$ref": "../parameters.json#/page"
+      }, {
+        "$ref": "../parameters.json#/per_page"
+      }],
+      "responses": {
+        "200": {
+          "description": "Returns a JSON object that contains an array of order item object information.",
+          "schema": {
+            "$ref": "../definitions.json#/bzsh_order_items_status"
+          }
+        },
+        "400": {
+          "description": "Bad parameter",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "Resource not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": "edit_catalogue"
+      }
+    }
+  }
+}

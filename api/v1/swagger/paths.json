@@ -53,6 +53,9 @@
   "/bzsh/external_order": {
     "$ref": "paths/external_order.json#/~1bzsh~1external_order"
   },
+  "/bzsh/order_status": {
+    "$ref": "paths/bzsh_order_status.json#/~1bzsh~1order_status"
+  },
   "/zksha_illrequests": {
     "$ref": "paths/zksha_illrequests.json#/~1zksha_illrequests"
   },
