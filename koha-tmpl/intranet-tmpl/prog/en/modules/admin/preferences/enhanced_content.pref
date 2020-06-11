@@ -512,3 +512,8 @@ Enhanced Content:
                   yes: Enable
                   no: "Don't enable"
             - the Divibib interface action log e.g. Divibib authentications.
+        -
+            - pref: DivibibAuthDisabledForGroups
+            - "<br>The parameter provides the option to restrict Divibib authentication to specific patron categories and requesting IPs or network addresses. If the patron category (and the optional requesting IP/network address) matches to the patron of the login credentials, die Divibib authentication returns value -4 (patron category blocked for online materials lending).<br>"
+            - "The value of the parameter can be set like the following: CATEGORYCODE1,CATEGORYCODE2 or the CATEGORYCODE1,CATEGORYCODE2@IP1,IP2,IPRANGE1. E.g. PT,JE@172.16.251.0/29<br>"
+            - "Multiple restrictions can be combined split by | (bar). E.g. PT,JE@172.16.251.0/29|EW,IT@172.16.251.12,172.16.251.13"
