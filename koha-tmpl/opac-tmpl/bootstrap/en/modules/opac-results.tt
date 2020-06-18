@@ -65,7 +65,7 @@
         <div id="maincontent" class="container-fluid">
             <div class="row-fluid">
                 [% IF ( opacfacets && total ) %]
-                    <div class="span2">
+                    <div class="span3">
                         <div id="facetcontainer">
                             <!-- FACETS START -->
                             [% INCLUDE 'opac-facets.inc' %]
@@ -74,7 +74,7 @@
                     </div>
                 [% END %]
 
-                [% IF ( opacfacets && total ) %]<div class="span10 maincontent">[% ELSE %]<div class="span12 maincontent">[% END %]
+                [% IF ( opacfacets && total ) %]<div class="span9 maincontent">[% ELSE %]<div class="span12 maincontent">[% END %]
 
                 [% IF ( searchdesc ) %]
                     <p id="numresults">
@@ -91,24 +91,23 @@
                     </p>
                 [% END # / IF searchdesc %]
 
-                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
+                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) ) %]
                     <div id="encyclopediaresults">
-                        <div id="encyclopedianumresults"><strong>The encyclopedia search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
+                        <div id="encyclopedianumresults"><strong>The encyclopedia search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a id="showCatalogHitList" href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
                         <div id="encyclopediaheader" class="toolbar clearfix">
                             <strong><span class="encyclopediasource"></span></strong>
-                         </div>
+                        </div>
                         <table class="table table-striped">
                             <tbody id="encyclopediahits">
                             </tbody>
                         </table>
                     </div>
-                [% END # / IF MunzingerEncyclopediaSearchEnabled %]
+                [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive %]
+                
                 <div id="userresults">
                     [% IF ( DidYouMean ) %]
                         <div id="didyoumean">Not what you expected? Check for <a href="/cgi-bin/koha/svc/suggestion?render=standalone&amp;q=[% querystring |uri %]">suggestions</a></div>
                     [% END %]
-
-                    <div id="top-pages">[% INCLUDE 'page-numbers.inc' %]</div>
 
                     [% IF ( koha_spsuggest ) %]
                         Did you mean:
@@ -149,22 +148,28 @@
                                 [% END # IF /searchdesc %]
 
                                 <div id="toolbar" class="toolbar clearfix">
-                                    [% IF ( OpacHighlightedWords ) %]
-                                        <div class="highlight_controls noprint">
-                                            <a href="#" class="highlight_toggle" id="highlight_toggle_off">Unhighlight</a>
-                                            <a href="#" class="highlight_toggle" id="highlight_toggle_on">Highlight</a>
+                                    <div class="container-fluid">
+                                        <div class="row">
+                                            <div class="span6">
+                                                [% UNLESS tag %]
+                                                    <div class="sort_by pull-left">
+                                                        <select id="sort_by" class="resort" name="sort_by"> [% INCLUDE 'resort_form.inc' %] </select>
+                                                        <!-- <input type="submit" class="btn btn-small clearfix" id="sortsubmit" value="Go" /> -->
+                                                    </div>
+                                                [% END %]
+                                            </div>
+                                            <div class="span6">
+                                                <div id="top-pages" class="right-align">[% INCLUDE 'page-numbers-lmscloud.inc' %]</div>
+                                            </div>
                                         </div>
-                                    [% END %]
-                                    [% UNLESS tag %]
-                                        <div class="sort_by pull-right">
-                                            <select id="sort_by" class="resort" name="sort_by"> [% INCLUDE 'resort_form.inc' %] </select>
-                                            <input type="submit" class="btn btn-small clearfix" id="sortsubmit" value="Go" />
-                                        </div>
-                                    [% END %]
+                                    </div>
                                 </div> <!-- / #toolbar -->
 
+                                <!--
                                 <div id="selections-toolbar" class="toolbar noprint">
+                                -->
                                     <!-- checkall, clearall are now needed for placehold -->
+                                    <!--
                                     <span class="checkall"></span>
                                     <span class="clearall"></span> <span class="sep">|</span>
 
@@ -172,8 +177,8 @@
                                             [% IF ( ( Koha.Preference( 'opacbookbag' ) == 1 ) || ( Koha.Preference( 'virtualshelves' ) == 1 ) ) %]
                                                 <span class="addto"></span>
                                             [% END %]
-                                            <span id="placehold"><!-- input class="submit" type="submit" value="Place Hold"/ --></span>
-
+                                            <span id="placehold"> --><!-- input class="submit" type="submit" value="Place Hold"/ --></span>
+                                            <!--
                                             [% IF ( TagsInputEnabled && loggedinusername ) %]
                                                 <span id="tagsel_span">
                                                     <input id="tagsel_tag" class="disabled" type="submit" value="Tag"/>
@@ -188,8 +193,9 @@
                                                     Tag status here.
                                                 </div>
                                             [% END %]
-                                        </span> <!-- / .links -->
-                                </div> <!-- / #selections-toolbar -->
+                                        </span> --> <!-- / .links -->
+                                <!--
+                                </div> --><!-- / #selections-toolbar -->
 
                                 <!-- TABLE RESULTS START -->
                                 <table class="table table-striped">
@@ -197,6 +203,7 @@
                                     <!-- Actual Search Results -->
                                     [% FOREACH SEARCH_RESULT IN SEARCH_RESULTS %]
                                         <tr>
+                                            <!--
                                             [% # Cell 1: Checkbox %]
                                             <td class="select selectcol">
                                                 [% IF Koha.Preference( 'opacbookbag' ) == 1 %]
@@ -232,6 +239,7 @@
                                                     [% END %]
                                                 </td>
                                             [% END %]
+                                            -->
 
                                             [% # Cell 4: Search result details and controls %]
                                             <td class="bibliocol">
@@ -240,6 +248,13 @@
                                                         [% IF ( OPACLocalCoverImages ) %]
                                                             <span title="[% SEARCH_RESULT.biblionumber |url %]" class="[% SEARCH_RESULT.biblionumber %]" id="local-thumbnail[% loop.count %]"></span>
                                                         [% END %]
+
+                                                        [% IF ( SEARCH_RESULT.url && Koha.Preference('EKZCover') ) %]
+                                                            [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
+                                                                <img src="[% myurl %]" width="170" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
+                                                            [% END # /FOREACH  %]
+                                                        [% END # / IF url %]
+
                                                         [% IF ( OPACAmazonCoverImages ) %]
                                                             [% IF ( SEARCH_RESULT.normalized_isbn ) %]
                                                                     <span title="[% SEARCH_RESULT.biblionumber %]" id="amazon-thumbnail[% loop.count %]"><img src="https://images-na.ssl-images-amazon.com/images/P/[% SEARCH_RESULT.normalized_isbn %].01.TZZZZZZZ.jpg" alt="" class="item-thumbnail" /></span>
@@ -317,6 +332,9 @@
                                                     <!-- COinS / Openurl -->
                                                     <span class="Z3988" title="[% SEARCH_RESULT.coins %]"></span>
                                                 [% END %]
+
+                                            </td>
+                                            <td class="bibliocol">
 
                                                 [% IF ( OPACXSLTResultsDisplay ) %]
                                                     [% SEARCH_RESULT.XSLTResultsRecord %]
@@ -567,7 +585,7 @@
                             </form>
                         </div> <!-- / .searchresults -->
 
-                        <div id="bottom-pages">[% INCLUDE 'page-numbers.inc' %]</div>
+                        <div id="bottom-pages" class="pull-right">[% INCLUDE 'page-numbers-lmscloud.inc' %]</div>
 
                     [% END # / IF total %]
 
@@ -602,9 +620,12 @@
 [% IF ( OpacStarRatings == 'all' || Koha.Preference('Babeltheque') ) %][% Asset.js("lib/jquery/plugins/jquery.rating.js") %][% END %]
 [% IF ( OverDriveEnabled ) %][% Asset.js("js/overdrive.js") %][% END %]
 [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %][% Asset.js("js/munzinger.js") %][% END %]
+[% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %][% Asset.js("js/brockhaus.js") %][% END %]
 [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
 [% IF ( OpacHighlightedWords ) %][% Asset.js("lib/jquery/plugins/jquery.highlight-3.js") %]
-[% END %]<script>
+[% END %]
+[% IF ( Koha.Preference('DivibibEnabled') ) %][% INCLUDE 'divibib-js.inc' %][% END %]
+<script>
 //<![CDATA[
 [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'RequestOnOpac' ) == 1 ) %]
 function holdMultiple() {
@@ -722,6 +743,20 @@ $(document).ready(function(){
       enableCheckboxActions();
     });
     enableCheckboxActions();
+    
+    [% IF ( Koha.Preference( 'DivibibEnabled' ) == 1 )  %]
+        [% IF ( Koha.Preference( 'DivibibAvailabilityCheckSingle' ) == 1 )  %]
+        [% FOREACH item IN divibibIDs %]
+        checkDivibibAvalability("[% item %]");
+        [% END %]
+        [% ELSE %]
+        var divibibIDs = [];
+        [% FOREACH item IN divibibIDs %]
+        divibibIDs[[% loop.index %]] = "[% item %]";
+        [% END %]
+        checkDivibibAvalability(divibibIDs);
+        [% END %]
+    [% END %]
 
     [% IF ( IDreamBooksResults ) %]
         $('.idbresult').each(function() {
@@ -895,6 +930,9 @@ $(document).ready(function(){
         highlightOn();
         $("#highlight_toggle_on" ).hide().click(function() {highlightOn() ;});
         $("#highlight_toggle_off").show().click(function() {highlightOff();});
+    [% END %]
+    [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %]
+        getBrockhausFacet(query_desc,[% Koha.Preference('BrockhausNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"));
     [% END %]
     [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
         getMunzingerFacet(query_desc);

@@ -1,6 +1,27 @@
+// Copyright 2020 LMSCloud GmbH
+//
+// This file is part of Koha.
+//
+// Koha is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// Koha is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Koha; if not, see <http://www.gnu.org/licenses>.
+
 var munzingerData;
+var origResultHeaderMunzinger;
 
 function getMunzingerFacet(query_desc) {
+    if (!origResultHeaderMunzinger) {
+        origResultHeaderMunzinger = $('#numresults').html();
+    }
     $.ajax({
     url: "/cgi-bin/koha/opac-munzinger.pl",
         type: "POST",
@@ -72,15 +93,12 @@ function showMunzingerResult(facetID, callOpt) {
     for (var i=0; i<munzingerData.categories[facetID].hits.length;i++) {
         content += generateMunzingerEntry(facetID,i);
     }
-    if ( !("catalogResultHeaderText" in munzingerData) ) {
-        munzingerData['catalogResultHeaderText'] = $('#numresults').html();
-    }
     if ( $("#userresults").css("display") != "none" ){
         $('#encyclopediaresults').toggle();
         $('#userresults').toggle();
     }
     $('#encyclopediahits').html(content);
-    
+    $('#encyclopediaheader').html('<strong><span class="encyclopediasource"></span></strong>');
     if ( munzingerData.categories[facetID].name == 'KLG' ) {
         $('.encyclopediasource').html('Kritisches Lexikon zur deutschsprachigen Gegenwartsliteratur');
     }
@@ -96,14 +114,15 @@ function showMunzingerResult(facetID, callOpt) {
     $('.encyclopediaprovider').html('<a href="' + munzingerData.searchmunzinger + '" target="_blank">' + 'Munzinger</a>' );
     $('.encyclopediasearchhitcount').html(munzingerData.categories[facetID].count);
     $('#numresults').html($('#encyclopedianumresults').html());
+    $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListMunzinger()");
     
     if ( callOpt != 1 && munzingerData.categories[facetID].hits.length < munzingerData.categories[facetID].count ) {
         retrieveAdditionalMunzingerData(facetID);
     }
 }
-function showCatalogHitList() {
+function showCatalogHitListMunzinger() {
     if ( $("#userresults").css("display") == "none" ){
-        $('#numresults').html(munzingerData['catalogResultHeaderText']);
+        $('#numresults').html(origResultHeaderMunzinger);
         $('#userresults').toggle();
         $('#encyclopediaresults').toggle();
     }

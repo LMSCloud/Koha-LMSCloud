@@ -517,3 +517,39 @@ Enhanced Content:
             - "<br>The parameter provides the option to restrict Divibib authentication to specific patron categories and requesting IPs or network addresses. If the patron category (and the optional requesting IP/network address) matches to the patron of the login credentials, die Divibib authentication returns value -4 (patron category blocked for online materials lending).<br>"
             - "The value of the parameter can be set like the following: CATEGORYCODE1,CATEGORYCODE2 or the CATEGORYCODE1,CATEGORYCODE2@IP1,IP2,IPRANGE1. E.g. PT,JE@172.16.251.0/29<br>"
             - "Multiple restrictions can be combined split by | (bar). E.g. PT,JE@172.16.251.0/29|EW,IT@172.16.251.12,172.16.251.13"
+    Brockhaus:
+        -
+            - pref: BrockhausSearchActive
+              choices:
+                  yes: Activate
+                  no: "Don't activate"
+            - Brockhaus encyclopedia search in OPAC. Activate only if you want to enrich OPAC search results with results of the Brockhaus encyclopedia collections. You need to contract with Brockhaus to use this feature.
+        -
+            - In order to use Brockhaus encyclopedia collection search, configure the Brockhaus customer id  
+            - pref: BrockhausCustomerID
+            - provided by Brockhaus.
+        -
+            - Name of the Brockhaus encyclopedia collections 
+            - pref: BrockhausSearchCollections
+            - that will be searched. <br>Each collection will be queried separately in order to retrieve the search results.
+            - "The following collections are available:<br>"
+            - "ecs.enzy: the encyclopedia<br>"
+            - "ecs.julex: the youth-lexicon<br>"
+            - "ecs: the encyclopedia and the youth-lexicon<br>"
+            - "ecs.kilex: the children-lexicon<br>"
+            - "Multiple collections can be combined split by | (bar). E.g. ecs.enzy|ecs.julex. Default: ecs"
+        -
+            - The Brockhaus library select ID 
+            - pref: BrockhausLibrarySelectID
+            - is used to preselect a library for the Brockhaus authentication dialog.
+        -
+            - The Brockhaus domain  
+            - pref: BrockhausDomain
+            - where the country specific brockhaus services are located. E.g. brockhaus.de or brockhaus.at.
+        -
+            - Show a maximum of  
+            - pref: BrockhausNumSearchResults
+              class: integer
+            - results of the Brockhaus search per page in the OPAC.
+            
+            

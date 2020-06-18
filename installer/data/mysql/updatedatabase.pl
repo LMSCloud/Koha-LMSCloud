@@ -17163,10 +17163,16 @@ if ( CheckVersion($DBversion) ) {
         INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
             ('IssuingStatsOnIntranetResultPageYears','3',NULL,'Number of years backward from now to show as statistical counts of the issuing history (checkouts and renewals) for items on the intranet search catalog result page.','Integer'),
             ('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
-            ('DivibibAuthDisabledForGroups','',NULL,'Restrict Divibib authentication to specific patron categories and requesting IPs or network addresses.','Free')
+            ('DivibibAuthDisabledForGroups','',NULL,'Restrict Divibib authentication to specific patron categories and requesting IPs or network addresses.','Free'),
+            ('BrockhausCustomerID','',NULL,'The Brockhaus customer id provided by Brockhaus.','free'),
+            ('BrockhausDomain','brockhaus.de',NULL,'The Brockhaus domain where the country specific brockhaus services are located.','free'),
+            ('BrockhausNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer'),
+            ('BrockhausSearchActive','0',NULL,'Activate/Deactivate the Brockhaus encyclopedia search in OPAC.','YesNo'),
+            ('BrockhausSearchCollections','ecs',NULL,'The Brockhaus collections that will be searched.','free'),
+            ('BrockhausLibrarySelectID','',NULL,'The Brockhaus library select ID is used to preselect a library for the Brockhaus authentication dialog.','free')
     });
 
-    print "Upgrade to $DBversion done (Added systempreferences for Divibib authentication and issuing stats on the intranet search results page.)\n";
+    print "Upgrade to $DBversion done (Added systempreferences for Brockhaus search, for Divibib authentication and issuing stats on the intranet search results page.)\n";
     SetVersion($DBversion);
 }
 
