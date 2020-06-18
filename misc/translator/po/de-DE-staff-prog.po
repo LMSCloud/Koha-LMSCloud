@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2020-06-18 07:48+0200\n"
+"POT-Creation-Date: 2020-06-18 14:22+0200\n"
 "PO-Revision-Date: 2020-04-22 14:33+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
@@ -19324,6 +19324,7 @@ msgstr "Ausleihstatus:"
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:32
 #: intranet-tmpl/prog/en/modules/tools/batch_delete_records.tt:105
 #: intranet-tmpl/prog/en/modules/catalogue/itemsearch.tt:210
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:636
 #, c-format
 msgid "Checkouts"
 msgstr "Ausleihen"
@@ -56917,6 +56918,7 @@ msgstr "Themen"
 #: intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:468
 #: intranet-tmpl/prog/en/modules/acqui/lateorders.tt:140
 #: intranet-tmpl/prog/en/modules/acqui/acqui-home.tt:93
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:636
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:210
 #: intranet-tmpl/prog/en/modules/tags/review.tt:158
 #, c-format

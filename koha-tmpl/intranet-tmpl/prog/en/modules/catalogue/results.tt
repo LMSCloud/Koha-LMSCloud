@@ -811,8 +811,10 @@
            var biblionumbersForStats=[];
            [% FOREACH SEARCH_RESULT IN SEARCH_RESULTS %]biblionumbersForStats.push("[% SEARCH_RESULT.biblionumber%]");
            [% END %]
+           var CHECKOUTTXT = _("Checkouts");
+           var TOTALTXT    = _("Total");
            var ignoredItypesForStats = "[% Koha.Preference('IssuingStatsOnIntranetResultPageIgnoredItypes') | html %]".split("|");
-           getIssuingStatsForBiblios(biblionumbersForStats,"[% Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]", ignoredItypesForStats, _("Checkouts"), _("Total"));
+           getIssuingStatsForBiblios(biblionumbersForStats,"[% Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]", ignoredItypesForStats, CHECKOUTTXT, TOTALTXT);
         [% END %]
         
         [% IF ( query_desc ) %]
