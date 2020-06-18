@@ -750,6 +750,7 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
 [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
+[% IF ( Koha.Preference('DivibibEnabled') ) %][% INCLUDE 'divibib-js.inc' %][% END %]
 <script>
 //<![CDATA[
 var MSG_REMOVE_FROM_LIST = _("Are you sure you want to remove these items from the list?");
@@ -861,6 +862,20 @@ $(function() {
       enableCheckboxActions();
     });
     enableCheckboxActions();
+    
+    [% IF ( Koha.Preference( 'DivibibEnabled' ) == 1 )  %]
+        [% IF ( Koha.Preference( 'DivibibAvailabilityCheckSingle' ) == 1 )  %]
+        [% FOREACH item IN divibibIDs %]
+        checkDivibibAvalability("[% item %]");
+        [% END %]
+        [% ELSE %]
+        var divibibIDs = [];
+        [% FOREACH item IN divibibIDs %]
+        divibibIDs[[% loop.index %]] = "[% item %]";
+        [% END %]
+        checkDivibibAvalability(divibibIDs);
+        [% END %]
+    [% END %]
 
     [% IF ( TagsInputEnabled && loggedinusername ) %]
         var tagAdd = $(".tag_add");
