@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "POT-Creation-Date: 2020-06-19 11:17+0200\n"
-"PO-Revision-Date: 2020-06-23 09:52+0100\n"
+"PO-Revision-Date: 2020-06-23 10:47+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -12872,12 +12872,12 @@ msgstr "hier"
 #: opac-tmpl/bootstrap/en/modules/opac-results.tt:96
 #, c-format
 msgid "hits - "
-msgstr "Treffer -"
+msgstr "Treffer - "
 
 #: opac-tmpl/bootstrap/en/includes/opac-facets.inc:7
 #, c-format
 msgid "hits)"
-msgstr "Treffer -"
+msgstr "Treffer)"
 
 #: opac-tmpl/bootstrap/en/modules/opac-main.tt:157
 #, c-format
