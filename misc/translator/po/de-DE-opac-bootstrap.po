@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "POT-Creation-Date: 2020-06-19 11:17+0200\n"
-"PO-Revision-Date: 2020-06-19 11:19+0100\n"
+"PO-Revision-Date: 2020-06-23 09:52+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -10917,7 +10917,7 @@ msgstr ""
 #: opac-tmpl/bootstrap/en/modules/opac-results.tt:96
 #, c-format
 msgid "The encyclopedia search at "
-msgstr "Lexikonsuche"
+msgstr "Die Lexikonsuche bei "
 
 #: opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:92
 #, c-format
@@ -13208,7 +13208,7 @@ msgstr "return_type"
 #: opac-tmpl/bootstrap/en/modules/opac-results.tt:96
 #, c-format
 msgid "returned "
-msgstr "erzielte"
+msgstr "erzielte "
 
 #: opac-tmpl/bootstrap/en/modules/ilsdi.tt:402
 #, c-format
