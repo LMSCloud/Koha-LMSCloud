@@ -59,11 +59,11 @@ function getIssuingStatsForBiblios(biblionumbers,yearscount,ignoredItypes,textEn
                         else {
                             for (var k=0; k<itemstats[itemnumbers[i]].issuestats.length; k++) {
                                 var year = "" + itemstats[itemnumbers[i]].issuestats[k].year;
-                                var sumIssues = parseInt(itemstats[itemnumbers[i]].issuestats[k].sumIssues);
+                                var sumIssuesYear = parseInt(itemstats[itemnumbers[i]].issuestats[k].sumIssues);
                                 var statfound = false;
                                 for (stat of combinedstats) {
                                     if ( stat.year == year ) {
-                                        stat.sumIssues += sumIssues;
+                                        stat.sumIssues += sumIssuesYear;
                                         statfound = true;
                                     }
                                 }
