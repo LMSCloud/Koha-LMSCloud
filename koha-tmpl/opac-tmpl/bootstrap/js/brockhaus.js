@@ -234,6 +234,7 @@ function generateBrockhausEntry(facetID,entryID) {
     if ( brockhausData.results[facetID].hitList[entryID].summary ) {
         txtElement = document.createElement("span");
         txtElement.setAttribute('class','results_summary summary');
+        txtElement.setAttribute('style','font-size: 100%');
         txtElement.innerHTML = brockhausData.results[facetID].hitList[entryID].summary;
         colElement.appendChild(txtElement);
     }

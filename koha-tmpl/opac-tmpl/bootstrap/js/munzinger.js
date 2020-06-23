@@ -139,6 +139,7 @@ function generateMunzingerEntry(facetID,entryID) {
     colElement.appendChild(txtElement);
     txtElement = document.createElement("span");
     txtElement.setAttribute('class','results_summary summary');
+    txtElement.setAttribute('style','font-size: 100%');
     txtElement.innerHTML = munzingerData.categories[facetID].hits[entryID].text;
     colElement.appendChild(txtElement);
     rowElement.appendChild(colElement);
