@@ -111,8 +111,8 @@ function showMunzingerResult(facetID, callOpt) {
     else {
         $('.encyclopediasource').html(munzingerData.categories[facetID].name);
     }
-    $('.encyclopediaprovider').html('<a href="' + munzingerData.searchmunzinger + '" target="_blank">' + 'Munzinger</a>' );
-    $('.encyclopediasearchhitcount').html(munzingerData.categories[facetID].count);
+    $('.encyclopediaprovider').html(' <a href="' + munzingerData.searchmunzinger + '" target="_blank">' + 'Munzinger</a> ' );
+    $('.encyclopediasearchhitcount').html(' ' + munzingerData.categories[facetID].count + ' ');
     $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListMunzinger()");
     

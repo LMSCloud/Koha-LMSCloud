@@ -130,8 +130,8 @@ function showBrockhausResult(facetID) {
     }
     $('.encyclopediasource').html(brockhausData.results[facetID].name);
     
-    $('.encyclopediaprovider').html('<a href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a>' );
-    $('.encyclopediasearchhitcount').html(brockhausData.results[facetID].numFound);
+    $('.encyclopediaprovider').html(' <a href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a> ' );
+    $('.encyclopediasearchhitcount').html(' ' + brockhausData.results[facetID].numFound + ' ');
     $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListBrockhaus()");
 }
@@ -208,6 +208,16 @@ function generateBrockhausEntry(facetID,entryID) {
         imageElement.setAttribute('width','170');
         imageElement.setAttribute('src',brockhausData.results[facetID].hitList[entryID].thumbnail);
         linkElement.appendChild(imageElement);
+    } else {
+        var divImageElement = document.createElement("div");
+        divImageElement.setAttribute('class','bro-logo');
+        divImageElement.setAttribute('style','border:1px solid silver; width:170px; height:60px; opacity:60%; margin:0px; overflow:hidden; text-align:center');
+        var imageElement = document.createElement("img");
+        imageElement.setAttribute('src','https://www.brockhaus.de/logo/brockhaus_logo_pos_250x250.png');
+        imageElement.setAttribute('alt','Brockhaus Logo');
+        imageElement.setAttribute('style','width:80px; position:relative; top:-10px');
+        divImageElement.appendChild(imageElement);
+        linkElement.appendChild(divImageElement);
     }
     divElement.appendChild(linkElement);
     colElement.appendChild(divElement);
