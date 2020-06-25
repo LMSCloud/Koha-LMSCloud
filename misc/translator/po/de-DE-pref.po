@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2020-06-25 16:19+0100\n"
+"PO-Revision-Date: 2020-06-25 16:39+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -5935,12 +5935,12 @@ msgid ""
 "enhanced_content.pref#BrockhausCustomerID# In order to use Brockhaus "
 "encyclopedia collection search, configure the Brockhaus customer id"
 msgstr ""
-"Um die Brocckhaus-Enzyklopädie-Suche zuzulassen, geben die Brockhaus-"
+"Um die Brockhaus-Enzyklopädie-Suche zuzulassen, geben Sie die Brockhaus-"
 "Kundennummer an"
 
 # Enhanced Content > Brockhaus
 msgid "enhanced_content.pref#BrockhausCustomerID# provided by Brockhaus."
-msgstr ", die durch Brockhaus zur Verfügung gestellt wird."
+msgstr ", die von Brockhaus zur Verfügung gestellt wird."
 
 # Enhanced Content > Brockhaus
 msgid "enhanced_content.pref#BrockhausDomain# The Brockhaus domain"
@@ -5965,7 +5965,7 @@ msgid ""
 "enhanced_content.pref#BrockhausLibrarySelectID# is used to preselect a "
 "library for the Brockhaus authentication dialog."
 msgstr ""
-"wird benutzt für den Direktlink zur Vorauswahl der Bibliothek für die "
+"wird benutzt für den Direktlink zur Vorauswahl der Bibliothek für den "
 "Brockhaus-Authentifizierungs-Dialog."
 
 # Enhanced Content > Brockhaus
@@ -5991,8 +5991,8 @@ msgid ""
 msgstr ""
 "die Brockhaus-Enzyklopädie-Suche im OPAC. Aktivieren Sie die Suche nur, wenn "
 "Sie die OPAC-Suche mit Trefferlisten der Brockhaus-Enzyklopädie-Suche "
-"anreichern möchten. Zur Nutzung dieses der Brockhaus-Suche muss der "
-"Brockhaus-Dienst lizensiert worden sein."
+"anreichern möchten. Zur Nutzung der Brockhaus-Suche muss der Brockhaus-"
+"Dienst lizensiert worden sein."
 
 # Enhanced Content > Brockhaus
 msgid "enhanced_content.pref#BrockhausSearchActive# Don't activate"
