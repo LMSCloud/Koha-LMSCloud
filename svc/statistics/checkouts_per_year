@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+# This file is part of Koha.
+#
+# Copyright 2020 LMSCloud GmbH
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
+
+use CGI qw ( -utf8 );
+use C4::Auth qw/check_cookie_auth/;
+use C4::IssuingStats qw/GetIssuingStats/;
+use JSON qw/to_json/;
+
+my $input = new CGI;
+
+my ( $auth_status, $sessionID ) =
+        check_cookie_auth(
+            $input->cookie('CGISESSID'),
+            { catalogue => '*' } );
+
+if ( $auth_status ne "ok" ) {
+    exit 0;
+}
+
+my @biblionumbers;
+my @bibnums      = $input->multi_param('biblionumber');
+my @ignoreItypes = $input->multi_param('ignoreItypes');
+
+my $yearcnt = 3;
+my $yearsel = $input->param('years');
+$yearcnt = $yearsel if ( $yearsel && $yearsel =~ /^[0-9]+$/ );
+
+foreach my $bibnum(@bibnums) {
+    foreach my $biblionumber(split(/,/,$bibnum)) {
+        $biblionumber =~ s/^\s+|\s+$//g;
+        push(@biblionumbers,$biblionumber) if ( $biblionumber =~ /^[0-9]+$/ );
+    }
+}
+
+my @seltypes;
+foreach my $seltype(@ignoreItypes) {
+    foreach my $selitype(split(/,/,$seltype)) {
+        $selitype =~ s/^\s+|\s+$//g;
+        if ( $selitype ) {
+            push(@seltypes,$selitype);
+        }
+    }
+}
+
+my $response = GetIssuingStats(\@biblionumbers,$yearcnt,\@ignoreItypes);
+
+binmode STDOUT, ":encoding(UTF-8)";
+print $input->header(
+    -type => 'application/json',
+    -charset => 'UTF-8'
+);
+
+print to_json( $response );

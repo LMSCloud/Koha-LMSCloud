@@ -23,7 +23,9 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") %]
     [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") %]
+    [% INCLUDE 'timepicker.inc' %]
 [% END %]
 
     <span id="audio-alert"></span>

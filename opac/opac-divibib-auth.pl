@@ -67,6 +67,7 @@ use Koha::AuthUtils qw(hash_password);
 use C4::Auth qw(&checkpw_hash);
 use C4::Log qw( logaction );
 use C4::Stats qw( UpdateStats );
+use Net::IP;
 
 my $query = new CGI;
 
@@ -146,6 +147,72 @@ if (! $patron ) {
 # if the borrower was found
 if ( $patron ) { 
 	
+	my $restrictedGroup = 0;
+	
+	# There is an opportunity to restrict access to Divibib resources by user groups
+	# The system preferences "DivibibAuthDisabledForGroups" can be set to a value like the
+	# following: CATEGORYCODE1,CATEGORYCODE2,...
+	# or the following: CATEGORYCODE1,CATEGORYCODE2,...@IP1,IP2,IPRANGE1
+	# IP is somthing like 223.12.114.18
+	# IPRANGE is somthing like 172.16.251.0/29
+	# Example: PT,JE@172.16.251.0/29
+	# Multiple of these statements can be set with "DivibibAuthDisabledForGroups" using separator '|'
+	# Example: PT,JE@172.16.251.0/29|EW,IT@172.16.251.12,172.16.251.13
+	
+	if ( C4::Context->preference("DivibibAuthDisabledForGroups") ) {
+	    my @groupdevs = split(/\|/, C4::Context->preference("DivibibAuthDisabledForGroups"));
+	    
+	    CATEGORYCHECK: foreach my $groupdev(@groupdevs) {
+            $groupdev =~ s/^\s+// if ($groupdev);
+            $groupdev =~ s/\s+$// if ($groupdev);
+            if ( $groupdev ) {
+                my @groupAndIpVal =  split(/@/,$groupdev,2);
+
+                if ( $groupAndIpVal[1] ) {
+                    my @ips = split(/,/,$groupAndIpVal[1]);
+                    
+                    my $checkip = new Net::IP($ENV{'REMOTE_ADDR'});
+                    last CATEGORYCHECK if(! $checkip);
+                    
+                    my $ipcheck = 0;
+                    my $ipchecked = 0;
+                    foreach my $ip(@ips) {
+                        $ip =~ s/^\s+// if ($ip);
+                        $ip =~ s/\s+$// if ($ip);
+                        
+                        if ( $ip) {
+                            $ipchecked = 1;
+                            my $iprange = new Net::IP($ip);
+                            if ( $iprange ) {
+                                my $res = $iprange->overlaps($checkip);
+                                if ( $res == $IP_B_IN_A_OVERLAP || $res == $IP_IDENTICAL ) {
+                                   $ipcheck = 1;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if ( $ipcheck == 0 && $ipchecked == 1  ) {
+                        next CATEGORYCHECK;
+                    }
+                }
+                
+                if ( $groupAndIpVal[0] ) {
+                    my @groups = split(/,/,$groupAndIpVal[0]);
+                    foreach my $group(@groups) {
+                        $group =~ s/^\s+// if ($group);
+                        $group =~ s/\s+$// if ($group);
+                        
+                        if ( $group && lc($group) eq lc($patron->categorycode) ) {
+                            $restrictedGroup = 1;
+                            last CATEGORYCHECK;
+                        }
+                    }
+                }
+            }
+        }
+    }
+	
 	# we read the age to return the appropriate age level 
 	# which is used by onleihe to provide appropriate material
 	$age = $patron->get_age;
@@ -172,7 +239,10 @@ if ( $patron ) {
 
 		my $num_overdues = $patron->has_overdues;
 		
-		if ( $num_overdues && ( C4::Context->preference("OverduesBlockCirc") eq 'block' || C4::Context->preference("OverduesBlockCirc") eq 'confirmation' ) ) {
+		if ( $restrictedGroup ) {
+		    $response->{'status'} = -4; # patron category blocked for online materials lending
+		}
+		elsif ( $num_overdues && ( C4::Context->preference("OverduesBlockCirc") eq 'block' || C4::Context->preference("OverduesBlockCirc") eq 'confirmation' ) ) {
             $response->{'status'} = 1; # patron blocked due to overdues
 		}
 		elsif ( my $debarred_date = $patron->is_debarred ) {

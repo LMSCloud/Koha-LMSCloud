@@ -28,6 +28,7 @@ use C4::Members;
 use C4::Output;
 use C4::Tags qw( get_tags );
 use C4::XSLT;
+use C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
 
 use Koha::Biblios;
 use Koha::Biblioitems;
@@ -267,6 +268,10 @@ if ( $op eq 'view' ) {
             my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
             my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
 
+            # initialize the lists of divibib IDs in order to retrieve the onleihe status
+            # used in Germany for divibib customers
+            my @divibibIDs = ();
+            
             my $record_processor = Koha::RecordProcessor->new({ filters => 'ViewPolicy' });
             my @items;
             while ( my $content = $contents->next ) {
@@ -284,6 +289,15 @@ if ( $op eq 'view' ) {
                 if ( $xslfile ) {
                     $this_item->{XSLTBloc} = XSLTParse4Display( $biblionumber, $record, "OPACXSLTListsDisplay",
                                                                 1, undef, $sysxml, $xslfile, $lang);
+                }
+                
+                if ( C4::Context->preference('DivibibEnabled') && $record->field("001") && $record->field("003") ) {
+                    my $Id     = $record->field("001")->data();
+                    my $IdProv = $record->field("003")->data();
+                    if ( $IdProv eq DIVIBIBAGENCYID ) {
+                        $this_item->{'divibibID'} = $Id;
+                        push @divibibIDs, $Id;
+                    } 
                 }
 
                 my $marcflavour = C4::Context->preference("marcflavour");
@@ -330,6 +344,10 @@ if ( $op eq 'view' ) {
 
                 $this_item->{biblionumber} = $biblionumber;
                 push @items, $this_item;
+            }
+            
+            if ( C4::Context->preference('DivibibEnabled') ) {
+                $template->param(divibibIDs => \@divibibIDs);
             }
 
             $template->param(

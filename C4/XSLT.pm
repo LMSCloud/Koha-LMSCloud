@@ -247,9 +247,10 @@ sub XSLTParse4Display {
                         "slim2intranetResults.xsl";
         } elsif ($xslsyspref eq 'OPACXSLTListsDisplay') {
             # Lists default to *Results.xslt
-            $htdocs  = C4::Context->config('opachtdocs');
-            $theme   = C4::Context->preference("opacthemes");
-            $xslfile = C4::Context->preference('marcflavour') .
+            $htdocs     = C4::Context->config('opachtdocs');
+            $customdocs = C4::Context->config('opaccustomdocs');
+            $theme      = C4::Context->preference("opacthemes");
+            $xslfile    = C4::Context->preference('marcflavour') .
                        "slim2OPACResults.xsl";
         } elsif ($xslsyspref eq "XSLTVolumeDisplay") {
             $is_intranet = 1;

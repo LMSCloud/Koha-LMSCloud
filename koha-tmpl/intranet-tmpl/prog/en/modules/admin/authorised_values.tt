@@ -65,11 +65,11 @@
         </li>
         <li>
             <label for="lib">Description: </label>
-            <input type="text" name="lib" id="lib" value="[% lib %]" maxlength="200" />
+            <input type="text" name="lib" id="lib" value="[% lib | html %]" maxlength="200" />
         </li>
 	<li>
             <label for="lib_opac">Description (OPAC): </label>
-            <input type="text" name="lib_opac" id="lib_opac" value="[% lib_opac %]" maxlength="200" />
+            <input type="text" name="lib_opac" id="lib_opac" value="[% lib_opac | html %]" maxlength="200" />
         </li>
         <li><label for="branches">Libraries limitation: </label>
             <select id="branches" name="branches" multiple size="10">

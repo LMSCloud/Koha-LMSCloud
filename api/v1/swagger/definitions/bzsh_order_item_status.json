@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "properties": {
+    "biblionumber": {
+        "$ref": "../x-primitives.json#/biblionumber"
+    },
+    "library_id": {
+      "$ref": "../x-primitives.json#/library_id"
+    },
+    "external_order_id": {
+      "type": ["string", "null"],
+      "description": "external order id of an external system"
+    },
+    "order_status_code": {
+      "type": ["string", "null"],
+      "description": "status code of the order item"
+    },
+    "order_status_text": {
+      "type": ["string", "null"],
+      "description": "text for the order item status code"
+    },
+    "date_last_changed": {
+      "type": "string",
+      "format": "date",
+      "description": "last order item update date"
+    },
+    "copies": {
+      "type": "integer",
+      "description": "count of items"
+    }
+  },
+  "additionalProperties": false,
+  "required": [ "biblionumber", "library_id", "order_status_code", "order_status_text", "date_last_changed", "copies" ]
+}

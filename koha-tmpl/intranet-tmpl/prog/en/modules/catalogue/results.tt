@@ -507,6 +507,7 @@
                                         [% IF item_level_itypes && available_items_loo.description %]
                                         <br/>[% available_items_loo.description | html %]
                                         [% END %]
+                                        [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]<div class="issuingstats" data-itemnumbers="[% available_items_loo.itemnumbers %]"></div>[% END %]
                                         </li>
                                     [% END %]
                                     </ul>
@@ -529,6 +530,7 @@
                                         [% IF item_level_itypes && onloan_items_loo.description %]
                                         <br/>[% onloan_items_loo.description %]
                                         [% END %]
+                                        [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]<div class="issuingstats" data-itemnumbers="[% onloan_items_loo.itemnumbers %]"></div>[% END %]
                                         </li>
                                     [% END %]
                                     </ul>
@@ -557,6 +559,7 @@
                                         [% IF item_level_itypes && other_items_loo.description %]
                                         <br/>[% other_items_loo.description %]
                                         [% END %]
+                                        [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]<div class="issuingstats" data-itemnumbers="[% other_items_loo.itemnumbers %]"></div>[% END %]
                                         </li>
                                     [% END %]
                                     </ul>
@@ -627,6 +630,9 @@
     [% Asset.js("js/browser.js") %]
     [% Asset.js("lib/jquery/plugins/jquery.fixFloat.js") %]
     [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
+    [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]
+    [% Asset.js("js/issuingstats.js") %]
+    [% END %]
     <script type="text/javascript">
         var MSG_NO_ITEM_SELECTED = _("Nothing is selected.");
         var MSG_NON_RESERVES_SELECTED = _("One or more selected items cannot be placed on hold.");
@@ -801,7 +807,16 @@
 
         });
 
-
+        [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]
+           var biblionumbersForStats=[];
+           [% FOREACH SEARCH_RESULT IN SEARCH_RESULTS %]biblionumbersForStats.push("[% SEARCH_RESULT.biblionumber%]");
+           [% END %]
+           var CHECKOUTTXT = _("Checkouts");
+           var TOTALTXT    = _("Total");
+           var ignoredItypesForStats = "[% Koha.Preference('IssuingStatsOnIntranetResultPageIgnoredItypes') | html %]".split("|");
+           getIssuingStatsForBiblios(biblionumbersForStats,"[% Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]", ignoredItypesForStats, CHECKOUTTXT, TOTALTXT);
+        [% END %]
+        
         [% IF ( query_desc ) %]
             function highlightOff() {
                 toHighlight.removeHighlight();

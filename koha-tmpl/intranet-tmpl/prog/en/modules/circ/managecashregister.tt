@@ -336,8 +336,8 @@
                                     <fieldset class="rows" style="float: unset">
                                         <ol>
                                             <li>
-                                                Journal from <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
-                                                to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
+                                                Journal from <input type="text" size="16" autocomplete="off" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datetimepicker" />
+                                                to <input type="text" size="16" autocomplete="off" id="journalto" name="journalto" value="[% journalto %]" class="datetimepicker" />
                                                 <button type="submit" name="allFromOpening" value="0" class="btn btn-default btn-xs">Select</button>
                                             </li>
                                             <li>
@@ -480,9 +480,11 @@
 </div>
 
 [% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") %]
     [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") %]
+    [% INCLUDE 'timepicker.inc' %]
 
     <script type="text/javascript">
         $(document).ready( function() {
@@ -515,6 +517,9 @@
                 if ( journalfrom ) this.href += '&journalfrom=' + journalfrom;
                 if ( journalto ) this.href += '&journalto=' + journalto;
             });
+            
+            $("#journalfrom:visible").datetimepicker({});
+            $("#journalto:visible").datetimepicker({});
             
             $('#cash_payment').on("keyup change", function() {
                 var amount = parseFloat($('#cash_payment').val()).toFixed(2);

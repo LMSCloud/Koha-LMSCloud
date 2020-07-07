@@ -57,11 +57,22 @@ environment.
 
 =head2 GetVolumeData
 
-  $result = GetItem($biblionumber);
+  $result = GetVolumeData($refnumber,$biblionumber,$linkedRecords,$lang);
+  
+=head3 Arguments
 
-Return item information, for a given itemnumber or barcode.
-The return value is a hashref mapping item column
-names to values.  If C<$serial> is true, include serial publication data.
+    * $refnumber is the record number to search for typically provided in MARC field 001
+    * $biblionumber is the biblionumber of the record
+    * $linkedRecords may optinally contain a list of record IDs which are searched with Control-number index
+    * $lang specifies optionally language to use to format the volume data
+
+=head3 Returns
+
+    Returns a list of three data elements
+    
+    * $error if an error occured
+    * $volumes is a list of volume records
+    * $linkedRecordData is a list of related records that link to that record
 
 =cut
 
@@ -246,3 +257,11 @@ sub sortVolumeWords {
 }
 
 1;
+
+__END__
+
+=head1 AUTHOR
+
+Koha Development Team <http://koha-community.org/>
+
+=cut

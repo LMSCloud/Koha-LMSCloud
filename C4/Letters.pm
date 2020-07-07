@@ -531,6 +531,9 @@ sub SendAlerts {
           $dbh->prepare("SELECT * FROM aqcontacts WHERE booksellerid=? AND $type=1 ORDER BY $addressee DESC");
         $sthcontact->execute( $dataorders->[0]->{booksellerid} );
         my $datacontact = $sthcontact->fetchrow_hashref;
+        
+        my $deliverybranch = $dataorders->[0]->{deliveryplace};
+        my $billingbranch  = $dataorders->[0]->{billingplace};
 
         my @email;
         my @cc;
@@ -558,6 +561,7 @@ sub SendAlerts {
             },
             repeat => $dataorders,
             want_librarian => 1,
+            substitute => { deliverybranch => $deliverybranch, billingbranch => $billingbranch },
         ) or return { error => "no_letter" };
 
         # Remove the order tag

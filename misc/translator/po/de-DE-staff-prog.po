@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2020-02-06 15:54+0100\n"
-"PO-Revision-Date: 2020-01-23 15:27+0100\n"
+"POT-Creation-Date: 2020-06-19 11:17+0200\n"
+"PO-Revision-Date: 2020-04-22 14:33+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2185,7 +2185,7 @@ msgstr ""
 #. %6$s:  CASE 
 #. %7$s:  request.medium 
 #. %8$s:  END 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:697
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:738
 #, c-format
 msgid "%s %s Book %s Article %s Journal %s Other %s %s %s "
 msgstr "%s %s Buch %s Artikel %s Zeitschrift %s Anderes %s %s %s "
@@ -3603,7 +3603,7 @@ msgstr ""
 #. %1$s:  IF query_type == 'create' 
 #. %2$s:  ELSIF query_type == 'status' 
 #. %3$s:  END 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:445
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:486
 #, c-format
 msgid "%s &rsaquo; New request %s &rsaquo; Status %s "
 msgstr "%s &rsaquo; Neue Bestellung %s &rsaquo; Status %s "
@@ -4622,8 +4622,8 @@ msgstr "%s Ändere Abonnement für "
 #. For the first occurrence,
 #. %1$s:  ELSE 
 #. %2$s:  END 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:667
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:679
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:708
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:720
 #, c-format
 msgid "%s N/A %s "
 msgstr "%s N/A %s "
@@ -5736,7 +5736,7 @@ msgid "%s by%s %s %s\", \"%s\", \"%s\", \"%s\", \"%s "
 msgstr "%s von%s %s %s\", \"%s\", \"%s\", \"%s\", \"%s "
 
 #. %1$s:  Branches.GetName( branch ) 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:39
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:40
 #, c-format
 msgid "%s calendar"
 msgstr "%s Kalender"
@@ -6109,7 +6109,7 @@ msgid "%s on %s until %s"
 msgstr "%s am %s bis %s"
 
 #. %1$s:  SEARCH_RESULT.onloancount 
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:516
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:517
 #, c-format
 msgid "%s on loan:"
 msgstr "%s ausgeliehen:"
@@ -6335,7 +6335,7 @@ msgid "%s to order"
 msgstr "%s zu bestellen"
 
 #. %1$s:  SEARCH_RESULT.othercount 
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:538
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:540
 #, c-format
 msgid "%s unavailable:"
 msgstr "%s nicht verfügbar:"
@@ -6836,7 +6836,7 @@ msgstr "%s%s%sStandard%s Framework-Struktur"
 #. %2$s:  hitname 
 #. %3$s:  ELSE 
 #. %4$s:  END 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:778
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:819
 #, c-format
 msgid "%s%s%sDetails for all requests%s"
 msgstr "%s%s%sDetails für alle Bestellungen%s"
@@ -8587,7 +8587,7 @@ msgid "&rsaquo; %s Unknown record %s MARC details for "
 msgstr "&rsaquo; %s Unbekannter Datensatz %s MARC Details für "
 
 #. %1$s:  Branches.GetName( branch ) 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:32
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:33
 #, c-format
 msgid "&rsaquo; %s calendar"
 msgstr "&rsaquo; %s Kalender"
@@ -10114,7 +10114,7 @@ msgstr "' ~%%] %s %s [%%~ action_block = action_block _ ' "
 msgid "' ~%%] [%%~ action_block = action_block _ '"
 msgstr "' ~%%] [%%~ action_block = action_block _ '"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:338
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:398
 #, c-format
 msgid "') |html %%]"
 msgstr "') |html %%]"
@@ -12411,7 +12411,7 @@ msgstr "Neues Feld hinzufügen "
 msgid "Add new group"
 msgstr "Neue Gruppe"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:126
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:127
 #, c-format
 msgid "Add new holiday"
 msgstr "Neuer Schließtag"
@@ -13217,10 +13217,10 @@ msgstr "Alingsås Public Library, Schweden"
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:102
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:158
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:173
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:253
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:300
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:309
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:343
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:260
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:307
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:316
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:350
 #: intranet-tmpl/prog/en/modules/catalogue/itemsearch.tt:41
 #: intranet-tmpl/prog/en/modules/onboarding/onboardingstep5.tt:43
 #: intranet-tmpl/prog/en/modules/onboarding/onboardingstep5.tt:54
@@ -13302,6 +13302,27 @@ msgstr "Alle erforderlichen Abhängigkeiten sind installiert."
 #, c-format
 msgid "All funds"
 msgstr "Alle Konten"
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:279
+#, c-format
+msgid ""
+"All holidays repeating weekly and holidays repeating yearly that are not "
+"defined in target calendars are copied from the currently selected calendar."
+msgstr ""
+"Alle wöchentlich und jährlich wiederholbaren Schließtage werden vom aktuell "
+"ausgewählten Kalender in die Zielkalender übernommen, wenn sie dort nicht "
+"bereits definiert wurden."
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:241
+#, c-format
+msgid ""
+"All holidays repeating weekly and holidays repeating yearly that are not "
+"defined in the target calendar are copied from the currently selected "
+"calendar."
+msgstr ""
+"Alle wöchentlich und jährlich wiederholbaren Schließtage werden vom aktuell "
+"ausgewählten Kalender in den Zielkalender übernommen, wenn sie dort nicht "
+"bereits definiert wurden."
 
 #: intranet-tmpl/prog/en/modules/about.tt:1000
 #, c-format
@@ -13479,6 +13500,14 @@ msgstr ""
 #, c-format
 msgid "Allow transfer?"
 msgstr "Transport erlauben?"
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:244
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:282
+#, c-format
+msgid "Already defined holidays of the target calendar will remain unchanged. "
+msgstr ""
+"Bereits definierte Schließtage und Ausnahmen des Zielkalenders bleiben "
+"erhalten."
 
 #: intranet-tmpl/prog/en/modules/acqui/parcel.tt:213
 #, c-format
@@ -13746,6 +13775,18 @@ msgstr "Betrag: "
 msgid "Amount: %s"
 msgstr "Betrag: %s"
 
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:243
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:281
+#, c-format
+msgid ""
+"An additional option allows to copy all unique holidays and holiday "
+"exceptions of the selected date range (also those earlier than today)."
+msgstr ""
+"Ein zusätzliche Option erlaubt das Kopieren aller einmaligen Schließtage und "
+"Ausnahmen innerhalb eines beliebig auswählbaren Zeitraumes (sie werden auch "
+"dann übernommen, wenn sie gleich dem heutigen Tagesdatum sind oder vor "
+"diesem liegen)."
+
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:222
 msgid ""
@@ -13926,7 +13967,7 @@ msgstr ""
 "Dieser Fehler bedeutet, dass der Link ins Leere läuft und die Seite nicht "
 "mehr existiert."
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:335
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:342
 #, c-format
 msgid ""
 "An option allows to simulate the change. It lists all patrons that match the "
@@ -14013,7 +14054,7 @@ msgstr "Andrew Moore"
 msgid "Anmerkungen"
 msgstr "Anmerkungen"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:273
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:280
 #, c-format
 msgid "Anonymise patron history that is older than DAYS days"
 msgstr "Anonymisiere den Ausleihverlauf älter als angegeben (in Tagen)"
@@ -14841,7 +14882,7 @@ msgstr ""
 msgid "Are you sure you wish to delete quote(s) %s?"
 msgstr "Sind Sie sicher, dass Sie %s Zitat(e) löschen wollen? "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:613
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:654
 #, c-format
 msgid "Are you sure you wish to delete this request?"
 msgstr "Sind Sie sicher, dass Sie diese Bestellung löschen wollen?"
@@ -15090,7 +15131,7 @@ msgstr "Authentifizierungsname"
 #: intranet-tmpl/prog/en/modules/members/holdshistory.tt:42
 #: intranet-tmpl/prog/en/modules/members/readingrec.tt:53
 #: intranet-tmpl/prog/en/modules/serials/result.tt:16
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:786
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:827
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/branchtransfers.tt:174
@@ -16234,7 +16275,7 @@ msgstr "Stapel"
 msgid "BdP de la Meuse, France"
 msgstr "BdP de la Meuse, Frankreich"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:545
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:586
 #, c-format
 msgid "Be sure to provide email addresses for these patrons."
 msgstr ""
@@ -16372,8 +16413,8 @@ msgstr "BibTex"
 msgid "Biblio %s"
 msgstr "Titel %s"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:561
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:674
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:602
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:715
 #, c-format
 msgid "Biblio ID:"
 msgstr "Biblio ID:"
@@ -17204,7 +17245,7 @@ msgstr "Berechnet am %s. Zeitspanne von %s bis %s"
 msgid "Calendar"
 msgstr "Kalender"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:199
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:200
 #, c-format
 msgid "Calendar information"
 msgstr "Kalenderdaten"
@@ -17570,9 +17611,9 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/serials/add_fields.tt:133
 #: intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:90
 #: intranet-tmpl/prog/en/modules/serials/acqui-search-result.tt:37
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:538
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:546
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:606
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:579
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:587
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:647
 #: intranet-tmpl/prog/en/modules/circ/branchtransfers.tt:47
 #: intranet-tmpl/prog/en/modules/circ/branchtransfers.tt:71
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:455
@@ -17593,8 +17634,8 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:548
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:58
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_auth_search.tt:69
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:116
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:186
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:117
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:187
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:279
 #: intranet-tmpl/prog/en/modules/tools/cash-register-management.tt:150
 #: intranet-tmpl/prog/en/modules/tools/upload.tt:83
@@ -17655,7 +17696,7 @@ msgstr "Abbrechen"
 msgid "Cancel "
 msgstr "Abbrechen "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:480
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:521
 #, c-format
 msgid "Cancel a confirmed request"
 msgstr "Eine bestätigte Bestellung stornieren"
@@ -19150,7 +19191,7 @@ msgstr "Ausgeliehen: "
 msgid "Checked-in items"
 msgstr "Zurückgegebene Exemplare"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:792
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:833
 #, c-format
 msgid "CheckedBy"
 msgstr "CheckedBy"
@@ -19283,6 +19324,7 @@ msgstr "Ausleihstatus:"
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:32
 #: intranet-tmpl/prog/en/modules/tools/batch_delete_records.tt:105
 #: intranet-tmpl/prog/en/modules/catalogue/itemsearch.tt:210
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:636
 #, c-format
 msgid "Checkouts"
 msgstr "Ausleihen"
@@ -19867,7 +19909,7 @@ msgstr "Claire Gravely"
 msgid "Claire Hernandez"
 msgstr "Claire Hernandez"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:784
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:825
 #, c-format
 msgid "Class"
 msgstr "Class"
@@ -20073,7 +20115,7 @@ msgstr "Verwendete Normdaten abwählen"
 msgid "Click ID to select/deselect quote"
 msgstr "Klicken Sie auf die jeweilige ID um ein Zitat zu wählen / abzuwählen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:239
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:299
 #, c-format
 msgid "Click Save to finish."
 msgstr "Klicken Sie abschließend auf 'Speichern'."
@@ -20219,7 +20261,7 @@ msgstr ""
 "Klicken Sie auf die Schaltfläche 'Zitate speichen' um die ganze Serie zu "
 "speichern."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:236
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:296
 #, c-format
 msgid "Click the date to add or edit a holiday."
 msgstr ""
@@ -20879,7 +20921,7 @@ msgstr "Die Konfiguration der Plugins erfordert Javascript."
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:476
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:517
 #, c-format
 msgid "Confirm ILL request"
 msgstr "Fernleihebestellung bestätigen"
@@ -21305,7 +21347,7 @@ msgstr ""
 "immer\" speichert die Ausleihverlauf für unbegrenzte Zeit. Bei \"Standard "
 "(Default)\" wird die Aufbewahrungsdauer von einem Cronjob kontrolliert: "
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:333
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:340
 #, c-format
 msgid ""
 "Convert juvenile/child patrons from juvenile patron category and category "
@@ -21348,8 +21390,8 @@ msgstr "Exemplare:"
 #. SCRIPT
 #: intranet-tmpl/prog/en/includes/columns_settings.inc:3
 #: intranet-tmpl/prog/en/modules/admin/z3950servers.tt:183
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:212
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:226
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:238
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:276
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:124
 #: intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:208
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:69
@@ -21362,15 +21404,15 @@ msgstr "Kopieren"
 msgid "Copy and replace"
 msgstr "Kopieren und ersetzen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:219
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:256
 #, c-format
 msgid "Copy holidays to all libraries of group:"
 msgstr "Schließtage für alle Zweigstellen der Gruppe kopieren:"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:205
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:218
 #, c-format
-msgid "Copy holidays to:"
-msgstr "Schließtage kopieren für:"
+msgid "Copy holidays to library:"
+msgstr "Schließtage kopieren für Bibliothek:"
 
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:86
 #, c-format
@@ -21398,13 +21440,19 @@ msgstr "Exemplarnr."
 msgid "Copy number:"
 msgstr "Exemplarnr.:"
 
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:229
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:267
+#, c-format
+msgid "Copy only unique holidays and holiday exceptions"
+msgstr "Nur einmalige Schließtage und Ausnahmen kopieren"
+
 #. %1$s:  l.branchname 
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:73
 #, c-format
 msgid "Copy to %s"
 msgstr "Nach %s kopieren"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:180
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:181
 #, c-format
 msgid "Copy to all libraries"
 msgstr "An alle Standorte kopieren"
@@ -21413,6 +21461,16 @@ msgstr "An alle Standorte kopieren"
 #: intranet-tmpl/prog/en/includes/datatables.inc:10
 msgid "Copy to clipboard"
 msgstr "In Zwischenablage kopieren"
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:209
+#, c-format
+msgid "Copy to group of libraries"
+msgstr "Kopieren für Bibliotheksgruppe"
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:206
+#, c-format
+msgid "Copy to library"
+msgstr "Kopieren für Bibliothek"
 
 #: intranet-tmpl/prog/en/modules/basket/basket.tt:146
 #: intranet-tmpl/prog/en/modules/acqui/neworderbiblio.tt:45
@@ -21488,8 +21546,8 @@ msgid "Cost must be expressed as a decimal number >= 0"
 msgstr ""
 "Die Kosten müssen als Dezimalzahl angegeben werden und grösser als 0 sein."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:584
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:712
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:625
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:753
 #, c-format
 msgid "Cost:"
 msgstr "Kosten:"
@@ -22147,7 +22205,7 @@ msgstr "Aktueller Standort:"
 msgid "Current on-site checkouts allowed"
 msgstr "Anzahl gleichzeitiger Vor-Ort-Ausleihen"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:349
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:356
 #, c-format
 msgid "Current patron category"
 msgstr "Aktueller Benutzertyp"
@@ -22475,8 +22533,8 @@ msgstr "Datenbank: "
 #: intranet-tmpl/prog/en/modules/circ/on-site_checkouts.tt:28
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:100
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:161
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:257
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:328
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:317
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:388
 #: intranet-tmpl/prog/en/modules/tools/download-files.tt:76
 #: intranet-tmpl/prog/en/modules/tools/viewlog.tt:199
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:744
@@ -22779,7 +22837,7 @@ msgstr "David Strainchamps"
 msgid "Day"
 msgstr "Tag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:279
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:339
 #: intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:108
 #: intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:130
 #: intranet-tmpl/prog/en/modules/reports/issues_stats.tt:120
@@ -22787,7 +22845,7 @@ msgstr "Tag"
 msgid "Day of week"
 msgstr "Wochentag:"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:303
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:363
 #, c-format
 msgid "Day/month"
 msgstr "Tag/Monat"
@@ -23125,7 +23183,7 @@ msgstr ""
 msgid "Define rules to modify items by age"
 msgstr "Regeln um Exemplare altersbedingt zu ändern"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:42
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:43
 #, c-format
 msgid "Define the holidays for:"
 msgstr "Schließtage für"
@@ -23561,7 +23619,7 @@ msgstr ""
 msgid "Delete patrons"
 msgstr "Benutzer löschen"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:317
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:324
 #, c-format
 msgid "Delete patrons who have not borrowed since this date."
 msgstr "Lösche Benutzer, die seit dem angegebenen Datum inaktiv sind."
@@ -23571,7 +23629,7 @@ msgstr "Lösche Benutzer, die seit dem angegebenen Datum inaktiv sind."
 msgid "Delete patrons who meet the following criteria:"
 msgstr "Lösche Benutzer die den folgenden Kriterien entsprechen:"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:321
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:328
 #, c-format
 msgid "Delete patrons with an account expired before this date."
 msgstr "Lösche Benutzerkonten, die vor dem angegebenen Datum abgelaufen sind."
@@ -23647,17 +23705,17 @@ msgstr "Unterfeld löschen "
 msgid "Delete subscription"
 msgstr "Abonnement löschen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:106
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:107
 #, c-format
 msgid "Delete the exceptions on a range"
 msgstr "Ausnahmen in Datumsbereich löschen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:102
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:103
 #, c-format
 msgid "Delete the repeated holidays on a range"
 msgstr "Jährlich wiederholter Datumsbereich"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:98
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:99
 #, c-format
 msgid "Delete the single holidays on a range"
 msgstr "Einzelne Schließtage in Datumsbereich löschen"
@@ -23686,18 +23744,18 @@ msgid "Delete this category"
 msgstr "Benutzertyp löschen"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Delete this exception."
 msgstr "Ausnahme löschen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:95
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:96
 #, c-format
 msgid "Delete this holiday"
 msgstr "Schließtag löschen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Delete this holiday."
 msgstr "Schließtag löschen"
 
@@ -23711,6 +23769,16 @@ msgstr "Diesen gespeicherten Report löschen"
 #: intranet-tmpl/prog/en/modules/authorities/authorities.tt:397
 msgid "Delete this subfield"
 msgstr "Dieses Unterfeld löschen"
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:233
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:271
+#, c-format
+msgid ""
+"Delete unique holidays and holiday exceptions of the target calendar during "
+"the selected date range before copying. "
+msgstr ""
+"Einmalige Schließtage und Ausnahmen des ausgewählten Zeitraums im "
+"Zielkalender vor dem Kopieren entfernen."
 
 #: intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:85
 #: intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:526
@@ -23767,7 +23835,7 @@ msgstr "Datensatzabgleichregel &quot;%s&quot; gelöscht"
 msgid "Deleted."
 msgstr "Gelöscht."
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:290
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:297
 #, c-format
 msgid "Deletes patron accounts"
 msgstr "Benutzerkonten löschen"
@@ -23941,10 +24009,10 @@ msgstr "Abt."
 #: intranet-tmpl/prog/en/modules/members/update-child.tt:24
 #: intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:271
 #: intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:131
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:259
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:281
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:308
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:330
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:319
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:341
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:368
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:390
 #: intranet-tmpl/prog/en/modules/tools/csv-profiles.tt:252
 #: intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:91
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:66
@@ -23996,8 +24064,8 @@ msgstr "Gebührenbeschreibung"
 #: intranet-tmpl/prog/en/modules/acqui/invoice-files.tt:73
 #: intranet-tmpl/prog/en/modules/members/files.tt:70
 #: intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:62
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:82
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:150
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:83
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:151
 #: intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:276
 #: intranet-tmpl/prog/en/modules/catalogue/detail.tt:178
 #: intranet-tmpl/prog/en/modules/clubs/clubs-add-modify.tt:54
@@ -24102,13 +24170,13 @@ msgstr "Details zur Gebühr"
 msgid "Details for payment"
 msgstr "Details zur Zahlung"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:647
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:688
 #, c-format
 msgid "Details from library"
 msgstr "Details der Bibliothek"
 
 #. %1$s:  backend_name 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:739
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:780
 #, c-format
 msgid "Details from supplier (%s)"
 msgstr "Details des Lieferanten (%s)"
@@ -25333,11 +25401,11 @@ msgid "Edit record"
 msgstr "Titel bearbeiten"
 
 #. A
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:629
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:670
 msgid "Edit request"
 msgstr "Anforderung bearbeiten"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:630
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:671
 #, c-format
 msgid "Edit request "
 msgstr "Anforderung bearbeiten "
@@ -25395,8 +25463,8 @@ msgstr "Unterfelder bearbeiten"
 msgid "Edit subscription"
 msgstr "Abonnement bearbeiten"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:56
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:110
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:57
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:111
 #, c-format
 msgid "Edit this holiday"
 msgstr "Schließtag bearbeiten"
@@ -25573,7 +25641,7 @@ msgstr ""
 msgid "Email required"
 msgstr "E-Mail erforderlich"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:528
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:569
 #, c-format
 msgid "Email text:"
 msgstr "E-Mail-Text"
@@ -25799,7 +25867,7 @@ msgstr ""
 "Geben Sie einen Text ein, der den Standard in der Liste der Suchresultate "
 "überschreibt. Z. B. für eine Webseite als Medientyp: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:237
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:297
 #, c-format
 msgid "Enter a title and description for the holiday."
 msgstr "Geben Sie einen Titel und eine Beschreibung für den Schließtag an."
@@ -26077,7 +26145,7 @@ msgstr "Fehlermeldung"
 msgid "Error message from Zebra: %s "
 msgstr "Fehlermeldung des Zebra-Servers: %s "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:463
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:504
 #, c-format
 msgid "Error performing operation"
 msgstr "Fehler bei der Ausführung"
@@ -26316,11 +26384,11 @@ msgid "Excel"
 msgstr "Excel"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Exception: %s"
 msgstr "Ausnahme: %s"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:254
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:314
 #, c-format
 msgid "Exceptions"
 msgstr "Ausnahmen"
@@ -27320,7 +27388,7 @@ msgstr "Gefiltert nach:"
 msgid "Filter paid transactions"
 msgstr "Bezahlte Transaktionen ausblenden"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:509
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:550
 #, c-format
 msgid "Filter partner libraries:"
 msgstr "Partnerbibliotheken filtern:"
@@ -27886,7 +27954,7 @@ msgid "Friday"
 msgstr "Freitag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Fridays"
 msgstr "Freitags"
 
@@ -27998,8 +28066,8 @@ msgstr "Von Titelsatznummer: "
 msgid "From call number:"
 msgstr "Von Signatur: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:64
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:134
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:65
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:135
 #, c-format
 msgid "From date:"
 msgstr "Von:"
@@ -28330,7 +28398,7 @@ msgstr "Client-ID/Schlüssel generieren"
 msgid "Generate a new client id/secret pair"
 msgstr "Client-ID/Geheimnis generieren"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:86
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:87
 #, c-format
 msgid "Generate an exception for this repeated holiday."
 msgstr "Eine Ausnahme für diesen Schließtag erstellen."
@@ -28340,7 +28408,7 @@ msgstr "Eine Ausnahme für diesen Schließtag erstellen."
 msgid "Generate discharge"
 msgstr "Entlastung ausführen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:91
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:92
 #, c-format
 msgid "Generate exceptions on a range of dates."
 msgstr "Eine Ausnahme für einen Datumsbereich erstellen."
@@ -28355,7 +28423,7 @@ msgstr "Client-ID/Geheimnis generieren"
 msgid "Generate next"
 msgstr "Nächstes erzeugen"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:382
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:389
 #, c-format
 msgid "Generate notification for unprocessed suggestions."
 msgstr ""
@@ -28871,7 +28939,7 @@ msgstr ""
 msgid "Hint:"
 msgstr "Tipp:"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:233
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:293
 #, c-format
 msgid "Hints"
 msgstr "Tipps"
@@ -29210,45 +29278,45 @@ msgstr "Vormerkungen:"
 msgid "Holger Meißner"
 msgstr "Holger Meißner"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:247
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:307
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Holiday exception"
 msgstr "Ausnahme"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:154
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:155
 #, c-format
 msgid "Holiday only on this day"
 msgstr "Schließtag nur an diesem Tag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:159
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:160
 #, c-format
 msgid "Holiday repeated every same day of the week"
 msgstr "Schließtag, der sich jede Woche an diesem Tag wiederholt"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:164
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:165
 #, c-format
 msgid "Holiday repeated yearly on the same date"
 msgstr "Schließtag, der jedes Jahr auf das gleiche Datum fällt"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:245
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:305
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Holiday repeating weekly"
 msgstr "Wöchentlich wiederholter Schließtag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:246
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:306
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Holiday repeating yearly"
 msgstr "Jährlich wiederholter Schließtag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:169
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:170
 #, c-format
 msgid "Holidays on a range"
 msgstr "Schließzeitraum"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:174
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:175
 #, c-format
 msgid "Holidays repeated yearly on a range"
 msgstr "Jährlich wiederholter Schließzeitraum"
@@ -29384,7 +29452,7 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:21
 #: intranet-tmpl/prog/en/modules/serials/serials-edit.tt:86
 #: intranet-tmpl/prog/en/modules/serials/checkexpiration.tt:13
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:444
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:485
 #: intranet-tmpl/prog/en/modules/reviews/reviewswaiting.tt:11
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:23
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:53
@@ -29415,7 +29483,7 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:12
 #: intranet-tmpl/prog/en/modules/intranet-main.tt:13
 #: intranet-tmpl/prog/en/modules/tools/export.tt:18
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:32
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:33
 #: intranet-tmpl/prog/en/modules/tools/import_borrowers.tt:20
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:60
 #: intranet-tmpl/prog/en/modules/tools/quotes-upload.tt:15
@@ -29522,8 +29590,8 @@ msgstr "Start"
 #: intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:110
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:77
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:148
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:297
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:340
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:304
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:347
 #, c-format
 msgid "Home branch"
 msgstr "Heimatabteilung"
@@ -29722,13 +29790,13 @@ msgstr "IBERMARC"
 msgid "ID"
 msgstr "ID"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:458
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:499
 #, c-format
 msgid "ILL module configuration problem. Take a look at the "
 msgstr "Problem mit dem Fernleihemodul (ILL). Bitte kontrollieren Sie "
 
 #: intranet-tmpl/prog/en/includes/header.inc:32
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:445
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:486
 #: intranet-tmpl/prog/en/modules/intranet-main.tt:74
 #, c-format
 msgid "ILL requests"
@@ -30018,7 +30086,7 @@ msgstr ""
 "keinem weiteren eingetragen werden. Diese Einstellung kann nicht mehr "
 "verändert werden, nachdem eine Eigenschaft definiert wurde."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:182
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:183
 #, c-format
 msgid ""
 "If checked, this holiday will be copied to all libraries. If the holiday "
@@ -30895,8 +30963,8 @@ msgstr "Benutzeroberfläche"
 msgid "Interface:"
 msgstr "Schnittstelle:"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:506
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:543
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:547
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:584
 #, c-format
 msgid "Interlibrary loan request details"
 msgstr "Details zur Fernleihebestellung"
@@ -32363,7 +32431,7 @@ msgstr "Behalte aktuelle (%s - %s)"
 msgid "Keep issue number"
 msgstr "Behalte Heftnummer"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:246
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:253
 #, c-format
 msgid "Keep prepared state of the notices "
 msgstr "Belasse Nachrichten mit Status vorbereitet "
@@ -32373,7 +32441,7 @@ msgstr "Belasse Nachrichten mit Status vorbereitet "
 msgid "Kenza Zaki"
 msgstr "Kenza Zaki"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:241
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:301
 #, c-format
 msgid "Key"
 msgstr "Schlüssel"
@@ -35189,7 +35257,7 @@ msgstr "Koha Report Library"
 msgid "Koha staff client"
 msgstr "Koha Dienstoberfläche"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:275
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:282
 #, c-format
 msgid ""
 "Koha stores the patron lending history. The batch job can be used to "
@@ -35586,8 +35654,8 @@ msgstr "Letzte Änderung: "
 msgid "Last updated"
 msgstr "Letzte Änderung"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:576
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:693
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:617
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:734
 #, c-format
 msgid "Last updated:"
 msgstr "Letzte Aktualisierung:"
@@ -35860,7 +35928,7 @@ msgstr "Einschränkung auf Bibliotheken: "
 #: intranet-tmpl/prog/en/modules/serials/serials-search.tt:55
 #: intranet-tmpl/prog/en/modules/serials/checkexpiration.tt:80
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:789
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:830
 #: intranet-tmpl/prog/en/modules/ill/illBorrower_search.tt:77
 #: intranet-tmpl/prog/en/modules/circ/bookcount.tt:39
 #: intranet-tmpl/prog/en/modules/circ/request-article.tt:52
@@ -36042,11 +36110,11 @@ msgstr "Bibliotheksmanagement"
 #: intranet-tmpl/prog/en/modules/serials/serials-search.tt:353
 #: intranet-tmpl/prog/en/modules/serials/subscription-detail.tt:81
 #: intranet-tmpl/prog/en/modules/serials/checkexpiration.tt:34
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:565
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:685
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:606
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:726
 #: intranet-tmpl/prog/en/modules/ill/illBorrower_search.tt:34
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:60
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:129
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:61
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:130
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:190
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:196
 #: intranet-tmpl/prog/en/modules/auth.tt:66
@@ -37097,7 +37165,7 @@ msgstr "Hauptadresse"
 msgid "Main library"
 msgstr "Hauptbibliothek "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:176
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:177
 #, c-format
 msgid ""
 "Make a single holiday on a range repeated yearly. For example, selecting "
@@ -37108,7 +37176,7 @@ msgstr ""
 "und den 10. August 2012 als Daten auswählen, werden auch alle Tage zwischen "
 "diesen Daten für dieses Jahr und alle Folgejahre als Schließtage eingetragen."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:171
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:172
 #, c-format
 msgid ""
 "Make a single holiday on a range. For example, selecting August 1, 2012 and "
@@ -37119,7 +37187,7 @@ msgstr ""
 "10. August 2012 auswählen, werden auch die Tage zwischen diesen Tagen als "
 "Schließdaten nur in diesem Jahr eingetragen."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:156
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:157
 #, c-format
 msgid ""
 "Make a single holiday. For example, selecting August 1, 2012 will make it a "
@@ -37140,7 +37208,7 @@ msgstr "Etat aktivieren: "
 msgid "Make payment"
 msgstr "Bezahlen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:161
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:162
 #, c-format
 msgid ""
 "Make this weekday a holiday, every week. For example, if your library is "
@@ -37194,7 +37262,7 @@ msgstr "Profile für CSV-Export verwalten"
 msgid "Manage EDIFACT transmissions"
 msgstr "EDIFACT-Übertragungen verwalten"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:627
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:668
 #, c-format
 msgid "Manage ILL request"
 msgstr "Fernleihebestellung verwalten"
@@ -37667,7 +37735,7 @@ msgstr "Exemplar verloren"
 msgid "Mark lost and notify patron"
 msgstr "Exemplar vermisst, Benutzer informieren"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:245
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:252
 #, c-format
 msgid "Mark processed notices as sent "
 msgstr "Markiere Nachrichten als versandt "
@@ -38518,7 +38586,7 @@ msgid "Monday"
 msgstr "Montag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Mondays"
 msgstr "Montags"
 
@@ -38536,7 +38604,7 @@ msgstr "Montags"
 msgid "Month"
 msgstr "Monat"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:305
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:365
 #, c-format
 msgid "Month/day"
 msgstr "Monat/Tag"
@@ -39125,7 +39193,7 @@ msgstr "Neues CSV-Profil"
 msgid "New EAN "
 msgstr "Neue EAN "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:472
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:513
 #, c-format
 msgid "New ILL request"
 msgstr "Neue Fernleihebestellung"
@@ -39467,7 +39535,7 @@ msgstr "Neuer Benutzer "
 msgid "New patron attribute type"
 msgstr "Neues Benutzerattribut"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:359
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:366
 #, c-format
 msgid "New patron category"
 msgstr "Neuer Benutzertyp"
@@ -39916,7 +39984,7 @@ msgid "No cash register outpayments during the selected period."
 msgstr "Keine Kassenauszahlungen im ausgewählten Zeitraum."
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:487
+#: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:489
 msgid "No cash register transactions during the selected period."
 msgstr "Keine Kassentransaktionen im ausgewählten Zeitraum."
 
@@ -40141,7 +40209,7 @@ msgstr ""
 msgid "No item with barcode: %s"
 msgstr "Kein Exemplar mit Barcode: %s"
 
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:573
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:576
 #, c-format
 msgid "No items"
 msgstr "Kein Exemplar"
@@ -40298,7 +40366,7 @@ msgstr "Keine offenen Gebühren"
 msgid "No paid fines during the selected period."
 msgstr "Keine beglichenen Gebühren im ausgewählten Zeitraum."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:544
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:585
 #, c-format
 msgid ""
 "No partners have been defined yet. Please create appropriate patron records "
@@ -40531,12 +40599,17 @@ msgstr ""
 msgid "No saved reports match your criteria. "
 msgstr "Es gibt keine gespeicherten Reports, die zu Ihrer Suchanfrage passen. "
 
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:245
+#, c-format
+msgid "No separation by letter code "
+msgstr "Nicht getrennt nach Briefcode"
+
 #: intranet-tmpl/prog/en/modules/admin/preferences.tt:31
 #, c-format
 msgid "No system preferences matched your search for: "
 msgstr "Keine Systemparameter zu Ihrer Suche nach: "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:487
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:528
 #, c-format
 msgid ""
 "No target email addresses found. Either select at least one partner or check "
@@ -40599,7 +40672,7 @@ msgstr "Nein, nicht löschen"
 #: intranet-tmpl/prog/en/modules/members/deletemem.tt:50
 #: intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:257
 #: intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:122
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:620
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:661
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:443
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:204
 #, c-format
@@ -40790,7 +40863,7 @@ msgid "Normal"
 msgstr "Normal"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Normal day"
 msgstr "Normaler Tag"
 
@@ -41171,7 +41244,7 @@ msgstr "Hinweise / Kommentare"
 #: intranet-tmpl/prog/en/modules/members/housebound.tt:371
 #: intranet-tmpl/prog/en/modules/serials/routing-preview.tt:33
 #: intranet-tmpl/prog/en/modules/serials/routing.tt:82
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:724
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:765
 #: intranet-tmpl/prog/en/modules/circ/circulation.tt:765
 #: intranet-tmpl/prog/en/modules/tools/import_borrowers.tt:247
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:403
@@ -41226,7 +41299,7 @@ msgstr "Nichts gefunden. "
 
 #. For the first occurrence,
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:630
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:636
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:433
 msgid "Nothing is selected."
 msgstr "Es wurde nichts ausgewählt."
@@ -41379,12 +41452,12 @@ msgstr "Anzahl hinzuzufügender Exemplare: "
 msgid "Number of courses reserving this item: %s"
 msgstr "Semesterapparate, in denen dieses Exemplar steht: %s"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:280
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:287
 #, c-format
 msgid "Number of days"
 msgstr "Anzahl Tage seit der letzten Bearbeitung"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:387
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:394
 #, c-format
 msgid ""
 "Number of days elapsed since the last modification of suggestions to process"
@@ -42020,7 +42093,7 @@ msgid "One of 'issues per unit' and 'units per issue' must be equal to 1"
 msgstr "Eines von 'Hefte je Einheit' und \"Einheiten je Heft' muss 1 sein"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:630
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:636
 msgid "One or more selected items cannot be placed on hold."
 msgstr ""
 "Eines oder mehrere der ausgewählten Exemplare können nicht vorgemerkt werden."
@@ -42130,7 +42203,7 @@ msgstr ""
 msgid "Opac Note"
 msgstr "OPAC-Notiz"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:596
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:637
 #, c-format
 msgid "Opac notes:"
 msgstr "OPAC-Notiz"
@@ -42343,12 +42416,12 @@ msgstr "Bestellung "
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:783
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:824
 #, c-format
 msgid "Order ID"
 msgstr "Bestell-ID"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:652
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:693
 #, c-format
 msgid "Order ID:"
 msgstr "Bestell-ID:"
@@ -42614,7 +42687,7 @@ msgstr "Andere Daten"
 msgid "Other holdings"
 msgstr "Weitere Exemplare"
 
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:566
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:569
 #, c-format
 msgid "Other holdings:"
 msgstr "Weitere Exemplare:"
@@ -43110,7 +43183,7 @@ msgstr "Patricio Marrone"
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:695
 #: intranet-tmpl/prog/en/modules/members/discharges.tt:26
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:788
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:829
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:76
 #: intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:147
@@ -43146,7 +43219,7 @@ msgstr "Benutzer '%s' wurde hinzugefügt."
 msgid "Patron '%s' is already in the list."
 msgstr "Benutzer '%s' ist bereits auf der Liste."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:557
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:598
 #, c-format
 msgid "Patron ID:"
 msgstr "Benutzernr.:"
@@ -43227,7 +43300,7 @@ msgstr "Benutzertypen"
 #: intranet-tmpl/prog/en/modules/admin/smart-rules.tt:484
 #: intranet-tmpl/prog/en/modules/tools/notice-fee-rules.tt:78
 #: intranet-tmpl/prog/en/modules/tools/overduerules.tt:203
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:306
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:313
 #: intranet-tmpl/prog/en/modules/onboarding/onboardingstep3.tt:62
 #: intranet-tmpl/prog/en/modules/reports/reserves_stats.tt:138
 #: intranet-tmpl/prog/en/modules/reports/issues_stats.tt:154
@@ -43243,7 +43316,7 @@ msgstr "Benutzerkategorie"
 msgid "Patron category already exists and cannot be modified!"
 msgstr "Benutzertyp existiert bereits und kann nicht geändert werden!"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:331
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:338
 #, c-format
 msgid "Patron category conversion"
 msgstr "Benutzertypwechsel"
@@ -43816,7 +43889,7 @@ msgstr "Der Benutzer bürgt für andere Benutzer."
 msgid "Patron/Barcode"
 msgstr "Benutzer/Barcode"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:662
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:703
 #: intranet-tmpl/prog/en/modules/reserve/request.tt:389
 #, c-format
 msgid "Patron:"
@@ -44491,7 +44564,7 @@ msgstr "Artikelbestellung von %s for %s %s ( %s )"
 #: intranet-tmpl/prog/en/modules/catalogue/results.tt:125
 #: intranet-tmpl/prog/en/modules/catalogue/results.tt:130
 #: intranet-tmpl/prog/en/modules/catalogue/results.tt:137
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:630
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:636
 #: intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:154
 #, c-format
 msgid "Place hold"
@@ -44553,7 +44626,7 @@ msgstr "Bestellung absenden "
 msgid "Place request"
 msgstr "Bestellung absenden"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:484
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:525
 #, c-format
 msgid "Place request with partner libraries"
 msgstr "Anforderung an Partner-Bibliotheken senden"
@@ -47806,8 +47879,8 @@ msgstr "Artikel bestellen"
 msgid "Request article from "
 msgstr "Bestelle Artikel von "
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:554
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:644
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:595
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:685
 #, c-format
 msgid "Request details"
 msgstr "Bestelldetails"
@@ -47815,13 +47888,13 @@ msgstr "Bestelldetails"
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:793
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:834
 #, c-format
 msgid "Request number"
 msgstr "Bestellnummer"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:588
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:716
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:629
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:757
 #, c-format
 msgid "Request number:"
 msgstr "Bestellnummer:"
@@ -47836,8 +47909,8 @@ msgstr "Bestellung zurückgesetzt"
 msgid "Request specific item type:"
 msgstr "Bestimmten Medientyp verlangen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:580
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:697
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:621
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:738
 #, c-format
 msgid "Request type:"
 msgstr "Bestelltyp:"
@@ -48378,8 +48451,8 @@ msgid "Return to previous page"
 msgstr "Zurück zur vorherigen Seite"
 
 #. A
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:538
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:546
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:579
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:587
 msgid "Return to request details"
 msgstr "Zurück zu den Bestelldetails"
 
@@ -48922,7 +48995,7 @@ msgid "Saturday"
 msgstr "Samstag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Saturdays"
 msgstr "Samstags"
 
@@ -48985,8 +49058,8 @@ msgstr "Samstags"
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:465
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:469
 #: intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:482
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:115
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:185
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:116
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:186
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:278
 #: intranet-tmpl/prog/en/modules/tools/cash-register-management.tt:149
 #: intranet-tmpl/prog/en/modules/tools/notice-fee-rules.tt:180
@@ -49575,7 +49648,7 @@ msgstr "Konten suchen:"
 msgid "Search history"
 msgstr "Suchhistorie"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:235
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:295
 #, c-format
 msgid "Search in the calendar the day you want to set as holiday."
 msgstr ""
@@ -50263,7 +50336,7 @@ msgstr "Dateien auswählen "
 msgid "Select item:"
 msgstr "Exemplar wählen:"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:250
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:257
 #, c-format
 msgid "Select letter code"
 msgstr "Auswahl Briefcode"
@@ -50320,7 +50393,7 @@ msgstr "Konto der bestellenden Bibliothek wählen: "
 msgid "Select owner"
 msgstr "Besitzer auswählen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:513
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:554
 #, c-format
 msgid "Select partner libraries:"
 msgstr "Partner-Bibliotheken auswählen:"
@@ -50513,7 +50586,7 @@ msgid "Send adhoc notices to patrons"
 msgstr "Adhoc-Benachrichtigungen an Benutzer senden"
 
 #. INPUT type=submit
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:537
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:578
 #: intranet-tmpl/prog/en/modules/errors/errorpage.tt:29
 #, c-format
 msgid "Send email"
@@ -50524,7 +50597,7 @@ msgstr "E-Mail senden"
 msgid "Send email notifications"
 msgstr "Email-Nachrichtenversand"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:261
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:268
 #, c-format
 msgid "Send generated file to the following email address"
 msgstr "Sende Drucke an folgende Email-Adresse"
@@ -50610,10 +50683,20 @@ msgstr "Trennzeichen im Feld %s muss / sein"
 msgid "Seperate by branch"
 msgstr "Trennung nach Zweigstelle"
 
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:243
+#, c-format
+msgid "Seperate by letter code"
+msgstr "Trennung nach Briefcode"
+
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:239
 #, c-format
 msgid "Seperated by branch "
 msgstr "Getrennt nach Zweigstelle "
+
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:246
+#, c-format
+msgid "Seperated by letter code "
+msgstr "Getrennt nach Briefcode"
 
 #. For the first occurrence,
 #. SCRIPT
@@ -50909,7 +50992,7 @@ msgstr "Berechtigungen setzen"
 msgid "Set permissions for %s, %s"
 msgstr "Berechtigungen für %s, %s setzen"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:243
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:250
 #, c-format
 msgid "Set sent mark"
 msgstr "Versandtkennzeichen"
@@ -51432,7 +51515,7 @@ msgstr "Simon Story"
 msgid "Simple DC-RDF"
 msgstr "Einfaches DC-RDF"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:369
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:376
 #, c-format
 msgid "Simulate change"
 msgstr "Nur Anzeige"
@@ -51443,7 +51526,7 @@ msgid "Since"
 msgstr "Seit"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Single holiday: %s"
 msgstr "Einmaliger Schließtag: %s"
 
@@ -51819,7 +51902,7 @@ msgstr "Datum für die Reaktivierung %s: "
 msgid "Specify due date %s: "
 msgstr "Fälligkeitsdatum festlegen %s: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:238
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:298
 #, c-format
 msgid "Specify how the holiday should repeat."
 msgstr "Geben Sie an, auf welche Weise der Schließtag wiederholt werden soll."
@@ -51956,8 +52039,8 @@ msgstr "Interne Notiz"
 msgid "Staff note:"
 msgstr "Interne Notiz:"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:592
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:720
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:633
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:761
 #, c-format
 msgid "Staff notes:"
 msgstr "Interne Notiz:"
@@ -52085,11 +52168,11 @@ msgstr ""
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:199
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:213
 #: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:224
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:268
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:285
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:326
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:376
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:394
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:275
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:292
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:333
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:383
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:401
 #, c-format
 msgid "Start"
 msgstr "Start"
@@ -52261,7 +52344,7 @@ msgstr "Statistik Wizards"
 #: intranet-tmpl/prog/en/modules/serials/subscription-detail.tt:269
 #: intranet-tmpl/prog/en/modules/serials/serials-edit.tt:120
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:790
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:831
 #: intranet-tmpl/prog/en/modules/circ/request-article.tt:237
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:280
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:349
@@ -52287,8 +52370,8 @@ msgstr "Status "
 #: intranet-tmpl/prog/en/modules/acqui/invoice.tt:63
 #: intranet-tmpl/prog/en/modules/acqui/invoice.tt:68
 #: intranet-tmpl/prog/en/modules/acqui/invoices.tt:130
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:571
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:689
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:612
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:730
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:102
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:131
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:282
@@ -52633,7 +52716,7 @@ msgstr "Untergruppe:"
 msgid "Subject"
 msgstr "Schlagwort"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:524
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:565
 #, c-format
 msgid "Subject Line"
 msgstr "Betreffzeile"
@@ -52756,7 +52839,7 @@ msgstr "Schlagwörter:"
 #: intranet-tmpl/prog/en/modules/members/members-update.tt:178
 #: intranet-tmpl/prog/en/modules/members/update-child.tt:45
 #: intranet-tmpl/prog/en/modules/serials/subscription-renew.tt:45
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:605
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:646
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:97
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:582
 #: intranet-tmpl/prog/en/modules/circ/pendingreserves.tt:192
@@ -53201,7 +53284,7 @@ msgid "Sunday"
 msgstr "Sonntag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Sundays"
 msgstr "Sonntags"
 
@@ -54180,7 +54263,7 @@ msgstr ""
 "Dabei werden ebenfalls Gebühren für Mahnungen und Benachrichtigungen "
 "berechnet, falls dies konfiguriert wurde."
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:292
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:299
 #, c-format
 msgid ""
 "The batch job deletes patron accounts that match to the provided options."
@@ -55990,7 +56073,7 @@ msgstr ""
 msgid "This will delete %sall the%sthe selected%s items."
 msgstr "Dies wird %salle%sdie ausgewählten%s Exemplare löschen."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:108
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:109
 #, c-format
 msgid ""
 "This will delete the exceptions inside a given range. Be careful about your "
@@ -56000,7 +56083,7 @@ msgstr ""
 "mit der Wahl des Datumsbereichs; wenn dieser zu groß gewählt wird, kann dies "
 "Koha merklich verlangsamen."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:104
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:105
 #, c-format
 msgid ""
 "This will delete the repeated holidays rules only. The repeatable holidays "
@@ -56009,7 +56092,7 @@ msgstr ""
 "Dies löscht nur die Regeln für sich wiederholende Schließtage. Die sich "
 "wiederholenden Schließtage werden gelöscht, aber nicht die Ausnahmen."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:100
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:101
 #, c-format
 msgid ""
 "This will delete the single holidays rules only. The repeatable holidays and "
@@ -56018,7 +56101,7 @@ msgstr ""
 "Dies löscht nur die einzelnen Schließtage. Die sich wiederholenden "
 "Schließtage und die Ausnahmen werden nicht gelöscht."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:97
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:98
 #, c-format
 msgid ""
 "This will delete this holiday rule. If it is a repeatable holiday, this "
@@ -56030,7 +56113,7 @@ msgstr ""
 "existieren. Wenn eine Ausnahme existiert, wird die Ausnahme entfernt und ein "
 "regulärer Schließtag eingetragen."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:112
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:113
 #, c-format
 msgid ""
 "This will save changes to the holiday's title and description. If the "
@@ -56041,7 +56124,7 @@ msgstr ""
 "gespeichert. Bei einem wiederholten Schließtag betrifft die Änderung alle "
 "Eintragungen."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:166
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:167
 #, c-format
 msgid ""
 "This will take this day and month as a reference to make it a holiday. "
@@ -56096,7 +56179,7 @@ msgid "Thursday"
 msgstr "Donnerstag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Thursdays"
 msgstr "Donnerstags"
 
@@ -56196,7 +56279,7 @@ msgstr "TinyMCE WYSIWYG Editor v3.5.8 "
 #: intranet-tmpl/prog/en/modules/serials/serials-search.tt:53
 #: intranet-tmpl/prog/en/modules/serials/checkexpiration.tt:79
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:787
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:828
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:154
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:172
@@ -56225,10 +56308,10 @@ msgstr "TinyMCE WYSIWYG Editor v3.5.8 "
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:98
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:69
 #: intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:159
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:258
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:280
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:307
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:329
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:318
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:340
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:367
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:389
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:159
 #: intranet-tmpl/prog/en/modules/tools/koha-news.tt:167
 #: intranet-tmpl/prog/en/modules/tools/inventory.tt:169
@@ -56340,8 +56423,8 @@ msgstr "Titel:"
 #: intranet-tmpl/prog/en/modules/members/moremember.tt:555
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:25
 #: intranet-tmpl/prog/en/modules/cataloguing/z3950_search.tt:69
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:79
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:149
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:80
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:150
 #: intranet-tmpl/prog/en/modules/tools/koha-news.tt:88
 #: intranet-tmpl/prog/en/modules/rotating_collections/editCollections.tt:107
 #, c-format
@@ -56389,7 +56472,7 @@ msgstr "An"
 msgid "To "
 msgstr "An "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:76
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:77
 #, c-format
 msgid "To Date : "
 msgstr "Bis: "
@@ -56461,7 +56544,7 @@ msgstr "Um einen weiteren Benutzer hinzuzufügen, gehen Sie zu: "
 msgid "To create circulation rule, go to: "
 msgstr "Um Ausleihkonditionen zu verwalten, gehen Sie zu: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:146
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:147
 #, c-format
 msgid "To date: "
 msgstr "Bis: "
@@ -56628,7 +56711,7 @@ msgstr "Heutige Ausleihen"
 msgid "Today's notifications"
 msgstr "Aktuelle Hinweise"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:760
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:801
 #, c-format
 msgid "Toggle full supplier metadata"
 msgstr "Vollständige Metadaten des Anbieters ein- und ausblenden"
@@ -56744,7 +56827,7 @@ msgstr "Werkzeug-Plugins"
 #: intranet-tmpl/prog/en/modules/reviews/reviewswaiting.tt:11
 #: intranet-tmpl/prog/en/modules/intranet-main.tt:111
 #: intranet-tmpl/prog/en/modules/tools/export.tt:18
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:32
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:33
 #: intranet-tmpl/prog/en/modules/tools/import_borrowers.tt:20
 #: intranet-tmpl/prog/en/modules/tools/batchMod-edit.tt:61
 #: intranet-tmpl/prog/en/modules/tools/quotes-upload.tt:15
@@ -56835,6 +56918,7 @@ msgstr "Themen"
 #: intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:468
 #: intranet-tmpl/prog/en/modules/acqui/lateorders.tt:140
 #: intranet-tmpl/prog/en/modules/acqui/acqui-home.tt:93
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:636
 #: intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:210
 #: intranet-tmpl/prog/en/modules/tags/review.tt:158
 #, c-format
@@ -57299,7 +57383,7 @@ msgid "Tuesday"
 msgstr "Dienstag"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Tuesdays"
 msgstr "Dienstage"
 
@@ -57328,7 +57412,7 @@ msgstr "Tumer Garip"
 #: intranet-tmpl/prog/en/modules/members/notices.tt:35
 #: intranet-tmpl/prog/en/modules/members/readingrec.tt:50
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:785
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:826
 #: intranet-tmpl/prog/en/modules/circ/offline.tt:107
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:648
 #: intranet-tmpl/prog/en/modules/tools/manage-marc-import.tt:279
@@ -57591,16 +57675,26 @@ msgstr "Uniform Resource Identifier"
 msgid "Uninstall"
 msgstr "Deinstallieren"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:244
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:304
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 #, c-format
 msgid "Unique holiday"
 msgstr "Einmaliger Schließtag"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:324
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:384
 #, c-format
 msgid "Unique holidays"
 msgstr "Einmalige Schließtage"
+
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:242
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:280
+#, c-format
+msgid ""
+"Unique holidays and holiday exceptions of the curent calendar are copied, if "
+"the dates start after today."
+msgstr ""
+"Einmalige Schließtage und Ausnahmen des aktuell ausgewählten Kalenders "
+"werden kopiert, wenn diese nach dem heutigen Tag beginnen."
 
 #: intranet-tmpl/prog/en/modules/admin/patron-attr-types.tt:94
 #, c-format
@@ -57715,7 +57809,7 @@ msgstr "Université de St Etienne, Frankreich"
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:496
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:537
 #, c-format
 msgid "Unknown error processing your request. Contact your administrator. "
 msgstr ""
@@ -57776,7 +57870,7 @@ msgstr "Nicht zugeordnete Gebühren (zu Konten)"
 msgid "Unpacking completed"
 msgstr "Auspacken beendet"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:380
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:387
 #, c-format
 msgid "Unprocessed suggestions"
 msgstr "Erinnerung zur Bearbeitung Anschaffungsvorschläge"
@@ -57922,7 +58016,7 @@ msgstr "Aktualisiertes SQL"
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:791
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:832
 #, c-format
 msgid "Updated on"
 msgstr "Aktualisiert am"
@@ -58814,7 +58908,7 @@ msgstr "Zeige "
 msgid "View All"
 msgstr "Alle anzeigen"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:776
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:817
 #, c-format
 msgid "View ILL requests"
 msgstr "Fernleihbestellungen anzeigen"
@@ -58859,14 +58953,14 @@ msgid "View analytics"
 msgstr "Zeige Aufsätze"
 
 #. A
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:677
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:718
 msgid "View biblio details"
 msgstr "Titeldaten anzeigen"
 
 #. For the first occurrence,
 #. SCRIPT
 #: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:12
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:665
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:706
 msgid "View borrower details"
 msgstr "Ausleiher-Details anzeigen"
 
@@ -58918,7 +59012,7 @@ msgid "View online payment plugins"
 msgstr "Plugins für Online-Zahlung anzeigen"
 
 #. A
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:654
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:695
 msgid "View order details"
 msgstr "Bestelldaten anzeigen"
 
@@ -59357,7 +59451,7 @@ msgstr "Wir sind bereit für einen Teil der Grundkonfiguration."
 msgid "We are upgrading from Koha %s to %s"
 msgstr "Es wird von Koha %s auf Koha %s aktualisiert."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:465
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:506
 #, c-format
 msgid "We encountered an error:"
 msgstr "Es ist ein Problem aufgetreten:"
@@ -59487,7 +59581,7 @@ msgid "Wednesday"
 msgstr "Mittwoch"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Wednesdays"
 msgstr "Mittwochs"
 
@@ -59500,13 +59594,13 @@ msgstr "Mittwochs"
 msgid "Week"
 msgstr "Woche"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:275
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:335
 #, c-format
 msgid "Weekly - Repeatable holidays"
 msgstr "Wöchentlich - Wiederholbare Schließtage"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Weekly holiday: %s"
 msgstr "Wöchentlicher Schließtag: %s"
 
@@ -59675,7 +59769,7 @@ msgstr "Wolfgang Heymans"
 msgid "Women"
 msgstr "Frauen"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:243
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:303
 #, c-format
 msgid "Working day"
 msgstr "Werktag"
@@ -59775,13 +59869,13 @@ msgstr "Jahr"
 msgid "Year: "
 msgstr "Jahr: "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:298
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:358
 #, c-format
 msgid "Yearly - Repeatable holidays"
 msgstr "Jährlich - Wiederholbare Schließtage"
 
 #. SCRIPT
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:359
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:419
 msgid "Yearly holiday: %s"
 msgstr "Jährlicher Schließtag: %s"
 
@@ -59905,7 +59999,7 @@ msgstr "Ja, schließen (Y)"
 #: intranet-tmpl/prog/en/modules/members/deletemem.tt:46
 #: intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:254
 #: intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:119
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:618
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:659
 #: intranet-tmpl/prog/en/modules/tools/letter.tt:439
 #: intranet-tmpl/prog/en/modules/tools/csv-profiles.tt:228
 #: intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:199
@@ -60214,7 +60308,7 @@ msgstr ""
 "Sie können die Koha Community unterstützen, indem Sie Ihre Nutzungsdaten "
 "teilen. "
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:88
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:89
 #, c-format
 msgid ""
 "You can make an exception for this holiday rule. This means that you will be "
@@ -60225,7 +60319,7 @@ msgstr ""
 "Sie können zu einem wiederholten Schließtag Tage definieren, an denen die "
 "Bibliothek geöffnet ist."
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:93
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:94
 #, c-format
 msgid "You can make an exception on a range of dates repeated yearly."
 msgstr "Eine Ausnahme für einen jährlich wiederholten Datumsbereich erstellen."
@@ -60840,7 +60934,7 @@ msgstr "Ihre Datei wurde verarbeitet."
 msgid "Your koha-conf.xml does not contain a valid upload_path."
 msgstr "koha-conf.xml enthält keinen gültigen upload_path."
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:492
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:533
 #, c-format
 msgid "Your library has no usable email address. Please set it. "
 msgstr ""
@@ -61123,7 +61217,7 @@ msgstr ""
 "[% patron.firstname | html %] [% patron.surname | html %] ([% patron."
 "cardnumber | html %])"
 
-#: intranet-tmpl/prog/en/modules/tools/holidays.tt:338
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:398
 #, c-format
 msgid "[%% HOLIDAYS_LOO.DESCRIPTION.replace('\\\\\\r\\\\\\n', '"
 msgstr "[%% HOLIDAYS_LOO.DESCRIPTION.replace('\\\\\\r\\\\\\n', '"
@@ -61265,7 +61359,7 @@ msgstr "[Löschen]"
 #. %17$s:  END 
 #. %18$s:  other_items_loo.count 
 #. %19$s:  IF item_level_itypes && other_items_loo.description 
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:549
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:551
 #, c-format
 msgid ""
 "]%s %s(%s)%s %s(%s)%s %s(%s)%s %s(In transit)%s %s(On hold)%s %s%s%s (%s) %s "
@@ -61280,7 +61374,7 @@ msgstr ""
 #. %5$s:  END 
 #. %6$s:  onloan_items_loo.due_date | $KohaDates 
 #. %7$s:  IF item_level_itypes && onloan_items_loo.description 
-#: intranet-tmpl/prog/en/modules/catalogue/results.tt:527
+#: intranet-tmpl/prog/en/modules/catalogue/results.tt:528
 #, c-format
 msgid "]%s (%s%s, %s long overdue%s) date due: %s %s "
 msgstr "]%s (%s%s, %s Lange überfällig%s) Fälligkeitsdatum: %s %s "
@@ -61296,7 +61390,7 @@ msgstr "_ steht für ein beliebiges einzelnes Zeichen"
 msgid "a an the"
 msgstr "ein eine einer eines einem einen der die das"
 
-#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:458
+#: intranet-tmpl/prog/en/modules/ill/ill-requests.tt:499
 #: intranet-tmpl/prog/en/modules/circ/returns.tt:543
 #, c-format
 msgid "about page"
@@ -62205,6 +62299,8 @@ msgid "from"
 msgstr "von"
 
 #: intranet-tmpl/prog/en/modules/admin/library_groups.tt:305
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:230
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:268
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:466
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:473
 #, c-format
@@ -62739,7 +62835,7 @@ msgstr "wie"
 msgid "link"
 msgstr "Link"
 
-#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:371
+#: intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:378
 #, c-format
 msgid "list the patrons but don't process the change"
 msgstr "Liste betroffene Benutzer auf, führe aber keinen Wechsel durch."
@@ -63608,6 +63704,8 @@ msgstr "Mal"
 #: intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:89
 #: intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:13
 #: intranet-tmpl/prog/en/modules/circ/managecashregister.tt:339
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:231
+#: intranet-tmpl/prog/en/modules/tools/holidays.tt:269
 #: intranet-tmpl/prog/en/modules/course_reserves/add_items-step2.tt:27
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:467
 #: intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:474

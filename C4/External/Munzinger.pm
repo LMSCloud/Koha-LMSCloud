@@ -33,6 +33,7 @@ use File::Slurp;
 use Crypt::CBC;
 use Encode;
 use Scalar::Util qw(reftype);
+use URI::Escape;
 
 use Data::Dumper;
 use Carp;
@@ -215,15 +216,15 @@ sub simpleSearch {
         if ( exists($self->{'publications'}->{$publication}) ) {
             $url .= $self->{'publications'}->{$publication};
         }
-        $url .= "?text=$searchtext&sort=field:title";
+        $url .= "?text=" . uri_escape_utf8($searchtext) . "&sort=field:title";
         $url .= "&size=$maxcount&page=1" if ( $maxcount );
     }
     else {
         $url = $self->{'simplesearch'};
-        $url .= "text=$searchtext";
+        $url .= "text=" . uri_escape_utf8($searchtext);
     }
         
-    $url .= "&key=$requestkey" if ($requestkey ne '');
+    $url .= "&key=" . uri_escape_utf8($requestkey) if ($requestkey ne '');
     
     my $response = $self->{'ua'}->get($url);
     

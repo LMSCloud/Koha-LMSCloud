@@ -700,30 +700,102 @@ sub delete_all_holidays {
 =head2 copy_to_branch
 
     $calendar->copy_to_branch($target_branch)
+    
+Copy all holidays from a source calendar to a target calendar which are not yet defined in the target calendar.
 
 =cut
 
 sub copy_to_branch {
     my ($self, $target_branch) = @_;
 
-   (defined($self) && defined($self->{branchcode})) or croak "No branchcode assigned.  Create the object using C4::Calendar->new(branchcode => \$branchcode)";
     croak "No target_branch" unless $target_branch;
+
+    my $target_calendar = C4::Calendar->new(branchcode => $target_branch);
+
+    my ($y, $m, $d) = Today();
+    my $today = sprintf ISO_DATE_FORMAT, $y,$m,$d;
+
+    my $wdh = $self->get_week_days_holidays;
+    my $target_wdh = $target_calendar->get_week_days_holidays;
+    foreach my $key (keys %$wdh) {
+        unless (grep { $_ eq $key } keys %$target_wdh) {
+            $target_calendar->insert_week_day_holiday( weekday => $key, %{ $wdh->{$key} } )
+        }
+    }
+
+    my $dmh = $self->get_day_month_holidays;
+    my $target_dmh = $target_calendar->get_day_month_holidays;
+    foreach my $values (values %$dmh) {
+        unless (grep { $_->{day} eq $values->{day} && $_->{month} eq $values->{month} } values %$target_dmh) {
+            $target_calendar->insert_day_month_holiday(%{ $values });
+        }
+    }
+
+    my $exception_holidays = $self->get_exception_holidays;
+    my $target_exceptions = $target_calendar->get_exception_holidays;
+    foreach my $values ( grep {$_->{date} gt $today} values %{ $exception_holidays }) {
+        unless ( grep { $_->{date} eq $values->{date} } values %$target_exceptions) {
+            $target_calendar->insert_exception_holiday(%{ $values });
+        }
+    }
+
+    my $single_holidays = $self->get_single_holidays;
+    my $target_singles = $target_calendar->get_single_holidays;
+    foreach my $values ( grep {$_->{date} gt $today} values %{ $single_holidays }) {
+        unless ( grep { $_->{date} eq $values->{date} } values %$target_singles){
+            $target_calendar->insert_single_holiday(%{ $values });
+        }
+    }
+
+    return 1;
+}
+
+=head2 copy_to_branch_special
+
+    $calendar->copy_to_branch_special($target_branch)
     
-    return if ($self->{branchcode} eq $target_branch);
+Copy all exception and single holidays of a date range from a source calendar to a target calendar which are not yet defined in the target calendar.
+
+=cut
+
+sub copy_to_branch_special {
+    my ($self, $target_branch, $datefrom, $dateto, $deleteExisting) = @_;
+
+    croak "No target_branch" unless $target_branch;
 
     my $target_calendar = C4::Calendar->new(branchcode => $target_branch);
     
-    $target_calendar->delete_all_holidays();
+    if ( $deleteExisting && $datefrom && $dateto ) {
+        my $exception_holidays = $target_calendar->get_exception_holidays;
+        foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $exception_holidays }) {
+            my %options = %$values;
+            @options{qw(year month day)} = ( $options{date} =~ m/(\d+)-(\d+)-(\d+)/o ) if $options{date} && !$options{day};
+            $target_calendar->delete_exception_holiday_range(%options);
+        }
+        my $single_holidays = $target_calendar->get_single_holidays;
+        foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $single_holidays }) {
+            my %options = %$values;
+            @options{qw(year month day)} = ( $options{date} =~ m/(\d+)-(\d+)-(\d+)/o ) if $options{date} && !$options{day};
+            $target_calendar->delete_holiday_range(%options);
+        }
+        $target_calendar = C4::Calendar->new(branchcode => $target_branch);
+    }
+    
+    my $exception_holidays = $self->get_exception_holidays;
+    my $target_exceptions = $target_calendar->get_exception_holidays;
+    foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $exception_holidays }) {
+        unless ( grep { $_->{date} eq $values->{date} } values %$target_exceptions) {
+            $target_calendar->insert_exception_holiday(%{ $values });
+        }
+    }
 
-    my $wdh = $self->get_week_days_holidays;
-    $target_calendar->insert_week_day_holiday( weekday => $_, %{ $wdh->{$_} } )
-      foreach keys %$wdh;
-    $target_calendar->insert_day_month_holiday(%$_)
-      foreach values %{ $self->get_day_month_holidays };
-    $target_calendar->insert_exception_holiday(%$_)
-      foreach values %{ $self->get_exception_holidays };
-    $target_calendar->insert_single_holiday(%$_)
-      foreach values %{ $self->get_single_holidays };
+    my $single_holidays = $self->get_single_holidays;
+    my $target_singles = $target_calendar->get_single_holidays;
+    foreach my $values ( grep {$_->{date} ge $datefrom && $_->{date} le $dateto} values %{ $single_holidays }) {
+        unless ( grep { $_->{date} eq $values->{date} } values %$target_singles){
+            $target_calendar->insert_single_holiday(%{ $values });
+        }
+    }
 
     return 1;
 }
@@ -732,12 +804,13 @@ sub copy_to_branch {
 
     $calendar->copy_to_group($target_branchgroup)
 
+Copy all holidays from a source calendar to the target calendars of a group of libraries which are not yet defined in the target calendar.
+
 =cut
 
 sub copy_to_group {
     my ($self, $targetgroup) = @_;
 
-    (defined($self) && defined($self->{branchcode})) or croak "No branchcode assigned.  Create the object using C4::Calendar->new(branchcode => \$branchcode)";
     croak "No targetgroup" unless $targetgroup;
     
     my $group = Koha::Library::Groups->find($targetgroup);
@@ -746,6 +819,32 @@ sub copy_to_group {
         foreach my $library( $group->all_libraries ) {
             if ( $library->branchcode ne $self->{branchcode} ) {
                 $self->copy_to_branch($library->branchcode);
+            }
+        }
+    }
+
+    return 1;
+}
+
+=head2 copy_to_branch_special
+
+    $calendar->copy_to_branch_special($target_branch)
+    
+Copy all exception and single holidays of a date range from a source calendar to the target calendars of a group of libraries which are not yet defined in the target calendar.
+
+=cut
+
+sub copy_to_group_special {
+    my ($self, $targetgroup, $datefrom, $dateto, $deleteExisting) = @_;
+
+    croak "No targetgroup" unless $targetgroup;
+    
+    my $group = Koha::Library::Groups->find($targetgroup);
+    
+    if ( $group ) {
+        foreach my $library( $group->all_libraries ) {
+            if ( $library->branchcode ne $self->{branchcode} ) {
+                $self->copy_to_branch_special($library->branchcode, $datefrom, $dateto, $deleteExisting);
             }
         }
     }

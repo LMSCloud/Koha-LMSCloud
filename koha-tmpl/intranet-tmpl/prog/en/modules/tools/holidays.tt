@@ -6,10 +6,10 @@
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/datatables.css") %]
 <style type="text/css"> .key { padding : 3px; white-space:nowrap; line-height:230%; }
-.ui-datepicker { font-size : 150%; }
-.ui-datepicker th, .ui-datepicker .ui-datepicker-title select { font-size : 80%; }
-.ui-datepicker td a { padding : .5em; }
-.ui-datepicker .ui-datepicker-buttonpane button.ui-datepicker-current { font-size : 80%; }
+#jcalendar-container .ui-datepicker { font-size : 150%; }
+#jcalendar-container .ui-datepicker th, #jcalendar-container .ui-datepicker #jcalendar-container .ui-datepicker-title select { font-size : 80%; }
+#jcalendar-container .ui-datepicker td a { padding : .5em; }
+#jcalendar-container .ui-datepicker .ui-datepicker-buttonpane button.ui-datepicker-current { font-size : 80%; }
 .key { padding : 3px; white-space:nowrap; line-height:230%; }
 .normalday { background-color :  #EDEDED; color :  Black; border : 1px solid #BCBCBC; }
 .exception { background-color :  #b3d4ff; color :  Black; border : 1px solid #BCBCBC; }
@@ -23,6 +23,7 @@ td.repeatableyearly a.ui-state-default {  background:  #FFCC66 none; color :  Bl
 .information { z-index : 1; background-color :  #DCD2F1; width : 300px; display : none; border : 1px solid #000000; color :  #000000; font-size :  8pt; font-weight :  bold; background-color :  #FFD700; cursor :  pointer; padding : 2px; }
 .panel { z-index : 1; display : none; border : 3px solid #CCC; padding : 3px; margin-top: .3em;  background-color: #FEFEFE; } fieldset.brief { border : 0; margin-top: 0; }
 #showHoliday { margin : .5em 0; } h1 select { width: 20em; } div.yui-b fieldset.brief ol { font-size:100%; } div.yui-b fieldset.brief li, div.yui-b fieldset.brief li.radio  { padding:0.2em 0; } .help { margin:.3em 0;border:1px solid #EEE;padding:.3em .7em; font-size : 90%; } #holidayweeklyrepeatable, #holidaysyearlyrepeatable, #holidaysunique, #holidayexceptions { font-size : 90%; margin-bottom : 1em;} .calendar td, .calendar th, .calendar .button, .calendar tbody .day { padding : .7em; font-size: 110%; } .calendar { width: auto; border : 0; }
+div.message { width : 90%; margin-top: 2em; }
 </style>
 </head>
 <body id="tools_holidays" class="tools">
@@ -74,7 +75,7 @@ td.repeatableyearly a.ui-state-default {  background:  #FFCC66 none; color :  Bl
             </li>
             <li class="dateinsert">
                 <b>To Date : </b>
-                <input type="text" id="datecancelrange" name="datecancelrange" size="20" value="[% datecancelrange %]" class="datepicker"/>
+                <input type="text" id="datecancelrange" name="datecancelrange" size="20" autocomplete="off" value="[% datecancelrange %]" class="datepicker"/>
             </li>
             <li><label for="showTitle">Title: </label><input type="text" name="showTitle" id="showTitle" size="35" /></li>
             <!-- showTitle is necessary for exception radio button to work properly -->
@@ -144,7 +145,7 @@ td.repeatableyearly a.ui-state-default {  background:  #FFCC66 none; color :  Bl
             </li>
             <li class="dateinsert">
                 <b>To date: </b>
-                <input type="text" id="dateofrange" name="dateofrange" size="20" value="[% dateofrange %]" class="datepicker" />
+                <input type="text" id="dateofrange" name="dateofrange" size="20" autocomplete="off" value="[% dateofrange %]" class="datepicker" />
             </li>
             <li><label for="title">Title: </label><input type="text" name="newTitle" id="title" size="35" /></li>
             <li><label for="newDescription">Description:</label>
@@ -199,32 +200,91 @@ td.repeatableyearly a.ui-state-default {  background:  #FFCC66 none; color :  Bl
 <h3>Calendar information</h3>
 <div id="jcalendar-container"></div>
 
-<div style="margin-top: 2em;">
-<form action="copy-holidays.pl" method="post">
-  <input type="hidden" name="from_branchcode" value="[% branch %]" />
-  <label for="branchcode">Copy holidays to:</label>
-  <select id="branchcode" name="branchcode">
-    <option value=""></option>
-    [% FOREACH l IN Branches.all() %]
-    <option value="[% l.branchcode %]">[% l.branchname %]</option>
-    [% END %]
-  </select>
-    <input type="submit" value="Copy" />
-</form>
-</div>
-
-<div style="margin-top: 2em;">
-<form action="copy-holidays.pl" method="post">
-  <input type="hidden" name="from_branchcode" value="[% branch %]" />
-  <label for="branchgroup">Copy holidays to all libraries of group:</label>
-  <select id="branchgroup" name="branchgroup">
-    <option value=""></option>
-    [% FOREACH group IN librarygroups %]
-    <option value="[% group.id %]">[% group.title %]</option>
-    [% END %]
-  </select>
-    <input type="submit" value="Copy" />
-</form>
+<div id="copyactions" class="toptabs" style="margin-top:2em">
+  <ul>
+    <li>
+        <a href="#copytolibrary">Copy to library</a>
+    </li>
+    <li>
+        <a href="#copytogroup">Copy to group of libraries</a>
+    </li>
+  </ul>
+  
+  <div id="copytolibrary">
+    <form action="copy-holidays.pl" method="post">
+      <p>
+        <div id="copyHolidaysToBranchSelect">
+          <input type="hidden" name="from_branchcode" value="[% branch %]" />
+          <label for="branchcode">Copy holidays to library:</label>
+          <select id="branchcode" name="branchcode">
+            <option value=""></option>
+            [% FOREACH l IN Branches.all() %]
+            <option value="[% l.branchcode %]">[% l.branchname %]</option>
+            [% END %]
+          </select>
+        </div>
+      </p>
+      <p>
+        <div id="limitcopybranch">
+          <input type="checkbox" id="limitcopydaterangebranch" name="limitcopydaterange" value="yes"> Copy only unique holidays and holiday exceptions<br/>
+          <div id="limitcopydateselbranch">
+            from <input type="text" id="limitcopydatefrombranch" name="datefrom" maxlength="10" size="10" autocomplete="off" class="datepicker">
+            to   <input type="text" id="limitcopydatetobranch" name="dateto" mmaxlength="10" size="10" autocomplete="off" class="datepicker"> <br />
+            <input type="checkbox" id="limitcopydelbeforebranch" name="limitcopydeletebefore" value="yes"> Delete unique holidays and holiday exceptions of the target calendar during the selected date range before copying.
+          </div> 
+        </div>
+      </p>
+      <p>
+        <button value="Copy" id="copytobranchaction" type="submit"><i class="fa fa-copy"></i> Copy</button>
+      </p>
+      <p>
+        <div id="limitcopybranchmessage" class="dialog message">
+        All holidays repeating weekly and holidays repeating yearly that are not defined in the target calendar are copied from the currently selected calendar.<br>
+        Unique holidays and holiday exceptions of the curent calendar are copied, if the dates start after today.<br>
+        An additional option allows to copy all unique holidays and holiday exceptions of the selected date range (also those earlier than today).<br>
+        Already defined holidays of the target calendar will remain unchanged.
+        </div>
+      </p>
+    </form>
+  </div>
+  
+  <div id="copytogroup">
+    <form action="copy-holidays.pl" method="post">
+      <p>
+        <div class="copyHolidaysToGroupSelect">
+          <input type="hidden" name="from_branchcode" value="[% branch %]" />
+          <label for="branchgroup">Copy holidays to all libraries of group:</label>
+          <select id="branchgroup" name="branchgroup">
+            <option value=""></option>
+            [% FOREACH group IN librarygroups %]
+            <option value="[% group.id %]">[% group.title %]</option>
+            [% END %]
+          </select>
+        </div>
+      </p>
+      <p>
+        <div id="limitcopygroup">
+          <input type="checkbox" id="limitcopydaterangegroup" name="limitcopydaterange" value="yes"> Copy only unique holidays and holiday exceptions<br/>
+          <div id="limitcopydateselgroup">
+            from <input type="text" id="limitcopydatefromgroup" name="datefrom" maxlength="10" size="10" autocomplete="off" class="datepicker">
+            to   <input type="text" id="limitcopydatetogroup" name="dateto" maxlength="10" size="10" autocomplete="off" class="datepicker"><br />
+            <input type="checkbox" id="limitcopydelbeforegroup" name="limitcopydeletebefore" value="yes"> Delete unique holidays and holiday exceptions of the target calendar during the selected date range before copying.
+          </div>
+        </div>
+      </p>
+      <p>
+        <button value="Copy" id="copytogroupaction"  type="submit"><i class="fa fa-copy"></i> Copy</button>
+      </p>
+      <p>
+        <div id="limitcopygroupmessage" class="dialog message">
+        All holidays repeating weekly and holidays repeating yearly that are not defined in target calendars are copied from the currently selected calendar.<br>
+        Unique holidays and holiday exceptions of the curent calendar are copied, if the dates start after today.<br>
+        An additional option allows to copy all unique holidays and holiday exceptions of the selected date range (also those earlier than today).<br>
+        Already defined holidays of the target calendar will remain unchanged.
+        </div>
+      </p>
+    </form>
+  </div>
 </div>
 
 </div>
@@ -502,7 +562,9 @@ td.repeatableyearly a.ui-state-default {  background:  #FFCC66 none; color :  Bl
         };
 
         $(document).ready(function() {
-
+            
+            $('#copyactions').tabs();
+            
             $(".hint").hide();
             $("#branch").change(function(){
                 changeBranch();
@@ -549,7 +611,75 @@ td.repeatableyearly a.ui-state-default {  background:  #FFCC66 none; color :  Bl
                     hidePanel("newHoliday");
                 }
             })
+            
+            $("#branchgroup,#limitcopydaterangegroup,#limitcopydatefromgroup,#limitcopydatetogroup").change(function() {
+                setCopyBranchGroupValues();
+            });
+            $("#branchcode,#limitcopydaterangebranch,#limitcopydatefrombranch,#limitcopydatetobranch").change(function() {
+                setCopyBranchLibraryValues();
+            });
+            setCopyBranchGroupValues();
+            setCopyBranchLibraryValues();
         });
+        
+        function setCopyBranchGroupValues() {
+            var disabled = true;
+            if ( $("#branchgroup").val() != "" ) { 
+                $("#limitcopygroup").show();
+                $("#limitcopygroupmessage").show();
+                disabled = false;
+                if ( $('#limitcopydaterangegroup').is(':checked') ) {
+                    disabled = true;
+                    $("#limitcopydateselgroup").show();
+                    if ( $("#limitcopydatefromgroup").val() && $("#limitcopydatetogroup").val() ) {
+                        var fromDate = $('#limitcopydatefromgroup').datepicker('getDate');
+                        var toDate = $('#limitcopydatetogroup').datepicker('getDate');
+                        if (    fromDate !== null && fromDate instanceof Date 
+                             && toDate   !== null && toDate   instanceof Date
+                             && fromDate <= toDate ) 
+                        { 
+                            disabled = false;
+                        }
+                    }
+                } else {
+                    $("#limitcopydateselgroup").hide();
+                }
+            }  else {
+                $('#limitcopydaterangegroup').prop('checked', false);
+                $("#limitcopygroup").hide();
+                $("#limitcopygroupmessage").hide();
+            }
+            $("#copytogroupaction").prop('disabled', disabled);
+        }
+        function setCopyBranchLibraryValues() {
+            var disabled = true;
+            if ( $("#branchcode").val() != "" ) { 
+                $("#limitcopybranch").show();
+                $("#limitcopybranchmessage").show();
+                disabled = false;
+                if ( $('#limitcopydaterangebranch').is(':checked') ) {
+                    disabled = true;
+                    $("#limitcopydateselbranch").show();
+                    if ( $("#limitcopydatefrombranch").val() && $("#limitcopydatetobranch").val() ) {
+                        var fromDate = $('#limitcopydatefrombranch').datepicker('getDate');
+                        var toDate = $('#limitcopydatetobranch').datepicker('getDate');
+                        if (    fromDate !== null && fromDate instanceof Date 
+                             && toDate   !== null && toDate   instanceof Date
+                             && fromDate <= toDate ) 
+                        { 
+                            disabled = false;
+                        }
+                    }
+                } else {
+                    $("#limitcopydateselbranch").hide();
+                }
+            }  else {
+                $('#limitcopydaterangebranch').prop('checked', false);
+                $("#limitcopybranch").hide();
+                $("#limitcopybranchmessage").hide();
+            }
+            $("#copytobranchaction").prop('disabled', disabled);
+        }
     </script>
 [% END %]
 

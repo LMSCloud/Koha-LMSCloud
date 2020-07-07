@@ -37,8 +37,14 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") %]
+    [% INCLUDE 'timepicker.inc' %]
+    
     <script type="text/javascript">
         $(document).ready( function() {
+            $("#journalfrom:visible").datetimepicker({});
+            $("#journalto:visible").datetimepicker({});
+            
             $('.cashregisterlink').click(function(){
                 var journalfrom = $('#journalfrom').val();
                 var journalto = $('#journalto').val();

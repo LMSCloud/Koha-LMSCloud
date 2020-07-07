@@ -96,6 +96,8 @@ sub do_checkout {
                 if ($self->{fee_ack} ne 'Y') {
                     $chargeerror = 1;
                 }
+            } elsif ($confirmation eq 'PREVISSUE') {
+                $self->screen_msg("This item was previously checked out by you");
             } else {
                 # We've been returned a case other than those above
                 $self->screen_msg("Item cannot be issued: $confirmation");

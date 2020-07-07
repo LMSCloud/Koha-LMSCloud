@@ -14,11 +14,17 @@
   "bzsh_bib_updates": {
     "$ref": "definitions/bzsh_bib_updates.json"
   },
+  "bzsh_order_items_status": {
+    "$ref": "definitions/bzsh_order_items_status.json"
+  },
   "city": {
     "$ref": "definitions/city.json"
   },
   "error": {
     "$ref": "definitions/error.json"
+  },
+  "external_order": {
+    "$ref": "definitions/external_order.json"
   },
   "hold": {
     "$ref": "definitions/hold.json"

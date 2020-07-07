@@ -10,8 +10,8 @@
     <fieldset class="rows" style="float: unset">
         <ol>
             <li>
-                Cash register overview <input type="text" size="10" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datepicker" />
-                to <input type="text" size="10" id="journalto" name="journalto" value="[% journalto %]" class="datepicker" />
+                Cash register overview <input type="text" size="16" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datetimepicker" />
+                to <input type="text" size="16" id="journalto" name="journalto" value="[% journalto %]" class="datetimepicker" />
                 <input type="hidden" name="finestype" value="payinoutoverview" />
                 <input type="hidden" name="printview" value="" />
                 <button id="noprintview" type="submit" name="allFromOpening" value="0">Select</button>

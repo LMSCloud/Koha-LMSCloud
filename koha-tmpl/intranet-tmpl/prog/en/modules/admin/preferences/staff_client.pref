@@ -177,3 +177,11 @@ Staff Client:
                   yes: Show
                   no: "Don't show"
             - a search field pulldown for 'Search the catalog' boxes.
+        -
+            - pref: IssuingStatsOnIntranetResultPageYears
+              class: integer
+            - "number of years backward from now to show as statistical counts of the issuing history (checkouts and renewals) for items on the intranet catalog search result page. "
+            - "A value of 1 shows only the number of checkouts and renewals for the currenty year."
+        -
+            - pref: IssuingStatsOnIntranetResultPageIgnoredItypes
+            - "Excluded item types (split by |) which will not be used to calculate the issuing history for items on the intranet catalog search result page. E.g.: ebook|evideo|eaudio|emusic|elearning"

@@ -1980,6 +1980,7 @@ sub searchResults {
                 if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
                     my $link = $tag->subfield('u');
                     $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+                    $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
                     push @titlecoverurls,$link;
                     $coverfound = 1;
                 }
@@ -2171,6 +2172,8 @@ sub searchResults {
                 $onloan_items->{$key}->{description}    = $item->{description};
                 $onloan_items->{$key}->{imageurl} =
                   getitemtypeimagelocation( $search_context, $itemtypes{ $item->{itype} }->{imageurl} );
+                $onloan_items->{$key}->{itemnumbers} .= '|' if ( exists($onloan_items->{$key}->{itemnumbers}) );
+                $onloan_items->{$key}->{itemnumbers} .= $item->{itemnumber};
 
                 # if something's checked out and lost, mark it as 'long overdue'
                 if ( $item->{itemlost} ) {
@@ -2264,6 +2267,8 @@ sub searchResults {
 					$other_items->{$key}->{location} = $shelflocations->{ $item->{location} };
 					$other_items->{$key}->{description} = $item->{description};
 					$other_items->{$key}->{imageurl} = getitemtypeimagelocation( $search_context, $itemtypes{ $item->{itype} }->{imageurl} );
+					$other_items->{$key}->{itemnumbers} .= '|' if ( exists($other_items->{$key}->{itemnumbers}) );
+                    $other_items->{$key}->{itemnumbers} .= $item->{itemnumber};
                 }
                 # item is available
                 else {
@@ -2275,6 +2280,8 @@ sub searchResults {
 					}
 					$available_items->{$prefix}->{location} = $shelflocations->{ $item->{location} };
 					$available_items->{$prefix}->{imageurl} = getitemtypeimagelocation( $search_context, $itemtypes{ $item->{itype} }->{imageurl} );
+					$available_items->{$prefix}->{itemnumbers} .= '|' if ( exists($available_items->{$prefix}->{itemnumbers}) );
+                    $available_items->{$prefix}->{itemnumbers} .= $item->{itemnumber};
                 }
             }
         }    # notforloan, item level and biblioitem level
