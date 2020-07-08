@@ -683,14 +683,18 @@ sub writeSepaDirectDebitFile {
     foreach my $membershipFeeHit (@{$self->{membershipFeeHitsPaid}}) {
         my $debtorName = $self->debtorName($membershipFeeHit->{borrowers}->{surname}, $membershipFeeHit->{borrowers}->{firstname});
         my $dateOfSignature = $membershipFeeHit->{attributes}->{SEPA_Sign};
-        if ( $dateOfSignature =~ /^(\d\d)\.(\d\d)\.(\d\d\d\d)/ ) {    # e.g. 31.12.2009
-            $dateOfSignature = $3 . '-' . $2 . '-' . $1;    # e.g. 2009-12-31
-        }
-        if ( $dateOfSignature =~ /^(\d\d)\.(\d\d)\.(\d\d)/ ) {    # e.g. 31.12.09 or 31.12.99
-            if ( 2000 + $3 <= $year+1900 ) {
-                $dateOfSignature = '20' . $3 . '-' . $2 . '-' . $1;    # e.g. 2009-12-31
-            } else {
-                $dateOfSignature = '19' . $3 . '-' . $2 . '-' . $1;    # e.g. 1999-12-31
+        if ( ! $dateOfSignature ) {
+            $dateOfSignature = sprintf("%04d-%02d-%02d",$year+1900, $mon+1, $mday);
+        } else {
+            if ( $dateOfSignature =~ /^(\d\d)\.(\d\d)\.(\d\d\d\d)/ ) {    # e.g. 31.12.2009
+                $dateOfSignature = $3 . '-' . $2 . '-' . $1;    # e.g. 2009-12-31
+            }
+            if ( $dateOfSignature =~ /^(\d\d)\.(\d\d)\.(\d\d)/ ) {    # e.g. 31.12.09 or 31.12.99
+                if ( 2000 + $3 <= $year+1900 ) {
+                    $dateOfSignature = '20' . $3 . '-' . $2 . '-' . $1;    # e.g. 2009-12-31
+                } else {
+                    $dateOfSignature = '19' . $3 . '-' . $2 . '-' . $1;    # e.g. 1999-12-31
+                }
             }
         }
 
