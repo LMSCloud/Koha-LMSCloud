@@ -185,7 +185,13 @@ Please open a cash register to enable cash payments.
             }
         }
         $(document).ready(function(){
-        $('#pay-fines-form').preventDoubleFormSubmit();
+            // show outstanding fines list *without* the fines paid/written-off/cancelled in a previous action
+            const [entry] = performance.getEntriesByType("navigation");
+            if (entry["type"] === "back_forward") {
+                location.reload();
+            }
+    
+            $('#pay-fines-form').preventDoubleFormSubmit();
             $("#woall").click(function(event){
                 var msg = _("Are you sure you want to write off %s in outstanding fines? This cannot be undone!").format( "[% total | $Price %]" );
                 var answer = confirm(msg);
