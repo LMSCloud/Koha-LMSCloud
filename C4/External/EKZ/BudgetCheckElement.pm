@@ -1,6 +1,6 @@
 package C4::External::EKZ::BudgetCheckElement;
 
-# Copyright 2017 (C) LMSCLoud GmbH
+# Copyright 2017-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -34,10 +34,11 @@ sub new {
 
     my $self  = {
         'debugIt' => 1,
-        'ekzAqbooksellersId' => '',
-        'homebranch' => '',
+        'hauptstelle' => undef,    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
+        'ekzAqbooksellersId' => '',    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
         'budgetEkz' => {},
-        'budgetKoha' => {}
+        'budgetKoha' => {},
+        'ekzWsConfig' => undef
     };
     bless $self, $class;
     $self->init();
@@ -48,12 +49,11 @@ sub new {
 sub init {
     my $self = shift;
 
-    $self->{ekzAqbooksellersId} = C4::Context->preference("ekzAqbooksellersId");
-    $self->{ekzAqbooksellersId} =~ s/^\s+|\s+$//g;    # trim spaces
-    $self->{homebranch} = C4::Context->preference("ekzWebServicesDefaultBranch");
-    $self->{homebranch} =~ s/^\s+|\s+$//g;    # trim spaces
+    $self->{hauptstelle} = undef;    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
+    $self->{ekzAqbooksellersId} = '';    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
     $self->{budgetEkz} = {};
     $self->{budgetKoha} = {};
+    $self->{ekzWsConfig} = C4::External::EKZ::lib::EkzWsConfig->new();
 }
 
 sub process {
@@ -69,6 +69,7 @@ print STDERR Dumper($request->{'soap:Envelope'}->{'soap:Body'}->{'ns2:BudgetChec
 
 print STDERR "BudgetCheckElement::process() HTTP request request->{'soap:Envelope'}->{'soap:Body'}:", $request->{'soap:Envelope'}->{'soap:Body'}, ":\n" if $self->{debugIt};
 print STDERR "BudgetCheckElement::process() HTTP request request messageID:", $request->{'soap:Envelope'}->{'soap:Body'}->{'ns2:BudgetCheckElement'}->{'messageID'}, ":\n" if $self->{debugIt};
+print STDERR "BudgetCheckElement::process() HTTP request request hauptstelle:", $request->{'soap:Envelope'}->{'soap:Body'}->{'ns2:BudgetCheckElement'}->{'hauptstelle'}, ":\n" if $self->{debugIt};
 
     my $soapEnvelopeHeader = $request->{'soap:Envelope'}->{'soap:Header'};
     my $soapEnvelopeBody = $request->{'soap:Envelope'}->{'soap:Body'};
@@ -82,6 +83,12 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BudgetCheckElement'}}) {
 print STDERR "BudgetCheckElement::process() HTTP request header wss username/password:" . $wssusername . "/" . $wsspassword . ":\n" if $self->{debugIt};
     my $authenticated = C4::External::EKZ::EkzAuthentication::authenticate($wssusername, $wsspassword);
     my $ekzLocalServicesEnabled = C4::External::EKZ::EkzAuthentication::ekzLocalServicesEnabled();
+    
+    $self->{hauptstelle} = $soapEnvelopeBody->{'ns2:BudgetCheckElement'}->{'hauptstelle'};
+print STDERR "BudgetCheckElement::process() self->{hauptstelle}:", $self->{hauptstelle}, ":\n" if $self->{debugIt};
+    $self->{ekzAqbooksellersId} = $self->{ekzWsConfig}->getEkzAqbooksellersId($self->{hauptstelle});
+    $self->{ekzAqbooksellersId} =~ s/^\s+|\s+$//g;    # trim spaces
+print STDERR "BudgetCheckElement::process() self->{ekzAqbooksellersId}:", $self->{ekzAqbooksellersId}, ":\n" if $self->{debugIt};
 
     # result values
     my $respStatusCode = 'UNDEF';
@@ -299,6 +306,7 @@ print STDERR Dumper(\@soapTitelInfoListe) if $self->{debugIt};
 # At the moment this is a functional dummy.
 sub handleBudgetCheck {
     my ($self, $reqEkzArtikelNr, $reqIsbn, $reqIsbn13, $exemplarArrayRef) = @_;
+    my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
     my $testIt = 0;
     
     # variables for result structure
@@ -360,7 +368,7 @@ print STDERR "BudgetCheckElement::handleBudgetCheck() exemplar loop:$i: haushalt
                         push @{$self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{16}}, $reqEkzArtikelNr;
                     }
                 } else {
-                    my ($budgetperiodId, $budgetperiodDescription, $budgetId, $budgetCode) = C4::External::EKZ::lib::EkzKohaRecords->checkAqbudget($haushaltsstelle, $kostenstelle, 0);
+                    my ($budgetperiodId, $budgetperiodDescription, $budgetId, $budgetCode) = $ekzKohaRecord->checkAqbudget($self->{hauptstelle}, $haushaltsstelle, $kostenstelle, 0);
 print STDERR "BudgetCheckElement::handleBudgetCheck() nach checkAqbudget budgetId:$budgetId:\n" if $self->{debugIt};
 
                     # LMSCloud requires that the combination of haushaltsstelle and kostenstelle (budgetperiodDescription and budgetCode) be unique,

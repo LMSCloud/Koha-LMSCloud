@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzAuthentication;
 
-# Copyright 2017 (C) LMSCLoud GmbH
+# Copyright 2017-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -30,8 +30,6 @@ use Koha::AuthUtils qw(hash_password);
 use C4::Context;
 
 
-my $debugIt = 1;
-
 sub authenticate{
     my ($userid, $pw) = @_;
     my $authenticated = 0;
@@ -41,7 +39,8 @@ sub authenticate{
     if ( defined($patron) && &checkpw( $dbh, $patron->borrowernumber(), $pw ) ) {
         $authenticated = 1;
     }
-print STDERR "EkzAuthentication::authenticate() returns authenticated:" . $authenticated . ":\n" if $debugIt;
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
+    $logger->debug("authenticate() returns authenticated:" . $authenticated . ":");
     return $authenticated;
 }
 
@@ -69,15 +68,17 @@ sub checkpw {
 
 sub ekzLocalServicesEnabled {
     my $ekzLocalServicesEnabled = C4::Context->preference('ekzLocalServicesEnabled');
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
+    $logger->debug("ekzLocalServicesEnabled() returns ekzLocalServicesEnabled:" . (defined($ekzLocalServicesEnabled) ? $ekzLocalServicesEnabled : 'undef') . ":");
 
-print STDERR "EkzAuthentication::ekzLocalServicesEnabled() returns ekzLocalServicesEnabled:" . $ekzLocalServicesEnabled . ":\n" if $debugIt;
     return $ekzLocalServicesEnabled;
 }
 
 sub kohaInstanceName {
     my $kohaInstanceName = substr(C4::Context->config('database'),5);  # Regrettably the Koha instance name is not configured, so we take database name (e.g. 'koha_wallenheim') and cut away the leading part 'koha_'.
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
 
-print STDERR "EkzAuthentication::kohaInstanceName() returns kohaInstanceName:" . $kohaInstanceName . ":\n" if $debugIt;
+    $logger->debug("kohaInstanceName() returns kohaInstanceName:" . $kohaInstanceName . ":");
     return $kohaInstanceName;
 }
 

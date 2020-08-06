@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsStandingOrder;
 
-# Copyright 2017 (C) LMSCLoud GmbH
+# Copyright 2017-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -28,10 +28,9 @@ use Exporter;
 use C4::Items qw(AddItem);
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::External::EKZ::lib::EkzWebServices;
+use C4::External::EKZ::lib::EkzKohaRecords;
 use Koha::AcquisitionImport::AcquisitionImports;
 use Koha::AcquisitionImport::AcquisitionImportObjects;
-use C4::External::EKZ::lib::EkzWebServices;
-use C4::External::EKZ::lib::EkzKohaRecords;
 use C4::Acquisition;
 
 our @ISA = qw(Exporter);
@@ -86,6 +85,7 @@ print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderRec
 ###################################################################################################
 sub genKohaRecords {
     my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
+    my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $ekzBestellNr = '';
     my $lastRunDateIsSet = 0;
@@ -108,9 +108,10 @@ sub genKohaRecords {
     print STDERR "ekzWsStoList::genKohaRecords() Start;  ekzCustomerNumber:$ekzCustomerNumber messageID:$messageID stoID:$stoWithNewState->{'stoID'}: stoWithNewState->{'titelCount'}:$stoWithNewState->{'titelCount'}: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
 
     my $zweigstellencode = '';
-    my $homebranch = C4::External::EKZ::lib::EkzWebServices->new()->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
+    # XXXWH hau wech (OLD) my $homebranch = C4::External::EKZ::lib::EkzWebServices->new()->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
+    my $homebranch = $ekzKohaRecord->{ekzWsConfig}->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     $homebranch =~ s/^\s+|\s+$//g; # trim spaces
-    if ( defined $homebranch && length($homebranch) > 0 && &C4::External::EKZ::lib::EkzKohaRecords::checkbranchcode($homebranch) ) {
+    if ( defined $homebranch && length($homebranch) > 0 && $ekzKohaRecord->checkbranchcode($homebranch) ) {
         $zweigstellencode = $homebranch;
     }
     my $titleSourceSequence = C4::Context->preference("ekzTitleDataServicesSequence");
@@ -125,7 +126,8 @@ sub genKohaRecords {
         $ekzWebServicesHideOrderedTitlesInOpac == 0 ) {
             $ekzWsHideOrderedTitlesInOpac = 0;
     }
-    my $ekzAqbooksellersId = C4::Context->preference("ekzAqbooksellersId");
+    # XXXWH hau wech (OLD) my $ekzAqbooksellersId = C4::Context->preference("ekzAqbooksellersId");
+    my $ekzAqbooksellersId = $ekzKohaRecord->{ekzWsConfig}->getEkzAqbooksellersId($ekzCustomerNumber);
     $ekzAqbooksellersId =~ s/^\s+|\s+$//g;    # trim spaces
 
     if ( defined($lastRunDate) && $lastRunDate =~ /^\d\d\d\d-\d\d-\d\d$/ ) {    # format:yyyy-mm-dd
@@ -199,7 +201,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
         # if system preference ekzAqbooksellersId is not empty: Create a Koha order basket for collecting the Koha orders created for each title contained in the request in the following steps.
         if ( scalar @{$stoWithNewState->{'titelRecords'}} > 0 ) {
             # policy: if ekzAqbooksellersId is not empty but does not identify an aqbooksellers record: create such an record and update ekzAqbooksellersId
-            $ekzAqbooksellersId = C4::External::EKZ::lib::EkzKohaRecords->checkEkzAqbooksellersId($ekzAqbooksellersId,1);
+            $ekzAqbooksellersId = $ekzKohaRecord->checkEkzAqbooksellersId($ekzAqbooksellersId,1);
             if ( length($ekzAqbooksellersId) ) {
                 # Search or create a Koha acquisition order basket,
                 # i.e. search / insert a record in table aqbasket so that the following new aqorders records can link to it via aqorders.basketno = aqbasket.basketno .
@@ -215,7 +217,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
                     if ( my $hit = $sth->fetchrow_hashref ) {
                         $authorisedby = $hit->{borrowernumber};
                     }
-                    my $branchcode = C4::External::EKZ::lib::EkzKohaRecords->branchcodeFallback('', $homebranch);
+                    my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
                     $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz StoList', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH
                     print STDERR "ekzWsStoList::genKohaRecords() created new basket having basketno:", Dumper($basketno), ":\n" if $debugIt;
                     if ( $basketno ) {
@@ -297,7 +299,7 @@ print STDERR "ekzWsStoList::genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}
             #   With data from one of these alternatives a title record has to be created in Koha, and an item record for each ordered copy.
 
             # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
-            $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleInLocalDB($reqParamTitelInfo, 1);
+            $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
 print STDERR "ekzWsStoList::genKohaRecords() from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
             if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                 $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
@@ -312,19 +314,19 @@ print STDERR "ekzWsStoList::genKohaRecords() titleSource:$titleSource:\n" if $de
 
                 if ( $titleSource eq '_LMSC' ) {
                     # search title in LMSPool
-                    $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleInLMSPool($reqParamTitelInfo);
+                    $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo);
 print STDERR "ekzWsStoList::genKohaRecords() from LMS Pool titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                 } elsif ( $titleSource eq '_EKZWSMD' ) {
                     # send query to the ekz title information web service
-                    $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
+                    $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
 print STDERR "ekzWsStoList::genKohaRecords() from ekz Webservice titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
                 } elsif ( $titleSource eq '_WS' ) {
                     # use sparse title data from the StoListElement
-                    $titleHits = C4::External::EKZ::lib::EkzKohaRecords->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
+                    $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
 print STDERR "ekzWsStoList::genKohaRecords() from sent titel fields:",$titleHits->{'count'},": \n" if $debugIt;
                 } else {
                     # search title in the Z39.50 target with z3950servers.servername=$titleSource
-                    $titleHits = C4::External::EKZ::lib::EkzKohaRecords->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
+                    $titleHits = $ekzKohaRecord->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
 print STDERR "ekzWsStoList::genKohaRecords() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ": \n" if $debugIt;
                 }
             }
@@ -338,8 +340,11 @@ print STDERR "ekzWsStoList::genKohaRecords() from z39.50 search on target:" . $t
                     if( $ekzWsHideOrderedTitlesInOpac ) {
                         $titleHits->{'records'}->[0]->insert_fields_ordered(MARC::Field->new('942',' ',' ','n' => 1));           # hide this title in opac
                     }
-                    ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($titleHits->{'records'}->[0],'');
+                    my $newrec;
+                    ($biblionumber,$biblioitemnumber,$newrec) = $ekzKohaRecord->addNewRecord($titleHits->{'records'}->[0]);
+                    $titleHits->{'records'}->[0] = $newrec if ($newrec);
 print STDERR "ekzWsStoList::genKohaRecords() new biblionumber:",$biblionumber,": biblioitemnumber:",$biblioitemnumber,": \n" if $debugIt;
+
                     if ( defined $biblionumber && $biblionumber > 0 ) {
                         $biblioInserted = 1;
                         # positive message for log
@@ -419,7 +424,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportIdTitle:", $acquis
 print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}:", Dumper($titleImportObjectRS->{_column_data}), ":\n" if $debugIt;
 
                 # add result of adding biblio to log email
-                ($titeldata, $isbnean) = C4::External::EKZ::lib::EkzKohaRecords->getShortISBD($titleHits->{'records'}->[0]);
+                ($titeldata, $isbnean) = $ekzKohaRecord->getShortISBD($titleHits->{'records'}->[0]);
                 push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 1, undef, undef];
 
 
@@ -437,7 +442,7 @@ print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}
                     my $fracht = 0.00;    # not sent in StoListElement
                     my $einband = 0.00;    # not sent in StoListElement
                     my $bearbeitung = 0.00;    # not sent in StoListElement
-                    my $ustSatz = 0.07;    # not sent in StoListElement
+                    my $ustSatz = &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('E');    # not sent in StoListElement
                     my $ust = 0.00;    # not sent in StoListElement
                     my $gesamtpreis = defined($titel->{'preis'}) ? $titel->{'preis'} : "0.00";    # total for a single item
                     my $reqWaehrung = 'EUR';
@@ -482,7 +487,7 @@ print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}
                         my $haushaltsstelle = defined($titel->{'haushaltsstelle'}) ? $titel->{'haushaltsstelle'} : "";
                         my $kostenstelle = defined($titel->{'kostenstelle'}) ? $titel->{'kostenstelle'} : "";
 
-                        my ($dummy1, $dummy2, $budgetid, $dummy3) = C4::External::EKZ::lib::EkzKohaRecords->checkAqbudget($haushaltsstelle, $kostenstelle, 1);
+                        my ($dummy1, $dummy2, $budgetid, $dummy3) = $ekzKohaRecord->checkAqbudget($ekzCustomerNumber, $haushaltsstelle, $kostenstelle, 1);
 
                         my $quantity = $exemplarcount;
                         my $budgetedcost_tax_included = $gesamtpreis;    # discounted
@@ -701,8 +706,8 @@ print STDERR Dumper(\@logresult) if $debugIt;
 print STDERR "ekzWsStoList::genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:\n" if $debugIt;
         if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {
             my @importIds = keys %importIds;
-            ($message, $subject, $haserror) = C4::External::EKZ::lib::EkzKohaRecords->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
-            C4::External::EKZ::lib::EkzKohaRecords->sendMessage($ekzCustomerNumber, $message, $subject);
+            ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
+            $ekzKohaRecord->sendMessage($ekzCustomerNumber, $message, $subject);
         }
     }
 
