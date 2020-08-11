@@ -430,7 +430,8 @@ Enhanced Content:
         -
             - The handlers of ekz web services will send their processing notices to the e-mail address
             - pref: ekzProcessingNoticesEmailAddress
-            - .
+            - . <br>
+            - In case of differing ekzProcessingNoticesEmailAddresses for the different branches you may list them here separated by <strong>|</strong> in the same order as the branches in 'ekzWebServicesDefaultBranch'. <br>
         -
             - The ekz web service for reading standing order information has lastly been executed at
             - pref: ekzStandingOrderWSLastRunDate
@@ -448,15 +449,24 @@ Enhanced Content:
             - In order to use the ekz web services of ekz.bibliotheksservice GmbH for handling standing order and delivery note information, the ekz web service credentials have to be supplied here. <br>
             - The library's customer number issued by ekz.bibliotheksservice GmbH is
             - pref: ekzWebServicesCustomerNumber
-            - .<br>The library's password issued by ekz.bibliotheksservice GmbH for ekz web services is
+            - . <br>
+            - In case of differing ekzWebServicesCustomerNumbers for the different branches you may list them here separated by <strong>|</strong> in the same order as the branches in 'ekzWebServicesDefaultBranch'. <br>
+            - The library's password issued by ekz.bibliotheksservice GmbH for ekz web services is
             - pref: ekzWebServicesPassword
-            - .<br>The name of library staff who is registered and authorized with ekz.bibliotheksservice GmbH is
+            - . <br>
+            - In case of differing ekzWebServicesPasswords for the different branches you may list them here separated by <strong>|</strong> in the same order as the branches in 'ekzWebServicesDefaultBranch'. <br>
+            - The name of library staff who is registered and authorized with ekz.bibliotheksservice GmbH is
             - pref: ekzWebServicesUserName
-            - .<br>The handlers of the ekz web services will create and update title data and items as required.
+            - . <br>
+            - In case of differing ekzWebServicesUserNames for the different branches you may list them here separated by <strong>|</strong> in the same order as the branches in 'ekzWebServicesDefaultBranch'. <br>
+            - The handlers of the ekz web services will create and update title data and items as required.
         -
             - The ekz web services shall use
             - pref: ekzWebServicesDefaultBranch
-            - as default home branch code when creating items. Ekz web services containing explicitly selected branch codes will overwrite this default.
+            - as default home branch code when creating items.
+            -  <br>
+            - In case of differing ekzWebServicesCustomerNumbers for the different branches you may list the branch codes here separated by <strong>|</strong>. 
+            - Ekz web services containing explicitly selected branch codes will overwrite this default.
         -
             - pref:  ekzWebServicesHideOrderedTitlesInOpac
               choices:
@@ -469,6 +479,22 @@ Enhanced Content:
         -
             - When an ekz web service signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)
             - pref: ekzWebServicesSetItemSubfieldsWhenReceived
+        -
+            - Set 'ekzAqbooksellersId' only if the Koha acquisition has to import values of the ekz media services. <br>
+            - pref: ekzAqbooksellersId
+            -  is the value in field 'id' of the aqbooksellers record representing the ekz GmbH. <br>
+            - In case of differing ekzAqbooksellersIds for the different branches you may list them here separated by <strong>|</strong> in the same order as the branches in 'ekzWebServicesDefaultBranch'. <br>
+            - This number is shown by Koha in dialog 'Update vendor' in the browser's URL input field behind parameter 'booksellerid='.
+        -
+            - Used only if import of values of the ekz media services into the Koha acquisition is activated. <br>
+            - pref: ekzAqbudgetperiodsDescription
+            -  is the name of the budget that will be used if a sent ekz webservice request does not contain Koha budget information. (field aqbudgetperiods.budget_period_description) <br>
+            - In case of differing ekzAqbudgetperiodsDescriptions for the different branches you may list them here separated by <strong>|</strong> in the same order as the branches in 'ekzWebServicesDefaultBranch'.
+        -
+            - Used only if import of values of the ekz media services into the Koha acquisition is activated. <br>
+            - pref: ekzAqbudgetsCode
+            -  is the code of the fund that will be used if a sent ekz webservice request does not contain Koha fund information. (field aqbudgets.budget_code) <br>
+            - In case of differing ekzAqbudgetsCodes for the different branches you may list them here separated by <strong>|</strong> in the same order as the branches in 'ekzWebServicesDefaultBranch'. <br>
     ekz Cover:
         -
             - pref: EKZCover
