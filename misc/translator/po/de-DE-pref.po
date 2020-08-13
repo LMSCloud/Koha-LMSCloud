@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2020-06-25 16:39+0100\n"
+"PO-Revision-Date: 2020-08-13 15:29+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -7055,6 +7055,103 @@ msgstr ""
 "aktivieren, muss dies außrdem in der Koha-Konfigurationsdatei erfolgen."
 
 # Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbooksellersId# If multiple values are provided "
+"with the parameter 'ekzWebServicesCustomerNumber' you may also provide "
+"different bookseller numbers separated by <strong>|</strong> according to "
+"the order of the values specified with 'ekzWebServicesCustomerNumber'. <br>"
+msgstr ""
+"Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
+"können passend zur Reihenfolge der mit Parameter "
+"'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche "
+"Lieferantennummern getrennt durch <strong>|</strong>angegeben werden. <br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbooksellersId# Set 'ekzAqbooksellersId' only if "
+"you would like to import acquisition data (orders, invoices, delivery notes) "
+"from ekz media services."
+msgstr ""
+"Die Angabe des Parameters ist notwendig, um Erwerbungsdaten (Bestellungen, "
+"Rechnungen, Lieferscheine) von der ekz-Medienservice-Schnittstelle zu "
+"übernehmen."
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbooksellersId# This number is shown by Koha in "
+"dialog 'Update vendor' in the browser's URL input field behind parameter "
+"'booksellerid'.<br>"
+msgstr ""
+"Die Lieferantennummer wird als booksellerid in der URL beim Bearbeiten der "
+"Lieferantendaten angezeigt.<br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbooksellersId# number of Koha booksellers record "
+"representing the ekz GmbH. <br>"
+msgstr ""
+"Nummer des Lieferanten in Koha, der für Bestellungen bei der ekz GmbH "
+"genutzt wird. <br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbudgetperiodsDescription# If multiple values are "
+"provided with the parameter 'ekzWebServicesCustomerNumber' you may also "
+"provide different budget names separated by <strong>|</strong> according to "
+"the order of the values specified with 'ekzWebServicesCustomerNumber'. <br>"
+msgstr ""
+"Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
+"können passend zur Reihenfolge der mit Parameter "
+"'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Etats "
+"getrennt durch <strong>|</strong>angegeben werden. <br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbudgetperiodsDescription# Used only if the import "
+"of acquisition data from ekz media services is activated by setting "
+"parameter 'ekzAqbooksellersId'."
+msgstr ""
+"Der Parameter wird nur dann ausgewertet, wenn der Import von Erwerbungsdaten "
+"durch die Angabe des Parameters 'ekzAqbooksellersId' aktiviert wurde."
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbudgetperiodsDescription# name of the budget that "
+"will be used if ekz order data does not provide Koha budget information. <br>"
+msgstr ""
+"Name des Koha-Etats, der für übernommene ekz-Bestellungen genutzt wird, wenn "
+"mit den ekz-Bestelldaten keine Haushaltsstelle geliefert wird.<br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbudgetsCode# If multiple values are provided with "
+"the parameter 'ekzWebServicesCustomerNumber' you may also provide different "
+"fund codes separated by <strong>|</strong> according to the order of the "
+"values specified with 'ekzWebServicesCustomerNumber'. <br>"
+msgstr ""
+"Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
+"können passend zur Reihenfolge der mit Parameter "
+"'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Kontocodes "
+"getrennt durch <strong>|</strong>angegeben werden. <br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbudgetsCode# Used only if the import of "
+"acquisition data from ekz media services is activated by setting parameter "
+"'ekzAqbooksellersId'."
+msgstr ""
+"Der Parameter wird nur dann ausgewertet, wenn der Import von Erwerbungsdaten "
+"durch die Angabe des Parameters 'ekzAqbooksellersId' aktiviert wurde."
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzAqbudgetsCode# code of the budget fund that will be "
+"used if ekz order data does not provide fund information. <br>"
+msgstr ""
+"Code des Haushaltskontos, der für übernommene ekz-Bestellungen genutzt wird, "
+"wenn mit den ekz-Bestelldaten keine Kostenstelle geliefert wird.<br>"
+
+# Enhanced Content > ekz Data Services
 msgid "enhanced_content.pref#ekzLocalServicesEnabled# Don't enable"
 msgstr "Aktiviere nicht"
 
@@ -7074,8 +7171,21 @@ msgstr ""
 "erfordert ebenfalls eine Aktivierung beim ekz Medienshop."
 
 # Enhanced Content > ekz Data Services
-msgid "enhanced_content.pref#ekzProcessingNoticesEmailAddress# ."
-msgstr " ."
+msgid "enhanced_content.pref#ekzProcessingNoticesEmailAddress# . <br>"
+msgstr ". <br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzProcessingNoticesEmailAddress# If multiple values "
+"are provided with the parameter 'ekzWebServicesCustomerNumber' you may also "
+"provide different email addresses separated by <strong>|</strong> according "
+"to the order of the values specified with 'ekzWebServicesCustomerNumber'. "
+"<br>"
+msgstr ""
+"Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
+"können passend zur Reihenfolge der mit Parameter "
+"'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Email-"
+"Adressen getrennt durch <strong>|</strong>angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7151,28 +7261,34 @@ msgstr ""
 "Targets konfiguriert und verfügbar sein."
 
 # Enhanced Content > ekz Data Services
-msgid ""
-"enhanced_content.pref#ekzWebServicesCustomerNumber# .<br>The handlers of the "
-"ekz web services will create and update title data and items as required."
-msgstr ""
-" .<br>Mit dem ekz-Importservice werden Titel- und Exemplardaten in Koha "
-"erzeugt."
+# Enhanced Content > ekz Data Services
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesCustomerNumber# . <br>"
+msgstr ". <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
-"enhanced_content.pref#ekzWebServicesCustomerNumber# .<br>The library's "
-"password issued by ekz.bibliotheksservice GmbH for ekz web services is"
+"enhanced_content.pref#ekzWebServicesCustomerNumber# If multiple values are "
+"provided with the parameter 'ekzWebServicesCustomerNumber' you may also "
+"provide different passwords separated by <strong>|</strong> according to the "
+"order of the values specified with 'ekzWebServicesCustomerNumber'. <br>"
 msgstr ""
-".<br>Das von der ekz.bibliotheksservice GmbH angegebene Passwort für den "
-"Zugriff auf die ekz Web-Services ist"
+"Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
+"können passend zur Reihenfolge der mit Parameter "
+"'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Passworte "
+"getrennt durch <strong>|</strong>angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
-"enhanced_content.pref#ekzWebServicesCustomerNumber# .<br>The name of library "
-"staff who is registered and authorized with ekz.bibliotheksservice GmbH is"
+"enhanced_content.pref#ekzWebServicesCustomerNumber# If multiple values are "
+"provided with the parameter 'ekzWebServicesCustomerNumber' you may also "
+"provide different user names separated by <strong>|</strong> according to "
+"the order of the values specified with 'ekzWebServicesCustomerNumber'. <br>"
 msgstr ""
-" .<br>Der Benutzername, der für die Bibliothek beim ekz.bibliotheksservice "
-"registriert wurde, ist"
+"Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
+"können passend zur Reihenfolge der mit Parameter "
+"'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche "
+"Benutzernamen getrennt durch <strong>|</strong>angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7189,10 +7305,65 @@ msgstr ""
 
 # Enhanced Content > ekz Data Services
 msgid ""
+"enhanced_content.pref#ekzWebServicesCustomerNumber# Provide multiple "
+"customer numbers split by <strong>|</strong>. <br>"
+msgstr ""
+"Mehrere Kundennummern können getrennt durch <strong>|</strong> angegeben "
+"werden. <br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzWebServicesCustomerNumber# The handlers of the ekz "
+"web services will create and update title data and items as required."
+msgstr ""
+"Mit dem ekz-Importservice werden Titel- und Exemplardaten in Koha erzeugt. "
+
+# Enhanced Content > ekz Data Services
+msgid ""
 "enhanced_content.pref#ekzWebServicesCustomerNumber# The library's customer "
 "number issued by ekz.bibliotheksservice GmbH is"
 msgstr ""
 "Die Kundennummer der Bibliothek bei der ekz.bibliotheksservice GmbH ist "
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzWebServicesCustomerNumber# The library's password "
+"issued by ekz.bibliotheksservice GmbH for ekz web services is"
+msgstr ""
+"Das von der ekz.bibliotheksservice GmbH angegebene Passwort für den Zugriff "
+"auf die ekz Web-Services ist"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzWebServicesCustomerNumber# The name of library "
+"staff who is registered and authorized with ekz.bibliotheksservice GmbH is"
+msgstr ""
+"Der Benutzername, der für die Bibliothek beim ekz.bibliotheksservice "
+"registriert wurde, ist"
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzWebServicesDefaultBranch# <br>"
+msgstr "<br>"
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzWebServicesDefaultBranch# Ekz web services "
+"containing explicitly selected branch codes will overwrite this default."
+msgstr ""
+"Wird vom ekz Web-Service der Zweigstellen-Code mit den Daten geliefert, so "
+"wird dieser anstelle der angegebenen Standard-Zweigstelle genutzt."
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzWebServicesDefaultBranch# If multiple values are "
+"provided with the parameter 'ekzWebServicesCustomerNumber' you may also "
+"provide different branch codes separated by <strong>|</strong> according to "
+"the order of the values specified with 'ekzWebServicesCustomerNumber'. <br>"
+msgstr ""
+"Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
+"können passend zur Reihenfolge der mit Parameter "
+"'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche "
+"Zweigstellencodes getrennt durch <strong>|</strong>angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7203,13 +7374,10 @@ msgstr "Angabe des Codes der Standard-Zweigstelle "
 # Enhanced Content > ekz Data Services
 msgid ""
 "enhanced_content.pref#ekzWebServicesDefaultBranch# as default home branch "
-"code when creating items. Ekz web services containing explicitly selected "
-"branch codes will overwrite this default."
+"code when creating items."
 msgstr ""
 " in Koha, der bei der Erzeugung von Exemplaren für der Angabe der "
-"Heimatbibliothek des Exemplars genutzt wird. Wird vom ekz Web-Service der "
-"Zweigstellen-Code mit den Daten geliefert, so wird dieser anstelle der "
-"angegebenen Standard-Zweigstelle genutzt."
+"Heimatbibliothek des Exemplars genutzt wird."
 
 # Enhanced Content > ekz Data Services
 msgid "enhanced_content.pref#ekzWebServicesHideOrderedTitlesInOpac# Hide"
@@ -11607,12 +11775,12 @@ msgid ""
 "staff_client.pref#IssuingStatsOnIntranetResultPageIgnoredItypes# Excluded "
 "item types (split by |) which will not be used to calculate the issuing "
 "history for items on the intranet catalog search result page. E.g.: ebook|"
-"evideo|eaudio|emusic|elearning"
+"evideo|eaudio|emusic|elearning|epaper"
 msgstr ""
 "Angabe von Medientypen (getrennt durch |), die bei der Ermittlung der "
 "Ausleihzahlen für die Anzeige in der Katalogtrefferliste des "
 "Dienstoberfläche nicht berücksichtigt werden sollen. Z.B.: ebook|evideo|"
-"eaudio|emusic|elearning"
+"eaudio|emusic|elearning|epaper"
 
 # Staff Client > Options
 msgid ""
