@@ -113,10 +113,10 @@ sub GetIssuingStats {
     my $bibliosel = join(',',@$biblionumbers);
     
     if ( $ignoreTypes && scalar(@$ignoreTypes) ) {
-        foreach my $itype ($ignoreTypes) {
+        foreach my $itype (@$ignoreTypes) {
             push @selparams,'?';
+            push @seltypes,$itype;
         }
-        @seltypes = @$ignoreTypes;
         $seladd = ' AND i.itype NOT IN (' . join(',', @selparams) . ') ';
     }
 
@@ -179,18 +179,21 @@ sub GetIssuingStats {
         }
         my $bibresult = { biblionumber => $biblionumber, issuestats => [], sumIssues => $result->{$biblionumber}->{sumIssues}, items => [] };
         foreach my $year(@years) {
-            push @{$bibresult->{issuestats}}, { 'year' => $year, 'sumIssues' => $result->{$biblionumber}->{stats}->{$year}->{sumIssues}+0 };
+            $result->{$biblionumber}->{stats}->{$year}->{sumIssues} += 0;
+            push @{$bibresult->{issuestats}}, { 'year' => $year, 'sumIssues' => $result->{$biblionumber}->{stats}->{$year}->{sumIssues} };
         }
         foreach my $itemnumber(sort { $a <=> $b } keys %{$result->{$biblionumber}->{items}} ) {
             my $itemstats = [];
             foreach my $year(@years) {
-                push @$itemstats, { 'year' => $year, 'sumIssues' => $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues}+0 };
+                $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues} += 0;
+                push @$itemstats, { 'year' => $year, 'sumIssues' => $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues} };
             }
-            push @{$bibresult->{items}}, { itemnumber => $itemnumber, issuestats => $itemstats, sumIssues => $result->{$biblionumber}->{items}->{$itemnumber}->{sumIssues}+0 };
+            $result->{$biblionumber}->{items}->{$itemnumber}->{sumIssues} += 0;
+            push @{$bibresult->{items}}, { itemnumber => $itemnumber, issuestats => $itemstats, sumIssues => $result->{$biblionumber}->{items}->{$itemnumber}->{sumIssues} };
         }
         push @$response, $bibresult;
     }
-    carp Dumper($response);
+    # carp Dumper($response);
     return $response;
 }
 
