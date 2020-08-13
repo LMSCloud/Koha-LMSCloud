@@ -915,8 +915,14 @@ sub CanBookBeIssued {
     #
     $patron = Koha::Patrons->find( $patron->borrowernumber ); # FIXME Refetch just in case, to avoid regressions. But must not be needed
     my $wants_check = $patron->wants_check_for_previous_checkout;
-    $needsconfirmation{PREVISSUE} = 1
-        if ($wants_check and $patron->do_check_for_previous_checkout($item));
+    if ($wants_check and $patron->do_check_for_previous_checkout($item)) {
+        my $biblionumber = $item->{biblionumber};
+        require C4::Serials;
+        my $is_a_subscription = C4::Serials::CountSubscriptionFromBiblionumber($biblionumber);
+        if (! $is_a_subscription) {
+            $needsconfirmation{PREVISSUE} = 1;
+        }
+    }
 
     #
     # ITEM CHECKING
