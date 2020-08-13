@@ -76,7 +76,8 @@ if ($uri) {
     else {
 
         # We have a valid url, but we shouldn't track it, just redirect
-        print $cgi->redirect($uri);
+        # print $cgi->redirect($uri);
+        print $cgi->redirect("/cgi-bin/koha/errors/404.pl"); 
         exit;
     }
 }
