@@ -294,7 +294,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('IssueLostItem','alert','Defines what should be done when an attempt is made to issue an item that has been marked as lost.','alert|confirm|nothing','Choice'),
 ('IssuingInProcess','0',NULL,'If ON, disables fines if the patron is issuing item that accumulate debt','YesNo'),
 ('IssuingStatsOnIntranetResultPageYears','3',NULL,'Number of years backward from now to show as statistical counts of the issuing history (checkouts and renewals) for items on the intranet search catalog result page.','Integer'),
-('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
+('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning|epaper',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
 ('item-level_itypes','1','','If ON, enables Item-level Itemtype / Issuing Rules','YesNo'),
 ('itemBarcodeFallbackSearch','',NULL,'If set, uses scanned item barcodes as a catalogue search if not found as barcodes','YesNo'),
 ('itemBarcodeInputFilter','','whitespace|T-prefix|cuecat|libsuite8|EAN13','If set, allows specification of a item barcode input filter','Choice'),

@@ -17162,7 +17162,7 @@ if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
             ('IssuingStatsOnIntranetResultPageYears','3',NULL,'Number of years backward from now to show as statistical counts of the issuing history (checkouts and renewals) for items on the intranet search catalog result page.','Integer'),
-            ('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
+            ('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning|epaper',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
             ('DivibibAuthDisabledForGroups','',NULL,'Restrict Divibib authentication to specific patron categories and requesting IPs or network addresses.','Free'),
             ('BrockhausCustomerID','',NULL,'The Brockhaus customer id provided by Brockhaus.','free'),
             ('BrockhausDomain','brockhaus.de',NULL,'The Brockhaus domain where the country specific brockhaus services are located.','free'),
