@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2020-08-13 15:29+0100\n"
+"PO-Revision-Date: 2020-08-13 15:50+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -7064,7 +7064,7 @@ msgstr ""
 "Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
 "können passend zur Reihenfolge der mit Parameter "
 "'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche "
-"Lieferantennummern getrennt durch <strong>|</strong>angegeben werden. <br>"
+"Lieferantennummern getrennt durch <strong>|</strong> angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7103,7 +7103,7 @@ msgstr ""
 "Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
 "können passend zur Reihenfolge der mit Parameter "
 "'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Etats "
-"getrennt durch <strong>|</strong>angegeben werden. <br>"
+"getrennt durch <strong>|</strong> angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7132,7 +7132,7 @@ msgstr ""
 "Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
 "können passend zur Reihenfolge der mit Parameter "
 "'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Kontocodes "
-"getrennt durch <strong>|</strong>angegeben werden. <br>"
+"getrennt durch <strong>|</strong> angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7185,7 +7185,7 @@ msgstr ""
 "Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
 "können passend zur Reihenfolge der mit Parameter "
 "'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Email-"
-"Adressen getrennt durch <strong>|</strong>angegeben werden. <br>"
+"Adressen getrennt durch <strong>|</strong> angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7276,7 +7276,7 @@ msgstr ""
 "Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
 "können passend zur Reihenfolge der mit Parameter "
 "'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche Passworte "
-"getrennt durch <strong>|</strong>angegeben werden. <br>"
+"getrennt durch <strong>|</strong> angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7288,7 +7288,7 @@ msgstr ""
 "Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
 "können passend zur Reihenfolge der mit Parameter "
 "'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche "
-"Benutzernamen getrennt durch <strong>|</strong>angegeben werden. <br>"
+"Benutzernamen getrennt durch <strong>|</strong> angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7363,7 +7363,7 @@ msgstr ""
 "Sollten unterschiedlichen Kundennummern für ekz-Bestellungen genutzt werden, "
 "können passend zur Reihenfolge der mit Parameter "
 "'ekzWebServicesCustomerNumber' angegebenen Werte unterschiedliche "
-"Zweigstellencodes getrennt durch <strong>|</strong>angegeben werden. <br>"
+"Zweigstellencodes getrennt durch <strong>|</strong> angegeben werden. <br>"
 
 # Enhanced Content > ekz Data Services
 msgid ""
