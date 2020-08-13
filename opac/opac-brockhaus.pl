@@ -42,9 +42,9 @@ if ( C4::Context->preference('BrockhausSearchActive') ) {
     my $collection = $query->param('collection');
     my $brockhausService = C4::External::Brockhaus->new();
     
-    my $searchWhere = ["ecs"];
+    my $searchWhere = [];
     $searchWhere = [$collection] if ( $collection );
-    if ( C4::Context->preference('BrockhausSearchCollections') ) {
+    if ( !scalar(@$searchWhere) && C4::Context->preference('BrockhausSearchCollections') ) {
         $searchWhere =  [];
         my $colls = {};
         foreach my $collection( split(/\|/,C4::Context->preference('BrockhausSearchCollections')) ) {

@@ -32,10 +32,10 @@ function getBrockhausFacet(query_desc,maxHitCount,prevPageText,nextPageText) {
     url: "/cgi-bin/koha/opac-brockhaus.pl",
         type: "POST",
         cache: false,
-        data: { 'search' : query_desc, 'maxcount' : maxHitCountBrockhaus },
+        data: { 'search' : query_desc, 'maxcount' : 0 },
         dataType: "json",
         success: function(data) {
-            if ( data && data.result && data.result && data.result.length > 0 ) {
+            if ( data && data.result && data.result.length > 0 ) {
                 showBrockhausFacetEntries(data.result,query_desc);
             }
         },
@@ -54,8 +54,9 @@ function getBrockhausResult(facetID, offset) {
         data: { 'search' : query_desc, 'maxcount' : maxHitCountBrockhaus, 'offset' : offset, 'collection' : collection  },
         dataType: "json",
         success: function(data) {
-            if ( data && data.result && data.result && data.result.length > 0 ) {
+            if ( data && data.result && data.result.length > 0 ) {
                 brockhausData['results'][facetID] = data.result[0];
+                setBrockhausCollectionName(brockhausData['results'],facetID);
                 showBrockhausResult(facetID);
             }
         },
@@ -74,21 +75,9 @@ function showBrockhausFacetEntries(facetData,query) {
                 var spanElement  = document.createElement("span");
                 spanElement.setAttribute('class','facet-label');
                 var hrefElement  = document.createElement("a");
-                var facetElementName;
-                if ( facetData[i].searchType == "ecs.enzy" ) {
-                    facetElementName = "Enzyklopädie";
-                }
-                else if ( facetData[i].searchType == "ecs.julex" ) {
-                    facetElementName = "Jugendlexikon";
-                }
-                else if ( facetData[i].searchType == "ecs" ) {
-                    facetElementName = "Enzyklopädie und Jugendlexikon";
-                }
-                else if ( facetData[i].searchType == "ecs.kilex" ) {
-                    facetElementName = "Kinderlexikon";
-                }
-                facetData[i]['name'] = facetElementName;
-                hrefElement.setAttribute('href','javascript:showBrockhausResult('+i+',' + maxHitCountBrockhaus + ')');
+                var facetElementName = setBrockhausCollectionName(facetData,i);
+                // hrefElement.setAttribute('href','javascript:showBrockhausResult('+i+',' + maxHitCountBrockhaus + ')');
+                hrefElement.setAttribute('href','javascript:getBrockhausResult('+i+',0)');
                 hrefElement.textContent = facetElementName;
                 spanElement.appendChild(hrefElement);
                 facetElement.appendChild(spanElement);
@@ -112,12 +101,34 @@ function showBrockhausFacetEntries(facetData,query) {
         brockhausData['query'] = query;
     }
 }
+
+function setBrockhausCollectionName(facetData, i)  {
+    var facetElementName;
+    if ( facetData[i].searchType == "ecs.enzy" ) {
+        facetElementName = "Enzyklopädie";
+    }
+    else if ( facetData[i].searchType == "ecs.julex" ) {
+        facetElementName = "Jugendlexikon";
+    }
+    else if ( facetData[i].searchType == "ecs" ) {
+        facetElementName = "Enzyklopädie und Jugendlexikon";
+    }
+    else if ( facetData[i].searchType == "ecs.kilex" ) {
+        facetElementName = "Kinderlexikon";
+    }
+    facetData[i]['name'] = facetElementName;
+    
+    return facetElementName;
+}
+
 function showBrockhausResult(facetID) {
     var pagination = getPagination(facetID, maxHitCountBrockhaus);
     var content = '';
+
     for (var i=0; i<brockhausData.results[facetID].hitList.length;i++) {
         content += generateBrockhausEntry(facetID,i);
     }
+
     if ( $("#userresults").css("display") != "none" ){
         $('#encyclopediaresults').toggle();
         $('#userresults').toggle();

@@ -89,7 +89,7 @@ sub new {
     
     $self->{'searchAtBrockhausURL'} = 'https://brockhaus.de/search/?';
     if ( $self->{'librarySelectID'} ) {
-        $self->{'searchAtBrockhausURL'} .= 'select=' . $self->{'librarySelectID'};
+        $self->{'searchAtBrockhausURL'} .= 'select=' . $self->{'librarySelectID'} . '&';
     }
     
     if ( $self->{'customerID'} ) {
@@ -145,7 +145,7 @@ sub simpleSearch {
     }
     
     $offset = 0 if (!$offset);
-    $maxcount = 10 if (!$maxcount);
+    $maxcount = 0 if (!$maxcount);
     $searchtypes = [ "ecs" ]  if (!$searchtypes);
     $searchtypes = [ $searchtypes ] if ( reftype($searchtypes) ne 'ARRAY' );
  
@@ -158,6 +158,9 @@ sub simpleSearch {
         
         if ( $maxcount ) {
             $url .= '&size=' . $maxcount;
+        }
+        else {
+            $url .= '&size=0';
         }
         
         if ( $offset ) {
