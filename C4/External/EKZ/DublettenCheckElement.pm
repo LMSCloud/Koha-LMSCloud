@@ -1,6 +1,6 @@
 package C4::External::EKZ::DublettenCheckElement;
 
-# Copyright 2017 (C) LMSCLoud GmbH
+# Copyright 2017-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -37,10 +37,10 @@ use C4::External::EKZ::lib::EkzKohaRecords;
 sub new {
     my $class = shift;
 
-    my $self  = {
-        'debugIt' => 1
-    };
+    my $self  = {};
     bless $self, $class;
+
+    $self->{logger} = Koha::Logger->get({ interface => 'C4::External::EKZ::DublettenCheckElement' });
 
     return $self;
 }
@@ -51,8 +51,11 @@ sub process {
     my $soapEnvelopeHeader = $request->{'soap:Envelope'}->{'soap:Header'};
     my $soapEnvelopeBody = $request->{'soap:Envelope'}->{'soap:Body'};
 
+    $self->{logger}->debug("process() START request->{'soap:Envelope'}->{'soap:Header'}:" . Dumper($request->{'soap:Envelope'}->{'soap:Header'}) . ":");
+    $self->{logger}->debug("process() START request->{'soap:Envelope'}->{'soap:Body'}:" . Dumper($request->{'soap:Envelope'}->{'soap:Body'}) . ":");
+
 foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:DublettenCheckElement'}}) {
-    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request tag:", $tag, ":\n" if $self->{debugIt};
+    $self->{logger}->trace("process() HTTP request tag:" . $tag . ":");
 }
 
     my $wssusername = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'} : "WSS-username not defined";
@@ -72,8 +75,9 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:DublettenCheckElement'}}) {
 
     if ( $authenticated && $ekzLocalServicesEnabled )
     {
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:",$soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'},":\n" if $self->{debugIt};
-print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}),":\n" if $self->{debugIt};
+        $self->{logger}->trace("process() HTTP request titel:" . $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'} . ":");
+        $self->{logger}->trace("process() HTTP request ref(titel):" . ref($soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}) . ":");
+
         my $titeldefined = ( exists $soapEnvelopeBody->{'ns2:DublettenCheckElement'} && defined $soapEnvelopeBody->{'ns2:DublettenCheckElement'} &&
                              exists $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'} && defined $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'});
         my $titelArrayRef = [];    #  using ref to empty array if there are sent no titel blocks
@@ -86,19 +90,20 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
                  $titelArrayRef = $soapEnvelopeBody->{'ns2:DublettenCheckElement'}->{'titel'}; # ref to deserialized array containing the hash references
             }
         }
-        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n" if $self->{debugIt};
+        $self->{logger}->debug("process() HTTP request titel array:" . @$titelArrayRef . ": scalar @$titelArrayRef:" . @$titelArrayRef . ":");
 
         $titleCount = scalar @$titelArrayRef;
-        print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP titleCount:",$titleCount, ":\n" if $self->{debugIt};
+        $self->{logger}->trace("process() HTTP titleCount:" . $titleCount . ":");
         for ( my $i = 0; $i < $titleCount; $i++ ) {
-            print STDERR "DublettenCheckElement::DublettenCheckElement() title loop $i\n" if $self->{debugIt};
+            $self->{logger}->trace("process() title loop i:$i:");
             my $titel = $titelArrayRef->[$i];
 
             # handle title block only if title info is not empty
             if ( $titel && defined($titel->{'titelInfo'}) && ref($titel->{'titelInfo'}) eq 'HASH' ) {
 
                 # extracting the search criteria
-                my $reqParamTitelInfo->{'ekzArtikelNr'} = $titel->{'ekzArtikelNr'};
+                my $reqParamTitelInfo = {};
+                $reqParamTitelInfo->{'ekzArtikelNr'} = $titel->{'ekzArtikelNr'};
                 $reqParamTitelInfo->{'isbn'} = $titel->{'titelInfo'}->{'isbn'};
                 $reqParamTitelInfo->{'isbn13'} = $titel->{'titelInfo'}->{'isbn13'};
                 $reqParamTitelInfo->{'issn'} = $titel->{'titelInfo'}->{'issn'};
@@ -107,28 +112,17 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
                 $reqParamTitelInfo->{'author'} = $titel->{'titelInfo'}->{'author'};
                 $reqParamTitelInfo->{'titel'} = $titel->{'titelInfo'}->{'titel'};
                 $reqParamTitelInfo->{'erscheinungsJahr'} = $titel->{'titelInfo'}->{'erscheinungsJahr'};
-        
-                if ( $self->{debugIt} ) {
-                    # log request parameters
-                    my $logstr = $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ekzArtikelNr:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'isbn'} ? $reqParamTitelInfo->{'isbn'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request isbn:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'isbn13'} ? $reqParamTitelInfo->{'isbn13'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request isbn13:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'issn'} ? $reqParamTitelInfo->{'issn'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request issn:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'ismn'} ? $reqParamTitelInfo->{'ismn'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ismn:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'ean'} ? $reqParamTitelInfo->{'ean'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ean:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'author'} ? $reqParamTitelInfo->{'author'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request author:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'titel'} ? $reqParamTitelInfo->{'titel'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request titel:$logstr:\n";
-                    $logstr = $reqParamTitelInfo->{'erscheinungsJahr'} ? $reqParamTitelInfo->{'erscheinungsJahr'} : "<undef>";
-                    print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request erscheinungsJahr:$logstr:\n";
-                }
+
+                # log request parameters
+                $self->{logger}->debug("process() HTTP request ekzArtikelNr:" . (defined($reqParamTitelInfo->{'ekzArtikelNr'}) ? $reqParamTitelInfo->{'ekzArtikelNr'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request isbn:" . (defined($reqParamTitelInfo->{'isbn'}) ? $reqParamTitelInfo->{'isbn'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request isbn13:" . (defined($reqParamTitelInfo->{'isbn13'}) ? $reqParamTitelInfo->{'isbn13'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request issn:" . (defined($reqParamTitelInfo->{'issn'}) ? $reqParamTitelInfo->{'issn'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request ismn:" . (defined($reqParamTitelInfo->{'ismn'}) ? $reqParamTitelInfo->{'ismn'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request ean:" . (defined($reqParamTitelInfo->{'ean'}) ? $reqParamTitelInfo->{'ean'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request author:" . (defined($reqParamTitelInfo->{'author'}) ? $reqParamTitelInfo->{'author'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request titel:" . (defined($reqParamTitelInfo->{'titel'}) ? $reqParamTitelInfo->{'titel'} : 'undef') . ":");
+                $self->{logger}->debug("process() HTTP request erscheinungsJahr:" . (defined($reqParamTitelInfo->{'erscheinungsJahr'}) ? $reqParamTitelInfo->{'erscheinungsJahr'} : 'undef') . ":");
 
                 my @dublettenInfo = $self->searchDubletten($reqParamTitelInfo);
 
@@ -136,15 +130,15 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
                     $titleWithDubCount += 1;
                 }
 
-                print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": Anzahl dublettenInfo:",@dublettenInfo+0, "\n" if $self->{debugIt};
-                print STDERR "DublettenCheckElement::DublettenCheckElement() reqEkzArtikelNr:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": dublettenInfo:",@dublettenInfo, "\n" if $self->{debugIt};
+                $self->{logger}->debug("process() reqEkzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": Anzahl dublettenInfo:" . scalar @dublettenInfo . ":");
+                $self->{logger}->trace("process() reqEkzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": dublettenInfo:" . @dublettenInfo . ":");
 
                 push @dublettenInfoListe, @dublettenInfo;
             }
         }
     }
 
-    print STDERR "DublettenCheckElement::DublettenCheckElement() Anzahl dublettenInfoListe:",@dublettenInfoListe+0, "\n" if $self->{debugIt};
+    $self->{logger}->debug("process() Anzahl dublettenInfoListe:" . scalar @dublettenInfoListe . ":");
 
     $respStatusCode = 'ERROR';
     if ( !$authenticated ) {
@@ -167,14 +161,14 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
     my @soapTitelListe = ();
     foreach my $dublettenInfo (@dublettenInfoListe)
     {
-        print STDERR "DublettenCheckElement::DublettenCheckElement(); EkzArtikelNr:",$dublettenInfo->{'ekzArtikelNr'},":\n" if $self->{debugIt};
+        $self->{logger}->debug("process() Anzahl EkzArtikelNr:" . $dublettenInfo->{'ekzArtikelNr'} . ":");
 
         my $soapEkzArtikelNr = SOAP::Data->name( 'ekzArtikelNr' => $dublettenInfo->{'ekzArtikelNr'} )->type( 'string' );
         my @soapExemplare = ();
 
         foreach my $dupExemplar (@{$dublettenInfo->{'exemplare'}})
         {
-            print STDERR "DublettenCheckElement::DublettenCheckElement(); dupExemplar->{'zweigstelle'}:",$dupExemplar->{'zweigstelle'},":\n" if $self->{debugIt};
+            $self->{logger}->debug("process() Anzahl dupExemplar->{'zweigstelle'}:" . $dupExemplar->{'zweigstelle'} . ":");
 
             my $soapExemplarVal;
             # Avoid sending an empty or invalid 'erscheinungsjahr' because this would cause an 'Unmarshalling Error' in the ekz software.
@@ -211,9 +205,10 @@ print STDERR "DublettenCheckElement::DublettenCheckElement() HTTP request ref(ti
 
 sub searchDubletten {
     my ($self, $reqParamTitelInfo) = @_;
+    my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $testIt = 0;
-    my ( $marcresults, $hits ) = ( \(), 0 );
+    my ( $marcresults, $hits ) = ( [], 0 );
     my $marc_titledata = '';
     
     # variables for result structure
@@ -234,19 +229,19 @@ sub searchDubletten {
         push @titelListe, \%titel;
         push @titelListe, \%titel;
 
-        print STDERR "DublettenCheckElement::searchDubletten() titelListe:",@titelListe,":\n" if $self->{debugIt};
-        print STDERR "DublettenCheckElement::searchDubletten() Exemplare:",@exemplare,":\n" if $self->{debugIt};
-        print STDERR "DublettenCheckElement::searchDubletten() Anz. Exemplare:",@exemplare+0,":\n" if $self->{debugIt};
-        print STDERR "DublettenCheckElement::searchDubletten() titel-Exemplare:",@{$titel{'exemplare'}},":\n" if $self->{debugIt};
-        print STDERR "DublettenCheckElement::searchDubletten() Anz. titel-Exemplare:",@#{titel{'exemplare'}}-1,":\n" if $self->{debugIt};
+        $self->{logger}->debug("searchDubletten() titelListe:" . Dumper(@titelListe) . ":");
+        $self->{logger}->debug("searchDubletten() Exemplare:" . Dumper(@exemplare) . ":");
+        $self->{logger}->debug("searchDubletten() Anz. Exemplare:" . scalar @exemplare . ":");
+        $self->{logger}->debug("searchDubletten() titel-Exemplare:" . Dumper(@{$titel{'exemplare'}}) . ":");
+        $self->{logger}->debug("searchDubletten() Anz. titel-Exemplare:" . scalar @{$titel{'exemplare'}} . ":");
     } else
     {
         # search priority:  1. ekzArtikelNr  /  2. isbn or isbn13  /  3. issn or ismn or ean  /  4. titel and author and erscheinungsJahr
-        $marcresults = C4::External::EKZ::lib::EkzKohaRecords->readTitleDubletten($reqParamTitelInfo,0);
+        $marcresults = $ekzKohaRecord->readTitleDubletten($reqParamTitelInfo,0);
     }
 
-    $hits = scalar @$marcresults if $marcresults;
-    print STDERR "DublettenCheckElement::searchDubletten() hits:$hits:\n" if $self->{debugIt};
+    $hits = scalar @{$marcresults} if $marcresults;
+    $self->{logger}->debug("searchDubletten() hits:" . $hits . ":");
     
     # Search the items of the catalogue titles found (= candidates for duplicates). 
     # The caller of this web service expects in the response 1 XML 'titel' block for each XML 'titel' block in the request.
@@ -288,11 +283,11 @@ sub searchDubletten {
                     }
                 }
                 $titel{'ekzArtikelNr'} = $ekzArtikelNr;
-print STDERR "DublettenCheckElement::searchDubletten() marcrecord->field('003'):", defined($marcrecord->field("003")) ? $marcrecord->field("003")->data() : "undef", ": marcrecord->field('001'):", defined($marcrecord->field("001")) ? $marcrecord->field("001")->data() : "undef", ": ekzArtikelNr:$ekzArtikelNr:\n" if $self->{debugIt};
+                $self->{logger}->debug("searchDubletten() marcrecord->field('003'):" . (defined($marcrecord->field("003")) ? $marcrecord->field("003")->data() : 'undef') . ": marcrecord->field('001'):" . (defined($marcrecord->field('001')) ? $marcrecord->field('001') : 'undef') . ": ekzArtikelNr:" . $ekzArtikelNr . ":");
             }
 
             
-print STDERR "DublettenCheckElement::searchDubletten() reqParamTitelInfo->{'ekzArtikelNr'}:", $reqParamTitelInfo->{'ekzArtikelNr'}, ": duplicate candidate biblionumber: $biblionumber:\n" if $self->{debugIt};
+            $self->{logger}->debug("searchDubletten() reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": duplicate candidate biblionumber:" . $biblionumber . ":");
             # read items of this biblio number
             my @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };
             for my $itemnumber ( @itemnumbers )
@@ -318,8 +313,6 @@ print STDERR "DublettenCheckElement::searchDubletten() reqParamTitelInfo->{'ekzA
                 if ( $auflage =~ /^.*?(\d+).*$/m ) {
                     $exemplar{'auflage'} =  $1;
                 }
-
-print STDERR "DublettenCheckElement::searchDubletten() exemplar{'auflage'}:", $exemplar{'auflage'}, ":\n" if $self->{debugIt};
             
                 push @exemplare, \%exemplar;
             }

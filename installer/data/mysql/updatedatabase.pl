@@ -17194,7 +17194,6 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
-
 $DBversion = '18.05.05.015';
 if( CheckVersion( $DBversion ) ) {
     my ($socialnetworks) = $dbh->selectrow_array( q|
@@ -17209,6 +17208,20 @@ if( CheckVersion( $DBversion ) ) {
     SetVersion ($DBversion);
     print "Upgrade to $DBversion done (Bug 22880: Allow granular control of socialnetworks preference)\n";
 }
+
+$DBversion = "18.05.05.016";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('ekzAqbooksellersId','',NULL,'Value in field \'id\' of the aqbooksellers record representing the ekz GmbH. This number is shown by Koha in dialog \'Update vendor\' in the browser\'s URL input field behind parameter \'booksellerid=\'.','Integer'),
+            ('ekzAqbudgetperiodsDescription','',NULL,'Name of the budget that will be used if a sent ekz webservice request does not contain Koha budget information.','Free'),
+            ('ekzAqbudgetsCode','',NULL,'Code of the fund that will be used if a sent ekz webservice request does not contain Koha fund information.','Free')
+    });
+
+    print "Upgrade to $DBversion done (Added systempreferences for coupling Koha acquisition to ekz media services.)\n";
+    SetVersion($DBversion);
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
