@@ -679,7 +679,16 @@ sub handle_checkin {
         syslog( "LOG_WARNING", "received no-block checkin from terminal '%s'", $account->{id} );
         $status = $ils->checkin_no_block( $item_id, $trans_date, $return_date, $item_props, $cancel );
     } else {
-        $status = $ils->checkin( $item_id, $trans_date, $return_date, $my_branch, $item_props, $cancel, $account->{checked_in_ok} );
+        my $checkinOpts = {};
+        if ( $account->{only_local_checkins} ) {
+            $checkinOpts->{only_local_checkins} = 1;
+        }
+        if ( $account->{disabled_itypes_for_checkins} ) {
+            foreach my $itype( split(/\|/,$account->{disabled_itypes_for_checkins} ) ) {
+                $checkinOpts->{disabled_itypes_for_checkins}->{$itype} = $itype;
+            }
+        }
+        $status = $ils->checkin( $item_id, $trans_date, $return_date, $my_branch, $item_props, $cancel, $account->{checked_in_ok}, $checkinOpts );
     }
 
     $patron = $status->patron;

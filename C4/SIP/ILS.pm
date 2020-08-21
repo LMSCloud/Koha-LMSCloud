@@ -200,7 +200,7 @@ sub test_cardnumber_compare {
 }
 
 sub checkin {
-    my ( $self, $item_id, $trans_date, $return_date, $current_loc, $item_props, $cancel, $checked_in_ok ) = @_;
+    my ( $self, $item_id, $trans_date, $return_date, $current_loc, $item_props, $cancel, $checked_in_ok, $checkinOpts ) = @_;
     my ( $patron, $item, $circ );
 
     $circ = C4::SIP::ILS::Transaction::Checkin->new();
@@ -211,6 +211,24 @@ sub checkin {
     $circ->item( $item = C4::SIP::ILS::Item->new($item_id) );
 
     if ($item) {
+        if ( $checkinOpts && $checkinOpts->{only_local_checkins} ) {
+            if ( $item->{issue_library} && $current_loc && $item->{issue_library} ne $current_loc ) {
+                $circ->alert(1);
+                $circ->alert_type(90);
+                $circ->ok( 0 );
+                $circ->screen_msg('Wrong checkin branch');
+                return $circ;
+            }
+        }
+        if ( $checkinOpts && exists($checkinOpts->{disabled_itypes_for_checkins}) ) {
+            if ( $checkinOpts->{disabled_itypes_for_checkins} && $item->itemtype && exists( $checkinOpts->{disabled_itypes_for_checkins}->{$item->itemtype} ) ) {
+                $circ->alert(1);
+                $circ->alert_type(91);
+                $circ->ok( 0 );
+                $circ->screen_msg('Item type checkin forbidden');
+                return $circ;
+            }
+        }
         $circ->do_checkin( $current_loc, $return_date, $checked_in_ok );
     }
     else {

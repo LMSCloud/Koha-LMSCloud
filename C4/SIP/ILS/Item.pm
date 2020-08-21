@@ -91,6 +91,8 @@ sub new {
     my $it = $item->effective_itemtype;
     my $itemtype = Koha::Database->new()->schema()->resultset('Itemtype')->find( $it );
     $self->{sip_media_type} = $itemtype->sip_media_type() if $itemtype;
+    
+    $self->{   'itemtype'    } = $it;
 
     # check if its on issue and if so get the borrower
     my $issue = Koha::Checkouts->find( { itemnumber => $item->itemnumber } );
@@ -99,6 +101,7 @@ sub new {
         my $patron = Koha::Patrons->find( $issue->borrowernumber );
         $self->{patron} = $patron->cardnumber;
         $self->{issue_renewals} = $issue->renewals;
+        $self->{issue_library} = $issue->branchcode;
     }
     my $biblio = Koha::Biblios->find( $self->{biblionumber} );
     my $holds = $biblio->current_holds->unblessed;
@@ -331,6 +334,16 @@ sub due_date {
 sub issue_renewals {
     my $self = shift;
     return $self->{issue_renewals} || 0;
+}
+
+sub issue_library {
+    my $self = shift;
+    return $self->{issue_library} || '';
+}
+
+sub itemtype {
+    my $self = shift;
+    return $self->{itemtype} || '';
 }
 
 sub recall_date {
