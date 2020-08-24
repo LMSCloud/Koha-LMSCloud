@@ -122,7 +122,7 @@ sub GetIssuingStats {
 
     my $select = qq{SELECT i.biblionumber AS biblionumber,
                            s.itemnumber AS itemnumber,
-                           year(s.datetime) AS year,
+                           YEAR(s.datetime) AS year,
                            count(*) AS cnt,
                            YEAR(dateaccessioned) AS yearacc
                     FROM   items i
@@ -130,7 +130,7 @@ sub GetIssuingStats {
                     WHERE  s.type in ('issue', 'renew')
                            AND YEAR(s.datetime) > YEAR(DATE_SUB(CURDATE(), INTERVAL $years YEAR))
                            AND i.biblionumber IN ($bibliosel) $seladd
-                    GROUP BY i.biblionumber, s.itemnumber
+                    GROUP BY i.biblionumber, s.itemnumber, YEAR(s.datetime), YEAR(dateaccessioned)
                     UNION ALL
                     SELECT i.biblionumber AS biblionumber,
                            i.itemnumber AS itemnumber,
