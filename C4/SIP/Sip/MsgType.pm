@@ -688,6 +688,9 @@ sub handle_checkin {
                 $checkinOpts->{disabled_itypes_for_checkins}->{$itype} = $itype;
             }
         }
+        if ( $account->{disable_checkins_with_holds} ) {
+            $checkinOpts->{disable_checkins_with_holds} = 1;
+        }
         $status = $ils->checkin( $item_id, $trans_date, $return_date, $my_branch, $item_props, $cancel, $account->{checked_in_ok}, $checkinOpts );
     }
 
