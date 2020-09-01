@@ -86,6 +86,7 @@ sub new {
     $self->{'brockhausSearchURL'} = 'https://api2.' .  $self->{'brockhausDomain'} . '/search?';
     
     $self->{'brockhausAccessURL'} = 'https://' . $self->{'brockhausDomain'} . '/ecs';
+    $self->{'brockhausAccessURLChild'} = 'https://' . $self->{'brockhausDomain'} . '/junior/ecs';
     
     $self->{'searchAtBrockhausURL'} = 'https://brockhaus.de/search/?';
     if ( $self->{'librarySelectID'} ) {
@@ -94,8 +95,10 @@ sub new {
     
     if ( $self->{'customerID'} ) {
         $self->{'brockhausAccessURLAuth'} = 'https://' . $self->{'brockhausDomain'} . '/portal/user/' . $self->{'customerID'} . '?url=/ecs';
+        $self->{'brockhausAccessURLAuthChild'} = 'https://' . $self->{'brockhausDomain'} . '/portal/user/' . $self->{'customerID'} . '?url=/junior/ecs';
     } else {
-        $self->{'brockhausAccessURLAuth'} = $self->{'brockhausAccessURL'}
+        $self->{'brockhausAccessURLAuth'} = $self->{'brockhausAccessURL'};
+        $self->{'brockhausAccessURLAuthChild'} = $self->{'brockhausAccessURLChild'};
     }
     
     my @header = ( 'Accept' => 'application/json' );
@@ -176,7 +179,7 @@ sub simpleSearch {
         if ( defined($response) && $response->is_success ) {
             
             my $json = JSON->new->utf8->allow_nonref;
-            my $data = $self->sanitizeResultStructure($json->decode( $response->content ), $user);
+            my $data = $self->sanitizeResultStructure($json->decode( $response->content ), $user, $searchtype);
             $data->{searchType} = $searchtype;
             my $collection = 'enzy';
             if ( $searchtype =~ /julex/ ) {
@@ -205,9 +208,10 @@ sub simpleSearch {
 }
 
 sub sanitizeResultStructure {
-    my $self = shift;
-    my $data = shift;
-    my $user = shift;
+    my $self       = shift;
+    my $data       = shift;
+    my $user       = shift;
+    my $searchtype = shift;
     
     my $result = {};
     my @checkelements = qw(title thumbnail type subtype summary url);
@@ -235,9 +239,17 @@ sub sanitizeResultStructure {
                 }
                 if ( exists($entry->{title}) && exists($entry->{url}) ) {
                     if ( $user ) {
-                        $entry->{url} = $self->{'brockhausAccessURLAuth'} . $entry->{url};
+                        if ( $searchtype =~ /kilex/ ) {
+                            $entry->{url} = $self->{'brockhausAccessURLAuthChild'} . $entry->{url};
+                        } else {
+                            $entry->{url} = $self->{'brockhausAccessURLAuth'} . $entry->{url};
+                        }
                     } else {
-                        $entry->{url} = $self->{'brockhausAccessURL'} . $entry->{url};
+                        if ( $searchtype =~ /kilex/ ) {
+                            $entry->{url} = $self->{'brockhausAccessURLChild'} . $entry->{url};
+                        } else {
+                            $entry->{url} = $self->{'brockhausAccessURL'} . $entry->{url};
+                        }
                     }
                     $result->{hits}++;
                     push(@{$result->{hitList}},$entry);
