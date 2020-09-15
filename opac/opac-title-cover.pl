@@ -168,6 +168,7 @@ if ( @bibids > 0 ) {
             my $coverurl = '';
             foreach my $field ( $Koharecord->field('856') ) {
                 if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
+                    next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
                     $coverurl = $field->subfield('u');
                     $coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                     $coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;

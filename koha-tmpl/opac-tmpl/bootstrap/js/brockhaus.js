@@ -32,10 +32,10 @@ function getBrockhausFacet(query_desc,maxHitCount,prevPageText,nextPageText) {
     url: "/cgi-bin/koha/opac-brockhaus.pl",
         type: "POST",
         cache: false,
-        data: { 'search' : query_desc, 'maxcount' : maxHitCountBrockhaus },
+        data: { 'search' : query_desc, 'maxcount' : 0 },
         dataType: "json",
         success: function(data) {
-            if ( data && data.result && data.result && data.result.length > 0 ) {
+            if ( data && data.result && data.result.length > 0 ) {
                 showBrockhausFacetEntries(data.result,query_desc);
             }
         },
@@ -54,8 +54,9 @@ function getBrockhausResult(facetID, offset) {
         data: { 'search' : query_desc, 'maxcount' : maxHitCountBrockhaus, 'offset' : offset, 'collection' : collection  },
         dataType: "json",
         success: function(data) {
-            if ( data && data.result && data.result && data.result.length > 0 ) {
+            if ( data && data.result && data.result.length > 0 ) {
                 brockhausData['results'][facetID] = data.result[0];
+                setBrockhausCollectionName(brockhausData['results'],facetID);
                 showBrockhausResult(facetID);
             }
         },
@@ -74,21 +75,9 @@ function showBrockhausFacetEntries(facetData,query) {
                 var spanElement  = document.createElement("span");
                 spanElement.setAttribute('class','facet-label');
                 var hrefElement  = document.createElement("a");
-                var facetElementName;
-                if ( facetData[i].searchType == "ecs.enzy" ) {
-                    facetElementName = "Enzyklopädie";
-                }
-                else if ( facetData[i].searchType == "ecs.julex" ) {
-                    facetElementName = "Jugendlexikon";
-                }
-                else if ( facetData[i].searchType == "ecs" ) {
-                    facetElementName = "Enzyklopädie und Jugendlexikon";
-                }
-                else if ( facetData[i].searchType == "ecs.kilex" ) {
-                    facetElementName = "Kinderlexikon";
-                }
-                facetData[i]['name'] = facetElementName;
-                hrefElement.setAttribute('href','javascript:showBrockhausResult('+i+',' + maxHitCountBrockhaus + ')');
+                var facetElementName = setBrockhausCollectionName(facetData,i);
+                // hrefElement.setAttribute('href','javascript:showBrockhausResult('+i+',' + maxHitCountBrockhaus + ')');
+                hrefElement.setAttribute('href','javascript:getBrockhausResult('+i+',0)');
                 hrefElement.textContent = facetElementName;
                 spanElement.appendChild(hrefElement);
                 facetElement.appendChild(spanElement);
@@ -112,12 +101,34 @@ function showBrockhausFacetEntries(facetData,query) {
         brockhausData['query'] = query;
     }
 }
+
+function setBrockhausCollectionName(facetData, i)  {
+    var facetElementName;
+    if ( facetData[i].searchType == "ecs.enzy" ) {
+        facetElementName = "Enzyklopädie";
+    }
+    else if ( facetData[i].searchType == "ecs.julex" ) {
+        facetElementName = "Jugendlexikon";
+    }
+    else if ( facetData[i].searchType == "ecs" ) {
+        facetElementName = "Enzyklopädie und Jugendlexikon";
+    }
+    else if ( facetData[i].searchType == "ecs.kilex" ) {
+        facetElementName = "Kinderlexikon";
+    }
+    facetData[i]['name'] = facetElementName;
+    
+    return facetElementName;
+}
+
 function showBrockhausResult(facetID) {
     var pagination = getPagination(facetID, maxHitCountBrockhaus);
     var content = '';
+
     for (var i=0; i<brockhausData.results[facetID].hitList.length;i++) {
         content += generateBrockhausEntry(facetID,i);
     }
+
     if ( $("#userresults").css("display") != "none" ){
         $('#encyclopediaresults').toggle();
         $('#userresults').toggle();
@@ -130,8 +141,8 @@ function showBrockhausResult(facetID) {
     }
     $('.encyclopediasource').html(brockhausData.results[facetID].name);
     
-    $('.encyclopediaprovider').html('<a href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a>' );
-    $('.encyclopediasearchhitcount').html(brockhausData.results[facetID].numFound);
+    $('.encyclopediaprovider').html(' <a href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a> ' );
+    $('.encyclopediasearchhitcount').html(' ' + brockhausData.results[facetID].numFound + ' ');
     $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListBrockhaus()");
 }
@@ -208,6 +219,16 @@ function generateBrockhausEntry(facetID,entryID) {
         imageElement.setAttribute('width','170');
         imageElement.setAttribute('src',brockhausData.results[facetID].hitList[entryID].thumbnail);
         linkElement.appendChild(imageElement);
+    } else {
+        var divImageElement = document.createElement("div");
+        divImageElement.setAttribute('class','bro-logo');
+        divImageElement.setAttribute('style','border:1px solid silver; width:170px; height:60px; opacity:60%; margin:0px; overflow:hidden; text-align:center');
+        var imageElement = document.createElement("img");
+        imageElement.setAttribute('src','https://www.brockhaus.de/logo/brockhaus_logo_pos_250x250.png');
+        imageElement.setAttribute('alt','Brockhaus Logo');
+        imageElement.setAttribute('style','width:80px; position:relative; top:-10px');
+        divImageElement.appendChild(imageElement);
+        linkElement.appendChild(divImageElement);
     }
     divElement.appendChild(linkElement);
     colElement.appendChild(divElement);
@@ -224,6 +245,7 @@ function generateBrockhausEntry(facetID,entryID) {
     if ( brockhausData.results[facetID].hitList[entryID].summary ) {
         txtElement = document.createElement("span");
         txtElement.setAttribute('class','results_summary summary');
+        txtElement.setAttribute('style','font-size: 100%');
         txtElement.innerHTML = brockhausData.results[facetID].hitList[entryID].summary;
         colElement.appendChild(txtElement);
     }

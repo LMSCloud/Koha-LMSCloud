@@ -1,6 +1,6 @@
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Browse Catalog &rsaquo; Children library</title>
+<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Browse Catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>

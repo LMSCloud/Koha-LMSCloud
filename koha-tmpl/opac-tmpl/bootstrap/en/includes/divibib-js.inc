@@ -12,6 +12,15 @@ function accessDivibibResource(action,divibibID) {
                 if ( data.titles[i].resultOk == 1 ) {
                     var win = window.open(data.titles[i].result.URL, '_blank');
                     win.focus();
+                } else {
+                    var title = _("Access to Onleihe title impossible");
+                    var message = _("The access to the Onleihe title was rejected. Please check your account and contact the library.");
+                    if ( data.titles[i].resultError ) {
+                        message += '<br>';
+                        message += _(" The Onleihe provided the following information: ");
+                        message += data.titles[i].resultError;
+                    }
+                    showDivibibInavailabilityMessage(title, message);
                 }
             }
         },
@@ -19,7 +28,33 @@ function accessDivibibResource(action,divibibID) {
             console.log("Error accessing divibib item: ", data1, data2, data3);
         }
     });
+    return false;
 }
+
+// show the divibib access inavailabiliy message
+function showDivibibInavailabilityMessage(title,message) {   
+    var actionCloseText = _("Close"); 
+    var popupTemplate =
+    '<div class="modal" id="divibibInavailability_dialog" tabindex="-1" role="dialog" aria-labelledby="divibibInavailability_label" aria-hidden="true">' +
+    '  <div class="modal-dialog">' +
+    '    <div class="modal-content">' +
+    '      <div class="modal-header">' +
+    '        <button type="button" class="divibibInavailability_close closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>' +
+    '        <h3 id="divibibInavailability_title">' + title + '</h3>' +
+    '      </div>' +
+    '      <div class="modal-body">' +
+    '      <p><div id="divibibInavailability_message">' + message + '</div><p>' +
+    '      <div class="modal-footer">' +
+    '        <button type="button" class="btn btn-small divibibInavailability_close" data-dismiss="modal">' + actionCloseText + '</button>' +
+    '      </div>' +
+    '    </div>' +
+    '  </div>' +
+    '</div>';
+
+    $(popupTemplate).modal();
+    $(popupTemplate).show();
+}
+
 function checkDivibibAvalability(idList) {
     var checkIDs;
     if ( $.isArray(idList) ) {
@@ -67,7 +102,7 @@ function checkDivibibAvalability(idList) {
                         if ( loggedIn ) {
                             statusDisplay = '<a href="#" onclick="accessDivibibResource(' 
                                             + "'loan','" + data.titles[i].result.ItemId 
-                                            + "')"
+                                            + "'); return false;"
                                             + '">'
                                             + '<b><span class="available">' 
                                             + _("Available for Download.") 
@@ -106,7 +141,7 @@ function checkDivibibAvalability(idList) {
                             statusDisplay = '<a href="#" onclick="accessDivibibResource(' 
                                             + "'reservation','" 
                                             + data.titles[i].result.ItemId 
-                                            + "')" 
+                                            + "'); return false;" 
                                             + '">' 
                                             + '<b><span class="available">'
                                             + _("A copy is available on the ")
@@ -118,13 +153,13 @@ function checkDivibibAvalability(idList) {
                     }
                     else {
                         statusDisplay = '<b>' 
-                                        + _("Not available.") 
+                                        + _("Currently not available.") 
                                         + '</b>';
                     }
                 }
                 else {
                     statusDisplay = '<b>' 
-                                    + _("Not in stock") 
+                                    + _("Currently not available.") 
                                     + '</b>';
                 }
                 $("#Onleihe-"+data.titles[i].result.ItemId).html(statusDisplay);

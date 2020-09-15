@@ -208,11 +208,11 @@ sub _get_barcode_data {
             @{ $kohatables->{'branches'} }
         )
     );
-    my ($font,$size,$trim,$maxlength,$nowrap);
+    my ($font,$size,$trim,$maxlength,$nowrap,$maxlines);
     if ( $f =~ s/(.*)\{([^\}]*)\}(.*)/$1.$3/e ) {
         my @settings = split(/\s*,\s*/,$2);
         foreach my $setting (@settings) {
-            if ( $setting =~ /^\s*font\s*:\s*(TR|TB|TI|TBI|C|CB|CO|CBO|H|HO|HB|HBO)\s*/ ) {
+            if ( $setting =~ /^\s*font\s*:\s*(TR|TBI|TB|TI|CBO|CB|CO|C|HBO|HO|HB|H|ABO|AB|AO|A)\s*/ ) {
                 $font = $1;
             }
             elsif ( $setting =~ /^\s*fontsize\s*:\s*([0-9]+)\s*/ ) {
@@ -223,6 +223,9 @@ sub _get_barcode_data {
             }
             elsif ( $setting =~ /^\s*maxlength\s*:\s*([0-9]+)\s*/ ) {
                 $maxlength = $1;
+            }
+            elsif ( $setting =~ /^\s*maxlines\s*:\s*([0-9]+)\s*/ ) {
+                $maxlines = $1;
             }
             elsif ( $setting =~ /^\s*wrap\s*:\s*(no)\s*/ ) {
                 if ( $1 eq 'no' ) {
@@ -267,14 +270,25 @@ sub _get_barcode_data {
             }
             next FIELD_LIST;
         }
-        elsif ( $f =~ /^([0-9a-z]{3})(\w)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?(\W?).*?/ ) {
-            my ($field,$subf,$split,$splittext,$splitlimit,$splitindex,$ws) = ($1,$2,$4,$5,$7,$8,$9);
+        elsif ( $f =~ /^([0-9a-z]{3})(\(..\))?(\w)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?(\.pre\('([^']+)'\))?(\.post\('([^']+)'\))?(\W?).*?/ ) {
+            my ($field,$ind,$subf,$split,$splittext,$splitlimit,$splitindex,$pretext,$posttext,$ws) = ($1,$2,$3,$5,$6,$8,$9,$11,$13,$14);
             $f = $';
 
             my $value = '';
             my $subf_data;
             my ($itemtag, $itemsubfieldcode) = &GetMarcFromKohaField("items.itemnumber",'');
-            my @marcfield = $record->field($field);
+            my @marcfield = ();
+            if ( ! $ind ) {
+                @marcfield = $record->field($field);
+            } else {
+                my @inds = split(//,$ind);
+                foreach my $mfield($record->field($field)) {
+                    next if ( $mfield->is_control_field() );
+                    next if ( ($mfield->indicator(1) eq $inds[0] || ($inds[0] eq '#' && $mfield->indicator(1) eq ' ')) );
+                    next if ( ($mfield->indicator(2) eq $inds[1] || ($inds[1] eq '#' && $mfield->indicator(2) eq ' ')) );
+                    push @marcfield, $mfield;
+                }
+            }
             if(@marcfield) {
                 if($field eq $itemtag) {  # item-level data, we need to get the right item.
                     ITEM_FIELDS:
@@ -311,6 +325,8 @@ sub _get_barcode_data {
                     $value = $vals[$splitindex];
                 }
             }
+            $value = $pretext . $value if ($pretext && $value);
+            $value .= $posttext if ($posttext && $value);
             $datastring .= $value if ( $value );
             next FIELD_LIST;
         }
@@ -322,7 +338,7 @@ sub _get_barcode_data {
     if ( $maxlength && $datastring && length($datastring)>$maxlength ) {
         $datastring = substr($datastring,0,$maxlength);
     }
-    return ($datastring,$font,$size,$nowrap);
+    return ($datastring,$font,$size,$nowrap,$maxlines);
 }
 
 sub _desc_koha_tables {
@@ -354,8 +370,8 @@ sub _BAR {
     my $self = shift;
     my $barcode_llx = $self->{'llx'} + $self->{'left_text_margin'};     # this places the bottom left of the barcode the left text margin distance to right of the left edge of the label ($llx)
     my $barcode_lly = $self->{'lly'} + $self->{'top_text_margin'};      # this places the bottom left of the barcode the top text margin distance above the bottom of the label ($lly)
-    my $barcode_width = 0.8 * $self->{'width'};                         # this scales the barcode width to 80% of the label width
-    my $barcode_y_scale_factor = 0.01 * $self->{'height'};              # this scales the barcode height to 10% of the label height
+    my $barcode_width = $self->{'barcode_x_scale'} * $self->{'width'};                         # this scales the barcode width to 80% of the label width
+    my $barcode_y_scale_factor = $self->{'barcode_y_scale'} * $self->{'height'};              # this scales the barcode height to 10% of the label height
     return 0, 0, 0, $barcode_llx, $barcode_lly, $barcode_width, $barcode_y_scale_factor;
 }
 
@@ -363,8 +379,8 @@ sub _BIBBAR {
     my $self = shift;
     my $barcode_llx = $self->{'llx'} + $self->{'left_text_margin'};     # this places the bottom left of the barcode the left text margin distance to right of the left edge of the label ($self->{'llx'})
     my $barcode_lly = $self->{'lly'} + $self->{'top_text_margin'};      # this places the bottom left of the barcode the top text margin distance above the bottom of the label ($lly)
-    my $barcode_width = 0.8 * $self->{'width'};                         # this scales the barcode width to 80% of the label width
-    my $barcode_y_scale_factor = 0.01 * $self->{'height'};              # this scales the barcode height to 10% of the label height
+    my $barcode_width = $self->{'barcode_x_scale'} * $self->{'width'};                         # this scales the barcode width to 80% of the label width
+    my $barcode_y_scale_factor = $self->{'barcode_y_scale'} * $self->{'height'};              # this scales the barcode height to 10% of the label height
     my $line_spacer = ($self->{'font_size'} * $self->{'line_height'});       # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly = ($self->{'lly'} + ($self->{'height'} - $self->{'top_text_margin'}));
     $debug and warn  "Label: llx $self->{'llx'}, lly $self->{'lly'}, Text: lly $text_lly, $line_spacer, Barcode: llx $barcode_llx, lly $barcode_lly, $barcode_width, $barcode_y_scale_factor\n";
@@ -375,8 +391,8 @@ sub _BARBIB {
     my $self = shift;
     my $barcode_llx = $self->{'llx'} + $self->{'left_text_margin'};                             # this places the bottom left of the barcode the left text margin distance to right of the left edge of the label ($self->{'llx'})
     my $barcode_lly = ($self->{'lly'} + $self->{'height'}) - $self->{'top_text_margin'};        # this places the bottom left of the barcode the top text margin distance below the top of the label ($self->{'lly'})
-    my $barcode_width = 0.8 * $self->{'width'};                                                 # this scales the barcode width to 80% of the label width
-    my $barcode_y_scale_factor = 0.01 * $self->{'height'};                                      # this scales the barcode height to 10% of the label height
+    my $barcode_width = $self->{'barcode_x_scale'} * $self->{'width'};                                                 # this scales the barcode width to 80% of the label width
+    my $barcode_y_scale_factor = $self->{'barcode_y_scale'} * $self->{'height'};                                      # this scales the barcode height to 10% of the label height
     my $line_spacer = ($self->{'font_size'} * $self->{'line_height'});                               # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly = (($self->{'lly'} + $self->{'height'}) - $self->{'top_text_margin'} - (($self->{'lly'} + $self->{'height'}) - $barcode_lly));
     return $self->{'llx'}, $text_lly, $line_spacer, $barcode_llx, $barcode_lly, $barcode_width, $barcode_y_scale_factor;
@@ -406,7 +422,17 @@ sub new {
         text_wrap_cols          => $params{'text_wrap_cols'},
         barcode                 => 0,
         line_height             => $params{'line_height'}, # multiplier of the line height which controls sapcing between lines, the value is multiplied with the font height
+        barcode_y_scale         => 0.01,
+        barcode_x_scale         => 0.8,
     };
+    if ( $params{'format_string'} ) {
+        my $format_string = $params{'format_string'};
+        if ( $format_string =~ s/(.*)\{barcodeXScale:([0-9\.]+),barcodeYScale:([0-9\.]+)\}(.*)/$1.$4/e ) {
+            $self->{format_string} = $format_string;
+            $self->{barcode_x_scale} = $2 + 0.0;
+            $self->{barcode_y_scale} = $3 + 0.0;
+        }
+    }
     if ($self->{'guidebox'}) {
         $self->{'guidebox'} = _guide_box($self->{'llx'}, $self->{'lly'}, $self->{'width'}, $self->{'height'});
     }
@@ -477,13 +503,15 @@ sub draw_label_text {
     LABEL_FIELDS:       # process data for requested fields on current label
     for my $field (@$label_fields) {
         my $nowrap;
+        my $maxlines;
         if ($field->{'code'} eq 'itemtype') {
             $field->{'data'} = C4::Context->preference('item-level_itypes') ? $item->{'itype'} : $item->{'itemtype'};
         }
         else {
             my ($setfont,$setsize);
-            ($field->{'data'},$setfont,$setsize,$nowrap) = _get_barcode_data($field->{'code'},$item,$record);
+            ($field->{'data'},$setfont,$setsize,$nowrap,$maxlines) = _get_barcode_data($field->{'code'},$item,$record);
             $font = $setfont if ( $setfont );
+            print STDERR "Set font: $setfont" if ( $setfont );
             $size = $setsize if ( $setsize );
         }
         # Find apropriate font it oblique title selected, except main font is oblique
@@ -534,12 +562,14 @@ sub draw_label_text {
                 eval{$Text::Wrap::columns = $self->{'text_wrap_cols'};};
                 my @line = split(/\n/ ,wrap('', '', $field_data));
                 # If this is a title field, limit to two lines; all others limit to one... FIXME: this is rather arbitrary
-                if ($field->{'code'} eq 'title' && scalar(@line) >= 2) {
+                my $checkmaxlines = $maxlines || 2;
+                if ($field->{'code'} eq 'title' && scalar(@line) >= $checkmaxlines) {
                     while (scalar(@line) > 2) {
                         pop @line;
                     }
                 } else {
-                    while (scalar(@line) > 1) {
+                    $checkmaxlines = $maxlines || 1;
+                    while (scalar(@line) > $checkmaxlines) {
                         pop @line;
                     }
                 }
@@ -562,6 +592,7 @@ sub draw_label_text {
             else {
                 $text_llx = ($params{'llx'} + $self->{'left_text_margin'});
             }
+            # print STDERR "Font $font\n";
             push @label_text,   {
                                 text_llx        => $text_llx,
                                 text_lly        => $text_lly,

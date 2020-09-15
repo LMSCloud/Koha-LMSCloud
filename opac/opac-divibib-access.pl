@@ -80,17 +80,18 @@ if ( $auth_status eq 'ok' ) {
         my ($result, $resultOk, $resultError, $resultErrorCode) = $divibibService->requestItem($loggedinuser, $divibibID, $isLoan);
 
         push @js_reply, {
-                            result        => $result,
-                            resultOk      => $resultOk,
-                            resultError   => $resultError,
+                            result           => $result,
+                            resultOk         => $resultOk,
+                            resultError      => $resultError,
+                            resultErrorCode  => $resultErrorCode
                           };
     }
 
-    $json_reply = JSON->new->encode( { titles => \@js_reply } );
+    $json_reply = JSON->new->utf8->encode( { titles => \@js_reply } );
     
 }
 else {
-    $json_reply = JSON->new->encode( { error => "No valid user session status: " . $auth_status } );
+    $json_reply = JSON->new->utf8->encode( { error => "No valid user session status: " . $auth_status } );
 }
 
 output_ajax_with_http_headers( $query, $json_reply );

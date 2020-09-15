@@ -60,7 +60,7 @@ foreach my $seltype(@ignoreItypes) {
     }
 }
 
-my $response = GetIssuingStats(\@biblionumbers,$yearcnt,\@ignoreItypes);
+my $response = GetIssuingStats(\@biblionumbers,$yearcnt,\@seltypes);
 
 binmode STDOUT, ":encoding(UTF-8)";
 print $input->header(

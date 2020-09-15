@@ -111,8 +111,8 @@ function showMunzingerResult(facetID, callOpt) {
     else {
         $('.encyclopediasource').html(munzingerData.categories[facetID].name);
     }
-    $('.encyclopediaprovider').html('<a href="' + munzingerData.searchmunzinger + '" target="_blank">' + 'Munzinger</a>' );
-    $('.encyclopediasearchhitcount').html(munzingerData.categories[facetID].count);
+    $('.encyclopediaprovider').html(' <a href="' + munzingerData.searchmunzinger + '" target="_blank">' + 'Munzinger</a> ' );
+    $('.encyclopediasearchhitcount').html(' ' + munzingerData.categories[facetID].count + ' ');
     $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListMunzinger()");
     
@@ -139,6 +139,7 @@ function generateMunzingerEntry(facetID,entryID) {
     colElement.appendChild(txtElement);
     txtElement = document.createElement("span");
     txtElement.setAttribute('class','results_summary summary');
+    txtElement.setAttribute('style','font-size: 100%');
     txtElement.innerHTML = munzingerData.categories[facetID].hits[entryID].text;
     colElement.appendChild(txtElement);
     rowElement.appendChild(colElement);

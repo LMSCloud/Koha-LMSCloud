@@ -64,6 +64,20 @@ sub End {
     unlink $self->{filename};
 }
 
+sub EndGet {
+    my $self = shift;
+
+    prEnd();
+
+    # slurp temporary filename and return the generated PDF content
+    local $/ = undef;
+    open(my $fh, '<', $self->{filename}) || die "$self->{filename}: $!";
+    my $resultPDF = <$fh>;
+    close $fh;
+    unlink $self->{filename};
+    return $resultPDF;
+}
+
 sub Add {
     my $self = shift;
     my $string = shift;

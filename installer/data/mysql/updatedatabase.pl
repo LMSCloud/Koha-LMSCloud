@@ -17162,7 +17162,7 @@ if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
             ('IssuingStatsOnIntranetResultPageYears','3',NULL,'Number of years backward from now to show as statistical counts of the issuing history (checkouts and renewals) for items on the intranet search catalog result page.','Integer'),
-            ('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
+            ('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning|epaper',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
             ('DivibibAuthDisabledForGroups','',NULL,'Restrict Divibib authentication to specific patron categories and requesting IPs or network addresses.','Free'),
             ('BrockhausCustomerID','',NULL,'The Brockhaus customer id provided by Brockhaus.','free'),
             ('BrockhausDomain','brockhaus.de',NULL,'The Brockhaus domain where the country specific brockhaus services are located.','free'),
@@ -17194,7 +17194,22 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
-$DBversion = "18.05.05.015";
+$DBversion = '18.05.05.015';
+if( CheckVersion( $DBversion ) ) {
+    my ($socialnetworks) = $dbh->selectrow_array( q|
+        SELECT value FROM systempreferences WHERE variable='socialnetworks';
+    |);
+    if( $socialnetworks ){
+        # If the socialnetworks preference is enabled, enable all social networks
+        $dbh->do("UPDATE systempreferences SET value = 'email,facebook,linkedin,twitter', options = 'email|facebook|linkedin|twitter', type = 'multiple'  WHERE variable = 'SocialNetworks'");
+    } else {
+        $dbh->do("UPDATE systempreferences SET value = '', options = 'email|facebook|linkedin|twitter', type = 'multiple'  WHERE variable = 'SocialNetworks'");
+    }
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (Bug 22880: Allow granular control of socialnetworks preference)\n";
+}
+
+$DBversion = "18.05.05.016";
 if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
