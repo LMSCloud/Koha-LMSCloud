@@ -290,6 +290,37 @@ sub BestelleBeiEkz {
                 # BEFORE sending Bestellung request, because ekz sends corresponding BestellInfo request before the Bestellung response.
                 # But this sequence is executed only if configured so in ekz.
 
+
+                # In case of a repeated call of BestelleBeiEkz() for the same aqbasketgroup we have to replace the corresponding old records in database tables acquisition_import and acquisition_import_objects.
+                my $selParam = {
+                    vendor_id => "ekz",
+                    object_type => "order",
+                    object_number => 'basketno:' . $aqbasketgroupRes->{basketno},
+                    #object_number => 'test_basketno:' . $aqbasketgroupRes->{basketno}, # XXXWH    for tests only
+                    # we have to delete the records of any rectype.   rec_type => "message",
+                    processingstate => "requested"
+                };
+                my $acquisitionImportOldOrder = Koha::AcquisitionImport::AcquisitionImports->new();
+                $logger->debug("BestelleBeiEkz() is searching for acquisition_import_objects record with selParam:" . Dumper($selParam) . ":");
+                my $oldOrderHits_rs = $acquisitionImportOldOrder->_resultset()->search( $selParam );
+                
+                $logger->debug("BestelleBeiEkz() count of old acquisition_import records for same aqbasketgroupno:" . $oldOrderHits_rs->count() . ":");
+                while ( (my $hit = $oldOrderHits_rs->next()) ) {
+                    # delete assigned record in acquisition_import_objects
+                    my $selParam = {
+                        acquisition_import_id => $hit->{_column_data}->{'id'}
+                    };
+                    $logger->debug("BestelleBeiEkz() is searching for acquisition_import_objects record with selParam:" . Dumper($selParam) . ":");
+                    my $acquisitionImportObjectsOldOrder = Koha::AcquisitionImport::AcquisitionImportObjects->new();
+                    my $oldOrderObjectsHits_rs = $acquisitionImportObjectsOldOrder->_resultset()->search( $selParam );
+                    $logger->debug("BestelleBeiEkz() count of old acquisition_import_objects records for this acquisition_import.id:" . $oldOrderObjectsHits_rs->count() . ": All of them will be deleted now.");
+                    $oldOrderObjectsHits_rs->delete();
+                    
+                    # delete hit record in acquisition_import
+                    $logger->debug("BestelleBeiEkz() acquisition_import record with id:" . $hit->{_column_data}->{'id'} . ": will be deleted now.");
+                    $hit->delete();
+                }
+
                 # create the acquisition_import record corresponding to the request that will be sent in next step (rec_type "message")
                 my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
                 ($wsResult, $wsRequest, $wsResponse) = $ekzwebservice->callWsBestellung($aqbooksellers_hit->{'accountnumber'}, $param,1,undef);    # not calling the webService, just generating the request string
@@ -307,8 +338,7 @@ sub BestelleBeiEkz {
                     object_date => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                     rec_type => 'message',
                     #object_item_number => '', # NULL
-                    #processingstate => 'ordered',
-                    processingstate => 'requested',    # XXXWH noch unschlüssig
+                    processingstate => 'requested',
                     processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                     payload => $requestBodyText,
                     #object_reference => undef # NULL
@@ -327,8 +357,7 @@ sub BestelleBeiEkz {
                         object_date => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                         rec_type => 'title',
                         object_item_number => 'ordernumber:' . $ordernumber,    # the ordernumber will be sent in BestellInfo request in XML-Element lmsExemplarID
-                        #processingstate => 'ordered',
-                        processingstate => 'requested',    # XXXWH noch unschlüssig
+                        processingstate => 'requested',
                         processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                         #payload => NULL, # NULL
                         object_reference => $acquisitionImportIdBestellung
@@ -358,8 +387,7 @@ sub BestelleBeiEkz {
                             object_date => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                             rec_type => 'item',
                             object_item_number => 'ordernumber:' . $ordernumber,    # the ordernumber will be sent in BestellInfo request by BestellInfo in XML-Element lmsExemplarID
-                            #processingstate => 'ordered',
-                            processingstate => 'requested',    # XXXWH noch unschlüssig
+                            processingstate => 'requested',
                             processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                             #payload => NULL, # NULL
                             object_reference => $acquisitionImportIdTitle
