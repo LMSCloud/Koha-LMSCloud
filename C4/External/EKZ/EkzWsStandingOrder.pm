@@ -37,8 +37,6 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw( getCurrentYear readStoFromEkzWsStoList genKohaRecords );
 
 
-my $debugIt = 1;
-
 
 ###################################################################################################
 # get the current year
@@ -64,17 +62,24 @@ sub readStoFromEkzWsStoList {
     my $refStoListElement = shift;    # for storing the StoListElement of the SOAP request body
 
     my $result = ();    # hash reference
-print STDERR "ekzWsStoList::readStoFromEkzWsStoList() ekzCustomerNumber:", $ekzCustomerNumber, ": selJahr:", $selJahr, ": selStoId:", defined($selStoId) ? $selStoId : 'undef', ": selMitTitel:", defined($selMitTitel) ? $selMitTitel : 'undef', 
-                                ": selMitKostenstellen:", defined($selMitKostenstellen) ? $selMitKostenstellen : 'undef', ": selMitEAN:", defined($selMitEAN) ? $selMitEAN : 'undef', 
-                                ": selStatusUpdate:", defined($selStatusUpdate) ? $selStatusUpdate : 'undef', ": selErweitert:", defined($selErweitert) ? $selErweitert : 'undef', ":\n" if $debugIt;
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
+
+    $logger->info("readStoFromEkzWsStoList() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                                ": selJahr:" . (defined($selJahr) ? $selJahr : 'undef') .
+                                                ": selStoId:" . (defined($selStoId) ? $selStoId : 'undef') .
+                                                ": selMitTitel:" . (defined($selMitTitel) ? $selMitTitel : 'undef') .
+                                                ": selMitKostenstellen:" . (defined($selMitKostenstellen) ? $selMitKostenstellen : 'undef') .
+                                                ": selMitEAN:" . (defined($selMitEAN) ? $selMitEAN : 'undef') .
+                                                ": selStatusUpdate:" . (defined($selStatusUpdate) ? $selStatusUpdate : 'undef') .
+                                                ": selErweitert:" . (defined($selErweitert) ? $selErweitert : 'undef') .
+                                                ":");
     
-print STDERR "ekzWsStoList::readStoFromEkzWsStoList() \$refStoListElement:", $refStoListElement, ":\n" if $debugIt;
-print STDERR Dumper($refStoListElement) if $debugIt;
+    $logger->debug("readStoFromEkzWsStoList() \$refStoListElement:" .  Dumper($refStoListElement) . ":");
 	
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
     $result = $ekzwebservice->callWsStoList($ekzCustomerNumber, $selJahr, $selStoId, $selMitTitel, $selMitKostenstellen, $selMitEAN, $selStatusUpdate, $selErweitert,$refStoListElement);
-print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderCount'}:$result->{'standingOrderCount'}:\n" if $debugIt;
-print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderRecords'}:$result->{'standingOrderRecords'}:\n" if $debugIt;
+
+    $logger->info("readStoFromEkzWsStoList() returns result:" .  Dumper($result) . ":");
 
     return $result;
 }
@@ -85,6 +90,7 @@ print STDERR "ekzWsStoList::readStoFromEkzWsStoList() result->{'standingOrderRec
 ###################################################################################################
 sub genKohaRecords {
     my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $ekzBestellNr = '';
@@ -104,11 +110,16 @@ sub genKohaRecords {
     my ($message, $subject, $haserror) = ('','',0);
     my $cntTitlesHandled = 0;
     my $cntItemsHandled = 0;
-    
-    print STDERR "ekzWsStoList::genKohaRecords() Start;  ekzCustomerNumber:$ekzCustomerNumber messageID:$messageID stoID:$stoWithNewState->{'stoID'}: stoWithNewState->{'titelCount'}:$stoWithNewState->{'titelCount'}: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
+
+    $logger->info("genKohaRecords() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                       ": messageID:" . (defined($messageID) ? $messageID : 'undef') .
+                                       ": stoWithNewState->stoID:" . (defined($stoWithNewState->{'stoID'}) ? $stoWithNewState->{'stoID'} : 'undef') .
+                                       ": stoWithNewState->titelCount:" . (defined($stoWithNewState->{'titelCount'}) ? $stoWithNewState->{'titelCount'} : 'undef') .
+                                       ": lastRunDate:" . (defined($lastRunDate) ? $lastRunDate : 'undef') .
+                                       ": todayDate:" . (defined($todayDate) ? $todayDate : 'undef') .
+                                       ":");
 
     my $zweigstellencode = '';
-    # XXXWH hau wech (OLD) my $homebranch = C4::External::EKZ::lib::EkzWebServices->new()->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     my $homebranch = $ekzKohaRecord->{ekzWsConfig}->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     $homebranch =~ s/^\s+|\s+$//g; # trim spaces
     if ( defined $homebranch && length($homebranch) > 0 && $ekzKohaRecord->checkbranchcode($homebranch) ) {
@@ -126,7 +137,6 @@ sub genKohaRecords {
         $ekzWebServicesHideOrderedTitlesInOpac == 0 ) {
             $ekzWsHideOrderedTitlesInOpac = 0;
     }
-    # XXXWH hau wech (OLD) my $ekzAqbooksellersId = C4::Context->preference("ekzAqbooksellersId");
     my $ekzAqbooksellersId = $ekzKohaRecord->{ekzWsConfig}->getEkzAqbooksellersId($ekzCustomerNumber);
     $ekzAqbooksellersId =~ s/^\s+|\s+$//g;    # trim spaces
 
@@ -159,7 +169,8 @@ sub genKohaRecords {
     }
     my $bestellDatum = DateTime->new( year => substr($minStatusDatum,0,4), month => substr($minStatusDatum,5,2), day => substr($minStatusDatum,8,2), time_zone => 'local' );
     my $dateTimeNow = DateTime->now(time_zone => 'local');
-print STDERR "ekzWsStoList::genKohaRecords() insOrUpd:$insOrUpd:\n" if $debugIt;
+
+    $logger->info("genKohaRecords() insOrUpd:$insOrUpd:");
     if ( $insOrUpd ) {
 
         # Insert/update record in table acquisition_import representing the standing order request.
@@ -192,10 +203,14 @@ print STDERR "ekzWsStoList::genKohaRecords() insOrUpd:$insOrUpd:\n" if $debugIt;
             processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
             payload => $stoListElement
         };
+        $logger->debug("genKohaRecords() search delivery note message record in acquisition_import selParam:" . Dumper($selParam) . ":");
+
         my $acquisitionImportMessage = Koha::AcquisitionImport::AcquisitionImports->new();
         $acquisitionImportMessage = $acquisitionImportMessage->upd_or_ins($selParam, $updParam, $insParam);
-#print STDERR "ekzWsStoList::genKohaRecords()) acquisitionImportMessage:", Dumper($acquisitionImportMessage), ":\n" if $debugIt;
-print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultset()->{'_column_data'}:", Dumper($acquisitionImportMessage->_resultset()->{'_column_data'}), ":\n" if $debugIt;
+
+        $logger->debug("genKohaRecords() ref(acquisitionImportMessage):" . ref($acquisitionImportMessage) . ":");
+        #$logger->debug("genKohaRecords() Dumper(acquisitionImportMessage):" . Dumper($acquisitionImportMessage) . ":");
+        $logger->debug("genKohaRecords() Dumper(acquisitionImportMessage->_resultset()->{_column_data}):" . Dumper($acquisitionImportMessage->_resultset()->{_column_data}) . ":");
 
         # attaching ekz order to Koha acquisition: Create new basket.
         # if system preference ekzAqbooksellersId is not empty: Create a Koha order basket for collecting the Koha orders created for each title contained in the request in the following steps.
@@ -209,7 +224,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
                 my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                 if ( @{$selbaskets} > 0 ) {
                     $basketno = $selbaskets->[0]->{'basketno'};
-                    print STDERR "ekzWsStoList::genKohaRecords() found aqbasket with basketno:", $basketno, ":\n" if $debugIt;
+                    $logger->info("genKohaRecords() found aqbasket with basketno:" . $basketno . ":");
                 } else {
                     my $authorisedby = undef;
                     my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
@@ -219,7 +234,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
                     }
                     my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
                     $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz StoList', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH
-                    print STDERR "ekzWsStoList::genKohaRecords() created new basket having basketno:", Dumper($basketno), ":\n" if $debugIt;
+                    $logger->info("genKohaRecords() created new basket having basketno:" . $basketno . ":");
                     if ( $basketno ) {
                         my $basketinfo = {};
                         $basketinfo->{'basketno'} = $basketno;
@@ -232,13 +247,13 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
                 }
             }
         }
-        print STDERR "ekzWsStoList::genKohaRecords() ekzAqbooksellersId:$ekzAqbooksellersId: acquisitionError:$acquisitionError: basketno:$basketno:\n" if $debugIt;
+        $logger->info("genKohaRecords() ekzAqbooksellersId:$ekzAqbooksellersId: acquisitionError:$acquisitionError: basketno:$basketno:");
 
 
         # for each titel
 
         foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
-            print STDERR "ekzWsStoList::genKohaRecords() titel ekzArtikelNr:$titel->{'ekzArtikelNummer'}: isbn:$titel->{'isbn'}: status:$titel->{'status'}: statusDatum:$titel->{'statusDatum'}:\n" if $debugIt;
+            $logger->info("genKohaRecords() titel ekzArtikelNr:" . $titel->{'ekzArtikelNummer'} . ": isbn:" . $titel->{'isbn'} . ": status:" . $titel->{'status'} . ": statusDatum:" . $titel->{'statusDatum'} . ":");
             if ( !(($lastRunDateIsSet &&
                     ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
                     $titel->{'statusDatum'} ge $lastRunDate && 
@@ -279,7 +294,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportMessage->_resultse
             $reqParamTitelInfo->{'author'} = $titel->{'autor'};   # autor is german spelling of author
             $reqParamTitelInfo->{'titel'} = $titel->{'titel'};
             $reqParamTitelInfo->{'preis'} = $titel->{'preis'};
-print STDERR "ekzWsStoList::genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}:",$reqParamTitelInfo->{'ekzArtikelNr'},": \n" if $debugIt;
+            $logger->info("genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ":");
 
             # priority of title sources to be checked:
             # In any case:
@@ -300,7 +315,7 @@ print STDERR "ekzWsStoList::genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}
 
             # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
             $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
-print STDERR "ekzWsStoList::genKohaRecords() from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
+            $logger->info("genKohaRecords() from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
             if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                 $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
             }
@@ -310,24 +325,24 @@ print STDERR "ekzWsStoList::genKohaRecords() from local DB titleHits->{'count'}:
                 if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                     last;    # title data have been found in lastly tested title source
                 }
-print STDERR "ekzWsStoList::genKohaRecords() titleSource:$titleSource:\n" if $debugIt;
+                $logger->debug("genKohaRecords() titleSource:$titleSource:");
 
                 if ( $titleSource eq '_LMSC' ) {
                     # search title in LMSPool
                     $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo);
-print STDERR "ekzWsStoList::genKohaRecords() from LMS Pool titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
+                    $logger->info("genKohaRecords() from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                 } elsif ( $titleSource eq '_EKZWSMD' ) {
                     # send query to the ekz title information web service
                     $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
-print STDERR "ekzWsStoList::genKohaRecords() from ekz Webservice titleHits->{'count'}:",$titleHits->{'count'},": \n" if $debugIt;
+                    $logger->info("genKohaRecords() from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                 } elsif ( $titleSource eq '_WS' ) {
                     # use sparse title data from the StoListElement
                     $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
-print STDERR "ekzWsStoList::genKohaRecords() from sent titel fields:",$titleHits->{'count'},": \n" if $debugIt;
+                    $logger->info("genKohaRecords() from sent titel fields:" . $titleHits->{'count'} . ":");
                 } else {
                     # search title in the Z39.50 target with z3950servers.servername=$titleSource
                     $titleHits = $ekzKohaRecord->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
-print STDERR "ekzWsStoList::genKohaRecords() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ": \n" if $debugIt;
+                    $logger->info("genKohaRecords() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                 }
             }
 
@@ -343,7 +358,7 @@ print STDERR "ekzWsStoList::genKohaRecords() from z39.50 search on target:" . $t
                     my $newrec;
                     ($biblionumber,$biblioitemnumber,$newrec) = $ekzKohaRecord->addNewRecord($titleHits->{'records'}->[0]);
                     $titleHits->{'records'}->[0] = $newrec if ($newrec);
-print STDERR "ekzWsStoList::genKohaRecords() new biblionumber:",$biblionumber,": biblioitemnumber:",$biblioitemnumber,": \n" if $debugIt;
+                    $logger->debug("genKohaRecords() new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
 
                     if ( defined $biblionumber && $biblionumber > 0 ) {
                         $biblioInserted = 1;
@@ -391,15 +406,16 @@ print STDERR "ekzWsStoList::genKohaRecords() new biblionumber:",$biblionumber,":
                     #payload => NULL, # NULL
                     object_reference => $acquisitionImportMessage->_resultset()->get_column('id')
                 };
-print STDERR "ekzWsStoList::genKohaRecords() selParam:", Dumper($selParam), ":\n" if $debugIt;
+                $logger->debug("genKohaRecords() search standing order title record in acquisition_import selParam:" . Dumper($selParam) . ":");
 
                 my $acquisitionImportIdTitle;
                 my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
                 my $hit = $acquisitionImportTitle->_resultset()->find( $selParam );
-print STDERR "ekzWsStoList::genKohaRecords() ref(acquisitionImportTitle):", ref($acquisitionImportTitle), ": ref(hit):", ref($hit), ":\n" if $debugIt;
+                $logger->debug("genKohaRecords() ref(acquisitionImportTitle):" . ref($acquisitionImportTitle) . ": ref(hit)" . ref($hit) . ":");
                 if ( defined($hit) ) {
-print STDERR "ekzWsStoList::genKohaRecords() hit->{_column_data}:", Dumper($hit->{_column_data}), ":\n" if $debugIt;
+                    $logger->debug("genKohaRecords() hit->{_column_data}:" . Dumper($hit->{_column_data}) . ":");
                     my $mess = sprintf("The ekz article number '%s' has already been used in the standing order %s at %s. Processing skipped for this title in order to avoid repeated item record creation.\n",$reqParamTitelInfo->{'ekzArtikelNr'}, $stoWithNewState->{'stoID'}, $hit->get_column('processingtime'));
+                    $logger->error("genKohaRecords() Error:" . $mess . ":");
                     carp $mess;
 
                     next;    # The ekz article number has already been used in this standing. Skip processing of this title in order to avoid repeated item record creation.
@@ -407,8 +423,8 @@ print STDERR "ekzWsStoList::genKohaRecords() hit->{_column_data}:", Dumper($hit-
                 } else {
                     my $schemaResultAcquitionImport = $acquisitionImportTitle->_resultset()->create($insParam);
                     $acquisitionImportIdTitle = $schemaResultAcquitionImport->get_column('id');
-print STDERR "ekzWsStoList::genKohaRecords() Dumper(schemaResultAcquitionImport->{_column_data}):", Dumper($schemaResultAcquitionImport->{_column_data}), ":\n" if $debugIt;
-print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportIdTitle:", $acquisitionImportIdTitle, ":\n" if $debugIt;
+                    $logger->info("genKohaRecords() Dumper(schemaResultAcquitionImport->{_column_data}):" . Dumper($schemaResultAcquitionImport->{_column_data}) . ":");
+                    $logger->info("genKohaRecords() acquisitionImportIdTitle:" . $acquisitionImportIdTitle . ":");
                 }
                 $cntTitlesHandled += 1;
 
@@ -421,7 +437,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportIdTitle:", $acquis
                 };
                 my $titleImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                 my $titleImportObjectRS = $titleImportObject->_resultset()->create($insParam);
-print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}:", Dumper($titleImportObjectRS->{_column_data}), ":\n" if $debugIt;
+                $logger->info("genKohaRecords() Dumper(titleImportObjectRS->{_column_data}):" . Dumper($titleImportObjectRS->{_column_data}) . ":");
 
                 # add result of adding biblio to log email
                 ($titeldata, $isbnean) = $ekzKohaRecord->getShortISBD($titleHits->{'records'}->[0]);
@@ -431,66 +447,115 @@ print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}
                 # now add the items data for the new or found biblionumber
                 my $ekzExemplarID = $ekzBestellNr . '-' . $reqParamTitelInfo->{'ekzArtikelNr'};    # StoList response contains no item number, so we create this dummy item number
                 my $exemplarcount = $titel->{'anzahl'};
-                print STDERR "ekzWsStoList::genKohaRecords() exemplar ekzExemplarID:$ekzExemplarID: exemplarcount:$exemplarcount:\n" if $debugIt;
+                $logger->info("genKohaRecords() exemplar ekzExemplarID:$ekzExemplarID: exemplarcount:$exemplarcount:");
 
 
                 $titel->{'preis'} =~ tr/,/./;
 
 
-                    # attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order.
-                    my $rabatt = 0.0;    # not sent in StoListElement
-                    my $fracht = 0.00;    # not sent in StoListElement
-                    my $einband = 0.00;    # not sent in StoListElement
-                    my $bearbeitung = 0.00;    # not sent in StoListElement
-                    my $ustSatz = &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('E');    # not sent in StoListElement
-                    my $ust = 0.00;    # not sent in StoListElement
-                    my $gesamtpreis = defined($titel->{'preis'}) ? $titel->{'preis'} : "0.00";    # total for a single item
-                    my $reqWaehrung = 'EUR';
+                # attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order.
+                my $rabatt = 0.0;    # not sent in StoListElement
+                my $fracht = 0.00;    # not sent in StoListElement
+                my $einband = 0.00;    # not sent in StoListElement
+                my $bearbeitung = 0.00;    # not sent in StoListElement
+                my $ustSatz = &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('E');    # not sent in StoListElement
+                my $ust = 0.00;    # not sent in StoListElement
+                my $gesamtpreis = defined($titel->{'preis'}) ? $titel->{'preis'} : "0.00";    # discounted total for a single item
+                my $reqWaehrung = 'EUR';
 
-                    if ( $ust == 0.0 && $ustSatz != 0.0 ) {    # Bruttopreise
-                        $ust = $gesamtpreis * $ustSatz / (1 + $ustSatz);
-                        $ust =  &C4::External::EKZ::lib::EkzKohaRecords::round($ust, 2);
+                if ( $ust == 0.0 && $ustSatz != 0.0 ) {    # Bruttopreise
+                    $ust = $gesamtpreis * $ustSatz / (1 + $ustSatz);
+                    $ust =  &C4::External::EKZ::lib::EkzKohaRecords::round($ust, 2);
+                }
+                if ( $ustSatz == 0.0 && $ust != 0.0 && $gesamtpreis != 0.0) {    # Nettopreise
+                    $ustSatz = $ust / $gesamtpreis;
+                    $ustSatz =  &C4::External::EKZ::lib::EkzKohaRecords::round($ustSatz, 2);
+                }
+
+                # the following calculation is correct only where aqbooksellers.gstreg=1 and  aqbooksellers.listincgst=1 and  aqbooksellers.invoiceincgst=1 and aqbooksellers.listprice = aqbooksellers.invoiceprice = the library's currency
+                my $listprice_tax_included = $gesamtpreis - $fracht - $einband - $bearbeitung;    # not sent in StoListElement, so we calculate it
+                if ( $rabatt != 0.0 ) {
+                    my $divisor = 1.0 - ($rabatt / 100.0);
+                    $listprice_tax_included =  $divisor == 0.0 ? $listprice_tax_included : $listprice_tax_included / $divisor;    # list price of single item in vendor's currency, not discounted
+                    $listprice_tax_included =  &C4::External::EKZ::lib::EkzKohaRecords::round($listprice_tax_included, 2);
+                }
+                my $divisor = 1.0 + $ustSatz;
+                my $listprice_tax_excluded = $divisor == 0.0 ? 0.0 : $listprice_tax_included / $divisor;
+                $listprice_tax_excluded = &C4::External::EKZ::lib::EkzKohaRecords::round($listprice_tax_excluded, 2);
+                my $replacementcost_tax_included =  $listprice_tax_included;    # list price of single item in library's currency, not discounted (at the moment no exchange rate calculation implemented)
+                my $replacementcost_tax_excluded =  $listprice_tax_excluded;    # list price of single item in library's currency, not discounted, tax excluded (at the moment no exchange rate calculation implemented)
+
+
+                my @itemOrder = ();    # used for creating the aqorders_items records for the created aqorders for this title
+                if ( defined($basketno) && $basketno > 0 ) {
+                    # Add a Koha acquisition order to the order basket,
+                    # i.e. insert an additional aqorder and add it to the aqbasket.
+
+                    # conventions:
+                    # It depends on aqbooksellers.listincgst if prices include gst or not. Exception: For 'Actual cost' (aqorder.unitprice) this depends on aqbooksellers.invoiceincgst.
+                    # aqorders.listprice:   input field 'Vendor price' in UI       single item list price in foreign currency
+                    # aqorders.rrp:         input field 'Replacement cost' in UI   single item listprice recalculated in library's currency
+                    # aqorders.ecost:       input field 'Budgeted cost' in UI      quantity * single item listprice recalculated in library's currency, discount applied
+                    # aqorders.unitprice:   input field 'Actual cost' in UI        entered cost, handling etc. incl.
+                    #
+                    # Here exclusively the aqbookseller 'ekz' is used, so we assume listprice=EUR, invoiceprice=EUR, gstreg=1, listincgst=1, invoiceincgst=1, tax_rate_bak=0.07 and the library's currency = EUR.
+
+                    my $haushaltsstelle = defined($titel->{'haushaltsstelle'}) ? $titel->{'haushaltsstelle'} : "";    # as far as known: <haushaltsstelle> is not sent in StoList response
+
+                    # look for XML <kostenstelle> elements 
+                    $logger->debug("genKohaRecords() ref(titel->{'kostenstelle'}):" . ref($titel->{'kostenstelle'}) . ":");
+                    my $kostenstelleDefined = ( exists $titel->{'kostenstelle'} && defined $titel->{'kostenstelle'});
+                    my $kostenstelleArrayRef = [];    #  using ref to empty array if there are sent no kostenstelle blocks
+                    # if there is sent only one kostenstelle block, it is delivered here as hash ref
+                    if ( $kostenstelleDefined && ref($titel->{'kostenstelle'}) eq 'HASH' ) {
+                        $kostenstelleArrayRef = [ $titel->{'kostenstelle'} ]; # ref to anonymous array containing the single hash reference
+                    } else {
+                        # if there are sent more than one kostenstelle blocks, they are delivered here as array ref
+                        if ( $kostenstelleDefined && ref($titel->{'kostenstelle'}) eq 'ARRAY' ) {
+                            $kostenstelleArrayRef = $titel->{'kostenstelle'}; # ref to deserialized array containing the hash references
+                        }
                     }
-                    if ( $ustSatz == 0.0 && $ust != 0.0 && $gesamtpreis != 0.0) {    # Nettopreise
-                        $ustSatz = $ust / $gesamtpreis;
-                        $ustSatz =  &C4::External::EKZ::lib::EkzKohaRecords::round($ustSatz, 2);
+                    if ( scalar @{$kostenstelleArrayRef} < 1 ) {
+                        $kostenstelleArrayRef->[0] = '';    # Value has to be '' to trigger the use of default budget code in EkzKohaRecords::checkAqbudget.
+                    }
+                    $logger->info("genKohaRecords() HTTP request kostenstelle array:" . Dumper(@$kostenstelleArrayRef) . ": AnzElem:" . scalar @$kostenstelleArrayRef . ":");
+                    # create the hash of kostenstelle listing aqbudget and item count to be used.
+                    # used scheme: Distribute 1 item to each listed kostenstelle as long as there are items.
+                    #              If same kostenstelle is listed n times, distribute n items to it.
+                    #              If count of items > count of listed kostenstelle, then distribute remaining items to first sent kostenstelle (representing central branch).
+                    my $remainingExemplarcount = $exemplarcount;
+                    my $kostenstelleAqbudget = {};
+                    foreach my $kostelle ( @{$kostenstelleArrayRef} ) {
+                        if ( $remainingExemplarcount > 0 ) {
+                            my ($dummy1, $dummy2, $budgetid, $dummy3) = $ekzKohaRecord->checkAqbudget($ekzCustomerNumber, $haushaltsstelle, $kostelle, 1);
+                            if ( ! defined($kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}) ) {
+                                $kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}->{budgetid} = $budgetid;
+                                $kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}->{itemcount} = 1;
+                            } else {
+                                $kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}->{itemcount} += 1;
+                            }
+                            $remainingExemplarcount -= 1;
+                        }
+                    }
+                    $kostenstelleAqbudget->{$haushaltsstelle}->{$kostenstelleArrayRef->[0]}->{itemcount} += $remainingExemplarcount;
+
+                    # We group as many items for each budget as possible. So we have to write as few orders as possible. (The only difference of the orders for this title is aqorders.budget_id.)
+                    my $aqbudgetItemcount = {};
+                    foreach my $hhstelle ( keys %{$kostenstelleAqbudget} ) {
+                        foreach my $kostelle ( keys %{$kostenstelleAqbudget->{$hhstelle}} ) {
+                            my $budgetid = $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{budgetid};
+                            if ( ! defined($aqbudgetItemcount->{$budgetid}) ) {
+                                $aqbudgetItemcount->{$budgetid} = 0;
+                            }
+                            $aqbudgetItemcount->{$budgetid} += $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{itemcount};
+                        }
                     }
 
-                    # the following calculation is correct only where aqbooksellers.gstreg=1 and  aqbooksellers.listincgst=1 and  aqbooksellers.invoiceincgst=1 and aqbooksellers.listprice = aqbooksellers.invoiceprice = the library's currency
-                    my $listprice_tax_included = $gesamtpreis - $fracht - $einband - $bearbeitung;    # not sent in StoListElement, so we calculate it
-                    if ( $rabatt != 0.0 ) {
-                        my $divisor = 1.0 - ($rabatt / 100.0);
-                        $listprice_tax_included =  $divisor == 0.0 ? $listprice_tax_included : $listprice_tax_included / $divisor;    # list price of single item in vendor's currency, not discounted
-                        $listprice_tax_included =  &C4::External::EKZ::lib::EkzKohaRecords::round($listprice_tax_included, 2);
-                    }
-                    my $divisor = 1.0 + $ustSatz;
-                    my $listprice_tax_excluded = $divisor == 0.0 ? 0.0 : $listprice_tax_included / $divisor;
-                    $listprice_tax_excluded = &C4::External::EKZ::lib::EkzKohaRecords::round($listprice_tax_excluded, 2);
-                    my $replacementcost_tax_included =  $listprice_tax_included;    # list price of single item in library's currency, not discounted (at the moment no exchange rate calculation implemented)
-                    my $replacementcost_tax_excluded =  $listprice_tax_excluded;    # list price of single item in library's currency, not discounted, tax excluded (at the moment no exchange rate calculation implemented)
+                    foreach my $budgetid ( keys %{$aqbudgetItemcount} ) {
+                        $logger->debug("genKohaRecords() aqbudgetItemcount->{$budgetid}:" . $aqbudgetItemcount->{$budgetid} . ":");
 
-                    my $order = undef;
-                    my $ordernumber = undef;
-                    if ( defined($basketno) && $basketno > 0 ) {
-                        # Add a Koha acquisition order to the order basket,
-                        # i.e. insert an additional aqorder and add it to the aqbasket.
-
-                        # conventions:
-                        # It depends on aqbooksellers.listincgst if prices include gst or not. Exception: For 'Actual cost' (aqorder.unitprice) this depends on aqbooksellers.invoiceincgst.
-                        # aqorders.listprice:   input field 'Vendor price' in UI       single item list price in foreign currency
-                        # aqorders.rrp:         input field 'Replacement cost' in UI   single item listprice recalculated in library's currency
-                        # aqorders.ecost:       input field 'Budgeted cost' in UI      quantity * single item listprice recalculated in library's currency, discount applied
-                        # aqorders.unitprice:   input field 'Actual cost' in UI        entered cost, handling etc. incl.
-                        #
-                        # Here exclusively the aqbookseller 'ekz' is used, so we assume listprice=EUR, invoiceprice=EUR, gstreg=1, listincgst=1, invoiceincgst=1, tax_rate_bak=0.07 and the library's currency = EUR.
-
-                        my $haushaltsstelle = defined($titel->{'haushaltsstelle'}) ? $titel->{'haushaltsstelle'} : "";
-                        my $kostenstelle = defined($titel->{'kostenstelle'}) ? $titel->{'kostenstelle'} : "";
-
-                        my ($dummy1, $dummy2, $budgetid, $dummy3) = $ekzKohaRecord->checkAqbudget($ekzCustomerNumber, $haushaltsstelle, $kostenstelle, 1);
-
-                        my $quantity = $exemplarcount;
-                        my $budgetedcost_tax_included = $gesamtpreis;    # discounted
+                        my $quantity = $aqbudgetItemcount->{$budgetid};
+                        my $budgetedcost_tax_included = $gesamtpreis;    # discounted total for a single item
                         my $divisor = 1.0 + $ustSatz;
                         my $budgetedcost_tax_excluded = $divisor == 0.0 ? 0.0 : $budgetedcost_tax_included / $divisor;
                         $budgetedcost_tax_excluded = &C4::External::EKZ::lib::EkzKohaRecords::round($budgetedcost_tax_excluded, 2);
@@ -533,10 +598,14 @@ print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}
                         # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
                         $orderinfo->{discount} = $rabatt;        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
 
-                        $order = Koha::Acquisition::Order->new($orderinfo);
+                        my $order = Koha::Acquisition::Order->new($orderinfo);
                         $order->store();
-                        $ordernumber = $order->{ordernumber};
+                        #XXXWH replace by itemOrder in mail print   $ordernumber = $order->{ordernumber};
+                        for ( my $i = 0; $i < $quantity; $i += 1 ) {
+                            push @itemOrder, $order;
+                        }
                     }
+                }    # end of "if ( defined($basketno) && $basketno > 0 ) {"
 
 
                 for ( my $j = 0; $j < $exemplarcount; $j++ ) {
@@ -556,7 +625,7 @@ print STDERR "ekzWsStoList::genKohaRecords() titleImportObjectRS->{_column_data}
                     my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                     my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
                     $importIds{$importId} = $itemnumber;
-print STDERR "ekzWsStoList::genKohaRecords() importedItemsCount:$importedItemsCount; set next importIds:", $importId, ":\n" if $debugIt;
+                    $logger->info("genKohaRecords() importedItemsCount:$importedItemsCount; set next importId:" . $importId . ":");
 
                     if ( defined $itemnumber && $itemnumber > 0 ) {
 
@@ -578,10 +647,9 @@ print STDERR "ekzWsStoList::genKohaRecords() importedItemsCount:$importedItemsCo
                             }
                         }
 
-                        # attaching ekz order to Koha acquisition: Insert an additional aqordersitem for the aqorder.
-                        # Insert an additional aqordersitem for the aqorder.
-                        if ( defined($order) ) {
-                            $order->add_item($itemnumber);
+                        # attaching ekz order to Koha acquisition: Insert an additional aqorders_items record for the aqorder for this new item.
+                        if ( exists($itemOrder[$j]) && defined($itemOrder[$j]) ) {
+                            $itemOrder[$j]->add_item($itemnumber);
                         }
 
                         # Insert a record into table acquisition_import representing item data of the standing order.
@@ -601,7 +669,7 @@ print STDERR "ekzWsStoList::genKohaRecords() importedItemsCount:$importedItemsCo
                         my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
                         my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->create($insParam);
                         my $acquisitionImportIdItem = $acquisitionImportItemRS->get_column('id');
-print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportItemRS->{_column_data}:", Dumper($acquisitionImportItemRS->{_column_data}), ":\n" if $debugIt;
+                        $logger->debug("genKohaRecords() acquisitionImportItemRS->{_column_data}:" . Dumper($acquisitionImportItemRS->{_column_data}) . ":");
 
                         # Insert a record into table acquisition_import_object representing the Koha item data.
                         $insParam = {
@@ -612,7 +680,7 @@ print STDERR "ekzWsStoList::genKohaRecords() acquisitionImportItemRS->{_column_d
                         };
                         my $itemImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                         my $itemImportObjectRS = $itemImportObject->_resultset()->create($insParam);
-print STDERR "ekzWsStoList::genKohaRecords() itemImportObjectRS->{_column_data}:", Dumper($itemImportObjectRS->{_column_data}), ":\n" if $debugIt;
+                        $logger->debug("genKohaRecords() itemImportObjectRS->{_column_data}:" . Dumper($itemImportObjectRS->{_column_data}) . ":");
 
                         # positive message for log email
                         $importresult = 1;
@@ -629,15 +697,15 @@ print STDERR "ekzWsStoList::genKohaRecords() itemImportObjectRS->{_column_data}:
                     }
                     # add result of adding item to log email
                     my ($titeldata, $isbnean) = ($itemnumber, '');
-print STDERR "ekzWsStoList::genKohaRecords() item titeldata:", $titeldata, ":\n" if $debugIt;
-                    push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2, $ordernumber, $basketno];
+                    $logger->debug("genKohaRecords() item titeldata:" . $titeldata . ":");
+                    push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2, $itemOrder[$j]->ordernumber(), $basketno];
                 }
             }
 
             # create @actionresult message for log email, representing 1 title with all its processed items
             my @actionresultTit = ( 'insertRecords', 0, "X", "Y", $processedTitlesCount, $importedTitlesCount, $updatedTitlesCount, $processedItemsCount, $importedItemsCount, 0, \@records );
-print STDERR "ekzWsStoList::genKohaRecords() actionresultTit:", @actionresultTit, ":\n" if $debugIt;
-print STDERR "ekzWsStoList::genKohaRecords() actionresultTit->[10]->[0]:", @{$actionresultTit[10]->[0]}, ":\n" if $debugIt;
+            $logger->debug("genKohaRecords() actionresultTit:" . Dumper(@actionresultTit) . ":");
+            $logger->debug("genKohaRecords() actionresultTit->[10]->[0]:" . Dumper(@{$actionresultTit[10]->[0]}) . ":");
             push @actionresult, \@actionresultTit;
 
         }
@@ -646,7 +714,7 @@ print STDERR "ekzWsStoList::genKohaRecords() actionresultTit->[10]->[0]:", @{$ac
         if ( length($ekzAqbooksellersId) && defined($basketno) && $basketno > 0 ) {
             # create a basketgroup for this basket and keep open both basket and basketgroup
             my $aqbasket = &C4::Acquisition::GetBasket($basketno);
-print STDERR "ekzWsStoList::genKohaRecords() Dumper aqbasket:", Dumper($aqbasket), ":\n" if $debugIt;
+            $logger->info("genKohaRecords() Dumper aqbasket:" . Dumper($aqbasket) . ":");
             if ( $aqbasket ) {
                 # do not close the basket with standing orders
 
@@ -657,7 +725,7 @@ print STDERR "ekzWsStoList::genKohaRecords() Dumper aqbasket:", Dumper($aqbasket
                 };
                 $basketgroupid  = undef;
                 my $aqbasketgroups = &C4::Acquisition::GetBasketgroupsGeneric($params, { orderby => "id DESC" } );
-print STDERR "ekzWsStoList::genKohaRecords() Dumper aqbasketgroups:", Dumper($aqbasketgroups), ":\n" if $debugIt;
+                $logger->info("genKohaRecords() Dumper aqbasketgroups:" . Dumper($aqbasketgroups) . ":");
 
                 # create basket group if not existing
                 if ( !defined($aqbasketgroups) || scalar @{$aqbasketgroups} == 0 ) {
@@ -671,10 +739,10 @@ print STDERR "ekzWsStoList::genKohaRecords() Dumper aqbasketgroups:", Dumper($aq
                         billingplace => "$aqbasket->{billingplace}",
                     };
                     $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
-print STDERR "ekzWsStoList::genKohaRecords() created basketgroup with name:", $aqbasket->{basketname}, ": having basketgroupid:$basketgroupid:\n" if $debugIt;
+                    $logger->info("genKohaRecords() created basketgroup with name:" . $aqbasket->{basketname} . ": having basketgroupid:$basketgroupid:");
                 } else {
                     $basketgroupid = $aqbasketgroups->[0]->{id};
-print STDERR "ekzWsStoList::genKohaRecords() found basketgroup with name:", $aqbasket->{basketname}, ": having basketgroupid:$basketgroupid:\n" if $debugIt;
+                    $logger->info("genKohaRecords() found basketgroup with name:" . $aqbasket->{basketname} . ": having basketgroupid:$basketgroupid:");
                 }
 
                 if ( $basketgroupid ) {
@@ -693,8 +761,8 @@ print STDERR "ekzWsStoList::genKohaRecords() found basketgroup with name:", $aqb
 
         # create @logresult message for log email, representing all titles of the StoList $stoWithNewState with all their processed items
         push @logresult, ['StoList', $messageID, \@actionresult, $acquisitionError, $ekzAqbooksellersId, $basketno];
-print STDERR "Dumper(\\\@logresult): ####################################################################################################################\n" if $debugIt;
-print STDERR Dumper(\@logresult) if $debugIt;
+        $logger->debug("genKohaRecords() ####################################################################################################################");
+        $logger->debug("genKohaRecords() Dumper(\\\@logresult):" . Dumper(\@logresult) . ":");
 
 
         #$dbh->rollback;    # roll it back for TEST XXXWH
@@ -703,7 +771,7 @@ print STDERR Dumper(\@logresult) if $debugIt;
         $dbh->commit();
         $dbh->{AutoCommit} = 1;
 
-print STDERR "ekzWsStoList::genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:\n" if $debugIt;
+        $logger->info("genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:");
         if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {
             my @importIds = keys %importIds;
             ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]

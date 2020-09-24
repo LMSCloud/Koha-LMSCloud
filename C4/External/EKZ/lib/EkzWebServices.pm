@@ -209,7 +209,9 @@ sub callWsMedienDaten {
 	my $self = shift;
 	my $ekzArtikelNr = shift;
 
-	my $messageId = $self->genTransactionId('');
+    # <messageId> is definded as xs:int in the wsdl.
+    # So we calculate (current seconds * 1000 + milliseconds) modulo 1000000000 to get a quite unique number that fits in a 32-bit integer the ekz seems to use for this purpose.
+    my $messageId = substr(substr($self->genTransactionId(''),0,-3),-9) + 0;
 	my $zeitstempel = $self->genZeitstempel();
 
 	my $soapResponseBody = '';
@@ -449,7 +451,14 @@ sub callWsStoList {
 				if ( $stoChild->nodeName eq 'titel' ) {
                     my $titelRecord = ();
                     foreach my $titelChild ( $stoChild->childNodes() ) {
-                        $titelRecord->{$titelChild->nodeName} = $titelChild->textContent;
+                        if ( $titelChild->nodeName eq 'kostenstelle' ) {
+                            if ( ! exists($titelRecord->{$titelChild->nodeName}) ) {
+                                $titelRecord->{$titelChild->nodeName} = [];
+                            }
+                            push @{$titelRecord->{$titelChild->nodeName}}, $titelChild->textContent;
+                        } else {
+                            $titelRecord->{$titelChild->nodeName} = $titelChild->textContent;
+                        }
                     }
                     push @{$stoRecord->{'titelRecords'}}, $titelRecord;
                     $stoRecord->{'titelCount'} += 1;
@@ -953,7 +962,10 @@ sub callWsBestellung {
         $soapRequest = $preparedRequest
     } else {
         # build request
-	    my $messageId = $self->genTransactionId('');
+
+        # <messageId> is definded as xs:int in the wsdl.
+        # So we calculate (current seconds * 1000 + milliseconds) modulo 1000000000 to get a quite unique number that fits in a 32-bit integer the ekz seems to use for this purpose.
+        my $messageId = substr(substr($self->genTransactionId(''),0,-3),-9) + 0;
 	    my $zeitstempel = $self->genZeitstempel();
 
         my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
