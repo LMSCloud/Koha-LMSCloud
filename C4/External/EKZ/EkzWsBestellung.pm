@@ -36,11 +36,16 @@ use C4::Acquisition;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( BestelleBeiEkz BestelleBeiEkz_Test );
 
+binmode( STDIN, ":utf8" );
+binmode( STDOUT, ":utf8" );
+binmode( STDERR, ":utf8" );
+
 
 sub BestelleBeiEkz {
     my ($basketgroupList) = @_;
     my $result = [];
     my $dbh = C4::Context->dbh;
+
     my $aqbooksellers_hit;    # We assume here exclusive use of aqbookseller 'ekz'. But each library may have a distinct acbooksellers record with name 'ekz.
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsBestellung' });
 
@@ -180,38 +185,94 @@ sub BestelleBeiEkz {
 
                     # set aqorder specific parameters for callWsBestellung (representing all items of one title)
                     
-                    $logger->debug("BestelleBeiEkz() GetMarcBiblio of biblionumber:" . $aqorders_hit->{'biblionumber'} . ":");
                     my $ekzArtikelNr = '';
                     my $isbnEan = '';
-                    my $isbn = '';
+                    my $author = '';
+                    my $titel = '';
+                    my $verlag = '';
+                    my $erscheinungsJahr = '';
+
+                    $logger->debug("BestelleBeiEkz() GetMarcBiblio of biblionumber:" . $aqorders_hit->{'biblionumber'} . ":");
                     my $marcrecord = C4::Biblio::GetMarcBiblio( { biblionumber => $aqorders_hit->{'biblionumber'}, embed_items => 0 } );
-                    my $field = $marcrecord->field('035');
-                    if ( $field ) {
-                        my $subfield = $field->subfield('a');    # format: (DE-Rt5)nnn...nnn
-                        if ( $subfield ) {
-                            if ( $subfield =~ /^\(DE\-Rt5\)(.*)/ ) {
-                                $ekzArtikelNr = $1;
+
+                    if ( $marcrecord ) {
+                        # get ekz-Artikelnummer
+                        my $field = $marcrecord->field('035');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('a');    # format: (DE-Rt5)nnn...nnn
+                            if ( $subfield ) {
+                                if ( $subfield =~ /^\(DE\-Rt5\)(.*)/ ) {
+                                    $ekzArtikelNr = $1;
+                                }
+                            }
+                        }
+                        # get ISBN / EAN
+                        $field = $marcrecord->field('020');
+                        if ( $field ) {
+                            my $isbn = $field->subfield('a');
+                            eval {
+                                my $val = Business::ISBN->new($isbn);
+                                $isbn = $val->as_isbn13()->as_string([]);
+                            };
+                            $isbnEan = $isbn;
+                        }
+                        $field = $marcrecord->field('024');
+                        if ( $field && ((! defined($isbnEan)) || $isbnEan eq '') ) {
+                            my $ean = $field->subfield('a');
+                            $isbnEan = $ean;
+                        }
+                        # get author
+                        $field = $marcrecord->field('100');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('a');
+                            if ( $subfield ) {
+                                $author = $subfield;
+                            }
+                        }
+                        # get titel
+                        $field = $marcrecord->field('245');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('a');
+                            if ( $subfield ) {
+                                $titel = $subfield;
+                            }
+                            $subfield = $field->subfield('b');
+                            if ( $subfield ) {
+                                if ( $titel ) {
+                                    $titel .= ' / ';
+                                }
+                                $titel .= $subfield;
+                            }
+                        }
+                        # get verlag
+                        $field = $marcrecord->field('260');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('b');
+                            if ( $subfield ) {
+                                $verlag = $subfield;
+                            }
+                        }
+                        # get erscheinungsJahr
+                        $field = $marcrecord->field('260');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('c');
+                            if ( $subfield ) {
+                                if ( $subfield =~ /^(.)*?(\d\d\d\d)/ ) {
+                                    $erscheinungsJahr = $2;
+                                }
                             }
                         }
                     }
-                    $field = $marcrecord->field('020');
-                    if ( $field ) {
-                        my $isbn = $field->subfield('a');
-                        eval {
-                            my $val = Business::ISBN->new($isbn);
-                            $isbn = $val->as_isbn13()->as_string([]);
-                        };
-                        $isbnEan = $isbn;
-                    }
-                    $field = $marcrecord->field('024');
-                    if ( $field && ((! defined($isbnEan)) || $isbnEan eq '') ) {
-                        my $ean = $field->subfield('a');
-                        $isbnEan = $ean;
-                    }
+
                     # titel info
-                    # at least one of the two fields ekzArtikelNr or isbn13 has to be transmitted)
+                    # at least one of the two fields ekzArtikelNr or isbn13 has to be transmitted
                     $param->{titel}->[$iTitel]->{titelangabe}->{ekzArtikelNr} = $ekzArtikelNr if $ekzArtikelNr;
                     $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{isbn13} = $isbnEan if $isbnEan;
+                    # titelinfo fields author, titel, verlag, erscheinungsJahr are optional
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{author} = $author if $author;
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{titel} = $titel if $titel;
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{verlag} = $verlag if $verlag;
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{erscheinungsJahr} = $erscheinungsJahr if $erscheinungsJahr;
 
                     # exemplar info  (optional)
                     $param->{titel}->[$iTitel]->{exemplar}->[0]->{lmsExemplarID} = $aqorders_hit->{'ordernumber'} . '';    # force type to string
@@ -438,14 +499,14 @@ sub BestelleBeiEkz {
                     $sth->execute($appendText, $appendText, $ordernumber);
                 }
                 $sth->finish();    # finish $query2_aqorders
-                # XXXWH one could delete $aqbasketgroupRes->{aqorders} now
+                # XXXWH one could delete the hash entry $aqbasketgroupRes->{aqorders} now
 
                 # store 'ekz-Bestellnummer: ' . $wsResult->{ekzBestellNr} in aqbasket.booksellernote
                 my $query2_aqbasket = "UPDATE aqbasket SET booksellernote = IF(booksellernote IS NULL, ?, CONCAT(booksellernote, '\n', ?))  WHERE basketno = ? ";
                 $sth = $dbh->prepare($query2_aqbasket);
                 $sth->execute($appendText, $appendText, $aqbasketgroupRes->{basketno});
                 $sth->finish();    # finish $query2_aqbasket
-                # XXXWH one could delete $aqbasketgroupRes->{basketno} now
+                # XXXWH one could delete the hash entry $aqbasketgroupRes->{basketno} now
             }
             push @{$result}, $aqbasketgroupRes;
         }

@@ -20,6 +20,7 @@ package C4::External::EKZ::lib::EkzKohaRecords;
 use strict;
 use warnings;
 
+use Encode qw(encode decode);
 use utf8;
 use Carp;
 use Data::Dumper;
@@ -1033,8 +1034,9 @@ sub createProcessingMessageText {
     }
     $self->{'logger'}->info("createProcessingMessageText() envKohaInstanceUrl:$envKohaInstanceUrl: kohaInstanceUrl:$kohaInstanceUrl:");
     my $printdate =  $dt->dmy('.') . ' um ' . sprintf("%02d:%02d Uhr", $dt->hour, $dt->minute);
-    $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: Anz. logresult:" . @{$logresult}+0 . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:");
+    $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: Anz. logresult:" . scalar @{$logresult} . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:");
     $self->{'logger'}->debug("createProcessingMessageText() Dumper(logresult):" . Dumper($logresult) . ":");
+    $self->{'logger'}->debug("createProcessingMessageText() Dumper(importIDs):" . Dumper($importIDs) . ":");
     
     my $subject = "Import ekz Bestellung $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     if ( $logresult->[0]->[0] eq 'RechnungDetail' ) {
@@ -1129,6 +1131,7 @@ sub createProcessingMessageText {
     my $acquisitionError = undef;
     my $aqbooksellersid = undef;
     my $aqbasketno = undef;
+    my $invoiceid = undef;
     my $processedTitlesCount = 0;
     my $importedTitlesCount = 0;
     my $foundTitlesCount = 0;
@@ -1136,12 +1139,13 @@ sub createProcessingMessageText {
     my $importedItemsCount = 0;
     my $updatedItemsCount = 0;
     foreach my $result (@$logresult) {
-        $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: result->[0]:$result->[0]: Anz. result->[2]:" . @{$result->[2]}+0 . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:");
+        $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: result->[0]:$result->[0]: Anz. result->[2]:" . scalar @{$result->[2]} . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:");
         $self->{'logger'}->debug("createProcessingMessageText() Dumper(result):" . Dumper($result) . ":");
         my @actionsteps = @{$result->[2]};
         $acquisitionError = $result->[3];
         $aqbooksellersid = $result->[4];
         $aqbasketno = $result->[5];
+        $invoiceid =  (sort(keys %{$result->[6]}))[0] if scalar keys %{$result->[6]};
 
         my @records = ();
         foreach my $action (@actionsteps) {
@@ -1253,6 +1257,12 @@ sub createProcessingMessageText {
                     # e. g.  http://192.168.122.100:8080/cgi-bin/koha/acqui/basket.pl?basketno=42
                     $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/basket.pl?basketno=' . $aqbasketno . '">' . h($messText) . '</a>';
                 }
+            } elsif ( $logresult->[0]->[0] eq 'RechnungDetail' ) {
+                if ( defined($invoiceid) && $invoiceid > 0 ) { 
+                    my $messText = "Link auf die Koha-Rechnung";    # default for RechnungDetail
+                    # e. g.  http://192.168.122.101:8080/cgi-bin/koha/acqui/invoice.pl?invoiceid=22
+                    $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/invoice.pl?invoiceid=' . $invoiceid . '">' . h($messText) . '</a>';
+                }
             }
         }
     }
@@ -1314,19 +1324,15 @@ sub createProcessingMessageText {
         if ( scalar(@actionsteps) > 0 ) {
         
             $message .= '    <tr class="recordheader">'."\n";
-            $message .= '        <th>'."\n";
+            $message .= '        <th width="5%">'."\n";
             $message .= '            Lfd. Nr.'."\n";
             $message .= '        </th>'."\n";
 
-            $message .= '        <th>'."\n";
-            $message .= '            EKZ-Artikelnr.'."\n";
-            $message .= '        </th>'."\n";
-
-            $message .= '        <th>'."\n";
+            $message .= '        <th width="50%">'."\n";
             $message .= '            Titel'."\n";
             $message .= '        </th>'."\n";
 
-            $message .= '        <th>'."\n";
+            $message .= '        <th width="10%">'."\n";
             $message .= '            Status'."\n";
             $message .= '        </th>'."\n";
 
@@ -1358,11 +1364,6 @@ sub createProcessingMessageText {
                         # Lfd. Nr.
                         $message .= '        <td>'."\n";
                         $message .= '            '. $i . "\n";
-                        $message .= '        </td>'."\n";
-
-                        # EKZ-Artikelnr.
-                        $message .= '        <td>'."\n";
-                        $message .= '            '. h($record->[0]) . "\n";
                         $message .= '        </td>'."\n";
 
                         # Titel
@@ -1458,7 +1459,7 @@ sub createProcessingMessageText {
     $message .= '</table>'."\n";
     $message .= '</body>'."\n";
     $message .= '</html>'."\n";
-    
+
     return ($message, $subject, $haserror);
 }
 
@@ -1486,7 +1487,7 @@ sub sendMessage {
             from        => $adminEmailAddress,
             replyto     => $replyTo,
             sender      => $adminEmailAddress,
-            subject     => $subject,
+            subject     => encode("MIME-Q", $subject),
             message     => $message,
             contenttype => 'text/html; charset="UTF-8"'
         }

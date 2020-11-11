@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright 2017 (C) LMSCLoud GmbH
+# Copyright 2017-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -24,15 +24,13 @@ use utf8;
 use Data::Dumper;
 
 use C4::External::EKZ::EkzWsStandingOrder qw( getCurrentYear readStoFromEkzWsStoList genKohaRecords );
+use Koha::Logger;
 
 
 binmode( STDIN, ":utf8" );
 binmode( STDOUT, ":utf8" );
 binmode( STDERR, ":utf8" );
 
-
-
-my $debugIt = 1;
 
 my $currentYear;
 my $lastRunDate;
@@ -44,28 +42,29 @@ my $result;
 my $stoListElement = '';    # for storing the StoListElement of the SOAP response body
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d\n",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
 
-print STDERR "ekzWsStoList Start:$startTime\n" if $debugIt;
+$logger->info("ekzWsStandingOrder.pl START starttime:$startTime:");
 
 $currentYear = &getCurrentYear();
 $lastRunDate = C4::External::EKZ::lib::EkzWebServices::getLastRunDate('StoList', 'A');    # value for 'von' / 'from', required in american form yyyy-mm-dd
 $todayDate = `date +%Y-%m-%d`;
 chomp($todayDate);
 
-print STDERR "ekzWsStoList currentYear:$currentYear: lastRunDate:$lastRunDate: todayDate:$todayDate:\n" if $debugIt;
+$logger->info("ekzWsStandingOrder.pl currentYear:$currentYear: lastRunDate:$lastRunDate: todayDate:$todayDate:");
 
 if ( $simpleTest ) {
     # some libraries use different ekz Kundennummer for different branches, so we have to call the standing order synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
         # read all stoIDs of 2017
-        print STDERR "ekzWsStoList read STO of year 2017; calling readStoFromEkzWsStoList ($ekzCustomerNumber,2017,undef,false,false,false,undef,undef)\n" if $debugIt;
-        my $stoOf2017 = &readStoFromEkzWsStoList ($ekzCustomerNumber,'2017',undef,'false','false','false',undef,undef);
+        $logger->info("ekzWsStandingOrder.pl read STO of year 2017 by calling readStoFromEkzWsStoList ($ekzCustomerNumber,2017,undef,false,false,false,undef,undef,undef,undef)");
+        my $stoOf2017 = &readStoFromEkzWsStoList ($ekzCustomerNumber,'2017',undef,'false','false','false',undef,undef,undef,undef);
 
         foreach my $sto (@{$stoOf2017->{'standingOrderRecords'}} ) {
-            print STDERR "ekzWsStoList read StoId $sto->{stoID}: calling readStoFromEkzWsStoList ($ekzCustomerNumber,2017,$sto->{stoID},true,true,true,'2017-09-01','true')\n" if $debugIt;
-            &readStoFromEkzWsStoList ($ekzCustomerNumber,'2017',$sto->{stoID},'true','true','true','2017-09-01','true');
+            $logger->info("ekzWsStandingOrder.pl read StoId:" . $sto->{stoID} . ": by calling readStoFromEkzWsStoList ($ekzCustomerNumber,2017," . $sto->{stoID} . ",true,true,true,'2017-09-01','true','true',undef)");
+            &readStoFromEkzWsStoList ($ekzCustomerNumber,'2017',$sto->{stoID},'true','true','true','2017-09-01','true','true',undef);
         }
     }
 }
@@ -78,14 +77,15 @@ if ( $genKohaRecords ) {
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
         # read all stoIDs of current year
-        print STDERR "ekzWsStoList read STO of year:$currentYear; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,false,false,false,undef,undef)\n" if $debugIt;
-        my $stoOfYear = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,'false','false','false',undef,undef,undef);
+        $logger->info("ekzWsStandingOrder.pl read STO of year:$currentYear: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,false,false,false,undef,undef,undef,undef)");
+        my $stoOfYear = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,'false','false','false',undef,undef,undef,undef);
         
         foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
-            print STDERR "ekzWsStoList read StoId:$sto->{stoID}: state changes since lastRunDate:$lastRunDate; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},true,true,true,$lastRunDate,'true',\\\$stoListElement)\n" if $debugIt;
-            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',undef,'true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
-            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',$lastRunDate,'true',undef);        # read titles with modified state of the standig order 
-print STDERR Dumper($result->{'standingOrderRecords'}->[0]) if $debugIt;
+            $logger->info("ekzWsStandingOrder.pl read StoId:" . $sto->{stoID} . ": state changes since lastRunDate:$lastRunDate: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear," . $sto->{stoID} . ",true,true,true,$lastRunDate,true,true,\\\$stoListElement)");
+            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',undef,'true','true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
+            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',$lastRunDate,'true','true',undef);        # read titles with modified state of the standig order 
+
+            $logger->debug("ekzWsStandingOrder.pl Dumper(result->{'standingOrderRecords'}->[0]:" . Dumper($result->{'standingOrderRecords'}->[0]) . ":");
 
             if ( $result->{'standingOrderCount'} > 0 ) {
                 if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate) ) {
@@ -100,6 +100,6 @@ print STDERR Dumper($result->{'standingOrderRecords'}->[0]) if $debugIt;
 }
 
 ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-my $endTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d\n",1900+$year,1+$mon,$mday,$hour,$min,$sec);
-print STDERR "ekzWsStoList End:$endTime\n" if $debugIt;
+my $endTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+$logger->info("ekzWsStandingOrder.pl END endTime:$endTime:");
 

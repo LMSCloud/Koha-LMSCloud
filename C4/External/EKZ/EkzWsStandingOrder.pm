@@ -59,6 +59,7 @@ sub readStoFromEkzWsStoList {
 	my $selMitEAN = shift;
 	my $selStatusUpdate = shift;
 	my $selErweitert = shift;
+    my $selMitReferenznummer = shift;
     my $refStoListElement = shift;    # for storing the StoListElement of the SOAP request body
 
     my $result = ();    # hash reference
@@ -72,12 +73,13 @@ sub readStoFromEkzWsStoList {
                                                 ": selMitEAN:" . (defined($selMitEAN) ? $selMitEAN : 'undef') .
                                                 ": selStatusUpdate:" . (defined($selStatusUpdate) ? $selStatusUpdate : 'undef') .
                                                 ": selErweitert:" . (defined($selErweitert) ? $selErweitert : 'undef') .
+                                                ": selMitReferenznummer:" . (defined($selMitReferenznummer) ? $selMitReferenznummer : 'undef') .
                                                 ":");
     
     $logger->debug("readStoFromEkzWsStoList() \$refStoListElement:" .  Dumper($refStoListElement) . ":");
 	
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
-    $result = $ekzwebservice->callWsStoList($ekzCustomerNumber, $selJahr, $selStoId, $selMitTitel, $selMitKostenstellen, $selMitEAN, $selStatusUpdate, $selErweitert,$refStoListElement);
+    $result = $ekzwebservice->callWsStoList($ekzCustomerNumber, $selJahr, $selStoId, $selMitTitel, $selMitKostenstellen, $selMitEAN, $selStatusUpdate, $selErweitert,$selMitReferenznummer,$refStoListElement);
 
     $logger->info("readStoFromEkzWsStoList() returns result:" .  Dumper($result) . ":");
 
@@ -267,6 +269,7 @@ sub genKohaRecords {
                ) {
                 next;
             }
+$logger->info("genKohaRecords() 100");
 
             my $titleHits = { 'count' => 0, 'records' => [] };
             my $biblioExisting = 0;
@@ -295,6 +298,7 @@ sub genKohaRecords {
             $reqParamTitelInfo->{'titel'} = $titel->{'titel'};
             $reqParamTitelInfo->{'preis'} = $titel->{'preis'};
             $logger->info("genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ":");
+$logger->info("genKohaRecords() 200");
 
             # priority of title sources to be checked:
             # In any case:
@@ -345,6 +349,7 @@ sub genKohaRecords {
                     $logger->info("genKohaRecords() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                 }
             }
+$logger->info("genKohaRecords() 300");
 
 
             if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
@@ -379,6 +384,7 @@ sub genKohaRecords {
                     $importedTitlesCount += 0;
                 }
             }
+$logger->info("genKohaRecords() 400");
 
             # now add the acquisition_import and acquisition_import_objects record  for the title
             my $dateTimeNow = DateTime->now(time_zone => 'local');
@@ -452,6 +458,7 @@ sub genKohaRecords {
 
                 $titel->{'preis'} =~ tr/,/./;
 
+$logger->info("genKohaRecords() 500");
 
                 # attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order.
                 my $rabatt = 0.0;    # not sent in StoListElement
@@ -485,6 +492,44 @@ sub genKohaRecords {
                 my $replacementcost_tax_included =  $listprice_tax_included;    # list price of single item in library's currency, not discounted (at the moment no exchange rate calculation implemented)
                 my $replacementcost_tax_excluded =  $listprice_tax_excluded;    # list price of single item in library's currency, not discounted, tax excluded (at the moment no exchange rate calculation implemented)
 
+$logger->info("genKohaRecords() 600");
+                # look for XML <titel><referenznummer><referenznummer> and <titel><referenznummer><exemplare> elements
+                $logger->debug("genKohaRecords() ref(titel->{'referenznummer'}):" . ref($titel->{'referenznummer'}) . ":");
+                my $referenznummerDefined = ( exists $titel->{'referenznummer'} && defined $titel->{'referenznummer'});
+                my $referenznummerArrayRef = [];    #  using ref to empty array if there are sent no referenznummer blocks
+                # if there is sent only one kostenstelle block, it is delivered here as hash ref
+#                if ( $kostenstelleDefined && ref($titel->{'kostenstelle'}) eq 'HASH' ) {
+#                    $kostenstelleArrayRef = [ $titel->{'kostenstelle'} ]; # ref to anonymous array containing the single hash reference
+#                } else {
+                    # if there are sent more than one kostenstelle blocks, they are delivered here as array ref
+                    if ( $referenznummerDefined && ref($titel->{'referenznummer'}) eq 'ARRAY' ) {
+                        $referenznummerArrayRef = $titel->{'referenznummer'}; # ref to deserialized array containing the hash references
+                    }
+#                }
+#                if ( scalar @{$kostenstelleArrayRef} < 1 ) {
+#                    $kostenstelleArrayRef->[0] = '';    # Value has to be '' to trigger the use of default budget code in EkzKohaRecords::checkAqbudget.
+#                }
+                $logger->info("genKohaRecords() HTTP request referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
+                
+$logger->info("genKohaRecords() 700");
+                my @itemReferenznummer = ();    # used for generating values for acquisition_import.object_item_number of the records representing the STO items (format: sto.<ekzKundenNr>.<stoID>-<ekzArtikelNr>-<referenznummer>)
+                foreach my $referenznummerObject ( @{$referenznummerArrayRef} ) {
+                    my $referenznummer;
+                    my $exemplaranzahl = 0;
+                    if ( exists $referenznummerObject->{'referenznummer'} && defined $referenznummerObject->{'referenznummer'} && length($referenznummerObject->{'referenznummer'}) ) {
+                        $referenznummer = $referenznummerObject->{'referenznummer'};
+                        $exemplaranzahl = 1;
+                        if ( exists $referenznummerObject->{'exemplare'} && defined $referenznummerObject->{'exemplare'} ) {
+                            $exemplaranzahl = 0 + $referenznummerObject->{'exemplare'};
+                        }
+                        for ( my $i = 0; $i < $exemplaranzahl; $i += 1 ) {
+                            push @itemReferenznummer, $referenznummer;
+                        }
+                    }
+                }
+                $logger->info("genKohaRecords() HTTP request itemReferenznummer array:" . Dumper(@itemReferenznummer) . ": AnzElem:" . scalar @itemReferenznummer . ":");
+$logger->info("genKohaRecords() 800");
+#exit;
 
                 my @itemOrder = ();    # used for creating the aqorders_items records for the created aqorders for this title
                 if ( defined($basketno) && $basketno > 0 ) {
@@ -502,7 +547,7 @@ sub genKohaRecords {
 
                     my $haushaltsstelle = defined($titel->{'haushaltsstelle'}) ? $titel->{'haushaltsstelle'} : "";    # as far as known: <haushaltsstelle> is not sent in StoList response
 
-                    # look for XML <kostenstelle> elements 
+                    # look for XML <titel><kostenstelle> elements 
                     $logger->debug("genKohaRecords() ref(titel->{'kostenstelle'}):" . ref($titel->{'kostenstelle'}) . ":");
                     my $kostenstelleDefined = ( exists $titel->{'kostenstelle'} && defined $titel->{'kostenstelle'});
                     my $kostenstelleArrayRef = [];    #  using ref to empty array if there are sent no kostenstelle blocks
@@ -525,12 +570,15 @@ sub genKohaRecords {
                     #              If count of items > count of listed kostenstelle, then distribute remaining items to first sent kostenstelle (representing central branch).
                     my $remainingExemplarcount = $exemplarcount;
                     my $kostenstelleAqbudget = {};
+                    my $sequenceOfKostenstelle = 0;
                     foreach my $kostelle ( @{$kostenstelleArrayRef} ) {
                         if ( $remainingExemplarcount > 0 ) {
                             my ($dummy1, $dummy2, $budgetid, $dummy3) = $ekzKohaRecord->checkAqbudget($ekzCustomerNumber, $haushaltsstelle, $kostelle, 1);
                             if ( ! defined($kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}) ) {
                                 $kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}->{budgetid} = $budgetid;
                                 $kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}->{itemcount} = 1;
+                                $kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}->{sequence} = $sequenceOfKostenstelle;
+                                $sequenceOfKostenstelle += 1;
                             } else {
                                 $kostenstelleAqbudget->{$haushaltsstelle}->{$kostelle}->{itemcount} += 1;
                             }
@@ -539,22 +587,50 @@ sub genKohaRecords {
                     }
                     $kostenstelleAqbudget->{$haushaltsstelle}->{$kostenstelleArrayRef->[0]}->{itemcount} += $remainingExemplarcount;
 
+                    # trying to establish the same sequence of items as in @itemReferenznummer
+                    my $itemIndex = 0;
+SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 ) {
+                        foreach my $hhstelle ( keys %{$kostenstelleAqbudget} ) {
+                            foreach my $kostelle ( keys %{$kostenstelleAqbudget->{$hhstelle}} ) {
+                        $logger->debug("genKohaRecords() i:$i: kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{sequence}:" . $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{sequence} . ":");
+                                if ( $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{sequence} == $i ) {
+                                    for ( my $j = 0; $j < $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{itemcount}; $j += 1 ) {
+                                        if ( ! defined($kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{itemIndexes}) ) {
+                                            $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{itemIndexes} = [];
+                                        }
+                                        push @{$kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{itemIndexes}}, $itemIndex;
+                                        $itemIndex += 1;
+                        $logger->debug("genKohaRecords() i:$i: itemIndex:$itemIndex: kostenstelleAqbudget->{$hhstelle}->{$kostelle}:" . Dumper($kostenstelleAqbudget->{$hhstelle}->{$kostelle}). ":");
+                                    }
+                                    next SEQUENCEOFKOSTENSTELLE;
+                                }
+                            }
+                        }
+                        $logger->debug("genKohaRecords() kostenstelleAqbudget:" . Dumper($kostenstelleAqbudget) . ":");
+                    }
+
                     # We group as many items for each budget as possible. So we have to write as few orders as possible. (The only difference of the orders for this title is aqorders.budget_id.)
-                    my $aqbudgetItemcount = {};
+                    my $aqbudgetItemIndexes = {};
                     foreach my $hhstelle ( keys %{$kostenstelleAqbudget} ) {
                         foreach my $kostelle ( keys %{$kostenstelleAqbudget->{$hhstelle}} ) {
                             my $budgetid = $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{budgetid};
-                            if ( ! defined($aqbudgetItemcount->{$budgetid}) ) {
-                                $aqbudgetItemcount->{$budgetid} = 0;
+                            if ( ! defined($aqbudgetItemIndexes->{$budgetid}) ) {
+                                $aqbudgetItemIndexes->{$budgetid} = [];
                             }
-                            $aqbudgetItemcount->{$budgetid} += $kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{itemcount};
+                        $logger->debug("genKohaRecords() budgetid:$budgetid: aqbudgetItemIndexes:" . Dumper($aqbudgetItemIndexes) . ":");
+                            push @{$aqbudgetItemIndexes->{$budgetid}}, @{$kostenstelleAqbudget->{$hhstelle}->{$kostelle}->{itemIndexes}};
                         }
                     }
 
-                    foreach my $budgetid ( keys %{$aqbudgetItemcount} ) {
-                        $logger->debug("genKohaRecords() aqbudgetItemcount->{$budgetid}:" . $aqbudgetItemcount->{$budgetid} . ":");
+                    foreach my $budgetid ( sort keys %{$aqbudgetItemIndexes} ) {
+                        $logger->debug("genKohaRecords() aqbudgetItemIndexes->{$budgetid}:" . Dumper($aqbudgetItemIndexes->{$budgetid}) . ":");
+                    }
+$logger->info("genKohaRecords() 2000");
+#exit;
+                    foreach my $budgetid ( sort keys %{$aqbudgetItemIndexes} ) {
+                        $logger->debug("genKohaRecords() aqbudgetItemIndexes->{$budgetid}:" . Dumper($aqbudgetItemIndexes->{$budgetid}) . ":");
 
-                        my $quantity = $aqbudgetItemcount->{$budgetid};
+                        my $quantity = scalar @{$aqbudgetItemIndexes->{$budgetid}};
                         my $budgetedcost_tax_included = $gesamtpreis;    # discounted total for a single item
                         my $divisor = 1.0 + $ustSatz;
                         my $budgetedcost_tax_excluded = $divisor == 0.0 ? 0.0 : $budgetedcost_tax_included / $divisor;
@@ -600,13 +676,16 @@ sub genKohaRecords {
 
                         my $order = Koha::Acquisition::Order->new($orderinfo);
                         $order->store();
-                        #XXXWH replace by itemOrder in mail print   $ordernumber = $order->{ordernumber};
                         for ( my $i = 0; $i < $quantity; $i += 1 ) {
-                            push @itemOrder, $order;
+                            $itemOrder[$aqbudgetItemIndexes->{$budgetid}->[$i]] = $order;
                         }
                     }
                 }    # end of "if ( defined($basketno) && $basketno > 0 ) {"
-
+for ( my $i = 0; $i < scalar @itemReferenznummer; $i += 1 ) {
+    $logger->debug("genKohaRecords() item index i:$i: itemReferenznummer[$i]" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . $itemOrder[$i]->budget_id() . ":");
+}
+$logger->info("genKohaRecords() 3000");
+#exit;
 
                 for ( my $j = 0; $j < $exemplarcount; $j++ ) {
                     my $problems = '';              # string for accumulating error messages for this order
@@ -627,6 +706,10 @@ sub genKohaRecords {
                     $importIds{$importId} = $itemnumber;
                     $logger->info("genKohaRecords() importedItemsCount:$importedItemsCount; set next importId:" . $importId . ":");
 
+                    my $ekzExemplarID_j = $ekzExemplarID;
+                    if ( exists($itemReferenznummer[$j]) && defined ($itemReferenznummer[$j]) ) {
+                        $ekzExemplarID_j = $ekzExemplarID_j . '-' . $itemReferenznummer[$j];    # creating this dummy item number
+                    }
                     if ( defined $itemnumber && $itemnumber > 0 ) {
 
                         # configurable items record field initialization via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenOrdered")
@@ -660,7 +743,7 @@ sub genKohaRecords {
                             object_number => $ekzBestellNr,
                             object_date => DateTime::Format::MySQL->format_datetime($bestellDatum),
                             rec_type => "item",
-                            object_item_number => $ekzExemplarID . '',
+                            object_item_number => $ekzExemplarID_j,
                             processingstate => "ordered",
                             processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
                             #payload => NULL, # NULL
@@ -691,7 +774,7 @@ sub genKohaRecords {
                     } else {
                         # negative message for log email
                         $problems .= "\n" if ( $problems );
-                        $problems .= "ERROR: Import der Exemplardaten für EKZ Exemplar-ID: $ekzExemplarID wurde abgewiesen.\n";
+                        $problems .= "ERROR: Import der Exemplardaten für EKZ Exemplar-ID: $ekzExemplarID_j wurde abgewiesen.\n";
                         $importresult = -1;
                         $importerror = 1;
                     }
