@@ -975,3 +975,30 @@ OPAC:
               type: htmlarea
               class: code
             - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
+
+    Payments via pmPayment:
+        -
+            - pref: PmpaymentPaypageOpacPaymentsEnabled
+              default: 0
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - "patrons to make paypage payments from the OPAC via pmPayment."
+        -
+            - "The URL for accessing pmPayment paypage webservices is "
+            - pref: PmpaymentPaypageWebservicesURL
+        -
+            - "The library's officiary municipal key is "
+            - pref: PmpaymentAgs
+        -
+            - "The library's pmPayment procedure designation is "
+            - pref: PmpaymentProcedure
+        -
+            - "The library's pmPayment HMAC SHA-256 salt is "
+            - pref: PmpaymentSaltHmacSha256
+        -
+            - "Additional information transferred to the library's financial accounting system:"
+            - pref: PmpaymentAccountingRecord
+              type: htmlarea
+              class: code
+            - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"

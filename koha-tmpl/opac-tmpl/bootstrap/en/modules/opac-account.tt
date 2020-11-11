@@ -77,6 +77,15 @@
                                 <!-- <p>Payment action aborted by user.[% IF epay21msg %] ([% epay21msg %])[% END %]</p> -->
                                 <p>Payment action aborted by user.</p>
 
+                            [% ELSIF payment_error == "PMPAYMENT_UNABLE_TO_CONNECT" %]
+                                <p>Unable to connect to pmPayment service provider.</p>
+                                <p>Please try again later.</p>
+                            [% ELSIF payment_error == "PMPAYMENT_ERROR_PROCESSING" %]
+                                <p>Unable to verify payment via pmPayment.<!-- [% IF pmpaymentmsg %] ([% pmpaymentmsg %])[% END %] --></p>
+                                <p>Please contact the library to verify your payment.</p>
+                            [% ELSIF payment_error == "PMPAYMENT_ABORTED_BY_USER" %]
+                                <p>Payment action aborted by user.<!-- [% IF pmpaymentmsg %] ([% pmpaymentmsg %])[% END %] --></p>
+
                             [% END %]
                         </div>
                     [% ELSIF payment %]
@@ -184,7 +193,7 @@
                                                 <label class="radio">
                                                     <input type="radio" style="float: unset;" name="payment_method" id="payment_method-paypal" value="paypal" checked="checked">
                                                     <!-- PayPal Logo --><img src="https://www.paypalobjects.com/webstatic/mktg/logo/AM_SbyPP_mc_vs_dc_ae.jpg" border="0" alt="PayPal Acceptance Mark"><!-- PayPal Logo -->
-                                                    <br><a class="paypal" style="margin-top: -13px; position: absolute;" href="https://www.paypal.de/" target="_blank" title="How PayPal Works">More informationen about Paypal</a>
+                                                    <br><a class="paypal" style="margin-top: -13px; position: absolute;" href="https://www.paypal.de/" target="_blank" title="How PayPal Works">More informations about Paypal</a>
                                                 </label>
                                             </div>
                                         [% END %]
@@ -201,7 +210,7 @@
                                                         <img style="max-width:64px; height:auto; max-height:48px; margin:5px;" src="https://www.girosolution.de/fileadmin/user_upload/girosolution/logos/jcb_logo.gif">
                                                         <img style="max-width:64px; height:auto; max-height:48px; margin:5px;" src="https://www.girosolution.de/fileadmin/user_upload/girosolution/logos/200px-maestro_2016.svg.png">
                                                     </div>
-                                                    <br><a title="GiroSolution - A member of the Sparkassen group" target="_blank" href="https://www.girosolution.de/">More informationen about GiroSolution</a>
+                                                    <br><a title="GiroSolution - A member of the Sparkassen group" target="_blank" href="https://www.girosolution.de/">More informations about GiroSolution</a>
                                                 </label>
                                             </div>
                                         [% END %]
@@ -213,7 +222,7 @@
                                                     <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:210px; display: inline-block;">
                                                     <!-- giropay Logo --><img style="margin:5px;" src="https://www.giropay.de/fileadmin/user_upload/giropay/logos/onlineueberweisung_giropay_200px.png" border="0" alt="giropay logo"><!-- giropay Logo -->
                                                     </div>
-                                                    <br><a href="https://www.giropay.de" target="_blank" title="GIROPAY – SECURE ONLINE PAYMENT">More informationen about Giropay</a>
+                                                    <br><a href="https://www.giropay.de" target="_blank" title="GIROPAY – SECURE ONLINE PAYMENT">More informations about Giropay</a>
                                                 </label>
                                             </div>
                                         [% END %]
@@ -231,7 +240,25 @@
                                                         <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paydirekt.png">
                                                         <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/sepa-logo-neu.png">
                                                     </div>
-                                                    <br><a href="https://www.ekom21.de/loesungen/epay21/" target="_blank" title="epay21 – payment in any situation">More informationen about Epay21</a>
+                                                    <br><a href="https://www.ekom21.de/loesungen/epay21/" target="_blank" title="epay21 – payment in any situation">More informations about Epay21</a>
+                                                </label>
+                                            </div>
+                                        [% END %]
+
+                                        [% IF Koha.Preference('PmpaymentPaypageOpacPaymentsEnabled')  %]
+                                            <div class="control-group">
+                                                <label class="radio">
+                                                    <input type="radio" style="float: unset;" name="payment_method" id="payment_method_pmpayment_paypage" value="pmpayment_paypage" checked="checked">
+                                                    <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:394px; display: inline-block;">
+                                                        <strong style="margin:5px;" > online payment via pmPayment </strong><br>
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/mastercard.png">
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/visa.png">
+                                                        <img style="max-width:64px; width:auto; max-height:28px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paypal.png">
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/giropay.png">
+                                                        <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paydirekt.png">
+                                                        <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/sepa-logo-neu.png">
+                                                    </div>
+                                                    <br><a href="https://www.govconnect.de/Produkte/E-Government/pmPayment/" target="_blank" title="Online Payment with pmPayment">More informations about pmPayment</a>
                                                 </label>
                                             </div>
                                         [% END %]

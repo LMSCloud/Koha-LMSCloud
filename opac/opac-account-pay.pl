@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright ByWater Solutions 2015
-# parts Copyright 2019 (C) LMSCLoud GmbH
+# parts Copyright 2019-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -19,6 +19,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 use utf8;
+use Data::Dumper;
 
 use Modern::Perl;
 
@@ -27,11 +28,12 @@ use HTTP::Request::Common;
 use LWP::UserAgent;
 use URI;
 use Digest;
+use Digest::MD5 qw(md5 md5_hex md5_base64);
+use Digest::SHA qw(hmac_sha256_hex); 
 use JSON;
 use Encode;
 use CGI::Carp;
 use SOAP::Lite;
-use Digest::MD5 qw(md5 md5_hex md5_base64);
 
 use C4::Auth;
 use C4::Output;
@@ -46,7 +48,11 @@ my $payment_method = $cgi->param('payment_method');
 my @accountlines   = $cgi->multi_param('accountline');
 
 my $use_plugin;
-if ( $payment_method ne 'paypal' && $payment_method ne 'gs_giropay' && $payment_method ne 'gs_creditcard' && $payment_method ne 'epay21_paypage' ) {
+if ( $payment_method ne 'paypal' &&
+     $payment_method ne 'gs_giropay' &&
+     $payment_method ne 'gs_creditcard' &&
+     $payment_method ne 'epay21_paypage' &&
+     $payment_method ne 'pmpayment_paypage' ) {
     $use_plugin = Koha::Plugins::Handler->run(
         {
             class  => $payment_method,
@@ -56,17 +62,29 @@ if ( $payment_method ne 'paypal' && $payment_method ne 'gs_giropay' && $payment_
     );
 }
 
-unless ( C4::Context->preference('EnablePayPalOpacPayments') || C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') || C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') || C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') || $use_plugin ) {
+unless ( C4::Context->preference('EnablePayPalOpacPayments') ||
+         C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') ||
+         C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') ||
+         C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ||
+         C4::Context->preference('PmPaymentPaypageOpacPaymentsEnabled') ||
+         $use_plugin ) {
     print $cgi->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
 
-my $key = 'dsTFshg5678DGHMO';    # dummy for wrong HMAC md5sum
+my $key = 'dsTFshg5678DGHMO';    # dummy for wrong HMAC digest
 sub genHmacMd5 {
     my ($key, $str) = @_;
     my $hmac_md5 = Digest->HMAC_MD5($key);
     $hmac_md5->add($str);
     my $hashval = $hmac_md5->hexdigest();
+
+    return $hashval;
+}
+
+sub genHmacSha256 {
+    my ($key, $str) = @_;
+    my $hashval = hmac_sha256_hex($str, $key);
 
     return $hashval;
 }
@@ -80,6 +98,10 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         debug           => 1,
     }
 );
+
+my $logger = Koha::Logger->get({ interface => 'epayment' });    # logger common to all e-payment methods
+$logger->debug("opac-account-pay.pl: START payment_method:$payment_method: borrowernumber:$borrowernumber: accountlines:" . Dumper(@accountlines) . ":");
+
 # get borrower information
 my $patron = Koha::Patrons->find( $borrowernumber );
 
@@ -353,7 +375,7 @@ elsif ( $payment_method eq 'gs_creditcard' && C4::Context->preference('Girosolut
 
 
 elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {    # ePay21 Paypage
-    my $paytype = 17;    # just a dummy
+    my $paytype = 17;    # just a dummy; may be interpreted as payment via epay21 paypage
     my $seconds = time();    # make payment trials for same accountline distinguishable
 
     # overwriting SOAP::Transport::HTTP::Client::get_basic_credentials for substituting our customized credentials
@@ -366,7 +388,7 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
     }
 
     # Initialisierung einer ePay21 paypage Zahlung
-    my $epay21WebserviceUrl = C4::Context->preference('Epay21PaypageWebservicesURL');    # test env: https://epay-qs.ekom21.de/epay21/service/v11/ePay21Service.asmx   production env: 
+    my $epay21WebserviceUrl = C4::Context->preference('Epay21PaypageWebservicesURL');    # test env: https://epay-qs.ekom21.de/epay21/service/v11/ePay21Service.asmx   production env: https://epay.ekom21.de/epay21/service/v11/ePay21Service.asmx
     my $epay21WebserviceUrl_ns = 'http://epay21.ekom21.de/service/v11';
 
     my $opac_base_url = C4::Context->preference('OPACBaseURL');    # the ePay21 software seems to work only with https URL (not with http)
@@ -399,8 +421,8 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
     my $iniPay_OP_App = C4::Context->preference('Epay21App');    # mandatory
     my $iniPay_OP_LocaleCode = 'DE_DE';
     my $iniPay_OP_ClientInfo = C4::Context->preference('Epay21Mandant') . '_' . C4::Context->preference('Epay21App');
-    #my $iniPay_OP_PageURL = '';    # XXXWH perhaps to be adapted
-    #my $iniPay_OP_PageReferrerURL = '';    # XXXWH perhaps to be adapted
+    #my $iniPay_OP_PageURL = '';    # not required
+    #my $iniPay_OP_PageReferrerURL = '';    # not required
 
     # InitPayment Query parameters
     my $epay21AccountingSystemInfo = C4::Context->preference('Epay21AccountingSystemInfo');
@@ -408,7 +430,7 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
         $epay21AccountingSystemInfo = '';
     }
     my $iniPay_Query_CallerPayID = $merchantTxId;    # mandatory, unique Identifier des Falles im Fachverfahren
-    my $iniPay_Query_Purpose = substr($patron->cardnumber() . ' ' . $epay21AccountingSystemInfo, 0, 27);   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /  );
+    my $iniPay_Query_Purpose = substr($patron->cardnumber() . ' ' . $epay21AccountingSystemInfo, 0, 27);   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA ( i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /  );
     my $iniPay_Query_OrderDesc = C4::Context->preference('Epay21OrderDesc');    # will be displayed on paypage
     #my $iniPay_Query_OrderInfos = 'Auch dieser Text kann auf der PayPage angezeigt werden';    # wei 12.12.19: do not use to avoid confusion
     my $iniPay_Query_Amount = $amount_to_pay * 100;      # not Euro but Cent are required; 1,23 EUR => 123 Cent
@@ -509,6 +531,117 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
     }
 
     output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 }) if $error;
+}
+
+
+elsif ( $payment_method eq 'pmpayment_paypage' && C4::Context->preference('PmPaymentPaypageOpacPaymentsEnabled') ) {    # pmPayment paypage
+
+    my $loggerPmp = Koha::Logger->get({ interface => 'epayment.pmpayment' });
+    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage START cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
+
+    my $paytype = 18;    # just a dummy; may be interpreted as payment via pmPayment paypage
+    my $pmpaymentWebserviceUrl = C4::Context->preference('PmpaymentPaypageWebservicesURL');    # test env: https://payment-test.itebo.de   production env: https://www.payment.govconnect.de
+    my $ags = C4::Context->preference('PmpaymentAgs');    # mandatory; amtlicher Gemeinde-Schlüssel
+    my $procedure = C4::Context->preference('PmpaymentProcedure');    # mandatory; Name des Verfahrens
+    $key = C4::Context->preference('PmpaymentSaltHmacSha256');    # salt for generating HMAC SHA-256 digest
+    my $pmpaymentAccountingRecord = C4::Context->preference('PmpaymentAccountingRecord');   # With multibyte-characters a wrong hashval is calculated. So only characters conforming to SEPA ( i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) / ) may be used here.
+    if ( !defined($pmpaymentAccountingRecord) ) {
+        $pmpaymentAccountingRecord = '';
+    }
+
+    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage pmpaymentWebserviceUrl:$pmpaymentWebserviceUrl: ags:$ags: procedure:$procedure:");
+
+    my $ua = LWP::UserAgent->new;
+
+    # redirect to pmPayment paypage
+    my $url = $pmpaymentWebserviceUrl . '/payment/secure';    # init payment via server to server communication
+
+    my $opac_base_url = C4::Context->preference('OPACBaseURL');
+
+    my $message_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-pmpayment-notify.pl" );
+    $message_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
+
+    my $redirect_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-pmpayment-return.pl" );
+    $redirect_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
+
+    my $now = DateTime->from_epoch( epoch => Time::HiRes::time, time_zone => C4::Context->tz() );
+    my $todayMDY = $now->mdy;
+    my $todayDMY = $now->dmy;
+    my $merchantTxIdKey = $todayMDY . $key . $todayDMY . $key . $borrowernumber . $paytype . '_' . $amount_to_pay . '_' . $paytype . $borrowernumber . $key . $todayDMY . $key . $todayMDY;
+    my $merchantTxIdVal = $borrowernumber . '_' . $amount_to_pay;
+    foreach my $accountline (@accountlines) {
+        $merchantTxIdVal .= '_' . $accountline;
+    }
+    $merchantTxIdVal .= '_' . $paytype;
+    $merchantTxIdVal .= '_' . $merchantTxIdVal . '_' . $merchantTxIdVal;
+
+    my $timestamp = sprintf("%04d%02d%02d%02d%02d%02d%03d", $now->year, $now->month, $now->day, $now->hour, $now->minute, $now->second, $now->nanosecond/1000000);
+    my $merchantTxId = genHmacSha256($merchantTxIdKey, $merchantTxIdVal);         # unique merchant transaction ID (this hash value is used to check integrity of Koha CGI parameters in opac-account-pay-pmpayment-notify.pl)
+    if ( ! $procedure ) {
+        $merchantTxId = 'KohaLMSCloud' . '.' . $timestamp . '.' . $merchantTxId;
+    } else {
+        $merchantTxId = $procedure . '.' . $timestamp . '.' . $merchantTxId;
+    }
+    my $amount = $amount_to_pay * 100;      # not Euro but Cent are required
+    my $desc = substr('Bibliothek:' . $patron->cardnumber(), 0, 27);    # Will be displayed on paypage. With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
+    my $accountingRecord = $patron->cardnumber() . $pmpaymentAccountingRecord;   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
+
+    my $urlRedirect = $redirect_url->as_string();
+
+    my $urlNotify = $message_url->as_string();
+
+    my $paramstr =
+        $ags . '|' .
+        $amount . '|' .
+        $procedure . '|' .
+        $desc . '|' .
+        $accountingRecord . '|' .
+        $merchantTxId . '|' .
+        $urlNotify . '|' .
+        $urlRedirect;
+
+    my $hashval = genHmacSha256($key, $paramstr);
+    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage paramstr:$paramstr: hashval:$hashval:");
+
+    my $pmpayment_params = [
+        'ags' => $ags,    # mandatory; amtlicher Gemeinde-Schlüssel
+        'amount' => $amount,    # mandatory; amount to be paid in Eurocent
+        'procedure'  => $procedure,    # mandatory; Name des Verfahrens
+        'desc' => $desc,    # mandatory; SEPA-Verwendungszweck
+        'accountingRecord' => $accountingRecord,    # optional; Generischer Buchungssatz für Stadtkasse
+        'txid' => $merchantTxId,    # optional; unique transaction ID (unique for this ags or unique for this ags/procedure combination ?)
+        'notifyURL' => $urlNotify,    # formally optional; URL for 'Pay' in Koha if success of online payment is signalled by HTML form parameter 'status'
+        'redirectURL' => $urlRedirect,    # formally optional; URL for returning to Koha OPAC irrespective of success or failure of online payment
+        'hash' => $hashval    # mandatory; HMAC SHA-256 hash value (calculated on base of the parameter values above and $key)
+    ];
+    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage url:$url: pmpayment_params:" . Dumper($pmpayment_params) . ":");
+
+    my $response = $ua->request( POST $url, $pmpayment_params );
+    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage response:" . Dumper($response) . ":");
+
+    if ( $response->is_success ) {
+        my $content = Encode::decode("utf8", $response->content);
+        my $contentJson = from_json( $content );
+        $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage contentJson:" . Dumper($contentJson) . ":");
+
+        if ( $contentJson->{url} && $contentJson->{txid} ) {
+            $error = 0;
+            my $pmpayment_paypage_url = $contentJson->{url};
+            print $cgi->redirect( $pmpayment_paypage_url );
+
+        } else {
+            $template->param( error => "PMPAYMENT_ERROR_PROCESSING", pmpaymentmsg => $contentJson->{Error} );
+            $error = 1;
+        }
+
+    }
+    else {
+        $template->param( error => "PMPAYMENT_UNABLE_TO_CONNECT" );
+        $error = 2;
+    }
+
+    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage END error:$error:");
+    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
 }
 
 
