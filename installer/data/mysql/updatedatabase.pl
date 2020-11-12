@@ -17222,6 +17222,22 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.017";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('PmpaymentAccountingRecord','',NULL,'Additional information transferred to the library\'s financial accounting system, fields separated by |. Permitted characters: a-z A-Z 0-9 \':?,-(+.)/','Textarea' ),
+            ('PmpaymentAgs','',NULL,'The library\'s officiary municipal key.','Free' ),
+            ('PmpaymentPaypageOpacPaymentsEnabled','0',NULL,'Allow patrons to make paypage payments from the OPAC via pmPayment.','YesNo' ),
+            ('PmpaymentPaypageWebservicesURL','',NULL,'URL for accessing pmPayment paypage webservices, e.g. https://www.payment.govconnect.de .','Free' ),
+            ('PmpaymentProcedure','',NULL,'The library\'s procedure name within pmPayment.','Free' ),
+            ('PmpaymentSaltHmacSha256','',NULL,'The \'salt\' for calculating the HMAC SHA-256 hashes required by pmPayment.','Free' )
+    });
+
+    print "Upgrade to $DBversion done (Added systempreferences for online payment via pmPayment.)\n";
+    SetVersion($DBversion);
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

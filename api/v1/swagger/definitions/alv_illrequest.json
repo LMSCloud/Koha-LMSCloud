@@ -97,5 +97,5 @@
     }
   },
   "additionalProperties": false,
-  "required": ["mediumTitle", "orderLibIsil", "orderLibName", "orderLibEmail", "patronName", "patronEmail", "altIssues", "digitalMedium", "dataPrivacyAgreed", "nonCommercial"]
+  "required": ["mediumTitle", "orderLibIsil", "orderLibName", "orderLibEmail", "patronName", "altIssues", "digitalMedium", "dataPrivacyAgreed", "nonCommercial"]
 }

@@ -1,7 +1,7 @@
 package C4::Acquisition;
 
 # Copyright 2000-2002 Katipo Communications
-# parts Copyright 2018 (C) LMSCLoud GmbH
+# parts Copyright 2018-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -1595,6 +1595,7 @@ sub ModReceiveOrder {
         |, undef, $order->{ordernumber});
 
         delete $order->{ordernumber};
+        $order->{timestamp} = DateTime->now( time_zone => C4::Context->tz() );    # otherwise aqorders.timestamp is not updated
         $order->{budget_id} = ( $budget_id || $order->{budget_id} );
         $order->{quantity} = $quantrec;
         $order->{quantityreceived} = $quantrec;
@@ -1625,6 +1626,10 @@ sub ModReceiveOrder {
         |;
 
         $query .= q|
+            , listprice = ?
+        | if defined $order->{listprice};
+
+        $query .= q|
             , unitprice = ?, unitprice_tax_included = ?, unitprice_tax_excluded = ?
         | if defined $order->{unitprice};
 
@@ -1637,13 +1642,25 @@ sub ModReceiveOrder {
         | if defined $order->{tax_rate_on_receiving};
 
         $query .= q|
+            ,discount = ?
+        | if defined $order->{discount};
+
+        $query .= q|
             , order_internalnote = ?
         | if defined $order->{order_internalnote};
+
+        $query .= q|
+            , order_vendornote = ?
+        | if defined $order->{order_vendornote};
 
         $query .= q| where biblionumber=? and ordernumber=?|;
 
         my $sth = $dbh->prepare( $query );
         my @params = ( $quantrec, $datereceived, $invoice->{invoiceid}, ( $budget_id ? $budget_id : $order->{budget_id} ) );
+
+        if ( defined $order->{listprice} ) {
+            push @params, $order->{listprice};
+        }
 
         if ( defined $order->{unitprice} ) {
             push @params, $order->{unitprice}, $order->{unitprice_tax_included}, $order->{unitprice_tax_excluded};
@@ -1657,8 +1674,16 @@ sub ModReceiveOrder {
             push @params, $order->{tax_rate_on_receiving};
         }
 
+        if ( defined $order->{discount} ) {
+            push @params, $order->{discount};
+        }
+
         if ( defined $order->{order_internalnote} ) {
             push @params, $order->{order_internalnote};
+        }
+
+        if ( defined $order->{order_vendornote} ) {
+            push @params, $order->{order_vendornote};
         }
 
         push @params, ( $biblionumber, $order->{ordernumber} );
@@ -1888,6 +1913,7 @@ q{SELECT *, aqbasket.is_standing FROM aqorders LEFT JOIN aqbasket USING (basketn
         );
 
         delete $order->{'ordernumber'};
+        $order->{'timestamp'} = DateTime->now( time_zone => C4::Context->tz() );    # otherwise aqorders.timestamp is not updated
         $order->{'quantity'} = $quantitydelivered;
         $order->{'quantityreceived'} = 0;
         $order->{'datereceived'} = undef;
@@ -2778,6 +2804,10 @@ sub GetInvoices {
     if($args{invoicenumber}) {
         push @bind_strs, " aqinvoices.invoicenumber LIKE ? ";
         push @bind_args, "%$args{invoicenumber}%";
+    }
+    if($args{invoicenumber_equal}) {
+        push @bind_strs, " aqinvoices.invoicenumber = ? ";
+        push @bind_args, "$args{invoicenumber_equal}";
     }
     if($args{suppliername}) {
         push @bind_strs, " aqbooksellers.name LIKE ? ";

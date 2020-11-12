@@ -209,7 +209,9 @@ sub callWsMedienDaten {
 	my $self = shift;
 	my $ekzArtikelNr = shift;
 
-	my $messageId = $self->genTransactionId('');
+    # <messageId> is definded as xs:int in the wsdl.
+    # So we calculate (current seconds * 1000 + milliseconds) modulo 1000000000 to get a quite unique number that fits in a 32-bit integer the ekz seems to use for this purpose.
+    my $messageId = substr(substr($self->genTransactionId(''),0,-3),-9) + 0;
 	my $zeitstempel = $self->genZeitstempel();
 
 	my $soapResponseBody = '';
@@ -334,6 +336,7 @@ sub callWsStoList {
 	my $selMitEAN = shift;                          # optional
 	my $selStatusUpdate = shift;                    # optional
 	my $selErweitert = shift;                       # optional
+    my $selMitReferenznummer = shift;               # optional
     my $refStoListElement = shift;                  # for storing the StoListElement of the SOAP response body
 
 	my $result = {  'standingOrderCount' => 0,
@@ -349,6 +352,7 @@ sub callWsStoList {
                                                 ": selMitEAN:" . (defined($selMitEAN) ? $selMitEAN : 'undef') .
                                                 ": selStatusUpdate:" . (defined($selStatusUpdate) ? $selStatusUpdate : 'undef') .
                                                 ": selErweitert:" . (defined($selErweitert) ? $selErweitert : 'undef') .
+                                                ": selMitReferenznummer:" . (defined($selMitReferenznummer) ? $selMitReferenznummer : 'undef') .
                                                 ":");
 
     my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
@@ -398,6 +402,9 @@ sub callWsStoList {
     if ( defined $selErweitert && length($selErweitert) > 0 ) {
         $xmlwriter->dataElement('erweitert' => $selErweitert);    # <!—Steuerung, ob statusdatum und anzahl in Antwort geliefert wird, OPTIONAL -->
     }
+    if ( defined $selMitReferenznummer && length($selMitReferenznummer) > 0 ) {
+        $xmlwriter->dataElement('mitReferenznummer' => $selMitReferenznummer);    # <!-- entscheidet, ob die Referenznummern (und deren Exemplaranzahl) zu den Titeln geliefert werden sollen, OPTIONAL →
+    }
     $xmlwriter->endTag(       'bes:StoListElement');
     $xmlwriter->endTag(     'soap:Body');
 
@@ -409,7 +416,6 @@ sub callWsStoList {
 	my $soapResponse = $self->doQuery('"urn:stolist"', $soapEnvelope);
 
     $self->{'logger'}->debug("callWsStoList() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
-    $self->{'logger'}->trace("callWsStoList() \$refStoListElement:" . $refStoListElement . ":");
     $self->{'logger'}->trace("callWsStoList() Dumper(\$refStoListElement):" . Dumper($refStoListElement) . ":");
     
     if ( defined ($$refStoListElement) ) {
@@ -418,7 +424,6 @@ sub callWsStoList {
             $$refStoListElement = $1;
         }
     }
-    $self->{'logger'}->trace("callWsStoList() \$\$refStoListElement:" . $$refStoListElement . ":");
     $self->{'logger'}->trace("callWsStoList() Dumper(\$\$refStoListElement):" . Dumper($$refStoListElement) . ":");
 
 	if ($soapResponse->is_success) {
@@ -449,7 +454,27 @@ sub callWsStoList {
 				if ( $stoChild->nodeName eq 'titel' ) {
                     my $titelRecord = ();
                     foreach my $titelChild ( $stoChild->childNodes() ) {
-                        $titelRecord->{$titelChild->nodeName} = $titelChild->textContent;
+                        if ( $titelChild->nodeName eq 'kostenstelle' ) {    # may be sent multiple times
+                            if ( ! exists($titelRecord->{$titelChild->nodeName}) ) {
+                                $titelRecord->{$titelChild->nodeName} = [];
+                            }
+                            push @{$titelRecord->{$titelChild->nodeName}}, $titelChild->textContent;
+                        } elsif ( $titelChild->nodeName eq 'referenznummer' ) {
+                            my $referenznummerRecord = {};
+                            foreach my $referenznummerChild ( $titelChild->childNodes() ) {
+                                if ( $referenznummerChild->nodeName !~ /^#/ ) {
+                                    $referenznummerRecord->{$referenznummerChild->nodeName} = $referenznummerChild->textContent;
+                                }
+                            }
+                            if ( ! exists($titelRecord->{$titelChild->nodeName}) ) {
+                                $titelRecord->{$titelChild->nodeName} = [];
+                            }
+                            push @{$titelRecord->{$titelChild->nodeName}}, $referenznummerRecord;
+                        } else {
+                            if ( $titelChild->nodeName !~ /^#/ ) {
+                                $titelRecord->{$titelChild->nodeName} = $titelChild->textContent;
+                            }
+                        }
                     }
                     push @{$stoRecord->{'titelRecords'}}, $titelRecord;
                     $stoRecord->{'titelCount'} += 1;
@@ -462,6 +487,50 @@ sub callWsStoList {
             $self->{'logger'}->debug("callWsStoList() result->{'standingOrderRecords'}->[i]:" . $result->{'standingOrderRecords'}->[$result->{'standingOrderCount'}-1] . ":");
             $self->{'logger'}->trace("callWsStoList() Dumper(result->{'standingOrderRecords'}->[i]):" . Dumper($result->{'standingOrderRecords'}->[$result->{'standingOrderCount'}-1]) . ":");
 		}
+#VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+#		foreach my $lieferscheinNode ( $lieferscheinNodes->get_nodelist() ) {
+#            $self->{'logger'}->trace("callWsLieferscheinDetail() lieferscheinNode->nodeName:" . $lieferscheinNode->nodeName . ":");
+#            my $lieferscheinRecord = {'teilLieferungCount' => 0, 'teilLieferungRecords' => []};
+#			foreach my $lieferscheinChild ( $lieferscheinNode->childNodes() ) {    # <id> <nummer> <datum> <teilLieferung> are of interest
+#                $self->{'logger'}->trace("callWsLieferscheinDetail() lieferscheinChild->nodeName:" . $lieferscheinChild->nodeName . ":");
+#                # copy values of hit into lieferscheinrecord
+#                if ( $lieferscheinChild->nodeName eq 'teilLieferung' ) {
+#                    my $teilLieferungRecord = {'auftragsPositionCount' => 0, 'auftragsPositionRecords' => []};
+#                    foreach my $teilLieferungChild ( $lieferscheinChild->childNodes() ) {
+#                        if ( $teilLieferungChild->nodeName eq 'auftragsPosition' ) {
+#                            my $auftragsPositionRecord = ();
+#                            foreach my $auftragsPositionChild ( $teilLieferungChild->childNodes() ) {
+#                                if ( $auftragsPositionChild->nodeName !~ /^#/ ) {
+#                                    $auftragsPositionRecord->{$auftragsPositionChild->nodeName} = $auftragsPositionChild->textContent;
+#                                }
+#                            }
+#                            push @{$teilLieferungRecord->{'auftragsPositionRecords'}}, $auftragsPositionRecord;
+#                            $teilLieferungRecord->{'auftragsPositionCount'} += 1;
+#                        } else {
+#                            if ( $teilLieferungChild->nodeName !~ /^#/ ) {
+#                                $teilLieferungRecord->{$teilLieferungChild->nodeName} = $teilLieferungChild->textContent;
+#                            }
+#                        }
+#                    }
+#                    push @{$lieferscheinRecord->{'teilLieferungRecords'}}, $teilLieferungRecord;
+#                    $lieferscheinRecord->{'teilLieferungCount'} += 1;
+#                } elsif ( $lieferscheinChild->nodeName eq 'rechnungsAnschrift' ) {
+#                    my $rechnungsAnschriftRecord = ();
+#                    foreach my $rechnungsAnschriftChild ( $lieferscheinChild->childNodes() ) {
+#                        if ( $rechnungsAnschriftChild->nodeName !~ /^#/ ) {
+#                             $rechnungsAnschriftRecord->{$rechnungsAnschriftChild->nodeName} = $rechnungsAnschriftChild->textContent;
+#                        }
+#                    }
+#                    $lieferscheinRecord->{$lieferscheinChild->nodeName} = $rechnungsAnschriftRecord;
+#                } else {
+#                    if ( $lieferscheinChild->nodeName !~ /^#/ ) {
+#                        $lieferscheinRecord->{$lieferscheinChild->nodeName} = $lieferscheinChild->textContent;
+#                    }
+#                }
+#			}
+#            push @{$result->{'lieferscheinRecords'}}, $lieferscheinRecord;
+#            $result->{'lieferscheinCount'} += 1;
+#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 	}
 	
 	return $result;
@@ -953,7 +1022,10 @@ sub callWsBestellung {
         $soapRequest = $preparedRequest
     } else {
         # build request
-	    my $messageId = $self->genTransactionId('');
+
+        # <messageId> is definded as xs:int in the wsdl.
+        # So we calculate (current seconds * 1000 + milliseconds) modulo 1000000000 to get a quite unique number that fits in a 32-bit integer the ekz seems to use for this purpose.
+        my $messageId = substr(substr($self->genTransactionId(''),0,-3),-9) + 0;
 	    my $zeitstempel = $self->genZeitstempel();
 
         my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );

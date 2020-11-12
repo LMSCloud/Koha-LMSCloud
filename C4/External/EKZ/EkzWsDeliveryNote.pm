@@ -132,7 +132,6 @@ sub genKohaRecords {
 
     my $updOrInsItemsCount = 0;
     my $zweigstellencode = '';
-    # XXXWH hau wech (OLD) my $homebranch = C4::External::EKZ::lib::EkzWebServices->new()->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     my $homebranch = $ekzKohaRecord->{ekzWsConfig}->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     $homebranch =~ s/^\s+|\s+$//g; # trim spaces
     if ( defined $homebranch && length($homebranch) > 0 ) {
@@ -153,7 +152,6 @@ sub genKohaRecords {
         $ekzWebServicesHideOrderedTitlesInOpac == 0 ) {
             $ekzWsHideOrderedTitlesInOpac = 0;
     }
-    # XXXWH hau wech (OLD) my $ekzAqbooksellersId = C4::Context->preference("ekzAqbooksellersId");
     my $ekzAqbooksellersId = $ekzKohaRecord->{ekzWsConfig}->getEkzAqbooksellersId($ekzCustomerNumber);
     $ekzAqbooksellersId =~ s/^\s+|\s+$//g;    # trim spaces
     my $acquisitionError = 0;
@@ -199,13 +197,14 @@ sub genKohaRecords {
 
     my $acquisitionImportIdLieferschein;
     my $acquisitionImportLieferschein = Koha::AcquisitionImport::AcquisitionImports->new();
-    my $hit = $acquisitionImportLieferschein->_resultset()->find( $selParam );
+    my $hit = $acquisitionImportLieferschein->_resultset()->search( $selParam )->first();
     $logger->trace("genKohaRecords() ref(acquisitionImportLieferschein):" . ref($acquisitionImportLieferschein) . ": ref(hit)" . ref($hit) . ":");
     if ( defined($hit) ) {
         $lieferscheinNummerIsDuplicate = 1;
         $logger->trace("genKohaRecords() hit->{_column_data}:" . Dumper($hit->{_column_data}) . ":");
-        my $mess = sprintf("The delivery note number '%s' has already been used at %s. Processing denied.\n",$lieferscheinNummer, $hit->get_column('processingtime'));
-        carp $mess;
+        my $mess = sprintf("genKohaRecords(): The delivery note number '%s' has already been used at %s. Processing denied.",$lieferscheinNummer, $hit->get_column('processingtime'));
+        $logger->error($mess);
+        carp "EkzWsDeliveryNote::" . $mess . "\n";
     } else {
         my $schemaResultAcquitionImport = $acquisitionImportLieferschein->_resultset()->create($insParam);
         $acquisitionImportIdLieferschein = $schemaResultAcquitionImport->get_column('id');
@@ -249,15 +248,19 @@ sub genKohaRecords {
 
             # search corresponding item hits with same ekzExemplarid in table acquisition_import, if sent in $auftragsPosition->{'ekzexemplarid'}.
             # otherwise:
+            # search corresponding item hits with same ekzArtikelNr and same referenznummer in table acquisition_import, if sent in $auftragsPosition->{'artikelNummer'} and  in $auftragsPosition->{'referenzummer'}.
+            # otherwise:
             # search corresponding order title hits with same ekzArtikelNr in table acquisition_import, if sent in $auftragsPosition->{'artikelNummer'}
             # In some cases (e.g. knv titles) the artikelNummer is 0, so it can't be used for search
+            # if not found enough acquisition_import records of rec_type 'item' and processingstate 'ordered': 'invent' the underlying order
 
-            # we try maximal 3 methods for identifying an order, or 'inventing' one, if required:
+            # we try maximal 4 methods for identifying an order, or 'inventing' one, if required:
             # method1: searching for ekzExemplarid identity   (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
-            # method2: searching for ekzArtikelNr identity if ekzArtikelNr > 0   (typical for an item of a running standing order)
-            # method3 is for all items for which no acquisition_import record representing the order title could be found   (typical for an item of a running continuation/series order)
+            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0  (typical for an item of a running standing order (since 2020-09-14))
+            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0   (typical for an item of a running standing order (until 2020-09-13))
+            # method4 is for all items for which no acquisition_import record representing the order title could be found   (typical for an item of a running continuation/series order)
 
-            # method1: searching for ekzExemplarid identity (which is preferable; typical for an item that was ordered in the ekz Medienshop)
+            # method1: searching for ekzExemplarid identity (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
             if (defined($auftragsPosition->{'ekzexemplarid'}) && length($auftragsPosition->{'ekzexemplarid'}) > 0 && $updOrInsItemsCount < $deliveredItemsCount ) {
 
                 # search in acquisition_import for records representing ordered items with the same ekzExemplarid
@@ -288,7 +291,7 @@ sub genKohaRecords {
                         processingstate => 'ordered'
                     };
                     $logger->trace("genKohaRecords() method1: search title order record in acquisition_import selParam:" . Dumper($selParam) . ":");
-                    my $acquisitionImportTitleHit = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->find($selParam);
+                    my $acquisitionImportTitleHit = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->find($selParam);    # unique via 'id'
                     $logger->trace("genKohaRecords() method1: acquisitionImportTitleHit->{_column_data}::" . Dumper($acquisitionImportTitleHit->{_column_data}) . ":");
                     if ( defined($acquisitionImportTitleHit) ) {
                         my $selParam = {
@@ -297,7 +300,7 @@ sub genKohaRecords {
                         };
                         $logger->trace("genKohaRecords() method1: search title order record in acquisition_import_objects selParam:" . Dumper($selParam) . ":");
                         my $titleObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
-                        my $titleObjectRS = $titleObject->_resultset()->find($selParam);
+                        my $titleObjectRS = $titleObject->_resultset()->search($selParam)->first();
                         my $selBiblionumber = $titleObjectRS->get_column('koha_object_id');
                         $logger->trace("genKohaRecords() method1: titleObjectRS->{_column_data}:" . Dumper($titleObjectRS->{_column_data}) . ":");
 
@@ -327,20 +330,109 @@ sub genKohaRecords {
 
                                     # add result of finding biblio to log email
                                     ($titeldata, $isbnean) = $ekzKohaRecord->getShortISBD($titleHits->{'records'}->[0]);
-                                    push @{$emaillog->{'records'}}, [$tmp_cna, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
+                                    push @{$emaillog->{'records'}}, [$lsEkzArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
                                     $logger->trace("genKohaRecords() method1: emaillog->{'records'}->[0]:" . Dumper($emaillog->{'records'}->[0]) . ":");
                                 } else {
                                     next;    # next in acquisitionImportEkzExemplarIdHits->all()
                                 }
                             }
-                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
+                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
                         }    #end defined($selBiblionumber)
                     }    # end defined($acquisitionImportTitleHit)
                 }    # end foreach acquisitionImportEkzExemplarIdHits->all()
             }    # end method1
 
 
-            # method2: searching for ekzArtikelNr identity if ekzArtikelNr > 0 (typical for an item of a running standing order)
+            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0 (typical for an item of a running standing order (since 2020-09-14))
+            if (defined($auftragsPosition->{'artikelNummer'}) && $auftragsPosition->{'artikelNummer'} > 0 && 
+                defined($auftragsPosition->{'referenznummer'}) && length($auftragsPosition->{'referenznummer'}) > 0 && 
+                $updOrInsItemsCount < $deliveredItemsCount ) {
+                # ekz has confirmed that there is sent maximal 1 <referenznummer> XML-element per <auftragsPosition>.
+                # If the items of a title are spread over multiple (different) referenznummer values, then multiple <auftragsPosition> blocks will be sent.
+                my $lsReferenznummer = $auftragsPosition->{'referenznummer'};
+
+                # search in acquisition_import for records representing ordered STO items with the same $ekzCustomerNumber, ekzArtikelNr and referenznummer
+                my $selParam = {
+                    vendor_id => "ekz",
+                    object_type => "order",
+                    object_item_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
+                    rec_type => "item",
+                    processingstate => 'ordered'
+                };
+                $logger->trace("genKohaRecords() method2: search order item record in acquisition_import selParam:" . Dumper($selParam) . ":");
+                my $acquisitionImportEkzExemplarIdHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
+                $logger->trace("genKohaRecords() method2: scalar acquisitionImportEkzExemplarIdHits:" . scalar $acquisitionImportEkzExemplarIdHits . ":");
+
+                foreach my $acquisitionImportEkzExemplarIdHit ($acquisitionImportEkzExemplarIdHits->all()) {
+                    if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
+                        last;
+                    }
+                    $logger->trace("genKohaRecords() method2: acquisitionImportEkzExemplarIdHit->{_column_data}:" . Dumper($acquisitionImportEkzExemplarIdHit->{_column_data}) . ":");
+
+                    #read the corresponding title via its biblionumber from acquisition_import_objects
+                    # search in acquisition_import for the record representing the ordered title belonging to this item
+                    my $selParam = {
+                        vendor_id => "ekz",
+                        object_type => "order",
+                        id => $acquisitionImportEkzExemplarIdHit->get_column('object_reference'),
+                        rec_type => "title",
+                        processingstate => 'ordered'
+                    };
+                    $logger->trace("genKohaRecords() method2: search title order record in acquisition_import selParam:" . Dumper($selParam) . ":");
+                    my $acquisitionImportTitleHit = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->find($selParam);    # unique via 'id'
+                    $logger->trace("genKohaRecords() method2: acquisitionImportTitleHit->{_column_data}::" . Dumper($acquisitionImportTitleHit->{_column_data}) . ":");
+                    if ( defined($acquisitionImportTitleHit) ) {
+                        my $selParam = {
+                            acquisition_import_id => $acquisitionImportTitleHit->get_column('id'),
+                            koha_object => "title"
+                        };
+                        $logger->trace("genKohaRecords() method2: search title order record in acquisition_import_objects selParam:" . Dumper($selParam) . ":");
+                        my $titleObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
+                        my $titleObjectRS = $titleObject->_resultset()->search($selParam)->first();
+                        my $selBiblionumber = $titleObjectRS->get_column('koha_object_id');
+                        $logger->trace("genKohaRecords() method2: titleObjectRS->{_column_data}:" . Dumper($titleObjectRS->{_column_data}) . ":");
+
+                        if ( defined($selBiblionumber) ) {
+                            if ( $selBiblionumber != $biblionumber ) {
+                                $titleHits = { 'count' => 0, 'records' => [] };
+                                $biblionumber = 0;
+                                $lsEkzArtikelNr = '';
+                                my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
+                                if ( defined($record) ) {
+                                    $titleHits->{'count'} = 1;
+                                    $titleHits->{'records'}->[0] = $record;
+                                }
+
+                                if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                                    $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+                                    my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                                    my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                                    if ( $tmp_cna eq "DE-Rt5" ) {
+                                        $lsEkzArtikelNr = $tmp_cn;
+                                    } else {
+                                        $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
+                                    }
+                                    # positive message for log email
+                                    $emaillog->{'importresult'} = 2;
+                                    $emaillog->{'importedTitlesCount'} += 0;
+
+                                    # add result of finding biblio to log email
+                                    ($titeldata, $isbnean) = $ekzKohaRecord->getShortISBD($titleHits->{'records'}->[0]);
+                                    push @{$emaillog->{'records'}}, [$lsEkzArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
+                                    $logger->trace("genKohaRecords() method2: emaillog->{'records'}->[0]:" . Dumper($emaillog->{'records'}->[0]) . ":");
+                                } else {
+                                    next;    # next in acquisitionImportEkzExemplarIdHits->all()
+                                }
+                            }
+
+                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $lsReferenznummer, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
+                        }    #end defined($selBiblionumber)
+                    }    # end defined($acquisitionImportTitleHit)
+                }    # end foreach acquisitionImportEkzExemplarIdHits->all()
+            }    # end method2
+
+
+            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0 (typical for an item of a running standing order (until 2020-09-13))
             if (defined($auftragsPosition->{'artikelNummer'}) && $auftragsPosition->{'artikelNummer'} > 0 && $updOrInsItemsCount < $deliveredItemsCount ) {
             #if (defined($auftragsPosition->{'artikelNummer'})  && $updOrInsItemsCount < $deliveredItemsCount ) {    # XXXWH maybe there is an standing order that matches the auftragsPosition by ISBN or EAN even if $auftragsPosition->{'artikelNummer'} == 0
 
@@ -363,7 +455,7 @@ sub genKohaRecords {
                     $logger->trace("genKohaRecords() method2: acquisitionImportTitleHit->{_column_data}:" . Dumper($acquisitionImportTitleHit->{_column_data}) . ":");
                     
                     if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
-                        # search the biblio record; if not found, create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method3)
+                        # search the biblio record; if not found, create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method4)
                         my $reqParamTitelInfo = ();
                         $reqParamTitelInfo->{'ekzArtikelNr'} = $auftragsPosition->{'artikelNummer'};
                         my $isbn = $auftragsPosition->{'isbn'};
@@ -398,7 +490,7 @@ sub genKohaRecords {
                             ($titeldata, $isbnean) = $ekzKohaRecord->getShortISBD($titleHits->{'records'}->[0]);
                             push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
                         } else {
-                            last;   # create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method3)
+                            last;   # create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method4)
                         }
                     }
                     
@@ -419,17 +511,18 @@ sub genKohaRecords {
                             last;    # now all $deliveredItemsCount delivered items have been handled 
                         }
 
-                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
+                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
                     }
                 }
-            }    # end method2
+            }    # end method3
+
 
             $logger->trace("genKohaRecords() deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:");
 
-            # method3 is for all items for which no acquisition_import record representing the order title could be found
+            # method4 is for all items for which no acquisition_import record representing the order title could be found
             # if not enough matching items could be found: we suppose a 'normal' order and create the corresponding entries for the remaining items
             if ( $updOrInsItemsCount < $deliveredItemsCount) {
-                $logger->trace("genKohaRecords() method3: create item for ekzArtikelNr:$auftragsPosition->{'artikelNummer'}:");
+                $logger->trace("genKohaRecords() method4: create item for ekzArtikelNr:$auftragsPosition->{'artikelNummer'}:");
 
                 if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
 
@@ -451,14 +544,14 @@ sub genKohaRecords {
                         $reqParamTitelInfo->{'preis'} = $auftragsPosition->{'verkaufsPreis'};    # without regard to $auftragsPosition->{'nachlass'}
                     }
                     $reqParamTitelInfo->{'auflage'} = $auftragsPosition->{'auflageText'};
-                    $logger->trace("genKohaRecords() method3: reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ":");
+                    $logger->trace("genKohaRecords() method4: reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ":");
 
                     $titleHits = { 'count' => 0, 'records' => [] };
                     $biblionumber = 0;
                     $lsEkzArtikelNr = '';
                     # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
                     $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
-                    $logger->trace("genKohaRecords() method3: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                    $logger->trace("genKohaRecords() method4: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                     if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                         $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
                         my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
@@ -475,24 +568,24 @@ sub genKohaRecords {
                         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                             last;    # title has been found in lastly tested title source
                         }
-                        $logger->trace("genKohaRecords() method3: titleSource:$titleSource:");
+                        $logger->trace("genKohaRecords() method4: titleSource:$titleSource:");
 
                         if ( $titleSource eq '_LMSC' ) {
                             # search title in LMSPool
                             $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo);
-                            $logger->trace("genKohaRecords() method3: from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                            $logger->trace("genKohaRecords() method4: from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                         } elsif ( $titleSource eq '_EKZWSMD' ) {
                             # detailed query to the ekz title information web service
                             $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
-                            $logger->trace("genKohaRecords() method3: from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                            $logger->trace("genKohaRecords() method4: from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                         } elsif ( $titleSource eq '_WS' ) {
                             # use sparse title data from the LieferscheinDetailElement
                             $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);
-                            $logger->trace("genKohaRecords() method3: from sent titel fields:" . $titleHits->{'count'} . ":");
+                            $logger->trace("genKohaRecords() method4: from sent titel fields:" . $titleHits->{'count'} . ":");
                         } else {
                             # search title in in the Z39.50 target with z3950servers.servername=$titleSource
                             $titleHits = $ekzKohaRecord->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
-                            $logger->trace("genKohaRecords() method3: from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                            $logger->trace("genKohaRecords() method4: from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                         }
                     }
 
@@ -508,7 +601,7 @@ sub genKohaRecords {
                             my $newrec;
                             ($biblionumber,$biblioitemnumber,$newrec) = $ekzKohaRecord->addNewRecord($titleHits->{'records'}->[0]);
                             $titleHits->{'records'}->[0] = $newrec if ($newrec);
-                            $logger->trace("genKohaRecords() method3: new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
+                            $logger->trace("genKohaRecords() method4: new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
                             if ( defined $biblionumber && $biblionumber > 0 ) {
                                 $biblioInserted = 1;
                                 # positive message for log
@@ -538,7 +631,7 @@ sub genKohaRecords {
                         push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
                     }
                 }
-                $logger->info("genKohaRecords() method3: biblioExisting:$biblioExisting: biblioInserted:$biblioInserted: biblionumber:$biblionumber:");
+                $logger->info("genKohaRecords() method4: biblioExisting:$biblioExisting: biblioInserted:$biblioInserted: biblionumber:$biblionumber:");
 
                 # now add the acquisition_import and acquisition_import_objects record for the title
                 if ( $biblioExisting || $biblioInserted ) {
@@ -567,7 +660,7 @@ sub genKohaRecords {
                     my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
                     my $acquisitionImportTitleRS = $acquisitionImportTitle->_resultset()->create($insParam);
                     my $acquisitionImportIdTitle = $acquisitionImportTitleRS->get_column('id');
-                    $logger->trace("genKohaRecords() method3: acquisitionImportTitleRS->{_column_data}:" . Dumper($acquisitionImportTitleRS->{_column_data}) . ":");
+                    $logger->trace("genKohaRecords() method4: acquisitionImportTitleRS->{_column_data}:" . Dumper($acquisitionImportTitleRS->{_column_data}) . ":");
 
                     # Insert a record into table acquisition_import_object representing the Koha title data of the 'invented' order.
                     $insParam = {
@@ -578,7 +671,7 @@ sub genKohaRecords {
                     };
                     my $titleImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                     my $titleImportObjectRS = $titleImportObject->_resultset()->create($insParam);
-                    $logger->trace("genKohaRecords() method3: titleImportObjectRS->{_column_data}:" . Dumper($titleImportObjectRS->{_column_data}) . ":");
+                    $logger->trace("genKohaRecords() method4: titleImportObjectRS->{_column_data}:" . Dumper($titleImportObjectRS->{_column_data}) . ":");
 
                     # Insert a record into table acquisition_import representing the delivery note title.
                     $insParam = {
@@ -596,13 +689,13 @@ sub genKohaRecords {
                     };
                     my $acquisitionImportTitleDelivery = Koha::AcquisitionImport::AcquisitionImports->new();
                     my $acquisitionImportTitleDeliveryRS = $acquisitionImportTitleDelivery->_resultset()->create($insParam);
-                    $logger->trace("genKohaRecords() method3: acquisitionImportTitleDeliveryRS->{_column_data}:" . Dumper($acquisitionImportTitleDeliveryRS->{_column_data}) . ":");
+                    $logger->trace("genKohaRecords() method4: acquisitionImportTitleDeliveryRS->{_column_data}:" . Dumper($acquisitionImportTitleDeliveryRS->{_column_data}) . ":");
 
 
                     # now add the items data for the new biblionumber
                     my $ekzExemplarID = $ekzBestellNr . '-' . $lsEkzArtikelNr;    # dummy item number for the 'invented' order
                     my $exemplarcount = $deliveredItemsCount - $updOrInsItemsCount;
-                    $logger->trace("genKohaRecords() method3: exemplar ekzExemplarID:$ekzExemplarID: exemplarcount:$exemplarcount:");
+                    $logger->trace("genKohaRecords() method4: exemplar ekzExemplarID:$ekzExemplarID: exemplarcount:$exemplarcount:");
 
                     # attaching ekz order to Koha acquisition: 
                     # If system preference ekzAqbooksellersId is not empty: create a Koha order basket for collecting the Koha orders created for each title contained in the request that can not be assigned to an existing order.
@@ -615,7 +708,7 @@ sub genKohaRecords {
                         my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                         if ( @{$selbaskets} > 0 ) {
                             $basketno = $selbaskets->[0]->{'basketno'};
-                            $logger->trace("genKohaRecords() method3: found aqbasket with basketno:$basketno:");
+                            $logger->trace("genKohaRecords() method4: found aqbasket with basketno:$basketno:");
                         } else {
                             my $authorisedby = undef;
                             my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
@@ -624,8 +717,8 @@ sub genKohaRecords {
                                 $authorisedby = $hit->{borrowernumber};
                             }
                             my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
-                            $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz LieferscheinDetail', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH
-                            $logger->trace("genKohaRecords() method3: created new basket having basketno:" . Dumper($basketno) . ":");
+                            $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz LieferscheinDetail', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH fixed text ok?
+                            $logger->trace("genKohaRecords() method4: created new basket having basketno:" . Dumper($basketno) . ":");
                             if ( $basketno ) {
                                 my $basketinfo = {};
                                 $basketinfo->{'basketno'} = $basketno;
@@ -637,47 +730,11 @@ sub genKohaRecords {
                             $acquisitionError = 1;
                         }
                     }
-                    $logger->info("genKohaRecords() method3: ekzAqbooksellersId:$ekzAqbooksellersId: acquisitionError:$acquisitionError: basketno:$basketno:");
+                    $logger->info("genKohaRecords() method4: ekzAqbooksellersId:$ekzAqbooksellersId: acquisitionError:$acquisitionError: basketno:$basketno:");
 
-                    # attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order.
-                    my $verkaufsPreis = defined($auftragsPosition->{'verkaufsPreis'}) ? $auftragsPosition->{'verkaufsPreis'} : "0.00";
-                    my $nachlass = defined($auftragsPosition->{'nachlass'}) ? $auftragsPosition->{'nachlass'} : "0.00";
-                    my $rabatt = "0.0";    # not sent in LieferscheinDetailResponseElement, so we calculate it from verkaufsPreis and nachlass
-                    if ( $verkaufsPreis != 0.0 ) {
-                        $rabatt = ($nachlass * 100.0) / $verkaufsPreis
-                    }
-                    my $wertPositionsTeil = defined($auftragsPosition->{'wertPositionsTeil'}) ? $auftragsPosition->{'wertPositionsTeil'} : "0.00";    # info by etecture: <wertPositionsTeil> = <verkaufsPreis> - <nachlass>
-                    my $wertMehrpreise = defined($auftragsPosition->{'wertMehrpreise'}) ? $auftragsPosition->{'wertMehrpreise'} : "0.00";
-                    my $wertBearbeitung = defined($auftragsPosition->{'wertBearbeitung'}) ? $auftragsPosition->{'wertBearbeitung'} : "0.00";
-                    my $waehrung = defined($auftragsPosition->{'waehrung'}) ? $auftragsPosition->{'waehrung'} : "EUR";
-                    my $ustSatz = &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('E');    # not sent in LieferscheinDetailResponseElement, so we evaluate XML element <mwst>
-                    my $ust = "0.00";    # not sent in LieferscheinDetailResponseElement
-                    my $mwst  = defined($auftragsPosition->{'mwst'}) ? $auftragsPosition->{'mwst'} : "E";
-                    if ( $mwst eq 'V') {
-                        $ustSatz = &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('V');
-                    }
-                    
-                    my $gesamtpreis_tax_included = $verkaufsPreis;    # not sent in LieferscheinDetailResponseElement, so we calculate it based on an info by etecture; total for a single item
-                    if ( defined($auftragsPosition->{'verkaufsPreis'}) && defined($auftragsPosition->{'nachlass'}) ) {
-                        $gesamtpreis_tax_included = $verkaufsPreis - $nachlass + $wertMehrpreise + $wertBearbeitung;    # not sent in LieferscheinDetailResponseElement, so we calculate it; total for a single item
-                    } elsif ( defined($auftragsPosition->{'wertPositionsTeil'}) ) {
-                        $gesamtpreis_tax_included = $wertPositionsTeil + $wertMehrpreise + $wertBearbeitung;    # not sent in LieferscheinDetailResponseElement, so we calculate it; total for a single item
-                    }
-                    if ( $ust == 0.0 && $ustSatz != 0.0 ) {    # Bruttopreise
-                        $ust = $gesamtpreis_tax_included * $ustSatz / (1 + $ustSatz);
-                        $ust =  &C4::External::EKZ::lib::EkzKohaRecords::round($ust, 2);
-                    }
-                    if ( $ustSatz == 0.0 && $ust != 0.0 && $gesamtpreis_tax_included != 0.0) {    # Nettopreise
-                        $ustSatz = $ust / $gesamtpreis_tax_included;
-                        $ustSatz =  &C4::External::EKZ::lib::EkzKohaRecords::round($ustSatz, 2);
-                    }
-                    my $divisor = 1.0 + $ustSatz;
-                    my $gesamtpreis_tax_excluded = $divisor == 0.0 ? 0.0 : $gesamtpreis_tax_included / $divisor;
-                    $gesamtpreis_tax_excluded = &C4::External::EKZ::lib::EkzKohaRecords::round($gesamtpreis_tax_excluded, 2);
-
-                    my $replacementcost_tax_included =  $verkaufsPreis;    # list price of single item in library's currency, not discounted
-                    my $replacementcost_tax_excluded = $divisor == 0.0 ? 0.0 : $replacementcost_tax_included / $divisor;
-                    $replacementcost_tax_excluded = &C4::External::EKZ::lib::EkzKohaRecords::round($replacementcost_tax_excluded, 2);
+                    # Get price info from auftragPosition of sent message, for creating aqorders and items records.
+                    my $priceInfo = priceInfoFromMessage($lieferscheinRecord, $auftragsPosition, $logger);
+                    # Attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order in the same way as for a invoice.
 
                     my $order = undef;
                     my $ordernumber = undef;
@@ -699,36 +756,32 @@ sub genKohaRecords {
 
                         my ($dummy1, $dummy2, $budgetid, $dummy3) = $ekzKohaRecord->checkAqbudget($ekzCustomerNumber, $haushaltsstelle, $kostenstelle, 1);
 
-                        my $quantity = $exemplarcount;
-                        my $budgetedcost_tax_included =  $gesamtpreis_tax_included;    # discounted
-                        my $budgetedcost_tax_excluded =  $gesamtpreis_tax_excluded;    # discounted
-
                         my $orderinfo = ();
 
                         # ordernumber is set by DBS
                         $orderinfo->{biblionumber} = $biblionumber;
                         # entrydate is set to today by Koha::Acquisition::Order->insert()
-                        $orderinfo->{quantity} = $quantity;
-                        $orderinfo->{currency} = $waehrung;    # currency of bookseller's list price
+                        $orderinfo->{quantity} = $exemplarcount;
+                        $orderinfo->{currency} = $priceInfo->{waehrung};    # currency of bookseller's list price
                         # XXXWH currency-Umrechnung fehlt in die eine oder andere Richtung
-                        $orderinfo->{'listprice'} = $verkaufsPreis;    # input field 'Vendor price' in UI (in foreign currency, not discounted, per item)
+                        $orderinfo->{'listprice'} = $priceInfo->{verkaufsPreis};    # input field 'Vendor price' in UI (in foreign currency, not discounted, per item)
                         $orderinfo->{unitprice} = 0.0;    #  corresponds to input field 'Actual cost' in UI (discounted) and will be initialized with budgetedcost in the GUI in 'receiving' step
                         $orderinfo->{unitprice_tax_excluded} = 0.0;
                         $orderinfo->{unitprice_tax_included} = 0.0;
                         # quantityreceived is set to 0 by DBS
                         $orderinfo->{order_internalnote} = '';
-                        $orderinfo->{order_vendornote} = 'Verkaufspreis: ' . "$verkaufsPreis $waehrung\n";
-                        if ( $nachlass != 0.0 ) {
-                            $orderinfo->{order_vendornote} .= 'Nachlass: ' . "$nachlass $waehrung\n";
+                        $orderinfo->{order_vendornote} = sprintf("Verkaufspreis: %.2f %s (Exemplare: %d)\n", $priceInfo->{verkaufsPreis}, $priceInfo->{waehrung}, $priceInfo->{exemplareBestellt});
+                        if ( $priceInfo->{nachlass} != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= sprintf("Nachlass: %.2f %s\n", $priceInfo->{nachlass}, $priceInfo->{waehrung});
                         }
-                        if ( $wertPositionsTeil != 0.0 ) {
-                            $orderinfo->{order_vendornote} .= 'Positionsteilwert: ' . "$wertPositionsTeil $waehrung\n";
+                        if ( $priceInfo->{wertPositionsTeil} != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= sprintf("Positionsteilwert: %.2f %s\n", $priceInfo->{wertPositionsTeil}, $priceInfo->{waehrung});
                         }
-                        if ( $wertMehrpreise != 0.0 ) {
-                            $orderinfo->{order_vendornote} .= 'Mehrpreis: ' . "$wertMehrpreise $waehrung\n";
+                        if ( $priceInfo->{wertMehrpreise} != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= sprintf("Mehrpreis: %.2f %s\n", $priceInfo->{wertMehrpreise}, $priceInfo->{waehrung});
                         }
-                        if ( $wertBearbeitung != 0.0 ) {
-                            $orderinfo->{order_vendornote} .= 'Bearbeitungspreis: ' . "$wertBearbeitung $waehrung\n";
+                        if ( $priceInfo->{wertBearbeitung} != 0.0 ) {
+                            $orderinfo->{order_vendornote} .= sprintf("Bearbeitungspreis: %.2f %s\n", $priceInfo->{wertBearbeitung}, $priceInfo->{waehrung});
                         }
                         $orderinfo->{basketno} = $basketno;
                         # timestamp is set to now by DBS
@@ -737,26 +790,26 @@ sub genKohaRecords {
                         # claims_count is set to 0 by DBS
                         $orderinfo->{subscriptionid} = undef;
                         $orderinfo->{orderstatus} = 'ordered';
-                        $orderinfo->{rrp} = $replacementcost_tax_included;    #  corresponds to input field 'Replacement cost' in UI (not discounted, per item)
-                        $orderinfo->{rrp_tax_excluded} = $replacementcost_tax_excluded;
-                        $orderinfo->{rrp_tax_included} = $replacementcost_tax_included;
-                        $orderinfo->{ecost} = $budgetedcost_tax_included;     #  corresponds to input field 'Budgeted cost' in UI (discounted, per item)
-                        $orderinfo->{ecost_tax_excluded} = $budgetedcost_tax_excluded;
-                        $orderinfo->{ecost_tax_included} = $budgetedcost_tax_included;
-                        $orderinfo->{tax_rate_bak} = $ustSatz;        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
-                        $orderinfo->{tax_rate_on_ordering} = $ustSatz;
-                        $orderinfo->{tax_rate_on_receiving} = $ustSatz;
-                        $orderinfo->{tax_value_bak} = $ust;        #  corresponds to input field 'Tax value' in UI
-                        $orderinfo->{tax_value_on_ordering} = $ust;
+                        $orderinfo->{rrp} = $priceInfo->{replacementcost_tax_included};    #  corresponds to input field 'Replacement cost' in UI (not discounted, per item)
+                        $orderinfo->{rrp_tax_excluded} = $priceInfo->{replacementcost_tax_excluded};
+                        $orderinfo->{rrp_tax_included} = $priceInfo->{replacementcost_tax_included};
+                        $orderinfo->{ecost} = $priceInfo->{gesamtpreis_tax_included};     #  corresponds to input field 'Budgeted cost' in UI (discounted, per item)
+                        $orderinfo->{ecost_tax_excluded} = $priceInfo->{gesamtpreis_tax_excluded};    # discounted
+                        $orderinfo->{ecost_tax_included} = $priceInfo->{gesamtpreis_tax_included};    # discounted
+                        $orderinfo->{tax_rate_bak} = $priceInfo->{ustSatz};        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
+                        $orderinfo->{tax_rate_on_ordering} = $priceInfo->{ustSatz};
+                        $orderinfo->{tax_rate_on_receiving} = $priceInfo->{ustSatz};
+                        $orderinfo->{tax_value_bak} = $priceInfo->{ust};        #  corresponds to input field 'Tax value' in UI
+                        $orderinfo->{tax_value_on_ordering} = $priceInfo->{ust};
                         # XXXWH or alternatively: $orderinfo->{tax_value_on_ordering} = $orderinfo->{quantity} * $orderinfo->{ecost_tax_excluded} * $orderinfo->{tax_rate_on_ordering};    # see C4::Acquisition.pm
-                        $orderinfo->{tax_value_on_receiving} = $ust;
+                        $orderinfo->{tax_value_on_receiving} = $priceInfo->{ust};
                         # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
-                        $orderinfo->{discount} = $rabatt;        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
-                        # XXXWH activate logger! $logger->trace("genKohaRecords() method3: trying to create Koha order with orderinfo:" . Dumper($orderinfo) . ":");
+                        $orderinfo->{discount} = $priceInfo->{rabatt};        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
+                        # XXXWH activate logger! $logger->trace("genKohaRecords() method4: trying to create Koha order with orderinfo:" . Dumper($orderinfo) . ":");
 
                         $order = Koha::Acquisition::Order->new($orderinfo);
                         $order->store();
-                        $ordernumber = $order->{ordernumber};
+                        $ordernumber = $order->ordernumber();    # ordernumber value has been created by DBS
                     }
 
                     for ( my $j = 0; $j < $exemplarcount; $j++ ) {
@@ -768,8 +821,8 @@ sub genKohaRecords {
                         $item_hash->{homebranch} = $zweigstellencode;
                         $item_hash->{booksellerid} = 'ekz';
                         if ( $auftragsPosition->{'waehrung'} eq 'EUR' && defined($auftragsPosition->{'verkaufsPreis'}) ) {
-                            $item_hash->{price} = $gesamtpreis_tax_included;
-                            $item_hash->{replacementprice} = $replacementcost_tax_included;    # without regard to $auftragsPosition->{'nachlass'}
+                            $item_hash->{price} = $priceInfo->{gesamtpreis_tax_included};
+                            $item_hash->{replacementprice} = $priceInfo->{replacementcost_tax_included};    # without regard to $auftragsPosition->{'nachlass'}
                         }
                         $item_hash->{notforloan} = 0;    # item delivered -> can be loaned
                         
@@ -781,7 +834,7 @@ sub genKohaRecords {
                             my $itemHitRs = undef;
                             my $res = undef;
                             $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
-                            $logger->trace("genKohaRecords() method3: itemHitRs->{_column_data}:" . Dumper($itemHitRs->{_column_data}) . ":");
+                            $logger->trace("genKohaRecords() method4: itemHitRs->{_column_data}:" . Dumper($itemHitRs->{_column_data}) . ":");
                             if ( defined $itemHitRs ) {
                                 # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenReceived")
                                 # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
@@ -824,7 +877,7 @@ sub genKohaRecords {
                             my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
                             my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->create($insParam);
                             my $acquisitionImportIdItem = $acquisitionImportItemRS->get_column('id');
-                            $logger->trace("genKohaRecords() method3: acquisitionImportItemRS->{_column_data}:" . Dumper($acquisitionImportItemRS->{_column_data}) . ":");
+                            $logger->trace("genKohaRecords() method4: acquisitionImportItemRS->{_column_data}:" . Dumper($acquisitionImportItemRS->{_column_data}) . ":");
 
                             # Insert a record into acquisition_import_object representing the Koha item data.
                             $insParam = {
@@ -835,7 +888,7 @@ sub genKohaRecords {
                             };
                             my $itemImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                             my $itemImportObjectRS = $itemImportObject->_resultset()->create($insParam);
-                            $logger->trace("genKohaRecords() method3: itemImportObjectRS->{_column_data}:" . Dumper($itemImportObjectRS->{_column_data}) . ":");
+                            $logger->trace("genKohaRecords() method4: itemImportObjectRS->{_column_data}:" . Dumper($itemImportObjectRS->{_column_data}) . ":");
 
                             # Insert a record into table acquisition_import representing the the delivery note item data.
                             $insParam = {
@@ -853,7 +906,7 @@ sub genKohaRecords {
                             };
                             my $acquisitionImportItemDelivery = Koha::AcquisitionImport::AcquisitionImports->new();
                             my $acquisitionImportItemDeliveryRS = $acquisitionImportItemDelivery->_resultset()->create($insParam);
-                            $logger->trace("genKohaRecords() method3: acquisitionImportItemDeliveryRS->{_column_data}:" . Dumper($acquisitionImportItemDeliveryRS->{_column_data}) . ":");
+                            $logger->trace("genKohaRecords() method4: acquisitionImportItemDeliveryRS->{_column_data}:" . Dumper($acquisitionImportItemDeliveryRS->{_column_data}) . ":");
 
                             if ( $biblioExisting && $emaillog->{'foundTitlesCount'} == 0 ) {
                                 $emaillog->{'foundTitlesCount'} = 1;
@@ -872,15 +925,15 @@ sub genKohaRecords {
                         my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                         my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
                         $emaillog->{'importIds'}->{$importId} = $itemnumber;
-                        $logger->trace("genKohaRecords() method3: importedItemsCount:$emaillog->{'importedItemsCount'}: set next importId:" . $importId . ":");
+                        $logger->trace("genKohaRecords() method4: importedItemsCount:$emaillog->{'importedItemsCount'}: set next importId:" . $importId . ":");
                         # add result of inserting item to log email
                         my ($titeldata, $isbnean) = ($itemnumber, '');
                         push @{$emaillog->{'records'}}, [$lsEkzArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2, $ordernumber, $basketno];
-                        $logger->trace("genKohaRecords() method3: emaillog->{'records'}->[0]:" . Dumper($emaillog->{'records'}->[0]) . ":");
-                        $logger->trace("genKohaRecords() method3: emaillog->{'records'}->[1]:" . Dumper($emaillog->{'records'}->[1]) . ":");
+                        $logger->trace("genKohaRecords() method4: emaillog->{'records'}->[0]:" . Dumper($emaillog->{'records'}->[0]) . ":");
+                        $logger->trace("genKohaRecords() method4: emaillog->{'records'}->[1]:" . Dumper($emaillog->{'records'}->[1]) . ":");
                     } # foreach remainig delivered items: create koha item record
                 } # koha biblio data have been found or created
-            } # end method3: "if ( $updOrInsItemsCount < $deliveredItemsCount)"
+            } # end method4: "if ( $updOrInsItemsCount < $deliveredItemsCount)"
 
 
 
@@ -966,25 +1019,120 @@ sub genKohaRecords {
     return 1;
 }
 
+sub priceInfoFromMessage {
+    my ($lieferscheinRecord, $auftragsPosition, $logger) = @_;
+    $logger->trace("priceInfoFromMessage() Start auftragsPosition:" . Dumper($auftragsPosition) . ":");
+
+    my $ekzInvoiceSkipAdditionalCosts = C4::Context->preference("ekzInvoiceSkipAdditionalCosts");    # 0 -> add wertMehrpreise and wertBearbeitung to wertPositionsTeil   1 -> skip wertMehrpreise and wertBearbeitung, i.e. take wertPositionsTeil only (as invoice item price)
+    # At the moment ustProzentVoll and ustProzentHalb is not delivered by ekz in LieferscheinDetail response (only in RechnungDetail response).
+    # So in reality this two lines always are an initlization via &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz(...).
+    my $ustProzentVoll = defined($lieferscheinRecord->{'ustProzentVoll'}) ? $lieferscheinRecord->{'ustProzentVoll'} : &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('V') * 100.0;    # e.g. 19.00 for VAT rate of 19% (0.19)
+    my $ustProzentHalb = defined($lieferscheinRecord->{'ustProzentHalb'}) ? $lieferscheinRecord->{'ustProzentHalb'} : &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('E') * 100.0;    # e.g. 7.00 for VAT rate of 7% (0.07)
+    my $priceInfo = {};
+
+    $priceInfo->{exemplareBestellt} = defined($auftragsPosition->{'exemplareBestellt'}) && $auftragsPosition->{'exemplareBestellt'} != 0 ? $auftragsPosition->{'exemplareBestellt'} : "1";
+    $priceInfo->{verkaufsPreis} = defined($auftragsPosition->{'verkaufsPreis'}) ? $auftragsPosition->{'verkaufsPreis'} : "0.00";
+    $priceInfo->{nachlass} = defined($auftragsPosition->{'nachlass'}) ? $auftragsPosition->{'nachlass'} : "0.00";    # <nachlass> for all exemplareBestellt of this <auftragsPosition> in sum.
+    $priceInfo->{nachlassProExemplar} = &C4::External::EKZ::lib::EkzKohaRecords::round( ($priceInfo->{nachlass} / ($priceInfo->{exemplareBestellt} * 1.0)), 2 );    # nachlass per exemplar
+    $priceInfo->{rabatt} = "0.0";    # 'rabatt' not sent in LieferscheinDetailResponseElement.auftragsPosition, so we calculate it from verkaufsPreis and nachlass (15.0 means 15 %)
+    if ( $priceInfo->{verkaufsPreis} != 0.0 ) {
+        $priceInfo->{rabatt} = ($priceInfo->{nachlass} * 100.0) / ( $priceInfo->{verkaufsPreis} * $priceInfo->{exemplareBestellt} );    # (value 15.0 means 15 %)
+    }
+    # info by etecture (H. Appel): <wertPositionsTeil> = <verkaufsPreis> - <nachlass>
+    # info by ekz (H. Hauke Laun): <wertPositionsTeil> = (<exemplareBestellt> * <verkaufsPreis>) - <nachlass>
+    $priceInfo->{wertPositionsTeil} = defined($auftragsPosition->{'wertPositionsTeil'}) ? $auftragsPosition->{'wertPositionsTeil'} : "0.00";    # info by etecture: <wertPositionsTeil> = <verkaufsPreis> - <nachlass>
+    $priceInfo->{wertMehrpreise} = defined($auftragsPosition->{'wertMehrpreise'}) ? $auftragsPosition->{'wertMehrpreise'} : "0.00";
+    $priceInfo->{wertBearbeitung} = defined($auftragsPosition->{'wertBearbeitung'}) ? $auftragsPosition->{'wertBearbeitung'} : "0.00";
+    $priceInfo->{waehrung} = defined($auftragsPosition->{'waehrung'}) ? $auftragsPosition->{'waehrung'} : "EUR";
+
+    $priceInfo->{ust} = "0.00";    # 'ust' not sent in LieferscheinDetailResponseElement.auftragsPosition, so we will calculate it
+    $priceInfo->{ustSatz} = $ustProzentHalb / 100.0;    # 'ustSatz' not sent in LieferscheinDetailResponseElement.auftragsPosition, so we evaluate XML element <ustProzentHalb> or <ustProzentVoll>
+    $priceInfo->{mwst}  = defined($auftragsPosition->{'mwst'}) ? $auftragsPosition->{'mwst'} : "E";    # 'E':ermässigt 'V':voll
+    if ( $priceInfo->{mwst} eq 'V') {
+        $priceInfo->{ustSatz} = $ustProzentVoll / 100.0;
+    }
+
+    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it based on an info by etecture for LieferscheinDetail; total for a single item
+    if ( $ekzInvoiceSkipAdditionalCosts ) {
+        $priceInfo->{gesamtpreis_tax_included} = $priceInfo->{verkaufsPreis};
+    } else {
+        $priceInfo->{gesamtpreis_tax_included} = $priceInfo->{verkaufsPreis} + &C4::External::EKZ::lib::EkzKohaRecords::round( ($priceInfo->{wertMehrpreise} + $priceInfo->{wertBearbeitung}) / $priceInfo->{exemplareBestellt}, 2 );
+    }
+
+    if ( defined($auftragsPosition->{'wertPositionsTeil'}) ) {
+        # obsolete hypotesis:
+        ##   deduced from tests done in 2020-09: it seems that <wertMehrpreise> and <wertBearbeitung> are already contained in <verkaufsPreis>, so they must not be added to it
+        ##   seems to be incorrect: $priceInfo->{gesamtpreis_tax_included} = $priceInfo->{wertPositionsTeil} + $priceInfo->{wertMehrpreise} + $priceInfo->{wertBearbeitung};    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+        #$priceInfo->{gesamtpreis_tax_included} = $priceInfo->{wertPositionsTeil};    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+
+        # Based on info by Hauke Laun the test quoted above was based on an invoice of Rechnungsstellungsart A.
+        # Since 19.10.2020 the new system preference 'ekzInvoiceSkipAdditionalCosts' controls if the customer's invoices are treated conforming to Rechnungsstellungsart A or Rechnungsstellungsart B.
+        if ( $ekzInvoiceSkipAdditionalCosts ) {
+            $priceInfo->{gesamtpreis_tax_included} = &C4::External::EKZ::lib::EkzKohaRecords::round( $priceInfo->{wertPositionsTeil} / $priceInfo->{exemplareBestellt}, 2 );    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+        } else {
+            $priceInfo->{gesamtpreis_tax_included} = &C4::External::EKZ::lib::EkzKohaRecords::round( ($priceInfo->{wertPositionsTeil} + $priceInfo->{wertMehrpreise} + $priceInfo->{wertBearbeitung}) / $priceInfo->{exemplareBestellt}, 2 );    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+        }
+    } elsif ( defined($auftragsPosition->{'verkaufsPreis'}) && defined($auftragsPosition->{'nachlassProExemplar'}) ) {
+        # obsolete hypotesis:
+        ##   deduced from tests done in 2020-09: it seems that <wertMehrpreise> and <wertBearbeitung> are already contained in <verkaufsPreis>, so they must not be added to it
+        ##   seems to be incorrect: $priceInfo->{gesamtpreis_tax_included} = $priceInfo->{verkaufsPreis} - $priceInfo->{nachlass} + $priceInfo->{wertMehrpreise} + $priceInfo->{wertBearbeitung};    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+        #    $priceInfo->{gesamtpreis_tax_included} = $priceInfo->{verkaufsPreis} - $priceInfo->{nachlass};    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+
+        # Based on info by Hauke Laun the test quoted above was based on an invoice of Rechnungsstellungsart A).
+        # Since 19.10.2020 the new system preference 'ekzInvoiceSkipAdditionalCosts' controls if the customer's invoices are treated conforming to Rechnungsstellungsart A or Rechnungsstellungsart B.
+        if ( $ekzInvoiceSkipAdditionalCosts ) {
+            $priceInfo->{gesamtpreis_tax_included} = $priceInfo->{verkaufsPreis} - $priceInfo->{nachlassProExemplar};    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+        } else {
+            $priceInfo->{gesamtpreis_tax_included} = $priceInfo->{verkaufsPreis} - $priceInfo->{nachlassProExemplar} + &C4::External::EKZ::lib::EkzKohaRecords::round( ($priceInfo->{wertMehrpreise} + $priceInfo->{wertBearbeitung}) / $priceInfo->{exemplareBestellt}, 2 );    # 'gesamtpreis' not sent in RechnungDetailResponseElement.auftragsPosition, so we calculate it; total for a single item
+        }
+    }
+    if ( $priceInfo->{ust} == 0.0 && $priceInfo->{ustSatz} != 0.0 && $priceInfo->{ustSatz} != -1.0 ) {    # calculate ust from ustSatz
+        $priceInfo->{ust} = $priceInfo->{gesamtpreis_tax_included} * $priceInfo->{ustSatz} / (1 + $priceInfo->{ustSatz});
+        $priceInfo->{ust} =  &C4::External::EKZ::lib::EkzKohaRecords::round($priceInfo->{ust}, 2);
+    }
+    if ( $priceInfo->{ustSatz} == 0.0 && $priceInfo->{ust} != 0.0 && $priceInfo->{gesamtpreis_tax_included} != $priceInfo->{ust}) {    # calculate ustSatz from ust
+        $priceInfo->{ustSatz} = $priceInfo->{ust} / ($priceInfo->{gesamtpreis_tax_included} - $priceInfo->{ust});
+        $priceInfo->{ustSatz} =  &C4::External::EKZ::lib::EkzKohaRecords::round($priceInfo->{ustSatz}, 2);
+    }
+    my $divisor = 1.0 + $priceInfo->{ustSatz};
+
+    $priceInfo->{gesamtpreis_tax_excluded} = $priceInfo->{gesamtpreis_tax_included};
+    if ( defined( $priceInfo->{ust} ) ) {
+        $priceInfo->{gesamtpreis_tax_excluded} = $priceInfo->{gesamtpreis_tax_included} - $priceInfo->{ust};
+    } else {
+        if ($divisor != 0 ) {
+            $priceInfo->{gesamtpreis_tax_excluded} = $priceInfo->{gesamtpreis_tax_included} / $divisor;
+        }
+    }
+    $priceInfo->{gesamtpreis_tax_excluded} = &C4::External::EKZ::lib::EkzKohaRecords::round($priceInfo->{gesamtpreis_tax_excluded}, 2);
+
+    $priceInfo->{replacementcost_tax_included} = $priceInfo->{verkaufsPreis};    # list price of single item in library's currency, not discounted
+    $priceInfo->{replacementcost_tax_excluded} = $divisor == 0.0 ? 0.0 : $priceInfo->{replacementcost_tax_included} / $divisor;
+    $priceInfo->{replacementcost_tax_excluded} = &C4::External::EKZ::lib::EkzKohaRecords::round($priceInfo->{replacementcost_tax_excluded}, 2);
+
+    $logger->trace("priceInfoFromMessage() returns priceInfo:" . Dumper($priceInfo) . ":");
+    return $priceInfo;
+}
+
 sub processItemHit
 {
-    my ( $lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsArtikelNr, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, $updOrInsItemsCountRef, $ekzAqbooksellersId, $logger ) = @_;
+    my ( $lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsArtikelNr, $lsReferenznummer, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, $updOrInsItemsCountRef, $ekzAqbooksellersId, $logger ) = @_;
     my $selParam = '';
     my $updParam = '';
     my $insParam = '';
     my $order = undef;
-    my $ordernumber = undef;
-    my $basketno = undef;
+    my $ordernumberFound = undef;
+    my $basketnoFound = undef;
 
     # update the item's 'acquisition_import' record and the 'items' record in 3 steps:
     # 1. step: get itemnumber: select koha_object_id from acquisition_import_objects where acquisition_import_id = acquisition_import.id of current $acquisitionImportTitleItemHit
-    $logger->info("processItemHit() update item for lsArtikelNr:$lsArtikelNr:");
+    $logger->info("processItemHit() update item for lsArtikelNr:$lsArtikelNr: lsReferenznummer:$lsReferenznummer:");
     $selParam = {
         acquisition_import_id => $acquisitionImportTitleItemHit->get_column('id'),
         koha_object => "item"
     };
     my $titleItemObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
-    my $titleItemObjectRS = $titleItemObject->_resultset()->find($selParam);
+    my $titleItemObjectRS = $titleItemObject->_resultset()->search($selParam)->first();
     my $itemnumber = $titleItemObjectRS->get_column('koha_object_id');
     $logger->trace("processItemHit() titleItemObjectRS->{_column_data}:" . Dumper($titleItemObjectRS->{_column_data}) . ":");
     $logger->trace("processItemHit() update item with itemnumber:" . $itemnumber . ":");
@@ -1017,7 +1165,7 @@ sub processItemHit
 
             # attaching ekz order to Koha acquisition: 
             if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
-                ($ordernumber, $basketno) = processItemOrder( $lieferscheinNummer, $lieferscheinDatum, $biblionumber, $itemnumber, $auftragsPosition, $acquisitionImportTitleItemHit, $logger );
+                ($ordernumberFound, $basketnoFound) = processItemOrder( $lieferscheinNummer, $lieferscheinDatum, $biblionumber, $itemnumber, $auftragsPosition, $acquisitionImportTitleItemHit, $logger );
             }
 
         }
@@ -1052,7 +1200,7 @@ sub processItemHit
     
     # add result of updating item to log email
     my ($titeldata, $isbnean) = ($itemnumber, '');
-    push @{$emaillog->{'records'}}, [$lsArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2, $ordernumber, $basketno];
+    push @{$emaillog->{'records'}}, [$lsArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2, $ordernumberFound, $basketnoFound];
 
     # Insert information on the item delivery in 2 steps:
     # 3.1. step: Insert an acquisition_import record for the delivery note title, if it does not exist already.
@@ -1088,6 +1236,12 @@ sub processItemHit
     $logger->trace("processItemHit() insert acquisition_import record for delivery title res:" . Dumper($res->_resultset()->{_column_data}) . ":");
 
     # 3.2. step: Insert an acquisition_import record for the delivery note item.
+    my $object_item_number;
+    if ( $lsReferenznummer ) {
+        $object_item_number = $lieferscheinNummer . '-' . $lsArtikelNr . '-' . $lsReferenznummer;
+    } else {
+        $object_item_number = $lieferscheinNummer . '-' . $lsArtikelNr;
+    }
     $insParam = {
         #id => 0, # AUTO
         vendor_id => "ekz",
@@ -1095,7 +1249,7 @@ sub processItemHit
         object_number => $lieferscheinNummer,
         object_date => DateTime::Format::MySQL->format_datetime($lieferscheinDatum),
         rec_type => "item",
-        object_item_number => $lieferscheinNummer . '-' . $lsArtikelNr,
+        object_item_number => $object_item_number,
         processingstate => "delivered",
         processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
         #payload => undef # NULL
@@ -1107,7 +1261,11 @@ sub processItemHit
     $logger->trace("processItemHit() END insert acquisition_import record for item res:" . Dumper($res->{_column_data}) . ":");
 }
 
-# If it's an item for Standing Order (<ekzexemplarid> is not sent, but ekzArtikelNr matches a record in acquisition_import with object_number like 'sto.%.ID%' ):
+# If it's an item for Standing Order, that is:
+# <ekzexemplarid> is not sent, but 
+# -    ekzArtikelNr and referenznummer matches a record in acquisition_import with object_item_number like 'sto.%.ID%-$ekzArtikelNr-$referenznummer' and rec_type = 'item'
+# - or ekzArtikelNr matches a record in acquisition_import with object_number like 'sto.%.ID%' and object_item_number = '$ekzArtikelNr' and rec_type = 'title'
+# then:
 #   Search the matching aqorders record via aqorders_items.
 #   Create a basket for this delivery note if not existing,
 #   'shift' the order into this basket. Append the old basketname in note field of the new basket (may become a list). Do not delete the old basket even if empty now.
@@ -1132,7 +1290,7 @@ sub processItemOrder
     # search the aqorders record via select * from aqorders where ordernumber = (select ordernumber from aqorders_items where itemnumber = $itemnumber)
     my $aqorder = Koha::Acquisition::Order->new()->search_order_by_item($itemnumber);
 
-    $logger->trace("processItemOrder() Dumper aqorder:" . Dumper($aqorder) . ":");
+    $logger->trace("processItemOrder() Dumper aqorder->{_column_data}:" . Dumper($aqorder->{_column_data}) . ":");
     if ( !$aqorder ) {
         return ($ordernumber_ret, $basketno_ret);    # both values still undef
     }

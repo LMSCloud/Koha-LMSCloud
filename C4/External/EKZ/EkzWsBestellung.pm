@@ -36,11 +36,16 @@ use C4::Acquisition;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( BestelleBeiEkz BestelleBeiEkz_Test );
 
+binmode( STDIN, ":utf8" );
+binmode( STDOUT, ":utf8" );
+binmode( STDERR, ":utf8" );
+
 
 sub BestelleBeiEkz {
     my ($basketgroupList) = @_;
     my $result = [];
     my $dbh = C4::Context->dbh;
+
     my $aqbooksellers_hit;    # We assume here exclusive use of aqbookseller 'ekz'. But each library may have a distinct acbooksellers record with name 'ekz.
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsBestellung' });
 
@@ -180,38 +185,94 @@ sub BestelleBeiEkz {
 
                     # set aqorder specific parameters for callWsBestellung (representing all items of one title)
                     
-                    $logger->debug("BestelleBeiEkz() GetMarcBiblio of biblionumber:" . $aqorders_hit->{'biblionumber'} . ":");
                     my $ekzArtikelNr = '';
                     my $isbnEan = '';
-                    my $isbn = '';
+                    my $author = '';
+                    my $titel = '';
+                    my $verlag = '';
+                    my $erscheinungsJahr = '';
+
+                    $logger->debug("BestelleBeiEkz() GetMarcBiblio of biblionumber:" . $aqorders_hit->{'biblionumber'} . ":");
                     my $marcrecord = C4::Biblio::GetMarcBiblio( { biblionumber => $aqorders_hit->{'biblionumber'}, embed_items => 0 } );
-                    my $field = $marcrecord->field('035');
-                    if ( $field ) {
-                        my $subfield = $field->subfield('a');    # format: (DE-Rt5)nnn...nnn
-                        if ( $subfield ) {
-                            if ( $subfield =~ /^\(DE\-Rt5\)(.*)/ ) {
-                                $ekzArtikelNr = $1;
+
+                    if ( $marcrecord ) {
+                        # get ekz-Artikelnummer
+                        my $field = $marcrecord->field('035');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('a');    # format: (DE-Rt5)nnn...nnn
+                            if ( $subfield ) {
+                                if ( $subfield =~ /^\(DE\-Rt5\)(.*)/ ) {
+                                    $ekzArtikelNr = $1;
+                                }
+                            }
+                        }
+                        # get ISBN / EAN
+                        $field = $marcrecord->field('020');
+                        if ( $field ) {
+                            my $isbn = $field->subfield('a');
+                            eval {
+                                my $val = Business::ISBN->new($isbn);
+                                $isbn = $val->as_isbn13()->as_string([]);
+                            };
+                            $isbnEan = $isbn;
+                        }
+                        $field = $marcrecord->field('024');
+                        if ( $field && ((! defined($isbnEan)) || $isbnEan eq '') ) {
+                            my $ean = $field->subfield('a');
+                            $isbnEan = $ean;
+                        }
+                        # get author
+                        $field = $marcrecord->field('100');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('a');
+                            if ( $subfield ) {
+                                $author = $subfield;
+                            }
+                        }
+                        # get titel
+                        $field = $marcrecord->field('245');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('a');
+                            if ( $subfield ) {
+                                $titel = $subfield;
+                            }
+                            $subfield = $field->subfield('b');
+                            if ( $subfield ) {
+                                if ( $titel ) {
+                                    $titel .= ' / ';
+                                }
+                                $titel .= $subfield;
+                            }
+                        }
+                        # get verlag
+                        $field = $marcrecord->field('260');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('b');
+                            if ( $subfield ) {
+                                $verlag = $subfield;
+                            }
+                        }
+                        # get erscheinungsJahr
+                        $field = $marcrecord->field('260');
+                        if ( $field ) {
+                            my $subfield = $field->subfield('c');
+                            if ( $subfield ) {
+                                if ( $subfield =~ /^(.)*?(\d\d\d\d)/ ) {
+                                    $erscheinungsJahr = $2;
+                                }
                             }
                         }
                     }
-                    $field = $marcrecord->field('020');
-                    if ( $field ) {
-                        my $isbn = $field->subfield('a');
-                        eval {
-                            my $val = Business::ISBN->new($isbn);
-                            $isbn = $val->as_isbn13()->as_string([]);
-                        };
-                        $isbnEan = $isbn;
-                    }
-                    $field = $marcrecord->field('024');
-                    if ( $field && ((! defined($isbnEan)) || $isbnEan eq '') ) {
-                        my $ean = $field->subfield('a');
-                        $isbnEan = $ean;
-                    }
+
                     # titel info
-                    # at least one of the two fields ekzArtikelNr or isbn13 has to be transmitted)
+                    # at least one of the two fields ekzArtikelNr or isbn13 has to be transmitted
                     $param->{titel}->[$iTitel]->{titelangabe}->{ekzArtikelNr} = $ekzArtikelNr if $ekzArtikelNr;
                     $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{isbn13} = $isbnEan if $isbnEan;
+                    # titelinfo fields author, titel, verlag, erscheinungsJahr are optional
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{author} = $author if $author;
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{titel} = $titel if $titel;
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{verlag} = $verlag if $verlag;
+                    $param->{titel}->[$iTitel]->{titelangabe}->{titelInfo}->{erscheinungsJahr} = $erscheinungsJahr if $erscheinungsJahr;
 
                     # exemplar info  (optional)
                     $param->{titel}->[$iTitel]->{exemplar}->[0]->{lmsExemplarID} = $aqorders_hit->{'ordernumber'} . '';    # force type to string
@@ -290,6 +351,37 @@ sub BestelleBeiEkz {
                 # BEFORE sending Bestellung request, because ekz sends corresponding BestellInfo request before the Bestellung response.
                 # But this sequence is executed only if configured so in ekz.
 
+
+                # In case of a repeated call of BestelleBeiEkz() for the same aqbasketgroup we have to replace the corresponding old records in database tables acquisition_import and acquisition_import_objects.
+                my $selParam = {
+                    vendor_id => "ekz",
+                    object_type => "order",
+                    object_number => 'basketno:' . $aqbasketgroupRes->{basketno},
+                    #object_number => 'test_basketno:' . $aqbasketgroupRes->{basketno}, # XXXWH    for tests only
+                    # we have to delete the records of any rectype.   rec_type => "message",
+                    processingstate => "requested"
+                };
+                my $acquisitionImportOldOrder = Koha::AcquisitionImport::AcquisitionImports->new();
+                $logger->debug("BestelleBeiEkz() is searching for acquisition_import_objects record with selParam:" . Dumper($selParam) . ":");
+                my $oldOrderHits_rs = $acquisitionImportOldOrder->_resultset()->search( $selParam );
+                
+                $logger->debug("BestelleBeiEkz() count of old acquisition_import records for same aqbasketgroupno:" . $oldOrderHits_rs->count() . ":");
+                while ( (my $hit = $oldOrderHits_rs->next()) ) {
+                    # delete assigned record in acquisition_import_objects
+                    my $selParam = {
+                        acquisition_import_id => $hit->{_column_data}->{'id'}
+                    };
+                    $logger->debug("BestelleBeiEkz() is searching for acquisition_import_objects record with selParam:" . Dumper($selParam) . ":");
+                    my $acquisitionImportObjectsOldOrder = Koha::AcquisitionImport::AcquisitionImportObjects->new();
+                    my $oldOrderObjectsHits_rs = $acquisitionImportObjectsOldOrder->_resultset()->search( $selParam );
+                    $logger->debug("BestelleBeiEkz() count of old acquisition_import_objects records for this acquisition_import.id:" . $oldOrderObjectsHits_rs->count() . ": All of them will be deleted now.");
+                    $oldOrderObjectsHits_rs->delete();
+                    
+                    # delete hit record in acquisition_import
+                    $logger->debug("BestelleBeiEkz() acquisition_import record with id:" . $hit->{_column_data}->{'id'} . ": will be deleted now.");
+                    $hit->delete();
+                }
+
                 # create the acquisition_import record corresponding to the request that will be sent in next step (rec_type "message")
                 my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
                 ($wsResult, $wsRequest, $wsResponse) = $ekzwebservice->callWsBestellung($aqbooksellers_hit->{'accountnumber'}, $param,1,undef);    # not calling the webService, just generating the request string
@@ -307,8 +399,7 @@ sub BestelleBeiEkz {
                     object_date => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                     rec_type => 'message',
                     #object_item_number => '', # NULL
-                    #processingstate => 'ordered',
-                    processingstate => 'requested',    # XXXWH noch unschlüssig
+                    processingstate => 'requested',
                     processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                     payload => $requestBodyText,
                     #object_reference => undef # NULL
@@ -327,8 +418,7 @@ sub BestelleBeiEkz {
                         object_date => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                         rec_type => 'title',
                         object_item_number => 'ordernumber:' . $ordernumber,    # the ordernumber will be sent in BestellInfo request in XML-Element lmsExemplarID
-                        #processingstate => 'ordered',
-                        processingstate => 'requested',    # XXXWH noch unschlüssig
+                        processingstate => 'requested',
                         processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                         #payload => NULL, # NULL
                         object_reference => $acquisitionImportIdBestellung
@@ -358,8 +448,7 @@ sub BestelleBeiEkz {
                             object_date => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                             rec_type => 'item',
                             object_item_number => 'ordernumber:' . $ordernumber,    # the ordernumber will be sent in BestellInfo request by BestellInfo in XML-Element lmsExemplarID
-                            #processingstate => 'ordered',
-                            processingstate => 'requested',    # XXXWH noch unschlüssig
+                            processingstate => 'requested',
                             processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNowOfBasketOrder),    # in local time_zone
                             #payload => NULL, # NULL
                             object_reference => $acquisitionImportIdTitle
@@ -410,14 +499,14 @@ sub BestelleBeiEkz {
                     $sth->execute($appendText, $appendText, $ordernumber);
                 }
                 $sth->finish();    # finish $query2_aqorders
-                # XXXWH one could delete $aqbasketgroupRes->{aqorders} now
+                # XXXWH one could delete the hash entry $aqbasketgroupRes->{aqorders} now
 
                 # store 'ekz-Bestellnummer: ' . $wsResult->{ekzBestellNr} in aqbasket.booksellernote
                 my $query2_aqbasket = "UPDATE aqbasket SET booksellernote = IF(booksellernote IS NULL, ?, CONCAT(booksellernote, '\n', ?))  WHERE basketno = ? ";
                 $sth = $dbh->prepare($query2_aqbasket);
                 $sth->execute($appendText, $appendText, $aqbasketgroupRes->{basketno});
                 $sth->finish();    # finish $query2_aqbasket
-                # XXXWH one could delete $aqbasketgroupRes->{basketno} now
+                # XXXWH one could delete the hash entry $aqbasketgroupRes->{basketno} now
             }
             push @{$result}, $aqbasketgroupRes;
         }

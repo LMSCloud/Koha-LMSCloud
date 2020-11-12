@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright 2017 (C) LMSCLoud GmbH
+# Copyright 2017-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -37,35 +37,30 @@ $| = 1;
 select(STDOUT); # default
 $| = 1;
 
-my $debugIt = 1;
-
 my $soapEnvelope = '';
 my $soapEnvelopeHash = {};
 my $soapBody = '';
 my $soapResponseElement;
 my $httpResponse = '';
+my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
 
-print STDERR "ekz-media-services.pl ENV:\n" if $debugIt;
-print STDERR Dumper(\%ENV) if $debugIt;
+$logger->info("ekz-media-services.pl ENV:" .  Dumper(\%ENV) . ":");
 
 # read the SOAP request from STDIN into $soapEnvelope
 while (<STDIN>) {
     my $stdinLine = $_;
-    print STDERR ("ekz-media-services.pl STDIN:" . $stdinLine) if $debugIt;
+    $logger->info("ekz-media-services.pl STDIN:" .  $stdinLine . ":");
     $soapEnvelope .= $stdinLine;
 }
-print STDERR ("ekz-media-services.pl STDIN:" . "\n") if $debugIt;
   
 my $p1 = new XML::Parser(Style => 'Tree', ProtocolEncoding => 'UTF-8');
 my $soapEnvelopeDeserialized;
 eval { $soapEnvelopeDeserialized = $p1->parse($soapEnvelope); };                    # this is an array ref on ('soap:Envelope', [ ... ])
-print STDERR "ekz-media-services.pl soapEnvelopeDeserialized:\n" if $debugIt;
-print STDERR Dumper($soapEnvelopeDeserialized) if $debugIt;
+$logger->debug("ekz-media-services.pl soapEnvelopeDeserialized:" . Dumper($soapEnvelopeDeserialized) . ":");
 
 # bringing the request from array in hash form to enable easier field access in the application modules
 $soapEnvelopeHash = &buildHashFromArray($soapEnvelopeDeserialized->[0], $soapEnvelopeDeserialized->[1]);
-print STDERR "ekz-media-services.pl soapEnvelopeHash:\n" if $debugIt;
-print STDERR Dumper($soapEnvelopeHash) if $debugIt;
+$logger->debug("ekz-media-services.pl soapEnvelopeHash:" . Dumper($soapEnvelopeHash) . ":");
 
 
 my $requiredHttpSoapAction = $ENV{'HTTP_SOAPACTION'};    # get name of web service
@@ -87,8 +82,7 @@ if ( $requiredHttpSoapAction =~ /.*urn:budgetcheck.*/ ) {
 # build the HTTP Response from the SOAP object $soapResponseElement
 $httpResponse = buildSoapResponse([$soapResponseElement]);
 
-print STDERR ("ekz-media-services.pl is writing this httpResponse to STDOUT:\n") if $debugIt;
-print STDERR $httpResponse if $debugIt;
+$logger->info("ekz-media-services.pl is writing this httpResponse to STDOUT:" . $httpResponse . ":");
 
 print STDOUT $httpResponse;
 
@@ -97,8 +91,8 @@ print STDOUT $httpResponse;
 sub buildHashFromArray {
     my ($nodeName, $fields) = @_;
     my %retHash = ();
-#print STDERR "ekz-media-services.pl::buildHashFromArray nodeName:",$nodeName, ": fields:", $fields, ": \@fields:", @$fields, ": field count:", @$fields+0, "\n" if $debugIt;
-#print STDERR "ekz-media-services.pl::buildHashFromArray nodeName:",$nodeName, ": exists(\$retHash{$nodeName}:", exists($retHash{$nodeName}), "\n" if $debugIt;
+    #$logger->trace("ekz-media-services.pl::buildHashFromArray Start nodeName:" . $nodeName . ": fields:" . $fields . ": Dumper fields:" . Dumper($fields) . ": field count:" . scalar @$fields . ":");
+    #$logger->trace("ekz-media-services.pl::buildHashFromArray nodeName:" . $nodeName . ": exists(\$retHash{$nodeName}):" . exists($retHash{$nodeName}) . ":");
 
     # check if to handle a leave of the tree        
     if ( !defined($fields) ) {
@@ -120,16 +114,16 @@ sub buildHashFromArray {
             my $childName;
             my $child;
 
-#print STDERR "ekz-media-services.pl::buildHashFromArray nodeName:",$nodeName, ": exists(\$retHash{$nodeName}2:", exists($retHash{$nodeName}), "\n" if $debugIt;
+            #$logger->trace("ekz-media-services.pl::buildHashFromArray nodeName:" . $nodeName . ": exists(\$retHash{$nodeName}2:" . exists($retHash{$nodeName}) . ":");
             if ( defined $fields->[$i] && length($fields->[$i]) > 0 ) {
-#print STDERR "ekz-media-services.pl::buildHashFromArray nodeName:",$nodeName, ": exists(\$retHash{$nodeName}3:", exists($retHash{$nodeName}), "\n" if $debugIt;
+                #$logger->trace("ekz-media-services.pl::buildHashFromArray nodeName:" . $nodeName . ": exists(\$retHash{$nodeName}3:" . exists($retHash{$nodeName}) . ":");
                 if ( $fields->[$i] eq '0' ) {
                     my $content = $fields->[$i+1];
                     #$retHash{$nodeName}->{'soapEnvelopeDeserializedContent'} .= $content;
                 } else {
                     my $hashRef = buildHashFromArray($fields->[$i], $fields->[$i+1]);
                     if ( exists($retHash{$nodeName}) ) {
-#print STDERR "ekz-media-services.pl::buildHashFromArray nodeName:",$nodeName, ": ref(\$retHash{\$nodeName}):", ref($retHash{$nodeName}), ":\n" if $debugIt;
+                        #$logger->trace("ekz-media-services.pl::buildHashFromArray nodeName:" . $nodeName . ": ref(\$retHash{\$nodeName}):" . ref($retHash{$nodeName}) . ":");
                         if ( exists($retHash{$nodeName}->{$fields->[$i]}) ) {
                             if ( ref($retHash{$nodeName}->{$fields->[$i]}) eq 'ARRAY' ) {
                                 push @{$retHash{$nodeName}->{$fields->[$i]}}, $hashRef->{$fields->[$i]};
@@ -150,7 +144,7 @@ sub buildHashFromArray {
         }
     }
 
-#print STDERR "ekz-media-services.pl::buildHashFromArray nodeName:",$nodeName, ": retHash:", %retHash, ": \\\%retHash:", \%retHash, ": retHash{nodeName}:", $retHash{$nodeName}, ":\n" if $debugIt;
+    #$logger->trace("ekz-media-services.pl::buildHashFromArray nodeName:" . $nodeName . ": retHash:" . %retHash . ": \\\%retHash:" . \%retHash . ": retHash{nodeName}:" . $retHash{$nodeName} . ":");
     return \%retHash;
 }
 
@@ -160,8 +154,7 @@ sub buildSoapResponse {
     my $content = '';
     my $response = '';
 
-print STDERR "ekz-media-services.pl::buildSoapResponse soapResponseElements:\n" if $debugIt;
-print STDERR Dumper(@soapResponseElements) if $debugIt;
+    $logger->trace("ekz-media-services.pl::buildSoapResponse soapResponseElements:" . Dumper(@soapResponseElements) . ":");
     
     my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
 
@@ -193,18 +186,17 @@ sub buildSoapContent {
     my ($xmlwriter, @elements) = @_;
 
     foreach my $element (@elements) {
-print STDERR "ekz-media-services.pl::buildSoapContent element is a :", $element, ": and ref gives:", ref($element), "\n" if $debugIt;
-print STDERR "ekz-media-services.pl::buildSoapContent element:\n" if $debugIt;
-print STDERR Dumper($element) if $debugIt;
+        $logger->trace("ekz-media-services.pl::buildSoapContent element is a :" . $element . ": and ref gives:" . ref($element) . ":");
+        $logger->trace("ekz-media-services.pl::buildSoapContent element:" . Dumper($element) . ":");
         if ( ref($element) eq 'ARRAY' ) {
             foreach my $subelement (@$element) {
-                print STDERR "ekz-media-services.pl::buildSoapContent handling subelement:\n" if $debugIt;
+                $logger->trace("ekz-media-services.pl::buildSoapContent handling subelement now");
                 buildSoapContent($xmlwriter, $subelement);
             }
         } else
         {
             if ( ref($element) eq 'REF' ) {
-                print STDERR "ekz-media-services.pl::buildSoapContent handling extra reference:\n" if $debugIt;
+                $logger->trace("ekz-media-services.pl::buildSoapContent handling extra reference now");
                 buildSoapContent($xmlwriter, $$element->SOAP::Data::value());
             } else {
                 my $name = $element->SOAP::Data::name();
@@ -220,7 +212,7 @@ print STDERR Dumper($element) if $debugIt;
                 if ( defined($prefix) && length($prefix) > 0 ) {
                     $name = $prefix . ':' . $name;
                 }
-                print STDERR "ekz-media-services.pl::buildSoapContent  attr:$attr: ref(attr):", ref($attr), ": isa(attr):",  ":\n" if $debugIt;
+                $logger->trace("ekz-media-services.pl::buildSoapContent attr:$attr: ref(attr):" . ref($attr) . ":");
 
                 # Maximal 1 attribute is handled, which is sufficient at the moment.
                 if ( defined($attr) && ref($attr) eq "" && length($attr) > 0 && index($attr, '=') != -1 ) {
@@ -232,7 +224,7 @@ print STDERR Dumper($element) if $debugIt;
         
                 if ( defined($type) && $type eq 'string' ) { # finally at a leaf of the tree
                     # element is no ARRAY, no REF, type is string
-                    print STDERR "ekz-media-services.pl::buildSoapContent element is no ARRAY, no REF, type is string:\n" if $debugIt;
+                    $logger->trace("ekz-media-services.pl::buildSoapContent element is no ARRAY, no REF, type is string");
                     if ( defined($value) && length($value) > 0 ) {
                         if ( length($attrKey) > 0 && length($attrVal) > 0 ) {
                             $xmlwriter->startTag($name, $attrKey => $attrVal);
@@ -250,7 +242,7 @@ print STDERR Dumper($element) if $debugIt;
                     }
                 } else {
                     # element is no ARRAY, no REF, no string
-                    print STDERR "ekz-media-services.pl::buildSoapContent element is no ARRAY, no REF, no string:\n" if $debugIt;
+                    $logger->trace("ekz-media-services.pl::buildSoapContent element is no ARRAY, no REF, no string");
                     if ( length($attrKey) > 0 && length($attrVal) > 0 ) {
                         $xmlwriter->startTag($name, $attrKey => $attrVal);
                     } else {

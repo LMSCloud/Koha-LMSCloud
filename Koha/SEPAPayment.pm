@@ -54,9 +54,9 @@ sub new {
     print STDERR "Koha::SEPAPayment::new() START Dumper(class):" . Dumper($class) . ":\n" if $self->{verbose} > 1;
     $self->{sepaSysPrefs} = {};
     $self->{errorMsg} = $self->checkSEPADebitConfiguration();
-    $self->{lettercode} = 'MEMBERSHIP_SEPA_NOTE';    # default
+    $self->{lettercode} = '';    # default: generate no notification
     $self->{lettercode} = $self->{sepaSysPrefs}->{SepaDirectDebitBorrowerNoticeLettercode} if $self->{sepaSysPrefs}->{SepaDirectDebitBorrowerNoticeLettercode};
-    $self->{lettercode} = $lettercode if $lettercode;
+    $self->{lettercode} = $lettercode if $lettercode;    # If function parameter $lettercode is set, it will override the entry read from system preference 'SepaDirectDebitBorrowerNoticeLettercode'.
 
     $self->{cashRegisterConfig} = $self->readCashRegisterConfiguration();
     #print STDERR "Koha::SEPAPayment::new() self->{cashRegisterConfig}:" . Dumper($self->{cashRegisterConfig}) . ":\n" if $self->{verbose} > 1;
@@ -96,24 +96,26 @@ sub checkSEPADebitConfiguration {
     my $configError = '';
     print STDERR "Koha::SEPAPayment::checkSEPADebitConfiguration() START\n" if $self->{verbose} > 1;
 
-    my @sepaSysPrefVariables = ( 
-        'SepaDirectDebitCreditorBic',               # e.g. 'GENODEF1NDR'
-        'SepaDirectDebitCreditorIban',              # e.g. 'DE90200691119999999999'
-        'SepaDirectDebitCreditorId',                # e.g. 'DE09stb00000099999'
-        'SepaDirectDebitCreditorName',              # e.g. 'Stadtbuecherei Norderstedt' (max. length 27/35/70 chars according to different specifications)
-        'SepaDirectDebitInitiatingPartyName',       # e.g. 'STADTBUECHEREI NORDERSTEDT'
-        'SepaDirectDebitMessageIdHeader',           # e.g. 'Lastschrift Stadtbuecherei-' (current date will be appended in form yyyymmdd)
-        'SepaDirectDebitRemittanceInfo',            # e.g. 'Jahresentgelt' (max. length 140 chars)
-        'SepaDirectDebitBorrowerNoticeLettercode'   # e.g. 'MEMBERSHIP_SEPA_NOTE'
+    my @sepaSysPrefRecords = ( 
+        { variable => 'SepaDirectDebitCreditorBic', mandatory => 1 },               # e.g. 'GENODEF1NDR'
+        { variable => 'SepaDirectDebitCreditorIban', mandatory => 1 },              # e.g. 'DE90200691119999999999'
+        { variable => 'SepaDirectDebitCreditorId', mandatory => 1 },                # e.g. 'DE09stb00000099999'
+        { variable => 'SepaDirectDebitCreditorName', mandatory => 1 },              # e.g. 'Stadtbuecherei Norderstedt' (max. length 27/35/70 chars according to different specifications)
+        { variable => 'SepaDirectDebitInitiatingPartyName', mandatory => 1 },       # e.g. 'STADTBUECHEREI NORDERSTEDT'
+        { variable => 'SepaDirectDebitMessageIdHeader', mandatory => 1 },           # e.g. 'Lastschrift Stadtbuecherei-' (current date will be appended in form yyyymmdd)
+        { variable => 'SepaDirectDebitRemittanceInfo', mandatory => 1 },            # e.g. 'Jahresentgelt' (max. length 140 chars)
+        { variable => 'SepaDirectDebitBorrowerNoticeLettercode', mandatory => 0 }   # e.g. 'MEMBERSHIP_SEPA_NOTE'. Value '' or undef indicates that the library has deactivated the notification.
     );
 
     $self->{sepaSysPrefs} = {};
-    foreach my $sepaSysPrefVariable ( @sepaSysPrefVariables ) {
-        $self->{sepaSysPrefs}->{$sepaSysPrefVariable} = C4::Context->preference($sepaSysPrefVariable);
-        print STDERR "Koha::SEPAPayment::checkSEPADebitConfiguration() self->{sepaSysPrefs}->{$sepaSysPrefVariable}:$self->{sepaSysPrefs}->{$sepaSysPrefVariable}:\n" if $self->{verbose} > 1;
+    foreach my $sepaSysPrefRecord ( @sepaSysPrefRecords ) {
+        $self->{sepaSysPrefs}->{$sepaSysPrefRecord->{variable}} = C4::Context->preference($sepaSysPrefRecord->{variable});
+        print STDERR "Koha::SEPAPayment::checkSEPADebitConfiguration() self->{sepaSysPrefs}->{" . $sepaSysPrefRecord->{variable} . "}:" . $self->{sepaSysPrefs}->{$sepaSysPrefRecord->{variable}} . ":\n" if $self->{verbose} > 1;
 
-        if( ! $self->{sepaSysPrefs}->{$sepaSysPrefVariable} ) {
-            $configError .= "System preference:$sepaSysPrefVariable: is not set. "
+        if ( $sepaSysPrefRecord->{mandatory} ) {
+            if ( ! $self->{sepaSysPrefs}->{$sepaSysPrefRecord->{variable}} ) {
+                $configError .= "System preference:" . $sepaSysPrefRecord->{variable} . ": is not set. "
+            }
         }
     }
     print STDERR "Koha::SEPAPayment::checkSEPADebitConfiguration() returns configError:$configError:\n" if $self->{verbose} > 1;
@@ -339,8 +341,10 @@ sub payMembershipFeesForSEPADebitPatrons {
                 $membershipFeeHit->{kohaPaymentId} = $kohaPaymentId;    # value 0 indicates failed creation of accountlines record for payment
                 if ( $membershipFeeHit->{kohaPaymentId} ) {
                     push @{$self->{membershipFeeHitsPaid}}, $membershipFeeHit;
-                    # create notice for borrower informing about the upcoming SEPA direct debit
-                    $success = $self->printSepaNotice($membershipFeeHit);
+                    if ( $self->{lettercode} ) {
+                        # create notice for borrower informing about the upcoming SEPA direct debit
+                        $success = $self->printSepaNotice($membershipFeeHit);
+                    }
                 } else {
                     push @{$self->{membershipFeeHitsFailed}}, $membershipFeeHit;
                 }
@@ -368,8 +372,10 @@ sub payMembershipFeesForSEPADebitPatrons {
         $membershipFeeHit->{kohaPaymentId} = $kohaPaymentId;    # value 0 indicates failed creation of accountlines record for payment
         if ( $membershipFeeHit->{kohaPaymentId} ) {
             push @{$self->{membershipFeeHitsPaid}}, $membershipFeeHit;
-            # create notice for borrower informing about the upcoming SEPA direct debit
-            $success = $self->printSepaNotice($membershipFeeHit);
+            if ( $self->{lettercode} ) {
+                # create notice for borrower informing about the upcoming SEPA direct debit
+                $success = $self->printSepaNotice($membershipFeeHit);
+            }
         } else {
             push @{$self->{membershipFeeHitsFailed}}, $membershipFeeHit;
         }

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright 2017 (C) LMSCLoud GmbH
+# Copyright 2017-2020 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -24,6 +24,7 @@ use utf8;
 use Data::Dumper;
 
 use C4::External::EKZ::EkzWsDeliveryNote qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
+use Koha::Logger;
 
 
 binmode( STDIN, ":utf8" );
@@ -31,21 +32,19 @@ binmode( STDOUT, ":utf8" );
 binmode( STDERR, ":utf8" );
 
 
-
-my $debugIt = 1;
-
 my $lastRunDate;
 my $yesterdayDate;
 
-my $simpleTest=0;
+my $simpleTest = 0;
 my $genKohaRecords = 1;
 my $result;
 my $lieferscheinDetailElement = '';    # for storing the LieferscheinDetailElement of the SOAP response body
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d\n",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
 
-print STDERR "ekzWsLieferschein Start:$startTime\n" if $debugIt;
+$logger->info("ekzWsDeliveryNote.pl START starttime:$startTime:");
 
 $lastRunDate = C4::External::EKZ::lib::EkzWebServices::getLastRunDate('LieferscheinDetail', 'E');    # value for 'von' / 'from', required in european form dd.mm.yyyy
 if ( !defined($lastRunDate) || length($lastRunDate) == 0 ) {
@@ -54,19 +53,20 @@ if ( !defined($lastRunDate) || length($lastRunDate) == 0 ) {
 }
 $yesterdayDate = `date -d "1 day ago" +%d.%m.%C%y`;                                                  # value for 'bis' / 'until', required in european form dd.mm.yyyy
 chomp($yesterdayDate);
+$logger->info("ekzWsDeliveryNote.pl modified lastRunDate:$lastRunDate: yesterdayDate:$yesterdayDate:");
 
 if ( $simpleTest ) {
     # some libraries use different ekz Kundennummer for different branches, so we have to call the delivery note synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
         my $von = "01.08.2016";
-        print STDERR "ekzWsLieferschein read lieferscheinList von:$von; calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef)\n" if $debugIt;
+        $logger->info("ekzWsDeliveryNote.pl read lieferscheinList von:$von: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef)");
         my $lsListe = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef);
 
         foreach my $lieferschein ( @{$lsListe->{'lieferscheinRecords'}} ) {
-            print STDERR "ekzWsLieferschein read lieferschein via id:$lieferschein->{id}: calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,$lieferschein->{id},undef)\n" if $debugIt;
+            $logger->info("ekzWsDeliveryNote.pl read delivery note via id:" . $lieferschein->{id} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber," . $lieferschein->{id} . ",undef)");
             my $lsListe = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,$lieferschein->{id},undef);
-            print STDERR "ekzWsLieferschein read lieferschein via lieferscheinnummer:$lieferschein->{nummer}: calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer})\n" if $debugIt;
+            $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ")");
             $lsListe = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer});
         }
     }
@@ -80,14 +80,14 @@ if ( $genKohaRecords ) {
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
         # read all new delivery notes since $lastRunDate until including yesterday
-        print STDERR "ekzWsLieferschein read delivery notes since:$lastRunDate to:$yesterdayDate; calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)\n" if $debugIt;
+        $logger->info("ekzWsDeliveryNote.pl read delivery notes from lastRunDate:$lastRunDate to yesterdayDate:$yesterdayDate: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)");
         my $lsListe = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef);
         
         foreach my $lieferschein ( @{$lsListe->{'lieferscheinRecords'}} ) {
-            print STDERR "ekzWsLieferschein read lieferschein via lieferscheinnummer:$lieferschein->{nummer}: calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer})\n" if $debugIt;
+            $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ")");
             $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);    # read *complete* info (i.e. all titles) of the delivery note
 
-print STDERR "Dumper(\$result->{'lieferscheinRecords'}->[0]):\n", Dumper($result->{'lieferscheinRecords'}->[0]) if $debugIt;
+            $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
             if ( $result->{'lieferscheinCount'} > 0 ) {
                 if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0]) ) {
                     $res = 1;
@@ -102,5 +102,5 @@ print STDERR "Dumper(\$result->{'lieferscheinRecords'}->[0]):\n", Dumper($result
 }
 
 ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-my $endTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d\n",1900+$year,1+$mon,$mday,$hour,$min,$sec);
-print STDERR "ekzWsLieferschein End:$endTime\n" if $debugIt;
+my $endTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+$logger->info("ekzWsDeliveryNote.pl END endTime:$endTime:");

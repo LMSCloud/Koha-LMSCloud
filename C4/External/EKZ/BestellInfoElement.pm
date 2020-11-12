@@ -65,7 +65,6 @@ sub new {
     $emaillog->{records} = [];                  # one record for the title and one for each item (array ref)
 
     my $self  = {
-        'debugIt' => 1,
         'dateTimeNow' => undef,    # time stamp value, identical for message, titles and items
         'hauptstelle' => undef,    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
         'homebranch' => undef,    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
@@ -76,19 +75,18 @@ sub new {
         'ekzKohaRecordClass' => undef,
         'emaillog' => $emaillog    # hash with variables for email log
     };
+    $self->{logger} = Koha::Logger->get({ interface => 'C4::External::EKZ::BestellInfoElement' });
     
-print STDERR "BestellInfoElement::new debugIt:",$self->{debugIt},": ekzWsHideOrderedTitlesInOpac:",$self->{ekzWsHideOrderedTitlesInOpac},":\n" if $self->{debugIt};
     bless $self, $class;
-    #bless $self, 'C4::External::EKZ::BestellInfoElement';
     $self->init();
 
+    $self->{logger}->debug("new() returns self:" . Dumper($self) . ":");
     return $self;
 }
 
 sub init {
     my $self = shift;
 
-    $self->{debugIt} = 1;
     $self->{dateTimeNow} = DateTime->now(time_zone => 'local');
     $self->{hauptstelle} = undef;    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
     $self->{homebranch} = undef;    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
@@ -139,16 +137,14 @@ sub process {
 
     $self->init();
 
-print STDERR Dumper($soapEnvelopeHeader) if $self->{debugIt};
-print STDERR Dumper($soapEnvelopeBody->{'ns2:BestellInfoElement'}) if $self->{debugIt};
-
-print STDERR "BestellInfoElement::process() HTTP request request->body:", $soapEnvelopeBody, ":\n" if $self->{debugIt};
-print STDERR "BestellInfoElement::process() HTTP request request messageID:", $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'messageID'}, ":\n" if $self->{debugIt};
-print STDERR "BestellInfoElement::process() HTTP request request ekzBestellNr:", $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'ekzBestellNr'}, ":\n" if $self->{debugIt};
-print STDERR "BestellInfoElement::process() HTTP request request hauptstelle:", $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'}, ":\n" if $self->{debugIt};
+    $self->{logger}->info("process() soapEnvelopeHeader:" . Dumper($soapEnvelopeHeader) . ":");
+    $self->{logger}->info("process() soapEnvelopeBody:" . Dumper($soapEnvelopeBody) . ":");
+    $self->{logger}->info("process() messageID:" . $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'messageID'} . ":");
+    $self->{logger}->info("process() ekzBestellNr:" . $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'ekzBestellNr'} . ":");
+    $self->{logger}->info("process() hauptstelle:" . $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'} . ":");
 
 foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
-    print STDERR "BestellInfoElement::process() HTTP request tag:", $tag, ":\n" if $self->{debugIt};
+    $self->{logger}->trace("process() HTTP request tag:" . $tag . ":");
 }
 
     my $wssusername = defined($soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'}) ? $soapEnvelopeHeader->{'wsse:Security'}->{'wsse:UsernameToken'}->{'wsse:Username'} : "WSS-username not defined";
@@ -175,10 +171,10 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     $self->{hauptstelle} = $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'};
     $self->{homebranch} = $self->{ekzKohaRecordClass}->{'ekzWsConfig'}->getEkzWebServicesDefaultBranch($self->{hauptstelle});
     $self->{homebranch} =~ s/^\s+|\s+$//g;    # trim spaces
-print STDERR "BestellInfoElement::process() self->{homebranch}:", $self->{homebranch}, ":\n" if $self->{debugIt};
+    $self->{logger}->info("process() self->{homebranch}:" . $self->{homebranch} . ":");
     $self->{ekzAqbooksellersId} = $self->{ekzKohaRecordClass}->{'ekzWsConfig'}->getEkzAqbooksellersId($self->{hauptstelle});
     $self->{ekzAqbooksellersId} =~ s/^\s+|\s+$//g;    # trim spaces
-print STDERR "BestellInfoElement::process() self->{ekzAqbooksellersId}:", $self->{ekzAqbooksellersId}, ":\n" if $self->{debugIt};
+    $self->{logger}->info("process() self->{ekzAqbooksellersId}:" . $self->{ekzAqbooksellersId} . ":");
 
     # result values
     my $respStatusCode = 'UNDEF';
@@ -191,8 +187,8 @@ print STDERR "BestellInfoElement::process() self->{ekzAqbooksellersId}:", $self-
     my $basketgroupid = undef;
     
 
-    try {   
-print STDERR "BestellInfoElement::process() authenticated:" . $authenticated . ": reqEkzBestellNr:" . $reqEkzBestellNr . ":\n" if $self->{debugIt};
+    try {
+    $self->{logger}->info("process() authenticated:" . $authenticated . ": reqEkzBestellNr:" . $reqEkzBestellNr . ":");
     if ( $authenticated && $ekzLocalServicesEnabled && $reqEkzBestellNr ne 'UNDEFINED' ) {
 
         # If a order message record with this $reqEkzBestellNr exists already there will be written a log entry
@@ -208,12 +204,13 @@ print STDERR "BestellInfoElement::process() authenticated:" . $authenticated . "
         my $acquisitionImportIdBestellInfo;
         my $acquisitionImportBestellInfo = Koha::AcquisitionImport::AcquisitionImports->new();
         my $hit = $acquisitionImportBestellInfo->_resultset()->find( $selParam );
-print STDERR "BestellInfoElement::process() ref(hit):", ref($hit), ":\n" if $self->{debugIt};
+        $self->{logger}->debug("process() ref(hit):" . ref($hit) . ":");
         if ( defined($hit) ) {
             $ekzBestellNrIsDuplicate = 1;
-            my $mess = sprintf("The ekzBestellNr '%s' has already been used at %s. Processing denied.\n",$reqEkzBestellNr, $hit->get_column('processingtime'));
-            carp $mess;
-print STDERR "BestellInfoElement::process() hit->{_column_data}:", Dumper($hit->{_column_data}), ":\n" if $self->{debugIt};
+            $self->{logger}->trace("process() order message ordered hit->{_column_data}:" . Dumper($hit->{_column_data}) . ":");
+            my $mess = sprintf("process(): The ekzBestellNr '%s' has already been used at %s. Processing denied.",$reqEkzBestellNr, $hit->get_column('processingtime'));
+            $self->{logger}->error($mess);
+            carp "BestellInfoElement::" . $mess . "\n";
         } else {
             if ( $reqLmsBestellCode ) {    # it is a BestellInfo triggered by a call of ekz webservice Bestellung -> UPDATE acquisition_import* records
                 my $selParam = {
@@ -231,15 +228,17 @@ print STDERR "BestellInfoElement::process() hit->{_column_data}:", Dumper($hit->
 
                 if ( ! defined($hit) ) {
                     $lmsBestellCodeNotFound = 1;
-                    my $mess = sprintf("The lmsBestellCode '%s' has not been found. Processing of whole ekz BestellInfo denied.\n",$reqLmsBestellCode);
-                    carp $mess;
+                    my $mess = sprintf("process(): The lmsBestellCode '%s' has not been found. Processing of whole ekz BestellInfo denied.",$reqLmsBestellCode);
+                    $self->{logger}->error($mess);
+                    carp "BestellInfoElement::" . $mess . "\n";
                 } elsif ( scalar $hits_rs->all() > 1 ) {
                     $lmsBestellCodeNotUnique = 1;
-                    my $mess = sprintf("The lmsBestellCode '%s' is not unique in acquisition_imports. Processing of whole ekz BestellInfo denied.\n",$reqLmsBestellCode);
-                    carp $mess;
+                    my $mess = sprintf("process(): The lmsBestellCode '%s' is not unique in acquisition_imports. Processing of whole ekz BestellInfo denied.",$reqLmsBestellCode);
+                    $self->{logger}->error($mess);
+                    carp "BestellInfoElement::" . $mess . "\n";
                 } else {
                     # Update the record in table acquisition_import representing the Bestellung request if it is a BestellInfo triggered by a call of ekz webservice Bestellung.
-print STDERR "BestellInfoElement::process() hit->{_column_data}:", Dumper($hit->{_column_data}), ":\n" if $self->{debugIt};
+                    $self->{logger}->debug("process() acquisitionImportBestellInfo hit->{_column_data}:" . Dumper($hit->{_column_data}) . ":");
 
                     my $updParam = {
                         object_number => $reqEkzBestellNr,
@@ -272,11 +271,11 @@ print STDERR "BestellInfoElement::process() hit->{_column_data}:", Dumper($hit->
                 };
                 $acquisitionImportIdBestellInfo = $acquisitionImportBestellInfo->_resultset()->create($insParam)->get_column('id');
             }
-print STDERR "BestellInfoElement::process() acquisitionImportIdBestellInfo:", $acquisitionImportIdBestellInfo, ":\n" if $self->{debugIt};
+            $self->{logger}->debug("process() acquisitionImportIdBestellInfo:" . $acquisitionImportIdBestellInfo . ":");
         }
 
-        print STDERR "BestellInfoElement::process() HTTP request titel:",$soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'titel'},":\n" if $self->{debugIt};
-        print STDERR "BestellInfoElement::process() HTTP request ref(titel):",ref($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'titel'}),":\n" if $self->{debugIt};
+        $self->{logger}->debug("process() HTTP request titel::" . $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'titel'} . ":");
+        $self->{logger}->debug("process() HTTP request ref(titel):" . ref($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'titel'}) . ":");
         # look for XML <titel> blocks
         my $titeldefined = ( exists $soapEnvelopeBody->{'ns2:BestellInfoElement'} && defined $soapEnvelopeBody->{'ns2:BestellInfoElement'} &&
                              exists $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'titel'} && defined $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'titel'});
@@ -290,17 +289,15 @@ print STDERR "BestellInfoElement::process() acquisitionImportIdBestellInfo:", $a
                 $titelArrayRef = $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'titel'}; # ref to deserialized array containing the hash references
             }
         }
-        print STDERR "BestellInfoElement::process() HTTP request titel array:",@$titelArrayRef," AnzElem:", scalar @$titelArrayRef,":\n" if $self->{debugIt};
+        $self->{logger}->debug("process() HTTP request titel array:" . Dumper($titelArrayRef) . ": AnzElem:" . scalar @$titelArrayRef . ":");
 
         my $titleCount = scalar @$titelArrayRef;
-        print STDERR "BestellInfoElement::process() HTTP titleCount:",$titleCount, ":\n" if $self->{debugIt};
-        print STDERR "BestellInfoElement::process() HTTP reqEkzBestellNr:" . $reqEkzBestellNr . ":\n" if $self->{debugIt};
-        print STDERR "BestellInfoElement::process() HTTP ekzBestellNrIsDuplicate:" . $ekzBestellNrIsDuplicate . ":\n" if $self->{debugIt};
+        $self->{logger}->debug("process() HTTP HTTP titleCount:" . $titleCount . ": reqEkzBestellNr:" . $reqEkzBestellNr . ": ekzBestellNrIsDuplicate:" . $ekzBestellNrIsDuplicate . ":");
 
         # for each titel: check if there is sent a real ekzArtikelNr or if it can be generated from isbn13, isbn, ean at least
         for ( my $i = 0; $i < $titleCount && $reqEkzBestellNr ne 'UNDEFINED' && !$ekzBestellNrIsDuplicate && !$ekzBestellNrIsDuplicate; $i++ ) {
             my $titel = $titelArrayRef->[$i];
-            print STDERR "BestellInfoElement::process() title check-loop i:$i: titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+            $self->{logger}->debug("process() title check-loop i:$i: titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":");
 
             if ( ! defined($titel->{'ekzArtikelNr'}) || $titel->{'ekzArtikelNr'}+0 == 0 || index($titel->{'ekzArtikelNr'},'-') >= 0 ) {
                 if ( defined($titel->{'ekzArtikelNr'}) ) {    # do some normalization
@@ -309,7 +306,7 @@ print STDERR "BestellInfoElement::process() acquisitionImportIdBestellInfo:", $a
                         $titel->{'ekzArtikelNr'} =~ tr/-//d;
                         $titel->{'ekzArtikelNr'} += 0;    # remove the trailing X, if there is one
                         if ( $titel->{'ekzArtikelNr'}+0 > 99999999 ) {    # it was at least an ISBN 10 (which may end with an 'X')
-print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNotValid: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+                            $self->{logger}->debug("process() ekzArtikelNrNotValid:$ekzArtikelNrNotValid: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":");
                             next;    # this value may be used as ekzArtikelNr
                         }
                     }
@@ -335,7 +332,7 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                         $ekzArtikelNrNotValid = 0;
                     }
                 }
-                print STDERR "BestellInfoElement::process() title check-loop i:$i: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+                $self->{logger}->debug("process() title check-loop i:$i: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":");
                 if ( !$ekzArtikelNrNotValid && $titel->{'ekzArtikelNr'} > 0 && length($titel->{'ekzArtikelNr'}) >= 9 ) {
                     $ekzArtikelNrNotValid = 0;    # we had luck
                 } else {
@@ -343,7 +340,7 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                     last;   # so at least one title can not be supplied with an ekzArtikelNr
                 }
             }
-print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNotValid: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":\n" if $self->{debugIt};
+            $self->{logger}->info("process() ekzArtikelNrNotValid:$ekzArtikelNrNotValid: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":");
         }
 
         if ( $titleCount > 0 && $reqEkzBestellNr ne 'UNDEFINED' && !$ekzBestellNrIsDuplicate && !$lmsBestellCodeNotFound && !$lmsBestellCodeNotUnique && !$ekzArtikelNrNotValid ) {
@@ -356,7 +353,7 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                     my $selbaskets = C4::Acquisition::GetBaskets( { 'basketno' => $reqLmsBestellCode } );
                     if ( @{$selbaskets} > 0 ) {
                         $basketno = $selbaskets->[0]->{'basketno'};
-                        print STDERR "BestellInfoElement::process() searched by lmsBestellCode, found aqbasket with basketno:$basketno:\n" if $self->{debugIt};
+                        $self->{logger}->debug("process() searched by lmsBestellCode and found aqbasket with basketno:$basketno:");
                     } else {
                         $acquisitionError = 2;
                     }
@@ -367,7 +364,7 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                     my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                     if ( @{$selbaskets} > 0 ) {
                         $basketno = $selbaskets->[0]->{'basketno'};
-                        print STDERR "BestellInfoElement::process() found aqbasket with basketno:$basketno:\n" if $self->{debugIt};
+                        $self->{logger}->debug("process() found aqbasket with basketno:$basketno:");
                     } else {
                         my $authorisedby = undef;
                         my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
@@ -377,7 +374,7 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                         }
                         my $branchcode = $self->{ekzKohaRecordClass}->branchcodeFallback('', $self->{homebranch});
                         $basketno = C4::Acquisition::NewBasket($self->{ekzAqbooksellersId}, $authorisedby, $basketname, 'created by ekz BestellInfo', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH
-                        print STDERR "BestellInfoElement::process() created new basket having basketno:", Dumper($basketno), ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("process() created new basket having basketno:" . Dumper($basketno) . ":");
                         if ( $basketno ) {
                             my $basketinfo = {};
                             $basketinfo->{'basketno'} = $basketno;
@@ -390,12 +387,12 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                     $acquisitionError = 1;
                 }
             }
-            print STDERR "BestellInfoElement::process() ekzAqbooksellersId:$self->{ekzAqbooksellersId}: acquisitionError:$acquisitionError: basketno:$basketno:\n" if $self->{debugIt};
+            $self->{logger}->info("process() ekzAqbooksellersId:" . $self->{ekzAqbooksellersId} . ": acquisitionError:$acquisitionError: basketno:$basketno:");
 
             if ( !$acquisitionError ) {
                 # for each titel
                 for ( my $i = 0; $i < $titleCount; $i++ ) {
-                    print STDERR "BestellInfoElement::process() title loop $i\n" if $self->{debugIt};
+                    $self->{logger}->debug("process() !acquisitionError title loop i:$i:");
                     my $titel = $titelArrayRef->[$i];
 
                     # extracting the search criteria
@@ -418,25 +415,11 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                     $reqParamTitelInfo->{'verlag'} = $titel->{'titelInfo'}->{'verlag'};
                     $reqParamTitelInfo->{'erscheinungsJahr'} = $titel->{'titelInfo'}->{'erscheinungsJahr'};
                     $reqParamTitelInfo->{'auflage'} = $titel->{'titelInfo'}->{'auflage'};
-                    
-                    if ( $self->{debugIt} ) {
-                    # log request parameters
-                        my $logstr = $titel->{'ekzArtikelNr'} ? $titel->{'ekzArtikelNr'} : "<undef>";
-                        print STDERR "BestellInfoElement::process() HTTP request ekzArtikelNr:$logstr:\n";
-                        $logstr = $titel->{'titelInfo'}->{'isbn'} ? $titel->{'titelInfo'}->{'isbn'} : "<undef>";
-                        print STDERR "BestellInfoElement::process() HTTP request isbn:$logstr:\n";
-                        $logstr = $titel->{'titelInfo'}->{'isbn13'} ? $titel->{'titelInfo'}->{'isbn13'} : "<undef>";
-                        print STDERR "BestellInfoElement::process() HTTP request isbn13:$logstr:\n";
-                        $logstr = $titel->{'titelInfo'}->{'author'} ? $titel->{'titelInfo'}->{'author'} : "<undef>";
-                        print STDERR "BestellInfoElement::process() HTTP request author:$logstr:\n";
-                        $logstr = $titel->{'titelInfo'}->{'titel'} ? $titel->{'titelInfo'}->{'titel'} : "<undef>";
-                        print STDERR "BestellInfoElement::process() HTTP request titel:$logstr:\n";
-                        $logstr = $titel->{'titelInfo'}->{'erscheinungsJahr'} ? $titel->{'titelInfo'}->{'erscheinungsJahr'} : "<undef>";
-                        print STDERR "BestellInfoElement::process() HTTP request erscheinungsJahr:$logstr:\n";
-                    }
 
-                    print STDERR "BestellInfoElement::process() HTTP request exemplar:",$titel->{'exemplar'},":\n" if $self->{debugIt};
-                    print STDERR "BestellInfoElement::process() HTTP request ref(exemplar):",ref($titel->{'exemplar'}),":\n" if $self->{debugIt};
+                    $self->{logger}->debug("process() reqParamTitelInfo:" . Dumper($reqParamTitelInfo) . ":");
+
+                    $self->{logger}->debug("process() HTTP request exemplar:" . $titel->{'exemplar'} . ":");
+                    $self->{logger}->debug("process() HTTP request ref(exemplar):" . ref($titel->{'exemplar'}) . ":");
                     # look for XML <exemplar> blocks within current <titel> block
                     my $exemplardefined = ( exists $titel->{'exemplar'} && defined $titel->{'exemplar'} );
                     my $exemplarArrayRef = [];    #  using ref to empty array if there are sent no exemplar blocks
@@ -449,11 +432,10 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                              $exemplarArrayRef = $titel->{'exemplar'};  # ref to deserialized array containing the hash references
                         }
                     }
-                    print STDERR "BestellInfoElement::process() HTTP request exemplarArray:",@$exemplarArrayRef," AnzElem:", 0+@$exemplarArrayRef,":\n" if $self->{debugIt};
+                    $self->{logger}->debug("process() HTTP request exemplarArray:" . Dumper($exemplarArrayRef) . ": AnzElem:" . 0+@$exemplarArrayRef . ":");
                     my @idPaarListeTmp = $self->handleTitelBestellInfo($acquisitionImportIdBestellInfo, $reqEkzBestellNr, $reqEkzBestellDatum, $reqLmsBestellCode, $reqParamTitelInfo, $exemplarArrayRef, $reqWaehrung, $basketno); ## add or update title data and item data
                     
-                    print STDERR "BestellInfoElement::process() Anzahl idPaarListe:",@idPaarListeTmp+0, "\n" if $self->{debugIt};
-                    print STDERR "BestellInfoElement::process() idPaarListe:",@idPaarListeTmp, "\n" if $self->{debugIt};
+                    $self->{logger}->debug("process() Anzahl idPaarListeTmp:" . scalar @idPaarListeTmp . ": idPaarListeTmp:" . Dumper(@idPaarListeTmp) . ":");
                     push @idPaarListe, @idPaarListeTmp;
                 }
 
@@ -461,10 +443,10 @@ print STDERR "BestellInfoElement::process() ekzArtikelNrNotValid:$ekzArtikelNrNo
                 if ( length($self->{ekzAqbooksellersId}) && defined($basketno) && $basketno > 0 ) {
                     # create a basketgroup for this basket and close both basket and basketgroup
                     my $aqbasket = &C4::Acquisition::GetBasket($basketno);
-print STDERR "BestellInfoElement::process() Dumper aqbasket:", Dumper($aqbasket), ":\n" if $self->{debugIt};
+                    $self->{logger}->debug("process() Dumper aqbasket:" . Dumper($aqbasket) . ":");
                     if ( $aqbasket ) {
                         # close the basket
-print STDERR "BestellInfoElement::process() is calling CloseBasket basketno:", $aqbasket->{basketno}, ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("process() is calling CloseBasket basketno:" . $aqbasket->{basketno} . ":");
                         &C4::Acquisition::CloseBasket($aqbasket->{basketno});
 
                         # search/create basket group with aqbasketgroups.name = ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
@@ -474,7 +456,7 @@ print STDERR "BestellInfoElement::process() is calling CloseBasket basketno:", $
                         };
                         $basketgroupid  = undef;
                         my $aqbasketgroups = &C4::Acquisition::GetBasketgroupsGeneric($params, { orderby => "id DESC" } );
-print STDERR "BestellInfoElement::process() Dumper aqbasketgroups:", Dumper($aqbasketgroups), ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("process() Dumper aqbasketgroups:" . Dumper($aqbasketgroups) . ":");
 
                         # create basket group if not existing
                         if ( !defined($aqbasketgroups) || scalar @{$aqbasketgroups} == 0 ) {
@@ -488,10 +470,10 @@ print STDERR "BestellInfoElement::process() Dumper aqbasketgroups:", Dumper($aqb
                                 billingplace => "$aqbasket->{billingplace}",
                             };
                             $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
-print STDERR "BestellInfoElement::process() created basketgroup with name:", $aqbasket->{basketname}, ": having basketgroupid:$basketgroupid:\n" if $self->{debugIt};
+                            $self->{logger}->debug("process() created basketgroup with name:" .  $aqbasket->{basketname} . ": having basketgroupid:$basketgroupid:");
                         } else {
                             $basketgroupid = $aqbasketgroups->[0]->{id};
-print STDERR "BestellInfoElement::process() found basketgroup with name:", $aqbasket->{basketname}, ": having basketgroupid:$basketgroupid:\n" if $self->{debugIt};
+                            $self->{logger}->debug("process() found basketgroup with name:" . $aqbasket->{basketname} . ": having basketgroupid:$basketgroupid:");
                         }
 
                         if ( $basketgroupid ) {
@@ -503,7 +485,7 @@ print STDERR "BestellInfoElement::process() found basketgroup with name:", $aqba
                             &C4::Acquisition::ModBasket($basketinfo);
 
                             # close the basketgroup
-print STDERR "BestellInfoElement::process() is calling CloseBasketgroup basketgroupid:$basketgroupid:\n" if $self->{debugIt};
+                            $self->{logger}->debug("process() is calling CloseBasketgroup basketgroupid:$basketgroupid:");
                             &C4::Acquisition::CloseBasketgroup($basketgroupid);
                         }
                     }
@@ -515,20 +497,18 @@ print STDERR "BestellInfoElement::process() is calling CloseBasketgroup basketgr
     catch {
         $exceptionThrown = $_;
         if (ref($exceptionThrown) eq 'Koha::Exceptions::WrongParameter') {
-print STDERR "BestellInfoElement::process() caught special exception:" . Dumper($exceptionThrown) . ":\n";
-print STDERR "BestellInfoElement::process() caught special exception having message:" . Dumper($exceptionThrown->{message}) . ":\n";
+            $self->{logger}->error("process() caught special exception:" . Dumper($exceptionThrown) . ":");
+            $self->{logger}->error("process() caught special exception having message:" . Dumper($exceptionThrown->{message}) . ":");
         } else {
-print STDERR "BestellInfoElement::process() caught generic exception:" . Dumper($exceptionThrown) . ":\n";
-#print STDERR "BestellInfoElement::process() caught generic exception having message:" . Dumper($exceptionThrown->{message}) . ":\n";
-        my %excpt = ();
-        $excpt{message} = $exceptionThrown;
-        $exceptionThrown = \%excpt;
+            $self->{logger}->error("process() caught generic exception:" . Dumper($exceptionThrown) . ":");
+            $self->{logger}->error("process() caught generic exception having message:" . Dumper($exceptionThrown->{message}) . ":");
+            my %excpt = ();
+            $excpt{message} = $exceptionThrown;
+            $exceptionThrown = \%excpt;
         }
     };
-            
 
-    print STDERR "BestellInfoElement::process() Anzahl idPaarListe:",@idPaarListe+0, "\n" if $self->{debugIt};
-    print STDERR "BestellInfoElement::process() idPaarListe:",@idPaarListe, "\n" if $self->{debugIt};
+    $self->{logger}->info("process() Anzahl idPaarListe:" . scalar @idPaarListe . ": idPaarListe:" . Dumper(@idPaarListe) . ":");
 
     #$dbh->rollback;    # crude rollback for TEST only XXXWH
     #@idPaarListe = (); # crude rollback for TEST only XXXWH
@@ -580,7 +560,7 @@ print STDERR "BestellInfoElement::process() caught generic exception:" . Dumper(
     my @soapIdPaarListe = ();
     foreach my $idPaar (@idPaarListe)
     {
-        print STDERR "BestellInfoElement::process(); ekzExemplarID:",$idPaar->{'ekzExemplarID'},":\n" if $self->{debugIt};
+        $self->{logger}->debug("process() ekzExemplarID:" . $idPaar->{'ekzExemplarID'} . ":");
 
         my $soapIdPaar = SOAP::Data->name( 'idPaar' => \SOAP::Data->value(
                 SOAP::Data->name( 'ekzExemplarID' => $idPaar->{'ekzExemplarID'} )->type( 'string' ),
@@ -592,16 +572,16 @@ print STDERR "BestellInfoElement::process() caught generic exception:" . Dumper(
 
     # create logresult message for log email, representing all titles of the BestellInfo with all their processed items
     push @{$self->{emaillog}->{logresult}}, ['BestellInfo', $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'messageID'}, $self->{emaillog}->{actionresult}, $acquisitionError, $self->{ekzAqbooksellersId}, $basketno ];
-print STDERR "Dumper(logresult): ####################################################################################################################\n" if $self->{debugIt};
-print STDERR Dumper($self->{emaillog}->{logresult}) if $self->{debugIt};
-
+    $self->{logger}->info("process() VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+    $self->{logger}->info("process() Dumper(self->{emaillog}->{logresult}):" . Dumper($self->{emaillog}->{logresult}) . ":");
+    $self->{logger}->info("process() ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 
 
     if ( $exceptionThrown ) {
-print STDERR "BestellInfoElement::process() would roll back based on thrown exception\n";
+        $self->{logger}->error("process() roll back based on thrown exception");
         $dbh->rollback;    # roll back the complete BestellInfo, based on thrown exception
     } else {
-print STDERR "BestellInfoElement::process() would commit\n";
+        $self->{logger}->info("process() commit");
         # commit the complete BestellInfo (only as a single transaction)
         $dbh->commit();
         $dbh->{AutoCommit} = 1;
@@ -660,16 +640,16 @@ sub handleTitelBestellInfo {
     # variables for result structure
     my @idPaarListe = ();
 
-print STDERR "BestellInfoElement::handleTitelBestellInfo() Start reqEkzBestellNr:$reqEkzBestellNr: reqEkzBestellDatum:$reqEkzBestellDatum: reqWaehrung:$reqWaehrung: basketno:$basketno:\n" if $self->{debugIt};
+    $self->{logger}->info("handleTitelBestellInfo() Start reqEkzBestellNr:$reqEkzBestellNr: reqEkzBestellDatum:$reqEkzBestellDatum: reqWaehrung:$reqWaehrung: basketno:$basketno:");
 
     # step 1: find or create biblio record
-#VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
     if ( $reqLmsBestellCode ) {    # it is a BestellInfo triggered by a call of ekz webservice Bestellung -> fetch the biblionumber via aqorders
         if ( defined($exemplare) && defined($exemplare->[0]) && defined($exemplare->[0]->{'lmsExemplarID'}) && length($exemplare->[0]->{'lmsExemplarID'}) > 0 ) {
             $reqLmsExemplarID = $exemplare->[0]->{'lmsExemplarID'};    # lmsExemplarID contains aqorders.ordenumber
         } else {
-            my $mess = sprintf("No lmsExemplarID sent for lmsBestellCode '%s'. Processing of whole ekz BestellInfo denied.\n",$reqLmsBestellCode);
-            carp $mess;
+            my $mess = sprintf("handleTitelBestellInfo(): No lmsExemplarID sent for lmsBestellCode '%s'. Processing of whole ekz BestellInfo denied.",$reqLmsBestellCode);
+            $self->{logger}->error($mess);
+            carp "BestellInfoElement::" . $mess . "\n";
 
             Koha::Exceptions::WrongParameter->throw(
                 error => sprintf("Der BestellInfo-Request mit lmsBestellCode '%s' enthält das Feld lmsExemplarID nicht, somit kann der Titelsatz nicht identifiziert werden. Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n",$reqLmsBestellCode),
@@ -679,8 +659,9 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() Start reqEkzBestellNr
         $aqordersHit = $aqorders->_resultset()->search( { ordernumber => $reqLmsExemplarID } )->first();
 
         if ( ! $aqordersHit ) {
-            my $mess = sprintf("The Koha order with aqorders.ordernumber '%s' has not been found. Processing of whole ekz BestellInfo denied.\n",$reqLmsExemplarID);
-            carp $mess;
+            my $mess = sprintf("handleTitelBestellInfo(): The Koha order with aqorders.ordernumber '%s' has not been found. Processing of whole ekz BestellInfo denied.",$reqLmsExemplarID);
+            $self->{logger}->error($mess);
+            carp "BestellInfoElement::" . $mess . "\n";
 
             Koha::Exceptions::WrongParameter->throw(
                 error => sprintf("Die Koha-Bestellung mit aqorders.ordernumber '%s' (lmsExemplarID) wurde nicht gefunden. Abbruch der Verarbeitung der gesamten ekz BestellInfo.",$reqLmsExemplarID),
@@ -690,8 +671,9 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() Start reqEkzBestellNr
         $titleHits = $self->{ekzKohaRecordClass}->readTitleInLocalDBByBiblionumber($biblionumber, 1);
 
         if ( ! $titleHits || $titleHits->{'count'} != 1 || ! defined $titleHits->{'records'}->[0] ) {
-            my $mess = sprintf("The Koha biblio record with biblionumber '%s' has not been found. Processing of whole ekz BestellInfo denied.\n",$biblionumber);
-            carp $mess;
+            my $mess = sprintf("handleTitelBestellInfo(): The Koha biblio record with biblionumber '%s' has not been found. Processing of whole ekz BestellInfo denied.",$biblionumber);
+            $self->{logger}->error($mess);
+            carp "BestellInfoElement::" . $mess . "\n";
 
             Koha::Exceptions::WrongParameter->throw(
                 error => sprintf("Die Koha-Biblo-Daten mit biblionumber '%s' wurden nicht gefunden. Abbruch der Verarbeitung der gesamten ekz BestellInfo.",$biblionumber),
@@ -703,7 +685,6 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() Start reqEkzBestellNr
         $self->{emaillog}->{importresult} = 2;
         $self->{emaillog}->{importedTitlesCount} += 0;
     } else {    # it is a BestellInfo triggered by an ekz medienshop order.
-#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
         # priority of title sources to be checked:
         # In any case:
@@ -724,14 +705,14 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() Start reqEkzBestellNr
 
         # search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
         $titleHits = $self->{ekzKohaRecordClass}->readTitleInLocalDB($reqParamTitelInfo, 1);
-print STDERR "BestellInfoElement::handleTitelBestellInfo() from local DB titleHits->{'count'}:",$titleHits->{'count'},": \n" if $self->{debugIt};
+        $self->{logger}->info("handleTitelBestellInfo() from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
             $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
         }
 
         my @titleSourceSequence = split('\|',$self->{titleSourceSequence});
         foreach my $titleSource (@titleSourceSequence) {
-print STDERR "BestellInfoElement::handleTitelBestellInfo() titleSource:$titleSource:\n" if $self->{debugIt};
+            $self->{logger}->info("handleTitelBestellInfo() titleSource:$titleSource:");
             if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                 last;    # title data have been found in lastly tested title source
             }
@@ -739,19 +720,19 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() titleSource:$titleSou
             if ( $titleSource eq '_LMSC' ) {
                 # search title in LMSPool
                 $titleHits = $self->{ekzKohaRecordClass}->readTitleInLMSPool($reqParamTitelInfo);
-print STDERR "BestellInfoElement::handleTitelBestellInfo() from LMS Pool titleHits->{'count'}:",$titleHits->{'count'},": \n" if $self->{debugIt};
+                $self->{logger}->info("handleTitelBestellInfo() from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
             } elsif ( $titleSource eq '_EKZWSMD' ) {
                 # send query to the ekz title information webservice
                 $titleHits = $self->{ekzKohaRecordClass}->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
-print STDERR "BestellInfoElement::handleTitelBestellInfo() from ekz Webservice titleHits->{'count'}:",$titleHits->{'count'},": \n" if $self->{debugIt};
+                $self->{logger}->info("handleTitelBestellInfo() from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
             } elsif ( $titleSource eq '_WS' ) {
                 # use sparse title data from the BestellinfoElement
                 $titleHits = $self->{ekzKohaRecordClass}->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
-print STDERR "BestellInfoElement::handleTitelBestellInfo() from sent titelinfo fields titleHits->{'count'}:",$titleHits->{'count'},": \n" if $self->{debugIt};
+                $self->{logger}->info("handleTitelBestellInfo() from sent titelinfo fields titleHits->{'count'}:" . $titleHits->{'count'} . ":");
             } else {
                 # search title in in the Z39.50 target with z3950servers.servername=$titleSource
                 $titleHits = $self->{ekzKohaRecordClass}->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
-print STDERR "BestellInfoElement::handleTitelBestellInfo() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ": \n" if $self->{debugIt};
+                $self->{logger}->info("handleTitelBestellInfo() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
             }
         }
 
@@ -772,7 +753,7 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() from z39.50 search on
                 ($biblionumber,$biblioitemnumber,$newrec) = $self->{ekzKohaRecordClass}->addNewRecord($titleHits->{'records'}->[0]);
                 $titleHits->{'records'}->[0] = $newrec if ($newrec);
                 
-print STDERR "BestellInfoElement::handleTitelBestellInfo() new biblionumber:",$biblionumber,": biblioitemnumber:",$biblioitemnumber,": \n" if $self->{debugIt};
+                $self->{logger}->info("handleTitelBestellInfo() new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
                 if ( defined $biblionumber && $biblionumber > 0 ) {
                     $biblioInserted = 1;
                     # positive message for log
@@ -801,7 +782,6 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() new biblionumber:",$b
 
     if ( $biblioExisting || $biblioInserted ) {
         # step 2: add or update the acquisition_import and acquisition_import_objects record representing the title
-#VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
         if ( $reqLmsBestellCode ) {    # it is a BestellInfo triggered by a call of ekz webservice Bestellung -> UPDATE acquisition_import* records
             my $selParam = {
                 vendor_id => "ekz",
@@ -815,11 +795,12 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() new biblionumber:",$b
             my $acquisitionImportIdTitle;
             my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
             my $acquisitionImportTitleHit = $acquisitionImportTitle->_resultset()->search( $selParam )->first();
-print STDERR "BestellInfoElement::process() ref(acquisitionImportTitleHit):", ref($acquisitionImportTitleHit), ":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() ref(acquisitionImportTitleHit):" . ref($acquisitionImportTitleHit) . ":");
             if ( ! defined($acquisitionImportTitleHit) ) {
                 ########## $lmsBestellCodeNotFound = 1;
-                my $mess = sprintf("The acquisition_import title record having lmsBestellCode '%s' and lmsExemplarID '%s' has not been found. Processing of whole ekz BestellInfo denied.\n",$reqLmsBestellCode,$reqLmsExemplarID);
-                carp $mess;
+                my $mess = sprintf("handleTitelBestellInfo(): The acquisition_import title record having lmsBestellCode '%s' and lmsExemplarID '%s' has not been found. Processing of whole ekz BestellInfo denied.",$reqLmsBestellCode,$reqLmsExemplarID);
+                $self->{logger}->error($mess);
+                carp "BestellInfoElement::" . $mess . "\n";
 
                 Koha::Exceptions::WrongParameter->throw(
                     error => sprintf("Der acquisition_import Titel-Datensatz mit lmsBestellCode '%s' und lmsExemplarID '%s' wurde nicht gefunden. Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n",$reqLmsBestellCode,$reqLmsExemplarID),
@@ -827,7 +808,7 @@ print STDERR "BestellInfoElement::process() ref(acquisitionImportTitleHit):", re
 
             } else {
                 # Update the record in table acquisition_import representing the matching title of the Bestellung request if it is a BestellInfo triggered by a call of ekz webservice Bestellung.
-print STDERR "BestellInfoElement::process() acquisitionImportTitleHit->{_column_data}:", Dumper($acquisitionImportTitleHit->{_column_data}), ":\n" if $self->{debugIt};
+                $self->{logger}->debug("handleTitelBestellInfo() acquisitionImportTitleHit->{_column_data}:" . Dumper($acquisitionImportTitleHit->{_column_data}) . ":");
 
                 my $updParam = {
                     object_number => $reqEkzBestellNr,
@@ -848,8 +829,6 @@ print STDERR "BestellInfoElement::process() acquisitionImportTitleHit->{_column_
 
         } else {    # it is a BestellInfo triggered by an ekz medienshop order -> INSERT acquisition_import* records
             # Insert a record into table acquisition_import representing the title data of the BestellInfo <titelInfo> if it is a BestellInfo triggered by an ekz medienshop order.
-#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-            # Insert a record into table acquisition_import representing the title data of the BestellInfo <titelInfo>.
             my $insParam = {
                 #id => 0, # AUTO
                 vendor_id => "ekz",
@@ -866,8 +845,8 @@ print STDERR "BestellInfoElement::process() acquisitionImportTitleHit->{_column_
             my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
             my $acquisitionImportTitleRS = $acquisitionImportTitle->_resultset()->create($insParam);
             $acquisitionImportIdTitle = $acquisitionImportTitleRS->get_column('id');
-print STDERR "BestellInfoElement::handleTitelBestellInfo() acquisitionImportTitleRS->{_column_data}:", Dumper($acquisitionImportTitleRS->{_column_data}), ":\n" if $self->{debugIt};
-print STDERR "BestellInfoElement::handleTitelBestellInfo() acquisitionImportIdTitle:", $acquisitionImportIdTitle, ":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() acquisitionImportTitleRS->{_column_data}:" . Dumper($acquisitionImportTitleRS->{_column_data}) . ":");
+            $self->{logger}->debug("handleTitelBestellInfo() acquisitionImportIdTitle:" . $acquisitionImportIdTitle . ":");
 
             # Insert a record into table acquisition_import_object representing the Koha title data.
             $insParam = {
@@ -879,7 +858,7 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() acquisitionImportIdTi
             my $titleImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
             my $titleImportObjectRS = $titleImportObject->_resultset()->create($insParam);
 
-print STDERR "BestellInfoElement::handleTitelBestellInfo() titleImportObjectRS->{_column_data}:", Dumper($titleImportObjectRS->{_column_data}), ":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() titleImportObjectRS->{_column_data}:" . Dumper($titleImportObjectRS->{_column_data}) . ":");
         }    # $reqLmsBestellCode
 
 
@@ -888,10 +867,10 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() titleImportObjectRS->
         for ( my $i = 0; $i < $itemCount; $i++ ) {
             my $ekzExemplarID = (defined $exemplare->[$i]->{'ekzExemplarID'} && length($exemplare->[$i]->{'ekzExemplarID'}) > 0) ? $exemplare->[$i]->{'ekzExemplarID'} : "ekzExemplarID not set";
             my $exemplar_anzahl = $exemplare->[$i]->{'konfiguration'}->{'anzahl'};
-            print STDERR "BestellInfoElement::handleTitelBestellInfo() exemplar itemCount:$itemCount loop:$i exemplar_anzahl:$exemplar_anzahl\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() exemplar itemCount:$itemCount: loop i:$i: exemplar_anzahl:$exemplar_anzahl:");
 
-print STDERR "BestellInfoElement::handleTitelBestellInfo() exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}:", $exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}, ":\n" if $self->{debugIt};
-print STDERR "BestellInfoElement::handleTitelBestellInfo() ref exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}:", ref($exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}), ":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}:" . $exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'} . ":");
+            $self->{logger}->debug("handleTitelBestellInfo() ref exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}:" . ref($exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}) . ":");
             # look for XML <ExemplarFeldElement> blocks within current <exemplar> block
             my $exemplarfelderArrayRef = [];    # using ref to empty array if there are sent no ExemplarFeldElement blocks
             # if there is sent only one ExemplarFeldElement block, it is delivered here as hash ref
@@ -906,13 +885,13 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() ref exemplare->[$i]->
                     }
                 }
             }
-print STDERR "BestellInfoElement::handleTitelBestellInfo() HTTP request ExemplarFeldElement array:",@$exemplarfelderArrayRef," AnzElem:", scalar @$exemplarfelderArrayRef,":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() HTTP request ExemplarFeldElement Anz.Elem.:" . scalar @$exemplarfelderArrayRef . ": exemplarfelderArrayRef:" . Dumper($exemplarfelderArrayRef) . ":");
 
             my $exemplarfeldercount = scalar @$exemplarfelderArrayRef;
             my $zweigstellencode = '';
-print STDERR "BestellInfoElement::handleTitelBestellInfo() HTTP exemplarfeldercount:",$exemplarfeldercount, ":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() HTTP exemplarfeldercount:" . $exemplarfeldercount . ":");
             for ( my $j = 0; $j < $exemplarfeldercount; $j++ ) {
-                print STDERR "BestellInfoElement::handleTitelBestellInfo() HTTP request ExemplarFeldElement name:", $exemplarfelderArrayRef->[$j]->{'name'}, ": inhalt:", $exemplarfelderArrayRef->[$j]->{'inhalt'},":\n" if $self->{debugIt};
+                $self->{logger}->debug("handleTitelBestellInfo() HTTP request ExemplarFeldElement[$j] name:" . $exemplarfelderArrayRef->[$j]->{'name'} . ": inhalt:" . $exemplarfelderArrayRef->[$j]->{'inhalt'} . ":");
                 if ( $exemplarfelderArrayRef->[$j]->{'name'} eq 'zweigstelle' ) {
                     $zweigstellencode = $exemplarfelderArrayRef->[$j]->{'inhalt'};
                     $zweigstellencode =~ s/^\s+|\s+$//g; # trim spaces
@@ -921,11 +900,11 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() HTTP exemplarfelderco
             if ( length($zweigstellencode) == 0 && defined $self->{homebranch} && length($self->{homebranch}) > 0 ) {
                 $zweigstellencode = $self->{homebranch};
             }
-print STDERR "BestellInfoElement::handleTitelBestellInfo() vor checkbranchcode zweigstellencode:", $zweigstellencode, ":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() vor checkbranchcode zweigstellencode:" . $zweigstellencode . ":");
             if ( ! $self->{ekzKohaRecordClass}->checkbranchcode($zweigstellencode) ) {
                 $zweigstellencode = '';
             }
-print STDERR "BestellInfoElement::handleTitelBestellInfo() nach checkbranchcode zweigstellencode:", $zweigstellencode, ":\n" if $self->{debugIt};
+            $self->{logger}->debug("handleTitelBestellInfo() nach checkbranchcode zweigstellencode:" . $zweigstellencode . ":");
 
 
             my $order = undef;
@@ -1003,18 +982,18 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() nach checkbranchcode 
                 $orderinfo->{unitprice_tax_included} = 0.0;
                 # quantityreceived is set to 0 by DBS
                 $orderinfo->{order_internalnote} = '';
-                $orderinfo->{order_vendornote} = 'Gesamtpreis: ' . "$gesamtpreis $reqWaehrung\n";
+                $orderinfo->{order_vendornote} = sprintf("Bestellung:\nGesamtpreis: %.2f %s (Exemplare: %d)\n", $gesamtpreis, $reqWaehrung, $quantity);
                 if ( $rabattbetrag != 0.0 ) {
-                    $orderinfo->{order_vendornote} .= 'Rabatt: ' . "$rabattbetrag $reqWaehrung\n";
+                    $orderinfo->{order_vendornote} .= sprintf("Rabatt: %.2f %s\n", $rabattbetrag, $reqWaehrung);
                 }
                 if ( $fracht != 0.0 ) {
-                    $orderinfo->{order_vendornote} .= 'Fracht: ' . "$fracht $reqWaehrung\n";
+                    $orderinfo->{order_vendornote} .= sprintf("Fracht: %.2f %s\n", $fracht, $reqWaehrung);
                 }
                 if ( $einband != 0.0 ) {
-                    $orderinfo->{order_vendornote} .= 'Einband: ' . "$einband $reqWaehrung\n";
+                    $orderinfo->{order_vendornote} .= sprintf("Einband: %.2f %s\n", $einband, $reqWaehrung);
                 }
                 if ( $bearbeitung != 0.0 ) {
-                    $orderinfo->{order_vendornote} .= 'Bearbeitung: ' . "$bearbeitung $reqWaehrung\n";
+                    $orderinfo->{order_vendornote} .= sprintf("Bearbeitung: %.2f %s\n", $bearbeitung, $reqWaehrung);
                 }
                 # timestamp is set to now by DBS
                 $orderinfo->{budget_id} = $budgetid;
@@ -1037,18 +1016,26 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() nach checkbranchcode 
                 $orderinfo->{tax_value_on_receiving} = $ust;
                 # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
                 $orderinfo->{discount} = $rabatt;        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
-#VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+
                 if ( $reqLmsBestellCode ) {
                     # it is a BestellInfo triggered by a call of ekz webservice Bestellung -> UPDATE aqorder record ( i.e. set price fields)
 
                     if ( $orderinfo->{quantity} != $aqordersHit->get_column('quantity') ) {
+                        my $mess = sprintf("handleTitelBestellInfo(): ekz-Exemplaranzahl (%s) != Koha aqorders.quantity (%s). Processing of whole ekz BestellInfo denied.",$orderinfo->{quantity},$aqordersHit->get_column('quantity'));
+                        $self->{logger}->error($mess);
+                        carp "BestellInfoElement::" . $mess . "\n";
+
                         Koha::Exceptions::WrongParameter->throw(
                             error => sprintf("ekz-Exemplaranzahl (%s) != Koha aqorders.quantity (%s). Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n",$orderinfo->{quantity},$aqordersHit->get_column('quantity')),
                         );
                     }
                     if ( $orderinfo->{currency} ne $aqordersHit->get_column('currency') ) {
+                        my $mess = sprintf("handleTitelBestellInfo(): ekz-waehrung (%s) != Koha aqorders.currency (%s). Processing of whole ekz BestellInfo denied.",$orderinfo->{currency},$aqordersHit->get_column('currency'));
+                        $self->{logger}->error($mess);
+                        carp "BestellInfoElement::" . $mess . "\n";
+
                         Koha::Exceptions::WrongParameter->throw(
-                            error => sprintf("ekz-waehrung (%s) != Koha aqorders.currency (%s). Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n",$orderinfo->{currency},$aqordersHit->get_column('currency').'1234'),
+                            error => sprintf("ekz-waehrung (%s) != Koha aqorders.currency (%s). Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n",$orderinfo->{currency},$aqordersHit->get_column('currency')),
                         );
                     }
                     my $order_vendornote = $aqordersHit->get_column('order_vendornote');
@@ -1095,12 +1082,10 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() nach checkbranchcode 
                     }
                 }
             }
-#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
             # step 3.2 and 3.3:
             # if ( ! $reqLmsBestellCode ): 3.2: insert items   3:3: insert acquisition_import* records
             # if ( $reqLmsBestellCode ): 3.2: update acquisition_import* records   3.3: update items
-#VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
             if ( $reqLmsBestellCode ) {   
 
                 # step 3.2: it is a BestellInfo triggered by a call of ekz webservice Bestellung -> update acquisition_import* records
@@ -1119,9 +1104,10 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() nach checkbranchcode 
                 my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
                 my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->search( $selParam );    # we have to update all items of the order
                 if ( ! defined($acquisitionImportItemRS) ) {
-print STDERR "BestellInfoElement::process() ref(acquisitionImportItemRS):", ref($acquisitionImportItemRS), ":\n" if $self->{debugIt};
-                    my $mess = sprintf("No acquisition_import item record having lmsBestellCode '%s' and lmsExemplarID '%s' in processing state 'prepared' has been found. Processing of whole ekz BestellInfo denied.\n",$reqLmsBestellCode,$reqLmsExemplarID);
-                    carp $mess;
+                    $self->{logger}->info("handleTitelBestellInfo() ref(acquisitionImportItemRS):" . ref($acquisitionImportItemRS) . ":");
+                    my $mess = sprintf("handleTitelBestellInfo(): No acquisition_import item record having lmsBestellCode '%s' and lmsExemplarID '%s' in processing state 'prepared' has been found. Processing of whole ekz BestellInfo denied.",$reqLmsBestellCode,$reqLmsExemplarID);
+                    $self->{logger}->error($mess);
+                    carp "BestellInfoElement::" . $mess . "\n";
 
                     Koha::Exceptions::WrongParameter->throw(
                         error => sprintf("Es wurde kein acquisition_import Exemplar-Datensatz mit lmsBestellCode '%s' und lmsExemplarID '%s' im Prozeß-Status 'prepared' gefunden. Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n",$reqLmsBestellCode,$reqLmsExemplarID),
@@ -1131,7 +1117,7 @@ print STDERR "BestellInfoElement::process() ref(acquisitionImportItemRS):", ref(
                     while ( my $acquisitionImportItemHit = $acquisitionImportItemRS->next() ) {
                         $self->{emaillog}->{processedItemsCount} += 1;
                         # Update the record in table acquisition_import representing the matching item of the Bestellung request if it is a BestellInfo triggered by a call of ekz webservice Bestellung.
-print STDERR "BestellInfoElement::process() acquisitionImportItemHit->{_column_data}:", Dumper($acquisitionImportItemHit->{_column_data}), ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("handleTitelBestellInfo() acquisitionImportItemHit->{_column_data}:" . Dumper($acquisitionImportItemHit->{_column_data}) . ":");
 
                         my $updParam = {
                             object_number => $reqEkzBestellNr,
@@ -1147,7 +1133,7 @@ print STDERR "BestellInfoElement::process() acquisitionImportItemHit->{_column_d
                             processingtime => DateTime::Format::MySQL->format_datetime($self->{dateTimeNow}),    # in local time_zone
                         };
                         $acquisitionImportIdItem = $acquisitionImportItemHit->update($updParam)->get_column('id');
-print STDERR "BestellInfoElement::process() acquisitionImportIdItem:" . $acquisitionImportIdItem . ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("handleTitelBestellInfo() acquisitionImportIdItem:" . $acquisitionImportIdItem . ":");
                         # no need to update the corresponding record in table acquisition_import_object representing the Koha title data.
 
                         # get the itemnumber from table acquisition_import_object for updating the items record
@@ -1158,11 +1144,11 @@ print STDERR "BestellInfoElement::process() acquisitionImportIdItem:" . $acquisi
                         };  
                         my $itemImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                         my $itemImportObjectHit = $itemImportObject->_resultset()->search( $selParam )->first();
-print STDERR "BestellInfoElement::process() itemImportObjectHit:" . Dumper($itemImportObjectHit) . ":\n" if $self->{debugIt};
 
                         if ( ! $itemImportObjectHit ) {
-                            my $mess = sprintf("The Koha item with acquisition_import_id '%s' has not been found. Processing of whole ekz BestellInfo denied.\n",$acquisitionImportIdItem);
-                            carp $mess;
+                            my $mess = sprintf("handleTitelBestellInfo(): The Koha item with acquisition_import_id '%s' has not been found. Processing of whole ekz BestellInfo denied.",$acquisitionImportIdItem);
+                            $self->{logger}->error($mess);
+                            carp "BestellInfoElement::" . $mess . "\n";
                             # negative message for log
                             $self->{emaillog}->{problems} .= "\n" if ( $self->{emaillog}->{problems} );
                             $self->{emaillog}->{problems} .= "ERROR: Update der Exemplardaten für ekz Exemplar-ID: $ekzExemplarID (itemnumber:$itemnumber) wurde abgewiesen.\n";
@@ -1173,12 +1159,12 @@ print STDERR "BestellInfoElement::process() itemImportObjectHit:" . Dumper($item
                                 error => sprintf("Das Koha-Exemplar mit acquisition_import_id '%s' wurde nicht gefunden. Abbruch der Verarbeitung der gesamten ekz BestellInfo.",$acquisitionImportIdItem),
                             );
                         }
+                        $self->{logger}->info("handleTitelBestellInfo() itemImportObjectHit->{_column_data}:" . Dumper($itemImportObjectHit->{_column_data}) . ":");
                         $itemnumber = $itemImportObjectHit->get_column('koha_object_id');
-print STDERR "BestellInfoElement::process() itemnumber:" . $itemnumber . ":\n" if $self->{debugIt};
 
                         # step 3.3:  update items record
 # XXXWHXXXWH # string for accumulating error messages for this order
-print STDERR "BestellInfoElement::process() ModItem itemnumber:" . $itemnumber . ": gesamtpreis:" . $gesamtpreis . ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("handleTitelBestellInfo() ModItem itemnumber:" . $itemnumber . ": gesamtpreis:" . $gesamtpreis . ":");
                         my $item_hash;
                         $item_hash->{price} = $gesamtpreis;
                         $item_hash->{replacementprice} = $replacementcost_tax_included;
@@ -1198,12 +1184,12 @@ print STDERR "BestellInfoElement::process() ModItem itemnumber:" . $itemnumber .
                         }
                         # add result of updating item to log email
                         my ($titeldata, $isbnean) = ($itemnumber, '');
-print STDERR "BestellInfoElement::handleTitelBestellInfo() item titeldata:", $titeldata, ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("handleTitelBestellInfo() item titeldata:" . $titeldata . ":");
                         push @{$self->{emaillog}->{records}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $self->{emaillog}->{importresult}, $titeldata, $isbnean, $self->{emaillog}->{problems}, $self->{emaillog}->{importerror}, 2, $ordernumber, $basketno];
                     }
                 }
             } else {
-#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                # it is a BestellInfo triggered by an ekz medienshop order -> 3.2: insert items   3:3: insert acquisition_import* records
                 if ( length($zweigstellencode) == 0 && defined $self->{homebranch} && length($self->{homebranch}) > 0 ) {
                     $zweigstellencode = $self->{homebranch};
                     if ( ! $self->{ekzKohaRecordClass}->checkbranchcode($zweigstellencode) ) {
@@ -1230,7 +1216,7 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() item titeldata:", $ti
                     my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                     my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
                     $self->{emaillog}->{importIds}->{$importId} = $itemnumber;
-print STDERR "BestellInfoElement::genKohaRecords() importedItemsCount:$self->{emaillog}->{importedItemsCount}; set next importIds:", $importId, ":\n" if $self->{debugIt};
+                    $self->{logger}->info("handleTitelBestellInfo() importedItemsCount:" . $self->{emaillog}->{importedItemsCount} . ": set next importId:" . $importId . ":");
 
                     if ( defined $itemnumber && $itemnumber > 0 ) {
 
@@ -1257,7 +1243,7 @@ print STDERR "BestellInfoElement::genKohaRecords() importedItemsCount:$self->{em
                             $order->add_item($itemnumber);
                         }
 
-                        # step 3.3b:  Insert a record into table acquisition_import representing the item data of BestellInfo.
+                        # step 3.3a:  Insert a record into table acquisition_import representing the item data of BestellInfo.
                         my $insParam = {
                             #id => 0, # AUTO
                             vendor_id => "ekz",
@@ -1274,7 +1260,7 @@ print STDERR "BestellInfoElement::genKohaRecords() importedItemsCount:$self->{em
                         my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
                         my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->create($insParam);
                         my $acquisitionImportIdItem = $acquisitionImportItemRS->get_column('id');
-print STDERR "BestellInfoElement::handleTitelBestellInfo() acquisitionImportItemRS->{_column_data}:", Dumper($acquisitionImportItemRS->{_column_data}), ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("handleTitelBestellInfo() acquisitionImportItemRS->{_column_data}:" . Dumper($acquisitionImportItemRS->{_column_data}) . ":");
 
                         # step 3.3b: Insert a record into table acquisition_import_object representing the Koha item data.
                         $insParam = {
@@ -1285,7 +1271,7 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() acquisitionImportItem
                         };
                         my $itemImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
                         my $itemImportObjectRS = $itemImportObject->_resultset()->create($insParam);
-print STDERR "BestellInfoElement::process() itemImportObjectRS->{_column_data}:", Dumper($itemImportObjectRS->{_column_data}), ":\n" if $self->{debugIt};
+                        $self->{logger}->debug("handleTitelBestellInfo() itemImportObjectRS->{_column_data}:" . Dumper($itemImportObjectRS->{_column_data}) . ":");
 
                         # add to response
                         my %idPaar = ();
@@ -1308,7 +1294,7 @@ print STDERR "BestellInfoElement::process() itemImportObjectRS->{_column_data}:"
                     }
                     # add result of adding item to log email
                     my ($titeldata, $isbnean) = ($itemnumber, '');
-print STDERR "BestellInfoElement::handleTitelBestellInfo() item titeldata:", $titeldata, ":\n" if $self->{debugIt};
+                    $self->{logger}->debug("handleTitelBestellInfo() item titeldata:" . $titeldata . ":");
                     push @{$self->{emaillog}->{records}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $self->{emaillog}->{importresult}, $titeldata, $isbnean, $self->{emaillog}->{problems}, $self->{emaillog}->{importerror}, 2, $ordernumber, $basketno];
 
                 }    # End handling of one <exemplar> - block
@@ -1321,9 +1307,7 @@ print STDERR "BestellInfoElement::handleTitelBestellInfo() item titeldata:", $ti
     push @actionresult, [ 'insertRecords', 0, "X", "Y", $self->{emaillog}->{processedTitlesCount}, $self->{emaillog}->{importedTitlesCount}, $self->{emaillog}->{updatedTitlesCount}, $self->{emaillog}->{processedItemsCount}, $self->{emaillog}->{importedItemsCount}, $self->{emaillog}->{updatedItemsCount}, $self->{emaillog}->{records}];
     push @{$self->{emaillog}->{actionresult}}, @actionresult;
 
-print STDERR "BestellInfoElement::handleTitelBestellInfo() actionresult:", @actionresult, ":\n" if $self->{debugIt};
-print STDERR "BestellInfoElement::handleTitelBestellInfo() actionresult[0]:", @{$actionresult[0]}, ":\n" if $self->{debugIt};
-#####print STDERR "BestellInfoElement::handleTitelBestellInfo() actionresult[0]->[10]->[0]:", @{$actionresult[0]->[10]->[0]}, ":\n" if $self->{debugIt};
+    $self->{logger}->info("handleTitelBestellInfo() actionresult:" . Dumper(@actionresult) . ":");
 
     return (@idPaarListe);
 }

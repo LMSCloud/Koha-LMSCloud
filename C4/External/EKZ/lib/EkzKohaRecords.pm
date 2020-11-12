@@ -20,6 +20,7 @@ package C4::External::EKZ::lib::EkzKohaRecords;
 use strict;
 use warnings;
 
+use Encode qw(encode decode);
 use utf8;
 use Carp;
 use Data::Dumper;
@@ -53,8 +54,6 @@ our $VERSION = '0.01';
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 
-my $debugIt = 1;
-
 BEGIN {
     require Exporter;
     $VERSION = 1.00.00.000;
@@ -82,7 +81,7 @@ sub new {
                          $srcClass->new()");
         };
         if ( $stdoutCaptured ) {
-print STDERR "EkzKohaRecords::new() message of srcClass->new():$stdoutCaptured:\n";
+            $self->{'logger'}->error("new() message of srcClass->new() stdoutCaptured:$stdoutCaptured:");
         }
         if ( $src ) {
              $self->{localCatalogSourceDelegateClass} = $src;
@@ -138,13 +137,14 @@ sub readTitleInLocalDB {
 
     my $result = {'count' => 0, 'records' => []};
     my $hits = 0;
-print STDERR "EkzKohaRecords::readTitleInLocalDB() selEkzArtikelNr:", defined($selParam->{'ekzArtikelNr'}) ? $selParam->{'ekzArtikelNr'} : 'undef',
-                                                ": selIsbn:", defined($selParam->{'isbn'}) ? $selParam->{'isbn'} : 'undef', 
-                                                ": selIsbn13:", defined($selParam->{'isbn13'}) ? $selParam->{'isbn13'} : 'undef',
-                                                ": selIssn:", defined($selParam->{'issn'}) ? $selParam->{'issn'} : 'undef', 
-                                                ": selIsmn:", defined($selParam->{'ismn'}) ? $selParam->{'ismn'} : 'undef', 
-                                                ": selEan:", defined($selParam->{'ean'}) ? $selParam->{'ean'} : 'undef', 
-                                                ": maxhits:", defined($maxhits) ? $maxhits : 'undef', ":\n" if $debugIt;
+    $self->{'logger'}->info("readTitleInLocalDB() selEkzArtikelNr:" . defined($selParam->{'ekzArtikelNr'}) ? $selParam->{'ekzArtikelNr'} : 'undef' .
+                                               ": selIsbn:" . defined($selParam->{'isbn'}) ? $selParam->{'isbn'} : 'undef' .
+                                               ": selIsbn13:" . defined($selParam->{'isbn13'}) ? $selParam->{'isbn13'} : 'undef' .
+                                               ": selIssn:" . defined($selParam->{'issn'}) ? $selParam->{'issn'} : 'undef' .
+                                               ": selIsmn:" . defined($selParam->{'ismn'}) ? $selParam->{'ismn'} : 'undef' .
+                                               ": selEan:" . defined($selParam->{'ean'}) ? $selParam->{'ean'} : 'undef' .
+                                               ": maxhits:" . defined($maxhits) ? $maxhits : 'undef' .
+                                               ":");
 
     my $marcresults = $self->readTitleDubletten($selParam,1);
     $hits = scalar @$marcresults if $marcresults;
@@ -162,7 +162,7 @@ print STDERR "EkzKohaRecords::readTitleInLocalDB() selEkzArtikelNr:", defined($s
             my $biblionumber = $marcrecord->subfield("999","c");
             my $items = &C4::Items::GetItemsByBiblioitemnumber( $biblionumber );
             foreach my $item (@$items) {
-                if ( isOnleiheItem($item) ) {
+                if ( $self->isOnleiheItem($item) ) {
                     next HITS;
                 }
             }
@@ -175,8 +175,7 @@ print STDERR "EkzKohaRecords::readTitleInLocalDB() selEkzArtikelNr:", defined($s
        
         }
     }
-print STDERR "EkzKohaRecords::readTitleInLocalDB() result->{'count'}:$result->{'count'}:\n" if $debugIt;
-print STDERR "EkzKohaRecords::readTitleInLocalDB() result->{'records'}:$result->{'records'}:\n" if $debugIt;
+    $self->{'logger'}->debug("readTitleInLocalDB() result->{'count'}:$result->{'count'}: result->{'records'}:" . Dumper($result->{'records'}) . ":");
 
     return $result;
 }
@@ -193,7 +192,7 @@ sub readTitleInLocalDBByBiblionumber {
     my $maxhits = shift;
 
     my $result = {'count' => 0, 'records' => []};
-print STDERR "EkzKohaRecords::readTitleInLocalDBByBiblionumber() selBiblionumber:" . $selBiblionumber . ":\n" if $debugIt;
+    $self->{'logger'}->info("readTitleInLocalDBByBiblionumber() selBiblionumber:" . (defined($selBiblionumber)?$selBiblionumber:'undef') . ":");
 
     my $marcrecord = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
 
@@ -201,8 +200,7 @@ print STDERR "EkzKohaRecords::readTitleInLocalDBByBiblionumber() selBiblionumber
         push @{$result->{'records'}}, $marcrecord;
         $result->{'count'} += 1;
     }
-print STDERR "EkzKohaRecords::readTitleInLocalDBByBiblionumber() result->{'count'}:$result->{'count'}:\n" if $debugIt;
-print STDERR "EkzKohaRecords::readTitleInLocalDBByBiblionumber() result->{'records'}:$result->{'records'}:\n" if $debugIt;
+    $self->{'logger'}->debug("readTitleInLocalDBByBiblionumber() result->{'count'}:$result->{'count'}: result->{'records'}:" . Dumper($result->{'records'}) . ":");
 
     return $result;
 }
@@ -214,10 +212,11 @@ print STDERR "EkzKohaRecords::readTitleInLocalDBByBiblionumber() result->{'recor
 #
 ##############################################################################
 sub isOnleiheItem {
+    my $self = shift;
     my ($item) = @_;
     my $ret = 0;
 
-    print STDERR "EkzKohaRecords::isOnleiheItem() item->{itype}:", $item->{itype}, ":\n" if $debugIt;
+    $self->{'logger'}->debug("isOnleiheItem() item->{itype}:" . $item->{itype} . ":");
 
     if ( $item->{itype} eq 'eaudio' ||
          $item->{itype} eq 'ebook' ||
@@ -236,6 +235,7 @@ sub isOnleiheItem {
 #
 ##############################################################################
 sub mergeMarcresults {
+    my $self = shift;
     my ($marcresults1, $biblionumberhash, $marcresults2, $hitscntref) = @_;
 
     my $hits2 = 0;
@@ -248,7 +248,11 @@ sub mergeMarcresults {
         eval {
             $marcrecord2 =  MARC::Record::new_from_xml( $marcresults2->[$i], "utf8", 'MARC21' );
         };
-        carp "EkzKohaRecords::mergeMarcresults: error in MARC::Record::new_from_xml:$@:\n" if $@;
+        if ( $@ ) {
+            my $mess = sprintf("mergeMarcresults: error in MARC::Record::new_from_xml:%s:", $@);
+            $self->{'logger'}->warn($mess);
+            carp "EkzKohaRecords::" . $mess . "\n";
+        }
 
         if ( $marcrecord2 ) {
             my $biblionumber = $marcrecord2->subfield("999","c");
@@ -271,7 +275,7 @@ sub readTitleDubletten {
     my $self = shift;
     my $selParam = shift;
     my $strictMatch = shift;
-print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: selParam:", Dumper($selParam), ":\n" if $debugIt;
+    $self->{'logger'}->debug("readTitleDubletten() strictMatch:$strictMatch: selParam:" . Dumper($selParam) . ":");
 
     my $allmarcresults = [];
     if ( $self->{localCatalogSourceDelegateClass} ) {
@@ -289,7 +293,9 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
 
         # check for ekzArtikelNr search
         if ( !defined $selParam->{'ekzArtikelNr'} || length($selParam->{'ekzArtikelNr'}) == 0 ) {
-            carp "EkzKohaRecords::readTitleDubletten() ekzArtikelNr is empty -> not searching for ekzArtikelNr.\n";
+            my $mess = sprintf("readTitleDubletten(): ekzArtikelNr is empty -> not searching for ekzArtikelNr.");
+            $self->{'logger'}->warn($mess);
+            #carp "EkzKohaRecords::" . $mess . "\n";
         } else
         {
             # build search query for ekzArtikelNr search
@@ -300,25 +306,28 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
             } else {    # used for web service DublettenCheckElement
                 $query = "(cn:\"$selParam->{'ekzArtikelNr'}\" and cna:\"DE-Rt5\") or (kw,phr:\"(DE-Rt5)$selParam->{'ekzArtikelNr'}\")";
             }
-            print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleDubletten() query:$query:");
 
             my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
             ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
             
             if (defined $error) {
-                my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for ekzArtikelNr:%s: returned error:%d/%s:\n", $selParam->{'ekzArtikelNr'}, $error,$error);
-                carp $log_str;
+                my $mess = sprintf("readTitleDubletten(): search for ekzArtikelNr:%s: returned error:%d/%s:", $selParam->{'ekzArtikelNr'}, $error, $error);
+                $self->{'logger'}->warn($mess);
+                carp "EkzKohaRecords::" . $mess . "\n";
             } else
             {
-                mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
             }
-            print STDERR "EkzKohaRecords::readTitleDubletten() ekzArtikelNr search total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleDubletten() search total_hits:$total_hits: allinall_hits:$allinall_hits:");
         }
 
         # check for isbn/isbn13 search
         if ( (!defined $selParam->{'isbn'} || length($selParam->{'isbn'}) == 0) && 
              (!defined $selParam->{'isbn13'} || length($selParam->{'isbn13'}) == 0) ) {
-            carp("EkzKohaRecords::readTitleDubletten() isbn and isbn13 are empty -> not searching for isbn or isbn13.\n");
+            my $mess = sprintf("readTitleDubletten(): isbn and isbn13 are empty -> not searching for isbn or isbn13.");
+            $self->{'logger'}->warn($mess);
+            #carp "EkzKohaRecords::" . $mess . "\n";
         } else
         {
             my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
@@ -336,23 +345,26 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
                         }
                     };
                     if ( ! defined($selISBN[0]) ) {
-                            carp("EkzKohaRecords::readTitleDubletten() $isbnSelFields[$k] not valid -> not searching for $isbnSelFields[$k] $selParam->{$isbnSelFields[$k]}.\n");
+                        my $mess = sprintf("readTitleDubletten(): %s not valid -> not searching for %s %s.", $isbnSelFields[$k], $isbnSelFields[$k], $selParam->{$isbnSelFields[$k]});
+                        $self->{'logger'}->warn($mess);
+                        carp "EkzKohaRecords::" . $mess . "\n";
                     } else {
                         for ( my $i = 0; $i < 4; $i += 1 ) {
                             if ( defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
                                 # build search query for isbn/isbn13 search
                                 # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
                                 my $query = "nb:\"$selISBN[$i]\" or id-other:\"$selISBN[$i]\"";
-                                print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+                                $self->{'logger'}->debug("readTitleDubletten() query:$query:");
                 
                                 ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
             
                                 if (defined $error) {
-                                    my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for %s:%s: returned error:%d/%s:\n", $isbnSelFields[$k], $selISBN[$i], $error,$error);
-                                    carp $log_str;
+                                    my $mess = sprintf("readTitleDubletten(): search for %s:%s: returned error:%d/%s:", $isbnSelFields[$k], $selISBN[$i], $error,$error);
+                                    $self->{'logger'}->warn($mess);
+                                    carp "EkzKohaRecords::" . $mess . "\n";
                                 } else {
                                     if ( $total_hits > 0 ) {
-                                        mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                                        $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
                                         last ISBNSEARCH;
                                     }
                                 }
@@ -361,14 +373,16 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
                     }
                 }
             }
-            print STDERR "EkzKohaRecords::readTitleDubletten() isbn/isbn13 search total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleDubletten() isbn/isbn13 search total_hits:$total_hits: allinall_hits:$allinall_hits:");
         }
 
         # check for issn/ismn/ean search
         if ( (!defined $selParam->{'issn'} || length($selParam->{'issn'}) == 0) && 
              (!defined $selParam->{'ismn'} || length($selParam->{'ismn'}) == 0) && 
              (!defined $selParam->{'ean'} || length($selParam->{'ean'}) == 0) ) {
-            carp("EkzKohaRecords::readTitleDubletten() issn and ismn and ean are empty -> not searching for issn or ismn or ean.\n");
+            my $mess = sprintf("readTitleDubletten(): issn and ismn and ean are empty -> not searching for issn or ismn or ean.");
+            $self->{'logger'}->warn($mess);
+            #carp "EkzKohaRecords::" . $mess . "\n";
         } else
         {
             # build search query for issn/ismn/ean search for searching index ident
@@ -392,16 +406,17 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
                 $query2 .= "ident:\"$selParam->{'ean'}\"";
             }
             $query = $query1 . $query2;
-            print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleDubletten() query:$query:");
             
             my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
             ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
         
             if (defined $error) {
-                my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:\n", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
-                carp $log_str;
+                my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
+                $self->{'logger'}->warn($mess);
+                carp "EkzKohaRecords::" . $mess . "\n";
             }
-            print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:");
                 
             # ekz sends EAN without leading 0
             if ($total_hits == 0 && defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 && length($selParam->{'ean'}) < 13) {
@@ -410,42 +425,47 @@ print STDERR "EkzKohaRecords::readTitleDubletten() strictMatch:$strictMatch: sel
                 }
                 $query3 .= sprintf("ident:\"%013d\"",$selParam->{'ean'});
                 $query = $query1 . $query3;
-                print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+                $self->{'logger'}->debug("readTitleDubletten() query:$query:");
                 
                 ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
                 ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
             
                 if (defined $error) {
-                    my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:\n", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
-                    carp $log_str;
+                    my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
+                    $self->{'logger'}->warn($mess);
+                    carp "EkzKohaRecords::" . $mess . "\n";
                 } else
                 {
-                    mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                    $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
                 }
-                print STDERR "EkzKohaRecords::readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
+                $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits: allinall_hits:$allinall_hits:");
             }
         }
 
         # check for author and title and publication year search
         if ( (!defined $selParam->{'author'} || length($selParam->{'author'}) == 0) || (!defined $selParam->{'titel'} || length($selParam->{'titel'}) == 0) || (!defined $selParam->{'erscheinungsJahr'} || length($selParam->{'erscheinungsJahr'}) == 0) ) {
-            carp("EkzKohaRecords::readTitleDubletten() author and titel and erscheinungsJahr is empty -> not searching for it.\n");
+            my $mess = sprintf("readTitleDubletten(): author and titel and erscheinungsJahr is empty -> not searching for it.");
+            $self->{'logger'}->warn($mess);
+            #carp "EkzKohaRecords::" . $mess . "\n";
         } else
         {
             # build search query for author and title and publication year search
             $query = "au,phr:\"$selParam->{'author'}\" and ti,phr,ext:\"$selParam->{'titel'}\" and yr,st-year:\"$selParam->{'erscheinungsJahr'}\"";
-            print STDERR "EkzKohaRecords::readTitleDubletten() query:$query:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleDubletten() query:$query:");
             
             my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
             ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
         
             if (defined $error) {
-                my $log_str = sprintf("EkzKohaRecords::readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:\n", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
-                carp $log_str;
+                my $mess = sprintf("readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
+                $self->{'logger'}->warn($mess);
+                carp "EkzKohaRecords::" . $mess . "\n";
+
             } else
             {
-                mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
             }
-            print STDERR "EkzKohaRecords::readTitleDubletten() author/title/publicationyear search total_hits:$total_hits: allinall_hits:$allinall_hits:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleDubletten() author/title/publicationyear search total_hits:$total_hits: allinall_hits:$allinall_hits:");
         }
     }
     
@@ -476,7 +496,7 @@ sub readTitleInLMSPool {
     if(defined $selEkzArtikelNr && length($selEkzArtikelNr) > 0) {
         # search by EKZ id
         my @EKZIDList = ($selEkzArtikelNr);
-print STDERR "EkzKohaRecords::readTitleInLMSPool() is calling getbyId\n" if $debugIt;
+        $self->{'logger'}->debug("readTitleInLMSPool() is calling getbyId.");
         $result = $pool->getbyId(\@EKZIDList);
 
         if ( $result->{'count'} > 0 ) {
@@ -497,7 +517,7 @@ print STDERR "EkzKohaRecords::readTitleInLMSPool() is calling getbyId\n" if $deb
             if($searchIsbn13) {
                 push @ISBNList, $selIsbn13;
             }
-print STDERR "EkzKohaRecords::readTitleInLMSPool() is calling getbyISBN\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleInLMSPool() is calling getbyISBN.");
             $result = $pool->getbyISBN(\@ISBNList);
 
             if ( $result->{'count'} > 0 ) {
@@ -519,7 +539,7 @@ print STDERR "EkzKohaRecords::readTitleInLMSPool() is calling getbyISBN\n" if $d
                push @standardIdentifierList, $selEan;
         }
         if ( @standardIdentifierList > 0 ) {
-print STDERR "EkzKohaRecords::readTitleInLMSPool() is calling getbyIdentifierStandard\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleInLMSPool() is calling getbyIdentifierStandard.");
             $result = $pool->getbyIdentifierStandard(\@standardIdentifierList);
 
             if ( $result->{'count'} > 0 ) {
@@ -528,8 +548,8 @@ print STDERR "EkzKohaRecords::readTitleInLMSPool() is calling getbyIdentifierSta
         }
     }
 
-print STDERR "EkzKohaRecords::readTitleInLMSPool() selEkzArtikelNr:", $selEkzArtikelNr, ": selIsbn:",$selIsbn,": selIsbn13:",$selIsbn13,": foundInPool:",$foundInPool,":\n" if $debugIt;
-print STDERR "EkzKohaRecords::readTitleInLMSPool() result->{'count'}:$result->{'count'}:\n" if $debugIt;
+    $self->{'logger'}->debug("readTitleDubletten() selEkzArtikelNr:" . $selEkzArtikelNr . ": selIsbn:" . $selIsbn . ": selIsbn13:" . $selIsbn13 . ": foundInPool:" . $foundInPool . ":");
+    $self->{'logger'}->debug("readTitleDubletten() result->{'count'}:$result->{'count'}:");
     return $result;
 }
 
@@ -545,8 +565,7 @@ sub readTitleFromEkzWsMedienDaten {
     
     my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
     my $result = $ekzwebservice->callWsMedienDaten($ekzArtikelNr);
-print STDERR "EkzKohaRecords::readTitleFromEkzWsMedienDaten() result->{'count'}:$result->{'count'}:\n" if $debugIt;
-print STDERR "EkzKohaRecords::readTitleFromEkzWsMedienDaten() result->{'records'}:$result->{'records'}:\n" if $debugIt;
+    $self->{'logger'}->debug("readTitleFromEkzWsMedienDaten() result->{'count'}:$result->{'count'}: result->{'records'}:" . Dumper($result->{'records'}) . ": ");
 
     return $result;
 }
@@ -570,7 +589,7 @@ sub readTitleFromZ3950Target {
     my $errors = [];
     my $dbh = C4::Context->dbh;
 
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() z3950kohaservername:$z3950kohaservername: selIsbn13:$selIsbn13: selIssn:$selIssn: selEan:$selEan:\n" if $debugIt;
+    $self->{'logger'}->debug("readTitleFromZ3950Target() z3950kohaservername:$z3950kohaservername: selIsbn13:$selIsbn13: selIssn:$selIssn: selEan:$selEan:");
     if ( defined($selIsbn13) && length($selIsbn13) > 0 ||
          defined($selIssn) && length($selIssn) > 0 ||
          defined($selEan) && length($selEan) > 0 ) {
@@ -604,7 +623,7 @@ print STDERR "EkzKohaRecords::readTitleFromZ3950Target() z3950kohaservername:$z3
             for ( my $i = 0; $i < 4; $i += 1 ) {
                 if ( $result->{'count'} == 0 && defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
                     $params->{'isbn'} = $selISBN[$i];
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: isbn:$selISBN[$i]:\n" if $debugIt;
+                    $self->{'logger'}->debug("readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: isbn:$selISBN[$i]:");
                     C4::Breeding::Z3950SearchGeneral($params, \$result, \$errors);
                     $params->{'isbn'} = '';
                 }
@@ -612,30 +631,27 @@ print STDERR "EkzKohaRecords::readTitleFromZ3950Target() is calling C4::Breeding
         }
         if ( $result->{'count'} == 0 && defined($selIssn) && length($selIssn) > 0 ) {
             $params->{'issn'} = $selIssn;
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: issn:$params->{'issn'}:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: issn:$params->{'issn'}:");
             C4::Breeding::Z3950SearchGeneral($params, \$result, \$errors);
             $params->{'issn'} = '';
         }
         if ( $result->{'count'} == 0 && defined($selEan) && length($selEan) > 0 ) {
             $params->{'ean'} = $selEan;    # effective for zed search only, not for sru search
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: ean:$params->{'ean'}:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: ean:$params->{'ean'}:");
             C4::Breeding::Z3950SearchGeneral($params, \$result, \$errors);
             $params->{'ean'} = '';
             if ( $result->{'count'} == 0 ) {
                 $params->{'isbn'} = $selEan;    # last resort for sru targets: search ean value as isbn
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: ean value as isbn:$params->{'isbn'}:\n" if $debugIt;
+            $self->{'logger'}->debug("readTitleFromZ3950Target() is calling C4::Breeding::Z3950SearchGeneral id[0]:$id[0]: ean value as isbn:$params->{'isbn'}:");
                 C4::Breeding::Z3950SearchGeneral($params, \$result, \$errors);
                 $params->{'isbn'} = '';
             }
         }
     }
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() result->{'count'}:$result->{'count'}:\n" if $debugIt;
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() result->{'records'}:$result->{'records'}:\n" if $debugIt;
-if ( $debugIt ) {
+    $self->{'logger'}->debug("readTitleFromZ3950Target() result->{'count'}:$result->{'count'}: result->{'records'}:" . Dumper($result->{'records'}) . ": ");
     foreach my $error (@{$errors}) {
-print STDERR "EkzKohaRecords::readTitleFromZ3950Target() error:", Dumper($error), ":\n";
+        $self->{'logger'}->debug("readTitleFromZ3950Target() error:" . Dumper($error) . ":");
     }
-}
 
     return $result;
 }
@@ -858,8 +874,7 @@ sub createTitleFromFields {
     }
     #$marcrecord->insert_fields_ordered(MARC::Field->new('490','0',' ','a' => $reqParamTitelInfo->{'titel'} . " / " . $reqParamTitelInfo->{'author'})) if ( defined($reqParamTitelInfo->{'titel'}) && length($reqParamTitelInfo->{'titel'}) > 0 && defined($reqParamTitelInfo->{'author'}) && length($reqParamTitelInfo->{'author'}) );
 
-print STDERR "EkzKohaRecords::createTitleFromFields() marcrecord:", $marcrecord, ":\n" if $debugIt;
-print STDERR "EkzKohaRecords::createTitleFromFields() marcrecord:", Dumper( $marcrecord ) if $debugIt;
+    $self->{'logger'}->debug("createTitleFromFields() marcrecord:" . Dumper( $marcrecord ) . ":");
     if ( $marcrecord ) {
         push @{$result->{'records'}}, $marcrecord;
         $result->{'count'} += 1;
@@ -879,13 +894,13 @@ sub checkbranchcode {
             my $brcodeN = $brcode;
             $brcodeN =~ s/^\s+|\s+$//g; # trim spaces
             $self->{'branchnames'}->{$brcodeN} = $branches->{$brcode}->{'branchname'};
-print STDERR "EkzKohaRecords::checkbranchcode self->{'branchnames'}->{" . $brcodeN, "} = " . $self->{'branchnames'}->{$brcodeN} . ":\n" if $debugIt;
+            $self->{'logger'}->debug("checkbranchcode() self->{'branchnames'}->{" . $brcodeN . "} = " . $self->{'branchnames'}->{$brcodeN} . ":");
         }
     }
     $branchcode =~ s/^\s+|\s+$//g; # trim spaces
     my $ret = defined $self->{'branchnames'}->{$branchcode};
 
-print STDERR "EkzKohaRecords::checkbranchcode branchcode:", $branchcode, ": returns:", $ret, ":\n" if $debugIt;
+    $self->{'logger'}->debug("checkbranchcode() branchcode:" . $branchcode . ": returns ret:" . $ret . ":");
     return $ret;
 }
 
@@ -1017,10 +1032,11 @@ sub createProcessingMessageText {
     if ( defined($envKohaInstanceUrl) && length($envKohaInstanceUrl) ) {
         $kohaInstanceUrl = $envKohaInstanceUrl;
     }
-print STDERR "EkzKohaRecords::createProcessingMessageText() envKohaInstanceUrl:$envKohaInstanceUrl: kohaInstanceUrl:$kohaInstanceUrl:\n" if $debugIt;
+    $self->{'logger'}->info("createProcessingMessageText() envKohaInstanceUrl:$envKohaInstanceUrl: kohaInstanceUrl:$kohaInstanceUrl:");
     my $printdate =  $dt->dmy('.') . ' um ' . sprintf("%02d:%02d Uhr", $dt->hour, $dt->minute);
-print STDERR "EkzKohaRecords::createProcessingMessageText() printdate:$printdate: Anz. logresult:", @{$logresult}+0, ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:\n" if $debugIt;
-    $self->{'logger'}->trace("createProcessingMessageText() Dumper($logresult):" . Dumper($logresult) . ":");
+    $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: Anz. logresult:" . scalar @{$logresult} . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:");
+    $self->{'logger'}->debug("createProcessingMessageText() Dumper(logresult):" . Dumper($logresult) . ":");
+    $self->{'logger'}->debug("createProcessingMessageText() Dumper(importIDs):" . Dumper($importIDs) . ":");
     
     my $subject = "Import ekz Bestellung $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     if ( $logresult->[0]->[0] eq 'RechnungDetail' ) {
@@ -1115,30 +1131,29 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() printdate:$printdate
     my $acquisitionError = undef;
     my $aqbooksellersid = undef;
     my $aqbasketno = undef;
+    my $invoiceid = undef;
     my $processedTitlesCount = 0;
     my $importedTitlesCount = 0;
     my $foundTitlesCount = 0;
     my $processedItemsCount = 0;
     my $importedItemsCount = 0;
     my $updatedItemsCount = 0;
-print STDERR "EkzKohaRecords::createProcessingMessageText() logresult:", $logresult,":\n" if $debugIt;
-print STDERR Dumper( $logresult ) if $debugIt;
     foreach my $result (@$logresult) {
-print STDERR "EkzKohaRecords::createProcessingMessageText() printdate:$printdate: result->[0]:$result->[0]: Anz. result->[2]:", @{$result->[2]}+0, ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:\n" if $debugIt;
-print STDERR "EkzKohaRecords::createProcessingMessageText() result:", $result,":\n" if $debugIt;
-print STDERR Dumper( $result ) if $debugIt;
+        $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: result->[0]:$result->[0]: Anz. result->[2]:" . scalar @{$result->[2]} . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:");
+        $self->{'logger'}->debug("createProcessingMessageText() Dumper(result):" . Dumper($result) . ":");
         my @actionsteps = @{$result->[2]};
         $acquisitionError = $result->[3];
         $aqbooksellersid = $result->[4];
         $aqbasketno = $result->[5];
+        $invoiceid =  (sort(keys %{$result->[6]}))[0] if scalar keys %{$result->[6]};
 
         my @records = ();
         foreach my $action (@actionsteps) {
-print STDERR "EkzKohaRecords::createProcessingMessageText() action->[$actTxt]:", $action->[$actTxt],":\n" if $debugIt;
-print STDERR "EkzKohaRecords::createProcessingMessageText() action->[$actRes]:", $action->[$actRes],":\n" if $debugIt;
-print STDERR "EkzKohaRecords::createProcessingMessageText() action->[$impTC]:", $action->[$impTC],":\n" if $debugIt;
-print STDERR "EkzKohaRecords::createProcessingMessageText() action:", $action,":\n" if $debugIt;
-print STDERR Dumper( $action ) if $debugIt;
+            $self->{'logger'}->trace("createProcessingMessageText() action->[actTxt ($actTxt)]:" . $action->[$actTxt] . ":");
+            $self->{'logger'}->trace("createProcessingMessageText() action->[actRes ($actRes)]:" . $action->[$actRes] . ":");
+            $self->{'logger'}->trace("createProcessingMessageText() action->[impTC ($impTC)]:" . $action->[$impTC] . ":");
+            $self->{'logger'}->trace("createProcessingMessageText() action:" . Dumper($action) . ":");
+
             if ( $action->[$actTxt] eq 'insertRecords' ) {
                 $processedTitlesCount += $action->[$prcTC];
                 $importedTitlesCount  += $action->[$impTC];
@@ -1183,7 +1198,7 @@ print STDERR Dumper( $action ) if $debugIt;
         my $orderCnt = 0;
         my $allQuery = '';
         foreach my $importID (@{$importIDs}) {
-print STDERR "EkzKohaRecords::createProcessingMessageText() importID:", $importID, ":\n" if $debugIt;
+            $self->{'logger'}->info("createProcessingMessageText() importID:" . $importID . ":");
             if ( $importID =~ /^\(ControlNumber\)(\d+)\(ControlNrId\)(.*)$/s ) {
                 if ( length($controlNumberQuery) > 0 ) {
                     $controlNumberQuery .= " or ";
@@ -1213,7 +1228,7 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() importID:", $importI
         } elsif ( length($controlNumberQuery) > 0 ) {
             $allQuery = $controlNumberQuery;
         }
-print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", $controlNumberCnt, ": controlNumberQuery:", $controlNumberQuery, ": orderCnt:", $orderCnt, ": orderQuery:", $orderQuery, ":\n" if $debugIt;
+        $self->{'logger'}->debug("createProcessingMessageText() controlNumberCnt:" . $controlNumberCnt . ": controlNumberQuery:" . $controlNumberQuery . ": orderCnt:" . $orderCnt . ": orderQuery:" . $orderQuery . ":");
         ## link to all handled titles
         #if ( $orderCnt > 1 || ($orderCnt > 0 && $controlNumberCnt > 0) ) {
         #    $message .=  '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/catalogue/search.pl?q=' . $allQuery . '">' . h("Link auf alle bearbeiteten Titel") . '</a>';
@@ -1241,6 +1256,12 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
                     my $messText = "Link auf die Koha-Bestellung";    # default for BestellInfo and StoList
                     # e. g.  http://192.168.122.100:8080/cgi-bin/koha/acqui/basket.pl?basketno=42
                     $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/basket.pl?basketno=' . $aqbasketno . '">' . h($messText) . '</a>';
+                }
+            } elsif ( $logresult->[0]->[0] eq 'RechnungDetail' ) {
+                if ( defined($invoiceid) && $invoiceid > 0 ) { 
+                    my $messText = "Link auf die Koha-Rechnung";    # default for RechnungDetail
+                    # e. g.  http://192.168.122.101:8080/cgi-bin/koha/acqui/invoice.pl?invoiceid=22
+                    $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/invoice.pl?invoiceid=' . $invoiceid . '">' . h($messText) . '</a>';
                 }
             }
         }
@@ -1303,19 +1324,15 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
         if ( scalar(@actionsteps) > 0 ) {
         
             $message .= '    <tr class="recordheader">'."\n";
-            $message .= '        <th>'."\n";
+            $message .= '        <th width="5%">'."\n";
             $message .= '            Lfd. Nr.'."\n";
             $message .= '        </th>'."\n";
 
-            $message .= '        <th>'."\n";
-            $message .= '            EKZ-Artikelnr.'."\n";
-            $message .= '        </th>'."\n";
-
-            $message .= '        <th>'."\n";
+            $message .= '        <th width="50%">'."\n";
             $message .= '            Titel'."\n";
             $message .= '        </th>'."\n";
 
-            $message .= '        <th>'."\n";
+            $message .= '        <th width="10%">'."\n";
             $message .= '            Status'."\n";
             $message .= '        </th>'."\n";
 
@@ -1347,11 +1364,6 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
                         # Lfd. Nr.
                         $message .= '        <td>'."\n";
                         $message .= '            '. $i . "\n";
-                        $message .= '        </td>'."\n";
-
-                        # EKZ-Artikelnr.
-                        $message .= '        <td>'."\n";
-                        $message .= '            '. h($record->[0]) . "\n";
                         $message .= '        </td>'."\n";
 
                         # Titel
@@ -1406,6 +1418,7 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
                         if ( defined($aqbooksellersid) && length($aqbooksellersid) > 0 ) {
                             my $aqordernumber = $record->[8];
                             my $item_basketno = $record->[9];
+                            $self->{'logger'}->debug("createProcessingMessageText() itemnumber:" . h($record->[3]) . ": aqordernumber:" . (defined($aqordernumber)?Dumper($aqordernumber):'undef') . ": item_basketno:" . (defined($item_basketno)?$item_basketno:'undef') . ":");
                             if ( defined($aqordernumber) && $aqordernumber > 0 ) {
                                 if ( defined($item_basketno) && $item_basketno > 0 ) {
                                     # e. g. for basket: http://192.168.122.100:8080/cgi-bin/koha/acqui/basket.pl?basketno=42
@@ -1446,7 +1459,7 @@ print STDERR "EkzKohaRecords::createProcessingMessageText() controlNumberCnt:", 
     $message .= '</table>'."\n";
     $message .= '</body>'."\n";
     $message .= '</html>'."\n";
-    
+
     return ($message, $subject, $haserror);
 }
 
@@ -1474,13 +1487,12 @@ sub sendMessage {
             from        => $adminEmailAddress,
             replyto     => $replyTo,
             sender      => $adminEmailAddress,
-            subject     => $subject,
+            subject     => encode("MIME-Q", $subject),
             message     => $message,
             contenttype => 'text/html; charset="UTF-8"'
         }
     );
-print STDERR "EkzKohaRecords::sendMessage() sendmailParams:", %sendmailParams, ":\n" if $debugIt;
-print STDERR Dumper( %sendmailParams ) if $debugIt;
+    $self->{'logger'}->debug("sendMessage() ekzCustomerNumber:$ekzCustomerNumber: sendmailParams:" . Dumper(%sendmailParams) . ":");
     sendmail( %sendmailParams );
 }
 
@@ -1494,7 +1506,7 @@ sub checkEkzAqbooksellersId {
     my ($ekzAqbooksellersId, $createIfNotExists) = @_;
     my $ekzAqbooksellersIdNew = $ekzAqbooksellersId;
 
-print STDERR "EkzKohaRecords::checkEkzAqbooksellersId() Start ekzAqbooksellersId:$ekzAqbooksellersId: createIfNotExists:$createIfNotExists:\n" if $debugIt;
+    $self->{'logger'}->debug("checkEkzAqbooksellersId() START ekzAqbooksellersId:$ekzAqbooksellersId: createIfNotExists:$createIfNotExists:");
 
     if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
         my $schema = Koha::Database->new->schema;
@@ -1538,7 +1550,7 @@ print STDERR "EkzKohaRecords::checkEkzAqbooksellersId() Start ekzAqbooksellersId
             }
         }
     }
-print STDERR "EkzKohaRecords::checkEkzAqbooksellersId() returns ekzAqbooksellersIdNew:$ekzAqbooksellersIdNew:\n" if $debugIt;
+    $self->{'logger'}->debug("checkEkzAqbooksellersId() returns ekzAqbooksellersIdNew:$ekzAqbooksellersIdNew:");
     return $ekzAqbooksellersIdNew;
 }
 
@@ -1553,7 +1565,7 @@ sub checkAqbudget {
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
     my $today = $year+1900 . '-' . sprintf("%02d",$mon+1) . '-' . sprintf("%02d",$mday);
 
-print STDERR "EkzKohaRecords::checkAqbudget() Start ekzCustomerNumber:$ekzCustomerNumber: ekzHaushaltsstelle:$ekzHaushaltsstelle: ekzKostenstelle:$ekzKostenstelle: createIfNotExists:$createIfNotExists:\n" if $debugIt;
+    $self->{'logger'}->debug("checkAqbudget() START ekzCustomerNumber:$ekzCustomerNumber: ekzHaushaltsstelle:$ekzHaushaltsstelle: ekzKostenstelle:$ekzKostenstelle: createIfNotExists:$createIfNotExists:");
 
     # $ekzHaushaltsstelle is sent in SOAP request and refers to aqbudgetperiods.budget_period_description
     # $ekzKostenstelle is sent in SOAP request refers to aqbudgets.budget_code where budget_parent_id IS NULL and budget_period_id = aqbudgetperiods.budget_period_id
@@ -1580,7 +1592,7 @@ print STDERR "EkzKohaRecords::checkAqbudget() Start ekzCustomerNumber:$ekzCustom
             $ret_budget_period_description = $ekzAqbudgetperiodsDescription;
         }
     }
-print STDERR "EkzKohaRecords::checkAqbudget() ekzHaushaltsstelle:$ekzHaushaltsstelle: selection from syspref ekzAqbudgetperiodsDescription:$ekzAqbudgetperiodsDescription: ret_budget_period_description:$ret_budget_period_description:\n" if $debugIt;
+    $self->{'logger'}->debug("checkAqbudget() ekzHaushaltsstelle:$ekzHaushaltsstelle: selection from syspref ekzAqbudgetperiodsDescription:$ekzAqbudgetperiodsDescription: ret_budget_period_description:$ret_budget_period_description:");
 
     my $query_period = "SELECT * FROM aqbudgetperiods p ";
     $query_period .= " WHERE p.budget_period_active = 1 ";
@@ -1599,15 +1611,15 @@ print STDERR "EkzKohaRecords::checkAqbudget() ekzHaushaltsstelle:$ekzHaushaltsst
     my $budgetperiod_hits = $sth->fetchall_arrayref({});
     my $best_budgetperiod_hit = undef;
 
-print STDERR "EkzKohaRecords::checkAqbudget() scalar budgetperiod_hits:", scalar @{$budgetperiod_hits}, ":\n" if $debugIt;
+    $self->{'logger'}->debug("checkAqbudget() scalar budgetperiod_hits:" . scalar @{$budgetperiod_hits} . ":");
     foreach my $budgetperiod_hit ( @{$budgetperiod_hits} ) {
-print STDERR "EkzKohaRecords::checkAqbudget() budgetperiod_hit:", Dumper($budgetperiod_hit), ":\n" if $debugIt;
+        $self->{'logger'}->debug("checkAqbudget() budgetperiod_hit:" . Dumper($budgetperiod_hit) . ":");
         if ( !defined($best_budgetperiod_hit) ) {
             $best_budgetperiod_hit = $budgetperiod_hit;
             $ret_budget_period_id = $best_budgetperiod_hit->{'budget_period_id'};
             $ret_budget_period_description = $best_budgetperiod_hit->{'budget_period_description'};
         } else {
-print STDERR "EkzKohaRecords::checkAqbudget() today:$today: budgetperiod_hit->startdate:", $budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate:", $budgetperiod_hit->{'budget_period_enddate'}, ": best_budgetperiod_hit->startdate::", $best_budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate::", $best_budgetperiod_hit->{'budget_period_enddate'}, ":\n" if $debugIt;
+            $self->{'logger'}->debug("checkAqbudget() today:$today: budgetperiod_hit->startdate:" . $budgetperiod_hit->{'budget_period_startdate'} . ": ->enddate:" . $budgetperiod_hit->{'budget_period_enddate'} . ": best_budgetperiod_hit->startdate::" . $best_budgetperiod_hit->{'budget_period_startdate'} . ": ->enddate::" . $best_budgetperiod_hit->{'budget_period_enddate'} . ":");
             if ( !($best_budgetperiod_hit->{'budget_period_startdate'} le $today && $today le $best_budgetperiod_hit->{'budget_period_enddate'}) ) {
                 if ( $budgetperiod_hit->{'budget_period_startdate'} le $today && $today le $budgetperiod_hit->{'budget_period_enddate'} ) {
                     $best_budgetperiod_hit = $budgetperiod_hit;
@@ -1615,7 +1627,7 @@ print STDERR "EkzKohaRecords::checkAqbudget() today:$today: budgetperiod_hit->st
                     $ret_budget_period_description = $best_budgetperiod_hit->{'budget_period_description'};
                 }
             }
-print STDERR "EkzKohaRecords::checkAqbudget() today:$today: budgetperiod_hit->startdate:", $budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate:", $budgetperiod_hit->{'budget_period_enddate'}, ": best_budgetperiod_hit->startdate::", $best_budgetperiod_hit->{'budget_period_startdate'}, ": ->enddate::", $best_budgetperiod_hit->{'budget_period_enddate'}, ":\n" if $debugIt;
+            $self->{'logger'}->debug("checkAqbudget() today:$today: budgetperiod_hit->startdate:" . $budgetperiod_hit->{'budget_period_startdate'} . ": ->enddate:" . $budgetperiod_hit->{'budget_period_enddate'} . ": best_budgetperiod_hit->startdate::" . $best_budgetperiod_hit->{'budget_period_startdate'} . ": ->enddate::" . $best_budgetperiod_hit->{'budget_period_enddate'} . ":");
         }
     }
 
@@ -1639,7 +1651,7 @@ print STDERR "EkzKohaRecords::checkAqbudget() today:$today: budgetperiod_hit->st
                                               } );
 
             $ret_budget_period_id = $aqbudgetperiod->budget_period_id;
-print STDERR "EkzKohaRecords::checkAqbudget() created aqbudgetperiods, ret_budget_period_id:$ret_budget_period_id:\n" if $debugIt;
+            $self->{'logger'}->debug("checkAqbudget() created aqbudgetperiods; ret_budget_period_description:$ret_budget_period_description: ret_budget_period_id:$ret_budget_period_id:");
         }
     }
 
@@ -1656,7 +1668,7 @@ print STDERR "EkzKohaRecords::checkAqbudget() created aqbudgetperiods, ret_budge
         } else {
             $ret_budget_code = $budget_code_default;
         }
-print STDERR "EkzKohaRecords::checkAqbudget() budget_code_default:$budget_code_default: ret_budget_code:$ret_budget_code:\n" if $debugIt;
+        $self->{'logger'}->debug("checkAqbudget() budget_code_default:$budget_code_default: ret_budget_code:$ret_budget_code:");
         
         my $query_budget = "SELECT b.* FROM aqbudgets b ";
         $query_budget .= " WHERE b.budget_parent_id IS NULL ";
@@ -1664,13 +1676,13 @@ print STDERR "EkzKohaRecords::checkAqbudget() budget_code_default:$budget_code_d
         $query_budget .= " AND b.budget_period_id = $ret_budget_period_id";
         $query_budget .= " ORDER BY b.budget_branchcode ASC, b.budget_id DESC";
 
-print STDERR "EkzKohaRecords::checkAqbudget() query_budget:$query_budget:\n" if $debugIt;
+        $self->{'logger'}->debug("checkAqbudget() query_budget:$query_budget:");
 
         $sth = $dbh->prepare($query_budget);
         $sth->execute();
         my $budget_hits = $sth->fetchall_arrayref({});
 
-print STDERR "EkzKohaRecords::checkAqbudget() scalar budget_hits:", scalar @{$budget_hits}, ":\n" if $debugIt;
+        $self->{'logger'}->debug("checkAqbudget() scalar budget_hits:" . scalar @{$budget_hits} . ":");
 
         if ( defined($budget_hits->[0]) ) {
             $ret_budget_id = $budget_hits->[0]->{'budget_id'};
@@ -1695,12 +1707,12 @@ print STDERR "EkzKohaRecords::checkAqbudget() scalar budget_hits:", scalar @{$bu
 
                 $ret_budget_id = $aqbudget->budget_id;
                 $ret_budget_code = $aqbudget->budget_code;
-print STDERR "EkzKohaRecords::checkAqbudget() created aqbudget record having ret_budget_id:$ret_budget_id: and ret_budget_code:$ret_budget_code:\n" if $debugIt;
+                $self->{'logger'}->debug("checkAqbudget() created aqbudget record having ret_budget_id:$ret_budget_id: and ret_budget_code:$ret_budget_code:");
             }
         }
     }
     
-print STDERR "EkzKohaRecords::checkAqbudget() returns ret_budget_period_id:$ret_budget_period_id: ret_budget_period_description:$ret_budget_period_description: ret_budget_id:$ret_budget_id: ret_budget_code:$ret_budget_code:\n" if $debugIt;
+    $self->{'logger'}->debug("checkAqbudget() returns ret_budget_period_id:$ret_budget_period_id: ret_budget_period_description:$ret_budget_period_description: ret_budget_id:$ret_budget_id: ret_budget_code:$ret_budget_code:");
     return ($ret_budget_period_id, $ret_budget_period_description, $ret_budget_id, $ret_budget_code);
 }
 
@@ -1729,7 +1741,7 @@ sub branchcodeFallback {
             }
         }
     }
-print STDERR "EkzKohaRecords::branchcodeFallback(branchcode:$branchcode: branchcodeFallback:$branchcodeFallback:) returns ret_branchcode:$ret_branchcode:\n" if $debugIt;
+    $self->{'logger'}->debug("branchcodeFallback() branchcode:$branchcode: branchcodeFallback:$branchcodeFallback: returns ret_branchcode:$ret_branchcode:");
     return $ret_branchcode
 }
 
@@ -1752,8 +1764,6 @@ sub defaultUstSatz {
     $year += 1900;
     $mon += 1;
 
-print STDERR "EkzKohaRecords::defaultUstSatz(ustSatzType:$ustSatzType:) START year:$year: mon:$mon: mday:$mday:\n";
-
     # period 1: from 2020-07-01 to 2020-12-31, when value added tax rate (VAT) was reduced from 7% to 5% and from 19% to 16% in Germany
     if ( $year = 2020 && $mon >= 7 && $mon <= 12 )   {
         $period = 1;
@@ -1764,8 +1774,6 @@ print STDERR "EkzKohaRecords::defaultUstSatz(ustSatzType:$ustSatzType:) START ye
     } else {
         $defaultUstSatzRet = $defaultUstSatzE[$period];
     }
-
-print STDERR "EkzKohaRecords::defaultUstSatz(ustSatzType:$ustSatzType:) period:$period: returns defaultUstSatzRet:$defaultUstSatzRet:\n";
 
     return $defaultUstSatzRet;
 }
