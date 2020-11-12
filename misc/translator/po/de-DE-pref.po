@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2020-08-13 15:50+0100\n"
+"PO-Revision-Date: 2020-11-12 10:14+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -7855,6 +7855,10 @@ msgstr "Zahlungen mit PayPal"
 msgid "opac.pref Payments via epay21"
 msgstr "Zahlungen mit epay21"
 
+# OPAC > Payments via pmPayment
+msgid "opac.pref Payments via pmPayment"
+msgstr "Zahlungen mit pmPayment"
+
 # OPAC > Policy
 msgid "opac.pref Policy"
 msgstr "Parameter"
@@ -9784,6 +9788,56 @@ msgid ""
 "opac.pref#PaymentsOnlineCashRegisterName# Online payments will be registered "
 "in the cash register named "
 msgstr "Online-Zahlungen werden unter der folgenden Kasse verbucht "
+
+# OPAC > Payments via pmPayment
+msgid ""
+"opac.pref#PmpaymentAccountingRecord# (Permitted characters: a-z A-Z 0-9 ':?,-"
+"(+.)/)"
+msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
+
+# OPAC > Payments via pmPayment
+msgid ""
+"opac.pref#PmpaymentAccountingRecord# Additional information transferred to "
+"the library's financial accounting system:"
+msgstr ""
+"Zusatzinformationen, die an das Finanzbuchhaltungssystem übertragen werden "
+"sollen:"
+
+# OPAC > Payments via pmPayment
+msgid "opac.pref#PmpaymentAgs# The library's officiary municipal key is "
+msgstr "Amtlicher Gemeindeschlüssel der Bibliothek: "
+
+# OPAC > Payments via pmPayment
+msgid "opac.pref#PmpaymentPaypageOpacPaymentsEnabled# Allow"
+msgstr "Erlaube"
+
+# OPAC > Payments via pmPayment
+msgid "opac.pref#PmpaymentPaypageOpacPaymentsEnabled# Don't allow"
+msgstr "Erlaube nicht"
+
+# OPAC > Payments via pmPayment
+msgid ""
+"opac.pref#PmpaymentPaypageOpacPaymentsEnabled# patrons to make paypage "
+"payments from the OPAC via pmPayment."
+msgstr "pmPayment-Zahlungen im OPAC."
+
+# OPAC > Payments via pmPayment
+msgid ""
+"opac.pref#PmpaymentPaypageWebservicesURL# The URL for accessing pmPayment "
+"paypage webservices is "
+msgstr "URL für den Zugriff auf den pmPayment-Webservice: "
+
+# OPAC > Payments via pmPayment
+msgid ""
+"opac.pref#PmpaymentProcedure# The library's pmPayment procedure designation "
+"is "
+msgstr "Fachverfahrensname der Bibliothek bei pmPayment: "
+
+# OPAC > Payments via pmPayment
+msgid ""
+"opac.pref#PmpaymentSaltHmacSha256# The library's pmPayment HMAC SHA-256 salt "
+"is "
+msgstr "Salt-Wert für Berechnung der HMAC SHA-256 Prüfsumme: "
 
 # OPAC > Features
 msgid "opac.pref#QuoteOfTheDay# Disable"
