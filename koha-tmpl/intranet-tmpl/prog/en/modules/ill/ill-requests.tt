@@ -17,6 +17,16 @@
 
     $(document).ready(function() {
 
+        // language dependent update of backend designation
+        updateBackendNamesInDropDown();
+        [% IF query_type == 'illlist' %]
+            // language dependent update of backend hit header text
+            updateHitHeaderText();
+        [% ELSIF query_type == 'illview' %]
+            // language dependent update of labels etc. for 'Details from Supplier' header line
+            updateDetailsFromSupplier();
+        [% END %]
+
         // Illview Datatable setup
 
         // Fields we don't want to display
@@ -311,11 +321,11 @@
                 func: createUpdatedOn
             },
             metadata_checkedBy: {
-                name: _("Checked by"),
+                name: _("ILL order last checked by"),
                 func: createCheckedBy
             },
             backend: {
-                name: _("Ordertype"),
+                name: _("ILL backend type"),
                 func: createBackendDesignation
             }
         };
@@ -767,32 +777,10 @@
                                 </div>
                             </div>
                             <div class="rows">
-[% SWITCH request.backend %]
-    [% CASE 'ILLSLNPKoha' %]
-        [% SET backend_name = 'SLNP-passive' %]
-    [% CASE 'ILLZKSHA' %]
-        [% SET backend_name = 'RLV-active' %]
-    [% CASE 'ILLZKSHP' %]
-        [% SET backend_name = 'RLV-passive' %]
-    [% CASE %]
-        [% SET backend_name = request.backend %]
-[% END %]
-                                <h4>Details from supplier ([% backend_name %])</h4>
+                                <h4 id="MetaDataSupplierDetailsHeader">Details from supplier ([% request.backend %])</h4>
                                 [% FOREACH meta IN request.metadata %]
-                                    [% SWITCH meta.key %]
-                                        [% CASE 'Author' %]
-                                            [% SET translated_meta_key = 'Author' %]
-                                        [% CASE 'ISBN' %]
-                                            [% SET translated_meta_key = 'ISBN' %]
-                                        [% CASE 'Order ID' %]
-                                            [% SET translated_meta_key = 'Order ID' %]
-                                        [% CASE 'Title' %]
-                                            [% SET translated_meta_key = 'Title' %]
-                                        [% CASE %]
-                                            [% SET translated_meta_key = meta.key %]
-                                    [% END %]
                                     <div class="requestmeta-[% meta.key %]">
-                                        <span class="label">[% translated_meta_key %]:</span>
+                                        <span class="label" id="labelForMetaData[% meta.key %]">[% meta.key %]:</span>
                                         [% meta.value %]
                                     </div>
                                 [% END %]
@@ -822,7 +810,7 @@
                             <thead>
                                 <tr id="illview-header">
                                     <th>Order ID</th>
-                                    <th>Class</th>
+                                    <th>ILL backend type</th>
                                     <th>Type</th>
                                     <th>Author</th>
                                     <th>Title</th>
@@ -830,7 +818,7 @@
                                     <th>Library</th>
                                     <th>Status</th>
                                     <th class="title-string" >Updated on</th>
-                                    <th>CheckedBy</th>
+                                    <th>ILL order last checked by</th>
                                     <th>Request number</th>
                                     <th class="actions"></th>
                                 </tr>

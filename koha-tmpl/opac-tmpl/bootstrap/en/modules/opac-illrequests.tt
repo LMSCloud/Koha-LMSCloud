@@ -98,7 +98,7 @@
                                 </button>
                                 <ul id="backend-dropdown-options" class="dropdown-menu nojs" aria-labelledby="ill-backend-dropdown">
                                     [% FOREACH backend IN backends %]
-                                        <li><a href="/cgi-bin/koha/opac-illrequests.pl?method=create&amp;backend=[% backend %]">[% backend %]</a></li>
+                                        <li><a id="[% backend %]BackendNameInDropDown" href="/cgi-bin/koha/opac-illrequests.pl?method=create&amp;backend=[% backend %]">[% backend %]</a></li>
                                     [% END %]
                                 </ul>
                         [% ELSE %]
@@ -230,6 +230,40 @@
             "deferRender": true
         }));
         $("#backend-dropdown-options").removeClass("nojs");
+
+        $(document).ready(function() {
+            // language dependent update of backend designation
+            updateBackendNamesInDropDown();
+        });
+
+        function updateBackendNamesInDropDown() {
+            [% FOREACH backend IN backends %]
+                document.getElementById('[% backend %]BackendNameInDropDown').innerText = backendNameToDesignation ('[% backend %]');
+            [% END %]
+        };
+
+        function backendNameToDesignation (backend_name) {
+            var backend_designation = 'unknown';
+            if ( backend_name ) {
+                switch( backend_name ) {
+                    case "ILLALV":
+                        backend_designation =  _("ALV");
+                    break;
+                    case "ILLSLNPKoha":
+                        backend_designation =  _("SLNP-passive");
+                    break;
+                    case "ILLZKSHA":
+                        backend_designation =  _("RLV-active");
+                    break;
+                    case "ILLZKSHP":
+                        backend_designation =  _("RLV-passive");
+                    break;
+                    default:
+                        backend_designation = backend_name;
+                }
+            }
+            return backend_designation;
+        };
     //]]>
 </script>
 [% TRY %]

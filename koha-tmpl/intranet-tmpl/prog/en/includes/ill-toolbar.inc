@@ -8,20 +8,8 @@
                     <i class="fa fa-plus"></i> New ILL request <span class="caret"></span>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="ill-backend-dropdown">
-                    [% FOREACH backend IN backends %]         
-[% SWITCH backend %]
-    [% CASE 'ILLALV' %]
-        [% SET backend_name = 'ALV' %]
-    [% CASE 'ILLSLNPKoha' %]
-        [% SET backend_name = 'SLNP-passive' %]
-    [% CASE 'ILLZKSHA' %]
-        [% SET backend_name = 'RLV-active' %]
-    [% CASE 'ILLZKSHP' %]
-        [% SET backend_name = 'RLV-passive' %]
-    [% CASE %]
-        [% SET backend_name = backend %]
-[% END %]
-                        <li><a href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend %]">[% backend_name %]</a></li>
+                    [% FOREACH backend IN backends %]
+                        <li><a id="[% backend %]BackendNameInDropDown" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend %]">[% backend %]</a></li>
                     [% END %]
                 </ul>
             </div>
@@ -68,8 +56,6 @@
 <script type= "text/javascript">
 
     function backendNameToDesignation (backend_name) {
-//alert("backendNameToDesignation backend_name:");
-//alert(backend_name);
         var backend_designation = '';
         if ( backend_name ) {
             switch( backend_name ) {
@@ -90,6 +76,76 @@
             }
         }
         return backend_designation;
+    };
+
+    function updateBackendNamesInDropDown() {
+        [% FOREACH backend IN backends %]
+            document.getElementById('[% backend %]BackendNameInDropDown').innerText = backendNameToDesignation ('[% backend %]');
+        [% END %]
+    };
+
+    function updateDetailsFromSupplier() {
+        var supplierDetailsHeaderText = document.getElementById('MetaDataSupplierDetailsHeader').innerText;
+        if ( supplierDetailsHeaderText ) {
+            document.getElementById('MetaDataSupplierDetailsHeader').innerText = supplierDetailsHeaderText.replace('[% request.backend %]',backendNameToDesignation ('[% request.backend %]'));;
+        }
+        [% FOREACH requestmetadata IN request.metadata %]
+            var labeltext = 'undef_labeltext';
+            var requestmetadatakey = '[% requestmetadata.key %]';
+            if ( requestmetadatakey ) {
+                switch( requestmetadatakey ) {
+                    case "Author":
+                        labeltext =  _("Author");
+                    break;
+                    case "ISBN":
+                        labeltext =  _("ISBN");
+                    break;
+                    case "Order ID":
+                        labeltext =  _("Order ID");
+                    break;
+                    case "Title":
+                        labeltext =  _("Title");
+                    break;
+                    default:
+                        labeltext =  requestmetadatakey;
+                    break;
+                }
+                var labelId = 'labelForMetaData'.concat(requestmetadatakey);
+                document.getElementById(labelId).innerText = labeltext;
+            }
+        [% END %]
+    };
+
+    function updateHitHeaderText() {
+        var origHitheaderText = document.getElementById('hitheader').innerText;
+        var newHitheaderText = 'undef';
+
+        if ( origHitheaderText ) {
+            switch ( origHitheaderText ) {
+                case 'Details for all completed requests':
+                    newHitheaderText = _("Details for all completed requests");
+                break;
+                case 'Details for all requests':
+                    newHitheaderText = _("Details for all requests");
+                break;
+                case 'Details for all open requests':
+                    newHitheaderText = _("Details for all open requests");
+                break;
+                case 'Details for all open requests (ALV)':
+                    newHitheaderText = _("Details for all open requests (ALV)");
+                break;
+                case 'Details for all open requests (RLV-active)':
+                    newHitheaderText = _("Details for all open requests (RLV-active)");
+                break;
+                case 'Details for all open requests (RLV-passive)':
+                    newHitheaderText = _("Details for all open requests (RLV-passive)");
+                break;
+                default:
+                    newHitheaderText = origHitheaderText;
+                break;
+            }
+            document.getElementById('hitheader').innerText = newHitheaderText;
+        }
     };
 
 </script>

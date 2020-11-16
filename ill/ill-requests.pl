@@ -258,7 +258,7 @@ if ( $backends_available ) {
                 $template->param(
                     infilter => $params->{infilter}
                 );
-                $params->{hitname} = 'Details für alle offenen Bestellungen';
+                $params->{hitname} = 'Details for all open requests';
             }
         }
         if ( $params->{hitname} ) {
@@ -313,6 +313,6 @@ sub handle_commit_maybe {
 }
 
 sub redirect_to_list {
-    print $cgi->redirect('/cgi-bin/koha/ill/ill-requests.pl?infilter=status,-not_in,COMP,QUEUED&hitname=Details für alle offenen Bestellungen');
+    print $cgi->redirect('/cgi-bin/koha/ill/ill-requests.pl?infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests');
     exit;
 }
