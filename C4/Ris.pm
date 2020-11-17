@@ -830,7 +830,7 @@ sub get_keywords {
 
     ## loop over all 6XX fields
     foreach my $kwfield (@keywords) {
-        if ($kwfield != undef) {
+        if ($kwfield) {
             ## authornames get special treatment
             if ($fieldname eq "600") {
                 my $val = normalize_author($kwfield->subfield('a'), $kwfield->subfield('b'), $kwfield->subfield('c'), $kwfield->indicator('1'));
@@ -995,8 +995,9 @@ sub print_abstract {
     ## loop over all abfields
     foreach my $abfield (@abfields) {
         foreach my $field (@subfields) {
-            if ( length( $abfield->subfield($field) ) > 0 ) {
-                my $ab = $abfield->subfield($field);
+            my $value = $abfield->subfield($field);
+            if ( $value && length( $value ) > 0 ) {
+                my $ab = $value;
 
                 print "<marc>field 520 subfield $field: $ab\r\n" if $marcprint;
 
