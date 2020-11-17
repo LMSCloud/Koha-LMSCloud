@@ -1252,7 +1252,7 @@ if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
     $template->param('OPACSearchForTitleIn' => $search_for_title);
 }
 
-if ( $isbn ne '' || $isbn13 ne '' ) {
+if ( $isbn || $isbn13 ) {
     if (my $search_for_title = C4::Context->preference('OpacDetailBookShopLinkContentISBN')){
         $dat->{title} =~ s/\/+$//; # remove trailing slash
         $dat->{title} =~ s/\s+$//; # remove trailing space
@@ -1270,7 +1270,7 @@ if ( $isbn ne '' || $isbn13 ne '' ) {
         $template->param('OpacDetailBookShopLinkContent' => $search_for_title);
     }
 }
-elsif ( $issn ne '' ) {
+elsif ( $issn ) {
    if (my $search_for_title = C4::Context->preference('OpacDetailBookShopLinkContentISSN')){
         $dat->{title} =~ s/\/+$//; # remove trailing slash
         $dat->{title} =~ s/\s+$//; # remove trailing space
@@ -1287,7 +1287,7 @@ elsif ( $issn ne '' ) {
         $template->param('OpacDetailBookShopLinkContent' => $search_for_title);
     }
 }
-elsif ( $ean ne '' ) {
+elsif ( $ean ) {
    if (my $search_for_title = C4::Context->preference('OpacDetailBookShopLinkContentEAN')){
         $dat->{title} =~ s/\/+$//; # remove trailing slash
         $dat->{title} =~ s/\s+$//; # remove trailing space
@@ -1370,7 +1370,7 @@ if (C4::Context->preference('OpacDetailVolumeDisplay')) {
     $checkRecNum = $record->field("001")->data() if ( $record->field("001") );
     foreach my $hostfield ( $record->field('770','772','773','774','775','776','777','780','785','787','800','810','811','830')) {
         my $linkedbiblionumber = $hostfield->subfield("w");
-        if ( $linkedbiblionumber =~ /\(([^\)]+)\)/ ) {
+        if ( $linkedbiblionumber && $linkedbiblionumber =~ /\(([^\)]+)\)/ ) {
             my $isil = $1;
             next if ( $marcOrgCode ne $isil );
             $linkedbiblionumber =~ s/\([^\)]+\)//g;
