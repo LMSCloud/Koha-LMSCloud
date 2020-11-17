@@ -17238,6 +17238,20 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.018";
+if ( CheckVersion($DBversion) ) {
+    my $itemsUpdated = $dbh->do(q{
+        UPDATE items 
+        SET    renewals = (SELECT count(*) FROM statistics s WHERE s.type = 'renew' AND s.itemnumber = items.itemnumber)
+        WHERE  renewals < (SELECT count(*) FROM statistics s WHERE s.type = 'renew' AND s.itemnumber = items.itemnumber)
+    });
+    
+    $itemsUpdated = 0 if ( $itemsUpdated eq '0E0' );
+
+    print "Upgrade to $DBversion done (Updated renewals counter of $itemsUpdated items where the value was smaller than the count of renewals of the item in the statistics table.)\n";
+    SetVersion($DBversion);
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
