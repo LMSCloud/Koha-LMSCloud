@@ -104,7 +104,8 @@ sub new {
                                     'KLFG'                       => 'klfg.jsp',
                                     'KDG '                       => 'kdg.jsp',
                                     'KLL'                        => 'kll.jsp',
-                                    'Kindlers Literatur Lexikon' => 'klg.jsp'
+                                    'Kindlers Literatur Lexikon' => 'klg.jsp',
+                                    'Chronik'                    => 'chronik.jsp'
                               };
     
     my $ua = LWP::UserAgent->new;
@@ -167,6 +168,7 @@ sub encryptKey {
     $requestkey =~ s/[+]/(/g;
     $requestkey =~ s/[=]/_/g;
     $requestkey =~ s/[\/]/)/g;
+    $requestkey =~ s/[\r\t\n]//g;
     return $requestkey;
 }
 
@@ -213,10 +215,20 @@ sub simpleSearch {
     my $url;
     if ( $publication ) {
         $url = $self->{'detailedsearch'};
+        
+        my $sort = '&sort=field:title';
+        
         if ( exists($self->{'publications'}->{$publication}) ) {
             $url .= $self->{'publications'}->{$publication};
+            
+            if ( $publication eq 'Chronik' ) {
+                $sort = ''; # '&sort=-field:sort';
+            }
         }
-        $url .= "?text=" . uri_escape_utf8($searchtext) . "&sort=field:title";
+        if ( $maxcount && $maxcount > 200 ) {
+            $maxcount = 200;
+        }
+        $url .= "?text=" . uri_escape_utf8($searchtext) . $sort;
         $url .= "&size=$maxcount&page=1" if ( $maxcount );
     }
     else {
@@ -343,7 +355,36 @@ sub getCategorySummary {
 
                 my $hitcount = 0;
                 if ( defined($categhit->{hit}) && reftype($categhit->{hit}) eq 'HASH' ) {
-                    foreach my $hit( keys %{$categhit->{'hit'}} ) {
+                    my @keys;
+                    if ( $categhit->{publikation} && $categhit->{publikation} eq 'Chronik' ) {
+                        @keys = reverse sort {
+                                        if ( exists($categhit->{hit}->{$a}->{datum}) && 
+                                             exists($categhit->{hit}->{$b}->{datum}) )
+                                        {
+                                            my $date1 = 0;
+                                            my $date2 = 0;
+                                            if ( $categhit->{hit}->{$a}->{datum} =~ /^([0-9]+)\.([0-9]+)\.([0-9]+)$/ ) {
+                                                $date1 = sprintf("%04d%02d%02d",$3,$2,$1);
+                                            }
+                                            if ( $categhit->{hit}->{$b}->{datum} =~ /^([0-9]+)\.([0-9]+)\.([0-9]+)$/ ) {
+                                                $date2 = sprintf("%04d%02d%02d",$3,$2,$1);
+                                            }
+                                            return $date1 <=> $date2;
+                                        }
+                                        return $a cmp $b;
+                                     }
+                                     keys %{$categhit->{'hit'}};
+                    } else {
+                        @keys = sort {
+                                        if ( exists($categhit->{hit}->{$a}->{title}) && 
+                                             exists($categhit->{hit}->{$b}->{title}) )
+                                        {
+                                            return lc($categhit->{hit}->{$a}->{title}) cmp lc($categhit->{hit}->{$b}->{title});
+                                        }
+                                        return $a cmp $b;
+                                     } keys %{$categhit->{'hit'}};
+                    }
+                    foreach my $hit( @keys ) {
                         push @{$categentry->{hits}}, $self->formatCategoryHit($categhit->{hit}->{$hit});
                         $hitcount++;
                     }
@@ -388,10 +429,51 @@ sub formatCategoryHit {
         $entry->{text}  = $text;
         $entry->{link}  = $hit->{url} if (defined($hit->{url}));
     }
+    elsif ( $hit->{'xsi:type'} eq 'ereignis' ) {
+        $entry->{title} = $hit->{title} if (defined($hit->{title}));
+        $entry->{text}  = $hit->{text};
+        if ( 
+                reftype($hit->{text}) eq 'HASH' 
+             && defined($hit->{text}->{div}) 
+             && defined($hit->{text}->{div}->{content}) ) 
+        {
+            if ( reftype($hit->{text}->{div}->{content}) && reftype($hit->{text}->{div}->{content}) eq 'ARRAY' ) {
+                my $text = $hit->{text};
+                my $textout = '';
+                for (my $i=0; $i < scalar(@{ $text->{div}->{content} }); $i++) {
+                    $textout .= $text->{div}->{content}->[$i];
+                    
+                    if ( exists($text->{div}->{a}) && 
+                         reftype($text->{div}->{a}) eq 'ARRAY' &&
+                         $text->{div}->{a}->[$i]->{content}
+                         ) 
+                    {
+                        $textout .= $text->{div}->{a}->[$i]->{content};
+                    }
+                    if ( exists($text->{div}->{a}) && 
+                         reftype($text->{div}->{a}) eq 'HASH'
+                         ) 
+                    {
+                        $textout .= $text->{div}->{a}->{content};
+                        delete($text->{div}->{a});
+                    }
+                };
+                $textout =~ s/(\s)\s+/$1/g;
+                $entry->{text}  = $textout;
+            }
+            else {
+                $entry->{text} = $hit->{text}->{div}->{content};
+            }
+        }
+        $entry->{link}  = $hit->{url} if (defined($hit->{url}));
+    }
     else {
         $entry->{title} = $hit->{title} if (defined($hit->{title}));
         if ( defined($hit->{text}) ) {
             my $text = $hit->{text};
+            if ( reftype($text) eq 'HASH' && defined($text->{div}) && defined($text->{div}->{content}) && reftype($text->{div}->{content}) eq 'ARRAY' ) {
+                $text = $text->{div};
+            }
             if ( reftype($text) eq 'HASH' && defined($text->{content}) && reftype($text->{content}) eq 'ARRAY' && defined($text->{i}) ) {
                 my $settext = '';
                 my @inserttext = ();
