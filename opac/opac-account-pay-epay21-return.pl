@@ -151,8 +151,6 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
             $soap_request->GetPaymentStatus( $getPaymentStatus_OP, $getPaymentStatus_Query );
         };
         if ( $@ ) {
-            # for debugging only: $error = "EPAY21_ERROR_PROCESSING";
-            # for debugging only: $epay21msg = "error when calling soap_request->GetPaymentStatus:$@:";
             carp "opac-account-pay-epay21-return.pl: error when calling soap_request->GetPaymentStatus:$@:\n";
         }
 
@@ -174,7 +172,7 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
                                 last;    # looks good, we have to 'pay' the accountlines
                             }
                             if ( $paymentStatus eq 'canceled' || $paymentStatus eq 'failed' ) {
-                                $epay21msg = 'paymentStatus:' . $paymentStatus;
+                                $epay21msg = 'paymentStatus:' . $paymentStatus . ':';
                                 last;    # payment not successful, so we do NOT 'pay' the accountlines
                             }
                         } else {
@@ -310,9 +308,7 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
             $soap_request->ConfirmPayment( $confirmPayment_OP, $confirmPayment_Query );
         };
         if ( $@ ) {
-            # for debugging only: $error = "EPAY21_ERROR_PROCESSING";
-            # for debugging only: $epay21msg = "error when calling soap_request->ConfirmPayment:$@:";
-            carp "opac-account-pay-epay21-return.pl: error when calling soap_request->ConfirmPayment:$@:\n";
+            $epay21msg = "error when calling soap_request->ConfirmPayment:$@:";
         }
 
 
@@ -333,15 +329,12 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
                     }
                 }
             } else {
-                # for debugging only: $error = "EPAY21_ERROR_PROCESSING";
-                # for debugging only: $epay21msg = "error when calling soap_request->ConfirmPayment:" . $response->fault() . ":";
-                carp "opac-account-pay-epay21-return.pl: error when calling soap_request->ConfirmPayment:" . $response->fault() . ":\n";
+                $epay21msg = "error when calling soap_request->ConfirmPayment:" . $response->fault() . ":";
             }
         }
     } else {
         $error = "EPAY21_ERROR_PROCESSING";
-        $epay21msg = "could not get paymentPayID of order $getPayStat_Query_SearchKey";
-        carp "opac-account-pay-epay21-return.pl: could not get paymentPayID of order $getPayStat_Query_SearchKey\n";
+        $epay21msg = "could not get paymentPayID of order:$getPayStat_Query_SearchKey:";
     }
 
 
@@ -361,7 +354,12 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
         accountview => 1
     );
 
-    print $cgi->redirect("/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$error&epay21msg=>$epay21msg");
+    if ( $epay21msg ) {
+        my $mess = "opac-account-pay-epay21-return.pl epay21msg:" . $epay21msg . ":";
+        carp $mess . "\n";
+    }
+
+    print $cgi->redirect("/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$error");
 } else {
     print $cgi->redirect("/cgi-bin/koha/errors/404.pl");
 }

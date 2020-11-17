@@ -152,9 +152,7 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
         $soap_request->GetPaymentStatus( $getPaymentStatus_OP, $getPaymentStatus_Query );
     };
     if ( $@ ) {
-        # for debugging only: $error = "EPAY21_ERROR_PROCESSING";
-        # for debugging only: $epay21msg = "error when calling soap_request->GetPaymentStatus:$@:";
-        carp "opac-account-pay-epay21-cancelled.pl: error when calling soap_request->GetPaymentStatus:$@:\n";
+        $epay21msg = "error when calling soap_request->GetPaymentStatus:$@:";
     }
 
 
@@ -179,9 +177,7 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
                 }
             }
         } else {
-            # for debugging only: $error = "EPAY21_ERROR_PROCESSING";
-            # for debugging only: $epay21msg = "error when calling soap_request->GetPaymentStatus:" . $response->fault() . ":";
-            carp "opac-account-pay-epay21-cancelled.pl: error when calling soap_request->GetPaymentStatus:" . $response->fault() . ":\n";
+            $epay21msg = "error when calling soap_request->GetPaymentStatus:" . $response->fault() . ":";
         }
     }
 
@@ -202,9 +198,7 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
             $soap_request->ConfirmPayment( $confirmPayment_OP, $confirmPayment_Query );
         };
         if ( $@ ) {
-            # for debugging only: $error = "EPAY21_ERROR_PROCESSING";
-            # for debugging only: $epay21msg = "error when calling soap_request->ConfirmPayment:$@:";
-            carp "opac-account-pay-epay21-opac-account-pay-epay21-cancelled.pl: error when calling soap_request->ConfirmPayment:$@:\n";
+            $epay21msg = "error when calling soap_request->ConfirmPayment:$@:";
         }
 
 
@@ -225,9 +219,7 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
                     }
                 }
             } else {
-                # for debugging only: $error = "EPAY21_ERROR_PROCESSING";
-                # for debugging only: $epay21msg = "error when calling soap_request->ConfirmPayment:" . $response->fault() . ":";
-                carp "opac-account-pay-epay21-cancelled.pl: error when calling soap_request->ConfirmPayment:" . $response->fault() . ":\n";
+                $epay21msg = "error when calling soap_request->ConfirmPayment:" . $response->fault() . ":";
             }
         }
     }
@@ -249,7 +241,12 @@ if ( C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {
         accountview => 1
     );
 
-    print $cgi->redirect("/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$error&epay21msg=>$epay21msg");
+    if ( $epay21msg ) {
+        my $mess = "opac-account-pay-epay21-cancelled.pl epay21msg:" . $epay21msg . ":";
+        carp $mess . "\n";
+    }
+
+    print $cgi->redirect("/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$error");
 } else {
     print $cgi->redirect("/cgi-bin/koha/errors/404.pl");
 }

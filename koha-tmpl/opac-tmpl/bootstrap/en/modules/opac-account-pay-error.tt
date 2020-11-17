@@ -37,7 +37,6 @@
                                 <p>Unable to connect to GiroSolution.</p>
                                 <p>Please try again later.</p>
                             [% ELSIF error == "GIROSOLUTION_ERROR_PROCESSING" %]
-                                <!-- <p>Unable to verify payment.[% IF girosolutionmsg %] ([% girosolutionmsg %])[% END %]</p> -->
                                 <p>Unable to verify payment via GiroSolution.</p>
                                 <p>Please contact the library to verify your payment.</p>
 
@@ -45,21 +44,19 @@
                                 <p>Unable to connect to ekom21/epay21.</p>
                                 <p>Please try again later.</p>
                             [% ELSIF error == "EPAY21_ERROR_PROCESSING" %]
-                                <!-- <p>Unable to verify payment via ekom21/epay21.[% IF epay21msg %] ([% epay21msg %])[% END %]</p> -->
                                 <p>Unable to verify payment via ekom21/epay21.</p>
                                 <p>Please contact the library to verify your payment.</p>
                             [% ELSIF error == "EPAY21_ABORTED_BY_USER" %]
-                                <!-- <p>Payment action aborted by user.[% IF epay21msg %] ([% epay21msg %])[% END %]</p> -->
                                 <p>Payment action aborted by user.</p>
 
                             [% ELSIF error == "PMPAYMENT_UNABLE_TO_CONNECT" %]
                                 <p>Unable to connect to pmPayment service provider.</p>
                                 <p>Please try again later.</p>
                             [% ELSIF error == "PMPAYMENT_ERROR_PROCESSING" %]
-                                <p>Unable to verify payment via pmPayment.<!-- [% IF pmpaymentmsg %] ([% pmpaymentmsg %])[% END %] --></p>
+                                <p>Unable to verify payment via pmPayment.</p>
                                 <p>Please contact the library to verify your payment.</p>
                             [% ELSIF error == "PMPAYMENT_ABORTED_BY_USER" %]
-                                <p>Payment action aborted by user.<!-- [% IF pmpaymentmsg %] ([% pmpaymentmsg %])[% END %] --></p>
+                                <p>Payment action aborted by user.</p>
 
                             [% END %]
                         </div>

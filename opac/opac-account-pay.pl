@@ -265,7 +265,9 @@ elsif ( $payment_method eq 'gs_giropay' && C4::Context->preference('Girosolution
                 print $cgi->redirect( $gs_message_redirect_url );
 
             } else {
-                $template->param( error => "GIROSOLUTION_ERROR_PROCESSING", girosolutionmsg => $json->{msg} );
+                my $mess = "opac-account-pay.pl/gs_giropay json->{rc}:" . $json->{rc} . ": json->{msg}:" . $json->{msg} . ":";
+                carp $mess . "\n";
+                $template->param( error => "GIROSOLUTION_ERROR_PROCESSING" );
                 $error = 1;
             }
 
@@ -359,7 +361,9 @@ elsif ( $payment_method eq 'gs_creditcard' && C4::Context->preference('Girosolut
                 print $cgi->redirect( $gs_message_redirect_url );
 
             } else {
-                $template->param( error => "GIROSOLUTION_ERROR_PROCESSING", girosolutionmsg => $json->{msg} );
+                my $mess = "opac-account-pay.pl/gs_creditcard json->{rc}:" . $json->{rc} . ": json->{msg}:" . $json->{msg} . ":";
+                carp $mess . "\n";
+                $template->param( error => "GIROSOLUTION_ERROR_PROCESSING" );
                 $error = 1;
             }
 
@@ -489,10 +493,10 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
         $soap_request->InitPayment( $InitPayment_OP, $InitPayment_Query );
     };
     if ( $@ ) {
-        my $epay21msg = "error when calling soap_request->InitPayment:$@:";
-        $template->param( error => "EPAY21_ERROR_PROCESSING", epay21msg => $epay21msg );
+        my $mess = "opac-account-pay.pl/epay21_paypage error when calling soap_request->InitPayment:$@:";
+        carp $mess . "\n";
+        $template->param( error => "EPAY21_ERROR_PROCESSING" );
         $error = 1;
-        carp "opac-account-pay.pl: $epay21msg\n";
     }
 
 
@@ -519,14 +523,18 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
             }
 
             if ( $redirectedToPaypage == 0 ) {
-                $template->param( error => "EPAY21_ERROR_PROCESSING", epay21msg => $epay21msg );
+                $template->param( error => "EPAY21_ERROR_PROCESSING" );
                 $error = 1;
             }
         }    # End of: !$response->fault()
         else {
             $epay21msg = $response->fault();
-            $template->param( error => "EPAY21_UNABLE_TO_CONNECT", epay21msg => $epay21msg );
+            $template->param( error => "EPAY21_UNABLE_TO_CONNECT" );
             $error = 1;
+        }
+        if ( $epay21msg ) {
+            my $mess = "opac-account-pay.pl/epay21_paypage epay21msg:" . $epay21msg . ":";
+            carp $mess . "\n";
         }
     }
 
@@ -630,7 +638,10 @@ elsif ( $payment_method eq 'pmpayment_paypage' && C4::Context->preference('PmPay
             print $cgi->redirect( $pmpayment_paypage_url );
 
         } else {
-            $template->param( error => "PMPAYMENT_ERROR_PROCESSING", pmpaymentmsg => $contentJson->{Error} );
+            my $mess = "opac-account-pay.pl/pmpayment_paypage contentJson->{Error}:" . $contentJson->{Error} . ":";
+            $loggerPmp->error($mess);
+            carp $mess . "\n";
+            $template->param( error => "PMPAYMENT_ERROR_PROCESSING" );
             $error = 1;
         }
 
