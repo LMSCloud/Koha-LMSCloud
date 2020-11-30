@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "POT-Creation-Date: 2020-11-17 16:34+0100\n"
-"PO-Revision-Date: 2020-11-17 16:47+0100\n"
+"PO-Revision-Date: 2020-11-19 14:05+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -11614,7 +11614,7 @@ msgstr "Die Online-Bezahlung konnte vom System nicht bestätigt werden."
 #: opac-tmpl/bootstrap/en/modules/opac-account.tt:65
 #, c-format
 msgid "Unable to verify payment."
-msgstr "Zahlung kann nicht verifizeirt werden."
+msgstr "Zahlung kann nicht verifiziert werden."
 
 #: opac-tmpl/bootstrap/en/modules/opac-reserve.tt:389
 #, c-format
