@@ -136,7 +136,7 @@ if ( @bibids > 0 ) {
                         $publisherblock .=  $publisher;
                     }
                     if ( $year ) {
-                        if ( $publisherblock ne '' ) {
+                        if ( $publisherblock ) {
                             $publisherblock .= ', ';
                         }
                         $publisherblock .=  $year;
@@ -148,9 +148,9 @@ if ( @bibids > 0 ) {
                         }
                     }
             }
-            $title =~ s/[\x{0098}\x{009c}]//g;
-            $author =~ s/[\x{0098}\x{009c}]//g;
-            $titleblock =~ s/[\x{0098}\x{009c}]//g;
+            $title =~ s/[\x{0098}\x{009c}]//g if ($title);
+            $author =~ s/[\x{0098}\x{009c}]//g if ($author);
+            $titleblock =~ s/[\x{0098}\x{009c}]//g if ($titleblock);
 		
 		
             my $identifier = '';

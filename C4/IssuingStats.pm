@@ -102,7 +102,7 @@ sub GetIssuingStats {
     my $years         = shift;
     my $ignoreTypes   = shift;
     
-    return [] if (! $biblionumbers);
+    return [] if (! $biblionumbers || ! scalar(@$biblionumbers) );
     return [] if (! $years || $years !~ /^[0-9]+$/ || $years <= 0 );
     
     my @seltypes;
@@ -135,7 +135,7 @@ sub GetIssuingStats {
                     SELECT i.biblionumber AS biblionumber,
                            i.itemnumber AS itemnumber,
                            0 AS year,
-                           IFNULL(i.issues,0) + IFNULL(i.renewals,0) AS cnt,
+                           IFNULL(i.issues,0) + GREATEST(IFNULL((SELECT count(*) FROM statistics s WHERE s.type = 'renew' AND s.itemnumber = i.itemnumber GROUP BY itemnumber),0),IFNULL(i.renewals,0)) AS cnt,
                            YEAR(dateaccessioned)AS yearacc
                     FROM   items i
                     WHERE  i.biblionumber IN ($bibliosel) $seladd

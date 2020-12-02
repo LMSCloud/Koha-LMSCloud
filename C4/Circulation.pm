@@ -4021,7 +4021,7 @@ sub ProcessOfflineReturn {
                 $operation->{timestamp},
             );
             ModItem(
-                { renewals => 0, onloan => undef },
+                { onloan => undef },
                 $issue->{'biblionumber'},
                 $itemnumber,
                 { log_action => 0 }
