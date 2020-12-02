@@ -79,48 +79,64 @@
     };
 
     function updateBackendNamesInDropDown() {
-        [% FOREACH backend IN backends %]
-            document.getElementById('[% backend %]BackendNameInDropDown').innerText = backendNameToDesignation ('[% backend %]');
+        [% IF backends_available %]
+            [% FOREACH backend IN backends %]
+                var linkForCreateIllRequest = document.getElementById('[% backend %]BackendNameInDropDown');
+                if ( linkForCreateIllRequest ) {
+                    linkForCreateIllRequest.innerText = backendNameToDesignation ('[% backend %]');
+                }
+            [% END %]
         [% END %]
     };
 
     function updateDetailsFromSupplier() {
-        var supplierDetailsHeaderText = document.getElementById('MetaDataSupplierDetailsHeader').innerText;
-        if ( supplierDetailsHeaderText ) {
-            document.getElementById('MetaDataSupplierDetailsHeader').innerText = supplierDetailsHeaderText.replace('[% request.backend %]',backendNameToDesignation ('[% request.backend %]'));;
+        var supplierDetailsHeader = document.getElementById('MetaDataSupplierDetailsHeader');
+        var supplierDetailsHeaderText = '';
+        if ( supplierDetailsHeader ) {
+            supplierDetailsHeaderText = supplierDetailsHeader.innerText;
+            if ( supplierDetailsHeaderText ) {
+                supplierDetailsHeader.innerText = supplierDetailsHeaderText.replace('[% request.backend %]',backendNameToDesignation ('[% request.backend %]'));
+            }
         }
         [% FOREACH requestmetadata IN request.metadata %]
             var labeltext = 'undef_labeltext';
             var requestmetadatakey = '[% requestmetadata.key %]';
             if ( requestmetadatakey ) {
-                switch( requestmetadatakey ) {
-                    case "Author":
-                        labeltext =  _("Author");
-                    break;
-                    case "ISBN":
-                        labeltext =  _("ISBN");
-                    break;
-                    case "Order ID":
-                        labeltext =  _("Order ID");
-                    break;
-                    case "Title":
-                        labeltext =  _("Title");
-                    break;
-                    default:
-                        labeltext =  requestmetadatakey;
-                    break;
-                }
                 var labelId = 'labelForMetaData'.concat(requestmetadatakey);
-                document.getElementById(labelId).innerText = labeltext;
+                var labelHavingLabelId = document.getElementById(labelId);
+                if ( labelHavingLabelId ) {
+                    switch( requestmetadatakey ) {
+                        case "Author":
+                            labeltext =  _("Author");
+                        break;
+                        case "ISBN":
+                            labeltext =  _("ISBN");
+                        break;
+                        case "Order ID":
+                            labeltext =  _("Order ID");
+                        break;
+                        case "Title":
+                            labeltext =  _("Title");
+                        break;
+                        default:
+                            labeltext =  requestmetadatakey;
+                        break;
+                    }
+                    labelHavingLabelId.innerText = labeltext;
+                }
             }
         [% END %]
     };
 
     function updateHitHeaderText() {
-        var origHitheaderText = document.getElementById('hitheader').innerText;
+        var hitheader = document.getElementById('hitheader');
+        var origHitheaderText = '';
+        if ( hitheader ) {
+            origHitheaderText = hitheader.innerText;
+        }
         var newHitheaderText = 'undef';
 
-        if ( origHitheaderText ) {
+        if ( hitheader && origHitheaderText ) {
             switch ( origHitheaderText ) {
                 case 'Details for all completed requests':
                     newHitheaderText = _("Details for all completed requests");
@@ -144,7 +160,7 @@
                     newHitheaderText = origHitheaderText;
                 break;
             }
-            document.getElementById('hitheader').innerText = newHitheaderText;
+            hitheader.innerText = newHitheaderText;
         }
     };
 

@@ -191,7 +191,7 @@
                                 <legend id="backend_legend">Details from [% request.backend %]</legend>
                                 [% FOREACH meta IN request.metadata %]
                                     <div class="requestattr-[% meta.key %]">
-                                        <span class="label">[% meta.key %]:</span>
+                                        <span class="label" id="labelForMetaData[% meta.key %]">[% meta.key %]:</span>
                                         [% meta.value || 'N/A' %]
                                     </div>
                                 [% END %]
@@ -232,13 +232,23 @@
         $("#backend-dropdown-options").removeClass("nojs");
 
         $(document).ready(function() {
-            // language dependent update of backend designation
-            updateBackendNamesInDropDown();
+            [% IF method == 'list' %]
+                // language dependent update of backend designation
+                updateBackendNamesInDropDown();
+            [% ELSIF method == 'view' %]
+                // language dependent update of labels etc. for 'Details from ...backendname...' header line
+                updateDetailsFromSupplier();
+            [% END %]
         });
 
         function updateBackendNamesInDropDown() {
-            [% FOREACH backend IN backends %]
-                document.getElementById('[% backend %]BackendNameInDropDown').innerText = backendNameToDesignation ('[% backend %]');
+            [% IF backends_available %]
+                [% FOREACH backend IN backends %]
+                    var linkForCreateIllRequest = document.getElementById('[% backend %]BackendNameInDropDown');
+                    if ( linkForCreateIllRequest ) {
+                        linkForCreateIllRequest.innerText = backendNameToDesignation ('[% backend %]');
+                    }
+                [% END %]
             [% END %]
         };
 
@@ -263,6 +273,45 @@
                 }
             }
             return backend_designation;
+        };
+
+        function updateDetailsFromSupplier() {
+            var supplierDetailsHeader = document.getElementById('backend_legend');
+            var supplierDetailsHeaderText = '';
+            if ( supplierDetailsHeader ) {
+                supplierDetailsHeaderText = supplierDetailsHeader.innerText;
+                if ( supplierDetailsHeaderText ) {
+                    supplierDetailsHeader.innerText = supplierDetailsHeaderText.replace('[% request.backend %]',backendNameToDesignation ('[% request.backend %]'));
+                }
+            }
+            [% FOREACH requestmetadata IN request.metadata %]
+                var labeltext = 'undef_labeltext';
+                var requestmetadatakey = '[% requestmetadata.key %]';
+                if ( requestmetadatakey ) {
+                    var labelId = 'labelForMetaData'.concat(requestmetadatakey);
+                    var labelHavingLabelId = document.getElementById(labelId);
+                    if ( labelHavingLabelId ) {
+                        switch( requestmetadatakey ) {
+                            case "Author":
+                                labeltext =  _("Author");
+                            break;
+                            case "ISBN":
+                                labeltext =  _("ISBN");
+                            break;
+                            case "Order ID":
+                                labeltext =  _("Order ID");
+                            break;
+                            case "Title":
+                                labeltext =  _("Title");
+                            break;
+                            default:
+                                labeltext =  requestmetadatakey;
+                            break;
+                        }
+                        labelHavingLabelId.innerText = labeltext;
+                    }
+                }
+            [% END %]
         };
     //]]>
 </script>
