@@ -58,6 +58,15 @@
                             [% ELSIF error == "PMPAYMENT_ABORTED_BY_USER" %]
                                 <p>Payment action aborted by user.</p>
 
+                            [% ELSIF error == "EPAYBL_UNABLE_TO_CONNECT" %]
+                                <p>Unable to connect to ePayBL service provider.</p>
+                                <p>Please try again later.</p>
+                            [% ELSIF error == "EPAYBL_ERROR_PROCESSING" %]
+                                <p>Unable to verify payment via ePayBL.</p>
+                                <p>Please contact the library to verify your payment.</p>
+                            [% ELSIF error == "EPAYBL_ABORTED_BY_USER" %]
+                                <p>Payment action aborted by user.</p>
+
                             [% END %]
                         </div>
                     [% END %]

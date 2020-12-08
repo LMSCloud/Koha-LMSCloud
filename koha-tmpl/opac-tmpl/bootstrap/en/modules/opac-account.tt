@@ -3,7 +3,15 @@
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
 [% USE Price %]
-[% SET ENABLE_OPAC_PAYMENTS = Koha.Preference('EnablePayPalOpacPayments') || Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || Koha.Preference('Epay21PaypageOpacPaymentsEnabled') || plugins %]
+[% SET ENABLE_OPAC_PAYMENTS = 
+            Koha.Preference('EnablePayPalOpacPayments') || 
+            Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || 
+            Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || 
+            Koha.Preference('Epay21PaypageOpacPaymentsEnabled') || 
+            Koha.Preference('PmpaymentPaypageOpacPaymentsEnabled') || 
+            Koha.Preference('EpayblPaypageOpacPaymentsEnabled') || 
+            plugins 
+%]
 [% SET DISPLAY_PAYMENT_BLOCK = 0 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Your fines and charges</title>
@@ -81,6 +89,15 @@
                                 <p>Unable to verify payment via pmPayment.</p>
                                 <p>Please contact the library to verify your payment.</p>
                             [% ELSIF payment_error == "PMPAYMENT_ABORTED_BY_USER" %]
+                                <p>Payment action aborted by user.</p>
+
+                            [% ELSIF payment_error == "EPAYBL_UNABLE_TO_CONNECT" %]
+                                <p>Unable to connect to ePayBL service provider.</p>
+                                <p>Please try again later.</p>
+                            [% ELSIF payment_error == "EPAYBL_ERROR_PROCESSING" %]
+                                <p>Unable to verify payment via ePayBL.</p>
+                                <p>Please contact the library to verify your payment.</p>
+                            [% ELSIF payment_error == "EPAYBL_ABORTED_BY_USER" %]
                                 <p>Payment action aborted by user.</p>
 
                             [% END %]
@@ -256,6 +273,24 @@
                                                         <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/sepa-logo-neu.png">
                                                     </div>
                                                     <br><a href="https://www.govconnect.de/Produkte/E-Government/pmPayment/" target="_blank" title="Online Payment with pmPayment">More informations about pmPayment</a>
+                                                </label>
+                                            </div>
+                                        [% END %]
+
+                                        [% IF Koha.Preference('EpayblPaypageOpacPaymentsEnabled')  %]
+                                            <div class="control-group">
+                                                <label class="radio">
+                                                    <input type="radio" style="float: unset;" name="payment_method" id="payment_method_epaybl_paypage" value="epaybl_paypage" checked="checked">
+                                                    <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:394px; display: inline-block;">
+                                                        <strong style="margin:5px;" > online payment via ePayBL </strong><br>
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/mastercard.png">
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/visa.png">
+                                                        <img style="max-width:64px; width:auto; max-height:28px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paypal.png">
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/giropay.png">
+                                                        <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paydirekt.png">
+                                                        <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/sepa-logo-neu.png">
+                                                    </div>
+                                                    <br><a href="https://www.epaybl.de/" target="_blank" title="E-Payment Bund-Länder">More informations about ePayBL</a>
                                                 </label>
                                             </div>
                                         [% END %]

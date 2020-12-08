@@ -1002,3 +1002,35 @@ OPAC:
               type: htmlarea
               class: code
             - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
+
+    Payments via ePayBL:
+        -
+            - pref: EpayblPaypageOpacPaymentsEnabled
+              default: 0
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - "patrons to make paypage payments from the OPAC via the ePayBL paypage."
+        -
+            - "The URL for accessing ePayBL webservices is "
+            - pref: EpayblPaypageWebservicesURL
+        -
+            - "The URL of the ePayBL paypage is "
+            - pref: EpayblPaypagePaypageURL
+        -
+            - "The library's ePayBL mandator number is "
+            - pref: EpayblMandatorNumber
+        -
+            - "The library's ePayBL operator number is "
+            - pref: EpayblOperatorNumber
+        -
+            - "The library's ePayBL accounting entry text is "
+            - pref: EpayblAccountingEntryText
+            - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
+        -
+            - "The library's ePayBL dunning procedure label is "
+            - pref: EpayblDunningProcedureLabel
+        -
+            - "The library's ePayBL HMAC SHA-256 salt is "
+            - pref: EpayblSaltHmacSha256
+            - "(May not be modified if ePayBL payments are activated in OPAC.)"

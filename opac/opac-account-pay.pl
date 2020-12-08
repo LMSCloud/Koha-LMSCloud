@@ -42,6 +42,7 @@ use Koha::Acquisition::Currencies;
 use Koha::Database;
 use Koha::Plugins::Handler;
 use Koha::Patrons;
+use C4::Epayment::EPayBLPaypage;
 
 my $cgi = new CGI;
 my $payment_method = $cgi->param('payment_method');
@@ -67,6 +68,7 @@ unless ( C4::Context->preference('EnablePayPalOpacPayments') ||
          C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') ||
          C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ||
          C4::Context->preference('PmPaymentPaypageOpacPaymentsEnabled') ||
+         C4::Context->preference('EpayblPaypageOpacPaymentsEnabled') ||
          $use_plugin ) {
     print $cgi->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
@@ -518,7 +520,7 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
                     }
                 }
                 if ( $resultOperationResult->{'OK'} ne 'true' ) {
-                    $epay21msg = $resultOperationResult->{'ErrorMessage'} . ' (' . $resultOperationResult->{'ErrorMessageDetail'} . ')'
+                    $epay21msg = $resultOperationResult->{'ErrorMessage'} . ' (' . $resultOperationResult->{'ErrorMessageDetail'} . ')';
                 }
             }
 
@@ -653,6 +655,34 @@ elsif ( $payment_method eq 'pmpayment_paypage' && C4::Context->preference('PmPay
 
     $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage END error:$error:");
     output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
+}
+
+
+elsif ( $payment_method eq 'epaybl_paypage' && C4::Context->preference('EpayblPaypageOpacPaymentsEnabled') ) {    # pmPayment paypage
+
+    $logger->debug("opac-account-pay.pl/epaybl_paypage creating new C4::Epayment::EPayBLPaypage object. cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
+
+    my $errorTemplate = 'EPAYBL_ERROR_PROCESSING';
+    my $epayblRedirectToPaypageUrl = '';
+
+    # call the webservices 'isAlive', 'anlegenKunde', 'anlegenKassenzeichen', 'loeschenKunde' and then, if succeeded, redirect to ePayBL paypage URL
+    my $ePayBLPaypage = C4::Epayment::EPayBLPaypage->new( { patron => $patron, amount_to_pay => $amount_to_pay, accountlinesIds => \@accountlines } );
+    ( $error, $errorTemplate, $epayblRedirectToPaypageUrl ) = $ePayBLPaypage->paymentAction();
+
+    if ( $error || $errorTemplate ) {
+        $logger->error("opac-account-pay.pl/epaybl_paypage END error:$error: errorTemplate:$errorTemplate:");
+        if ( $errorTemplate ) {
+            $template->param( error => $errorTemplate );
+        }
+    } else {
+        $logger->debug("opac-account-pay.pl/epaybl_paypage END error:$error: errorTemplate:$errorTemplate: epayblRedirectToPaypageUrl:$epayblRedirectToPaypageUrl:");
+
+        if ( $epayblRedirectToPaypageUrl ) {
+            print $cgi->redirect( $epayblRedirectToPaypageUrl );
+        }
+    }
+
+    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 }) if $error;
 }
 
 

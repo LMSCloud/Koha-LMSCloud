@@ -17252,6 +17252,24 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.019";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('EpayblAccountingEntryText','',NULL,'The library\'s ePayBL accounting entry text. Permitted characters: a-z A-Z 0-9 \':?,-(+.)/','Free' ),
+            ('EpayblDunningProcedureLabel','',NULL,'The library\'s ePayBL dunning procedure label.','Free' ),
+            ('EpayblMandatorNumber','',NULL,'The library\'s ePayBL mandator number.','Free' ),
+            ('EpayblOperatorNumber','',NULL,'The library\'s ePayBL operator number.','Free' ),
+            ('EpayblPaypageOpacPaymentsEnabled','0',NULL,'Allow patrons to make paypage payments from the OPAC via ePayBL.','YesNo' ),
+            ('EpayblPaypagePaypageURL','',NULL,'URL of the ePayBL paypage, e.g. https://epay.akdb.de/paypage/login.do .','Free' ),
+            ('EpayblPaypageWebservicesURL','',NULL,'URL for accessing ePayBL webservices, e.g. http://epay.akdb.de/soap/servlet/rpcrouter .','Free' ),
+            ('EpayblSaltHmacSha256','',NULL,'The \'salt\' for calculating the HMAC SHA-256 hashes used for verifying received parameter values.','Free' )
+    });
+
+    print "Upgrade to $DBversion done (Added systempreferences for online payment via ePayBL.)\n";
+    SetVersion($DBversion);
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
