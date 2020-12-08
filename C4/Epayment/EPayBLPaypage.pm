@@ -90,7 +90,7 @@ sub getSystempreferences {
     $self->{epayblWebservicesUrl_ns} = 'http://www.bff.bund.de/ePayment';
     $self->{epayblWebservicesUrl} = C4::Context->preference('EpayblPaypageWebservicesURL');    # test env: https://infra-pre.buergerserviceportal.de/soap/servlet/rpcrouter   production env: http://epay.akdb.de/soap/servlet/rpcrouter
     $self->{epayblPaypageUrl} = C4::Context->preference('EpayblPaypagePaypageURL');    # test env: https://infra-pre.buergerserviceportal.de/paypage/login.do   production env: https://epay.akdb.de/paypage/login.do
-    $self->{epayblMandatorNumber} = C4::Context->preference('EpayblMandatorNumber');    # mandatory; ePayBL Mandantnummer (e.g. '1610000000')
+    $self->{epayblMandatorNumber} = C4::Context->preference('EpayblMandatorNumber');    # mandatory; ePayBL Mandantennummer (e.g. '1610000000')
     $self->{epayblOperatorNumber} = C4::Context->preference('EpayblOperatorNumber');    # mandatory; ePayBL Bewirtschafternummer (e.g. '42')
     $self->{epayblAccountingEntryText} = C4::Context->preference('EpayblAccountingEntryText');    # mandatory; ePayBL Buchungstext (e.g. 'BUEC/BUEC') (SEPA char set only)
     $self->{epayblDunningProcedureLabel} = C4::Context->preference('EpayblDunningProcedureLabel');    # mandatory; ePayBL Kennzeichen Mahnverfahren (e.g. '01')
@@ -640,7 +640,7 @@ sub lesenKassenzeichenInfo {
     my ($paymentCardnumber, $paymentTimestamp, $paymentHashVal ) = split( /_/, $paymentEShopKundennummer );
     my $calculatedHashVal = $self->calculateHashVal();
     my $paymentIsDiffering = 0;
-    $self->{logger}->debug("lesenKassenzeichenInfo() paymentCardnumber:$paymentCardnumber: self->{patron}->cardnumber():$self->{patron}->cardnumber():");
+    $self->{logger}->debug("lesenKassenzeichenInfo() paymentCardnumber:$paymentCardnumber: self->{patron}->cardnumber():" . $self->{patron}->cardnumber() . ":");
     $self->{logger}->debug("lesenKassenzeichenInfo() paymentTimestamp:$paymentTimestamp: self->{timestamp}:$self->{timestamp}:");
     $self->{logger}->debug("lesenKassenzeichenInfo() paymentHashVal:$paymentHashVal: calculatedHashVal:$calculatedHashVal:");
 
