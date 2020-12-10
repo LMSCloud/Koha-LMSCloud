@@ -32,7 +32,7 @@ sub new {
     my $loggerEpayment = Koha::Logger->get({ interface => 'epayment' });
 
     my $self  = {
-        'logger' => $loggerEpayment
+        logger => $loggerEpayment
     };
 
     #bless $self, $class;    # does not work: Attempt to bless into a reference
@@ -54,7 +54,7 @@ sub getSystempreferences {
     $self->{paymentsOnlineCashRegisterName} = C4::Context->preference('PaymentsOnlineCashRegisterName');
     $self->{paymentsOnlineCashRegisterManagerCardnumber} = C4::Context->preference('PaymentsOnlineCashRegisterManagerCardnumber');
 
-    $self->{logger}->debug("getSystempreferences() epayblWebserviceUrl:$self->{epayblWebserviceUrl}: epayblMandantNr:$self->{epayblMandantNr}: epayblBewirtschafterNr:$self->{epayblBewirtschafterNr}:");
+    $self->{logger}->debug("getSystempreferences() activateCashRegisterTransactionsOnly:$self->{activateCashRegisterTransactionsOnly}: paymentsOnlineCashRegisterName:$self->{paymentsOnlineCashRegisterName}: PaymentsOnlineCashRegisterManagerCardnumber:$self->{PaymentsOnlineCashRegisterManagerCardnumber}:");
 
 }
 
@@ -108,9 +108,19 @@ sub getEpaymentCashRegisterManagement {
     return ( $retWithoutCashRegisterManagement, $retCashRegisterManagerId );
 }
 
+# round float $flt to precision of $decimaldigits behind the decimal separator. E. g. roundGS(-1.234567, 2) == -1.23
+sub roundGS ()
+{
+    my $self = shift;
+    my ($flt, $decimaldigits) = @_;
+    my $decimalshift = 10 ** $decimaldigits;
+
+    return (int(($flt * $decimalshift) + (($flt < 0) ? -0.5 : 0.5)) / $decimalshift);
+}
+
 sub genHmacSha256 {
     my $self = shift;
-    my ($key, $str) = @_;
+    my ($str, $key) = @_;
     my $hashval = hmac_sha256_hex($str, $key);
 
     return $hashval;

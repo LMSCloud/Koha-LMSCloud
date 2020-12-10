@@ -45,23 +45,23 @@ sub new {
     $self = $self->SUPER::new();
     bless $self, $class;
 
-    $self->{'logger'} = $loggerEpaybl;
-    $self->{'patron'} = $params->{patron};
-    $self->{'amount_to_pay'} = $params->{amount_to_pay};
-    $self->{'accountlinesIds'} = $params->{accountlinesIds};    # ref to array containing the accountlines_ids of accountlines to be payed
-    $self->{'paytype'} = 19;    # just a dummy; may be interpreted as payment via PayBL paypage
-    $self->{'seconds'} = time();    # make payment trials for same accountlinesIds distinguishable
+    $self->{logger} = $loggerEpaybl;
+    $self->{patron} = $params->{patron};
+    $self->{amount_to_pay} = $params->{amount_to_pay};
+    $self->{accountlinesIds} = $params->{accountlinesIds};    # ref to array containing the accountlines_ids of accountlines to be payed
+    $self->{paytype} = $params->{paytype};    # always 19; may be interpreted as payment via ePayBL paypage
+    $self->{seconds} = time();    # make payment trials for same accountlinesIds distinguishable
     
     $self->{logger}->debug("new() cardnumber:" . $self->{patron}->cardnumber() . ": amount_to_pay:" . $self->{amount_to_pay} . ": accountlinesIds:" . Dumper($self->{accountlinesIds}) . ":");
     $self->{logger}->trace("new()  Dumper(class):" . Dumper($class) . ":");
 
     $self->getSystempreferences();
 
-    my $authValues = GetAuthorisedValues("PAYMENT_ACCOUNTTYPE_MAPPING",0);
+    my $authValues = GetAuthorisedValues("PaymentAccounttypeEpaybl",0);    # payment accounttype mapping for ePayBL
     foreach my $authValue( @{$authValues} ) {
-        my @authLib = split( /\|/, $authValue->{lib} );
-        $self->{paymentAccounttypeMapping}->{$authValue->{authorised_value}}->{haushalt} = $authLib[0];
-        $self->{paymentAccounttypeMapping}->{$authValue->{authorised_value}}->{objektnummer} = $authLib[1];
+        my @authValueLib = split( /\|/, $authValue->{lib} );
+        $self->{paymentAccounttypeMapping}->{$authValue->{authorised_value}}->{haushalt} = $authValueLib[0];
+        $self->{paymentAccounttypeMapping}->{$authValue->{authorised_value}}->{objektnummer} = $authValueLib[1];
     };
 
     $self->{now} = DateTime->from_epoch( epoch => Time::HiRes::time, time_zone => C4::Context->tz() );
@@ -98,8 +98,33 @@ sub getSystempreferences {
     #$self->{epayblSaltHmacSha256} = 'dsTFshg5678DGHMO';    # for test only: key for wrong HMAC digest
     $self->{opac_base_url} = C4::Context->preference('OPACBaseURL');
 
-    $self->{logger}->debug("getSystempreferences() epayblWebservicesUrl:$self->{epayblWebservicesUrl}: epayblMandatorNumber:$self->{epayblMandatorNumber}: epayblOperatorNumber:$self->{epayblOperatorNumber}:");
+    $self->{logger}->debug("getSystempreferences() END epayblWebservicesUrl:$self->{epayblWebservicesUrl}: epayblMandatorNumber:$self->{epayblMandatorNumber}: epayblOperatorNumber:$self->{epayblOperatorNumber}:");
+}
 
+sub calculateHashVal {
+    my $self = shift;
+
+    $self->{logger}->debug("calculateHashVal() START self->{now}:$self->{now}:");
+
+    my $todayMDY = $self->{now}->mdy;
+    my $todayDMY = $self->{now}->dmy;
+    my $key = $self->{epayblSaltHmacSha256};
+    my $borrowernumber = $self->{patron}->borrowernumber();
+    my $paytype = $self->{paytype};
+    my $amount_to_pay = $self->{amount_to_pay};
+
+    my $merchantTxIdKey = $todayMDY . $key . $todayDMY . $key . $borrowernumber . $paytype . '_' . $amount_to_pay . '_' . $paytype . $borrowernumber . $key . $todayDMY . $key . $todayMDY;
+    my $merchantTxIdVal = $borrowernumber . '_' . $amount_to_pay;
+    foreach my $accountlinesId ( @{$self->{accountlinesIds}} ) {
+        $merchantTxIdVal .= '_' . $accountlinesId;
+    }
+    $merchantTxIdVal .= '_' . $self->{paytype};
+    $merchantTxIdVal .= '_' . $merchantTxIdVal . '_' . $merchantTxIdVal;
+
+    my $merchantTxId = $self->genHmacSha256( $merchantTxIdVal, $merchantTxIdKey );    # unique merchant transaction ID (this hash value is used to check integrity of Koha CGI parameters in opac-account-pay-epaybl-return.pl)
+
+    $self->{logger}->debug("calculateHashVal() returns merchantTxId:$merchantTxId:");
+    return ( $merchantTxId );
 }
 
 # check if ePayBL server responds to webservice requests
@@ -481,9 +506,9 @@ sub createPaypageUrl {
 
     if ( $self->{angelegtesEpayblKassenzeichen} ) {
 
-        # return_url is used to update accountlines ('pay' them) corresponding to the payment
-        $self->{return_url} = URI->new( $self->{opac_base_url} . "/cgi-bin/koha/opac-account-pay-epaybl-return.pl" );
-        $self->{return_url}->query_form(
+        # notifyUrl is used to update accountlines ('pay' them) corresponding to the payment
+        my $notifyUrl = URI->new( $self->{opac_base_url} . "/cgi-bin/koha/opac-account-pay-epaybl-return.pl" );
+        $notifyUrl->query_form(
             {
                 amountKoha => $self->{amount_to_pay},
                 accountlinesKoha => $self->{accountlinesIds},
@@ -494,9 +519,9 @@ sub createPaypageUrl {
             }
         );
 
-        # cancel_url is used to send info to epaybl that user has aborted the payment action or that an error has happened
-        $self->{cancel_url} = URI->new( $self->{opac_base_url} . "/cgi-bin/koha/opac-account-pay-epaybl-return.pl" );
-        $self->{cancel_url}->query_form(
+        # cancelUrl is used to send info to epaybl that user has aborted the payment action or that an error has happened
+        my $cancelUrl = URI->new( $self->{opac_base_url} . "/cgi-bin/koha/opac-account-pay-epaybl-return.pl" );
+        $cancelUrl->query_form(
             {
                 amountKoha => $self->{amount_to_pay},
                 accountlinesKoha => $self->{accountlinesIds},
@@ -510,8 +535,8 @@ sub createPaypageUrl {
         $epayblRedirectToPaypageUrl .= '?mandant=' . $self->{epayblMandatorNumber};
         $epayblRedirectToPaypageUrl .= '&EShopKundenNr=' . $self->{epayblEShopKundenNr};
         $epayblRedirectToPaypageUrl .= '&kassenzeichen=' . $self->{angelegtesEpayblKassenzeichen};
-        $epayblRedirectToPaypageUrl .= '&backlinkSuccess=' . uri_escape_utf8($self->{return_url}->as_string());
-        $epayblRedirectToPaypageUrl .= '&backlinkAbort=' . uri_escape_utf8($self->{cancel_url}->as_string());
+        $epayblRedirectToPaypageUrl .= '&backlinkSuccess=' . uri_escape_utf8($notifyUrl->as_string());
+        $epayblRedirectToPaypageUrl .= '&backlinkAbort=' . uri_escape_utf8($cancelUrl->as_string());
     } else {
         $retErrorTemplate = 'EPAYBL_ERROR_PROCESSING';
         $retError = 51;
@@ -696,9 +721,11 @@ sub lesenKassenzeichenInfo {
             if ( $self->{epayblAccountingEntryText} ) {
                 $noteText .= '/' . $self->{epayblAccountingEntryText};
             }
+            $self->{logger}->debug("lesenKassenzeichenInfo() descriptionText:$descriptionText: noteText:$noteText:");
 
             # we take the borrowers branchcode also for the payment accountlines record to be created
             my $library_id = $self->{patron}->branchcode();
+            $self->{logger}->debug("lesenKassenzeichenInfo() library_id:$library_id:");
 
             # evaluate configuration of cash register management for online payments
             # default: withoutCashRegisterManagement = 1; (i.e. avoiding cash register management in Koha::Account->pay())
@@ -717,7 +744,7 @@ sub lesenKassenzeichenInfo {
                 }
             );
         } else {
-            $epayblmsg = "sumAmountoutstanding (=$sumAmountoutstanding) != amount_to_pay (=$self->{amount_to_pay})";
+            $epayblmsg = "NOT calling account->pay! sumAmountoutstanding (=$sumAmountoutstanding) != amount_to_pay (=$self->{amount_to_pay})";
         }
     }
 
@@ -740,7 +767,7 @@ sub lesenKassenzeichenInfo {
     if ( $epayblmsg ) {
         my $mess = "lesenKassenzeichenInfo() epayblmsg:" . $epayblmsg . ":";
         $self->{logger}->error($mess);
-        carp ("opac-account-pay-epaybl-return.pl " . $mess . "\n");
+        carp ("EPayBLPaypage::" . $mess . "\n");
     }
 
     $self->{logger}->debug("lesenKassenzeichenInfo() returns retError:$retError: retErrorTemplate:$retErrorTemplate: retLesenKassenzeichenInfoIstOk:$retLesenKassenzeichenInfoIstOk:");
@@ -789,31 +816,6 @@ sub paymentAction {
 
     $self->{logger}->debug("paymentAction() returns retError:$retError: retErrorTemplate:$retErrorTemplate: retEpayblRedirectToPaypageUrl:$retEpayblRedirectToPaypageUrl:");
     return ( $retError, $retErrorTemplate, $retEpayblRedirectToPaypageUrl );
-}
-
-sub calculateHashVal {
-    my $self = shift;
-
-    $self->{logger}->debug("calculateHashVal() START self->{now}:$self->{now}:");
-
-    my $todayMDY = $self->{now}->mdy;
-    my $todayDMY = $self->{now}->dmy;
-    my $key = $self->{epayblSaltHmacSha256};
-    my $borrowernumber = $self->{patron}->borrowernumber();
-    my $paytype = $self->{paytype};
-    my $amount_to_pay = $self->{amount_to_pay};
-    my $merchantTxIdKey = $todayMDY . $key . $todayDMY . $key . $borrowernumber . $paytype . '_' . $self->{amount_to_pay} . '_' . $paytype . $borrowernumber . $key . $todayDMY . $key . $todayMDY;
-    my $merchantTxIdVal = $self->{patron}->borrowernumber() . '_' . $self->{amount_to_pay};
-    foreach my $accountline ( @{$self->{accountlinesIds}} ) {
-        $merchantTxIdVal .= '_' . $accountline;
-    }
-    $merchantTxIdVal .= '_' . $self->{paytype};
-    $merchantTxIdVal .= '_' . $merchantTxIdVal . '_' . $merchantTxIdVal;
-
-    my $merchantTxId = $self->genHmacSha256( $merchantTxIdVal, $merchantTxIdKey );    # unique merchant transaction ID (this hash value is used to check integrity of Koha CGI parameters in opac-account-pay-epaybl-return.pl)
-
-    $self->{logger}->debug("calculateHashVal() returns merchantTxId:$merchantTxId:");
-    return ( $merchantTxId );
 }
 
 1;

@@ -19,10 +19,13 @@
 
 use strict;
 use warnings;
-use Data::Dumper;
 
 use Modern::Perl;
+use CGI;
+use CGI::Carp;
+use Data::Dumper;
 
+use Koha::Logger;
 use Koha::Patrons;
 use C4::Context;
 use C4::Epayment::EPayBLPaypage;
@@ -55,11 +58,17 @@ if ( C4::Context->preference('EpayblPaypageOpacPaymentsEnabled') ) {
             $logger->debug("opac-account-pay-epaypl-return.pl creating new C4::Epayment::EPayBLPaypage object. borrowernumberKoha:$borrowernumberKoha: amountKoha:$amountKoha: accountlinesKoha:" . Dumper(@accountlinesKoha) . ":");
 
             my $patron = Koha::Patrons->find( $borrowernumberKoha );
-            my $ePayBLPaypage = C4::Epayment::EPayBLPaypage->new( { patron => $patron, amount_to_pay => $amountKoha, accountlinesIds => \@accountlinesKoha } );
+            if ( $patron ) {
+                my $ePayBLPaypage = C4::Epayment::EPayBLPaypage->new( { patron => $patron, amount_to_pay => $amountKoha, accountlinesIds => \@accountlinesKoha, paytype => 19 } );
 
-            # verify payment by calling the webservice 'lesenKassenzeichenInfo' and 'pay' the accountlines in Koha
-            my $lesenKassenzeichenInfoIstOk = 0;
-            ( $error, $errorTemplate, $lesenKassenzeichenInfoIstOk ) = $ePayBLPaypage->lesenKassenzeichenInfo($cgi);
+                # verify payment by calling the webservice 'lesenKassenzeichenInfo' and 'pay' the accountlines in Koha
+                my $lesenKassenzeichenInfoIstOk = 0;
+                ( $error, $errorTemplate, $lesenKassenzeichenInfoIstOk ) = $ePayBLPaypage->lesenKassenzeichenInfo($cgi);
+            } else {
+                my $mess = "Error: No patron found having borrowernumber:$borrowernumberKoha:";
+                $logger->error("opac-account-pay-epaypl-return.pl $mess");
+                carp ("opac-account-pay-epaypl-return.pl " . $mess . "\n");
+            }
         }
     }
 
