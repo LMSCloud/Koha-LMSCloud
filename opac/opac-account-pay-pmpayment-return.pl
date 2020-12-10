@@ -17,141 +17,52 @@
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-use Modern::Perl;
-use utf8;
 
+use strict;
+use warnings;
+
+use Modern::Perl;
 use CGI;
-use HTTP::Request::Common;
-use LWP::UserAgent;
-use URI;
-use Digest::SHA qw(hmac_sha256_hex);
+use CGI::Carp;
 use Data::Dumper;
 
-use C4::Auth;
-use C4::Output;
-use C4::Accounts;
-use Koha::Database;
+use Koha::Logger;
 use Koha::Patrons;
+use C4::Context;
+use C4::Epayment::PmPaymentPaypage;
 
-my $key = 'dsTFshg5678DGHMO';    # dummy for wrong HMAC digest
-sub genHmacSha256 {
-    my ($key, $str) = @_;
-    my $hashval = hmac_sha256_hex($str, $key);
 
-    return $hashval;
-}
-
+my $error = 0;
+my $errorTemplate = 'PMPAYMENT_ERROR_PROCESSING';
 my $redirectUrl = "/cgi-bin/koha/errors/404.pl";
 my $cgi = new CGI;
 
-my $loggerPmp = Koha::Logger->get({ interface => 'epayment.pmpayment' });
-$loggerPmp->debug("opac-account-pay-pmpayment-return.pl START cgi:" . Dumper($cgi) . ":");
+my $logger = Koha::Logger->get({ interface => 'epayment' });    # logger common to all e-payment methods
+$logger->debug("opac-account-pay-pmpayment-return.pl START cgi:" . Dumper($cgi) . ":");
 
 if ( C4::Context->preference('PmpaymentPaypageOpacPaymentsEnabled') ) {
-    $key = C4::Context->preference('PmpaymentSaltHmacSha256');    # salt for generating HMAC md5sum or sha256 digest
 
-    # params set by Koha in opac-account-pay.pl
+    # some params set by Koha in opac-account-pay.pl and PmPaymentPaypage.pm
     my $amountKoha = $cgi->param('amountKoha');
     my @accountlinesKoha = $cgi->multi_param('accountlinesKoha');
     my $borrowernumberKoha = $cgi->param('borrowernumberKoha');
-    my $paytypeKoha = $cgi->param('paytypeKoha');
 
-    # params set by pmPayment
-    my $pmpAgs            = $cgi->param('ags');    # amtlicher Gemeinde-Schlüssel
-    my $pmpTxid           = $cgi->param('txid');    # unique transaction ID
-    my $pmpAmount         = $cgi->param('amount');    # amount to be paid in Eurocent
-    my $pmpDesc           = $cgi->param('desc');    # SEPA-Verwendungszweck
-    my $pmpStatus         = $cgi->param('status');    # generischer Buchungssatz für Stadtkasse
-    my $pmpPayment_method = $cgi->param('payment_method') ? $cgi->param('payment_method') : '';    # creditcard paydirect giropay paypal ...
-    my $pmpCreated_at     = $cgi->param('created_at');    # e.g. '2016-07-13 13:30:34'
-    my $pmpHash           = $cgi->param('hash');    # HMAC sha256 hash value (calculated on base of the parameter values above and $key)
+    $logger->debug("opac-account-pay-pmpayment-return.pl creating new C4::Epayment::PmPaymentPaypage object. borrowernumberKoha:$borrowernumberKoha: amountKoha:$amountKoha: accountlinesKoha:" . Dumper(@accountlinesKoha) . ":");
 
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl borrowernumberKoha:$borrowernumberKoha:");
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl amountKoha:$amountKoha:");
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl accountlinesKoha:" . Dumper(\@accountlinesKoha) . ":");
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl paytypeKoha:$paytypeKoha:");
+    my $patron = Koha::Patrons->find( $borrowernumberKoha );
+    if ( $patron ) {
+        my $pmPaymentPaypage = C4::Epayment::PmPaymentPaypage->new( { patron => $patron, amount_to_pay => $amountKoha, accountlinesIds => \@accountlinesKoha, paytype => 18 } );
 
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl pmpAgs:$pmpAgs: pmpTxid:$pmpTxid:");
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl pmpAmount:$pmpAmount: pmpDesc:$pmpDesc:");
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl pmpStatus:$pmpStatus: pmpPayment_method:$pmpPayment_method:");
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl pmpCreated_at:$pmpCreated_at: pmpHash:$pmpHash:");
+        # verify that the accountlines have been 'paid' in Koha by opac-account-pay-pmpayment-notify.pl
+        ( $error, $errorTemplate ) = $pmPaymentPaypage->verifyPaymentInKoha($cgi);
 
-    my $error = "PMPAYMENT_ERROR_PROCESSING";
-
-    # verify that the 7 CGI arguments of pmPayment are not manipulated
-    my $hashesAreEqual = 0;
-    my $paramstr = 
-        $pmpAgs . '|' .
-        $pmpTxid . '|' .
-        $pmpAmount . '|' .
-        $pmpDesc . '|' .
-        $pmpStatus . '|' .
-        $pmpPayment_method . '|' .
-        $pmpCreated_at;
-
-    my $hashval = genHmacSha256($key, $paramstr);
-    if ( $hashval eq $pmpHash ) {
-        $hashesAreEqual = 1;
+    } else {
+        my $mess = "Error: No patron found having borrowernumber:$borrowernumberKoha:";
+        $logger->error("opac-account-pay-pmpayment-return.pl $mess");
+        carp ("opac-account-pay-pmpayment-return.pl " . $mess . "\n");
     }
-    $loggerPmp->debug("opac-account-pay-pmpayment-return.pl paramstr:$paramstr: hashval:$hashval: pmpHash:$pmpHash: hashesAreEqual:$hashesAreEqual:");
-
-
-    # If money transfer has succeeded (i.e. $pmpStatus == 1) we have to check if the selected accountlines now are also paid in Koha.
-    if ( $hashesAreEqual && $pmpStatus == 1 ) {
-        # There may be a concurrency with opac-account-pay-pmpayment-notify.pl (simultanously called by pmPayment),
-        # so we wait here for a certain maximum time to give opac-account-pay-pmpayment-notify.pl the opportunity to completely execute its required action.
-        # The 'certain maximum time' depends on the number of accountlines to be paid; it ranges from 5*2 to 5*4 seconds.
-        my $waitSingleDuration = 2 + (@accountlinesKoha + 0)/10;
-        if ( $waitSingleDuration > 4 ) {
-            $waitSingleDuration = 4;
-        }
-        for ( my $waitCount = 0; $waitCount < 6; $waitCount += 1 ) {
-            my $account = Koha::Account->new( { patron_id => $borrowernumberKoha } );
-            my @lines = Koha::Account::Lines->search(
-                {
-                    accountlines_id => { -in => \@accountlinesKoha }
-                }
-            );
-
-            my $sumAmountoutstanding = 0.0;
-            foreach my $accountline ( @lines ) {
-                $loggerPmp->trace("opac-account-pay-pmpayment-return.pl accountline->{_column_data}:" . Dumper($accountline->{_column_data}) . ":");
-                $loggerPmp->debug("opac-account-pay-pmpayment-return.pl accountline->id:" . $accountline->accountlines_id() . ": ->amountoutstanding():" . $accountline->amountoutstanding() . ":");
-                $sumAmountoutstanding += $accountline->amountoutstanding();
-            }
-            $sumAmountoutstanding = sprintf( "%.2f", $sumAmountoutstanding );    # this rounding was also done in the complimentary opac-account-pay-pl
-            $loggerPmp->debug("opac-account-pay-pmpayment-return.pl sumAmountoutstanding:$sumAmountoutstanding: amountKoha:$amountKoha: pmpAmount:$pmpAmount:");
-
-            if ( $sumAmountoutstanding == 0.00 ) {
-                $loggerPmp->debug("opac-account-pay-pmpayment-return.pl sumAmountoutstanding == 0.00 --- NO error!");
-                $error = '';
-                last;
-            }
-            $loggerPmp->debug("opac-account-pay-pmpayment-return.pl not all accountlines paid - now waiting $waitSingleDuration seconds and then trying again ...");
-            sleep($waitSingleDuration);
-        }
-    } elsif ( $hashesAreEqual && $pmpStatus == 0 && $pmpPayment_method eq '' ) {    # patron aborted pmpayment paypage
-        $error = "PMPAYMENT_ABORTED_BY_USER";
-    }
-
-
-    my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
-        {
-            template_name   => "opac-account-pay-return.tt",    # name of non existing tt-file is sufficient
-            query           => $cgi,
-            type            => "opac",
-            authnotrequired => 0,
-            debug           => 1,
-        }
-    );
-
-    my $patron = Koha::Patrons->find( $borrowernumber );
-    $template->param(
-        borrower    => $patron->unblessed,
-        accountview => 1
-    );
-
-    $redirectUrl = "/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$error";
+    $redirectUrl = "/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$errorTemplate";
 }
-$loggerPmp->debug("opac-account-pay-pmpayment-return.pl END redirectUrl:$redirectUrl:");
+
+$logger->debug("opac-account-pay-pmpayment-return.pl END error:$error: errorTemplate:$errorTemplate: redirectUrl:$redirectUrl:");
 print $cgi->redirect($redirectUrl);

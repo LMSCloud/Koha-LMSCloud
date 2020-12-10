@@ -42,6 +42,7 @@ use Koha::Acquisition::Currencies;
 use Koha::Database;
 use Koha::Plugins::Handler;
 use Koha::Patrons;
+use C4::Epayment::PmPaymentPaypage;
 use C4::Epayment::EPayBLPaypage;
 
 my $cgi = new CGI;
@@ -546,127 +547,41 @@ elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21Pa
 
 elsif ( $payment_method eq 'pmpayment_paypage' && C4::Context->preference('PmPaymentPaypageOpacPaymentsEnabled') ) {    # pmPayment paypage
 
-    my $loggerPmp = Koha::Logger->get({ interface => 'epayment.pmpayment' });
-    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage START cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
+    $logger->debug("opac-account-pay.pl/pmpayment_paypage START creating new C4::Epayment::PmPaymentPaypage object. cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
 
-    my $paytype = 18;    # just a dummy; may be interpreted as payment via pmPayment paypage
-    my $pmpaymentWebserviceUrl = C4::Context->preference('PmpaymentPaypageWebservicesURL');    # test env: https://payment-test.itebo.de   production env: https://www.payment.govconnect.de
-    my $ags = C4::Context->preference('PmpaymentAgs');    # mandatory; amtlicher Gemeinde-Schlüssel
-    my $procedure = C4::Context->preference('PmpaymentProcedure');    # mandatory; Name des Verfahrens
-    $key = C4::Context->preference('PmpaymentSaltHmacSha256');    # salt for generating HMAC SHA-256 digest
-    my $pmpaymentAccountingRecord = C4::Context->preference('PmpaymentAccountingRecord');   # With multibyte-characters a wrong hashval is calculated. So only characters conforming to SEPA ( i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) / ) may be used here.
-    if ( !defined($pmpaymentAccountingRecord) ) {
-        $pmpaymentAccountingRecord = '';
-    }
+    my $errorTemplate = 'PMPAYMENT_ERROR_PROCESSING';
+    my $pmpaymentRedirectToPaypageUrl = '';
 
-    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage pmpaymentWebserviceUrl:$pmpaymentWebserviceUrl: ags:$ags: procedure:$procedure:");
+    # init payment action by sending the required HTML form to the configured endpoint, and then, if succeeded, redirect to the pmPayment paypage URL delivered in its response
+    my $pmPaymentPaypage = C4::Epayment::PmPaymentPaypage->new( { patron => $patron, amount_to_pay => $amount_to_pay, accountlinesIds => \@accountlines, paytype => 18 } );
+    ( $error, $errorTemplate, $pmpaymentRedirectToPaypageUrl ) = $pmPaymentPaypage->paymentAction();
 
-    my $ua = LWP::UserAgent->new;
-
-    # redirect to pmPayment paypage
-    my $url = $pmpaymentWebserviceUrl . '/payment/secure';    # init payment via server to server communication
-
-    my $opac_base_url = C4::Context->preference('OPACBaseURL');
-
-    my $message_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-pmpayment-notify.pl" );
-    $message_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
-
-    my $redirect_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-pmpayment-return.pl" );
-    $redirect_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype } );
-
-    my $now = DateTime->from_epoch( epoch => Time::HiRes::time, time_zone => C4::Context->tz() );
-    my $todayMDY = $now->mdy;
-    my $todayDMY = $now->dmy;
-    my $merchantTxIdKey = $todayMDY . $key . $todayDMY . $key . $borrowernumber . $paytype . '_' . $amount_to_pay . '_' . $paytype . $borrowernumber . $key . $todayDMY . $key . $todayMDY;
-    my $merchantTxIdVal = $borrowernumber . '_' . $amount_to_pay;
-    foreach my $accountline (@accountlines) {
-        $merchantTxIdVal .= '_' . $accountline;
-    }
-    $merchantTxIdVal .= '_' . $paytype;
-    $merchantTxIdVal .= '_' . $merchantTxIdVal . '_' . $merchantTxIdVal;
-
-    my $timestamp = sprintf("%04d%02d%02d%02d%02d%02d%03d", $now->year, $now->month, $now->day, $now->hour, $now->minute, $now->second, $now->nanosecond/1000000);
-    my $merchantTxId = genHmacSha256($merchantTxIdKey, $merchantTxIdVal);         # unique merchant transaction ID (this hash value is used to check integrity of Koha CGI parameters in opac-account-pay-pmpayment-notify.pl)
-    if ( ! $procedure ) {
-        $merchantTxId = 'KohaLMSCloud' . '.' . $timestamp . '.' . $merchantTxId;
-    } else {
-        $merchantTxId = $procedure . '.' . $timestamp . '.' . $merchantTxId;
-    }
-    my $amount = $amount_to_pay * 100;      # not Euro but Cent are required
-    my $desc = substr('Bibliothek:' . $patron->cardnumber(), 0, 27);    # Will be displayed on paypage. With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
-    my $accountingRecord = $patron->cardnumber() . $pmpaymentAccountingRecord;   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
-
-    my $urlRedirect = $redirect_url->as_string();
-
-    my $urlNotify = $message_url->as_string();
-
-    my $paramstr =
-        $ags . '|' .
-        $amount . '|' .
-        $procedure . '|' .
-        $desc . '|' .
-        $accountingRecord . '|' .
-        $merchantTxId . '|' .
-        $urlNotify . '|' .
-        $urlRedirect;
-
-    my $hashval = genHmacSha256($key, $paramstr);
-    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage paramstr:$paramstr: hashval:$hashval:");
-
-    my $pmpayment_params = [
-        'ags' => $ags,    # mandatory; amtlicher Gemeinde-Schlüssel
-        'amount' => $amount,    # mandatory; amount to be paid in Eurocent
-        'procedure'  => $procedure,    # mandatory; Name des Verfahrens
-        'desc' => $desc,    # mandatory; SEPA-Verwendungszweck
-        'accountingRecord' => $accountingRecord,    # optional; Generischer Buchungssatz für Stadtkasse
-        'txid' => $merchantTxId,    # optional; unique transaction ID (unique for this ags or unique for this ags/procedure combination ?)
-        'notifyURL' => $urlNotify,    # formally optional; URL for 'Pay' in Koha if success of online payment is signalled by HTML form parameter 'status'
-        'redirectURL' => $urlRedirect,    # formally optional; URL for returning to Koha OPAC irrespective of success or failure of online payment
-        'hash' => $hashval    # mandatory; HMAC SHA-256 hash value (calculated on base of the parameter values above and $key)
-    ];
-    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage url:$url: pmpayment_params:" . Dumper($pmpayment_params) . ":");
-
-    my $response = $ua->request( POST $url, $pmpayment_params );
-    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage response:" . Dumper($response) . ":");
-
-    if ( $response->is_success ) {
-        my $content = Encode::decode("utf8", $response->content);
-        my $contentJson = from_json( $content );
-        $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage contentJson:" . Dumper($contentJson) . ":");
-
-        if ( $contentJson->{url} && $contentJson->{txid} ) {
-            $error = 0;
-            my $pmpayment_paypage_url = $contentJson->{url};
-            print $cgi->redirect( $pmpayment_paypage_url );
-
-        } else {
-            my $mess = "opac-account-pay.pl/pmpayment_paypage contentJson->{Error}:" . $contentJson->{Error} . ":";
-            $loggerPmp->error($mess);
-            carp $mess . "\n";
-            $template->param( error => "PMPAYMENT_ERROR_PROCESSING" );
-            $error = 1;
+    if ( $error || $errorTemplate ) {
+        $logger->error("opac-account-pay.pl/epaybl_paypage END error:$error: errorTemplate:$errorTemplate:");
+        if ( $errorTemplate ) {
+            $template->param( error => $errorTemplate );
         }
+    } else {
+        $logger->debug("opac-account-pay.pl/pmpayment_paypage END error:$error: errorTemplate:$errorTemplate: pmpaymentRedirectToPaypageUrl:$pmpaymentRedirectToPaypageUrl:");
 
-    }
-    else {
-        $template->param( error => "PMPAYMENT_UNABLE_TO_CONNECT" );
-        $error = 2;
+        if ( $pmpaymentRedirectToPaypageUrl ) {
+            print $cgi->redirect( $pmpaymentRedirectToPaypageUrl );
+        }
     }
 
-    $loggerPmp->debug("opac-account-pay.pl/pmpayment_paypage END error:$error:");
     output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
 }
 
 
 elsif ( $payment_method eq 'epaybl_paypage' && C4::Context->preference('EpayblPaypageOpacPaymentsEnabled') ) {    # pmPayment paypage
 
-    $logger->debug("opac-account-pay.pl/epaybl_paypage creating new C4::Epayment::EPayBLPaypage object. cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
+    $logger->debug("opac-account-pay.pl/epaybl_paypage START creating new C4::Epayment::EPayBLPaypage object. cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
 
     my $errorTemplate = 'EPAYBL_ERROR_PROCESSING';
     my $epayblRedirectToPaypageUrl = '';
 
     # call the webservices 'isAlive', 'anlegenKunde', 'anlegenKassenzeichen', 'loeschenKunde' and then, if succeeded, redirect to ePayBL paypage URL
-    my $ePayBLPaypage = C4::Epayment::EPayBLPaypage->new( { patron => $patron, amount_to_pay => $amount_to_pay, accountlinesIds => \@accountlines } );
+    my $ePayBLPaypage = C4::Epayment::EPayBLPaypage->new( { patron => $patron, amount_to_pay => $amount_to_pay, accountlinesIds => \@accountlines, paytype => 19 } );
     ( $error, $errorTemplate, $epayblRedirectToPaypageUrl ) = $ePayBLPaypage->paymentAction();
 
     if ( $error || $errorTemplate ) {
@@ -682,7 +597,7 @@ elsif ( $payment_method eq 'epaybl_paypage' && C4::Context->preference('EpayblPa
         }
     }
 
-    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 }) if $error;
+    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
 }
 
 
