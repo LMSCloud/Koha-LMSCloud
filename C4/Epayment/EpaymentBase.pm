@@ -56,7 +56,7 @@ sub getSystempreferences {
     $self->{paymentsOnlineCashRegisterName} = C4::Context->preference('PaymentsOnlineCashRegisterName');
     $self->{paymentsOnlineCashRegisterManagerCardnumber} = C4::Context->preference('PaymentsOnlineCashRegisterManagerCardnumber');
 
-    $self->{logger}->debug("getSystempreferences() paymentsMinimumPatronAge:$self->{paymentsMinimumPatronAge}: paymentsRemittanceInfo:$self->{paymentsRemittanceInfo}:");
+    $self->{logger}->debug("getSystempreferences() paymentsMinimumPatronAge:$self->{paymentsMinimumPatronAge}:");
     $self->{logger}->debug("getSystempreferences() activateCashRegisterTransactionsOnly:$self->{activateCashRegisterTransactionsOnly}: paymentsOnlineCashRegisterName:$self->{paymentsOnlineCashRegisterName}: paymentsOnlineCashRegisterManagerCardnumber:$self->{paymentsOnlineCashRegisterManagerCardnumber}:");
 
 }
