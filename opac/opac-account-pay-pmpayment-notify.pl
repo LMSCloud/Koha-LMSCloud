@@ -48,7 +48,7 @@ if ( C4::Context->preference('PmpaymentPaypageOpacPaymentsEnabled') ) {
 
     $logger->debug("opac-account-pay-pmpayment-notify.pl creating new C4::Epayment::PmPaymentPaypage object. borrowernumberKoha:$borrowernumberKoha: amountKoha:$amountKoha: accountlinesKoha:" . Dumper(@accountlinesKoha) . ":");
 
-    my $patron = Koha::Patrons->find( $borrowernumberKoha . '99999' );
+    my $patron = Koha::Patrons->find( $borrowernumberKoha );
     if ( $patron ) {
         my $pmPaymentPaypage = C4::Epayment::PmPaymentPaypage->new( { patron => $patron, amount_to_pay => $amountKoha, accountlinesIds => \@accountlinesKoha, paytype => 18 } );
 

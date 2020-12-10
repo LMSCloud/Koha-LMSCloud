@@ -89,16 +89,18 @@ sub getSystempreferences {
 
     $self->{logger}->debug("getSystempreferences() START");
 
+    $self->{pmpaymentPaypageOpacPaymentsEnabled} = C4::Context->preference('PmpaymentPaypageOpacPaymentsEnabled');    # payment service pmPayment via paypage enabled or not
     $self->{pmpaymentPaypageWebservicesURL} = C4::Context->preference('PmpaymentPaypageWebservicesURL');    # test env: https://payment-test.itebo.de   production env: https://www.payment.govconnect.de
-    $self->{pmpaymentAgs} = C4::Context->preference('PmpaymentAgs');    # mandatory; amtlicher Gemeinde-Schlüssel
-    $self->{pmpaymentProcedure} = C4::Context->preference('PmpaymentProcedure');    # mandatory; Name des Verfahrens
+    $self->{pmpaymentAgs} = C4::Context->preference('PmpaymentAgs');    # mandatory; officiary municipal key (Amtlicher Gemeinde-Schlüssel)
+    $self->{pmpaymentProcedure} = C4::Context->preference('PmpaymentProcedure');    # mandatory; procedure designation (Verfahrensname)
     $self->{pmpaymentSaltHmacSha256} = C4::Context->preference('PmpaymentSaltHmacSha256');    # salt for generating HMAC SHA-256 digest
     #$self->{pmpaymentSaltHmacSha256} = 'dsTFshg5678DGHMO';    # for test only: salt for wrong HMAC digest
-    $self->{pmpaymentAccountingRecord} = C4::Context->preference('PmpaymentAccountingRecord');   # With multibyte-characters a wrong hashval is calculated. So only characters conforming to SEPA ( i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) / ) may be used here.
+    $self->{pmpaymentRemittanceInfo} = C4::Context->preference('PmpaymentRemittanceInfo');
+    $self->{pmpaymentAccountingRecord} = C4::Context->preference('PmpaymentAccountingRecord');
     if ( ! defined($self->{pmpaymentAccountingRecord}) ) {
         $self->{pmpaymentAccountingRecord} = '';
     }
-    $self->{opac_base_url} = C4::Context->preference('OPACBaseURL');
+    $self->{opac_base_url} = C4::Context->preference('OPACBaseURL');    # The GiroSolution software seems to work only with https URL (not with http), and pmPayment uses GiroSolution software.
 
     $self->{logger}->debug("getSystempreferences() END pmpaymentPaypageWebservicesURL:$self->{pmpaymentPaypageWebservicesURL}: pmpaymentAgs:$self->{pmpaymentAgs}: pmpaymentProcedure:$self->{pmpaymentProcedure}:");
 }
@@ -138,9 +140,9 @@ sub initPayment {
     my $retPmpaymentRedirectToPaypageUrl = '';
     my $pmpaymentmsg = '';
 
-    my $amount = $self->{amount_to_pay} * 100;      # not Euro but Cent are required
-    my $desc = substr('Bibliothek:' . $self->{patron}->cardnumber(), 0, 27);    # Will be displayed on paypage. With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
-    my $accountingRecordCustomized = $self->{patron}->cardnumber() . $self->{pmpaymentAccountingRecord};   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
+    my $amountInCent = $self->{amount_to_pay} * 100;      # not Euro but Cent are required
+    my $desc = $self->createRemittanceInfoText( $self->{pmpaymentRemittanceInfo}, $self->{patron}->cardnumber() );    # Remittance info text will be displayed on paypage. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
+    my $accountingRecordCustomized = $self->{patron}->cardnumber() . $self->{pmpaymentAccountingRecord};
 
 
     # URL of endpoint for for payment initialization (variant: server-to-server)
@@ -171,7 +173,7 @@ sub initPayment {
 
     my $paramstr =
         $self->{pmpaymentAgs} . '|' .
-        $amount . '|' .
+        $amountInCent . '|' .
         $self->{pmpaymentProcedure} . '|' .
         $desc . '|' .
         $accountingRecordCustomized . '|' .
@@ -183,14 +185,14 @@ sub initPayment {
     $self->{logger}->debug("initPayment() paramstr:$paramstr: hashval:$hashval:");
 
     my $pmpaymentParams = [
-        'ags' => $self->{pmpaymentAgs},    # mandatory; amtlicher Gemeinde-Schlüssel
-        'amount' => $amount,    # mandatory; amount to be paid in Eurocent
-        'procedure'  => $self->{pmpaymentProcedure},    # mandatory; Name des Verfahrens
-        'desc' => $desc,    # mandatory; SEPA-Verwendungszweck
-        'accountingRecord' => $accountingRecordCustomized,    # optional; Generischer Buchungssatz für Stadtkasse
+        'ags' => $self->{pmpaymentAgs},    # mandatory; officiary municipal key (Amtlicher Gemeinde-Schlüssel)
+        'amount' => $amountInCent,    # mandatory; amount to be paid, in Eurocent
+        'procedure'  => $self->{pmpaymentProcedure},    # mandatory; procedure designation (Verfahrensname)
+        'desc' => $desc,    # mandatory; remittance info text (SEPA-Verwendungszweck)
+        'accountingRecord' => $accountingRecordCustomized,    # optional; text sent to financial accounting system of township (Generischer Buchungssatz für Stadtkasse)
         'txid' => $self->{merchantTxId},    # optional; unique transaction ID (unique for this ags or unique for this ags/procedure combination ?)
-        'notifyURL' => $urlNotify,    # formally optional; URL for 'Pay' in Koha if success of online payment is signalled by HTML form parameter 'status'
-        'redirectURL' => $urlRedirect,    # formally optional; URL for returning to Koha OPAC irrespective of success or failure of online payment
+        'notifyURL' => $urlNotify,    # formally optional, but functionally indespensable; URL for 'Account->Pay' in Koha if success of online payment is signalled by HTML form parameter 'status'
+        'redirectURL' => $urlRedirect,    # formally optional, but functionally indespensable; URL for returning to Koha OPAC irrespective of success or failure of online payment
         'hash' => $hashval    # mandatory; HMAC SHA-256 hash value (calculated on base of the parameter values above and $self->{pmpaymentSaltHmacSha256})
     ];
 
@@ -219,7 +221,7 @@ sub initPayment {
             }
         }
         if ( ! $retPmpaymentRedirectToPaypageUrl && $retError == 0) {
-            $pmpaymentmsg = $response->fault();
+            $pmpaymentmsg = "_rc:" . $response->{_rc} . ": _msg:" . $response->{_msg} . ":";
             $retError = 23;
             if ( $response->is_success ) {
                 $retErrorTemplate = 'PMPAYMENT_ERROR_PROCESSING';
@@ -252,15 +254,15 @@ sub checkOnlinePaymentStatusAndPayInKoha {
     # Already used in constructor: $cgi->url_param('amountKoha') and $cgi->url_param('accountlinesKoha') and $cgi->url_param('borrowernumberKoha');
 
     # Params set by pmPayment are sent as as POST HTML form arguments.
-    my $pmpAgs            = $cgi->param('ags');    # amtlicher Gemeinde-Schlüssel
+    my $pmpAgs            = $cgi->param('ags');    # officiary municipal key (Amtlicher Gemeinde-Schlüssel)
     my $pmpTxid           = $cgi->param('txid');    # unique transaction ID
-    my $pmpAmount         = $cgi->param('amount');    # amount to be paid in Eurocent
-    my $pmpDesc           = $cgi->param('desc');    # SEPA-Verwendungszweck
-    my $pmpStatus         = $cgi->param('status');    # generischer Buchungssatz für Stadtkasse
+    my $pmpAmount         = $cgi->param('amount');    # amount to be paid, in Eurocent
+    my $pmpDesc           = $cgi->param('desc');    # remittance info text (SEPA-Verwendungszweck)
+    my $pmpStatus         = $cgi->param('status');    # text sent to financial accounting system of township (Generischer Buchungssatz für Stadtkasse)
     my $pmpPayment_method = $cgi->param('payment_method') ? $cgi->param('payment_method') : '';# creditcard paydirect giropay paypal ...
-    my $pmpProcedure      = $cgi->param('procedure');    # Name des Verfahrens
-    my $pmpCreated_at     = $cgi->param('created_at');    # e.g. '2016-07-13 13:30:34'
-#    my $pmpHash           = $cgi->param('hash');    # HMAC SHA-256 hash value (calculated on base of the parameter values above and $key)    # strangely this hash is not sent by pmPayment
+    my $pmpProcedure      = $cgi->param('procedure');    # procedure designation (Verfahrensname)
+    my $pmpCreated_at     = $cgi->param('created_at');    # timestamp of payment action creation (e.g. '2016-07-13 13:30:34')
+#    my $pmpHash           = $cgi->param('hash');    # HMAC SHA-256 hash value (calculated on base of the parameter values above and $self->{pmpaymentSaltHmacSha256})    # strangely this hash is not sent by pmPayment
 
     $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() pmpAgs:$pmpAgs: pmpTxid:$pmpTxid:");
     $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() pmpAmount:$pmpAmount: pmpDesc:$pmpDesc:");
@@ -281,7 +283,7 @@ sub checkOnlinePaymentStatusAndPayInKoha {
 #        $pmpProcedure . '|' .
 #        $pmpCreated_at;
 #
-#    my $hashval = genHmacSha256($key, $paramstr);
+#    my $hashval = genHmacSha256($paramstr, $self->{pmpaymentSaltHmacSha256});
 #    $loggerPmp->debug("opac-account-pay-pmpayment-notify.pl paramstr:" . $paramstr . ": hashval:" . $hashval . ": pmpHash:" . $pmpHash . ":");
 #    if ( $hashval eq $pmpHash ) {
         $hashesAreEqual = 1;
@@ -387,7 +389,7 @@ sub checkOnlinePaymentStatusAndPayInKoha {
                     $pmpaymentmsg = "response->content() is empty or undef";
                 } else {
                     $retError = 315;
-                    $pmpaymentmsg = "response->fault:" . response->fault() . ":";
+                    $pmpaymentmsg = "_rc:" . $response->{_rc} . ": _msg:" . $response->{_msg} . ":";
                 }    # end: if ( $response->is_success )
             } else {
                 $retError = 316;
@@ -409,7 +411,7 @@ sub checkOnlinePaymentStatusAndPayInKoha {
 
             my $sumAmountoutstanding = 0.0;
             foreach my $accountline ( @lines ) {
-                $self->{logger}->trace("checkOnlinePaymentStatusAndPayInKoha() accountline->{_column_data}:" . Dumper($accountline->{_column_data}) . ":");
+                $self->{logger}->trace("checkOnlinePaymentStatusAndPayInKoha() accountline->{_result}->{_column_data}:" . Dumper($accountline->{_result}->{_column_data}) . ":");
                 $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() accountline->id:" . $accountline->accountlines_id() . ": ->amountoutstanding():" . $accountline->amountoutstanding() . ":");
                 $sumAmountoutstanding += $accountline->amountoutstanding();
             }
@@ -492,14 +494,14 @@ sub verifyPaymentInKoha {
     # Already used in constructor: $cgi->url_param('amountKoha') and $cgi->url_param('accountlinesKoha') and $cgi->url_param('borrowernumberKoha');
 
     # Params set by pmPayment are sent as as POST HTML form arguments.
-    my $pmpAgs            = $cgi->param('ags');    # amtlicher Gemeinde-Schlüssel
+    my $pmpAgs            = $cgi->param('ags');    # officiary municipal key (Amtlicher Gemeinde-Schlüssel)
     my $pmpTxid           = $cgi->param('txid');    # unique transaction ID
-    my $pmpAmount         = $cgi->param('amount');    # amount to be paid in Eurocent
-    my $pmpDesc           = $cgi->param('desc');    # SEPA-Verwendungszweck
-    my $pmpStatus         = $cgi->param('status');    # generischer Buchungssatz für Stadtkasse
+    my $pmpAmount         = $cgi->param('amount');    # amount to be paid, in Eurocent
+    my $pmpDesc           = $cgi->param('desc');    # remittance info text (SEPA-Verwendungszweck)
+    my $pmpStatus         = $cgi->param('status');    # text sent to financial accounting system of township (Generischer Buchungssatz für Stadtkasse)
     my $pmpPayment_method = $cgi->param('payment_method') ? $cgi->param('payment_method') : '';# creditcard paydirect giropay paypal ...
-    my $pmpProcedure      = $cgi->param('procedure');    # Name des Verfahrens
-    my $pmpCreated_at     = $cgi->param('created_at');    # e.g. '2016-07-13 13:30:34'
+    my $pmpProcedure      = $cgi->param('procedure');    # procedure designation (Verfahrensname)
+    my $pmpCreated_at     = $cgi->param('created_at');    # timestamp of payment action creation (e.g. '2016-07-13 13:30:34')
     my $pmpHash           = $cgi->param('hash');    # HMAC SHA-256 hash value (calculated on base of the parameter values above and $self->{pmpaymentSaltHmacSha256})
 
     $self->{logger}->debug("verifyPaymentInKoha() pmpAgs:$pmpAgs: pmpTxid:$pmpTxid:");
@@ -546,7 +548,7 @@ sub verifyPaymentInKoha {
 
                 my $sumAmountoutstanding = 0.0;
                 foreach my $accountline ( @lines ) {
-                    $self->{logger}->trace("verifyPaymentInKoha() accountline->{_column_data}:" . Dumper($accountline->{_column_data}) . ":");
+                    $self->{logger}->trace("verifyPaymentInKoha() accountline->{_result}->{_column_data}:" . Dumper($accountline->{_result}->{_column_data}) . ":");
                     $self->{logger}->debug("verifyPaymentInKoha() accountline->id:" . $accountline->accountlines_id() . ": ->amountoutstanding():" . $accountline->amountoutstanding() . ":");
                     $sumAmountoutstanding += $accountline->amountoutstanding();
                 }

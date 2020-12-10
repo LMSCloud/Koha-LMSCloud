@@ -23,7 +23,8 @@ use Data::Dumper;
 
 use Modern::Perl;
 use Digest;
-use Digest::SHA qw(hmac_sha256_hex); 
+use Digest::SHA qw(hmac_sha256_hex);
+use Encode; 
 
 use C4::Context;
 
@@ -50,11 +51,13 @@ sub getSystempreferences {
 
     $self->{logger}->debug("getSystempreferences() START");
 
+    $self->{paymentsMinimumPatronAge} = C4::Context->preference('PaymentsMinimumPatronAge');
     $self->{activateCashRegisterTransactionsOnly} = C4::Context->preference('ActivateCashRegisterTransactionsOnly');
     $self->{paymentsOnlineCashRegisterName} = C4::Context->preference('PaymentsOnlineCashRegisterName');
     $self->{paymentsOnlineCashRegisterManagerCardnumber} = C4::Context->preference('PaymentsOnlineCashRegisterManagerCardnumber');
 
-    $self->{logger}->debug("getSystempreferences() activateCashRegisterTransactionsOnly:$self->{activateCashRegisterTransactionsOnly}: paymentsOnlineCashRegisterName:$self->{paymentsOnlineCashRegisterName}: PaymentsOnlineCashRegisterManagerCardnumber:$self->{PaymentsOnlineCashRegisterManagerCardnumber}:");
+    $self->{logger}->debug("getSystempreferences() paymentsMinimumPatronAge:$self->{paymentsMinimumPatronAge}: paymentsRemittanceInfo:$self->{paymentsRemittanceInfo}:");
+    $self->{logger}->debug("getSystempreferences() activateCashRegisterTransactionsOnly:$self->{activateCashRegisterTransactionsOnly}: paymentsOnlineCashRegisterName:$self->{paymentsOnlineCashRegisterName}: paymentsOnlineCashRegisterManagerCardnumber:$self->{paymentsOnlineCashRegisterManagerCardnumber}:");
 
 }
 
@@ -118,10 +121,34 @@ sub roundGS ()
     return (int(($flt * $decimalshift) + (($flt < 0) ? -0.5 : 0.5)) / $decimalshift);
 }
 
+# create remittance information text for payment (will be displayed on paypage with most payment service providers)
+# defined placeholder: <<borrowers.cardnumber>>
+sub createRemittanceInfoText {
+    my $self = shift;
+    my $remittanceInfoTextPattern = shift;
+    my $cardnumber = shift;
+
+    $self->{logger}->debug("createRemittanceInfoText() START remittanceInfoTextPattern:" . ($remittanceInfoTextPattern?$remittanceInfoTextPattern:'undef') . ": cardnumber:$cardnumber:");
+
+    my $retRemittanceInfoText = 'Bibliothek:' . $cardnumber;    # basic fall back default
+
+    if ( $remittanceInfoTextPattern ) {
+        $retRemittanceInfoText = $remittanceInfoTextPattern;
+        $retRemittanceInfoText =~ s/<<borrowers.cardnumber>>/$cardnumber/g;
+    }
+    $retRemittanceInfoText = substr($retRemittanceInfoText, 0, 27);    # limit remittance information text to ancient SEPA specified length
+
+    $self->{logger}->debug("createRemittanceInfoText() returns retRemittanceInfoText:$retRemittanceInfoText:");
+    return $retRemittanceInfoText;
+}
+
+# calculate HMAC SHA-256 digest
 sub genHmacSha256 {
     my $self = shift;
     my ($str, $key) = @_;
-    my $hashval = hmac_sha256_hex($str, $key);
+
+    #my $hashval = hmac_sha256_hex($str, $key);    # wrong hash calculation if $str (or $key) contain ISO-8859-* 8-bit chars
+    my $hashval = hmac_sha256_hex(Encode::encode_utf8($str), Encode::encode_utf8($key));    # force UTF-8 encoding, even for 8-bit chars
 
     return $hashval;
 }

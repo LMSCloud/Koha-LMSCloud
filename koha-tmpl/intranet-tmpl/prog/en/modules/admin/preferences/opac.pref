@@ -1002,6 +1002,11 @@ OPAC:
               type: htmlarea
               class: code
             - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
+        -
+            - "The text for the 'remittance information' of the payment will be constructed from the pattern "
+            - pref: PmpaymentRemittanceInfo
+            - "by replacing the placeholder &lt;&lt;borrowers.cardnumber&gt;&gt; by the patrons cardnumber."
+            - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
 
     Payments via ePayBL:
         -
