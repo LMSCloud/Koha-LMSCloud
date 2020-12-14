@@ -34,7 +34,7 @@ use Koha::AcquisitionImport::AcquisitionImportObjects;
 use C4::Acquisition;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( getCurrentYear readStoFromEkzWsStoList genKohaRecords );
+our @EXPORT = qw( getCurrentYear readStoFromEkzWsStoList addReferenznummerToObjectItemNumber genKohaRecords );
 
 
 
@@ -84,6 +84,165 @@ sub readStoFromEkzWsStoList {
     $logger->info("readStoFromEkzWsStoList() returns result:" .  Dumper($result) . ":");
 
     return $result;
+}
+
+###################################################################################################
+# Go through the titles contained in the response for the selected standing order  
+# to check and add reference number to acquisition_import.object_item_number if lacking.
+# (This is required only because we can not rely on daily up-to-date reference number delivery by ekz.)
+###################################################################################################
+sub addReferenznummerToObjectItemNumber {
+    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
+
+    my $ekzBestellNr = '';
+    my $dbh = C4::Context->dbh;
+    my $titles = {};
+
+    $logger->info("addReferenznummerToObjectItemNumber() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                                                    ": messageID:" . (defined($messageID) ? $messageID : 'undef') .
+                                                                    ": stoWithNewState->stoID:" . (defined($stoWithNewState->{'stoID'}) ? $stoWithNewState->{'stoID'} : 'undef') .
+                                                                    ": stoWithNewState->titelCount:" . (defined($stoWithNewState->{'titelCount'}) ? $stoWithNewState->{'titelCount'} : 'undef') .
+                                                                    ": lastRunDate:" . (defined($lastRunDate) ? $lastRunDate : 'undef') .
+                                                                     ": todayDate:" . (defined($todayDate) ? $todayDate : 'undef') .
+                                                                    ":");
+
+
+    $ekzBestellNr = 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'};    # StoList response contains no order number, so we create this dummy order number
+
+    # 1. step: Accumulate info on count of items per status per reference number for each title (info is spread across multiple <titel> XML elements having the same <ekzArtikelNummer> and maybe same <referenznummer>).
+    foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
+        $logger->info("addReferenznummerToObjectItemNumber() titel ekzArtikelNr:" . $titel->{'ekzArtikelNummer'} . ": isbn:" . $titel->{'isbn'} . ": status:" . $titel->{'status'} . ": statusDatum:" . $titel->{'statusDatum'} . ":");
+
+        # look for XML <titel><referenznummer><referenznummer> and <titel><referenznummer><exemplare> elements
+        $logger->debug("addReferenznummerToObjectItemNumber() ref(titel->{'referenznummer'}):" . ref($titel->{'referenznummer'}) . ":");
+        my $referenznummerDefined = ( exists $titel->{'referenznummer'} && defined $titel->{'referenznummer'});
+        my $referenznummerArrayRef = [];    #  using ref to empty array if there are sent no referenznummer blocks
+        if ( $referenznummerDefined && ref($titel->{'referenznummer'}) eq 'ARRAY' ) {
+            $referenznummerArrayRef = $titel->{'referenznummer'}; # ref to deserialized array containing the hash references
+        }
+        $logger->info("genKohaRecords() HTTP request referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
+        
+        foreach my $referenznummerObject ( @{$referenznummerArrayRef} ) {
+            my $referenznummer;
+            my $exemplaranzahl = 0;
+            if ( exists $referenznummerObject->{'referenznummer'} && defined $referenznummerObject->{'referenznummer'} && length($referenznummerObject->{'referenznummer'}) ) {
+                $referenznummer = $referenznummerObject->{'referenznummer'};
+                $exemplaranzahl = 1;
+                if ( exists $referenznummerObject->{'exemplare'} && defined $referenznummerObject->{'exemplare'} ) {
+                    $exemplaranzahl = 0 + $referenznummerObject->{'exemplare'};
+                }
+                my $statusGroup = $titel->{'status'};
+                if ( $statusGroup eq '99' ) {
+                    $statusGroup = 'delivered';    # those reference numbers may have records in acquisition_import having processingstate 'invoiced', 'delivered', 'ordered'
+                } elsif ( $statusGroup eq '20' || $statusGroup eq '10' ) {
+                    $statusGroup = 'notdelivered';    # those reference numbers may have records in acquisition_import having processingstate 'ordered'
+                }
+                if ( ! defined( $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} ) ) {
+                    $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} = $exemplaranzahl;
+                } else {
+                    $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} += $exemplaranzahl;
+                }
+            }
+        }
+    }
+    $logger->info("addReferenznummerToObjectItemNumber() titles:" . Dumper($titles) . ": AnzElem:" . scalar %{$titles} . ":");
+
+
+    # 2. step: Add reference number to acquisition_import.object_item_number if lacking.
+    foreach my $ekzArtikelNummer ( sort { $a cmp $b } keys %{$titles} ) {
+        foreach my $referenznummer ( sort { $a cmp $b } keys %{$titles->{$ekzArtikelNummer}} ) {
+            my $itemCount = {};
+            $itemCount->{delivered} = 0;
+            $itemCount->{notdelivered} = 0;
+            # preferred sequence: status 99 ('delivered' / 'Bereits geliefert'), 20 ('included in next delivery' / 'in nächster Lieferung'), 10 ('prepared' / 'vorbreitet')
+            foreach my $statusGroup ( sort { $a cmp $b } keys %{$titles->{$ekzArtikelNummer}->{$referenznummer}} ) {
+                $itemCount->{$statusGroup} = $titles->{$ekzArtikelNummer}->{$referenznummer}->{$statusGroup}->{itemCount};
+            }
+            # compare with how often this reference number is used already in acquisition_import
+            my $selParam = {
+                vendor_id => "ekz",
+                object_type => "order",
+                object_number => $ekzBestellNr,    # $ekzBestellNr is set to 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'}
+                rec_type => "item",
+                object_item_number => $ekzBestellNr . '-' . $ekzArtikelNummer . '-' . $referenznummer
+            };
+            $logger->debug("addReferenznummerToObjectItemNumber() search order title item records in acquisition_import selParam:" . Dumper($selParam) . ":");
+
+            my $acquisitionImportItemRsCount = {};
+            $acquisitionImportItemRsCount->{invoiced} = 0;
+            $acquisitionImportItemRsCount->{delivered} = 0;
+            $acquisitionImportItemRsCount->{ordered} = 0;
+            my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
+            my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->search($selParam);
+            if ( $acquisitionImportItemRS ) {
+                while ( my $acquisitionImportItemHit = $acquisitionImportItemRS->next()) {
+                    $acquisitionImportItemRsCount->{$acquisitionImportItemHit->processingstate} += 1;
+                }
+            }
+            $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: itemCount->{delivered}:$itemCount->{delivered}: itemCount->{notdelivered}:$itemCount->{notdelivered}:");
+            $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: acquisitionImportItemRsCount->{invoiced}:$acquisitionImportItemRsCount->{invoiced}: ->{delivered}:$acquisitionImportItemRsCount->{delivered}: ->{ordered}:$acquisitionImportItemRsCount->{ordered}:");
+            my $itemCountSum = $itemCount->{delivered} + $itemCount->{notdelivered};
+            my $acquisitionImportItemRsCountSum = $acquisitionImportItemRsCount->{invoiced} + $acquisitionImportItemRsCount->{delivered} + $acquisitionImportItemRsCount->{ordered};
+
+            if ( $acquisitionImportItemRsCountSum < $itemCountSum ) {
+                foreach my $statusGroup ( sort { $a cmp $b } keys %{$titles->{$ekzArtikelNummer}->{$referenznummer}} ) {
+                    my @selProcessingstateSequence = ('ordered');    # default, is correct for status 20 and 10 (i.e. statusGroup 'notdelivered')
+                    $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: ");
+
+                    if ( $statusGroup eq 'delivered' ) {
+                        # check and update acquisition_import entries of invoiced or delivered or ordered items (in this sequence)
+                        @selProcessingstateSequence = ('invoiced', 'delivered', 'ordered');
+                    }
+                    foreach my $selProcessingstate ( @selProcessingstateSequence ) {
+                        $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: itemCountSum:$itemCountSum: acquisitionImportItemRsCountSum:$acquisitionImportItemRsCountSum: start loop for selProcessingstate:$selProcessingstate:");
+                        if ( $acquisitionImportItemRsCountSum >= $itemCountSum ) {
+                            last;
+                        }
+                        my $selParam = {
+                            vendor_id => "ekz",
+                            object_type => "order",
+                            object_number => $ekzBestellNr,    # $ekzBestellNr is set to 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'}
+                            rec_type => "item",
+                            object_item_number => { 'like' => $ekzBestellNr . '-' . $ekzArtikelNummer . '%' },
+                            processingstate => $selProcessingstate
+                        };
+                        my $orderByParam = { order_by => { -asc => [ "id"] } };
+                        $logger->debug("addReferenznummerToObjectItemNumber() search $selProcessingstate order title item record in acquisition_import selParam:" . Dumper($selParam) . ": orderByParam:" . Dumper($orderByParam) . ":");
+
+                        my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
+                        my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->search($selParam, $orderByParam);
+                        while ( my $acquisitionImportItemHit = $acquisitionImportItemRS->next() ) {
+                            if ( $acquisitionImportItemRsCountSum >= $itemCountSum ) {
+                                last;
+                            }
+                            # my $acquisitionImportIdItem = $acquisitionImportItemHit->get_column('id');
+                            $logger->debug("addReferenznummerToObjectItemNumber() acquisitionImportItemHit->{_column_data}:" . Dumper($acquisitionImportItemHit->{_column_data}) . ":");
+                            my $object_item_number = $acquisitionImportItemHit->object_item_number();
+                            if ( $object_item_number =~ /^$ekzBestellNr-$ekzArtikelNummer-$referenznummer$/ ) {
+                                # entry is correct already
+                                $logger->debug("addReferenznummerToObjectItemNumber() found referencenumber in $selProcessingstate order title item record in acquisition_import");
+                            } elsif ( $object_item_number =~ /^$ekzBestellNr-$ekzArtikelNummer$/ ) {
+                                # found a record where reference number is lacking
+                                my $updParam = {
+                                    #processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone    # commented out to not spoil timestamp
+                                    object_item_number => $object_item_number . '-' . $referenznummer
+                                };
+                                $logger->debug("addReferenznummerToObjectItemNumber() update $selProcessingstate order title item record in acquisition_import updParam:" . Dumper($updParam) . ":");
+                                $acquisitionImportItemHit->update($updParam);
+                                $acquisitionImportItemRsCount->{$acquisitionImportItemHit->processingstate} += 1;
+                                $acquisitionImportItemRsCountSum += 1;
+                            }
+                        }
+                        $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: itemCountSum:$itemCountSum: acquisitionImportItemRsCountSum:$acquisitionImportItemRsCountSum: ending loop for selProcessingstate:$selProcessingstate:");
+                    }
+                    $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: itemCountSum:$itemCountSum: acquisitionImportItemRsCountSum:$acquisitionImportItemRsCountSum: done loop for each selProcessingstate");
+                }
+            }
+            $logger->debug("addReferenznummerToObjectItemNumber() done ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: itemCount->{delivered}:$itemCount->{delivered}: itemCount->{notdelivered}:$itemCount->{notdelivered}:");
+            $logger->debug("addReferenznummerToObjectItemNumber() done ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: acquisitionImportItemRsCount->{invoiced}:$acquisitionImportItemRsCount->{invoiced}: ->{delivered}:$acquisitionImportItemRsCount->{delivered}: ->{ordered}:$acquisitionImportItemRsCount->{ordered}:");
+        }
+    }
 }
 
 ###################################################################################################
@@ -206,6 +365,8 @@ sub genKohaRecords {
             payload => $stoListElement
         };
         $logger->debug("genKohaRecords() search delivery note message record in acquisition_import selParam:" . Dumper($selParam) . ":");
+        $logger->debug("genKohaRecords() search delivery note message record in acquisition_import insParam:" . Dumper($insParam) . ":");
+        $logger->debug("genKohaRecords() search delivery note message record in acquisition_import updParam:" . Dumper($updParam) . ":");
 
         my $acquisitionImportMessage = Koha::AcquisitionImport::AcquisitionImports->new();
         $acquisitionImportMessage = $acquisitionImportMessage->upd_or_ins($selParam, $updParam, $insParam);
@@ -269,7 +430,6 @@ sub genKohaRecords {
                ) {
                 next;
             }
-$logger->info("genKohaRecords() 100");
 
             my $titleHits = { 'count' => 0, 'records' => [] };
             my $biblioExisting = 0;
@@ -298,7 +458,6 @@ $logger->info("genKohaRecords() 100");
             $reqParamTitelInfo->{'titel'} = $titel->{'titel'};
             $reqParamTitelInfo->{'preis'} = $titel->{'preis'};
             $logger->info("genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ":");
-$logger->info("genKohaRecords() 200");
 
             # priority of title sources to be checked:
             # In any case:
@@ -349,8 +508,6 @@ $logger->info("genKohaRecords() 200");
                     $logger->info("genKohaRecords() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                 }
             }
-$logger->info("genKohaRecords() 300");
-
 
             if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                 if ( $biblionumber == 0 ) {    # title data have been found in one of the sources
@@ -384,7 +541,6 @@ $logger->info("genKohaRecords() 300");
                     $importedTitlesCount += 0;
                 }
             }
-$logger->info("genKohaRecords() 400");
 
             # now add the acquisition_import and acquisition_import_objects record  for the title
             my $dateTimeNow = DateTime->now(time_zone => 'local');
@@ -416,7 +572,7 @@ $logger->info("genKohaRecords() 400");
 
                 my $acquisitionImportIdTitle;
                 my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
-                my $hit = $acquisitionImportTitle->_resultset()->find( $selParam );
+                my $hit = $acquisitionImportTitle->_resultset()->search( $selParam )->first();
                 $logger->debug("genKohaRecords() ref(acquisitionImportTitle):" . ref($acquisitionImportTitle) . ": ref(hit)" . ref($hit) . ":");
                 if ( defined($hit) ) {
                     $logger->debug("genKohaRecords() hit->{_column_data}:" . Dumper($hit->{_column_data}) . ":");
@@ -458,7 +614,6 @@ $logger->info("genKohaRecords() 400");
 
                 $titel->{'preis'} =~ tr/,/./;
 
-$logger->info("genKohaRecords() 500");
 
                 # attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order.
                 my $rabatt = 0.0;    # not sent in StoListElement
@@ -492,26 +647,15 @@ $logger->info("genKohaRecords() 500");
                 my $replacementcost_tax_included =  $listprice_tax_included;    # list price of single item in library's currency, not discounted (at the moment no exchange rate calculation implemented)
                 my $replacementcost_tax_excluded =  $listprice_tax_excluded;    # list price of single item in library's currency, not discounted, tax excluded (at the moment no exchange rate calculation implemented)
 
-$logger->info("genKohaRecords() 600");
                 # look for XML <titel><referenznummer><referenznummer> and <titel><referenznummer><exemplare> elements
                 $logger->debug("genKohaRecords() ref(titel->{'referenznummer'}):" . ref($titel->{'referenznummer'}) . ":");
                 my $referenznummerDefined = ( exists $titel->{'referenznummer'} && defined $titel->{'referenznummer'});
                 my $referenznummerArrayRef = [];    #  using ref to empty array if there are sent no referenznummer blocks
-                # if there is sent only one kostenstelle block, it is delivered here as hash ref
-#                if ( $kostenstelleDefined && ref($titel->{'kostenstelle'}) eq 'HASH' ) {
-#                    $kostenstelleArrayRef = [ $titel->{'kostenstelle'} ]; # ref to anonymous array containing the single hash reference
-#                } else {
-                    # if there are sent more than one kostenstelle blocks, they are delivered here as array ref
-                    if ( $referenznummerDefined && ref($titel->{'referenznummer'}) eq 'ARRAY' ) {
-                        $referenznummerArrayRef = $titel->{'referenznummer'}; # ref to deserialized array containing the hash references
-                    }
-#                }
-#                if ( scalar @{$kostenstelleArrayRef} < 1 ) {
-#                    $kostenstelleArrayRef->[0] = '';    # Value has to be '' to trigger the use of default budget code in EkzKohaRecords::checkAqbudget.
-#                }
+                if ( $referenznummerDefined && ref($titel->{'referenznummer'}) eq 'ARRAY' ) {
+                    $referenznummerArrayRef = $titel->{'referenznummer'}; # ref to deserialized array containing the hash references
+                }
                 $logger->info("genKohaRecords() HTTP request referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
                 
-$logger->info("genKohaRecords() 700");
                 my @itemReferenznummer = ();    # used for generating values for acquisition_import.object_item_number of the records representing the STO items (format: sto.<ekzKundenNr>.<stoID>-<ekzArtikelNr>-<referenznummer>)
                 foreach my $referenznummerObject ( @{$referenznummerArrayRef} ) {
                     my $referenznummer;
@@ -528,8 +672,7 @@ $logger->info("genKohaRecords() 700");
                     }
                 }
                 $logger->info("genKohaRecords() HTTP request itemReferenznummer array:" . Dumper(@itemReferenznummer) . ": AnzElem:" . scalar @itemReferenznummer . ":");
-$logger->info("genKohaRecords() 800");
-#exit;
+
 
                 my @itemOrder = ();    # used for creating the aqorders_items records for the created aqorders for this title
                 if ( defined($basketno) && $basketno > 0 ) {
@@ -625,8 +768,6 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                     foreach my $budgetid ( sort keys %{$aqbudgetItemIndexes} ) {
                         $logger->debug("genKohaRecords() aqbudgetItemIndexes->{$budgetid}:" . Dumper($aqbudgetItemIndexes->{$budgetid}) . ":");
                     }
-$logger->info("genKohaRecords() 2000");
-#exit;
                     foreach my $budgetid ( sort keys %{$aqbudgetItemIndexes} ) {
                         $logger->debug("genKohaRecords() aqbudgetItemIndexes->{$budgetid}:" . Dumper($aqbudgetItemIndexes->{$budgetid}) . ":");
 
@@ -681,11 +822,10 @@ $logger->info("genKohaRecords() 2000");
                         }
                     }
                 }    # end of "if ( defined($basketno) && $basketno > 0 ) {"
+# XXXWH hau wech:
 for ( my $i = 0; $i < scalar @itemReferenznummer; $i += 1 ) {
     $logger->debug("genKohaRecords() item index i:$i: itemReferenznummer[$i]" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . $itemOrder[$i]->budget_id() . ":");
 }
-$logger->info("genKohaRecords() 3000");
-#exit;
 
                 for ( my $j = 0; $j < $exemplarcount; $j++ ) {
                     my $problems = '';              # string for accumulating error messages for this order
