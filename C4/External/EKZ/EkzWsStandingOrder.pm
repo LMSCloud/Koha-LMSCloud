@@ -87,7 +87,7 @@ sub readStoFromEkzWsStoList {
 }
 
 ###################################################################################################
-# Go through the titles contained in the response for the selected standing order  
+# Go through the titles contained in the response for the selected standing order
 # to check and add reference number to acquisition_import.object_item_number if lacking.
 # (This is required only because we can not rely on daily up-to-date reference number delivery by ekz.)
 ###################################################################################################
@@ -121,8 +121,8 @@ sub addReferenznummerToObjectItemNumber {
         if ( $referenznummerDefined && ref($titel->{'referenznummer'}) eq 'ARRAY' ) {
             $referenznummerArrayRef = $titel->{'referenznummer'}; # ref to deserialized array containing the hash references
         }
-        $logger->info("genKohaRecords() HTTP request referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
-        
+        $logger->info("genKohaRecords() HTTP response referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
+
         foreach my $referenznummerObject ( @{$referenznummerArrayRef} ) {
             my $referenznummer;
             my $exemplaranzahl = 0;
@@ -654,7 +654,7 @@ sub genKohaRecords {
                 if ( $referenznummerDefined && ref($titel->{'referenznummer'}) eq 'ARRAY' ) {
                     $referenznummerArrayRef = $titel->{'referenznummer'}; # ref to deserialized array containing the hash references
                 }
-                $logger->info("genKohaRecords() HTTP request referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
+                $logger->info("genKohaRecords() HTTP response referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
                 
                 my @itemReferenznummer = ();    # used for generating values for acquisition_import.object_item_number of the records representing the STO items (format: sto.<ekzKundenNr>.<stoID>-<ekzArtikelNr>-<referenznummer>)
                 foreach my $referenznummerObject ( @{$referenznummerArrayRef} ) {
@@ -671,7 +671,7 @@ sub genKohaRecords {
                         }
                     }
                 }
-                $logger->info("genKohaRecords() HTTP request itemReferenznummer array:" . Dumper(@itemReferenznummer) . ": AnzElem:" . scalar @itemReferenznummer . ":");
+                $logger->info("genKohaRecords() itemReferenznummer array:" . Dumper(@itemReferenznummer) . ": AnzElem:" . scalar @itemReferenznummer . ":");
 
 
                 my @itemOrder = ();    # used for creating the aqorders_items records for the created aqorders for this title
@@ -706,7 +706,7 @@ sub genKohaRecords {
                     if ( scalar @{$kostenstelleArrayRef} < 1 ) {
                         $kostenstelleArrayRef->[0] = '';    # Value has to be '' to trigger the use of default budget code in EkzKohaRecords::checkAqbudget.
                     }
-                    $logger->info("genKohaRecords() HTTP request kostenstelle array:" . Dumper(@$kostenstelleArrayRef) . ": AnzElem:" . scalar @$kostenstelleArrayRef . ":");
+                    $logger->info("genKohaRecords() HTTP response kostenstelle array:" . Dumper(@$kostenstelleArrayRef) . ": AnzElem:" . scalar @$kostenstelleArrayRef . ":");
                     # create the hash of kostenstelle listing aqbudget and item count to be used.
                     # used scheme: Distribute 1 item to each listed kostenstelle as long as there are items.
                     #              If same kostenstelle is listed n times, distribute n items to it.
