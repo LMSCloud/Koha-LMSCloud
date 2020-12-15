@@ -95,11 +95,19 @@
     },
     "BestelltBeiSigel": {
       "type": ["string", "null"],
-      "description": "___"
+      "description": "regional ISIL of deliverybranch"
     },
     "BestelltBeiName": {
       "type": ["string", "null"],
-      "description": "___"
+      "description": "surname of deliverybranch"
+    },
+    "BestelltVonSigel": {
+      "type": ["string", "null"],
+      "description": "regional ISIL of orderbranch"
+    },
+    "BestelltVonName": {
+      "type": ["string", "null"],
+      "description": "surname of orderbranch"
     },
     "LieferungGeplant": {
       "type": ["string", "null"],
@@ -118,6 +126,6 @@
       "description": "___"
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": ["Art", "BestellID", "ItemOrderExtid", "Bestellnummer", "BZID", "LeserName"]
 }

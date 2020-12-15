@@ -120,8 +120,7 @@ sub handleZKSHRequest {
             $args->{'VerfuegbarkeitsSuche'} = $apiparams->{VerfuegbarkeitsSuche},    # string containig JSON availability search parameters
 
             # fields for table illrequests
-            my $branchcode = C4::Context->preference("ILLDefaultBranch");    # XXXWH anpassen! Zuküftig aus dem illbackends-Abschnitt der koha_conf.xml
-            $args->{'branchcode'} = $branchcode;
+            $args->{'branchcode'} = getBranchcodeFromOrderBranchIsil( C4::Context->preference("ILLDefaultBranch"), undef );
             $args->{'medium'} = "Book";    # XXXWH lt. Norbert hat man es immer mit 'Book' zu tun
             $args->{'orderid'} = $apiparams->{BestellID};
 
@@ -171,8 +170,7 @@ sub handleZKSHRequest {
             $args->{'Art'} = $apiparams->{Art};
 
             # fields for table illrequests
-            my $branchcode = C4::Context->preference("ILLDefaultBranch");    # XXXWH anpassen! Zuküftig aus dem illbackends-Abschnitt der koha_conf.xml
-            $args->{'branchcode'} = $branchcode;
+            $args->{'branchcode'} = getBranchcodeFromOrderBranchIsil( C4::Context->preference("ILLDefaultBranch"), $apiparams->{'BestelltVonSigel'} );
             $args->{'medium'} = "Book";    # XXXWH lt. Norbert hat man es immer mit 'Book' zu tun
             $args->{'orderid'} = $apiparams->{BestellID};
 
@@ -296,6 +294,32 @@ sub handleZKSHRequest {
     }
 
 	return ($respcode,$resptext);
+}
+
+sub getBranchcodeFromOrderBranchIsil {
+    my ( $iLLDefaultBranchPreference, $orderbranchIsil ) = @_;
+    my $retBranchcode = '';
+
+    if ( $iLLDefaultBranchPreference ) {    # e.g. for Norderstedt: '1|672:1|673:3|674:2|676:4' or more compact: '1|673:3|674:2|676:4'
+        my @isilBranchcodeAssignments = split( /\|/, $iLLDefaultBranchPreference );
+        if ( @isilBranchcodeAssignments ) {
+            if ( defined($isilBranchcodeAssignments[0]) ) {
+                $retBranchcode = $isilBranchcodeAssignments[0];
+            }
+            foreach my $isilBranchcodeAssignment ( @isilBranchcodeAssignments ) {
+                my ( $isil, $branchcode ) = split( /:/, $isilBranchcodeAssignment );
+                #if ( $isil && $branchcode ) {
+                if ( $branchcode ) {
+                    if ( $isil eq $orderbranchIsil ) {
+                        $retBranchcode = $branchcode;
+                        last;
+                    }
+                }
+            }
+        }
+    }
+
+    return $retBranchcode;
 }
 
 1;
