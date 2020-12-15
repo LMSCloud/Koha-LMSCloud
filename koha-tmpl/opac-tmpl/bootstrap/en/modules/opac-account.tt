@@ -3,15 +3,7 @@
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
 [% USE Price %]
-[% SET ENABLE_OPAC_PAYMENTS = 
-            Koha.Preference('EnablePayPalOpacPayments') || 
-            Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || 
-            Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || 
-            Koha.Preference('Epay21PaypageOpacPaymentsEnabled') || 
-            Koha.Preference('PmpaymentPaypageOpacPaymentsEnabled') || 
-            Koha.Preference('EpayblPaypageOpacPaymentsEnabled') || 
-            plugins 
-%]
+[% SET ENABLE_OPAC_PAYMENTS = Koha.Preference('EnablePayPalOpacPayments') || Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || Koha.Preference('Epay21PaypageOpacPaymentsEnabled') || Koha.Preference('PmpaymentPaypageOpacPaymentsEnabled') || Koha.Preference('EpayblPaypageOpacPaymentsEnabled') || plugins %]
 [% SET DISPLAY_PAYMENT_BLOCK = 0 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Your fines and charges</title>
