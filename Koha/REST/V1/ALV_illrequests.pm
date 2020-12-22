@@ -119,8 +119,8 @@ print STDERR "REST::V1::ALV_illrequests::handleZKSHRequest() Start; Dumper(model
         $args->{stage} = 'commit';
 
         # fields for table illrequests
-        my $branchcode = C4::Context->preference("ILLDefaultBranch");
-        $args->{'branchcode'} = $branchcode;
+        my @illDefaultBranch =split( /\|/, C4::Context->preference("ILLDefaultBranch") );
+        $args->{'branchcode'} = $illDefaultBranch[0];
         if ( $modelparams->{Auftragsart} eq 'Zeitschriften-/Aufsatzbestellung' ) {
             $args->{'medium'} = "Article";
         } else {
