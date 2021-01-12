@@ -103,28 +103,36 @@ sub search {
     }
     if ( defined($chargesfrom) && $chargesfrom =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
         $chargesfrom += 0.0;
-        $chargesfrom = undef if ( $chargesfrom == 0.0 );
     } else {
         $chargesfrom = undef;
     }
     if ( defined($chargesto) && $chargesto =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
         $chargesto += 0.0;
-        $chargesto = undef if ( $chargesto == 0.0 );
     } else {
         $chargesto = undef;
     }
     if (defined($chargesfrom) || defined($chargesto)) {
-        my $add = "EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = borrowers.borrowernumber GROUP BY a.borrowernumber HAVING ";
+        my $add = "( EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = borrowers.borrowernumber GROUP BY a.borrowernumber HAVING ";
         if ( defined($chargesfrom) && defined($chargesto) ) {
-            $add .= "SUM(a.amountoutstanding) BETWEEN ? AND ?)";
-            push @where_args, $chargesfrom, $chargesto;
+            if ( $chargesfrom == 0.0 && $chargesto == 0.0 ) {
+                $add .= "COALESCE(SUM(a.amountoutstanding),0) = 0.0) OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) )";
+            } else {
+                $add .= "COALESCE(SUM(a.amountoutstanding),0) BETWEEN ? AND ?) ";
+                $add .= "OR NOT EXISTS ( SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) " if ( ( $chargesfrom == 0.0 || $chargesto == 0.0 ) && $chargesto >= $chargesfrom );
+                $add .= " )";
+                push @where_args, $chargesfrom, $chargesto;
+            }
         }
         elsif ( defined($chargesfrom) ) {
-            $add .= "SUM(a.amountoutstanding) >= ?)";
+            $add .= "SUM(a.amountoutstanding) >= ?) ";
+            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) " if ( $chargesfrom == 0.0 );
+            $add .= " )";
             push @where_args, $chargesfrom;
         }
         else {
-            $add .= "SUM(a.amountoutstanding) <= ?)";
+            $add .= "SUM(a.amountoutstanding) <= ?) ";
+            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) " if ( $chargesto == 0.0 );
+            $add .= " )";
             push @where_args, $chargesto;
         }
         push @where_strs, $add;
