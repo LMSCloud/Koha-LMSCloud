@@ -153,4 +153,25 @@ sub genHmacSha256 {
     return $hashval;
 }
 
+# pick chars from a string based on a simple pattern, mainly used for compressing hash values
+sub pickChars {
+    my $self = shift;
+    my ($str, $offset1, $offset2, $cnt) = @_;
+    my $len = length($str) ? length($str) : 1;
+    my $offs = $offset1 % $len;
+    my $res = '';
+
+    for ( my $i = 0; $i < $cnt; $i += 1 ) {
+        if ( my $c = substr($str, $offs, 1) ) {
+            $res .= $c;
+        } else {
+            $res .= '0';
+        }
+        $offs = ($offs + $offset2) % $len;
+    }
+
+    $self->{logger}->trace("pickChars(str:$str: offset1:$offset1: offset2:$offset2: cnt:$cnt) returns res:$res:");
+    return($res);
+}
+
 1;

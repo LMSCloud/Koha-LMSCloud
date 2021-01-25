@@ -71,11 +71,11 @@ sub new {
 
     $self->{now} = DateTime->from_epoch( epoch => Time::HiRes::time, time_zone => C4::Context->tz() );
     $self->{timestamp} = sprintf("%04d%02d%02d%02d%02d%02d%03d", $self->{now}->year, $self->{now}->month, $self->{now}->day, $self->{now}->hour, $self->{now}->minute, $self->{now}->second, $self->{now}->nanosecond/1000000);
-    my $calculatedHashVal = $self->calculateHashVal($self->{now});
-    if ( ! $self->{pmpaymentProcedure} ) {
-        $self->{merchantTxId} = 'KohaLMSCloud' . '.' . $self->{timestamp} . '.' . $calculatedHashVal;
+    my $calculatedHashVal = $self->pickChars($self->calculateHashVal($self->{now}),2,4,16);
+    if ( ! $self->{pmpaymentSaltHmacSha256} ) {
+        $self->{merchantTxId} = 'lc' . '.' . substr($self->{timestamp},2,13) . '.' . $calculatedHashVal;
     } else {
-        $self->{merchantTxId} = $self->{pmpaymentProcedure} . '.' . $self->{timestamp} . '.' . $calculatedHashVal;
+        $self->{merchantTxId} = substr($self->{pmpaymentSaltHmacSha256},0,2) . '.' . substr($self->{timestamp},2,13) . '.' . $calculatedHashVal;
     }
 
     $self->{ua} = LWP::UserAgent->new;
@@ -109,7 +109,7 @@ sub calculateHashVal {
     my $self = shift;
     my $timestamp = shift;
 
-    $self->{logger}->debug("calculateHashVal() START self->{now}:$self->{now}:");
+    $self->{logger}->debug("calculateHashVal() START self->{now}:$self->{now}: timestamp:$timestamp:");
 
     my $tsMDY = $timestamp->mdy;
     my $tsDMY = $timestamp->dmy;
@@ -291,21 +291,22 @@ sub checkOnlinePaymentStatusAndPayInKoha {
 
     # verify that the 4 CGI arguments of Koha are not manipulated, i.e. that txid is correct for the sent accountlines and amount of Koha
     my $txidsAreEqual = 0;
-    my $procedure = C4::Context->preference('PmpaymentProcedure');    # Name des Verfahrens
-    if ( ! $procedure ) {
-        $procedure = 'KohaLMSCloud';    # our fallback value, also used in new() for creating $self->{merchantTxId}
+    my $salt = C4::Context->preference('pmpaymentSaltHmacSha256');    # salt for generating HMAC SHA-256 digest
+    if ( ! $salt ) {
+        $salt = 'lc';    # our fallback value, also used in new() for creating $self->{merchantTxId}
     }
-    my $timestamp = @{[split(/\./, $pmpTxid)]}[1];
+    my $timestamp = '20' . @{[split(/\./, $pmpTxid)]}[1] . '00';    # we shortened the timestamp in txid by heading century ('20') and trailing milliseconds&100 ('00')
     my $now = DateTime->from_epoch( epoch => Time::HiRes::time, time_zone => C4::Context->tz() );
-    my $calculatedHashVal = $self->calculateHashVal($now);
-    $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() now:$now: procedure:$procedure: timestamp:$timestamp: calculatedHashVal:$calculatedHashVal:");
+    my $calculatedHashVal = $self->pickChars($self->calculateHashVal($now),2,4,16);
+    $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() now:$now: salt:$salt: timestamp:$timestamp: calculatedHashVal:$calculatedHashVal:");
 
-    if ( $procedure . '.' . $timestamp . '.' . $calculatedHashVal ne $pmpTxid ) {
+    if ( substr($salt,0,2) . '.' . substr($timestamp,2,13) . '.' . $calculatedHashVal ne $pmpTxid ) {
         # Last chance: maybe it is a message created the day before. This case is relevant if a patron is paying at midnight.
-        $calculatedHashVal = $self->calculateHashVal($now);
-        $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() yesterday:$now: procedure:$procedure: timestamp:$timestamp: calculatedHashVal:$calculatedHashVal:");
+        $now->subtract( days => 1 );
+        $calculatedHashVal = $self->pickChars($self->calculateHashVal($now),2,4,16);
+        $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() yesterday:$now: salt:$salt: timestamp:$timestamp: calculatedHashVal:$calculatedHashVal:");
     }
-    if ( $procedure . '.' . $timestamp . '.' . $calculatedHashVal eq $pmpTxid ) {
+    if ( substr($salt,0,2) . '.' . substr($timestamp,2,13) . '.' . $calculatedHashVal eq $pmpTxid ) {
         $txidsAreEqual = 1;
     }
 
