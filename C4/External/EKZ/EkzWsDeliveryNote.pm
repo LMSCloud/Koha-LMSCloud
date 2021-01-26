@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsDeliveryNote;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -37,10 +37,6 @@ use C4::Acquisition;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
-
-
-my $debugIt = 1;
-
 
 
 ###################################################################################################
@@ -252,13 +248,18 @@ sub genKohaRecords {
             # otherwise:
             # search corresponding order title hits with same ekzArtikelNr in table acquisition_import, if sent in $auftragsPosition->{'artikelNummer'}
             # In some cases (e.g. knv titles) the artikelNummer is 0, so it can't be used for search
-            # if not found enough acquisition_import records of rec_type 'item' and processingstate 'ordered': 'invent' the underlying order
+            # if not found enough acquisition_import records of rec_type 'item' and processingstate 'ordered': 'invent' the underlying order and store it
 
             # we try maximal 4 methods for identifying an order, or 'inventing' one, if required:
-            # method1: searching for ekzExemplarid identity   (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
-            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0  (typical for an item of a running standing order (since 2020-09-14))
-            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0   (typical for an item of a running standing order (until 2020-09-13))
-            # method4 is for all items for which no acquisition_import record representing the order title could be found   (typical for an item of a running continuation/series order)
+            # method1: searching for ekzExemplarid identity
+            #          (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
+            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0
+            #          (typical for an item of a running standing order (since 2020-09-14) or of a running serial order (since 2021-01-14))
+            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0
+            #          (typical for an item of a running standing order (until 2020-09-13))
+            # method4 is for all items for which no acquisition_import record representing the order title could be found
+            #          (typical for an item of a running continuation/serial order (until 2021-01-13))
+
 
             # method1: searching for ekzExemplarid identity (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
             if (defined($auftragsPosition->{'ekzexemplarid'}) && length($auftragsPosition->{'ekzexemplarid'}) > 0 && $updOrInsItemsCount < $deliveredItemsCount ) {
@@ -351,16 +352,41 @@ sub genKohaRecords {
                 # If the items of a title are spread over multiple (different) referenznummer values, then multiple <auftragsPosition> blocks will be sent.
                 my $lsReferenznummer = $auftragsPosition->{'referenznummer'};
 
-                # search in acquisition_import for records representing ordered STO items with the same $ekzCustomerNumber, ekzArtikelNr and referenznummer
+                # search in acquisition_import for records representing ordered items of a standing order or serial order with the same $ekzCustomerNumber, ekzArtikelNr and referenznummer
+                
+                # There exist at least four possible select strategies:
+                # 1. Select strategy via '-or' will cause full table scan:
+                # my $selParam = {
+                #     vendor_id => "ekz",
+                #     object_type => "order",
+                #     -or =>
+                #         [
+                #             object_item_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
+                #             object_item_number => { 'like' => 'ser.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
+                #         ],
+                #     rec_type => "item",
+                #     processingstate => 'ordered'
+                # };
+
+                # 2. Select strategy via 'UNION' avoids full table scan but would require additional (i.e. not Koha-standard) PERL module DBIx::Class::Helper::ResultSet::SetOperations:
+                # my $rs1 = $rs->search({ ..., object_item_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'}, ... });  
+                # my $rs2 = $rs->search({ ..., object_item_number => { 'like' => 'ser.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'}, ... });  
+                # for ($rs1->union($rs2)->all) { ... }
+
+                # 3. Cheap and dirty select strategy (but sufficient in this case, i.e. searching for 'sto.' or 'ser.' via 's__.'):
                 my $selParam = {
                     vendor_id => "ekz",
                     object_type => "order",
-                    object_item_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
+                    object_item_number => { 'like' => 's__.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
                     rec_type => "item",
                     processingstate => 'ordered'
                 };
-                $logger->trace("genKohaRecords() method2: search order item record in acquisition_import selParam:" . Dumper($selParam) . ":");
-                my $acquisitionImportEkzExemplarIdHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
+
+                # 4. executing the whole action separately for sto.% and ser.%: That's just too boring.
+
+                my $orderByParam = { order_by => { -asc => [ "id"] } };
+                $logger->trace("genKohaRecords() method2: search order item record in acquisition_import selParam:" . Dumper($selParam) . ": orderByParam:" . Dumper($orderByParam) . ":");
+                my $acquisitionImportEkzExemplarIdHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam, $orderByParam);
                 $logger->trace("genKohaRecords() method2: scalar acquisitionImportEkzExemplarIdHits:" . scalar $acquisitionImportEkzExemplarIdHits . ":");
 
                 foreach my $acquisitionImportEkzExemplarIdHit ($acquisitionImportEkzExemplarIdHits->all()) {
@@ -1166,6 +1192,7 @@ sub processItemHit
             # attaching ekz order to Koha acquisition: 
             if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
                 ($ordernumberFound, $basketnoFound) = processItemOrder( $lieferscheinNummer, $lieferscheinDatum, $biblionumber, $itemnumber, $auftragsPosition, $acquisitionImportTitleItemHit, $logger );
+                $logger->trace("processItemHit() processItemOrder() returned ordernumberFound:$ordernumberFound: basketnoFound:$basketnoFound:");
             }
 
         }
@@ -1265,6 +1292,12 @@ sub processItemHit
 # <ekzexemplarid> is not sent, but 
 # -    ekzArtikelNr and referenznummer matches a record in acquisition_import with object_item_number like 'sto.%.ID%-$ekzArtikelNr-$referenznummer' and rec_type = 'item'
 # - or ekzArtikelNr matches a record in acquisition_import with object_number like 'sto.%.ID%' and object_item_number = '$ekzArtikelNr' and rec_type = 'title'
+#
+# or if it's an item for Serial Order, that is:
+# <ekzexemplarid> is not sent, but 
+# -    ekzArtikelNr and referenznummer matches a record in acquisition_import with object_item_number like 'ser.%.ID%-$ekzArtikelNr-$referenznummer' and rec_type = 'item'
+# - or ekzArtikelNr matches a record in acquisition_import with object_number like 'ser.%.ID%' and object_item_number = '$ekzArtikelNr' and rec_type = 'title'
+#
 # then:
 #   Search the matching aqorders record via aqorders_items.
 #   Create a basket for this delivery note if not existing,
@@ -1281,36 +1314,38 @@ sub processItemOrder
 
     $logger->info("processItemOrder() Start biblionumber:$biblionumber: itemnumber:$itemnumber: acquisitionImportTitleItemHit object_number:" . $acquisitionImportTitleItemHit->object_number . ":");
 
-    my $isSTO = 0;
-    if ( $acquisitionImportTitleItemHit->object_number =~ /^sto\.\d+\.ID\d+/ ) {
-        $isSTO = 1;
+    my $isStoOrSer = 0;    # indicates if it is a item of a standing or serial order
+    if ( $acquisitionImportTitleItemHit->object_number =~ /^(sto|ser)\.\d+\.ID\d+/ ) {
+        $isStoOrSer = 1;
     }
-    $logger->trace("processItemOrder() acquisitionImportTitleItemHit isSTO:$isSTO:");
+    $logger->trace("processItemOrder() acquisitionImportTitleItemHit isStoOrSer:$isStoOrSer:");
 
     # search the aqorders record via select * from aqorders where ordernumber = (select ordernumber from aqorders_items where itemnumber = $itemnumber)
-    my $aqorder = Koha::Acquisition::Order->new()->search_order_by_item($itemnumber);
+    my $orderRecord = C4::Acquisition::GetOrderFromItemnumber($itemnumber);
 
-    $logger->trace("processItemOrder() Dumper aqorder->{_column_data}:" . Dumper($aqorder->{_column_data}) . ":");
-    if ( !$aqorder ) {
+    $logger->trace("processItemOrder() Dumper orderRecord:" . Dumper($orderRecord) . ":");
+    if ( ! $orderRecord ) {
+        $logger->error("processItemInvoice() could not find orderRecord via itemnumber:" . $itemnumber . ":");
         return ($ordernumber_ret, $basketno_ret);    # both values still undef
     }
-    $ordernumber_ret = $aqorder->{ordernumber};
-    $basketno_ret = $aqorder->{basketno};
+    $ordernumber_ret = $orderRecord->{ordernumber};
+    $basketno_ret = $orderRecord->{basketno};
+    $logger->debug("processItemOrder() ordernumber_ret:$ordernumber_ret: basketno_ret:$basketno_ret:");
 
     # search basket of order
-    my $aqbasket_order = &C4::Acquisition::GetBasket($aqorder->{basketno});
-    $logger->trace("processItemOrder() Dumper aqbasket_order:" . Dumper($aqbasket_order) . ":");
-    if ( !$aqbasket_order ) {
+    my $aqbasket_of_order = &C4::Acquisition::GetBasket($orderRecord->{basketno});
+    $logger->trace("processItemOrder() Dumper aqbasket_of_order:" . Dumper($aqbasket_of_order) . ":");
+    if ( !$aqbasket_of_order ) {
         return ($ordernumber_ret, $basketno_ret);
     }
 
-    if ( $isSTO ) {
+    if ( $isStoOrSer ) {    # it is a item of a standing or serial order
         # search/create new basket of same bookseller with basketname derived from Delivery note plus pseudo order number derived from customer number and stoID
-        my $aqbasket_delivery_name = 'L-' . $lieferscheinNummer . '/' . $aqbasket_order->{basketname};
+        my $aqbasket_delivery_name = 'L-' . $lieferscheinNummer . '/' . $aqbasket_of_order->{basketname};
         my $aqbasket_delivery = undef;
         my $params = {
             basketname => '"'.$aqbasket_delivery_name.'"',
-            booksellerid => "$aqbasket_order->{booksellerid}"
+            booksellerid => "$aqbasket_of_order->{booksellerid}"
         };
         my $aqbasket_delivery_hits = &C4::Acquisition::GetBaskets($params, { orderby => "basketno DESC" });
         $logger->trace("processItemOrder() Dumper aqbasket_delivery_hits:" . Dumper($aqbasket_delivery_hits) . ":");
@@ -1322,20 +1357,20 @@ sub processItemOrder
             $logger->trace("processItemOrder() after ReopenBasket");
 
             my $note = $aqbasket_delivery->{note};
-            if ( index($note, $aqbasket_order->{basketname}) == -1 ) {
+            if ( index($note, $aqbasket_of_order->{basketname}) == -1 ) {
                 my $basketinfo = {
                     basketno => $aqbasket_delivery->{basketno},
-                    note => $note . ', ' . $aqbasket_order->{basketname}
+                    note => $note . ', ' . $aqbasket_of_order->{basketname}
                 };
                 &C4::Acquisition::ModBasket($basketinfo);
             }
         } else {
-            my $aqbasket_delivery_no  = &C4::Acquisition::NewBasket($aqbasket_order->{booksellerid}, $aqbasket_order->{authorisedby}, $aqbasket_delivery_name,
-                                                                $aqbasket_order->{basketname},"", $aqbasket_order->{basketcontractnumber}, $aqbasket_order->{deliveryplace}, $aqbasket_order->{billingplace}, $aqbasket_order->{is_standing}, $aqbasket_order->{create_items});
+            my $aqbasket_delivery_no  = &C4::Acquisition::NewBasket($aqbasket_of_order->{booksellerid}, $aqbasket_of_order->{authorisedby}, $aqbasket_delivery_name,
+                                                                $aqbasket_of_order->{basketname},"", $aqbasket_of_order->{basketcontractnumber}, $aqbasket_of_order->{deliveryplace}, $aqbasket_of_order->{billingplace}, $aqbasket_of_order->{is_standing}, $aqbasket_of_order->{create_items});
             if ( $aqbasket_delivery_no ) {
                 my $basketinfo = {
                     basketno => $aqbasket_delivery_no,
-                    branch => "$aqbasket_order->{branch}"
+                    branch => "$aqbasket_of_order->{branch}"
                 };
                 &C4::Acquisition::ModBasket($basketinfo);
                 $aqbasket_delivery = &C4::Acquisition::GetBasket($aqbasket_delivery_no);
@@ -1349,8 +1384,8 @@ sub processItemOrder
 
         # shift order to this new basket
         $params = {
-            ordernumber => $aqorder->{ordernumber},
-            biblionumber => $aqorder->{biblionumber},
+            ordernumber => $orderRecord->{ordernumber},
+            biblionumber => $orderRecord->{biblionumber},
             quantitydelivered => 1,
             delivered_items => [$itemnumber],
             basketno_delivery => $aqbasket_delivery->{basketno}
@@ -1364,7 +1399,7 @@ sub processItemOrder
         # search/create basket group with name derived from Delivery note and same bookseller and update aqbasket_delivery accordingly
         $params = {
             name => '"'.$aqbasket_delivery_name.'"',
-            booksellerid => $aqbasket_order->{booksellerid}
+            booksellerid => $aqbasket_of_order->{booksellerid}
         };
         $basketgroupid  = undef;
         my $aqbasketgroups = &C4::Acquisition::GetBasketgroupsGeneric($params, { orderby => "id DESC" } );

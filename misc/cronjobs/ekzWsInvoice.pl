@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright 2020 (C) LMSCLoud GmbH
+# Copyright 2020-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -81,14 +81,18 @@ if ( $testMode == 1 ) {
 
 if ( $testMode == 2 ) {
     my $res = 0;
+    my $ekzCustomerNumber = 1109403;    # Wallenheim Alex Wallenheimer
+
     #my $ekzCustomerNumber = 1112310;    # friedrich_flensburg
-    my $ekzCustomerNumber = 1112313;    # rita_rendsburg
+    #my $ekzCustomerNumber = 1112313;    # rita_rendsburg
+
     my $rechnung;
-    
+    #$rechnung->{id} = '957960';    # Wallenheim Alex Wallenheimer
+    $rechnung->{id} = '971006';    # Wallenheim Alex Wallenheimer
     #$rechnung->{id} = '1710434';    # friedrich_flensburg, Rechnung über 85.84 €, 4 Auftragspositionen
     #$rechnung->{id} = '1710428';    # an rita_rendsburg, Rechnung über 476.12 €, 25 Auftragspositionen
     #$rechnung->{id} = '1710429';    # an rita_rendsburg, Rechnung über 66.70 €, 22 Auftragspositionen
-    $rechnung->{id} = '1861204';    # an rita_rendsburg, Rechnung über 517.50 €, 151 Auftragspositionen
+    #$rechnung->{id} = '1861204';    # an rita_rendsburg, Rechnung über 517.50 €, 151 Auftragspositionen
 
             $logger->info("ekzWsInvoice.pl read rechnung via id:" . $rechnung->{id} . ": by calling readReFromEkzWsRechnungDetail($ekzCustomerNumber," . $rechnung->{id} . ",undef,\\\$rechnungDetailElement)");
             $result = &readReFromEkzWsRechnungDetail($ekzCustomerNumber,$rechnung->{id},undef,\$rechnungDetailElement);    # read *complete* info (i.e. all titles) of the invoice

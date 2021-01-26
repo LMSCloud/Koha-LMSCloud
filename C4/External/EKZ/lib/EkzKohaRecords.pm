@@ -1,6 +1,6 @@
 package C4::External::EKZ::lib::EkzKohaRecords;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -659,7 +659,12 @@ sub readTitleFromZ3950Target {
 
 ##############################################################################
 #
-# take title data from the few fields of request titelinfo
+# take title data from the few fields of
+# - request XML element <titelinfo> (in case of BestellInfo)
+# - response XML element <titelInfo> (in case of StoList)
+# - response XML element <detail> (in case of FortsetzungDetail)
+# - response XML element <auftragsPosition> (in case of LieferscheinDetail)
+# - response XML element <auftragsPosition> (in case of RechnungDetail)
 #
 ##############################################################################
 sub createTitleFromFields {
@@ -680,7 +685,7 @@ sub createTitleFromFields {
     # 'isbn13'
     # 'issn'
     # 'ismn'
-    # 'ean'      # with web service StoList and LieferscheinDetail
+    # 'ean'      # with web service StoList and FortsetzungDetail and LieferscheinDetail
     # 'author'
     # 'titel'
     # 'verlag'
@@ -1043,6 +1048,8 @@ sub createProcessingMessageText {
         $subject = "Import ekz Rechnung $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     } elsif ( $logresult->[0]->[0] eq 'LieferscheinDetail' ) {
         $subject = "Import ekz Lieferschein $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
+    } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
+        $subject = "Import ekz Fortsetzung-Titel $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
         $subject = "Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     } else {    # eq 'BestellInfo'
@@ -1057,6 +1064,8 @@ sub createProcessingMessageText {
         $message .= '    '. h("Ergebnisse Import ekz Rechnung $ekzBestell_Ls_Re_Nr ($libraryName)") . "\n";
     } elsif ( $logresult->[0]->[0] eq 'LieferscheinDetail' ) {
         $message .= '    '. h("Ergebnisse Import ekz Lieferschein $ekzBestell_Ls_Re_Nr ($libraryName)") . "\n";
+    } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
+        $message .= '    '. h("Ergebnisse Import ekz Fortsetzung-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") . "\n";
     } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
         $message .= '    '. h("Ergebnisse Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") . "\n";
     } else {    # eq 'BestellInfo'
@@ -1184,6 +1193,9 @@ sub createProcessingMessageText {
     } elsif ( $logresult->[0]->[0] eq 'LieferscheinDetail' ) {
         $message .= '<h1>' . h("Ergebnisse Import ekz Lieferschein $ekzBestell_Ls_Re_Nr ($libraryName)") .' </h1>'."\n";
         $message .= '<p>' . h('Datum: ' .  $printdate. ', LieferscheinDetail-Response messageID: ' . $logresult->[0]->[1]);
+    } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
+        $message .= '<h1>' . h("Ergebnisse Import ekz Fortsetzung-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") .' </h1>'."\n";
+        $message .= '<p>' . h('Datum: ' .  $printdate. ', FortsetzungDetail-Response messageID: ' . $logresult->[0]->[1]);
     } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
         $message .= '<h1>' . h("Ergebnisse Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") .' </h1>'."\n";
         $message .= '<p>' . h('Datum: ' .  $printdate. ', StoList-Response messageID: ' . $logresult->[0]->[1]);
@@ -1243,17 +1255,20 @@ sub createProcessingMessageText {
         #    }
         #    $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/catalogue/search.pl?q=Other-control-number%3A%28EKZImport%29' . $orderNr . '">' . h("Link auf alle bearbeiteten Titel der Bestellung $orderNr") . '</a>';
         #}
-        ## link to all handled titles without order number (or from stoList or LieferscheinDetail)
+        ## link to all handled titles without order number (or from stoList or FortsetzungDetail or LieferscheinDetail or RechnungDetail)
         if ( $controlNumberCnt > 0 ) {
             #my $messText = "Link auf alle bearbeiteten Titel ohne Bestellzuordnung";    # default for BestellInfo
             my $messText = "Link auf alle bearbeiteten Titel";    # default for BestellInfo
-            if ( $logresult->[0]->[0] eq 'StoList' || $logresult->[0]->[0] eq 'LieferscheinDetail' || $logresult->[0]->[0] eq 'RechnungDetail' ) {
+            if ( $logresult->[0]->[0] eq 'StoList' ||
+                 $logresult->[0]->[0] eq 'FortsetzungDetail' ||
+                 $logresult->[0]->[0] eq 'LieferscheinDetail' ||
+                 $logresult->[0]->[0] eq 'RechnungDetail' ) {
                 $messText = "Link auf alle bearbeiteten Titel";
             }            
             $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/catalogue/search.pl?q=' . $controlNumberQuery . '">' . h($messText) . '</a>';
-            if ( $logresult->[0]->[0] eq 'BestellInfo' || $logresult->[0]->[0] eq 'StoList' ) {
+            if ( $logresult->[0]->[0] eq 'BestellInfo' || $logresult->[0]->[0] eq 'StoList' || $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
                 if ( defined($aqbasketno) && $aqbasketno > 0 ) { 
-                    my $messText = "Link auf die Koha-Bestellung";    # default for BestellInfo and StoList
+                    my $messText = "Link auf die Koha-Bestellung";    # default for BestellInfo and StoList and FortsetzungDetail
                     # e. g.  http://192.168.122.100:8080/cgi-bin/koha/acqui/basket.pl?basketno=42
                     $message .= '<br />' . '<a href="' . $kohaInstanceUrl . '/cgi-bin/koha/acqui/basket.pl?basketno=' . $aqbasketno . '">' . h($messText) . '</a>';
                 }
@@ -1273,6 +1288,8 @@ sub createProcessingMessageText {
             $message .= h("Beim Import der ekz Rechnung " . $ekzBestell_Ls_Re_Nr . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
         } elsif ( $logresult->[0]->[0] eq 'LieferscheinDetail' ) {
             $message .= h("Beim Import des ekz Lieferscheins " . $ekzBestell_Ls_Re_Nr . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
+        } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
+            $message .= h("Beim Import von Titeln der ekz Fortsetzung " . $ekzBestell_Ls_Re_Nr . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
         } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
             $message .= h("Beim Import von Titeln der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
         } else {    # eq 'BestellInfo'
@@ -1284,6 +1301,8 @@ sub createProcessingMessageText {
                 $message .= h("Beim Import der ekz Rechnung " . $ekzBestell_Ls_Re_Nr . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
             } elsif ( $logresult->[0]->[0] eq 'LieferscheinDetail' ) {
                 $message .= h("Beim Import des ekz Lieferscheins " . $ekzBestell_Ls_Re_Nr . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
+            } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
+                $message .= h("Beim Import von Titeln der ekz Fortsetzung " . $ekzBestell_Ls_Re_Nr . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
             } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
                 $message .= h("Beim Import von Titeln der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
             } else {    # eq 'BestellInfo'
@@ -1294,6 +1313,8 @@ sub createProcessingMessageText {
                 $message .= h("Die Titel- und Exemplardaten der ekz Rechnung " . $ekzBestell_Ls_Re_Nr . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
             } elsif ( $logresult->[0]->[0] eq 'LieferscheinDetail' ) {
                 $message .= h("Die Titel- und Exemplardaten des ekz Lieferscheins " . $ekzBestell_Ls_Re_Nr . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
+            } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
+                $message .= h("Die aktualisierten Titel- und Exemplardaten der ekz Fortsetzung " . $ekzBestell_Ls_Re_Nr . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
             } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
                 $message .= h("Die aktualisierten Titel- und Exemplardaten der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
             } else {    # eq 'BestellInfo'
@@ -1315,7 +1336,7 @@ sub createProcessingMessageText {
         $message .= '        <th colspan="6">'."\n";
         if ( $logresult->[0]->[0] eq 'BestellInfo' || $logresult->[0]->[0] eq 'LieferscheinDetail' || $logresult->[0]->[0] eq 'RechnungDetail' ) {
             $message .= '           <span class="import-result-field">Ergebnis:</span> <span class="import-result">' . 'Von ' . $processedTitlesCount . ' Titeln wurden ' . $importedTitlesCount . ' importiert und ' . $foundTitlesCount . ' aktualisiert; von ' . $processedItemsCount . ' Exemplaren wurden ' . $importedItemsCount . ' importiert und ' . $updatedItemsCount . ' aktualisiert. </span><br />'."\n";
-        } else {    # eq 'StoList'
+        } else {    # eq 'StoList' || eq 'FortsetzungDetail'
             $message .= '           <span class="import-result-field">Ergebnis:</span> <span class="import-result">' . 'Von ' . $processedTitlesCount . ' Titeln wurden ' . $importedTitlesCount . ' importiert und ' . $foundTitlesCount . ' aktualisiert; von ' . $processedItemsCount . ' Exemplaren wurden ' . $importedItemsCount . ' importiert. </span><br />'."\n";
         }
         $message .= '        </th>'."\n";
@@ -1446,6 +1467,8 @@ sub createProcessingMessageText {
                     $message .= h('Fehler beim Import der ekz Rechnungsdaten für einen Titel: ') . h($loaderr);
                 } elsif ( $logresult->[0]->[0] eq 'LieferscheinDetail' ) {
                     $message .= h('Fehler beim Import der ekz Lieferscheindaten für einen Titel: ') . h($loaderr);
+                } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
+                    $message .= h('Fehler beim Import der ekz Fortsetzung-Daten für einen Titel: ') . h($loaderr);
                 } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
                     $message .= h('Fehler beim Import der ekz standing-order-Daten für einen Titel: ') . h($loaderr);
                 } else {    # eq 'BestellInfo'
@@ -1569,7 +1592,8 @@ sub checkAqbudget {
 
     # $ekzHaushaltsstelle is sent in SOAP request and refers to aqbudgetperiods.budget_period_description
     # $ekzKostenstelle is sent in SOAP request refers to aqbudgets.budget_code where budget_parent_id IS NULL and budget_period_id = aqbudgetperiods.budget_period_id
-    # As we require the combination of aqbudgetperiods.budget_period_description and aqbudgets.budget_code to be unique, we do not select by budget_branchcode (this is necessary because StoList and LieferscheinDetail and RechnungDetail send no branchcode field)
+    # As we require the combination of aqbudgetperiods.budget_period_description and aqbudgets.budget_code to be unique, we do not select by budget_branchcode
+    # (this is necessary because StoList and FortsetzungDetail and LieferscheinDetail and RechnungDetail send no branchcode field).
     
     # If ekzHaushaltsstelle is not empty:
     #     If an active, non locked aqbudgetperiods record with aqbudgetperiods.budget_period_description = ekzHaushaltsstelle exists, then take this record,

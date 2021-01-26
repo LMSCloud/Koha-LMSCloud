@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsStandingOrder;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -396,7 +396,7 @@ sub genKohaRecords {
                         $authorisedby = $hit->{borrowernumber};
                     }
                     my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
-                    $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz StoList', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH
+                    $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz StoList', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH fixed text ok?
                     $logger->info("genKohaRecords() created new basket having basketno:" . $basketno . ":");
                     if ( $basketno ) {
                         my $basketinfo = {};
@@ -822,10 +822,10 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                         }
                     }
                 }    # end of "if ( defined($basketno) && $basketno > 0 ) {"
-# XXXWH hau wech:
-for ( my $i = 0; $i < scalar @itemReferenznummer; $i += 1 ) {
-    $logger->debug("genKohaRecords() item index i:$i: itemReferenznummer[$i]" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . $itemOrder[$i]->budget_id() . ":");
-}
+
+                for ( my $i = 0; $i < scalar @itemReferenznummer; $i += 1 ) {
+                    $logger->trace("genKohaRecords() item index i:$i: itemReferenznummer[$i]:" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . $itemOrder[$i]->budget_id() . ":");
+                }
 
                 for ( my $j = 0; $j < $exemplarcount; $j++ ) {
                     my $problems = '';              # string for accumulating error messages for this order
