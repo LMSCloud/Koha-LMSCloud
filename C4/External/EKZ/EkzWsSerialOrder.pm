@@ -1,6 +1,6 @@
-package C4::External::EKZ::EkzWsStandingOrder;
+package C4::External::EKZ::EkzWsSerialOrder;
 
-# Copyright 2017-2021 (C) LMSCLoud GmbH
+# Copyright 2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -34,224 +34,72 @@ use Koha::AcquisitionImport::AcquisitionImportObjects;
 use C4::Acquisition;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( getCurrentYear readStoFromEkzWsStoList addReferenznummerToObjectItemNumber genKohaRecords );
-
+our @EXPORT = qw( getCurrentYear readSerialOrdersFromEkzWsFortsetzungList readSerialOrderFromEkzWsFortsetzungDetail genKohaRecords );
 
 
 ###################################################################################################
-# get the current year
+# read serial orders using ekz web service 'FortsetzungList' (overview data)
 ###################################################################################################
-sub getCurrentYear {
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-
-    return 1900 + $year;
-}
-
-###################################################################################################
-# read standing orders using ekz web service 'StoList' (overview data)
-###################################################################################################
-sub readStoFromEkzWsStoList {
+sub readSerialOrdersFromEkzWsFortsetzungList {
     my $ekzCustomerNumber = shift;
-    my $selJahr = shift;
-    my $selStoId = shift;
-	my $selMitTitel = shift;
-    my $selMitKostenstellen = shift;
-	my $selMitEAN = shift;
-	my $selStatusUpdate = shift;
-	my $selErweitert = shift;
-    my $selMitReferenznummer = shift;
-    my $refStoListElement = shift;    # for storing the StoListElement of the SOAP request body
+    my $selVon = shift;
+    my $selBis = shift;
 
     my $result = ();    # hash reference
-    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsSerialOrder' });
 
-    $logger->info("readStoFromEkzWsStoList() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
-                                                ": selJahr:" . (defined($selJahr) ? $selJahr : 'undef') .
-                                                ": selStoId:" . (defined($selStoId) ? $selStoId : 'undef') .
-                                                ": selMitTitel:" . (defined($selMitTitel) ? $selMitTitel : 'undef') .
-                                                ": selMitKostenstellen:" . (defined($selMitKostenstellen) ? $selMitKostenstellen : 'undef') .
-                                                ": selMitEAN:" . (defined($selMitEAN) ? $selMitEAN : 'undef') .
-                                                ": selStatusUpdate:" . (defined($selStatusUpdate) ? $selStatusUpdate : 'undef') .
-                                                ": selErweitert:" . (defined($selErweitert) ? $selErweitert : 'undef') .
-                                                ": selMitReferenznummer:" . (defined($selMitReferenznummer) ? $selMitReferenznummer : 'undef') .
+    $logger->info("readSerialOrdersFromEkzWsFortsetzungList() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                                ": selVon:" . (defined($selVon) ? $selVon : 'undef') .
+                                                ": selBis:" . (defined($selBis) ? $selBis : 'undef') .
                                                 ":");
-    
-    $logger->debug("readStoFromEkzWsStoList() \$refStoListElement:" .  Dumper($refStoListElement) . ":");
 	
 	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
-    $result = $ekzwebservice->callWsStoList($ekzCustomerNumber, $selJahr, $selStoId, $selMitTitel, $selMitKostenstellen, $selMitEAN, $selStatusUpdate, $selErweitert,$selMitReferenznummer,$refStoListElement);
+    $result = $ekzwebservice->callWsFortsetzungList($ekzCustomerNumber, $selVon, $selBis);
 
-    $logger->info("readStoFromEkzWsStoList() returns result:" .  Dumper($result) . ":");
+    $logger->info("readSerialOrdersFromEkzWsFortsetzungList() returns result:" .  Dumper($result) . ":");
 
     return $result;
 }
 
 ###################################################################################################
-# Go through the titles contained in the response for the selected standing order
-# to check and add reference number to acquisition_import.object_item_number if lacking.
-# (This is required only because we can not rely on daily up-to-date reference number delivery by ekz.)
+# read serial order using ekz web service 'FortsetzungDetail' (serial order detail data)
 ###################################################################################################
-sub addReferenznummerToObjectItemNumber {
-    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
-    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
+sub readSerialOrderFromEkzWsFortsetzungDetail {
+    my $ekzCustomerNumber = shift;                 # mandatory
+    my $selFortsetzungsId = shift;                 # mandatory
+    my $selBearbeitungsGruppe = shift;             # optional
+    my $selBearbeitungsNummer = shift;             # optional
+    my $selFortsetzungsAuftragsNummer = shift;     # optional
+    my $selMitReferenznummer = shift;              # optional
+    my $refFortsetzungDetailElement = shift;       # for storing the FortsetzungDetailElement of the SOAP response body in DB table acquisition_import
 
-    my $ekzBestellNr = '';
-    my $dbh = C4::Context->dbh;
-    my $titles = {};
+    my $result = ();    # hash reference
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsSerialOrder' });
 
-    $logger->info("addReferenznummerToObjectItemNumber() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
-                                                                    ": messageID:" . (defined($messageID) ? $messageID : 'undef') .
-                                                                    ": stoWithNewState->stoID:" . (defined($stoWithNewState->{'stoID'}) ? $stoWithNewState->{'stoID'} : 'undef') .
-                                                                    ": stoWithNewState->titelCount:" . (defined($stoWithNewState->{'titelCount'}) ? $stoWithNewState->{'titelCount'} : 'undef') .
-                                                                    ": lastRunDate:" . (defined($lastRunDate) ? $lastRunDate : 'undef') .
-                                                                     ": todayDate:" . (defined($todayDate) ? $todayDate : 'undef') .
-                                                                    ":");
+    $logger->info("readSerialOrderFromEkzWsFortsetzungDetail() START" . 
+                                                 " ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                                ": selFortsetzungsId:" . (defined($selFortsetzungsId) ? $selFortsetzungsId : 'undef') .
+                                                ": selBearbeitungsGruppe:" . (defined($selBearbeitungsGruppe) ? $selBearbeitungsGruppe : 'undef') .
+                                                ": selBearbeitungsNummer:" . (defined($selBearbeitungsNummer) ? $selBearbeitungsNummer : 'undef') .
+                                                ": selFortsetzungsAuftragsNummer:" . (defined($selFortsetzungsAuftragsNummer) ? $selFortsetzungsAuftragsNummer : 'undef') .
+                                                ": selMitReferenznummer:" . (defined($selMitReferenznummer) ? $selMitReferenznummer : 'undef') .
+                                                ":");
+	
+	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
+    $result = $ekzwebservice->callWsFortsetzungDetail($ekzCustomerNumber, $selFortsetzungsId, $selBearbeitungsGruppe, $selBearbeitungsNummer, $selFortsetzungsAuftragsNummer, $selMitReferenznummer, $refFortsetzungDetailElement);
 
+    $logger->info("readSerialOrderFromEkzWsFortsetzungDetail() returns result:" .  Dumper($result) . ":");
 
-    $ekzBestellNr = 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'};    # StoList response contains no order number, so we create this dummy order number
-
-    # 1. step: Accumulate info on count of items per status per reference number for each title (info is spread across multiple <titel> XML elements having the same <ekzArtikelNummer> and maybe same <referenznummer>).
-    foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
-        $logger->info("addReferenznummerToObjectItemNumber() titel ekzArtikelNr:" . $titel->{'ekzArtikelNummer'} . ": isbn:" . $titel->{'isbn'} . ": status:" . $titel->{'status'} . ": statusDatum:" . $titel->{'statusDatum'} . ":");
-
-        # look for XML <titel><referenznummer><referenznummer> and <titel><referenznummer><exemplare> elements
-        $logger->debug("addReferenznummerToObjectItemNumber() ref(titel->{'referenznummer'}):" . ref($titel->{'referenznummer'}) . ":");
-        my $referenznummerDefined = ( exists $titel->{'referenznummer'} && defined $titel->{'referenznummer'});
-        my $referenznummerArrayRef = [];    #  using ref to empty array if there are sent no referenznummer blocks
-        if ( $referenznummerDefined && ref($titel->{'referenznummer'}) eq 'ARRAY' ) {
-            $referenznummerArrayRef = $titel->{'referenznummer'}; # ref to deserialized array containing the hash references
-        }
-        $logger->info("genKohaRecords() HTTP response referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
-
-        foreach my $referenznummerObject ( @{$referenznummerArrayRef} ) {
-            my $referenznummer;
-            my $exemplaranzahl = 0;
-            if ( exists $referenznummerObject->{'referenznummer'} && defined $referenznummerObject->{'referenznummer'} && length($referenznummerObject->{'referenznummer'}) ) {
-                $referenznummer = $referenznummerObject->{'referenznummer'};
-                $exemplaranzahl = 1;
-                if ( exists $referenznummerObject->{'exemplare'} && defined $referenznummerObject->{'exemplare'} ) {
-                    $exemplaranzahl = 0 + $referenznummerObject->{'exemplare'};
-                }
-                my $statusGroup = $titel->{'status'};
-                if ( $statusGroup eq '99' ) {
-                    $statusGroup = 'delivered';    # those reference numbers may have records in acquisition_import having processingstate 'invoiced', 'delivered', 'ordered'
-                } elsif ( $statusGroup eq '20' || $statusGroup eq '10' ) {
-                    $statusGroup = 'notdelivered';    # those reference numbers may have records in acquisition_import having processingstate 'ordered'
-                }
-                if ( ! defined( $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} ) ) {
-                    $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} = $exemplaranzahl;
-                } else {
-                    $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} += $exemplaranzahl;
-                }
-            }
-        }
-    }
-    $logger->info("addReferenznummerToObjectItemNumber() titles:" . Dumper($titles) . ": AnzElem:" . scalar %{$titles} . ":");
-
-
-    # 2. step: Add reference number to acquisition_import.object_item_number if lacking.
-    foreach my $ekzArtikelNummer ( sort { $a cmp $b } keys %{$titles} ) {
-        foreach my $referenznummer ( sort { $a cmp $b } keys %{$titles->{$ekzArtikelNummer}} ) {
-            my $itemCount = {};
-            $itemCount->{delivered} = 0;
-            $itemCount->{notdelivered} = 0;
-            # preferred sequence: status 99 ('delivered' / 'Bereits geliefert'), 20 ('included in next delivery' / 'in nächster Lieferung'), 10 ('prepared' / 'vorbreitet')
-            foreach my $statusGroup ( sort { $a cmp $b } keys %{$titles->{$ekzArtikelNummer}->{$referenznummer}} ) {
-                $itemCount->{$statusGroup} = $titles->{$ekzArtikelNummer}->{$referenznummer}->{$statusGroup}->{itemCount};
-            }
-            # compare with how often this reference number is used already in acquisition_import
-            my $selParam = {
-                vendor_id => "ekz",
-                object_type => "order",
-                object_number => $ekzBestellNr,    # $ekzBestellNr is set to 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'}
-                rec_type => "item",
-                object_item_number => $ekzBestellNr . '-' . $ekzArtikelNummer . '-' . $referenznummer
-            };
-            $logger->debug("addReferenznummerToObjectItemNumber() search order title item records in acquisition_import selParam:" . Dumper($selParam) . ":");
-
-            my $acquisitionImportItemRsCount = {};
-            $acquisitionImportItemRsCount->{invoiced} = 0;
-            $acquisitionImportItemRsCount->{delivered} = 0;
-            $acquisitionImportItemRsCount->{ordered} = 0;
-            my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
-            my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->search($selParam);
-            if ( $acquisitionImportItemRS ) {
-                while ( my $acquisitionImportItemHit = $acquisitionImportItemRS->next()) {
-                    $acquisitionImportItemRsCount->{$acquisitionImportItemHit->processingstate} += 1;
-                }
-            }
-            $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: itemCount->{delivered}:$itemCount->{delivered}: itemCount->{notdelivered}:$itemCount->{notdelivered}:");
-            $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: acquisitionImportItemRsCount->{invoiced}:$acquisitionImportItemRsCount->{invoiced}: ->{delivered}:$acquisitionImportItemRsCount->{delivered}: ->{ordered}:$acquisitionImportItemRsCount->{ordered}:");
-            my $itemCountSum = $itemCount->{delivered} + $itemCount->{notdelivered};
-            my $acquisitionImportItemRsCountSum = $acquisitionImportItemRsCount->{invoiced} + $acquisitionImportItemRsCount->{delivered} + $acquisitionImportItemRsCount->{ordered};
-
-            if ( $acquisitionImportItemRsCountSum < $itemCountSum ) {
-                foreach my $statusGroup ( sort { $a cmp $b } keys %{$titles->{$ekzArtikelNummer}->{$referenznummer}} ) {
-                    my @selProcessingstateSequence = ('ordered');    # default, is correct for status 20 and 10 (i.e. statusGroup 'notdelivered')
-                    $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: ");
-
-                    if ( $statusGroup eq 'delivered' ) {
-                        # check and update acquisition_import entries of invoiced or delivered or ordered items (in this sequence)
-                        @selProcessingstateSequence = ('invoiced', 'delivered', 'ordered');
-                    }
-                    foreach my $selProcessingstate ( @selProcessingstateSequence ) {
-                        $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: itemCountSum:$itemCountSum: acquisitionImportItemRsCountSum:$acquisitionImportItemRsCountSum: start loop for selProcessingstate:$selProcessingstate:");
-                        if ( $acquisitionImportItemRsCountSum >= $itemCountSum ) {
-                            last;
-                        }
-                        my $selParam = {
-                            vendor_id => "ekz",
-                            object_type => "order",
-                            object_number => $ekzBestellNr,    # $ekzBestellNr is set to 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'}
-                            rec_type => "item",
-                            object_item_number => { 'like' => $ekzBestellNr . '-' . $ekzArtikelNummer . '%' },
-                            processingstate => $selProcessingstate
-                        };
-                        my $orderByParam = { order_by => { -asc => [ "id"] } };
-                        $logger->debug("addReferenznummerToObjectItemNumber() search $selProcessingstate order title item record in acquisition_import selParam:" . Dumper($selParam) . ": orderByParam:" . Dumper($orderByParam) . ":");
-
-                        my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
-                        my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->search($selParam, $orderByParam);
-                        while ( my $acquisitionImportItemHit = $acquisitionImportItemRS->next() ) {
-                            if ( $acquisitionImportItemRsCountSum >= $itemCountSum ) {
-                                last;
-                            }
-                            # my $acquisitionImportIdItem = $acquisitionImportItemHit->get_column('id');
-                            $logger->debug("addReferenznummerToObjectItemNumber() acquisitionImportItemHit->{_column_data}:" . Dumper($acquisitionImportItemHit->{_column_data}) . ":");
-                            my $object_item_number = $acquisitionImportItemHit->object_item_number();
-                            if ( $object_item_number =~ /^$ekzBestellNr-$ekzArtikelNummer-$referenznummer$/ ) {
-                                # entry is correct already
-                                $logger->debug("addReferenznummerToObjectItemNumber() found referencenumber in $selProcessingstate order title item record in acquisition_import");
-                            } elsif ( $object_item_number =~ /^$ekzBestellNr-$ekzArtikelNummer$/ ) {
-                                # found a record where reference number is lacking
-                                my $updParam = {
-                                    #processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone    # commented out to not spoil timestamp
-                                    object_item_number => $object_item_number . '-' . $referenznummer
-                                };
-                                $logger->debug("addReferenznummerToObjectItemNumber() update $selProcessingstate order title item record in acquisition_import updParam:" . Dumper($updParam) . ":");
-                                $acquisitionImportItemHit->update($updParam);
-                                $acquisitionImportItemRsCount->{$acquisitionImportItemHit->processingstate} += 1;
-                                $acquisitionImportItemRsCountSum += 1;
-                            }
-                        }
-                        $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: itemCountSum:$itemCountSum: acquisitionImportItemRsCountSum:$acquisitionImportItemRsCountSum: ending loop for selProcessingstate:$selProcessingstate:");
-                    }
-                    $logger->debug("addReferenznummerToObjectItemNumber() ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: statusGroup:$statusGroup: itemCountSum:$itemCountSum: acquisitionImportItemRsCountSum:$acquisitionImportItemRsCountSum: done loop for each selProcessingstate");
-                }
-            }
-            $logger->debug("addReferenznummerToObjectItemNumber() done ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: itemCount->{delivered}:$itemCount->{delivered}: itemCount->{notdelivered}:$itemCount->{notdelivered}:");
-            $logger->debug("addReferenznummerToObjectItemNumber() done ekzArtikelNummer:$ekzArtikelNummer: referenznummer:$referenznummer: acquisitionImportItemRsCount->{invoiced}:$acquisitionImportItemRsCount->{invoiced}: ->{delivered}:$acquisitionImportItemRsCount->{delivered}: ->{ordered}:$acquisitionImportItemRsCount->{ordered}:");
-        }
-    }
+    return $result;
 }
 
 ###################################################################################################
-# go through the titles contained in the response for the selected standing order, 
+# go through the titles contained in the response for the selected serial order, 
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate) = @_;
-    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
+    my ($ekzCustomerNumber, $messageID, $fortsetzungDetailElement, $serWithNewState, $lastRunDate, $todayDate) = @_;
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsSerialOrder' });
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $ekzBestellNr = '';
@@ -274,11 +122,11 @@ sub genKohaRecords {
 
     $logger->info("genKohaRecords() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
                                        ": messageID:" . (defined($messageID) ? $messageID : 'undef') .
-                                       ": stoWithNewState->stoID:" . (defined($stoWithNewState->{'stoID'}) ? $stoWithNewState->{'stoID'} : 'undef') .
-                                       ": stoWithNewState->titelCount:" . (defined($stoWithNewState->{'titelCount'}) ? $stoWithNewState->{'titelCount'} : 'undef') .
                                        ": lastRunDate:" . (defined($lastRunDate) ? $lastRunDate : 'undef') .
                                        ": todayDate:" . (defined($todayDate) ? $todayDate : 'undef') .
+                                       ": serWithNewState:" . Dumper($serWithNewState) .
                                        ":");
+
 
     my $zweigstellencode = '';
     my $homebranch = $ekzKohaRecord->{ekzWsConfig}->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
@@ -307,9 +155,16 @@ sub genKohaRecords {
     # insert/update the order message if at least one item has got state 10 or 20 or 99 ( 99 only if lastRunDate is set)
     my $insOrUpd = 0;
 
+    my $serialOrderTitles = [];
+    if ( $serWithNewState->{fortsetzungDetailStatusRecords} &&
+         $serWithNewState->{fortsetzungDetailStatusRecords}->{alreadyPlanned} &&
+         $serWithNewState->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus} &&
+         $serWithNewState->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus}->{detail} ) {
+        $serialOrderTitles = $serWithNewState->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus}->{detail};
+    }
     my $minStatusDatum = '9999-12-31';
-    foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
-        my $statusDatum = substr($titel->{'statusDatum'},0,10);    # format yyyy-mm-ddT00:00:00.000 to yyyy-mm-dd
+    foreach my $titel ( @{$serialOrderTitles} ) {
+        my $statusDatum = substr($titel->{'BestellDatum'},0,10);    # format yyyy-mm-ddT00:00:00.000 to yyyy-mm-dd. Regrettably there is no statusDatum as with standing orders
         if ( $minStatusDatum gt $statusDatum ) {
             $minStatusDatum = $statusDatum;
         }
@@ -321,7 +176,7 @@ sub genKohaRecords {
                     last;
             }
         } else {
-            if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20) &&    # 'vorbreitet' || 'in nächster Lieferung' (i.e. 'prepared' || 'included in next delivery'
+            if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20) &&    # 'vorbereitet' || 'in nächster Lieferung' (i.e. 'prepared' || 'included in next delivery'
                 $statusDatum lt $todayDate ) {
                     $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
                     last;
@@ -334,11 +189,11 @@ sub genKohaRecords {
     $logger->info("genKohaRecords() insOrUpd:$insOrUpd:");
     if ( $insOrUpd ) {
 
-        # Insert/update record in table acquisition_import representing the standing order request.
+        # Insert/update record in table acquisition_import representing the serial order request.
         $dbh = C4::Context->dbh;
         $dbh->{AutoCommit} = 0;
 
-        $ekzBestellNr = 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'};    # StoList response contains no order number, so we create this dummy order number
+        $ekzBestellNr = 'ser.' . $ekzCustomerNumber . '.ID' . $serWithNewState->{'fortsetzungsId'};    # FortsetzungList response contains no order number, so we create this dummy order number
 
         my $selParam = {
             vendor_id => "ekz",
@@ -357,16 +212,16 @@ sub genKohaRecords {
             #object_item_number => "", # NULL
             processingstate => "ordered",
             processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
-            payload => $stoListElement,
+            payload => $fortsetzungDetailElement,
             #object_reference => undef # NULL
         };
         my $updParam = {
             processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
-            payload => $stoListElement
+            payload => $fortsetzungDetailElement
         };
-        $logger->debug("genKohaRecords() search delivery note message record in acquisition_import selParam:" . Dumper($selParam) . ":");
-        $logger->debug("genKohaRecords() search delivery note message record in acquisition_import insParam:" . Dumper($insParam) . ":");
-        $logger->debug("genKohaRecords() search delivery note message record in acquisition_import updParam:" . Dumper($updParam) . ":");
+        $logger->debug("genKohaRecords() search serial order message record in acquisition_import selParam:" . Dumper($selParam) . ":");
+        $logger->debug("genKohaRecords() search serial order message record in acquisition_import insParam:" . Dumper($insParam) . ":");
+        $logger->debug("genKohaRecords() search serial order message record in acquisition_import updParam:" . Dumper($updParam) . ":");
 
         my $acquisitionImportMessage = Koha::AcquisitionImport::AcquisitionImports->new();
         $acquisitionImportMessage = $acquisitionImportMessage->upd_or_ins($selParam, $updParam, $insParam);
@@ -377,17 +232,17 @@ sub genKohaRecords {
 
         # attaching ekz order to Koha acquisition: Create new basket.
         # if system preference ekzAqbooksellersId is not empty: Create a Koha order basket for collecting the Koha orders created for each title contained in the request in the following steps.
-        if ( scalar @{$stoWithNewState->{'titelRecords'}} > 0 ) {
+        if ( scalar @{$serialOrderTitles} > 0 ) {
             # policy: if ekzAqbooksellersId is not empty but does not identify an aqbooksellers record: create such an record and update ekzAqbooksellersId
             $ekzAqbooksellersId = $ekzKohaRecord->checkEkzAqbooksellersId($ekzAqbooksellersId,1);
             if ( length($ekzAqbooksellersId) ) {
                 # Search or create a Koha acquisition order basket,
                 # i.e. search / insert a record in table aqbasket so that the following new aqorders records can link to it via aqorders.basketno = aqbasket.basketno .
-                my $basketname = 'S-' . $ekzBestellNr;
+                my $basketname = 'F-' . $ekzBestellNr;
                 my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                 if ( @{$selbaskets} > 0 ) {
                     $basketno = $selbaskets->[0]->{'basketno'};
-                    $logger->info("genKohaRecords() found aqbasket with basketno:" . $basketno . ":");
+                    $logger->info("genKohaRecords() found aqbasket with basketname:$basketname: having basketno:" . $basketno . ":");
                 } else {
                     my $authorisedby = undef;
                     my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
@@ -396,8 +251,8 @@ sub genKohaRecords {
                         $authorisedby = $hit->{borrowernumber};
                     }
                     my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
-                    $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz StoList', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH fixed text ok?
-                    $logger->info("genKohaRecords() created new basket having basketno:" . $basketno . ":");
+                    $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz FortsetzungDetail', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH fixed text ok?
+                    $logger->info("genKohaRecords() created new aqbasket with basketname:$basketname: having basketno:" . $basketno . ":");
                     if ( $basketno ) {
                         my $basketinfo = {};
                         $basketinfo->{'basketno'} = $basketno;
@@ -413,23 +268,10 @@ sub genKohaRecords {
         $logger->info("genKohaRecords() ekzAqbooksellersId:$ekzAqbooksellersId: acquisitionError:$acquisitionError: basketno:$basketno:");
 
 
-        # for each titel
+        # for each titel (run through the <detail> XML elements)
 
-        foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
-            $logger->info("genKohaRecords() titel ekzArtikelNr:" . $titel->{'ekzArtikelNummer'} . ": isbn:" . $titel->{'isbn'} . ": status:" . $titel->{'status'} . ": statusDatum:" . $titel->{'statusDatum'} . ":");
-            if ( !(($lastRunDateIsSet &&
-                    ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
-                    $titel->{'statusDatum'} ge $lastRunDate && 
-                    $titel->{'statusDatum'} lt $todayDate
-                   ) ||
-                   (!$lastRunDateIsSet &&
-                    ($titel->{'status'} == 10 || $titel->{'status'} == 20) &&    # 'vorbreitet' || 'in nächster Lieferung (i.e. 'prepared' || 'included in next delivery')
-                    $titel->{'statusDatum'} lt $todayDate
-                   )
-                  )
-               ) {
-                next;
-            }
+        foreach my $titel ( @{$serialOrderTitles} ) {
+            $logger->info("genKohaRecords() titel ekzArtikelNr:" . $titel->{'artikelNummer'} . ": artikelName:" . $titel->{'artikelName'} . ": status:" . $titel->{'status'} . ": BestellDatum:" . $titel->{'BestellDatum'} . ":");
 
             my $titleHits = { 'count' => 0, 'records' => [] };
             my $biblioExisting = 0;
@@ -449,14 +291,13 @@ sub genKohaRecords {
             my ($titeldata, $isbnean) = ("", "");
 
             my $reqParamTitelInfo = ();
-            $reqParamTitelInfo->{'ekzArtikelArt'}  = $stoWithNewState->{'artikelArt'};
-            $reqParamTitelInfo->{'ekzArtikelNr'} = $titel->{'ekzArtikelNummer'};
-            $reqParamTitelInfo->{'isbn'} = '';
+            $reqParamTitelInfo->{'ekzArtikelNr'} = $titel->{'artikelNummer'};
+            $reqParamTitelInfo->{'isbn'} = ''; # XXXWH not sent until now
             $reqParamTitelInfo->{'isbn13'} = $titel->{'isbn'};    # field isbn transfers ISBN13
             $reqParamTitelInfo->{'ean'} = $titel->{'ean'};
-            $reqParamTitelInfo->{'author'} = $titel->{'autor'};   # autor is german spelling of author
-            $reqParamTitelInfo->{'titel'} = $titel->{'titel'};
-            $reqParamTitelInfo->{'preis'} = $titel->{'preis'};
+            $reqParamTitelInfo->{'author'} = $titel->{'author'};
+            $reqParamTitelInfo->{'titel'} = $titel->{'artikelName'};
+            $reqParamTitelInfo->{'preis'} = $titel->{'preis'}; # listprice; $titel->{'artikelPreis'} seems to be reduced by discount (but may also contain handling charges?)
             $logger->info("genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ":");
 
             # priority of title sources to be checked:
@@ -499,7 +340,7 @@ sub genKohaRecords {
                     $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
                     $logger->info("genKohaRecords() from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                 } elsif ( $titleSource eq '_WS' ) {
-                    # use sparse title data from the StoListElement
+                    # use sparse title data from the FortsetzungDetailElement
                     $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
                     $logger->info("genKohaRecords() from sent titel fields:" . $titleHits->{'count'} . ":");
                 } else {
@@ -546,7 +387,7 @@ sub genKohaRecords {
             my $dateTimeNow = DateTime->now(time_zone => 'local');
             if ($biblioExisting || $biblioInserted ) {
 
-                # Insert a record into table acquisition_import representing the title data of the standing order.
+                # Insert a record into table acquisition_import representing the title data of the serial order.
                 my $selParam = {
                     vendor_id => "ekz",
                     object_type => "order",
@@ -568,7 +409,7 @@ sub genKohaRecords {
                     #payload => NULL, # NULL
                     object_reference => $acquisitionImportMessage->_resultset()->get_column('id')
                 };
-                $logger->debug("genKohaRecords() search standing order title record in acquisition_import selParam:" . Dumper($selParam) . ":");
+                $logger->debug("genKohaRecords() search serial order title record in acquisition_import selParam:" . Dumper($selParam) . ":");
 
                 my $acquisitionImportIdTitle;
                 my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
@@ -576,11 +417,11 @@ sub genKohaRecords {
                 $logger->debug("genKohaRecords() ref(acquisitionImportTitle):" . ref($acquisitionImportTitle) . ": ref(hit)" . ref($hit) . ":");
                 if ( defined($hit) ) {
                     $logger->debug("genKohaRecords() hit->{_column_data}:" . Dumper($hit->{_column_data}) . ":");
-                    my $mess = sprintf("The ekz article number '%s' has already been used in the standing order %s at %s. Processing skipped for this title in order to avoid repeated item record creation.\n",$reqParamTitelInfo->{'ekzArtikelNr'}, $stoWithNewState->{'stoID'}, $hit->get_column('processingtime'));
+                    my $mess = sprintf("The ekz article number '%s' has already been used in the serial order %s at %s. Processing skipped for this title in order to avoid repeated item record creation.",$reqParamTitelInfo->{'ekzArtikelNr'}, $serWithNewState->{'fortsetzungsId'}, $hit->get_column('processingtime'));
                     $logger->error("genKohaRecords() Error:" . $mess . ":");
-                    carp $mess;
+                    carp ('EkzWsSerialOrder::genKohaRecords() Error:' . $mess . "\n");
 
-                    next;    # The ekz article number has already been used in this standing. Skip processing of this title in order to avoid repeated item record creation.
+                    next;    # The ekz article number has already been used in this serial order. Skip processing of this title in order to avoid repeated item record creation.
 
                 } else {
                     my $schemaResultAcquitionImport = $acquisitionImportTitle->_resultset()->create($insParam);
@@ -607,8 +448,8 @@ sub genKohaRecords {
 
 
                 # now add the items data for the new or found biblionumber
-                my $ekzExemplarID = $ekzBestellNr . '-' . $reqParamTitelInfo->{'ekzArtikelNr'};    # StoList response contains no item number, so we create this dummy item number
-                my $exemplarcount = $titel->{'anzahl'};
+                my $ekzExemplarID = $ekzBestellNr . '-' . $reqParamTitelInfo->{'ekzArtikelNr'};    # FortsetzungDetail response contains no item number, so we create this dummy item number (just in case that <referenznummer> is not sent)
+                my $exemplarcount = $titel->{'menge'};
                 $logger->info("genKohaRecords() exemplar ekzExemplarID:$ekzExemplarID: exemplarcount:$exemplarcount:");
 
 
@@ -616,13 +457,15 @@ sub genKohaRecords {
 
 
                 # attaching ekz order to Koha acquisition: Create a new Koha::Acquisition::Order.
-                my $rabatt = 0.0;    # not sent in StoListElement
-                my $fracht = 0.00;    # not sent in StoListElement
-                my $einband = 0.00;    # not sent in StoListElement
-                my $bearbeitung = 0.00;    # not sent in StoListElement
-                my $ustSatz = &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('E');    # not sent in StoListElement
-                my $ust = 0.00;    # not sent in StoListElement
-                my $gesamtpreis = defined($titel->{'preis'}) ? $titel->{'preis'} : "0.00";    # discounted total for a single item
+                my $rabatt = 0.0;    # not sent in FortsetzungDetail response (XXXWH: perhaps could be calculated by (listprice-discountedprice)/listprice with listprice = $titel->{'preis'} and discountedprice = $titel->{'artikelPreis'}
+                my $fracht = 0.00;    # not sent in FortsetzungDetail response
+                my $einband = 0.00;    # not sent in FortsetzungDetail response
+                my $bearbeitung = 0.00;    # not sent in FortsetzungDetail response
+                my $ustSatz = &C4::External::EKZ::lib::EkzKohaRecords::defaultUstSatz('E');    # not sent in FortsetzungDetail response
+                my $ust = 0.00;    # not sent in FortsetzungDetail response
+                # In order to minimize confusion, we take the not-discounted price here,
+                # just as from StoList response (which does not contain the resulting price $titel->{'artikelPreis'}, but only the list price).
+                my $gesamtpreis = defined($titel->{'preis'}) ? $titel->{'preis'} : "0.00";    # normally: discounted total for a single item
                 my $reqWaehrung = 'EUR';
 
                 if ( $ust == 0.0 && $ustSatz != 0.0 ) {    # Bruttopreise
@@ -635,7 +478,7 @@ sub genKohaRecords {
                 }
 
                 # the following calculation is correct only where aqbooksellers.gstreg=1 and  aqbooksellers.listincgst=1 and  aqbooksellers.invoiceincgst=1 and aqbooksellers.listprice = aqbooksellers.invoiceprice = the library's currency
-                my $listprice_tax_included = $gesamtpreis - $fracht - $einband - $bearbeitung;    # not sent in StoListElement, so we calculate it
+                my $listprice_tax_included = $gesamtpreis - $fracht - $einband - $bearbeitung;    # not sent in FortsetzungDetail response, so we calculate it
                 if ( $rabatt != 0.0 ) {
                     my $divisor = 1.0 - ($rabatt / 100.0);
                     $listprice_tax_included =  $divisor == 0.0 ? $listprice_tax_included : $listprice_tax_included / $divisor;    # list price of single item in vendor's currency, not discounted
@@ -647,7 +490,7 @@ sub genKohaRecords {
                 my $replacementcost_tax_included =  $listprice_tax_included;    # list price of single item in library's currency, not discounted (at the moment no exchange rate calculation implemented)
                 my $replacementcost_tax_excluded =  $listprice_tax_excluded;    # list price of single item in library's currency, not discounted, tax excluded (at the moment no exchange rate calculation implemented)
 
-                # look for XML <titel><referenznummer><referenznummer> and <titel><referenznummer><exemplare> elements
+                # look for XML <detail><referenznummer><referenznummer> and <detail><referenznummer><exemplare> elements
                 $logger->debug("genKohaRecords() ref(titel->{'referenznummer'}):" . ref($titel->{'referenznummer'}) . ":");
                 my $referenznummerDefined = ( exists $titel->{'referenznummer'} && defined $titel->{'referenznummer'});
                 my $referenznummerArrayRef = [];    #  using ref to empty array if there are sent no referenznummer blocks
@@ -656,7 +499,7 @@ sub genKohaRecords {
                 }
                 $logger->info("genKohaRecords() HTTP response referenznummer array:" . Dumper(@$referenznummerArrayRef) . ": AnzElem:" . scalar @$referenznummerArrayRef . ":");
                 
-                my @itemReferenznummer = ();    # used for generating values for acquisition_import.object_item_number of the records representing the STO items (format: sto.<ekzKundenNr>.<stoID>-<ekzArtikelNr>-<referenznummer>)
+                my @itemReferenznummer = ();    # used for generating values for acquisition_import.object_item_number of the records representing the serial order title's items (format: ser.<ekzKundenNr>.<fortsetzungsId>-<ekzArtikelNr>-<referenznummer>)
                 foreach my $referenznummerObject ( @{$referenznummerArrayRef} ) {
                     my $referenznummer;
                     my $exemplaranzahl = 0;
@@ -674,7 +517,7 @@ sub genKohaRecords {
                 $logger->info("genKohaRecords() itemReferenznummer array:" . Dumper(@itemReferenznummer) . ": AnzElem:" . scalar @itemReferenznummer . ":");
 
 
-                my @itemOrder = ();    # used for creating the aqorders_items records for the created aqorders for this title
+                my @itemOrder = ();    # used for creating the aqorders_items records for the created aqorders record for this title
                 if ( defined($basketno) && $basketno > 0 ) {
                     # Add a Koha acquisition order to the order basket,
                     # i.e. insert an additional aqorder and add it to the aqbasket.
@@ -688,9 +531,9 @@ sub genKohaRecords {
                     #
                     # Here exclusively the aqbookseller 'ekz' is used, so we assume listprice=EUR, invoiceprice=EUR, gstreg=1, listincgst=1, invoiceincgst=1, tax_rate_bak=0.07 and the library's currency = EUR.
 
-                    my $haushaltsstelle = defined($titel->{'haushaltsstelle'}) ? $titel->{'haushaltsstelle'} : "";    # as far as known: <haushaltsstelle> is not sent in StoList response
+                    my $haushaltsstelle = defined($titel->{'haushaltsstelle'}) ? $titel->{'haushaltsstelle'} : "";    # as far as known: <haushaltsstelle> is not sent in FortsetzungDetail response
 
-                    # look for XML <titel><kostenstelle> elements 
+                    # look for XML <detail><kostenstelle> elements (but as far as known: <kostenstelle> is not sent in FortsetzungDetail response
                     $logger->debug("genKohaRecords() ref(titel->{'kostenstelle'}):" . ref($titel->{'kostenstelle'}) . ":");
                     my $kostenstelleDefined = ( exists $titel->{'kostenstelle'} && defined $titel->{'kostenstelle'});
                     my $kostenstelleArrayRef = [];    #  using ref to empty array if there are sent no kostenstelle blocks
@@ -875,7 +718,7 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                             $itemOrder[$j]->add_item($itemnumber);
                         }
 
-                        # Insert a record into table acquisition_import representing item data of the standing order.
+                        # Insert a record into table acquisition_import representing item data of the serial order.
                         my $insParam = {
                             #id => 0, # AUTO
                             vendor_id => "ekz",
@@ -933,13 +776,13 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
 
         }
 
-        # attaching ekz order to Koha acquisition: Because handling standing orders here, we do not close the basket, but create (but also not close) the corresponding basketgroup.
+        # attaching ekz order to Koha acquisition: Because handling serial orders here, we do not close the basket, but create (but also not close) the corresponding basketgroup.
         if ( length($ekzAqbooksellersId) && defined($basketno) && $basketno > 0 ) {
             # create a basketgroup for this basket and keep open both basket and basketgroup
             my $aqbasket = &C4::Acquisition::GetBasket($basketno);
             $logger->info("genKohaRecords() Dumper aqbasket:" . Dumper($aqbasket) . ":");
             if ( $aqbasket ) {
-                # do not close the basket with standing orders
+                # do not close the basket with serial orders
 
                 # search/create basket group with aqbasketgroups.name = pseudo ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
                 my $params = {
@@ -976,21 +819,22 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                     };
                     &C4::Acquisition::ModBasket($basketinfo);
 
-                    # do not close the basketgroup with standing orders
+                    # do not close the basketgroup with serial orders
                 }
             }
         }
 
 
-        # create @logresult message for log email, representing all titles of the StoList $stoWithNewState with all their processed items
-        push @logresult, ['StoList', $messageID, \@actionresult, $acquisitionError, $ekzAqbooksellersId, $basketno];
+        # create @logresult message for log email, representing all titles of the serial order $serWithNewState with all their processed items
+        push @logresult, ['FortsetzungDetail', $messageID, \@actionresult, $acquisitionError, $ekzAqbooksellersId, $basketno];
+
         $logger->debug("genKohaRecords() ####################################################################################################################");
         $logger->debug("genKohaRecords() Dumper(\\\@logresult):" . Dumper(\@logresult) . ":");
 
 
         #$dbh->rollback;    # roll it back for TEST XXXWH
 
-        # commit the complete standing order update (only as a single transaction)
+        ## commit the complete serial order update (only as a single transaction)
         $dbh->commit();
         $dbh->{AutoCommit} = 1;
 

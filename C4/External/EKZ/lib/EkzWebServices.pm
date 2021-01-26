@@ -1,6 +1,6 @@
 package C4::External::EKZ::lib::EkzWebServices;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -403,7 +403,7 @@ sub callWsStoList {
         $xmlwriter->dataElement('erweitert' => $selErweitert);    # <!—Steuerung, ob statusdatum und anzahl in Antwort geliefert wird, OPTIONAL -->
     }
     if ( defined $selMitReferenznummer && length($selMitReferenznummer) > 0 ) {
-        $xmlwriter->dataElement('mitReferenznummer' => $selMitReferenznummer);    # <!-- entscheidet, ob die Referenznummern (und deren Exemplaranzahl) zu den Titeln geliefert werden sollen, OPTIONAL →
+        $xmlwriter->dataElement('mitReferenznummer' => $selMitReferenznummer);    # <!-- entscheidet, ob die Referenznummern (und deren Exemplaranzahl) zu den Titeln geliefert werden sollen, OPTIONAL -->
     }
     $xmlwriter->endTag(       'bes:StoListElement');
     $xmlwriter->endTag(     'soap:Body');
@@ -484,53 +484,289 @@ sub callWsStoList {
 			}
             push @{$result->{'standingOrderRecords'}}, $stoRecord;
             $result->{'standingOrderCount'} += 1;
-            $self->{'logger'}->debug("callWsStoList() result->{'standingOrderRecords'}->[i]:" . $result->{'standingOrderRecords'}->[$result->{'standingOrderCount'}-1] . ":");
             $self->{'logger'}->trace("callWsStoList() Dumper(result->{'standingOrderRecords'}->[i]):" . Dumper($result->{'standingOrderRecords'}->[$result->{'standingOrderCount'}-1]) . ":");
 		}
-#VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-#		foreach my $lieferscheinNode ( $lieferscheinNodes->get_nodelist() ) {
-#            $self->{'logger'}->trace("callWsLieferscheinDetail() lieferscheinNode->nodeName:" . $lieferscheinNode->nodeName . ":");
-#            my $lieferscheinRecord = {'teilLieferungCount' => 0, 'teilLieferungRecords' => []};
-#			foreach my $lieferscheinChild ( $lieferscheinNode->childNodes() ) {    # <id> <nummer> <datum> <teilLieferung> are of interest
-#                $self->{'logger'}->trace("callWsLieferscheinDetail() lieferscheinChild->nodeName:" . $lieferscheinChild->nodeName . ":");
-#                # copy values of hit into lieferscheinrecord
-#                if ( $lieferscheinChild->nodeName eq 'teilLieferung' ) {
-#                    my $teilLieferungRecord = {'auftragsPositionCount' => 0, 'auftragsPositionRecords' => []};
-#                    foreach my $teilLieferungChild ( $lieferscheinChild->childNodes() ) {
-#                        if ( $teilLieferungChild->nodeName eq 'auftragsPosition' ) {
-#                            my $auftragsPositionRecord = ();
-#                            foreach my $auftragsPositionChild ( $teilLieferungChild->childNodes() ) {
-#                                if ( $auftragsPositionChild->nodeName !~ /^#/ ) {
-#                                    $auftragsPositionRecord->{$auftragsPositionChild->nodeName} = $auftragsPositionChild->textContent;
-#                                }
-#                            }
-#                            push @{$teilLieferungRecord->{'auftragsPositionRecords'}}, $auftragsPositionRecord;
-#                            $teilLieferungRecord->{'auftragsPositionCount'} += 1;
-#                        } else {
-#                            if ( $teilLieferungChild->nodeName !~ /^#/ ) {
-#                                $teilLieferungRecord->{$teilLieferungChild->nodeName} = $teilLieferungChild->textContent;
-#                            }
-#                        }
-#                    }
-#                    push @{$lieferscheinRecord->{'teilLieferungRecords'}}, $teilLieferungRecord;
-#                    $lieferscheinRecord->{'teilLieferungCount'} += 1;
-#                } elsif ( $lieferscheinChild->nodeName eq 'rechnungsAnschrift' ) {
-#                    my $rechnungsAnschriftRecord = ();
-#                    foreach my $rechnungsAnschriftChild ( $lieferscheinChild->childNodes() ) {
-#                        if ( $rechnungsAnschriftChild->nodeName !~ /^#/ ) {
-#                             $rechnungsAnschriftRecord->{$rechnungsAnschriftChild->nodeName} = $rechnungsAnschriftChild->textContent;
-#                        }
-#                    }
-#                    $lieferscheinRecord->{$lieferscheinChild->nodeName} = $rechnungsAnschriftRecord;
-#                } else {
-#                    if ( $lieferscheinChild->nodeName !~ /^#/ ) {
-#                        $lieferscheinRecord->{$lieferscheinChild->nodeName} = $lieferscheinChild->textContent;
-#                    }
-#                }
-#			}
-#            push @{$result->{'lieferscheinRecords'}}, $lieferscheinRecord;
-#            $result->{'lieferscheinCount'} += 1;
-#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+	}
+	
+	return $result;
+}
+
+# search serial orders using web service FortsetzungList
+sub callWsFortsetzungList {
+    my $self = shift;
+    my $ekzCustomerNumber = shift;                 # mandatory
+    my $selVon = shift;                            # mandatory
+    my $selBis = shift;                            # optional
+
+    my $result = {  'fortsetzungStatusCount' => 0,
+                    'fortsetzungStatusRecords' => {}
+    };
+
+    $self->{'logger'}->info("callWsFortsetzungList() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                                        ": selVon:" . (defined($selVon) ? $selVon : 'undef') .
+                                                        ": selBis:" . (defined($selBis) ? $selBis : 'undef') .
+                                                        ":");
+
+    my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
+
+    #$xmlwriter->xmlDecl("UTF-8");    # seems to be not necessary
+    $xmlwriter->startTag( 'soap:Envelope',
+                              'soap:encodingStyle' => 'http://schemas.xmlsoap.org/soap/encoding/',
+                              'xmlns:soap' => 'http://schemas.xmlsoap.org/soap/envelope/',
+                              'xmlns:soapenc' => 'http://schemas.xmlsoap.org/soap/encoding/');
+    
+    $xmlwriter->startTag(   'soap:Header');
+    $xmlwriter->startTag(     'wsse:Security',
+                                  'xmlns:wsse' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd',
+                                  'xmlns:wsu' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd',
+                                  'soap:mustUnderstand' => '1');
+    $xmlwriter->startTag(       'wsse:UsernameToken',
+                                    'wsu:Id' => 'UsernameToken-3d1e2053-4b6d-41c0-bb25-ba7ab39ce6dc');    # it seems that we can use a constant non varying UUID here
+    $xmlwriter->dataElement(      'wsse:Username' => 'bob');
+    $xmlwriter->dataElement(      'wsse:Password', 'bobPW', 'Type' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText');
+    $xmlwriter->endTag(         'wsse:UsernameToken');
+    $xmlwriter->endTag(       'wsse:Security');
+    $xmlwriter->endTag(     'soap:Header');
+    
+    $xmlwriter->startTag(   'soap:Body');
+    $xmlwriter->startTag(     'bes:FortsetzungListElement',
+                                  'xmlns:bes' => 'http://www.ekz.de/BestellsystemWSDL');
+    $xmlwriter->dataElement(    'kundenNummer' => $self->getEkzKundenNr($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'passwort' => $self->getEkzPasswort($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'lmsNutzer' => $self->getEkzLmsNutzer($ekzCustomerNumber));
+
+    if ( defined $selVon && length($selVon) > 0 ) {
+        $xmlwriter->dataElement('von' => $selVon);    # optional
+    }
+    if ( defined $selBis && length($selBis) > 0 ) {
+        $xmlwriter->dataElement('bis' => $selBis);    # optional
+    }
+    $xmlwriter->endTag(       'bes:FortsetzungListElement');
+    $xmlwriter->endTag(     'soap:Body');
+
+    $xmlwriter->endTag(   'soap:Envelope');
+
+    my $soapEnvelope = "\n";
+    $soapEnvelope .= $xmlwriter->end();
+	
+    my $soapResponse = $self->doQuery('"urn:fortsetzunglist"', $soapEnvelope);
+
+    $self->{'logger'}->debug("callWsFortsetzungList() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
+    $self->{'logger'}->debug("callWsFortsetzungList() soapResponse->is_success:" . Dumper($soapResponse->is_success) . ":");
+
+    if ($soapResponse->is_success) {
+        $self->{'logger'}->debug("callWsFortsetzungList() Dumper(soapResponse->content):" . Dumper($soapResponse->content) . ":");
+		my $parser = XML::LibXML->new;
+		my $dom = $parser->parse_string($soapResponse->content);
+
+	    my $root = $dom->documentElement();
+
+        $self->{'logger'}->debug("callWsFortsetzungList() root-element:" . $root . ":");
+        $self->{'logger'}->debug("callWsFortsetzungList() Dumper(root):" . Dumper($root) . ":");
+
+        my $fortsetzungStatusNodes = $root->findnodes('soap:Body/*/fortsetzungStatus');
+        $self->{'logger'}->debug("callWsFortsetzungList() Dumper(fortsetzungStatusNodes):" . Dumper($fortsetzungStatusNodes) . ":");
+        #my $lieferscheinNodes = $root->findnodes('soap:Body/*/lieferschein');
+        #$self->{'logger'}->trace("callWsFortsetzungList() lieferscheinNodes:" . $lieferscheinNodes . ":");
+        #$self->{'logger'}->trace("callWsFortsetzungList() Dumper(lieferscheinNodes):" . Dumper($lieferscheinNodes) . ":");
+
+        
+        foreach my $fortsetzungStatusNode ( $fortsetzungStatusNodes->get_nodelist() ) {
+            $self->{'logger'}->trace("callWsFortsetzungList() fortsetzungStatusNode->nodeName:" . $fortsetzungStatusNode->nodeName . ":");
+            my $fortsetzungStatusRecord = ();
+            foreach my $fortsetzungStatusChild ( $fortsetzungStatusNode->childNodes() ) {    # <status>, <fortsetzungVariante>
+                $self->{'logger'}->trace("callWsFortsetzungList() fortsetzungStatusChild->nodeName:" . $fortsetzungStatusChild->nodeName . ":");
+                # copy relevant values of hit into lieferscheinrecord
+                if ( $fortsetzungStatusChild->nodeName !~ /^#/ ) {
+                    if ( $fortsetzungStatusChild->nodeName eq 'status' ) {
+                        $fortsetzungStatusRecord->{$fortsetzungStatusChild->nodeName} = $fortsetzungStatusChild->textContent;
+                    } elsif ( $fortsetzungStatusChild->nodeName eq 'fortsetzungVariante' ) {
+                        my $fortsetzungVarianteRecord = ();
+                        foreach my $fortsetzungVarianteChild ( $fortsetzungStatusChild->childNodes() ) {    # <artikelArt>, <fortsetzungRubrik>
+                            $self->{'logger'}->trace("callWsFortsetzungList() fortsetzungVarianteChild->nodeName:" . $fortsetzungVarianteChild->nodeName . ":");
+                            $self->{'logger'}->trace("callWsFortsetzungList() ref(fortsetzungVarianteChild->textContent):" . ref($fortsetzungVarianteChild->textContent) . ":");
+                            if ( $fortsetzungVarianteChild->nodeName eq 'artikelArt' ) {
+                                $fortsetzungVarianteRecord->{$fortsetzungVarianteChild->nodeName} = $fortsetzungVarianteChild->textContent;
+                            } elsif ( $fortsetzungVarianteChild->nodeName eq 'fortsetzungRubrik' ) {
+                                my $fortsetzungRubrikRecord = ();
+                                foreach my $fortsetzungRubrikChild ( $fortsetzungVarianteChild->childNodes() ) {    # <rubrik>, <fortsezungTitel>
+                                    $self->{'logger'}->trace("callWsFortsetzungList() fortsetzungRubrikChild->nodeName:" . $fortsetzungRubrikChild->nodeName . ":");
+                                    if ( $fortsetzungRubrikChild->nodeName eq 'rubrik' ) {
+                                        $fortsetzungRubrikRecord->{$fortsetzungRubrikChild->nodeName} = $fortsetzungRubrikChild->textContent;
+                                    } elsif ( $fortsetzungRubrikChild->nodeName eq 'fortsetzungTitel' ) {
+                                        my $fortsetzungTitelRecord = ();
+                                        foreach my $fortsetzungTitelChild ( $fortsetzungRubrikChild->childNodes() ) {    # <artikelnum>, <artikelname> usw.
+                                            $self->{'logger'}->trace("callWsFortsetzungList() fortsetzungTitelChild->nodeName:" . $fortsetzungTitelChild->nodeName . ":");
+                                            $fortsetzungTitelRecord->{$fortsetzungTitelChild->nodeName} = $fortsetzungTitelChild->textContent;
+                                        }
+                                        push @{$fortsetzungRubrikRecord->{$fortsetzungRubrikChild->nodeName}}, $fortsetzungTitelRecord;
+                                    }
+                                }
+                                push @{$fortsetzungVarianteRecord->{$fortsetzungVarianteChild->nodeName}}, $fortsetzungRubrikRecord;
+                            }
+                        }
+                        push @{$fortsetzungStatusRecord->{$fortsetzungStatusChild->nodeName}}, $fortsetzungVarianteRecord;
+                    }
+                }
+            }
+            $result->{'fortsetzungStatusRecords'}->{$fortsetzungStatusRecord->{'status'}} = $fortsetzungStatusRecord;    # 'inProgress', 'canceled', 'finished'
+            $result->{'fortsetzungStatusCount'} += 1;
+            $self->{'logger'}->trace("callWsFortsetzungList() Dumper(result->{'fortsetzungStatusRecords'}->{$fortsetzungStatusRecord->{'status'}}):" . Dumper($result->{'fortsetzungStatusRecords'}->{$fortsetzungStatusRecord->{'status'}}) . ":");
+       }
+    }
+	
+	return $result;
+}
+
+# read all data of one serial order using web service FortsetzungDetail
+sub callWsFortsetzungDetail {
+    my $self = shift;
+    my $ekzCustomerNumber = shift;                 # mandatory
+    my $selFortsetzungsId = shift;                 # mandatory
+    my $selBearbeitungsGruppe = shift;             # optional
+    my $selBearbeitungsNummer = shift;             # optional
+    my $selFortsetzungsAuftragsNummer = shift;     # optional
+    my $selMitReferenznummer = shift;              # optional
+    my $refFortsetzungDetailElement = shift;       # for storing the read FortsetzungDetailResponseElement of the SOAP response body in DB table acquisition_import
+
+    my $result = {  'fortsetzungStatusCount' => 0,
+                    'fortsetzungRecords' => []
+    };
+    my $fortsetzungRecord = {};
+
+    $self->{'logger'}->info("callWsFortsetzungDetail() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                                          ": selFortsetzungsId:" . (defined($selFortsetzungsId) ? $selFortsetzungsId : 'undef') .
+                                                          ": selBearbeitungsGruppe:" . (defined($selBearbeitungsGruppe) ? $selBearbeitungsGruppe : 'undef') .
+                                                          ": selBearbeitungsNummer:" . (defined($selBearbeitungsNummer) ? $selBearbeitungsNummer : 'undef') .
+                                                          ": selFortsetzungsAuftragsNummer:" . (defined($selFortsetzungsAuftragsNummer) ? $selFortsetzungsAuftragsNummer : 'undef') .
+                                                          ": selMitReferenznummer:" . (defined($selMitReferenznummer) ? $selMitReferenznummer : 'undef') .
+                                                          ":");
+
+    my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
+
+    #$xmlwriter->xmlDecl("UTF-8");    # seems to be not necessary
+    $xmlwriter->startTag( 'soap:Envelope',
+                              'soap:encodingStyle' => 'http://schemas.xmlsoap.org/soap/encoding/',
+                              'xmlns:soap' => 'http://schemas.xmlsoap.org/soap/envelope/',
+                              'xmlns:soapenc' => 'http://schemas.xmlsoap.org/soap/encoding/');
+    
+    $xmlwriter->startTag(   'soap:Header');
+    $xmlwriter->startTag(     'wsse:Security',
+                                  'xmlns:wsse' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd',
+                                  'xmlns:wsu' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd',
+                                  'soap:mustUnderstand' => '1');
+    $xmlwriter->startTag(       'wsse:UsernameToken',
+                                    'wsu:Id' => 'UsernameToken-3d1e2053-4b6d-41c0-bb25-ba7ab39ce6dc');    # it seems that we can use a constant non varying UUID here
+    $xmlwriter->dataElement(      'wsse:Username' => 'bob');
+    $xmlwriter->dataElement(      'wsse:Password', 'bobPW', 'Type' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText');
+    $xmlwriter->endTag(         'wsse:UsernameToken');
+    $xmlwriter->endTag(       'wsse:Security');
+    $xmlwriter->endTag(     'soap:Header');
+    
+    $xmlwriter->startTag(   'soap:Body');
+    $xmlwriter->startTag(     'bes:FortsetzungDetailElement',
+                                  'xmlns:bes' => 'http://www.ekz.de/BestellsystemWSDL');
+    $xmlwriter->dataElement(    'kundenNummer' => $self->getEkzKundenNr($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'passwort' => $self->getEkzPasswort($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'lmsNutzer' => $self->getEkzLmsNutzer($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'fortsetzungsId' => $selFortsetzungsId);
+
+    if ( defined $selBearbeitungsGruppe && length($selBearbeitungsGruppe) > 0 ) {
+        $xmlwriter->dataElement('bearbeitungsGruppe' => $selBearbeitungsGruppe);
+    }
+    if ( defined $selFortsetzungsAuftragsNummer && length($selFortsetzungsAuftragsNummer) > 0 ) {
+        $xmlwriter->dataElement('fortsetzungsAuftragsNummer' => $selFortsetzungsAuftragsNummer);    # alternativ zu id
+    }
+    if ( defined $selMitReferenznummer && length($selMitReferenznummer) > 0 ) {
+        $xmlwriter->dataElement('mitReferenznummer' => $selMitReferenznummer);    # optional (Entscheidet, ob die Referenznummern (und deren Exemplaranzahl) zu den Titeln geliefert werden sollen.)
+    }
+    $xmlwriter->endTag(       'bes:FortsetzungDetailElement');
+    $xmlwriter->endTag(     'soap:Body');
+
+    $xmlwriter->endTag(   'soap:Envelope');
+
+    my $soapEnvelope = "\n";
+    $soapEnvelope .= $xmlwriter->end();
+
+    my $soapResponse = $self->doQuery('"urn:fortsetzungdetail"', $soapEnvelope);
+
+    $self->{'logger'}->debug("callWsFortsetzungDetail() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
+    $self->{'logger'}->trace("callWsFortsetzungDetail() Dumper(\$refFortsetzungDetailElement):" . Dumper($refFortsetzungDetailElement) . ":");
+
+    if ( defined ($$refFortsetzungDetailElement) ) {
+        $$refFortsetzungDetailElement = '';
+        if ( $soapResponse->content =~ /^.*?<.*?:Body>\n*(.*)<\/.*?:Body>.*?$/s ) {
+            $$refFortsetzungDetailElement = $1;
+        }
+    }
+    $self->{'logger'}->trace("callWsFortsetzungDetail() Dumper(\$\$refFortsetzungDetailElement):" . Dumper($$refFortsetzungDetailElement) . ":");
+
+    if ($soapResponse->is_success) {
+		my $parser = XML::LibXML->new;
+		my $dom = $parser->parse_string($soapResponse->content);
+
+	    my $root = $dom->documentElement();
+
+        $self->{'logger'}->trace("callWsFortsetzungDetail() root-element:" . $root . ":");
+        $self->{'logger'}->trace("callWsFortsetzungDetail() Dumper(root):" . Dumper($root) . ":");
+
+        my $responseNodes = $root->findnodes('soap:Body/*/*');
+        foreach my $responseNode ( $responseNodes->get_nodelist() ) {
+            $self->{'logger'}->trace("callWsFortsetzungDetail() responseNode->nodeName:" . $responseNode->nodeName . ":");
+            if ($responseNode->nodeName eq 'fortsetzungDetailStatus') {
+                my $fortsetzungDetailStatusRecord = ();
+                foreach my $fortsetzungDetailStatusChild ( $responseNode->childNodes() ) {    # <status>, <jahresSummen>, <erfuellungsGrad>, <detail>
+                    $self->{'logger'}->trace("callWsFortsetzungDetail() fortsetzungDetailStatusChild->nodeName:" . $fortsetzungDetailStatusChild->nodeName . ":");
+                    # copy relevant values of hit into lieferscheinrecord
+                    if ( $fortsetzungDetailStatusChild->nodeName !~ /^#/ ) {
+                        if ( $fortsetzungDetailStatusChild->nodeName eq 'jahresSummen' ) {
+                            my $jahresSummenRecord = ();
+                            foreach my $jahresSummenChild ( $fortsetzungDetailStatusChild->childNodes() ) {
+                                # <jahresTyp>, <sumArtikelPreise>, <sumAnderePreise>, <sumBearbeitungsPreise>, <sumGesamt>
+                                $self->{'logger'}->trace("callWsFortsetzungDetail() jahresSummenChild->nodeName:" . $jahresSummenChild->nodeName . ": jahresSummenChild->textContent:" . $jahresSummenChild->textContent . ":");
+                                $jahresSummenRecord->{$jahresSummenChild->nodeName} = $jahresSummenChild->textContent;
+                            }
+                            push @{$fortsetzungDetailStatusRecord->{$fortsetzungDetailStatusChild->nodeName}}, $jahresSummenRecord;
+                        } elsif ( $fortsetzungDetailStatusChild->nodeName eq 'detail' ) {
+                            my $detailRecord = ();
+                            foreach my $detailChild ( $fortsetzungDetailStatusChild->childNodes() ) {
+                                # <artikelNummer>, <artikelName>, <artikelTypText>, <volumeNummer>, 
+                                # <veroeffentlichungsDatum>, <preis>, <artikelPreis>, <anderePreis>, 
+                                # <bearbeitungsPreis>, <BestellDatum>, <menge>, <status>, <referenznummer>
+                                $self->{'logger'}->trace("callWsFortsetzungDetail() detailChild->nodeName:" . $detailChild->nodeName . ": detailChild->textContent:" . $detailChild->textContent . ":");
+                                if ( $detailChild->nodeName eq 'referenznummer' ) {
+                                    my $referenznummerRecord = ();
+                                    foreach my $referenznummerChild ( $detailChild->childNodes() ) {
+                                        # <exemplare>, <referenznummer>
+                                        if ( $referenznummerChild->nodeName !~ /^#/ ) {
+                                            $self->{'logger'}->trace("callWsFortsetzungDetail() referenznummerChild->nodeName:" . $referenznummerChild->nodeName . ": referenznummerChild->textContent:" . $referenznummerChild->textContent . ":");
+                                            $referenznummerRecord->{$referenznummerChild->nodeName} = $referenznummerChild->textContent;
+                                        }
+                                    }
+                                    if ( ! exists($detailRecord->{$detailChild->nodeName}) ) {
+                                        $detailRecord->{$detailChild->nodeName} = [];
+                                    }
+                                    push @{$detailRecord->{$detailChild->nodeName}}, $referenznummerRecord;
+                                } else {
+                                    $detailRecord->{$detailChild->nodeName} = $detailChild->textContent;
+                                }
+                            }
+                            push @{$fortsetzungDetailStatusRecord->{$fortsetzungDetailStatusChild->nodeName}}, $detailRecord;
+                        } else {
+                            $fortsetzungDetailStatusRecord->{$fortsetzungDetailStatusChild->nodeName} = $fortsetzungDetailStatusChild->textContent;
+                        }
+                    }
+                }
+                $fortsetzungRecord->{fortsetzungDetailStatusRecords}->{$fortsetzungDetailStatusRecord->{status}}->{$responseNode->nodeName} = $fortsetzungDetailStatusRecord;
+
+            } else {
+                $fortsetzungRecord->{$responseNode->nodeName} = $responseNode->textContent;
+            }
+        }
+        $fortsetzungRecord->{'fortsetzungsId'} = $selFortsetzungsId;
+        push @{$result->{'fortsetzungRecords'}}, $fortsetzungRecord;
+        $result->{'fortsetzungCount'} += 1;
+        $self->{'logger'}->trace("callWsFortsetzungDetail() Dumper(result->{'fortsetzungRecords'}->[i]):" . Dumper($result->{'fortsetzungRecords'}->[$result->{'fortsetzungCount'}-1]) . ":");
 	}
 	
 	return $result;
@@ -626,7 +862,6 @@ sub callWsLieferscheinList {
 			}
             push @{$result->{'lieferscheinRecords'}}, $lieferscheinRecord;
             $result->{'lieferscheinCount'} += 1;
-            $self->{'logger'}->debug("callWsLieferscheinList() result->{'lieferscheinRecords'}->[i]:" . $result->{'lieferscheinRecords'}->[$result->{'lieferscheinCount'}-1] . ":");
             $self->{'logger'}->trace("callWsLieferscheinList() Dumper(result->{'lieferscheinRecords'}->[i]):" . Dumper($result->{'lieferscheinRecords'}->[$result->{'lieferscheinCount'}-1]) . ":");
 		}
 	}
@@ -640,7 +875,7 @@ sub callWsLieferscheinDetail {
     my $ekzCustomerNumber = shift;                  # mandatory
 	my $selId = shift;                              # alternative for selLieferscheinnummer (it is mandatory to send one of the two)
 	my $selLieferscheinnummer = shift;              # alternative for selId (it is mandatory to send one of the two)
-    my $refLieferscheinDetailElement = shift;       # for storing the read LieferscheinDetailResponseElement of the SOAP response body
+    my $refLieferscheinDetailElement = shift;       # for storing the read LieferscheinDetailResponseElement of the SOAP response body in DB table acquisition_import
 
 	my $result = {  'lieferscheinCount' => 0, 
 			        'lieferscheinRecords' => [],
@@ -768,7 +1003,6 @@ sub callWsLieferscheinDetail {
 			}
             push @{$result->{'lieferscheinRecords'}}, $lieferscheinRecord;
             $result->{'lieferscheinCount'} += 1;
-            $self->{'logger'}->debug("callWsLieferscheinDetail() result->{'lieferscheinRecords'}->[i]:" . $result->{'lieferscheinRecords'}->[$result->{'lieferscheinCount'}-1] . ":");
             $self->{'logger'}->trace("callWsLieferscheinDetail() Dumper(result->{'lieferscheinRecords'}->[i]):" . Dumper($result->{'lieferscheinRecords'}->[$result->{'lieferscheinCount'}-1]) . ":");
 		}
 	}
@@ -890,7 +1124,6 @@ sub callWsRechnungDetail {
 			}
             push @{$result->{'rechnungRecords'}}, $rechnungRecord;
             $result->{'rechnungCount'} += 1;
-            $self->{'logger'}->debug("callWsRechnungDetail() result->{'rechnungRecords'}->[i]:" . $result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1] . ":");
             $self->{'logger'}->trace("callWsRechnungDetail() Dumper(result->{'rechnungRecords'}->[i]):" . Dumper($result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1]) . ":");
 		}
 	}
@@ -989,7 +1222,6 @@ sub callWsRechnungList {
             push @{$result->{'rechnungRecords'}}, $rechnungRecord;
             $result->{'rechnungCount'} += 1;
             #$self->{'logger'}->debug("callWsRechnungList() result->{'rechnungRecords'}->[i]:" . $result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1] . ":");
-            $self->{'logger'}->debug("callWsRechnungList() result->{'rechnungRecords'}->[i]->{'nummer'}:" . $result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1]->{'nummer'} . ":");
             $self->{'logger'}->trace("callWsRechnungList() Dumper(result->{'rechnungRecords'}->[i]):" . Dumper($result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1]) . ":");
 		}
 	}

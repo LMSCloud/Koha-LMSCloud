@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsInvoice;
 
-# Copyright 2020 (C) LMSCLoud GmbH
+# Copyright 2020-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -275,13 +275,18 @@ sub genKohaRecords {
             # otherwise:
             # search corresponding order title hits with same ekzArtikelNr in table acquisition_import, if sent in $auftragsPosition->{'artikelNummer'}
             # In some cases (e.g. knv titles) the artikelNummer is 0, so it can't be used for search
-            # if not found enough acquisition_import records of rec_type 'item' and processingstate 'ordered' or 'delivered': 'invent' the underlying order
+            # if not found enough acquisition_import records of rec_type 'item' and processingstate 'ordered' or 'delivered': 'invent' the underlying order and store it
 
             # we try maximal 4 methods for identifying an order, or 'inventing' one, if required:
-            # method1: searching for ekzExemplarid identity   (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
-            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0  (typical for an item of a running standing order (since 2020-09-14))
-            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0   (typical for an item of a running standing order (until 2020-09-13))
-            # method4 is for all items for which no acquisition_import record representing the order title could be found   (typical for an item of a running continuation/series order)
+            # method1: searching for ekzExemplarid identity
+            #          (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
+            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0
+            #          (typical for an item of a running standing order (since 2020-09-14) or of a running serial order (since 2021-01-14))
+            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0
+            #          (typical for an item of a running standing order (until 2020-09-13))
+            # method4 is for all items for which no acquisition_import record representing the order title could be found
+            #          (typical for an item of a running continuation/serial order (until 2021-01-13))
+
 
             # method1: searching for ekzExemplarid identity (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
             if (defined($auftragsPosition->{'ekzexemplarid'}) && length($auftragsPosition->{'ekzexemplarid'}) > 0 && $updOrInsItemsCount < $invoicedItemsCount ) {
@@ -379,16 +384,41 @@ sub genKohaRecords {
                 # But when multiple items are assigned to the same referenznummer, we have no information on the items count. So we handle all items having this referenznummer.
                 my $invReferenznummer = $auftragsPosition->{'referenznummer'};
 
-                # search in acquisition_import for records representing ordered or deliverd STO items with the same $ekzCustomerNumber, ekzArtikelNr and referenznummer
+                # search in acquisition_import for records representing ordered or deliverd items of a standing order or serial order with the same $ekzCustomerNumber, ekzArtikelNr and referenznummer
+                
+                # There exist at least four possible select strategies:
+                # 1. Select strategy via '-or' will cause full table scan:
+                # my $selParam = {
+                #     vendor_id => "ekz",
+                #     object_type => "order",
+                #     -or =>
+                #         [
+                #             object_item_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
+                #             object_item_number => { 'like' => 'ser.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
+                #         ],
+                #     rec_type => "item",
+                #     processingstate => { '-IN' => [ 'ordered', 'delivered' ] }    # AND processingstate IN ('ordered', 'delivered')
+                # };
+
+                # 2. Select strategy via 'UNION' avoids full table scan but would require additional (i.e. not Koha-standard) PERL module DBIx::Class::Helper::ResultSet::SetOperations:
+                # my $rs1 = $rs->search({ ..., object_item_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'}, ... });  
+                # my $rs2 = $rs->search({ ..., object_item_number => { 'like' => 'ser.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'}, ... });  
+                # for ($rs1->union($rs2)->all) { ... }
+
+                # 3. Cheap and dirty select strategy (but sufficient in this case, i.e. searching for 'sto.' or 'ser.' via 's__.'):
                 my $selParam = {
                     vendor_id => "ekz",
                     object_type => "order",
-                    object_item_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
+                    object_item_number => { 'like' => 's__.' . $ekzCustomerNumber . '.ID%-' . $auftragsPosition->{'artikelNummer'} . '-' . $auftragsPosition->{'referenznummer'} },
                     rec_type => "item",
                     processingstate => { '-IN' => [ 'ordered', 'delivered' ] }    # AND processingstate IN ('ordered', 'delivered')
                 };
-                $logger->trace("genKohaRecords() method2: search order item record in acquisition_import selParam:" . Dumper($selParam) . ":");
-                my $acquisitionImportEkzExemplarIdHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
+
+                # 4. executing the whole action separately for sto.% and ser.%: That's just too boring.
+
+                my $orderByParam = { order_by => { -asc => [ "id"] } };
+                $logger->trace("genKohaRecords() method2: search order item record in acquisition_import selParam:" . Dumper($selParam) . ": orderByParam:" . Dumper($orderByParam) . ":");
+                my $acquisitionImportEkzExemplarIdHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam, $orderByParam);
                 $logger->trace("genKohaRecords() method2: scalar acquisitionImportEkzExemplarIdHits:" . scalar $acquisitionImportEkzExemplarIdHits . ":");
 
                 foreach my $acquisitionImportEkzExemplarIdHit ($acquisitionImportEkzExemplarIdHits->all()) {
@@ -1103,7 +1133,7 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
 # Rechnungsstellungsart A: Mittels einer Rechnung, die im <zahlungsBetrag> nicht nur die Summe der <wertPositionsTeil> Angaben, sondern auch die Summe der <wertBearbeitung> und <wertPositionsTeil> Angaben enthält.
 # Rechnungsstellungsart B: Mittels zweier Rechnungen; 
 #                              die erste Rechnung, genannt 'Positionsrechnung' oder 'Medienrechnung', enthält im <zahlungsBetrag> nur die Summe der <wertPositionsTeil> Angaben
-#                              die zweite Rechnung, genannt 'Mehrpreisrechnung', enthält im <zahlungsBetrag> nur die Summe der <wertBearbeitung> und <wertPositionsTeil> Angaben
+#                              die zweite Rechnung, genannt 'Mehrpreisrechnung', enthält im <zahlungsBetrag> nur die Summe der <wertMehrpreise> und <wertBearbeitung> Angaben
 #                          Die Mehrpreisrechnung ist am Eintrag <mehrpreisRechnung>true</mehrpreisRechnung> zu erkennen, die 'Positionsrechnung' hat den Eintrag <mehrpreisRechnung>false</mehrpreisRechnung>.
 # Ob eine Rechnung der Rechnungsstellungsart A vorliegt oder eine Positionsrechnung der Rechnungsstellungsart B läßt sich nur feststellen, wenn mindestens 1 <wertBearbeitung> oder <wertPositionsTeil> größer 0 vorliegt,
 # denn dann ergeben sich andere Werte in <zahlungsBetrag>.
@@ -1270,6 +1300,7 @@ sub processItemHit
             if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
                 # update Koha acquisition order and update/insert invoice data
                 ($ordernumberFound, $basketnoFound, $invoiceid_ret) = processItemInvoice( $rechnungNummer, $rechnungDatum, $biblionumber, $itemnumber, $rechnungRecord, $auftragsPosition, $acquisitionImportTitleItemHit, $logger );
+                $logger->trace("processItemHit() processItemInvoice() returned ordernumberFound:$ordernumberFound: basketnoFound:$basketnoFound: invoiceid_ret:$invoiceid_ret:");
             } else {
                 # no synchronisation with Koha acquisition configured, so just update item prices
 
@@ -1400,11 +1431,11 @@ sub processItemInvoice
 
     $logger->info("processItemInvoice() Start rechnungNummer:$rechnungNummer: rechnungDatum:$rechnungDatum: biblionumber:$biblionumber: itemnumber:$itemnumber: acquisitionImportTitleItemHit id:" . $acquisitionImportTitleItemHit->id . "object_item_number:" . $acquisitionImportTitleItemHit->object_item_number . ":");
 
-    my $isSTO = 0;
-    if ( $acquisitionImportTitleItemHit->object_number =~ /^sto\.\d+\.ID\d+/ ) {
-        $isSTO = 1;    # aqorders record of STO title has to be shifted from the general aqbaskets record of the STO to an specific one, if not done already by delivery note synchronisation
+    my $isStoOrSer = 0;    # indicates if it is a item of a standing or serial order
+    if ( $acquisitionImportTitleItemHit->object_number =~ /^(sto|ser)\.\d+\.ID\d+/ ) {
+        $isStoOrSer = 1;    # aqorders record of standing/serial order title has to be shifted from the general aqbaskets record of the standing/serial order to an specific one, if not done already by delivery note synchronisation
     }
-    $logger->debug("processItemInvoice() acquisitionImportTitleItemHit isSTO:$isSTO:");
+    $logger->debug("processItemInvoice() acquisitionImportTitleItemHit isStoOrSer:$isStoOrSer:");
 
     # 1. step: search the aqorders record of the item via select * from aqorders where ordernumber = (select ordernumber from aqorders_items where itemnumber = $itemnumber)
     my $orderRecord = C4::Acquisition::GetOrderFromItemnumber($itemnumber);
@@ -1421,7 +1452,7 @@ sub processItemInvoice
 
     # 2. step: search basket of order
     my $aqbasket_of_order = &C4::Acquisition::GetBasket($basketno_ret);
-    $logger->debug("processItemInvoice() Dumper aqbasket:" . Dumper($aqbasket_of_order) . ":");
+    $logger->debug("processItemInvoice() Dumper aqbasket_of_order:" . Dumper($aqbasket_of_order) . ":");
     if ( !$aqbasket_of_order ) {
         $logger->error("processItemInvoice() could not find aqbasket of order via basketno_ret:" . $basketno_ret . ":");
         # XXXWH signal this error in emaillog
@@ -1429,15 +1460,20 @@ sub processItemInvoice
     }
 
 
-    # 3. step: if STO, shift order into separate basket if this has not been done already by delivery note synchronisation
+    # 3. step: in case of standing or serial order: shift order into separate basket if this has not been done already by delivery note synchronisation
     #
-    # In case of standing-orders, aqbasket with basketname like S-sto.1005145.ID319 contains aqorders of titles that have been announced via StoList synchronisation.
+    # In case of standing orders, aqbasket with basketname like S-sto.1005145.ID319 contains aqorders of titles that have been announced via StoList synchronisation.
     # If such an aqorder has already been handled by delivery note synchronisation, it has already been shifted to a basket with basketname 'L-' . $lieferscheinNummer . '/' . $aqbasket_of_order->{basketname};
     # (e.g. L-20343434/S-sto.1005145.ID319)
     # To allow for the case that the delivery note synchronisation has not run yet for this STO title or has not succeeded, we have to do something similar here.
     # difference: we use basketname   'R-' . $rechnungNummer . '/' . $aqbasket_of_order->{basketname}
     #                    instead of   'L-' . $lieferscheinNummer . '/' . $aqbasket_of_order->{basketname}
-    if ( $isSTO && $aqbasket_of_order =~ /^S-sto\.\d+\.ID\d+/ ) {    # order is part of a STO and has not been shifted into separate basket by delivery note synchronisation
+    # In case of serial orders it is similar, the difference is in the basketname that has the form F-ser.1109403.ID0513230.
+
+    if ( $isStoOrSer && 
+         ( $aqbasket_of_order->{basketname} =~ /^S-sto\.\d+\.ID\d+/ ||    # order is part of a standing order and has not been shifted into separate basket by delivery note synchronisation
+           $aqbasket_of_order->{basketname} =~ /^F-ser\.\d+\.ID\d+/    )  # order is part of a serial order and has not been shifted into separate basket by delivery note synchronisation
+       ) {
         # search/create new basket of same bookseller with basketname derived from ekz invoice plus pseudo order number derived from customer number and stoID
         my $aqbasket_of_invoice_name = 'R-' . $rechnungNummer . '/' . $aqbasket_of_order->{basketname};
         my $aqbasket_of_invoice = undef;
