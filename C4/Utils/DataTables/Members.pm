@@ -203,10 +203,12 @@ sub search {
         push @where_args, $overduelevel;
     }
     if ( defined($inactivesince) && $inactivesince =~ /^([0-9]{4}-[0-9]{2}-[0-9]{2})/ ) {
+        my $activeto = "$1 00:00:00";
         $inactivesince = "$1 23:59:59";
         push @where_strs, "NOT EXISTS (SELECT 1 FROM issues iss WHERE iss.borrowernumber = borrowers.borrowernumber AND iss.timestamp > ?)";
         push @where_strs, "NOT EXISTS (SELECT 1 FROM old_issues oiss WHERE oiss.borrowernumber = borrowers.borrowernumber AND oiss.timestamp > ?)";
-        push @where_args, $inactivesince, $inactivesince;
+        push @where_strs, "(borrowers.lastseen < ? OR borrowers.lastseen IS NULL)";
+        push @where_args, $inactivesince, $inactivesince, $activeto;
     }
     
     if ( defined($validemailavailable) && $validemailavailable eq 'yes' ) {
