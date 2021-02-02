@@ -1,6 +1,6 @@
 package C4::Epayment::EpaymentBase;
 
-# Copyright 2020 (C) LMSCLoud GmbH
+# Copyright 2020-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -39,6 +39,7 @@ sub new {
     #bless $self, $class;    # does not work: Attempt to bless into a reference
     bless $self, 'C4::Epayment::EpaymentBase';
 
+    $self->{kohaInstanceName} = substr(C4::Context->config('database'),5);  # Regrettably the Koha instance name is not configured, so we take database name (e.g. 'koha_wallenheim') and cut away the leading part 'koha_'.
     $self->getSystempreferences();
 
     $self->{logger}->debug("new() returns self:" . Dumper($self) . ":");
