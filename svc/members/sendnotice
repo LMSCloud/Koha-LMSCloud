@@ -156,6 +156,7 @@ sub SendAdhocNotices {
             $substitute->{total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{total_fines};
             $substitute->{overdue_count} = $overdue_count;
             $substitute->{today} = output_pref( { dt => dt_from_string, dateonly => 1} );
+            $substitute->{issue_count} = $issue_count;
             
             $overdue_count = $patron->has_family_overdues();
             $issue_count   = $patron->family_checkout_count();

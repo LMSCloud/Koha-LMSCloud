@@ -182,6 +182,10 @@ if ( not $ordernumber ) {    # create order
 
     if ( $biblionumber ) {
         $data = GetBiblioData($biblionumber);
+        if ( !$listprice ) {
+            my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+            $listprice = GetMarcPrice($record, $marcflavour) if ( $record );
+        }
     }
     # get suggestion fields if applicable. If it's a subscription renewal, then the biblio already exists
     # otherwise, retrieve suggestion information.

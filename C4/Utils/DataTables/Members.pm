@@ -103,28 +103,36 @@ sub search {
     }
     if ( defined($chargesfrom) && $chargesfrom =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
         $chargesfrom += 0.0;
-        $chargesfrom = undef if ( $chargesfrom == 0.0 );
     } else {
         $chargesfrom = undef;
     }
     if ( defined($chargesto) && $chargesto =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
         $chargesto += 0.0;
-        $chargesto = undef if ( $chargesto == 0.0 );
     } else {
         $chargesto = undef;
     }
     if (defined($chargesfrom) || defined($chargesto)) {
-        my $add = "EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = borrowers.borrowernumber GROUP BY a.borrowernumber HAVING ";
+        my $add = "( EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = borrowers.borrowernumber GROUP BY a.borrowernumber HAVING ";
         if ( defined($chargesfrom) && defined($chargesto) ) {
-            $add .= "SUM(a.amountoutstanding) BETWEEN ? AND ?)";
-            push @where_args, $chargesfrom, $chargesto;
+            if ( $chargesfrom == 0.0 && $chargesto == 0.0 ) {
+                $add .= "COALESCE(SUM(a.amountoutstanding),0) = 0.0) OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) )";
+            } else {
+                $add .= "COALESCE(SUM(a.amountoutstanding),0) BETWEEN ? AND ?) ";
+                $add .= "OR NOT EXISTS ( SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) " if ( ( $chargesfrom == 0.0 || $chargesto == 0.0 ) && $chargesto >= $chargesfrom );
+                $add .= " )";
+                push @where_args, $chargesfrom, $chargesto;
+            }
         }
         elsif ( defined($chargesfrom) ) {
-            $add .= "SUM(a.amountoutstanding) >= ?)";
+            $add .= "SUM(a.amountoutstanding) >= ?) ";
+            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) " if ( $chargesfrom == 0.0 );
+            $add .= " )";
             push @where_args, $chargesfrom;
         }
         else {
-            $add .= "SUM(a.amountoutstanding) <= ?)";
+            $add .= "SUM(a.amountoutstanding) <= ?) ";
+            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = borrowers.borrowernumber) " if ( $chargesto == 0.0 );
+            $add .= " )";
             push @where_args, $chargesto;
         }
         push @where_strs, $add;
@@ -195,10 +203,12 @@ sub search {
         push @where_args, $overduelevel;
     }
     if ( defined($inactivesince) && $inactivesince =~ /^([0-9]{4}-[0-9]{2}-[0-9]{2})/ ) {
+        my $activeto = "$1 00:00:00";
         $inactivesince = "$1 23:59:59";
         push @where_strs, "NOT EXISTS (SELECT 1 FROM issues iss WHERE iss.borrowernumber = borrowers.borrowernumber AND iss.timestamp > ?)";
         push @where_strs, "NOT EXISTS (SELECT 1 FROM old_issues oiss WHERE oiss.borrowernumber = borrowers.borrowernumber AND oiss.timestamp > ?)";
-        push @where_args, $inactivesince, $inactivesince;
+        push @where_strs, "(borrowers.lastseen < ? OR borrowers.lastseen IS NULL)";
+        push @where_args, $inactivesince, $inactivesince, $activeto;
     }
     
     if ( defined($validemailavailable) && $validemailavailable eq 'yes' ) {

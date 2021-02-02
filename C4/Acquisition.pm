@@ -1998,6 +1998,7 @@ sub SearchOrders {
                borrowers.firstname,
                biblio.*,
                biblioitems.isbn,
+               biblioitems.ean,
                biblioitems.biblioitemnumber,
                biblioitems.publishercode,
                biblioitems.publicationyear,
