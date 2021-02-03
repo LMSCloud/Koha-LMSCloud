@@ -30,7 +30,14 @@ membership_renewal.pl - cron script for renewal of soon ending memberships and p
 This script renews the membership of patrons that have agreed to payment of resulting enrolment fees via SEPA direct debit.
 The relevant data for the SEPA direct debit are stored in table borrower_attributes.
 The resulting XML file containing the SEPA direct debit information for the new enrolment fees is transferred manually by staff to the bank of the library.
-It is stored in the standard 'batchprint' directory and named in the form pain.008.yyyymmdd.
+It is stored in the standard 'batchprint' directory.
+Its name is built based on the pattern in system preference 'SepaDirectDebitPaymentInstructionFileName', 
+e.g. pattern pain.008.<<cc>><<yy>><<mm>><<dd>>.xml results in name pain.008.20191231.xml if the script is executed on date 2019-12-31.
+The file is also created if no payment instructions have to be stored in it by the current run, but in this case '_no_transactions' is appended to its name.
+This is required because some external plausibility check programs deny a file containing no payment instructions, so we have to indicate this case somehow to the user.
+In case of grossly wrong or lacking IBAN or BIC specification of the handled borrower an error file is created in the same directory, 
+its name beeing similar to the name of the XML output file, but with '_Fehler' appended.
+
 
 =head1 OPTIONS
 
@@ -116,6 +123,10 @@ Relevant system preferences:
 
 'SepaDirectDebitMinFeeSum': A SEPA direct debit will be generated only if the sum of open fees of a borrower is greater or equal this threshold value.'
 
+'SepaDirectDebitLocalInstrumentCode': Text used in XML file containing SEPA direct debits for <PmtInf><PmtTpInf><LclInstrm><Cd>. One of 'CORE', 'COR1'
+
+'SepaDirectDebitPaymentInstructionFileName': Pattern for the name of the file containing the SEPA direct debit payment instructions for the bank. Placeholders: century:<<cc>> year:<<yy>> month:<<mm>> day:<<dd>>.'
+
 Relevant borrowerattributes:
 
 'SEPA': Trigger if the patron has aggreed to payment of membership fee by SEPA direct debit (type:YesNo).
@@ -152,6 +163,14 @@ any field from the borrowers table
 
 any field from the branches table
 
+=item E<lt>E<lt>accountlinesFee.*E<gt>E<gt>
+
+any field from the accountlines table (paid fee of this borrower)
+
+=item E<lt>E<lt>accountlinesPayment.*E<gt>E<gt>
+
+any field from the accountlines table (payment of this borrower)
+
 =back
 
 =cut
@@ -170,9 +189,9 @@ BEGIN {
 use C4::Log;
 use Koha::SEPAPayment;
 
-#binmode( STDIN, ":utf8" );
-#binmode( STDOUT, ":utf8" );
-#binmode( STDERR, ":utf8" );
+binmode( STDIN, ":utf8" );
+binmode( STDOUT, ":utf8" );
+binmode( STDERR, ":utf8" );
 
 # These are defaults for command line options.
 my $confirm;                              # -c: Confirm that the user has read and configured this script.
@@ -232,14 +251,14 @@ if( $configError ) {
 if ( index($action, 'renewal') >= 0 ) {
     # action: renew membership and insert enrolment fee as required
     warn "membership_renewal.pl: Trying to renew membership for patrons with SEPA direct debit." if $verbose;
-    my $expiringMemberships = $sepaPayment->renewMembershipForSepaDirectDebitPatrons(
+    my ( $renewMembershipCount, $renewedMembershipCount ) = $sepaPayment->renewMembershipForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'me.branchcode' => $branch ) : () ),
             expiryAfterDays => $expiryAfterDays,
             expiryBeforeDays => $expiryBeforeDays,
         }
     );
-    warn 'membership_renewal.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew ' . $expiringMemberships->count . ' soon expiring memberships.' if $verbose;
+    warn 'membership_renewal.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew ' . $renewMembershipCount . ' soon expiring memberships, renewed ' . $renewedMembershipCount . '.' if $verbose;
 }
 
 if ( index($action, 'sepaDirectDebit') >= 0 ) {

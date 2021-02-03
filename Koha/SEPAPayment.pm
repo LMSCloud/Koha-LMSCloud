@@ -20,6 +20,7 @@ package Koha::SEPAPayment;
 use Modern::Perl;
 use XML::Writer;
 use XML::LibXML;
+use utf8;
 use Text::Unidecode;
 use Data::Dumper;
 
@@ -87,6 +88,7 @@ sub new {
     $self->{paymentInstructionFileName} = File::Spec->catdir( $outputdir, $outputfilename );
     # If no payment instructions exist for this run then signal this by adding '_no_payment_instructions' to the file name.
     $self->{paymentInstructionFileNameNoTransactions} = $self->{paymentInstructionFileName} . '_no_payment_instructions';
+    $self->{paymentInstructionErrorFileName} = $self->{paymentInstructionFileName} . '_Fehler';
     # check if file for payment instruction output of this day already exists
     if ( -e $self->{paymentInstructionFileName} || -e $self->{paymentInstructionFileNameNoTransactions} ) {
         $self->{errorMsg} .= "Payment instruction output file:" . $self->{paymentInstructionFileName} . "* already exists. ";
@@ -278,6 +280,8 @@ sub renewMembershipForSepaDirectDebitPatrons {
     my $dateFrom = dt_from_string->add( days => $expiryAfterDays );
     my $dateUntil = dt_from_string->add( days => $expiryBeforeDays );
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+    my $renewMembershipCount = 0;
+    my $renewedMembershipCount = 0;
 
     print STDERR "Koha::SEPAPayment::renewMembershipForSepaDirectDebitPatrons dateFrom:" . $dateFrom . ": dateUntil:" . $dateUntil . ":\n" if $self->{verbose} > 1;
     $params->{'dateexpiry'} = {
@@ -328,9 +332,14 @@ sub renewMembershipForSepaDirectDebitPatrons {
         my $olddateexpiry = $patronHit->dateexpiry;
         my $newdateexpiry = $patronHit->renew_account;
         print STDERR "Koha::SEPAPayment::renewMembershipForSepaDirectDebitPatrons renew_account for borrowernumber:" . $patronHit->borrowernumber . ": (categorycode:" . $patronHit->categorycode . ": old dateexpiry:" . $olddateexpiry . ":) has returned new dateexpiry:" . (defined($newdateexpiry)?output_pref( { 'dt' => $newdateexpiry, dateformat => 'iso', dateonly => 1 } ):'undef') . ":\n" if $self->{verbose} > 0;
+        $renewMembershipCount += 1;
+        if ( defined($newdateexpiry) && ( output_pref( { 'dt' => $newdateexpiry, dateformat => 'iso', dateonly => 1 } ) ne $olddateexpiry ) ) {
+            $renewedMembershipCount += 1;
+        }
     }
 
-    return $patronsRS;
+    print STDERR "Koha::SEPAPayment::renewMembershipForSepaDirectDebitPatrons returns renewMembershipCount:$renewMembershipCount: renewedMembershipCount:$renewedMembershipCount:\n" if $self->{verbose} > 0;
+    return ( $renewMembershipCount, $renewedMembershipCount);
 }
 
 sub paySelectedFeesForSepaDirectDebitPatrons {
@@ -397,11 +406,11 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
           AND a.amountoutstanding >= 0.01
           $branchSelect
           AND EXISTS (
-                SELECT al2.borrowernumber, sum(al2.amountoutstanding) 
-                FROM accountlines al2 
-                WHERE al2.borrowernumber = a.borrowernumber 
-                  AND al2.amountoutstanding >= 0.01 
-                GROUP BY al2.borrowernumber 
+                SELECT al2.borrowernumber, sum(al2.amountoutstanding)
+                FROM accountlines al2
+                WHERE al2.borrowernumber = a.borrowernumber
+                  AND al2.amountoutstanding >= 0.01
+                GROUP BY al2.borrowernumber
                 HAVING SUM( al2.amountoutstanding ) >= $minSumAmountoutstanding
               )
 
@@ -409,7 +418,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
             b.borrowernumber,
             a.accountlines_id,
             ba.code
-            
+
     ";
 
     print STDERR "Koha::SEPAPayment::paySelectedFeesForSepaDirectDebitPatrons() selectStatement:$selectStatement:\n" if $self->{verbose} > 1;
@@ -472,6 +481,9 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
         }
     }
 
+    # If there are invalid IBANs etc. then log this in the error file. If no errors exist, the error file will not be created.
+    $self->writeSepaDirectDebitErrorFile();
+
     # if sucess: create the SEPA payment instruction file
     if ( $success ) {
         $success = $self->writeSepaDirectDebitFile($requestedCollectionDate);
@@ -523,7 +535,7 @@ sub paySelectedFeesOfPatron {
         print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() Dumper(selParam):" . Dumper($selParam) . ":\n" if $self->{verbose} > 1;
 
         my @lines = Koha::Account::Lines->search( $selParam );
-        #print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() Dumper(lines):" . Dumper(\@lines) . ":\n" if $self->{verbose} > 1;    # XXXWH
+        #print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() Dumper(lines):" . Dumper(\@lines) . ":\n" if $self->{verbose} > 1;
 
         if ( $lines[0] ) {
             for ( my $i = 0; $i < scalar @lines; $i += 1 ) {
@@ -569,6 +581,9 @@ sub paySelectedFeesOfPatron {
             ": fees accountlines_ids:" .
             $selectedAccountlinesIds .
             ": failed.\n";
+
+        my $errormsg = sprintf('Betrag:%.2f: der Gebühr(en):%s: konnte in Koha nicht bezahlt werden', $borrowersSelectedFees->{accountlinesSumAmountoutstanding}, $selectedAccountlinesIds);
+        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
     }
     print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() returns kohaPaymentId:" . ($kohaPaymentId?$kohaPaymentId:'undef') . ":\n" if $self->{verbose} > 1;
     return $kohaPaymentId;
@@ -582,8 +597,13 @@ sub checkIban {
     print STDERR "Koha::SEPAPayment::checkIban() START\n" if $self->{verbose} > 1;
     if( ! ( defined($borrowersSelectedFees->{borrower_attributes}) && defined($borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN}) ) ) {
         print STDERR "Koha::SEPAPayment::checkIban() IBAN not defined (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
-    } elsif ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN}) < 22 ) {
+        my $errormsg = 'IBAN ist nicht definiert';
+        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
+    } elsif ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN}) < 22 ||
+              $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} =~ /\s/         ) {    # spaces not allowed
         print STDERR "Koha::SEPAPayment::checkIban() invalid IBAN:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
+        my $errormsg = sprintf('IBAN:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN});
+        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
     } else {
         $ret = 1;
     }
@@ -598,8 +618,12 @@ sub checkBic {
     print STDERR "Koha::SEPAPayment::checkBic() START\n" if $self->{verbose} > 1;
     if( ! ( defined($borrowersSelectedFees->{borrower_attributes}) && defined($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) ) ) {
         print STDERR "Koha::SEPAPayment::checkBic() BIC not defined (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
+        my $errormsg = 'BIC ist nicht definiert';
+        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
     } elsif ( ! ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 8 || length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 11 ) ) {
         print STDERR "Koha::SEPAPayment::checkBic() invalid BIC:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
+        my $errormsg = sprintf('BIC:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC});
+        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
     } else {
         $ret = 1;
     }
@@ -625,10 +649,10 @@ sub printSepaNotice {
     # Try to read the first selected fee record
     my $accountlines = Koha::Account::Lines->new();
     my $accountlineFee0 = $accountlines->find( { accountlines_id => $borrowersPaidFees->{accountlinesMinId} } );
-    print STDERR "Koha::SEPAPayment::printSepaNotice() accountlineFee->unblessed:" . Dumper($accountlineFee0->unblessed) . ":\n" if $self->{verbose} > 1;    # XXXWH
+    #print STDERR "Koha::SEPAPayment::printSepaNotice() accountlineFee->unblessed:" . Dumper($accountlineFee0->unblessed) . ":\n" if $self->{verbose} > 1;
     # Try to read the new payment record
     my $accountlinePayment = $accountlines->find( { accountlines_id => $borrowersPaidFees->{accountlinesKohaPaymentId} } );
-    print STDERR "Koha::SEPAPayment::printSepaNotice() accountlinePayment->unblessed:" . Dumper($accountlinePayment->unblessed) . ":\n" if $self->{verbose} > 1;    # XXXWH
+    #print STDERR "Koha::SEPAPayment::printSepaNotice() accountlinePayment->unblessed:" . Dumper($accountlinePayment->unblessed) . ":\n" if $self->{verbose} > 1;
 
     my %letter_params = (
         module => 'members',
@@ -657,7 +681,7 @@ sub printSepaNotice {
             warn "Koha::SEPAPayment::printSepaNotice(): Could not find a letter called '$letter_params{'letter_code'}' for $mtt in the '$letter_params{'module'}' module";
             return 0;
         }
-        #print STDERR "Koha::SEPAPayment::printSepaNotice() Dumper letter:" . Dumper($letter) . ":\n"  if $self->{verbose} > 1;    # XXXWH
+        #print STDERR "Koha::SEPAPayment::printSepaNotice() Dumper letter:" . Dumper($letter) . ":\n"  if $self->{verbose} > 1;
 
         if ( $self->{nomail} ) {    # for development and debugging only
             print $letter->{'content'} . "\n";
@@ -710,6 +734,53 @@ sub printSepaNotice {
     }
     print STDERR "Koha::SEPAPayment::printSepaNotice() returns ret:$ret:\n" if $self->{verbose} > 1;
     return $ret;
+}
+
+sub writeSepaDirectDebitErrorFile {
+    my $self = shift;
+    my $errormessages = '';
+
+    foreach my $borrowernumber ( sort keys %{$self->{inKohaSelected}} ) {
+        if ( exists($self->{inKohaSelected}->{$borrowernumber}->{errormsg}) && defined($self->{inKohaSelected}->{$borrowernumber}->{errormsg}) ) {
+            my $errormsgcount = scalar @{$self->{inKohaSelected}->{$borrowernumber}->{errormsg}};
+            if ( $errormsgcount > 0 ) {
+                my $errormessageborrower = '';
+                for ( my $i = 0; $i < $errormsgcount; $i += 1 ) {
+                    my $mess = sprintf("Ausweis:%s: %s  <br>\n", $self->{inKohaSelected}->{$borrowernumber}->{borrowers}->{cardnumber}, $self->{inKohaSelected}->{$borrowernumber}->{errormsg}->[$i]);
+                    print STDERR "Koha::SEPAPayment::writeSepaDirectDebitErrorFile() mess:$mess:\n" if $self->{verbose} > 1;
+                    $errormessageborrower .= $mess;
+                }
+                if ( length($errormessageborrower) > 0 ) {
+                    $errormessages .= "<p>\n" . $errormessageborrower . "</p>\n";
+                }
+            }
+        }
+    }
+    print STDERR "Koha::SEPAPayment::writeSepaDirectDebitErrorFile() errormessages:" . $errormessages . ":\n" if $self->{verbose} > 1;
+
+    if ( length($errormessages) > 0 ) {
+        # Create a error output file to indicate problems.
+        my $fileWriteSccess = 0;
+        my $paymentInstructionErrorFileName = $self->{paymentInstructionErrorFileName};
+
+        print STDERR "Koha::SEPAPayment::writeSepaDirectDebitErrorFile() will now open error output file:" . $paymentInstructionErrorFileName . ": for writing\n" if $self->{verbose} > 1;
+        my $fh;
+        my $res = open $fh, ">:encoding(UTF-8)", $paymentInstructionErrorFileName;
+        print STDERR "Koha::SEPAPayment::writeSepaDirectDebitErrorFile() tried to open error output file:" . $paymentInstructionErrorFileName . ": fh:$fh: res:" . (defined($res)?$res:'undef') . ":\n" if $self->{verbose} > 1;
+        if ( $res ) {
+            my $errorheaderline = sprintf("<h3>Fehlerprotokoll SEPA-Lauf vom %s Uhr </h3>\n", DateTime->now( time_zone => C4::Context->tz() )->strftime('%d.%m.%Y %H:%M:%S') );
+            $res = print $fh $errorheaderline . $errormessages;
+            close $fh;
+            print STDERR "Koha::SEPAPayment::writeSepaDirectDebitErrorFile() tried to write to error output file:" . $paymentInstructionErrorFileName . ": res:" . (defined($res)?$res:'undef') . ":\n" if $self->{verbose} > 1;
+            if ( $res ) {
+                print STDERR "Koha::SEPAPayment::writeSepaDirectDebitErrorFile() error output file:" . $paymentInstructionErrorFileName . ": has been written\n" if $self->{verbose} > 1;
+                $fileWriteSccess = 1;
+            }
+        }
+        if ( ! $fileWriteSccess ) {
+            print STDERR "Koha::SEPAPayment::writeSepaDirectDebitErrorFile() error output file:" . $paymentInstructionErrorFileName . ": has NOT been written. ( \$!:$!: )\n";
+        }
+    }
 }
 
 sub writeSepaDirectDebitFile {
