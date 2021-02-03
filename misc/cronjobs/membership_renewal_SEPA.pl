@@ -91,21 +91,39 @@ Optional parameter to use another lettercode than the standard configured in sys
 =head1 CONFIGURATION
 
 Relevant system preferences:
+
 'SepaDirectDebitCreditorBic': BIC of the library's bank account used in XML file containing SEPA direct debits.
+
 'SepaDirectDebitCreditorIban: IBAN of the library's bank account used in XML file containing SEPA direct debits.
+
 'SepaDirectDebitCreditorId: SEPA creditor ID of the library used in XML file containing SEPA direct debits.
+
 'SepaDirectDebitCreditorName': Name of the library used in XML file containing SEPA direct debits for XML-element <PmtInf><Cdtr><Nm>.
+
 'SepaDirectDebitInitiatingPartyName': Name of the library used in XML file containing SEPA direct debits for XML-element <GrpHdr><InitgPty><Nm> (usually uppercase).
+
 'SepaDirectDebitMessageIdHeader': Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>.
+
 'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><MsgId><RmtInf><Ustrd>.
+
 'SepaDirectDebitBorrowerNoticeLettercode': Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee.
-'SepaDirectDebitCashRegisterName', 'SEPA', NULL, 'Name of cash register for assignment of the SEPA direct debit payments.', 'Free' ),
-'SepaDirectDebitCashRegisterManagerCardnumber', '672555551', NULL, 'Cardnumber of the staff account that is used for booking SEPA direct debit in the specially provided cash register.', 'Free' )
+
+'SepaDirectDebitCashRegisterName': Name of cash register for assignment of the SEPA direct debit payments.
+
+'SepaDirectDebitCashRegisterManagerCardnumber: Cardnumber of the staff account that is used for booking SEPA direct debit in the specially provided cash register.
+
+'SepaDirectDebitAccountTypes': List of account types of fees to be paid via SEPA direct debit, separated by '|'.'
+
+'SepaDirectDebitMinFeeSum': A SEPA direct debit will be generated only if the sum of open fees of a borrower is greater or equal this threshold value.'
 
 Relevant borrowerattributes:
+
 'SEPA': Trigger if the patron has aggreed to payment of membership fee by SEPA direct debit (type:YesNo).
+
 'SEPA_BIC': BIC of the patron's bank account used in XML file containing SEPA direct debits.
+
 'SEPA_IBAN': IBAN of the patron's bank account used in XML file containing SEPA direct debits.
+
 'SEPA_Sign': Date when the patron signed the SEPA direct debit mandate.
 
 The content of the SEPA direct debit announcement email is configured in Tools -> Notices and slips. Use the MEMBERSHIP_SEPA_NOTE notice as default.
@@ -214,26 +232,26 @@ if( $configError ) {
 if ( index($action, 'renewal') >= 0 ) {
     # action: renew membership and insert enrolment fee as required
     warn "membership_renewal.pl: Trying to renew membership for patrons with SEPA direct debit." if $verbose;
-    my $expiringMemberships = $sepaPayment->renewMembershipForSEPADebitPatrons(
+    my $expiringMemberships = $sepaPayment->renewMembershipForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'me.branchcode' => $branch ) : () ),
             expiryAfterDays => $expiryAfterDays,
             expiryBeforeDays => $expiryBeforeDays,
         }
     );
-    warn 'membership_renewal.pl: sepaPayment->renewMembershipForSEPADebitPatrons() tried to renew ' . $expiringMemberships->count . ' soon expiring memberships.' if $verbose;
+    warn 'membership_renewal.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew ' . $expiringMemberships->count . ' soon expiring memberships.' if $verbose;
 }
 
 if ( index($action, 'sepaDirectDebit') >= 0 ) {
     # action: 'pay' enrolment fee via SEPA direct debit and create the corresponding XML file that can be transferred manually to the library's bank.
     warn 'membership_renewal.pl: Trying to pay open fees for membership renewals for patrons with activated SEPA direct debit.' if $verbose;
-    my $success = $sepaPayment->payMembershipFeesForSEPADebitPatrons(
+    my $success = $sepaPayment->paySelectedFeesForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'branchcode' => $branch ) : () ),
             sepaDirectDebitDelayDays => $sepaDirectDebitDelayDays,
         }
     );
-    warn "membership_renewal.pl: sepaPayment->payMembershipFeesForSEPADebitPatrons() success:$success:" if $verbose;
+    warn "membership_renewal.pl: sepaPayment->paySelectedFeesForSepaDirectDebitPatrons() success:$success:" if $verbose;
 }
 
 
