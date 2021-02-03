@@ -667,7 +667,7 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                 }    # end of "if ( defined($basketno) && $basketno > 0 ) {"
 
                 for ( my $i = 0; $i < scalar @itemReferenznummer; $i += 1 ) {
-                    $logger->trace("genKohaRecords() item index i:$i: itemReferenznummer[$i]:" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . $itemOrder[$i]->budget_id() . ":");
+                    $logger->trace("genKohaRecords() item index i:$i: itemReferenznummer[$i]:" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . ( ( exists($itemOrder[$i]) && defined($itemOrder[$i]) ) ? $itemOrder[$i]->budget_id() : 'undef' ) . ":");
                 }
 
                 for ( my $j = 0; $j < $exemplarcount; $j++ ) {
@@ -764,7 +764,7 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                     # add result of adding item to log email
                     my ($titeldata, $isbnean) = ($itemnumber, '');
                     $logger->debug("genKohaRecords() item titeldata:" . $titeldata . ":");
-                    push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2, $itemOrder[$j]->ordernumber(), $basketno];
+                    push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2, ( exists($itemOrder[$j]) && defined($itemOrder[$j]) ) ? $itemOrder[$j]->ordernumber() : 0, $basketno];
                 }
             }
 
