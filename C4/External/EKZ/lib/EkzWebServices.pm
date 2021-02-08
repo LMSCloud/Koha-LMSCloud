@@ -1530,6 +1530,8 @@ sub getLastRunDate {
 
     if ( $ekzWSName eq 'StoList' ) {
         $ekzWSLastRunDateSysPrefName = 'ekzStandingOrderWSLastRunDate';
+    } elsif ( $ekzWSName eq 'FortsetzungDetail' ) {
+        $ekzWSLastRunDateSysPrefName = 'ekzSerialOrderWSLastRunDate';
     } elsif ( $ekzWSName eq 'LieferscheinDetail' ) {
         $ekzWSLastRunDateSysPrefName = 'ekzDeliveryNoteWSLastRunDate';
     } elsif ( $ekzWSName eq 'RechnungDetail' ) {
@@ -1569,6 +1571,8 @@ sub setLastRunDate {
 
     if ( $ekzWSName eq 'StoList' ) {
         $ekzWSLastRunDateSysPrefName = 'ekzStandingOrderWSLastRunDate';
+    } elsif ( $ekzWSName eq 'FortsetzungDetail' ) {
+        $ekzWSLastRunDateSysPrefName = 'ekzSerialOrderWSLastRunDate';
     } elsif ( $ekzWSName eq 'LieferscheinDetail' ) {
         $ekzWSLastRunDateSysPrefName = 'ekzDeliveryNoteWSLastRunDate';
     } elsif ( $ekzWSName eq 'RechnungDetail' ) {
