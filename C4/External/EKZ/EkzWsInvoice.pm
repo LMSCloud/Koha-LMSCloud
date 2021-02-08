@@ -870,12 +870,11 @@ sub genKohaRecords {
                         $orderinfo->{ecost_tax_included} = $priceInfo->{gesamtpreis_tax_included};    # discounted
                         $orderinfo->{tax_rate_bak} = $priceInfo->{ustSatz};        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
                         $orderinfo->{tax_rate_on_ordering} = $priceInfo->{ustSatz};
-                        $orderinfo->{tax_rate_on_receiving} = $priceInfo->{ustSatz};
+                        $orderinfo->{tax_rate_on_receiving} = undef;    # This fieldvalue is transient; it will immediately be updated by the following call of processItemInvoice().
                         $orderinfo->{tax_value_bak} = $priceInfo->{ust};        #  corresponds to input field 'Tax value' in UI
                         $orderinfo->{tax_value_on_ordering} = $priceInfo->{ust};
                         # XXXWH or alternatively: $orderinfo->{tax_value_on_ordering} = $orderinfo->{quantity} * $orderinfo->{ecost_tax_excluded} * $orderinfo->{tax_rate_on_ordering};    # see C4::Acquisition.pm
-                        $orderinfo->{tax_value_on_receiving} = $priceInfo->{ust};
-                        # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
+                        $orderinfo->{tax_value_on_receiving} = undef;    # This fieldvalue is transient; it will immediately be updated by the following call of processItemInvoice().
                         $orderinfo->{discount} = $priceInfo->{rabatt};        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
                         $logger->trace("genKohaRecords() method4: trying to create Koha order with orderinfo:" . Dumper($orderinfo) . ":");
 
@@ -1082,8 +1081,8 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
                         closed => 0,
                         booksellerid => $aqbasket->{booksellerid},
                         deliveryplace => "$aqbasket->{deliveryplace}",
-                        freedeliveryplace => "$aqbasket->{freedeliveryplace}",
-                        deliverycomment => "$aqbasket->{deliverycomment}",
+                        freedeliveryplace => undef,    # setting to NULL
+                        deliverycomment => undef,    # setting to NULL
                         billingplace => "$aqbasket->{billingplace}",
                     };
                     $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
@@ -1558,8 +1557,8 @@ sub processItemInvoice
                 closed => 0,
                 booksellerid => $aqbasket_of_invoice->{booksellerid},
                 deliveryplace => "$aqbasket_of_invoice->{deliveryplace}",
-                freedeliveryplace => "$aqbasket_of_invoice->{freedeliveryplace}",
-                deliverycomment => "$aqbasket_of_invoice->{deliverycomment}",
+                freedeliveryplace => undef,    # setting to NULL
+                deliverycomment => undef,    # setting to NULL
                 billingplace => "$aqbasket_of_invoice->{billingplace}",
             };
             $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
@@ -1641,7 +1640,7 @@ sub processItemInvoice
     ### XXXWH $order->{quantityreceived} += 1; nein, das läuft über ModReceiveOrder
     $order->{listprice} = $priceInfo->{verkaufsPreis};    # in supplier's currency, not discounted, per item (input field 'Vendor price' in UI)
     $order->{tax_rate} = $priceInfo->{ustSatz};
-    $order->{tax_rate_on_receiving} = $order->{tax_rate};
+    $order->{tax_rate_on_receiving} = $order->{tax_rate};    # tax_value_on_receiving is calculated in populate_order_with_prices() based on this
     my $bookseller = Koha::Acquisition::Booksellers->find( $aqbasket_of_order->{booksellerid} );    # id is primary key
     if ( $bookseller->listincgst ) {    # as far as we know this is always true for bookseller 'ekz'
         $order->{unitprice} = $priceInfo->{gesamtpreis_tax_included};    # discounted price per item (input field 'Actual cost' in UI / entered cost, handling etc. incl. (set to 0.0 in the phase  before receipt))
@@ -1670,6 +1669,10 @@ sub processItemInvoice
         $order->{order_vendornote} .= sprintf("Bearbeitungspreis: %.2f %s\n", $priceInfo->{wertBearbeitung}, $priceInfo->{waehrung});
     }
     $order->{discount} = $priceInfo->{rabatt};    # rabatt value of ekz quotes percents, so 15.0 means 15 %. So the value of $priceInfo->{rabatt} can be used without transformation for aqorders.discount.
+
+    # We explicitly do not manipulate $order->{ecost}, $order->{ecost_tax_excluded} and $order->{ecost_tax_included} here.
+    # The simple reason is that also the Koha staff interface does not do this when items are receipt-booked in the Koha acquisition.
+    # Probably it is wanted that aqorders.ecost* always shows the estimated costs of the ordering time - even later, when the real cost is known and differing.
 
     C4::Acquisition::populate_order_with_prices(
         {

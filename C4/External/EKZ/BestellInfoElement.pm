@@ -465,8 +465,8 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                                 closed => 0,
                                 booksellerid => $aqbasket->{booksellerid},
                                 deliveryplace => "$aqbasket->{deliveryplace}",
-                                freedeliveryplace => "$aqbasket->{freedeliveryplace}",
-                                deliverycomment => "$aqbasket->{deliverycomment}",
+                                freedeliveryplace => undef,    # setting to NULL
+                                deliverycomment => undef,    # setting to NULL
                                 billingplace => "$aqbasket->{billingplace}",
                             };
                             $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
@@ -1009,12 +1009,11 @@ sub handleTitelBestellInfo {
                 $orderinfo->{ecost_tax_included} = $budgetedcost_tax_included;
                 $orderinfo->{tax_rate_bak} = $ustSatz;        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
                 $orderinfo->{tax_rate_on_ordering} = $ustSatz;
-                $orderinfo->{tax_rate_on_receiving} = $ustSatz;
+                $orderinfo->{tax_rate_on_receiving} = undef;    # setting to NULL
                 $orderinfo->{tax_value_bak} = $ust;        #  corresponds to input field 'Tax value' in UI
                 $orderinfo->{tax_value_on_ordering} = $ust;
                 # XXXWH or alternatively: $orderinfo->{tax_value_on_ordering} = $orderinfo->{quantity} * $orderinfo->{ecost_tax_excluded} * $orderinfo->{tax_rate_on_ordering};    # see C4::Acquisition.pm
-                $orderinfo->{tax_value_on_receiving} = $ust;
-                # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
+                $orderinfo->{tax_value_on_receiving} = undef;    # setting to NULL
                 $orderinfo->{discount} = $rabatt;        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
 
                 if ( $reqLmsBestellCode ) {

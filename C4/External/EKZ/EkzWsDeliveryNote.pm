@@ -824,12 +824,11 @@ sub genKohaRecords {
                         $orderinfo->{ecost_tax_included} = $priceInfo->{gesamtpreis_tax_included};    # discounted
                         $orderinfo->{tax_rate_bak} = $priceInfo->{ustSatz};        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
                         $orderinfo->{tax_rate_on_ordering} = $priceInfo->{ustSatz};
-                        $orderinfo->{tax_rate_on_receiving} = $priceInfo->{ustSatz};
+                        $orderinfo->{tax_rate_on_receiving} = undef;    # setting to NULL
                         $orderinfo->{tax_value_bak} = $priceInfo->{ust};        #  corresponds to input field 'Tax value' in UI
                         $orderinfo->{tax_value_on_ordering} = $priceInfo->{ust};
                         # XXXWH or alternatively: $orderinfo->{tax_value_on_ordering} = $orderinfo->{quantity} * $orderinfo->{ecost_tax_excluded} * $orderinfo->{tax_rate_on_ordering};    # see C4::Acquisition.pm
-                        $orderinfo->{tax_value_on_receiving} = $priceInfo->{ust};
-                        # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
+                        $orderinfo->{tax_value_on_receiving} = undef;    # setting to NULL
                         $orderinfo->{discount} = $priceInfo->{rabatt};        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
                         # XXXWH activate logger! $logger->trace("genKohaRecords() method4: trying to create Koha order with orderinfo:" . Dumper($orderinfo) . ":");
 
@@ -1007,8 +1006,8 @@ sub genKohaRecords {
                         closed => 0,
                         booksellerid => $aqbasket->{booksellerid},
                         deliveryplace => "$aqbasket->{deliveryplace}",
-                        freedeliveryplace => "$aqbasket->{freedeliveryplace}",
-                        deliverycomment => "$aqbasket->{deliverycomment}",
+                        freedeliveryplace => undef,    # setting to NULL
+                        deliverycomment => undef,    # setting to NULL
                         billingplace => "$aqbasket->{billingplace}",
                     };
                     $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
@@ -1412,8 +1411,8 @@ sub processItemOrder
                 closed => 0,
                 booksellerid => $aqbasket_delivery->{booksellerid},
                 deliveryplace => "$aqbasket_delivery->{deliveryplace}",
-                freedeliveryplace => "$aqbasket_delivery->{freedeliveryplace}",
-                deliverycomment => "$aqbasket_delivery->{deliverycomment}",
+                freedeliveryplace => undef,    # setting to NULL
+                deliverycomment => undef,    # setting to NULL
                 billingplace => "$aqbasket_delivery->{billingplace}",
             };
             $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
