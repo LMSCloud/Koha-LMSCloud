@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2019 (C) LMSCLoud GmbH
+# Copyright 2019-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -17,107 +17,52 @@
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
 use Modern::Perl;
-use utf8;
+use strict;
+use warnings;
+use Data::Dumper;
 
 use CGI;
-use HTTP::Request::Common;
-use LWP::UserAgent;
-use URI;
-use Data::Dumper;    # XXXWH
+use CGI::Carp;
 
-use C4::Auth;
-use C4::Output;
-use C4::Accounts;
-use Koha::Acquisition::Currencies;
-use Koha::Database;
+use Koha::Logger;
 use Koha::Patrons;
+use C4::Context;
+use C4::Epayment::GiroSolution;
 
+my $error = 0;
+my $errorTemplate = 'GIROSOLUTION_ERROR_PROCESSING';
+my $redirectUrl = "/cgi-bin/koha/errors/404.pl";
 my $cgi = new CGI;
 
-print STDERR "opac-account-pay-girosolution-return.pl: cgi:", Dumper($cgi), "\n";
+my $logger = Koha::Logger->get({ interface => 'epayment' });    # logger common to all e-payment methods
+$logger->debug("opac-account-pay-girosolution-return.pl START cgi:" . Dumper($cgi) . ":");
 
 if ( C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') || C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') ) {
 
-    # params set by Koha in opac-account-pay.pl
+    # Params set by Koha in GiroSolution::initPayment() are sent as URL query arguments.
     my $amountKoha = $cgi->param('amountKoha');
     my @accountlinesKoha = $cgi->multi_param('accountlinesKoha');
     my $borrowernumberKoha = $cgi->param('borrowernumberKoha');
     my $paytypeKoha = $cgi->param('paytypeKoha');
 
-    # params set by girocheckout
-    my $gcReference      = $cgi->param('gcReference');
-    my $gcMerchantTxId   = $cgi->param('gcMerchantTxId');
-    my $gcBackendTxId    = $cgi->param('gcBackendTxId');
-    my $gcAmount         = $cgi->param('gcAmount');
-    my $gcCurrency       = $cgi->param('gcCurrency');
-    my $gcResultPayment  = $cgi->param('gcResultPayment');
-    my $gcHash           = $cgi->param('gcHash');
+    $logger->debug("opac-account-pay-girosolution-return.pl creating new C4::Epayment::GiroSolution object. borrowernumberKoha:$borrowernumberKoha: amountKoha:$amountKoha: accountlinesKoha:" . Dumper(@accountlinesKoha) . ": paytypeKoha:$paytypeKoha:");
 
-print STDERR "opac-account-pay-girosolution-return.pl: amountKoha:$amountKoha:\n";
-print STDERR "opac-account-pay-girosolution-return.pl: accountlinesKoha:", Dumper(\@accountlinesKoha), ":\n";
-print STDERR "opac-account-pay-girosolution-return.pl: borrowernumberKoha:$borrowernumberKoha:\n";
-print STDERR "opac-account-pay-girosolution-return.pl: paytypeKoha:$paytypeKoha:\n";
+    my $patron = Koha::Patrons->find( $borrowernumberKoha );
+    if ( $patron ) {
+        my $girosolution = C4::Epayment::GiroSolution->new( { patron => $patron, amount_to_pay => $amountKoha, accountlinesIds => \@accountlinesKoha, paytype => $paytypeKoha } );
 
-print STDERR "opac-account-pay-girosolution-return.pl: gcReference:$gcReference: gcMerchantTxId:$gcMerchantTxId:\n";
-print STDERR "opac-account-pay-girosolution-return.pl: gcBackendTxId:$gcBackendTxId: gcResultPayment:$gcResultPayment:\n";
-print STDERR "opac-account-pay-girosolution-return.pl: gcAmount:$gcAmount: gcCurrency:$gcCurrency:\n";
+        # verify that the accountlines have been 'paid' in Koha by opac-account-pay-girosolution-message.pl
+        ( $error, $errorTemplate ) = $girosolution->verifyPaymentInKoha($cgi);
 
-    my $error = "GIROSOLUTION_ERROR_PROCESSING";
-    # If money transfer has succeeded (i.e. $gcResultPayment == 4000) we have to check if the selected accountlines now are also paid in Koha.
-    if ( $gcResultPayment == 4000 ) {
-        # There may be a concurrency with opac-account-pay-girosolution-message.pl (simultanously called by GiroSolution),
-        # so we wait here for a certain maximum time to give opac-account-pay-girosolution-message.pl the chance to finish.
-        # The 'certain maximum time' depends on the number of accountlines to be paid; it ranges from 5*2 to 5*4 seconds.
-        my $waitSingleDuration = 2 + (@accountlinesKoha + 0)/10;
-        if ( $waitSingleDuration > 4 ) {
-            $waitSingleDuration = 4;
-        }
-        for ( my $waitCount = 0; $waitCount < 6; $waitCount += 1 ) {
-            my $account = Koha::Account->new( { patron_id => $borrowernumberKoha } );
-            my @lines = Koha::Account::Lines->search(
-                {
-                    accountlines_id => { -in => \@accountlinesKoha }
-                }
-            );
-
-            my $sumAmountoutstanding = 0.0;
-            foreach my $accountline ( @lines ) {
-###print STDERR "opac-account-pay-girosolution-message.pl: accountline:", Dumper($accountline), ":\n";
-print STDERR "opac-account-pay-girosolution-return.pl: accountline->amountoutstanding:", Dumper($accountline->amountoutstanding()), ":\n";
-                $sumAmountoutstanding += $accountline->amountoutstanding();
-            }
-            $sumAmountoutstanding = sprintf( "%.2f", $sumAmountoutstanding );    # this rounding was also done in the complimentary opac-account-pay-pl
-print STDERR "opac-account-pay-girosolution-return.pl: sumAmountoutstanding:$sumAmountoutstanding: amountKoha:$amountKoha: gcAmount:$gcAmount:\n";
-
-            if ( $sumAmountoutstanding == 0.00 ) {
-print STDERR "opac-account-pay-girosolution-return.pl: sumAmountoutstanding == 0.00 --- NO error!\n";
-                $error = '';
-                last;
-            }
-print STDERR "opac-account-pay-girosolution-return.pl: not all accountlines paid - now waiting $waitSingleDuration seconds and than trying again ...\n";
-            sleep($waitSingleDuration);
-        }
+    } else {
+        my $mess = "Error: No patron found having borrowernumber:$borrowernumberKoha:";
+        $logger->error("opac-account-pay-girosolution-return.pl $mess");
+        carp ("opac-account-pay-girosolution-return.pl " . $mess . "\n");
     }
-
-
-    my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
-        {
-            template_name   => "opac-account-pay-return.tt",    # name of non existing tt-file is sufficient
-            query           => $cgi,
-            type            => "opac",
-            authnotrequired => 0,
-            debug           => 1,
-        }
-    );
-
-    my $patron = Koha::Patrons->find( $borrowernumber );
-    $template->param(
-        borrower    => $patron->unblessed,
-        accountview => 1
-    );
-
-    print $cgi->redirect("/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$error");
-} else {
-    print $cgi->redirect("/cgi-bin/koha/errors/404.pl");
+    $redirectUrl = "/cgi-bin/koha/opac-account.pl?payment=$amountKoha&payment-error=$errorTemplate";
 }
+
+$logger->debug("opac-account-pay-girosolution-return.pl END error:$error: errorTemplate:$errorTemplate: redirectUrl:$redirectUrl:");
+print $cgi->redirect($redirectUrl);
