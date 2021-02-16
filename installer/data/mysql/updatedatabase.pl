@@ -17274,10 +17274,21 @@ $DBversion = "18.05.05.020";
 if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
-            ('PmpaymentRemittanceInfo','Bibliothek:<<borrowers.cardnumber>>',NULL ,'Pattern for constructimg the text for the \'remittance information\' of the payment by replacing the placeholder <<borrowers.cardnumber>> by the patron\'s cardnumber.','Free' )
+            ('PmpaymentRemittanceInfo','Bibliothek:<<borrowers.cardnumber>>',NULL ,'Pattern for constructing the text for the \'remittance information\' of the payment by replacing the placeholder <<borrowers.cardnumber>> by the patron\'s cardnumber.','Free' )
     });
 
     print "Upgrade to $DBversion done (Added systempreference for pmPayment online payment remittance information text.)\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = "18.05.05.021";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('GirosolutionRemittanceInfo','Bibliothek:<<borrowers.cardnumber>>',NULL ,'Pattern for constructing the text for the \'remittance information\' of the payment by replacing the placeholder <<borrowers.cardnumber>> by the patron\'s cardnumber.','Free' )
+    });
+
+    print "Upgrade to $DBversion done (Added systempreference for GiroSolution online payment remittance information text.)\n";
     SetVersion($DBversion);
 }
 
