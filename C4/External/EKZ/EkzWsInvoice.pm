@@ -1035,12 +1035,17 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
             push @{$emaillog->{'actionresult'}}, \@actionresultTit;
         }
 
-        # close the aqinvoices (if all went well, then $invoiceids contains exactly 1 invoiceid)
-        foreach my $invoiceid ( sort(keys %{$invoiceids}) ) {
-            if ( $invoiceid ) {
-                my $invoice = GetInvoice($invoiceid);
-                if ( $invoice && ! $invoice->{closedate} ) {
-                    CloseInvoice($invoiceid);
+        my $ekzInvoiceCloseWhenCreated = C4::Context->preference("ekzInvoiceCloseWhenCreated");
+        if ( defined($ekzInvoiceCloseWhenCreated)  && $ekzInvoiceCloseWhenCreated eq '1' ) {
+            # close the aqinvoices (if all went well, then $invoiceids contains exactly 1 invoiceid)
+            foreach my $invoiceid ( sort(keys %{$invoiceids}) ) {
+                if ( $invoiceid ) {
+                    $logger->debug("genKohaRecords() is calling GetInvoice($invoiceid)");
+                    my $invoice = GetInvoice($invoiceid);
+                    if ( $invoice && ! $invoice->{closedate} ) {
+                        $logger->debug("genKohaRecords() is calling CloseInvoice($invoiceid)");
+                        CloseInvoice($invoiceid);
+                    }
                 }
             }
         }
