@@ -73,6 +73,7 @@ sub new {
         'ekzWebServicesSetItemSubfieldsWhenOrdered' => undef,
         'ekzAqbooksellersId' => '',    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
         'ekzKohaRecordClass' => undef,
+        'createdTitleRecords' => {},    # for storing biblionumber and title data of newly created title records to avoid multiple creation (Zebra index is too slow)
         'emaillog' => $emaillog    # hash with variables for email log
     };
     $self->{logger} = Koha::Logger->get({ interface => 'C4::External::EKZ::BestellInfoElement' });
@@ -704,10 +705,25 @@ sub handleTitelBestellInfo {
         #   With data from one of these alternatives a title record has to be created in Koha, and an item record for each ordered copy.
 
         # search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
-        $titleHits = $self->{ekzKohaRecordClass}->readTitleInLocalDB($reqParamTitelInfo, 1);
-        $self->{logger}->info("handleTitelBestellInfo() from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+        my $titleSelHashkey = 
+            ( $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'isbn'} ? $reqParamTitelInfo->{'isbn'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'isbn13'} ? $reqParamTitelInfo->{'isbn13'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'issn'} ? $reqParamTitelInfo->{'issn'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'ismn'} ? $reqParamTitelInfo->{'ismn'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'ean'} ? $reqParamTitelInfo->{'ean'} : '' ) . '.';
+        $self->{logger}->debug("handleTitelBestellInfo() titleSelHashkey:$titleSelHashkey:");
+
+        if ( length($titleSelHashkey) > 6 && defined( $self->{createdTitleRecords}->{$titleSelHashkey} ) ) {
+            $titleHits = $self->{createdTitleRecords}->{$titleSelHashkey}->{titleHits};
+            $biblionumber = $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber};
+            $self->{logger}->info("handleTitelBestellInfo() got used biblionumber:$biblionumber: from self->{createdTitleRecords}->{$titleSelHashkey}");
+        } else {
+            $titleHits = $self->{ekzKohaRecordClass}->readTitleInLocalDB($reqParamTitelInfo, 1);
+            $self->{logger}->info("handleTitelBestellInfo() from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+            if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+            }
         }
 
         my @titleSourceSequence = split('\|',$self->{titleSourceSequence});
@@ -756,6 +772,16 @@ sub handleTitelBestellInfo {
                 $self->{logger}->info("handleTitelBestellInfo() new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
                 if ( defined $biblionumber && $biblionumber > 0 ) {
                     $biblioInserted = 1;
+                    # If XML element <titel> for the same title is contained multiple times in the BestellInfo request 
+                    # (e.g. order of same title for different branches) the first occurence may trigger the creation 
+                    # of the title record in the local database. But the next occurrences may happen before the title data
+                    # are indexed by the Zebra index, so multiple title records for the same title data may be created.
+                    # For this reason we store the title records created in this hash to avoid doubling of title data:
+                    if ( length($titleSelHashkey) > 6 ) {
+                        $self->{createdTitleRecords}->{$titleSelHashkey}->{titleHits} = $titleHits;
+                        $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber} = $biblionumber;
+                        $self->{logger}->debug("handleTitelBestellInfo() stored self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber}:$biblionumber:");
+                    }
                     # positive message for log
                     $self->{emaillog}->{importresult} = 1;
                     $self->{emaillog}->{importedTitlesCount} += 1;
