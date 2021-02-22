@@ -435,8 +435,15 @@ Enhanced Content:
         -
             - The ekz web service for reading standing order information has lastly been executed at
             - pref: ekzStandingOrderWSLastRunDate
-            - ",<br>the ekz web service for reading delivery note information at"
+            - .
+            - <br>The ekz web service for reading serial order information has lastly been executed at
+            - pref: ekzSerialOrderWSLastRunDate
+            - .
+            - <br>The ekz web service for reading delivery note information has lastly been executed at
             - pref: ekzDeliveryNoteWSLastRunDate
+            - .
+            - <br>The ekz web service for reading invoice information has lastly been executed at
+            - pref: ekzInvoiceWSLastRunDate
             - .
         -
             - Use the sequence 
@@ -477,8 +484,11 @@ Enhanced Content:
             - When an ekz web service signals an order and an item is created, set the item's subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)
             - pref: ekzWebServicesSetItemSubfieldsWhenOrdered
         -
-            - When an ekz web service signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)
+            - When the ekz delivery note synchronisation signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)
             - pref: ekzWebServicesSetItemSubfieldsWhenReceived
+        -
+            - When the ekz invoice synchronisation signals an item receipt, update the item's subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)
+            - pref: ekzWebServicesSetItemSubfieldsWhenInvoiced
         -
             - pref: ekzAqbooksellersId
             - number of Koha booksellers record representing the ekz GmbH. <br>
@@ -495,6 +505,20 @@ Enhanced Content:
             -  code of the budget fund that will be used if ekz order data does not provide fund information. <br>
             - If multiple values are provided with the parameter 'ekzWebServicesCustomerNumber' you may also provide different fund codes separated by <strong>|</strong> according to the order of the values specified with 'ekzWebServicesCustomerNumber'. <br>
             - Used only if the import of acquisition data from ekz media services is activated by setting parameter 'ekzAqbooksellersId'.
+        -
+            - The ekz invoice synchronization will 
+            - pref: ekzInvoiceSkipAdditionalCosts
+              choices:
+                  yes: "ignore and not add"
+                  no: "add"
+            - additional costs (e.g. handling charges) to the item price.
+        -
+            - The ekz invoice synchronization will 
+            - pref: ekzInvoiceCloseWhenCreated
+              choices:
+                  yes: close
+                  no: "not close"
+            - the invoices it creates in Koha.
     ekz Cover:
         -
             - pref: EKZCover
