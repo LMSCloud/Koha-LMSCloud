@@ -1,6 +1,6 @@
 package C4::External::EKZ::BestellInfoElement;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
