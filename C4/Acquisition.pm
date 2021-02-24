@@ -95,6 +95,8 @@ BEGIN {
         &NotifyOrderUsers
 
         &FillWithDefaultValues
+        
+        &get_rounded_price
     );
 }
 
@@ -2231,6 +2233,23 @@ sub TransferOrder {
 
     return $newordernumber;
 }
+
+=head3 get_rounded_price
+    $rounded_price = get_rounded_price( $price );
+returns a price rounded as specified in OrderPriceRounding system preference.
+=cut
+
+sub get_rounded_price {
+    my ( $price ) =  @_;
+    my $rounding_pref = C4::Context->preference('OrderPriceRounding') // q{};
+    if( $rounding_pref eq 'nearest_cent' ) {
+        return Koha::Number::Price->new( $price )->round();
+    }
+    return $price;
+}
+
+
+
 
 =head2 FUNCTIONS ABOUT PARCELS
 

@@ -1,4 +1,4 @@
-package Koha::pdfformat::layout2pagesdinde;
+package pdfformat::layout2pagesdinde;
 
 # Script to print the order in German DIN format. Initial for Duisburg public library (Stadtbibliothek Duisburg)
 # Written in Feb. 2021 by m.m.oehme@gmail.com
