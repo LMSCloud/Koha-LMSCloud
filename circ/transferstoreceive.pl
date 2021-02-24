@@ -95,7 +95,7 @@ while ( my $library = $libraries->next ) {
             my $itemtype = Koha::ItemTypes->find( $item->effective_itemtype );
 
             $getransf{'datetransfer'} = $num->{'datesent'};
-            $getransf{'itemtype'} = $itemtype->description; # FIXME Should not it be translated_description?
+            $getransf{'itemtype'} = $itemtype->description if ( $itemtype ); # FIXME Should not it be translated_description?
             %getransf = (
                 %getransf,
                 title          => $biblio->title,
