@@ -101,4 +101,5 @@ Acquisitions:
                   "pdfformat::layout3pages":   English 3-page
                   "pdfformat::layout3pagesfr": French 3-page
                   "pdfformat::layout2pagesde": German 2-page
+                  "pdfformat::layout2pagesdinde": German DIN-2-page
             - layout when printing basket groups.
