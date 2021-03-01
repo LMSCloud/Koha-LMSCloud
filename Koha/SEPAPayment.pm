@@ -86,9 +86,10 @@ sub new {
     my $outputdir = C4::Context->config('outputdownloaddir');
     $outputdir = File::Spec->catpath( "", $outputdir, "batchprint" );
     $self->{paymentInstructionFileName} = File::Spec->catdir( $outputdir, $outputfilename );
-    # If no payment instructions exist for this run then signal this by adding '_no_payment_instructions' to the file name.
-    $self->{paymentInstructionFileNameNoTransactions} = $self->{paymentInstructionFileName} . '_no_payment_instructions';
-    $self->{paymentInstructionErrorFileName} = $self->{paymentInstructionFileName} . '_Fehler';
+    # If no payment instructions exist for this run then signal this by adding '_no_payment_instructions.xml' to the file name.
+    $self->{paymentInstructionFileNameNoTransactions} = $self->{paymentInstructionFileName} . '_no_payment_instructions.xml';
+    # Error file for logging invalid BIC and IBAN entries. This file is not created if paySelectedFeesForSepaDirectDebitPatrons() encountered no such invalid entries.
+    $self->{paymentInstructionErrorFileName} = $self->{paymentInstructionFileName} . '_Fehler.html';
     # check if file for payment instruction output of this day already exists
     if ( -e $self->{paymentInstructionFileName} || -e $self->{paymentInstructionFileNameNoTransactions} ) {
         $self->{errorMsg} .= "Payment instruction output file:" . $self->{paymentInstructionFileName} . "* already exists. ";
