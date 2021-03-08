@@ -17,11 +17,12 @@ package C4::Epayment::EPayBLPaypage;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
+use Modern::Perl;
 use strict;
 use warnings;
 use Data::Dumper;
 
-use Modern::Perl;
 use CGI::Carp;
 use SOAP::Lite;
 use URI::Escape;
@@ -619,7 +620,7 @@ sub lesenKassenzeichenInfo {
     );
 
     my $kohaPaymentId;
-    # read payment status until response.result.paypageStatus.code is equal 'INAKTIV' - but maximal for 7 seconds
+    # read payment status until response.result.paypageStatus.code is equal 'INAKTIV' - but maximal for 10 seconds
     my $paymentStatusCode = 'undef';
     my $paymentBetrag = '';
     my $paymentEShopKundennummer = '';
@@ -627,7 +628,7 @@ sub lesenKassenzeichenInfo {
     my $paymentZahlverfahren = '';
     my $starttime = time();
 
-    while ( time() < $starttime + 7 ) {
+    while ( time() < $starttime + 10 ) {
         $epayblmsg = '';
         $self->{logger}->debug("lesenKassenzeichenInfo() epayblWebservicesUrl:$self->{epayblWebservicesUrl}: lesenKassenzeichenInfoRequest:" . Dumper($lesenKassenzeichenInfoRequest) . ":");
         my $response = eval {
@@ -813,7 +814,7 @@ sub lesenKassenzeichenInfo {
         } else {
             $retErrorTemplate = 'EPAYBL_ERROR_PROCESSING';
             $retError = 642;
-            $epayblmsg .= ' Online payment has not been confirmed by ePayBL within 7 seconds.';
+            $epayblmsg .= ' Online payment has not been confirmed by ePayBL within 10 seconds.';
         }
     }
 
