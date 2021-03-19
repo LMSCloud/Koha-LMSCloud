@@ -284,11 +284,12 @@ sub _get_barcode_data {
             if ( ! $ind ) {
                 @marcfield = $record->field($field);
             } else {
+                $ind =~ s/^\((..)\)$/$1/;
                 my @inds = split(//,$ind);
                 foreach my $mfield($record->field($field)) {
                     next if ( $mfield->is_control_field() );
-                    next if ( ($mfield->indicator(1) eq $inds[0] || ($inds[0] eq '#' && $mfield->indicator(1) eq ' ')) );
-                    next if ( ($mfield->indicator(2) eq $inds[1] || ($inds[1] eq '#' && $mfield->indicator(2) eq ' ')) );
+                    next if ( !($mfield->indicator(1) eq $inds[0] || ($inds[0] eq '#' && $mfield->indicator(1) eq ' ')) );
+                    next if ( !($mfield->indicator(2) eq $inds[1] || ($inds[1] eq '#' && $mfield->indicator(2) eq ' ')) );
                     push @marcfield, $mfield;
                 }
             }
