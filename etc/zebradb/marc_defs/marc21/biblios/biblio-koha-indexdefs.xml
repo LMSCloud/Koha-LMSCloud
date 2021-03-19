@@ -1221,6 +1221,10 @@
     <target_index>SystematikNumPart:w</target_index>
     <target_index>SystematikNumPart:p</target_index>
   </index_subfields>
+  <!--record.abs addded line by roger: melm 852$9      Koha-Auth-Number:w -->
+  <index_subfields tag="852" subfields="h">
+    <target_index>Koha-Auth-Number:w</target_index>
+  </index_subfields>
   <!--record.abs added line by roger: Antolin-age:w,Antolin-age:p,Antolin-count:w,Antolin-count:p-->
   <index_subfields tag="856" subfields="n">
     <target_index>Antolin-age:w</target_index>

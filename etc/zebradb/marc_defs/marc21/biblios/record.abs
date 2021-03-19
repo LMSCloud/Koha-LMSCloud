@@ -295,6 +295,7 @@ melm 852$a      Systematik:w,Systematik:p
 melm 852$k      SystematikPrefix:w,SystematikPrefix:p
 melm 852$h      SystematikClassPart:w,SystematikClassPart:p
 melm 852$j      SystematikNumPart:n,SystematikNumPart:w,SystematikNumPart:p
+melm 852$9      Koha-Auth-Number
 melm 856$n      Antolin-age:w,Antolin-age:p
 melm 856$z      Antolin-age:w,Antolin-age:p
 melm 856$x      Antolin-count:w,Antolin-count:p,Antolin-count:n
