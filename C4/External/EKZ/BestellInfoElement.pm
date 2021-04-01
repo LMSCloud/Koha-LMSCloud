@@ -68,6 +68,7 @@ sub new {
         'dateTimeNow' => undef,    # time stamp value, identical for message, titles and items
         'hauptstelle' => undef,    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
         'homebranch' => undef,    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
+        'auftragsnummer' => undef,    # will be set later, in function process() based on supplyOption in XML element 'auftragsnummer'
         'titleSourceSequence' => '_LMSC|_EKZWSMD|DNB|_WS',
         'ekzWsHideOrderedTitlesInOpac' => 1,    # policy: hide title if not explictly set to 'show'
         'ekzWebServicesSetItemSubfieldsWhenOrdered' => undef,
@@ -81,7 +82,7 @@ sub new {
     bless $self, $class;
     $self->init();
 
-    $self->{logger}->debug("new() returns self:" . Dumper($self) . ":");
+    #$self->{logger}->trace("new() returns self:" . Dumper($self) . ":");
     return $self;
 }
 
@@ -91,6 +92,7 @@ sub init {
     $self->{dateTimeNow} = DateTime->now(time_zone => 'local');
     $self->{hauptstelle} = undef;    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
     $self->{homebranch} = undef;    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
+    $self->{auftragsnummer} = undef;    # will be set later, in function process() based on supplyOption in XML element 'auftragsnummer'
     $self->{titleSourceSequence} = C4::Context->preference("ekzTitleDataServicesSequence");
     if ( !defined($self->{titleSourceSequence}) ) {
         $self->{titleSourceSequence} = '_LMSC|_EKZWSMD|DNB|_WS';
@@ -176,6 +178,10 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     $self->{ekzAqbooksellersId} = $self->{ekzKohaRecordClass}->{'ekzWsConfig'}->getEkzAqbooksellersId($self->{hauptstelle});
     $self->{ekzAqbooksellersId} =~ s/^\s+|\s+$//g;    # trim spaces
     $self->{logger}->info("process() self->{ekzAqbooksellersId}:" . $self->{ekzAqbooksellersId} . ":");
+
+    $self->{auftragsnummer} = $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'auftragsnummer'};    # used only for DKSH at the moment
+    $self->{ccode} = $self->{ekzKohaRecordClass}->ccodeBySupplyOption($self->{auftragsnummer});    # used only for DKSH at the moment
+    $self->{logger}->info("process() self->{auftragsnummer}:" . (defined($self->{auftragsnummer})?$self->{auftragsnummer}:'undef') . ": ->{ccode}:" . (defined($self->{ccode})?$self->{ccode}:'undef') . ":");
 
     # result values
     my $respStatusCode = 'UNDEF';
@@ -1232,6 +1238,9 @@ sub handleTitelBestellInfo {
                     $item_hash->{booksellerid} = 'ekz';
                     $item_hash->{price} = $gesamtpreis;
                     $item_hash->{replacementprice} = $replacementcost_tax_included;
+                    if ( $self->{ccode} ) {
+                        $item_hash->{ccode} = $self->{ccode};    # DKSH only; got from <auftragsnummer> via authorised_value_category CCODE
+                    }
                     
                     # step 3.2: finally add the next items record
                     my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
