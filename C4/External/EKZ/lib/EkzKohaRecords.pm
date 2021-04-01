@@ -32,6 +32,7 @@ use Koha::Email;
 use MARC::Field;
 use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
+use C4::Koha;
 use C4::Breeding qw(Z3950SearchGeneral);
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::LMSPoolSRU;
@@ -91,6 +92,31 @@ sub new {
     return $self;
 }
 
+
+##############################################################################
+#
+# get ccode by supplyOption via authorised_values of category CCODE
+#
+##############################################################################
+sub ccodeBySupplyOption {
+    my $self = shift;
+    my ($supplyOption) = @_;
+    my $retCcode = undef;
+
+    $self->{'logger'}->debug("ccodeBySupplyOption(supplyOption:" . (defined($supplyOption)?$supplyOption:'undef') . ") START; defined(self->{localCatalogSourceDelegateClass}):" . defined($self->{localCatalogSourceDelegateClass}) . ":");
+
+    if ( defined($self->{localCatalogSourceDelegateClass}) ) {
+        my $auth_values = GetAuthorisedValues('CCODE');
+        foreach my $auth_value ( @{$auth_values} ) {
+            if ( $auth_value->{lib} eq $supplyOption ) {
+                $retCcode = $auth_value->{authorised_value};
+                last;
+            }
+        }
+    }
+    return $retCcode;
+}
+
 ##############################################################################
 #
 # create new biblio record
@@ -146,16 +172,12 @@ sub readTitleInLocalDB {
                                                ": maxhits:" . defined($maxhits) ? $maxhits : 'undef' .
                                                ":");
 
-    my $marcresults = $self->readTitleDubletten($selParam,1);
-    $hits = scalar @$marcresults if $marcresults;
+    my $marcRecordResults = $self->readTitleDubletten($selParam,1);    # array of objects of type MARC::Record
+    $hits = scalar @$marcRecordResults if $marcRecordResults;
 
-    HITS: for (my $i = 0; $i < $hits && $maxhits > 0 and defined $marcresults->[$i]; $i++)
+    HITS: for (my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResults->[$i]; $i++)
     {
-        my $marcrecord;
-        eval {
-            $marcrecord =  MARC::Record::new_from_xml( $marcresults->[$i], "utf8", 'MARC21' );
-        };
-        carp "EkzKohaRecords::readTitleInLocalDB: error in MARC::Record::new_from_xml:$@:\n" if $@;
+        my $marcrecord =  $marcRecordResults->[$i];
 
         if ( $marcrecord ) {
             # Onleihe e-media have to be filtered out
@@ -236,33 +258,46 @@ sub isOnleiheItem {
 ##############################################################################
 sub mergeMarcresults {
     my $self = shift;
-    my ($marcresults1, $biblionumberhash, $marcresults2, $hitscntref) = @_;
+    my ($marcRecordResults, $biblionumberhash, $marcXmlResults, $hitscntref, $containsEkzArticleNumberHit) = @_;
+    #$self->{'logger'}->trace("mergeMarcresults() marcRecordResults:" . Dumper($marcRecordResults) . ": biblionumberhash:" . Dumper($biblionumberhash) . " marcXmlResults:" . Dumper($marcXmlResults) . " hitscntref:" . Dumper($$hitscntref) . ": containsEkzArticleNumberHit:$containsEkzArticleNumberHit:");
 
-    my $hits2 = 0;
-    $hits2 = scalar @{$marcresults2} if $marcresults2;
+    my $marcXmlResultsCount = 0;
+    $marcXmlResultsCount = scalar @{$marcXmlResults} if $marcXmlResults;
+    #$self->{'logger'}->trace("mergeMarcresults() marcXmlResultsCount:$marcXmlResultsCount:");
 
-
-    for (my $i = 0; $i < $hits2 and defined $marcresults2->[$i]; $i++)
+    for (my $i = 0; $i < $marcXmlResultsCount and defined $marcXmlResults->[$i]; $i++)
     {
-        my $marcrecord2;
+        my $marcRecordFromXml;
         eval {
-            $marcrecord2 =  MARC::Record::new_from_xml( $marcresults2->[$i], "utf8", 'MARC21' );
+            $marcRecordFromXml =  MARC::Record::new_from_xml( $marcXmlResults->[$i], "utf8", 'MARC21' );
         };
         if ( $@ ) {
             my $mess = sprintf("mergeMarcresults: error in MARC::Record::new_from_xml:%s:", $@);
             $self->{'logger'}->warn($mess);
             carp "EkzKohaRecords::" . $mess . "\n";
         }
+        #$self->{'logger'}->trace("mergeMarcresults() marcRecordFromXml:" . Dumper($marcRecordFromXml) . ":");
 
-        if ( $marcrecord2 ) {
-            my $biblionumber = $marcrecord2->subfield("999","c");
-            if ( !exists($biblionumberhash->{$biblionumber}) ) {
-                push @{$marcresults1}, $marcresults2->[$i];
-                $biblionumberhash->{$biblionumber} = $biblionumber;
+        if ( $marcRecordFromXml ) {
+            my $biblionumberXML = $marcRecordFromXml->subfield("999","c");
+            if ( !exists($biblionumberhash->{$biblionumberXML}) ) {
+                my $biblionumber0 = 0;
+                if ( defined( $marcRecordResults->[0] ) && defined( $marcRecordResults->[0]->subfield("999","c") ) ) {
+                    $biblionumber0 = $marcRecordResults->[0]->subfield("999","c");
+                }
+                # if $marcRecordResults contains the hit by ekzArtikleNo search, then keep that hit as first array element,
+                # otherwise place record with greatest biblionumber as first element in array, because it represents the newest edition etc.
+                if ( $containsEkzArticleNumberHit || $biblionumber0 >= $biblionumberXML ) {
+                    push @{$marcRecordResults}, $marcRecordFromXml;
+                } else {
+                    unshift @{$marcRecordResults}, $marcRecordFromXml;
+                }
+                $biblionumberhash->{$biblionumberXML} = $biblionumberXML;
                 $$hitscntref += 1;
             }
         }
     }
+    #$self->{'logger'}->trace("mergeMarcresults() END marcRecordResults:" . Dumper($marcRecordResults) . ":");
 }
 
 
@@ -284,6 +319,7 @@ sub readTitleDubletten {
     } else {
         my $query = "cn:\"-1\"";                    # control number search, initial definition for no hit
         my $allinall_hits = 0;
+        my $foundEkzArticleNumberHit = 0;
         my %biblionumbersfound = ();
         # search priority:
         # 1. ekzArtikelNr
@@ -308,8 +344,8 @@ sub readTitleDubletten {
             }
             $self->{'logger'}->debug("readTitleDubletten() query:$query:");
 
-            my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
-            ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+            ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
             
             if (defined $error) {
                 my $mess = sprintf("readTitleDubletten(): search for ekzArtikelNr:%s: returned error:%d/%s:", $selParam->{'ekzArtikelNr'}, $error, $error);
@@ -317,9 +353,12 @@ sub readTitleDubletten {
                 carp "EkzKohaRecords::" . $mess . "\n";
             } else
             {
-                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                if ( scalar @{$marcXmlResults} > 0 ) {
+                    $foundEkzArticleNumberHit = 1;
+                    $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
+                }
             }
-            $self->{'logger'}->debug("readTitleDubletten() search total_hits:$total_hits: allinall_hits:$allinall_hits:");
+            $self->{'logger'}->debug("readTitleDubletten() ekzArtikelNr search total_hits:$total_hits: allinall_hits:$allinall_hits:");
         }
 
         # check for isbn/isbn13 search
@@ -330,7 +369,7 @@ sub readTitleDubletten {
             #carp "EkzKohaRecords::" . $mess . "\n";
         } else
         {
-            my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
+            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
             my @isbnSelFields = ('isbn', 'isbn13');
             ISBNSEARCH: for ( my $k = 0; $k < 2; $k += 1 ) {
                 if ( defined $selParam->{$isbnSelFields[$k]} && length($selParam->{$isbnSelFields[$k]}) > 0 ) {
@@ -356,7 +395,7 @@ sub readTitleDubletten {
                                 my $query = "nb:\"$selISBN[$i]\" or id-other:\"$selISBN[$i]\"";
                                 $self->{'logger'}->debug("readTitleDubletten() query:$query:");
                 
-                                ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+                                ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
             
                                 if (defined $error) {
                                     my $mess = sprintf("readTitleDubletten(): search for %s:%s: returned error:%d/%s:", $isbnSelFields[$k], $selISBN[$i], $error,$error);
@@ -364,7 +403,7 @@ sub readTitleDubletten {
                                     carp "EkzKohaRecords::" . $mess . "\n";
                                 } else {
                                     if ( $total_hits > 0 ) {
-                                        $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                                        $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
                                         last ISBNSEARCH;
                                     }
                                 }
@@ -408,13 +447,16 @@ sub readTitleDubletten {
             $query = $query1 . $query2;
             $self->{'logger'}->debug("readTitleDubletten() query:$query:");
             
-            my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
-            ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+            ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
         
             if (defined $error) {
                 my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
                 $self->{'logger'}->warn($mess);
                 carp "EkzKohaRecords::" . $mess . "\n";
+            } else
+            {
+                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
             }
             $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:");
                 
@@ -427,8 +469,8 @@ sub readTitleDubletten {
                 $query = $query1 . $query3;
                 $self->{'logger'}->debug("readTitleDubletten() query:$query:");
                 
-                ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
-                ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+                ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+                ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
             
                 if (defined $error) {
                     my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
@@ -436,7 +478,7 @@ sub readTitleDubletten {
                     carp "EkzKohaRecords::" . $mess . "\n";
                 } else
                 {
-                    $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                    $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
                 }
                 $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits: allinall_hits:$allinall_hits:");
             }
@@ -453,8 +495,8 @@ sub readTitleDubletten {
             $query = "au,phr:\"$selParam->{'author'}\" and ti,phr,ext:\"$selParam->{'titel'}\" and yr,st-year:\"$selParam->{'erscheinungsJahr'}\"";
             $self->{'logger'}->debug("readTitleDubletten() query:$query:");
             
-            my ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
-            ( $error, $marcresults, $total_hits ) = C4::Search::SimpleSearch($query);
+            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+            ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
         
             if (defined $error) {
                 my $mess = sprintf("readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
@@ -463,7 +505,7 @@ sub readTitleDubletten {
 
             } else
             {
-                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcresults,\$allinall_hits);
+                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
             }
             $self->{'logger'}->debug("readTitleDubletten() author/title/publicationyear search total_hits:$total_hits: allinall_hits:$allinall_hits:");
         }
