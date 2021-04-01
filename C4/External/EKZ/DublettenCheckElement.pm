@@ -248,11 +248,7 @@ sub searchDubletten {
     # So we have to accumulate all items of the found duplicates candidates in 1 XML 'titel' block even if we found more than one duplicate candidates title.
     for (my $i = 0; $i < $hits and defined $marcresults->[$i]; $i++)
     {
-        my $marcrecord;
-        eval {
-            $marcrecord =  MARC::Record::new_from_xml( $marcresults->[$i], "utf8", 'MARC21' );
-        };
-        carp "main: error in MARC::Record::new_from_xml:$@:\n" if $@;
+        my $marcrecord =  $marcresults->[$i];
 
         if ( $marcrecord )
         {
