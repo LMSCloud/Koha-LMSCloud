@@ -229,6 +229,15 @@ sub checkin {
                 return $circ;
             }
         }
+        if ( $checkinOpts && exists($checkinOpts->{disabled_ccodes_for_checkins}) ) {
+            if ( $checkinOpts->{disabled_ccodes_for_checkins} && defined($item->{'collection_code'}) && exists( $checkinOpts->{disabled_ccodes_for_checkins}->{$item->{'collection_code'}} ) ) {
+                $circ->alert(1);
+                $circ->alert_type(93);
+                $circ->ok( 0 );
+                $circ->screen_msg('SIP checkin forbidden due to item collection code');
+                return $circ;
+            }
+        }
         if ( $checkinOpts && $checkinOpts->{disable_checkins_with_holds} ) {
             my $pending = $item->pending_queue;
             if ( $pending && ref($pending) eq 'ARRAY' && scalar(@$pending) ) {

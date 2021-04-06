@@ -688,6 +688,11 @@ sub handle_checkin {
                 $checkinOpts->{disabled_itypes_for_checkins}->{$itype} = $itype;
             }
         }
+        if ( $account->{disabled_ccodes_for_checkins} ) {
+            foreach my $ccode( split(/\|/,$account->{disabled_ccodes_for_checkins} ) ) {
+                $checkinOpts->{disabled_ccodes_for_checkins}->{$ccode} = $ccode;
+            }
+        }
         if ( $account->{disable_checkins_with_holds} ) {
             $checkinOpts->{disable_checkins_with_holds} = 1;
         }
@@ -1236,7 +1241,18 @@ sub handle_item_information {
             $resp .= add_field( FID_CURRENCY, $item->fee_currency );
             $resp .= add_field( FID_FEE_AMT,  $i );
         }
-        $resp .= maybe_add( FID_OWNER, $item->owner );
+        if ( $server->{account}->{deliver_hold_shelf_patron_with_BG} && $item->sip_circulation_status eq '08' ) {
+            if ( $item->{hold_shelf} ) {
+                foreach my $hold ( @{ $item->{hold_shelf} } ) {
+                    if ( $hold->{itemnumber} == $item->{itemnumber}  ) {
+                        $resp .= maybe_add( FID_OWNER, $item->hold_patron_bcode($hold->{borrowernumber}) );
+                        last;
+                    }
+                }
+            }
+        } else {
+            $resp .= maybe_add( FID_OWNER, $item->owner );
+        }
 
         if ( ( $i = scalar @{ $item->hold_queue } ) > 0 ) {
             $resp .= add_field( FID_HOLD_QUEUE_LEN, $i );
