@@ -831,10 +831,10 @@ sub getCurrentBalance {
         SELECT a.current_balance 
         FROM cash_register_account a
         WHERE a.cash_register_id = ? AND
-              id = (SELECT MAX(b.id) FROM cash_register_account b WHERE a.cash_register_id = b.cash_register_id ) 
+              id = (SELECT MAX(b.id) FROM cash_register_account b WHERE b.cash_register_id = ?) 
        }; $query =~ s/^\s+/ /mg;
     my $sth = $dbh->prepare($query);
-    $sth->execute($cash_register_id);
+    $sth->execute($cash_register_id,$cash_register_id);
     while (my $row = $sth->fetchrow_hashref) {
        return $row->{current_balance};
     }
