@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2021-02-24 18:30+0100\n"
+"POT-Creation-Date: 2021-04-06 15:44+0200\n"
 "PO-Revision-Date: 2020-12-14 15:34+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
@@ -1170,7 +1170,7 @@ msgid "%s%s %sitem%sitems%s%sEmpty%s"
 msgstr "%s%s %sExemplar%sExemplare%s%sLeer%s"
 
 #. %1$s:  IF ( LibraryNameTitle ) 
-#. %2$s:  LibraryNameTitle 
+#. %2$s:  LibraryNameTitle | html 
 #. %3$s:  ELSE 
 #. %4$s:  END 
 #: opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:3
@@ -8273,7 +8273,7 @@ msgid "Password contains leading and/or trailing spaces"
 msgstr "Das Passwort enthält vor- und/oder nachstehende Leerzeichen"
 
 #. For the first occurrence,
-#. %1$s:  minPasswordLength 
+#. %1$s:  minPasswordLength | html 
 #: opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:72
 #: opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:70
 #, c-format
@@ -11094,13 +11094,13 @@ msgstr ""
 "Die Resultate der Bearbeitung werden für jeden eingegebenen Barcode "
 "angezeigt."
 
-#. %1$s:  username 
+#. %1$s:  username | html 
 #: opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:129
 #, c-format
 msgid "The password has been changed for user \"%s\"."
 msgstr "Das Passwort wurde zurückgesetzt für den Benutzer \"%s\"."
 
-#. %1$s:  minPasswordLength 
+#. %1$s:  minPasswordLength | html 
 #: opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:106
 #, c-format
 msgid "The password must contain at least %s characters."

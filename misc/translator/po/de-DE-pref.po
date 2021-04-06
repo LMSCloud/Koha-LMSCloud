@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2021-02-24 18:33+0100\n"
+"PO-Revision-Date: 2021-04-06 16:37+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -7156,6 +7156,49 @@ msgstr ""
 "wenn mit den ekz-Bestelldaten keine Kostenstelle geliefert wird.<br>"
 
 # Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzInvoiceCloseWhenCreated# The ekz invoice "
+"synchronization will"
+msgstr ""
+"Bei der ekz-Datensynchronisation sollen automatisiert angelegte Rechnungen  "
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzInvoiceCloseWhenCreated# close"
+msgstr "geschlossen "
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzInvoiceCloseWhenCreated# not close"
+msgstr "nicht geschlossen "
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzInvoiceCloseWhenCreated# the invoices it creates in "
+"Koha."
+msgstr "werden."
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzInvoiceSkipAdditionalCosts# The ekz invoice "
+"synchronization will"
+msgstr ""
+"Die Synchronisation von ekz-Rechnungen soll zusätzliche Kosten (z.B. für "
+"Bearbeitungsgebühren für Exemplare) "
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzInvoiceSkipAdditionalCosts# add"
+msgstr "zum Postenpreis addieren "
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzInvoiceSkipAdditionalCosts# additional costs (e.g. "
+"handling charges) to the item price."
+msgstr "."
+
+# Enhanced Content > ekz Data Services
+msgid "enhanced_content.pref#ekzInvoiceSkipAdditionalCosts# ignore and not add"
+msgstr "ignorieren und nicht zum Postenpreis addieren"
+
+# Enhanced Content > ekz Data Services
 msgid "enhanced_content.pref#ekzLocalServicesEnabled# Don't enable"
 msgstr "Aktiviere nicht"
 
@@ -7200,16 +7243,35 @@ msgstr ""
 "Importschnittstelle an die angegebene Email-Adresse"
 
 # Enhanced Content > ekz Data Services
-msgid ""
-"enhanced_content.pref#ekzStandingOrderWSLastRunDate# ,<br>the ekz web "
-"service for reading delivery note information at"
-msgstr ""
-",<br>letztes Verarbeitungsdatum der ekz-Importschnittstelle für die "
-"Verarbeitung von Lieferscheinen"
-
+# Enhanced Content > ekz Data Services
+# Enhanced Content > ekz Data Services
 # Enhanced Content > ekz Data Services
 msgid "enhanced_content.pref#ekzStandingOrderWSLastRunDate# ."
 msgstr ". "
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzStandingOrderWSLastRunDate# <br>The ekz web service "
+"for reading delivery note information has lastly been executed at"
+msgstr ""
+"<br>Letztes Verarbeitungsdatum der ekz-Importschnittstelle für die "
+"Verarbeitung von Lieferscheinen "
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzStandingOrderWSLastRunDate# <br>The ekz web service "
+"for reading invoice information has lastly been executed at"
+msgstr ""
+"<br>Letztes Verarbeitungsdatum der ekz-Importschnittstelle für die "
+"Verarbeitung von Rechnungen "
+
+# Enhanced Content > ekz Data Services
+msgid ""
+"enhanced_content.pref#ekzStandingOrderWSLastRunDate# <br>The ekz web service "
+"for reading serial order information has lastly been executed at"
+msgstr ""
+"<br>Letztes Verarbeitungsdatum der ekz-Importschnittstelle für die "
+"Verarbeitung von Fortsetzungsbestellungen "
 
 # Enhanced Content > ekz Data Services
 msgid ""
@@ -7405,6 +7467,16 @@ msgstr ""
 
 # Enhanced Content > ekz Data Services
 msgid ""
+"enhanced_content.pref#ekzWebServicesSetItemSubfieldsWhenInvoiced# When the "
+"ekz invoice synchronisation signals an item receipt, update the item's "
+"subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)"
+msgstr ""
+"Wenn der ekz-Importservice Rechnungen für bestellte Exemplare verbucht, "
+"sollen Exemplarfelder auf die angegebene Weise vorbelegt bzw. aktualisiert "
+"werden (z.B.: 7=5|x=Nicht ausleihbar gesetzt von ekz-Importservice.) "
+
+# Enhanced Content > ekz Data Services
+msgid ""
 "enhanced_content.pref#ekzWebServicesSetItemSubfieldsWhenOrdered# When an ekz "
 "web service signals an order and an item is created, set the item's "
 "subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)"
@@ -7415,13 +7487,13 @@ msgstr ""
 
 # Enhanced Content > ekz Data Services
 msgid ""
-"enhanced_content.pref#ekzWebServicesSetItemSubfieldsWhenReceived# When an "
-"ekz web service signals an item receipt, update the item's subfields as "
-"specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)"
+"enhanced_content.pref#ekzWebServicesSetItemSubfieldsWhenReceived# When the "
+"ekz delivery note synchronisation signals an item receipt, update the item's "
+"subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)"
 msgstr ""
 "Wenn der ekz-Importservice bestellte Exemplare als eingegangen verbucht, "
 "sollen Exemplarfelder auf die angegebene Weise vorbelegt bzw. aktualisiert "
-"werden (z.B.: 7=5|x=Nicht ausleihbar gesetzt von ekz-Importservice.)"
+"werden (z.B.: 7=5|x=Nicht ausleihbar gesetzt von ekz-Importservice.) "
 
 # I18N/L10N
 msgid "i18n_l10n.pref"
@@ -8270,6 +8342,28 @@ msgstr ""
 msgid ""
 "opac.pref#GirosolutionMerchantId# The library's GiroSolution Merchant ID is "
 msgstr "Die GiroSolution-Kundennummer der Bibliothek ist "
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionRemittanceInfo# (Permitted characters: a-z A-Z 0-9 "
+"':?,-(+.)/)"
+msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionRemittanceInfo# The text for the 'remittance "
+"information' of the payment will be constructed from the pattern "
+msgstr ""
+"Der Text für den Verwendungszweck der Zahlung wird erstellt basierend auf "
+"dem Muster "
+
+# OPAC > Payments via GiroSolution
+msgid ""
+"opac.pref#GirosolutionRemittanceInfo# by replacing the placeholder &lt;&lt;"
+"borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
+msgstr ""
+"wobei der Platzhalter &lt;&lt;borrowers.cardnumber&gt;&gt; durch die "
+"Ausweisnummer des Benutzers ersetzt wird."
 
 # OPAC > Appearance
 msgid "opac.pref#GoogleIndicTransliteration# Don't show"
@@ -9923,7 +10017,7 @@ msgstr ""
 # OPAC > Payments via pmPayment
 msgid ""
 "opac.pref#PmpaymentRemittanceInfo# by replacing the placeholder &lt;&lt;"
-"borrowers.cardnumber&gt;&gt; by the patrons cardnumber."
+"borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
 msgstr ""
 "wobei der Platzhalter &lt;&lt;borrowers.cardnumber&gt;&gt; durch die "
 "Ausweisnummer des Benutzers ersetzt wird."
