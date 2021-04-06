@@ -2,7 +2,7 @@
 
 # This file is part of Koha.
 #
-# Copyright (C) 2020 LMSCloud GmbH
+# Copyright (C) 2020-2021 LMSCloud GmbH
 #
 # Koha is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -19,18 +19,30 @@
 
 =head1 NAME
 
-membership_renewal.pl - cron script for renewal of soon ending memberships and payment of resulting enrolment fees via SEPA direct debit
+membership_renewal.pl - cron script for renewal of soon ending memberships and payment of resulting enrolment fees, and even other fines, via SEPA direct debit.
 
 =head1 SYNOPSIS
 
-./membership_renewal.pl -c
+./membership_renewal.pl -c -expiryAfterDays 0 -expiryBeforeDays 14 \ -sepaDirectDebitDelayDays 17 -action renewal_and_sepaDirectDebit
 
 =head1 DESCRIPTION
 
-This script renews the membership of patrons that have agreed to payment of resulting enrolment fees via SEPA direct debit.
+This script features two quite independent functions: 
+(A) It renews the membership of patrons that have agreed to payment of resulting enrolment fees, and maybe also other fines, via SEPA direct debit. 
+(B) It exports SEPA direct debit data to an payment instruction XML file to be forwarded to the library's bank
+and 'pays' the corresponding fees in Koha in advance in anticipation of the success of the SEPA direct debit that will be triggered a few days in the future, 
+again only for those patrons that have agreed to this method.
 The relevant data for the SEPA direct debit are stored in table borrower_attributes.
-The resulting XML file containing the SEPA direct debit information for the new enrolment fees is transferred manually by staff to the bank of the library.
-It is stored in the standard 'batchprint' directory and named in the form pain.008.yyyymmdd.
+The resulting XML file containing the SEPA direct debit instructions for the new enrolment fees and other fines of configurable types 
+is transferred manually by staff to the bank of the library or to the financal accounting system of the township.
+It is stored in the standard 'batchprint' directory and so may be downloaded from within the Koha staff interface.
+Its name is built based on the pattern in system preference 'SepaDirectDebitPaymentInstructionFileName', 
+e.g. pattern pain.008.<<cc>><<yy>><<mm>><<dd>>.xml results in name pain.008.20191231.xml if the script is executed on date 2019-12-31.
+The file is also created if no payment instructions have to be stored in it by the current run, but in this case '_no_transactions.xml' is appended to its name.
+This is required because some external plausibility check programs deny a file containing no payment instructions, so we have to indicate this case somehow to the user.
+In case of grossly wrong or lacking IBAN or BIC specification of the handled borrower an error file is created in the same directory, 
+its name beeing similar to the name of the XML output file, but with '_Fehler.html' appended.
+
 
 =head1 OPTIONS
 
@@ -42,7 +54,7 @@ Prints a brief help message and exits.
 
 =item B<--man>
 
-Prints the manual page and exits.
+Prints this manual page and exits.
 
 =item B<-v>
 
@@ -50,7 +62,7 @@ Verbose. Without this flag set, only fatal errors are reported.
 
 =item B<-n>
 
-Do not send any email. SEPA direct debit announcements that would have been sent to
+Do not send any email, do not creat print tasks. SEPA direct debit notifications that would have been sent to
 the patrons are printed to standard out.
 
 =item B<-c>
@@ -61,7 +73,7 @@ statement otherwise.
 =item B<-action>
 
 Optional action selector, may contain 'renewal' or 'sepaDirectDebit (also in combination).
-Default: renewalsepaDirectDebit
+Default: renewalsepaDirectDebit (equivalent to e,g. renewal_and_sepaDirectDebit)
 
 =item B<-branch>
 
@@ -91,37 +103,59 @@ Optional parameter to use another lettercode than the standard configured in sys
 =head1 CONFIGURATION
 
 Relevant system preferences:
+
 'SepaDirectDebitCreditorBic': BIC of the library's bank account used in XML file containing SEPA direct debits.
+
 'SepaDirectDebitCreditorIban: IBAN of the library's bank account used in XML file containing SEPA direct debits.
+
 'SepaDirectDebitCreditorId: SEPA creditor ID of the library used in XML file containing SEPA direct debits.
+
 'SepaDirectDebitCreditorName': Name of the library used in XML file containing SEPA direct debits for XML-element <PmtInf><Cdtr><Nm>.
+
 'SepaDirectDebitInitiatingPartyName': Name of the library used in XML file containing SEPA direct debits for XML-element <GrpHdr><InitgPty><Nm> (usually uppercase).
+
 'SepaDirectDebitMessageIdHeader': Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>.
-'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><MsgId><RmtInf><Ustrd>.
-'SepaDirectDebitBorrowerNoticeLettercode': Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee.
-'SepaDirectDebitCashRegisterName', 'SEPA', NULL, 'Name of cash register for assignment of the SEPA direct debit payments.', 'Free' ),
-'SepaDirectDebitCashRegisterManagerCardnumber', '672555551', NULL, 'Cardnumber of the staff account that is used for booking SEPA direct debit in the specially provided cash register.', 'Free' )
+
+'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>.
+
+'SepaDirectDebitBorrowerNoticeLettercode': Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee or other fines.
+
+'SepaDirectDebitCashRegisterName': Name of cash register for assignment of the SEPA direct debit payments.
+
+'SepaDirectDebitCashRegisterManagerCardnumber: Cardnumber of the staff account that is used for booking SEPA direct debit in the specially provided cash register.
+
+'SepaDirectDebitAccountTypes': List of account types of fees to be paid via SEPA direct debit, separated by '|'.'
+
+'SepaDirectDebitMinFeeSum': A SEPA direct debit will be generated only if the sum of open fees of a borrower to be paid via SEPA direct debit is greater or equal this threshold value.'
+
+'SepaDirectDebitLocalInstrumentCode': Text used in XML file containing SEPA direct debits for <PmtInf><PmtTpInf><LclInstrm><Cd>. One of 'CORE', 'COR1'
+
+'SepaDirectDebitPaymentInstructionFileName': Pattern for the name of the file containing the SEPA direct debit payment instructions for the bank. Placeholders: century:<<cc>> year:<<yy>> month:<<mm>> day:<<dd>>.'
 
 Relevant borrowerattributes:
+
 'SEPA': Trigger if the patron has aggreed to payment of membership fee by SEPA direct debit (type:YesNo).
+
 'SEPA_BIC': BIC of the patron's bank account used in XML file containing SEPA direct debits.
+
 'SEPA_IBAN': IBAN of the patron's bank account used in XML file containing SEPA direct debits.
+
 'SEPA_Sign': Date when the patron signed the SEPA direct debit mandate.
 
-The content of the SEPA direct debit announcement email is configured in Tools -> Notices and slips. Use the MEMBERSHIP_SEPA_NOTE notice as default.
+The content of the SEPA direct debit notification email and printed letter is configured in Tools -> Notices and slips. 
+Use the MEMBERSHIP_SEPA_NOTE notification as default if exclusively membership fees are handled; use SEPA_NOTE notification if fees of different accounttype have to paid with this method.
 
-These emails are staged in the outgoing message queue, as are messages
+These emails and print tasks are staged in the outgoing message queue, as are messages
 produced by other features of Koha. This message queue must be
 processed regularly by the
 F<misc/cronjobs/process_message_queue.pl> program.
 
-In the event that the C<-n> flag is passed to this program, no emails
-are sent. Instead, messages are sent on standard output from this
-program.
+In the event that the C<-n> flag is passed to this program, no emails or print tasks are queued.
+Instead, email messages and print tasks are output on standard output from this program.
 
-Notices can contain placeholder variables enclosed in double angle brackets like
+The notification layouts can contain placeholder variables enclosed in double angle brackets like
 E<lt>E<lt>thisE<gt>E<gt>. Those placeholder variables will be replaced with values
-specific to the member whose membership has been renewed.
+specific to the patron whose fees have been 'paid' in Koha.
 Available variables are:
 
 =over
@@ -133,6 +167,14 @@ any field from the borrowers table
 =item E<lt>E<lt>branches.*E<gt>E<gt>
 
 any field from the branches table
+
+=item E<lt>E<lt>accountlinesFee.*E<gt>E<gt>
+
+any field from the accountlines table (paid fee of this borrower, useful only if fee type is restricted to membership renewal)
+
+=item E<lt>E<lt>accountlinesPayment.*E<gt>E<gt>
+
+any field from the accountlines table (payment of this borrower)
 
 =back
 
@@ -152,9 +194,9 @@ BEGIN {
 use C4::Log;
 use Koha::SEPAPayment;
 
-#binmode( STDIN, ":utf8" );
-#binmode( STDOUT, ":utf8" );
-#binmode( STDERR, ":utf8" );
+binmode( STDIN, ":utf8" );
+binmode( STDOUT, ":utf8" );
+binmode( STDERR, ":utf8" );
 
 # These are defaults for command line options.
 my $confirm;                              # -c: Confirm that the user has read and configured this script.
@@ -214,26 +256,26 @@ if( $configError ) {
 if ( index($action, 'renewal') >= 0 ) {
     # action: renew membership and insert enrolment fee as required
     warn "membership_renewal.pl: Trying to renew membership for patrons with SEPA direct debit." if $verbose;
-    my $expiringMemberships = $sepaPayment->renewMembershipForSEPADebitPatrons(
+    my ( $renewMembershipCount, $renewedMembershipCount ) = $sepaPayment->renewMembershipForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'me.branchcode' => $branch ) : () ),
             expiryAfterDays => $expiryAfterDays,
             expiryBeforeDays => $expiryBeforeDays,
         }
     );
-    warn 'membership_renewal.pl: sepaPayment->renewMembershipForSEPADebitPatrons() tried to renew ' . $expiringMemberships->count . ' soon expiring memberships.' if $verbose;
+    warn 'membership_renewal.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew ' . $renewMembershipCount . ' soon expiring memberships, renewed ' . $renewedMembershipCount . '.' if $verbose;
 }
 
 if ( index($action, 'sepaDirectDebit') >= 0 ) {
     # action: 'pay' enrolment fee via SEPA direct debit and create the corresponding XML file that can be transferred manually to the library's bank.
     warn 'membership_renewal.pl: Trying to pay open fees for membership renewals for patrons with activated SEPA direct debit.' if $verbose;
-    my $success = $sepaPayment->payMembershipFeesForSEPADebitPatrons(
+    my $success = $sepaPayment->paySelectedFeesForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'branchcode' => $branch ) : () ),
             sepaDirectDebitDelayDays => $sepaDirectDebitDelayDays,
         }
     );
-    warn "membership_renewal.pl: sepaPayment->payMembershipFeesForSEPADebitPatrons() success:$success:" if $verbose;
+    warn "membership_renewal.pl: sepaPayment->paySelectedFeesForSepaDirectDebitPatrons() success:$success:" if $verbose;
 }
 
 

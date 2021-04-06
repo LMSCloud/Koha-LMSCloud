@@ -1,6 +1,6 @@
 package C4::Epayment::EpaymentBase;
 
-# Copyright 2020 (C) LMSCLoud GmbH
+# Copyright 2020-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -17,12 +17,14 @@ package C4::Epayment::EpaymentBase;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
+use Modern::Perl;
 use strict;
 use warnings;
 use Data::Dumper;
 
-use Modern::Perl;
 use Digest;
+use Digest::MD5 qw(md5 md5_hex md5_base64);
 use Digest::SHA qw(hmac_sha256_hex);
 use Encode; 
 
@@ -39,6 +41,7 @@ sub new {
     #bless $self, $class;    # does not work: Attempt to bless into a reference
     bless $self, 'C4::Epayment::EpaymentBase';
 
+    $self->{kohaInstanceName} = substr(C4::Context->config('database'),5);  # Regrettably the Koha instance name is not configured, so we take database name (e.g. 'koha_wallenheim') and cut away the leading part 'koha_'.
     $self->getSystempreferences();
 
     $self->{logger}->debug("new() returns self:" . Dumper($self) . ":");
@@ -112,8 +115,7 @@ sub getEpaymentCashRegisterManagement {
 }
 
 # round float $flt to precision of $decimaldigits behind the decimal separator. E. g. roundGS(-1.234567, 2) == -1.23
-sub roundGS ()
-{
+sub roundGS {
     my $self = shift;
     my ($flt, $decimaldigits) = @_;
     my $decimalshift = 10 ** $decimaldigits;
@@ -121,8 +123,10 @@ sub roundGS ()
     return (int(($flt * $decimalshift) + (($flt < 0) ? -0.5 : 0.5)) / $decimalshift);
 }
 
-# create remittance information text for payment (will be displayed on paypage with most payment service providers)
+# create remittance information text for payment (will be displayed on paypage with GiroSolution and pmPayment payment service providers)
 # defined placeholder: <<borrowers.cardnumber>>
+# ancient SEPA rules restrict the character set to: a-z A-Z 0-9 ':?,-(+.)/
+# (So the text pattern has to be supplied correctly by Koha user.)
 sub createRemittanceInfoText {
     my $self = shift;
     my $remittanceInfoTextPattern = shift;
@@ -142,6 +146,20 @@ sub createRemittanceInfoText {
     return $retRemittanceInfoText;
 }
 
+# calculate HMAC MD5 digest
+sub genHmacMd5 {
+    my $self = shift;
+    my ($key, $str) = @_;
+
+    #my $hmac_md5 = Digest->HMAC_MD5($key);    # wrong hash calculation if $key contain ISO-8859-* 8-bit chars
+    #$hmac_md5->add($str);    # wrong hash calculation if $str contain ISO-8859-* 8-bit chars
+    my $hmac_md5 = Digest->HMAC_MD5( Encode::encode_utf8($key) );    # force UTF-8 encoding, even for 8-bit chars
+    $hmac_md5->add( Encode::encode_utf8($str) );    # force UTF-8 encoding, even for 8-bit chars
+    my $hashval = $hmac_md5->hexdigest();
+
+    return $hashval;
+}
+
 # calculate HMAC SHA-256 digest
 sub genHmacSha256 {
     my $self = shift;
@@ -156,7 +174,7 @@ sub genHmacSha256 {
 # pick chars from a string based on a simple pattern, mainly used for compressing hash values
 sub pickChars {
     my $self = shift;
-    my ($str, $offset1, $offset2, $cnt) = @_;
+    my ($str, $offset1, $offset2, $cnt) = @_;    # $offset1: offset of 1st char to pick  $offset2: offset from char to char  $cnt: count of chars to pick
     my $len = length($str) ? length($str) : 1;
     my $offs = $offset1 % $len;
     my $res = '';

@@ -939,6 +939,11 @@ OPAC:
         -
             - "The library's GiroSolution Merchant ID is "
             - pref: GirosolutionMerchantId
+        -
+            - "The text for the 'remittance information' of the payment will be constructed from the pattern "
+            - pref: GirosolutionRemittanceInfo
+            - "by replacing the placeholder &lt;&lt;borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
+            - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
 
     Payments via epay21:
         -
@@ -1005,7 +1010,7 @@ OPAC:
         -
             - "The text for the 'remittance information' of the payment will be constructed from the pattern "
             - pref: PmpaymentRemittanceInfo
-            - "by replacing the placeholder &lt;&lt;borrowers.cardnumber&gt;&gt; by the patrons cardnumber."
+            - "by replacing the placeholder &lt;&lt;borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
             - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
 
     Payments via ePayBL:

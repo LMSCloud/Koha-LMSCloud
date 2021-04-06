@@ -1,6 +1,6 @@
 package C4::External::EKZ::BestellInfoElement;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -68,11 +68,13 @@ sub new {
         'dateTimeNow' => undef,    # time stamp value, identical for message, titles and items
         'hauptstelle' => undef,    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
         'homebranch' => undef,    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
+        'auftragsnummer' => undef,    # will be set later, in function process() based on supplyOption in XML element 'auftragsnummer'
         'titleSourceSequence' => '_LMSC|_EKZWSMD|DNB|_WS',
         'ekzWsHideOrderedTitlesInOpac' => 1,    # policy: hide title if not explictly set to 'show'
         'ekzWebServicesSetItemSubfieldsWhenOrdered' => undef,
         'ekzAqbooksellersId' => '',    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
         'ekzKohaRecordClass' => undef,
+        'createdTitleRecords' => {},    # for storing biblionumber and title data of newly created title records to avoid multiple creation (Zebra index is too slow)
         'emaillog' => $emaillog    # hash with variables for email log
     };
     $self->{logger} = Koha::Logger->get({ interface => 'C4::External::EKZ::BestellInfoElement' });
@@ -80,7 +82,7 @@ sub new {
     bless $self, $class;
     $self->init();
 
-    $self->{logger}->debug("new() returns self:" . Dumper($self) . ":");
+    #$self->{logger}->trace("new() returns self:" . Dumper($self) . ":");
     return $self;
 }
 
@@ -90,6 +92,7 @@ sub init {
     $self->{dateTimeNow} = DateTime->now(time_zone => 'local');
     $self->{hauptstelle} = undef;    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
     $self->{homebranch} = undef;    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
+    $self->{auftragsnummer} = undef;    # will be set later, in function process() based on supplyOption in XML element 'auftragsnummer'
     $self->{titleSourceSequence} = C4::Context->preference("ekzTitleDataServicesSequence");
     if ( !defined($self->{titleSourceSequence}) ) {
         $self->{titleSourceSequence} = '_LMSC|_EKZWSMD|DNB|_WS';
@@ -175,6 +178,10 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     $self->{ekzAqbooksellersId} = $self->{ekzKohaRecordClass}->{'ekzWsConfig'}->getEkzAqbooksellersId($self->{hauptstelle});
     $self->{ekzAqbooksellersId} =~ s/^\s+|\s+$//g;    # trim spaces
     $self->{logger}->info("process() self->{ekzAqbooksellersId}:" . $self->{ekzAqbooksellersId} . ":");
+
+    $self->{auftragsnummer} = $soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'auftragsnummer'};    # used only for DKSH at the moment
+    $self->{ccode} = $self->{ekzKohaRecordClass}->ccodeBySupplyOption($self->{auftragsnummer});    # used only for DKSH at the moment
+    $self->{logger}->info("process() self->{auftragsnummer}:" . (defined($self->{auftragsnummer})?$self->{auftragsnummer}:'undef') . ": ->{ccode}:" . (defined($self->{ccode})?$self->{ccode}:'undef') . ":");
 
     # result values
     my $respStatusCode = 'UNDEF';
@@ -465,8 +472,8 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                                 closed => 0,
                                 booksellerid => $aqbasket->{booksellerid},
                                 deliveryplace => "$aqbasket->{deliveryplace}",
-                                freedeliveryplace => "$aqbasket->{freedeliveryplace}",
-                                deliverycomment => "$aqbasket->{deliverycomment}",
+                                freedeliveryplace => undef,    # setting to NULL
+                                deliverycomment => undef,    # setting to NULL
                                 billingplace => "$aqbasket->{billingplace}",
                             };
                             $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
@@ -704,10 +711,25 @@ sub handleTitelBestellInfo {
         #   With data from one of these alternatives a title record has to be created in Koha, and an item record for each ordered copy.
 
         # search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
-        $titleHits = $self->{ekzKohaRecordClass}->readTitleInLocalDB($reqParamTitelInfo, 1);
-        $self->{logger}->info("handleTitelBestellInfo() from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+        my $titleSelHashkey = 
+            ( $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'isbn'} ? $reqParamTitelInfo->{'isbn'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'isbn13'} ? $reqParamTitelInfo->{'isbn13'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'issn'} ? $reqParamTitelInfo->{'issn'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'ismn'} ? $reqParamTitelInfo->{'ismn'} : '' ) . '.' .
+            ( $reqParamTitelInfo->{'ean'} ? $reqParamTitelInfo->{'ean'} : '' ) . '.';
+        $self->{logger}->debug("handleTitelBestellInfo() titleSelHashkey:$titleSelHashkey:");
+
+        if ( length($titleSelHashkey) > 6 && defined( $self->{createdTitleRecords}->{$titleSelHashkey} ) ) {
+            $titleHits = $self->{createdTitleRecords}->{$titleSelHashkey}->{titleHits};
+            $biblionumber = $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber};
+            $self->{logger}->info("handleTitelBestellInfo() got used biblionumber:$biblionumber: from self->{createdTitleRecords}->{$titleSelHashkey}");
+        } else {
+            $titleHits = $self->{ekzKohaRecordClass}->readTitleInLocalDB($reqParamTitelInfo, 1);
+            $self->{logger}->info("handleTitelBestellInfo() from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+            if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+            }
         }
 
         my @titleSourceSequence = split('\|',$self->{titleSourceSequence});
@@ -756,6 +778,16 @@ sub handleTitelBestellInfo {
                 $self->{logger}->info("handleTitelBestellInfo() new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
                 if ( defined $biblionumber && $biblionumber > 0 ) {
                     $biblioInserted = 1;
+                    # If XML element <titel> for the same title is contained multiple times in the BestellInfo request 
+                    # (e.g. order of same title for different branches) the first occurence may trigger the creation 
+                    # of the title record in the local database. But the next occurrences may happen before the title data
+                    # are indexed by the Zebra index, so multiple title records for the same title data may be created.
+                    # For this reason we store the title records created in this hash to avoid doubling of title data:
+                    if ( length($titleSelHashkey) > 6 ) {
+                        $self->{createdTitleRecords}->{$titleSelHashkey}->{titleHits} = $titleHits;
+                        $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber} = $biblionumber;
+                        $self->{logger}->debug("handleTitelBestellInfo() stored self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber}:$biblionumber:");
+                    }
                     # positive message for log
                     $self->{emaillog}->{importresult} = 1;
                     $self->{emaillog}->{importedTitlesCount} += 1;
@@ -1009,12 +1041,11 @@ sub handleTitelBestellInfo {
                 $orderinfo->{ecost_tax_included} = $budgetedcost_tax_included;
                 $orderinfo->{tax_rate_bak} = $ustSatz;        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
                 $orderinfo->{tax_rate_on_ordering} = $ustSatz;
-                $orderinfo->{tax_rate_on_receiving} = $ustSatz;
+                $orderinfo->{tax_rate_on_receiving} = undef;    # setting to NULL
                 $orderinfo->{tax_value_bak} = $ust;        #  corresponds to input field 'Tax value' in UI
                 $orderinfo->{tax_value_on_ordering} = $ust;
                 # XXXWH or alternatively: $orderinfo->{tax_value_on_ordering} = $orderinfo->{quantity} * $orderinfo->{ecost_tax_excluded} * $orderinfo->{tax_rate_on_ordering};    # see C4::Acquisition.pm
-                $orderinfo->{tax_value_on_receiving} = $ust;
-                # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
+                $orderinfo->{tax_value_on_receiving} = undef;    # setting to NULL
                 $orderinfo->{discount} = $rabatt;        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
 
                 if ( $reqLmsBestellCode ) {
@@ -1207,6 +1238,9 @@ sub handleTitelBestellInfo {
                     $item_hash->{booksellerid} = 'ekz';
                     $item_hash->{price} = $gesamtpreis;
                     $item_hash->{replacementprice} = $replacementcost_tax_included;
+                    if ( $self->{ccode} ) {
+                        $item_hash->{ccode} = $self->{ccode};    # DKSH only; got from <auftragsnummer> via authorised_value_category CCODE
+                    }
                     
                     # step 3.2: finally add the next items record
                     my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);

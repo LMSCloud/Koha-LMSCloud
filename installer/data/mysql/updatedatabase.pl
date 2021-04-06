@@ -17274,10 +17274,31 @@ $DBversion = "18.05.05.020";
 if ( CheckVersion($DBversion) ) {
     $dbh->do(q{
         INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
-            ('PmpaymentRemittanceInfo','Bibliothek:<<borrowers.cardnumber>>',NULL ,'Pattern for constructimg the text for the \'remittance information\' of the payment by replacing the placeholder <<borrowers.cardnumber>> by the patron\'s cardnumber.','Free' )
+            ('PmpaymentRemittanceInfo','Bibliothek:<<borrowers.cardnumber>>',NULL ,'Pattern for constructing the text for the \'remittance information\' of the payment by replacing the placeholder <<borrowers.cardnumber>> by the patron\'s cardnumber.','Free' )
     });
 
     print "Upgrade to $DBversion done (Added systempreference for pmPayment online payment remittance information text.)\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = "18.05.05.021";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('GirosolutionRemittanceInfo','Bibliothek:<<borrowers.cardnumber>>',NULL ,'Pattern for constructing the text for the \'remittance information\' of the payment by replacing the placeholder <<borrowers.cardnumber>> by the patron\'s cardnumber.','Free' ),
+            ('ekzInvoiceCloseWhenCreated','0',NULL,'If enabled, the ekz invoice synchronisation will automatically close the invoice it has inserted in Koha.','YesNo'),
+            ('ekzInvoiceSkipAdditionalCosts','0',NULL,'If enabled, additional costs transferred in invoice data (e.g. handling costs) are ignored, otherwise are added to the item price.','YesNo'),
+            ('ekzInvoiceWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling invoice information.','Free'),
+            ('ekzSerialOrderWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling serial order information.','Free'),
+            ('ekzWebServicesSetItemSubfieldsWhenInvoiced','',NULL,'When the ekz invoice synchronisation signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)','Free')
+    });
+    $dbh->do(q{
+        UPDATE systempreferences SET explanation = 'When the ekz delivery note synchronisation signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)' 
+            WHERE variable = 'ekzWebServicesSetItemSubfieldsWhenReceived' 
+              AND explanation LIKE 'When an ekz web service signals an item receipt, update the item\'s subfields as specified.%'
+    });
+
+    print "Upgrade to $DBversion done (Added systempreference for GiroSolution online payment remittance information text.)\n";
     SetVersion($DBversion);
 }
 

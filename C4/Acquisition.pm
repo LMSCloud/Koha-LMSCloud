@@ -1922,7 +1922,7 @@ q{SELECT *, aqbasket.is_standing FROM aqorders LEFT JOIN aqbasket USING (basketn
         $order->{'invoiceid'} = undef;
         $order->{'orderstatus'} = 'ordered';
         $order->{'basketno'} = $basketno_delivery;
-        $new_ordernumber = Koha::Acquisition::Order->new($order)->insert->{ordernumber};
+        $new_ordernumber = Koha::Acquisition::Order->new($order)->store->ordernumber;
 
         if ($delivered_items) {
             foreach my $itemnumber (@$delivered_items) {

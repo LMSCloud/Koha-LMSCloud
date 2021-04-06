@@ -132,7 +132,8 @@ my @moduleletters = (
     { module => 'circulation', matchcodes => 'FINES_DUE.*'},
     { module => 'members',     matchcodes => 'FINES_DUE.*'},
     { module => 'reserves',    matchcodes => 'HOLD'},
-    { module => 'circulation', matchcodes => '.*_CHARGE'}
+    { module => 'circulation', matchcodes => '.*_CHARGE'},
+    { module => 'members',     matchcodes => '.*_CHARGE'}
 );
 my $letters = [];
 foreach my $modulelettercfg (@moduleletters) {

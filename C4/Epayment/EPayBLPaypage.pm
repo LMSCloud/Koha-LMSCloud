@@ -1,6 +1,6 @@
 package C4::Epayment::EPayBLPaypage;
 
-# Copyright 2020 (C) LMSCLoud GmbH
+# Copyright 2020-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -17,11 +17,12 @@ package C4::Epayment::EPayBLPaypage;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
+use Modern::Perl;
 use strict;
 use warnings;
 use Data::Dumper;
 
-use Modern::Perl;
 use CGI::Carp;
 use SOAP::Lite;
 use URI::Escape;
@@ -34,6 +35,47 @@ use Koha::Patrons;
 
 use C4::Epayment::EpaymentBase;
 use parent qw(C4::Epayment::EpaymentBase);
+
+# Some remarks on the Koha-customer specific client certificate issued by AKDB:
+# 1. This client certificate is required only for production env, but not for test env. (It does not hurt if used also in test env.)
+# 2. You have to request the client certificate for the specific Koha-customer at AKDB ( BayernID@akdb.de )
+# 3. They will send you an email containing an URL and paswort for downloading a zip-File (e.g. Zertifikat_Bücherei.zip).
+# 4. You have to unzip this downloaded file:
+#    $ unzip  Zertifikat_Bücherei.zip
+#    Archive:  Zertifikat_Bücherei.zip
+#       creating: Zertifikat/
+#      inflating: Zertifikat/A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.p12
+#     extracting: Zertifikat/A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pwd
+#    $ ls -l
+#    insgesamt 12
+#    drwxr-xr-x 2 franz franz 4096 Jan 21 13:29 Zertifikat
+#    -rw-rw-r-- 1 franz franz 6770 Jan 21 17:22 Zertifikat_Bücherei.zip
+#    cd Zertifikat/
+#    $ ls -l
+#    insgesamt 12
+#    -rw-r--r-- 1 franz franz 6097 Jan 21 12:09 A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.p12
+#    -rw-r--r-- 1 franz franz   10 Jan 21 13:21 A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pwd
+# 5. Now you have to transform the *.p12 file into its *.pem equivalent (required by OpenSSL) using the password stored in the *.pwd file:
+#    $ openssl pkcs12 -in 'A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.p12' -passin file:'A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pwd'   -out A1_GRP__EPAY_Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pem -nodes
+#    MAC verified OK
+#    $ ls -ltr
+#    insgesamt 24
+#    -rw-r--r-- 1 franz franz 6097 Jan 21 12:09 A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.p12
+#    -rw-r--r-- 1 franz franz   10 Jan 21 13:21 A1_GRP_ EPAY Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pwd
+#    -rw-r--r-- 1 franz franz 8711 Jan 21 18:10 A1_GRP__EPAY_Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pem
+# 6. Our convention is to store the resulting *.pem file in the directory /etc/ssl/epayBL-certs/<Koha-instance-name>/ and create the symbolic link 'certificateStore.pem' to it:
+#    $ su
+#    # mkdir -p /etc/ssl/epayBL-certs/sb-ingolstadt
+#    # cp -p A1_GRP__EPAY_Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pem /etc/ssl/epayBL-certs/sb-ingolstadt/
+#    # cd /etc/ssl/epayBL-certs/sb-ingolstadt/
+#    # ln -s A1_GRP__EPAY_Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pem certificateStore.pem
+#    # ls -l
+#    insgesamt 20
+#    -rw-r--r-- 1 root root 8711 Jan 27 10:35 A1_GRP__EPAY_Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pem
+#    lrwxrwxrwx 1 root root   63 Jan 27 16:24 certificateStore.pem -> A1_GRP__EPAY_Ingolstadt_Buecherei_BayernID@akdb.de_20210121.pem
+# 7. The *.p12 file and the resulting *.pem file contain the required CA certificates, the Koha-customer specific client certificate and the client key.
+#    There is no need to split the contents in separate files (e.g. ca.pem, client-cert.pem and client-key.pem).
+
 
 sub new {
     my $class = shift;
@@ -70,11 +112,23 @@ sub new {
     $self->{epayblEShopKundenNr} = sprintf("%s_%s_%s", $self->{patron}->cardnumber(), $self->{timestamp}, $calculatedHashVal);    # EShopKundenNr only used once; different for each payment action
     $self->{angelegtesEpayblKassenzeichen} = '';    # will be set in anlegenKassenzeichen()
 
-    $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
+    #$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;    # never do that!
     use IO::Socket::SSL;
-    #$IO::Socket::SSL::DEBUG = 3;
+#    if ( $self->{logger}->is_debug() ) {
+#        $IO::Socket::SSL::DEBUG = 1;
+#    } elsif ( $self->{logger}->is_trace() ) {
+#        $IO::Socket::SSL::DEBUG = 3;
+#    } else {
+        $IO::Socket::SSL::DEBUG = 0;
+#    }
+
+    my $certificateStoreName = '/etc/ssl/epayBL-certs/' . $self->{kohaInstanceName} . '/certificateStore.pem';
+    $self->{logger}->debug("new() certificateStoreName:$certificateStoreName:");
 
     $self->{soap_request} = SOAP::Lite->new( proxy => $self->{epayblWebservicesUrl});
+    if ( -e -f -r $certificateStoreName ) {
+        $self->{soap_request}->transport->ssl_opts( SSL_cert_file => $certificateStoreName );
+    }
     $self->{soap_request}->default_ns($self->{epayblWebservicesUrl_ns});
     $self->{soap_request}->serializer->readable(1);
 
@@ -88,7 +142,7 @@ sub getSystempreferences {
     $self->{logger}->debug("getSystempreferences() START");
 
     $self->{epayblWebservicesUrl_ns} = 'http://www.bff.bund.de/ePayment';
-    $self->{epayblWebservicesUrl} = C4::Context->preference('EpayblPaypageWebservicesURL');    # test env: https://infra-pre.buergerserviceportal.de/soap/servlet/rpcrouter   production env: http://epay.akdb.de/soap/servlet/rpcrouter
+    $self->{epayblWebservicesUrl} = C4::Context->preference('EpayblPaypageWebservicesURL');    # test env: https://infra-pre.buergerserviceportal.de/soap/servlet/rpcrouter   production env: https://epay.akdb.de/soap/servlet/rpcrouter
     $self->{epayblPaypageUrl} = C4::Context->preference('EpayblPaypagePaypageURL');    # test env: https://infra-pre.buergerserviceportal.de/paypage/login.do   production env: https://epay.akdb.de/paypage/login.do
     $self->{epayblMandatorNumber} = C4::Context->preference('EpayblMandatorNumber');    # mandatory; ePayBL Mandantennummer (e.g. '1610000000')
     $self->{epayblOperatorNumber} = C4::Context->preference('EpayblOperatorNumber');    # mandatory; ePayBL Bewirtschafternummer (e.g. '42')
@@ -566,7 +620,7 @@ sub lesenKassenzeichenInfo {
     );
 
     my $kohaPaymentId;
-    # read payment status until response.result.paypageStatus.code is equal 'INAKTIV' - but maximal for 7 seconds
+    # read payment status until response.result.paypageStatus.code is equal 'INAKTIV' - but maximal for 10 seconds
     my $paymentStatusCode = 'undef';
     my $paymentBetrag = '';
     my $paymentEShopKundennummer = '';
@@ -574,7 +628,7 @@ sub lesenKassenzeichenInfo {
     my $paymentZahlverfahren = '';
     my $starttime = time();
 
-    while ( time() < $starttime + 7 ) {
+    while ( time() < $starttime + 10 ) {
         $epayblmsg = '';
         $self->{logger}->debug("lesenKassenzeichenInfo() epayblWebservicesUrl:$self->{epayblWebservicesUrl}: lesenKassenzeichenInfoRequest:" . Dumper($lesenKassenzeichenInfoRequest) . ":");
         my $response = eval {
@@ -760,7 +814,7 @@ sub lesenKassenzeichenInfo {
         } else {
             $retErrorTemplate = 'EPAYBL_ERROR_PROCESSING';
             $retError = 642;
-            $epayblmsg .= ' Online payment has not been confirmed by ePayBL within 7 seconds.';
+            $epayblmsg .= ' Online payment has not been confirmed by ePayBL within 10 seconds.';
         }
     }
 

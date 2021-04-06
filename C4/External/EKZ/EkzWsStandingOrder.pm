@@ -807,12 +807,11 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                         $orderinfo->{ecost_tax_included} = $budgetedcost_tax_included;
                         $orderinfo->{tax_rate_bak} = $ustSatz;        #  corresponds to input field 'Tax rate' in UI (7% are stored as 0.07)
                         $orderinfo->{tax_rate_on_ordering} = $ustSatz;
-                        $orderinfo->{tax_rate_on_receiving} = $ustSatz;
+                        $orderinfo->{tax_rate_on_receiving} = undef;    # setting to NULL
                         $orderinfo->{tax_value_bak} = $ust;        #  corresponds to input field 'Tax value' in UI
                         $orderinfo->{tax_value_on_ordering} = $ust;
                         # XXXWH or alternatively: $orderinfo->{tax_value_on_ordering} = $orderinfo->{quantity} * $orderinfo->{ecost_tax_excluded} * $orderinfo->{tax_rate_on_ordering};    # see C4::Acquisition.pm
-                        $orderinfo->{tax_value_on_receiving} = $ust;
-                        # XXXWH or alternatively: $orderinfo->{tax_value_on_receiving} = $orderinfo->{quantity} * $orderinfo->{unitprice_tax_excluded} * $orderinfo->{tax_rate_on_receiving};    # see C4::Acquisition.pm
+                        $orderinfo->{tax_value_on_receiving} = undef;    # setting to NULL
                         $orderinfo->{discount} = $rabatt;        #  corresponds to input field 'Discount' in UI (5% are stored as 5.0)
 
                         my $order = Koha::Acquisition::Order->new($orderinfo);
@@ -824,7 +823,7 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                 }    # end of "if ( defined($basketno) && $basketno > 0 ) {"
 
                 for ( my $i = 0; $i < scalar @itemReferenznummer; $i += 1 ) {
-                    $logger->trace("genKohaRecords() item index i:$i: itemReferenznummer[$i]:" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . $itemOrder[$i]->budget_id() . ":");
+                    $logger->trace("genKohaRecords() item index i:$i: itemReferenznummer[$i]:" . $itemReferenznummer[$i] . ": itemOrder[$i]->budget_id():" . ( ( exists($itemOrder[$i]) && defined($itemOrder[$i]) ) ? $itemOrder[$i]->budget_id() : 'undef' ) . ":");
                 }
 
                 for ( my $j = 0; $j < $exemplarcount; $j++ ) {
@@ -921,7 +920,7 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                     # add result of adding item to log email
                     my ($titeldata, $isbnean) = ($itemnumber, '');
                     $logger->debug("genKohaRecords() item titeldata:" . $titeldata . ":");
-                    push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2, $itemOrder[$j]->ordernumber(), $basketno];
+                    push @records, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $importresult, $titeldata, $isbnean, $problems, $importerror, 2, ( exists($itemOrder[$j]) && defined($itemOrder[$j]) ) ? $itemOrder[$j]->ordernumber() : 0, $basketno];
                 }
             }
 
@@ -957,8 +956,8 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                         closed => 0,
                         booksellerid => $aqbasket->{booksellerid},
                         deliveryplace => "$aqbasket->{deliveryplace}",
-                        freedeliveryplace => "$aqbasket->{freedeliveryplace}",
-                        deliverycomment => "$aqbasket->{deliverycomment}",
+                        freedeliveryplace => undef,    # setting to NULL
+                        deliverycomment => undef,    # setting to NULL
                         billingplace => "$aqbasket->{billingplace}",
                     };
                     $basketgroupid  = &C4::Acquisition::NewBasketgroup($params);
