@@ -44,6 +44,9 @@ BEGIN {
     );
 }
 
+binmode( STDOUT, ":utf8" );
+binmode( STDERR, ":utf8" );
+
 sub new {
     my $class = shift;
     my $verbose = shift;
@@ -116,9 +119,9 @@ sub checkSepaDirectDebitConfiguration {
         { variable => 'SepaDirectDebitCreditorId', mandatory => 1 },                # e.g. 'DE09stb00000099999'
         { variable => 'SepaDirectDebitCreditorName', mandatory => 1 },              # e.g. 'Stadtbuecherei Norderstedt' (max. length 27/35/70 chars according to different specifications)
         { variable => 'SepaDirectDebitInitiatingPartyName', mandatory => 1 },       # e.g. 'STADTBUECHEREI NORDERSTEDT'
-        { variable => 'SepaDirectDebitMessageIdHeader', mandatory => 1 },           # e.g. 'Lastschrift Stadtbuecherei-' (current date will be appended in form yyyymmdd)
+        { variable => 'SepaDirectDebitMessageIdHeader', mandatory => 0 },           # e.g. 'Lastschrift Stadtbuecherei-' (current date will be appended in form yyyymmdd)
         { variable => 'SepaDirectDebitRemittanceInfo', mandatory => 1 },            # e.g. 'Jahresentgelt' (max. length 140 chars)
-        { variable => 'SepaDirectDebitBorrowerNoticeLettercode', mandatory => 0 },  # e.g. 'MEMBERSHIP_SEPA_NOTE'. Value '' or undef indicates that the library has deactivated the notification.
+        { variable => 'SepaDirectDebitBorrowerNoticeLettercode', mandatory => 0 },  # e.g. 'SEPA_NOTE_CHARGE'. Value '' or undef indicates that the library has deactivated the notification.
         { variable => 'SepaDirectDebitAccountTypes', mandatory => 1 },              # e.g. 'A|M|F'
         { variable => 'SepaDirectDebitMinFeeSum', mandatory => 0 },                 # e.g. '5.00'. Value '' or undef results in default value 0.01.
         { variable => 'SepaDirectDebitLocalInstrumentCode', mandatory => 1 },       # e.g. 'CORE'. 'COR1'.'B2B' (CORE = SEPA Basis-Lastschrift (Verbraucher); COR1 entspricht CORE, jedoch mit auf 1 Bankarbeitstag reduzierter Bearbeitungszeit)
@@ -260,7 +263,7 @@ sub updateResultHash {
          $self->{$resultHashName}->{$currentHitBorrowernumber}->{accountlinesMinId} = $currentFeeHit->{accountlines}->{accountlines_id};
     }
 
-    # borrowerAttributesKey: 'SEPA_BIC', 'SEPA_IBAN', 'SEPA_Sign'
+    # borrowerAttributesKey: 'SEPA_BIC', 'SEPA_IBAN', 'SEPA_Sign', 'Konto_von'
     foreach my $borrowerAttributesKey ( sort keys %{$currentFeeHit->{borrower_attributes}} ) {
         $self->{$resultHashName}->{$currentHitBorrowernumber}->{borrower_attributes}->{$borrowerAttributesKey} = $currentFeeHit->{borrower_attributes}->{$borrowerAttributesKey};
     }
@@ -401,7 +404,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
         FROM borrowers b
         JOIN accountlines a ON ( a.borrowernumber = b.borrowernumber )
         JOIN borrower_attributes ba_sepa ON ( ba_sepa.borrowernumber = b.borrowernumber AND ba_sepa.code = 'SEPA' AND ba_sepa.attribute = '1' )
-        LEFT JOIN borrower_attributes ba ON ( ba.borrowernumber = b.borrowernumber AND ba.code IN ('SEPA_BIC', 'SEPA_IBAN', 'SEPA_Sign') )
+        LEFT JOIN borrower_attributes ba ON ( ba.borrowernumber = b.borrowernumber AND ba.code IN ('SEPA_BIC', 'SEPA_IBAN', 'SEPA_Sign', 'Konto_von') )
 
         WHERE a.accounttype IN ($accountTypesSel)
           AND a.amountoutstanding >= 0.01
@@ -600,13 +603,15 @@ sub checkIban {
         print STDERR "Koha::SEPAPayment::checkIban() IBAN not defined (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
         my $errormsg = 'IBAN ist nicht definiert';
         push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
-    } elsif ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN}) < 22 ||
-              $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} =~ /\s/         ) {    # spaces not allowed
-        print STDERR "Koha::SEPAPayment::checkIban() invalid IBAN:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
-        my $errormsg = sprintf('IBAN:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN});
-        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
     } else {
-        $ret = 1;
+        $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} =~ s/[\s,\r,\n]//g;
+        if ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN}) < 22 ) {
+            print STDERR "Koha::SEPAPayment::checkIban() invalid IBAN:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
+            my $errormsg = sprintf('IBAN:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN});
+            push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
+        } else {
+            $ret = 1;
+        }
     }
     return $ret;
 }
@@ -621,12 +626,15 @@ sub checkBic {
         print STDERR "Koha::SEPAPayment::checkBic() BIC not defined (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
         my $errormsg = 'BIC ist nicht definiert';
         push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
-    } elsif ( ! ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 8 || length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 11 ) ) {
-        print STDERR "Koha::SEPAPayment::checkBic() invalid BIC:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
-        my $errormsg = sprintf('BIC:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC});
-        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
     } else {
-        $ret = 1;
+        $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} =~ s/[\s,\r,\n]//g;
+        if ( ! ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 8 || length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 11 ) ) {
+            print STDERR "Koha::SEPAPayment::checkBic() invalid BIC:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
+            my $errormsg = sprintf('BIC:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC});
+            push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
+        } else {
+            $ret = 1;
+        }
     }
     return $ret;
 }
@@ -873,7 +881,10 @@ sub writeSepaDirectDebitFile {
     # now add the valid transactions
     foreach my $borrowernumber ( sort keys %{$self->{inKohaPaid}} ) {
         my $borrFeesPaid = $self->{inKohaPaid}->{$borrowernumber};
-        my $debtorName = $self->debtorName($borrFeesPaid->{borrowers}->{surname}, $borrFeesPaid->{borrowers}->{firstname});
+        my $debtorName = $self->debtorName( $borrFeesPaid->{borrowers}->{surname}, $borrFeesPaid->{borrowers}->{firstname} );    # default initialization, resulting in surname, firstname
+        if ( defined( $borrFeesPaid->{borrower_attributes}->{Konto_von} ) && length( $borrFeesPaid->{borrower_attributes}->{Konto_von} ) > 0 ) {
+            $debtorName = $self->debtorName( $borrFeesPaid->{borrower_attributes}->{Konto_von}, undef );    # if set, use borrower attribute having code 'Konto_von' as debtor name
+        }
         my $dateOfSignature = $borrFeesPaid->{borrower_attributes}->{SEPA_Sign};
         $dateOfSignature = sprintf("%04d-%02d-%02d",$year+1900, $mon+1, $mday);    # there may be invalid entries in $borrFeesPaid->{borrower_attributes}->{SEPA_Sign}, so we ignore it and use today date
 
