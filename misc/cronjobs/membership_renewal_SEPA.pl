@@ -140,10 +140,12 @@ Relevant borrowerattributes:
 
 'SEPA_IBAN': IBAN of the patron's bank account used in XML file containing SEPA direct debits.
 
-'SEPA_Sign': Date when the patron signed the SEPA direct debit mandate.
+'SEPA_Sign': Date when the patron signed the SEPA direct debit mandate. (not used anymore)
+
+'Konto_von': Name of owner of the bank account used, if differing from borrower.
 
 The content of the SEPA direct debit notification email and printed letter is configured in Tools -> Notices and slips. 
-Use the MEMBERSHIP_SEPA_NOTE notification as default if exclusively membership fees are handled; use SEPA_NOTE notification if fees of different accounttype have to paid with this method.
+Use the MEMBERSHIP_SEPA_NOTE_CHARGE notification as default if exclusively membership fees are handled; use SEPA_NOTE_CHARGE notification if fees of different accounttype have to paid with this method.
 
 These emails and print tasks are staged in the outgoing message queue, as are messages
 produced by other features of Koha. This message queue must be
