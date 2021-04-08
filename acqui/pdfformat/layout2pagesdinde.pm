@@ -91,6 +91,7 @@ sub printpage1 {
         $text->translate(25/mm,  (($height-$vpos)/mm));
         $text->text($_);
         $vpos=$vpos+5;
+        last if $vpos>100;
       }
     }
 
@@ -296,24 +297,18 @@ sub printorders {
         foreach my $line (@{$orders->{$basket->{basketno}}}) {
             $arrbasket = undef;
             $titleinfo = "";
-            if ( C4::Context->preference("marcflavour") eq 'UNIMARC' ) { # UNIMARC
-                $titleinfo =  $line->{title} . " / " . $line->{author} .
-                    ( $line->{isbn} ? " ISBN: " . $line->{isbn} : '' ) .
-                    ( $line->{en} ? " EN: " . $line->{en} : '' ) .
-                    ( $line->{itemtype} ? ", " . $line->{itemtype} : '' ) .
-                    ( $line->{edition} ? ", " . $line->{edition} : '' ) .
-                    ( $line->{publishercode} ? ' published by '. $line->{publishercode} : '') .
-                    ( $line->{publicationyear} ? ', '. $line->{publicationyear} : '');
-            }
-            else { # MARC21, NORMARC
-                $titleinfo =  $line->{title} . " " . $line->{author} .
-                    ( $line->{isbn} ? " ISBN: " . $line->{isbn} : '' ) .
-                    ( $line->{en} ? " EN: " . $line->{en} : '' ) .
-                    ( $line->{itemtype} ? " " . $line->{itemtype} : '' ) .
-                    ( $line->{edition} ? ", " . $line->{edition} : '' ) .
-                    ( $line->{publishercode} ? ' published by '. $line->{publishercode} : '') .
-                    ( $line->{copyrightdate} ? ' '. $line->{copyrightdate} : '');
-            }
+            
+            $titleinfo =  $line->{title} . " / " . $line->{author} .
+                ( $line->{isbn} ? " ISBN: " . $line->{isbn} : '' ) .
+                ( $line->{issn} ? " ISSN: " . $line->{issn} : '' ) .
+                ( $line->{ean}  ? " EAN, Verlegernr., o.ä.: " . $line->{ean} : '' ) .
+                ( $line->{en} ? " EN: " . $line->{en} : '' ) .
+                ( $line->{itemtype} ? ", " . $line->{itemtype} : '' ) .
+                ( $line->{edition} ? ", " . $line->{edition} : '' ) .
+                ( $line->{publishercode} ? ' published by '. $line->{publishercode} : '') .
+                ( $line->{publicationyear} ? ', '. $line->{publicationyear} : '') .
+                ( $line->{copyrightdate} ? ' '. $line->{copyrightdate} : '');
+
             push( @$arrbasket,
                ($basket->{basketno}."-".$line->{ordernumber}),
                $titleinfo. ($line->{order_vendornote} ? "\n----------------\nLieferhinweis: " . $line->{order_vendornote} : ''),
