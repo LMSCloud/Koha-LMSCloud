@@ -242,7 +242,18 @@ my %handlers = (
                 fields       => [ (FID_INST_ID), (FID_PATRON_ID), (FID_PATRON_PWD), (FID_TERMINAL_PWD), (FID_FEE_ACK) ],
             }
         }
-    }
+    },
+    (FEE_DEBIT) => {
+        name     => "Fee Debit",
+        handler  => \&handle_fee_debit,
+        protocol => {
+            2 => {
+                template     => "A18A2A2A3",
+                template_len => 25,
+                fields       => [ (FID_FEE_AMT), (FID_FEE_ACCOUNT_ID), (FID_INST_ID), (FID_PATRON_ID), (FID_TERMINAL_PWD), (FID_PATRON_PWD), (FID_PRODUCT_CODE), (FID_FEE_ID), (FID_FEE_COMMENT), (FID_TRANSACTION_ID) ],
+            }
+        }
+    },
 );
 
 #
@@ -1183,6 +1194,48 @@ sub handle_fee_paid {
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
     return (FEE_PAID);
+}
+
+sub handle_fee_debit {
+    my ( $self, $server ) = @_;
+    my $ils = $server->{ils};
+    my ( $trans_date, $fee_type, $product_identifier, $currency ) = @{ $self->{fixed_fields} };
+    my $fields = $self->{fields};
+    my ( $fee_amount, $fee_account_id, $inst_id, $patron_id, $terminal_pwd, $patron_pwd );
+    my ( $prod_code, $fee_id, $fee_comment, $trans_id );
+    my $status;
+    my $resp = FEE_DEBIT_RESP;
+
+    my $disallow_overpayment  = $server->{account}->{default_fee_debit_type};
+
+    $fee_amount     = $fields->{ (FID_FEE_AMT) };
+    $fee_account_id = $fields->{ (FID_FEE_ACCOUNT_ID) };
+    $inst_id        = $fields->{ (FID_INST_ID) };
+    $patron_id      = $fields->{ (FID_PATRON_ID) };
+    $patron_pwd     = $fields->{ (FID_PATRON_PWD) };
+    $fee_id         = $fields->{ (FID_FEE_ID) };
+    $trans_id       = $fields->{ (FID_TRANSACTION_ID) };
+    $prod_code      = $fields->{ (FID_PRODUCT_CODE) };
+    $fee_comment    = $fields->{ (FID_FEE_COMMENT) };
+
+    $ils->check_inst_id( $inst_id, "handle_fee_debit" );
+
+    $status = $ils->fee_debit( $patron_id, $patron_pwd, $fee_amount, $fee_account_id, $fee_type, $product_identifier, $fee_id, $prod_code, $fee_comment, $trans_id, $currency );
+
+    $resp .= ( $status->ok ? 'Y' : 'N' ) . timestamp;
+    $resp .= add_field( FID_INST_ID,   $inst_id );
+    $resp .= add_field( FID_PATRON_ID, $patron_id );
+    # valid patron passwd
+    if ( $status->getPatronPasswordChecked ) {
+        $resp .= maybe_add( FID_VALID_PATRON_PWD, $status->getPatronPasswordOk );
+    }
+    $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id );
+    $resp .= maybe_add( FID_SCREEN_MSG,     $status->screen_msg, $server );
+    $resp .= maybe_add( FID_PRINT_LINE,     $status->print_line );
+
+    $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
+
+    return (FEE_DEBIT);
 }
 
 sub handle_item_information {

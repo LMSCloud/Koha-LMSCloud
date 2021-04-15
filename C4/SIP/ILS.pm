@@ -312,6 +312,38 @@ sub pay_fee {
     return $trans;
 }
 
+sub fee_debit {
+    my ($self, $patron_id, $patron_pwd, $fee_amount, $fee_account_id, $fee_type, $product_identifier, $fee_id, $prod_code, $fee_comment, $trans_id, $currency ) = @_;
+
+    my $trans = C4::SIP::ILS::Transaction::FeeDebit->new();
+
+    $trans->transaction_id($trans_id);
+    my $patron;
+    $trans->patron($patron = C4::SIP::ILS::Patron->new($patron_id));
+    if (!$patron) {
+        $trans->screen_msg('Invalid patron barcode.');
+        $trans->ok(0);
+        return $trans;
+    }
+    elsif ( defined($patron_pwd) ) {
+        $trans->setPatronPasswordChecked(1);
+        if ( !$patron->check_password($patron_pwd) ) {
+            $trans->screen_msg("Invalid Patron.");
+            $trans->ok(0);
+            $trans->setPatronPasswordOk(0);
+            return $trans;
+        }
+        $trans->setPatronPasswordOk(1);
+    }
+    my $ok = 0;
+    
+    # $fee_id and $product_identifier and $currency are ignored
+    my $ok = $trans->charge( $patron->{borrowernumber}, $fee_amount, $fee_type, $product_identifier, $fee_id, $prod_code, $fee_comment);
+    $trans->ok($ok);
+
+    return $trans;
+}
+
 sub add_hold {
     my ($self, $patron_id, $patron_pwd, $item_id, $title_id,
 	$expiry_date, $pickup_location, $hold_type, $fee_ack) = @_;
