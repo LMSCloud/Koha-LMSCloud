@@ -78,12 +78,12 @@ sub charge {
         }
     }
     
-    if (! exists($manualFeeTypes->{$prod_code}) ) {
+    if ( exists($manualFeeTypes->{$prod_code}) ) {
         $accountType = $prod_code;
         $description = $manualFeeTypes->{$prod_code};
     }
     elsif ( exists($manualFeeTypesSIPMapped->{$prod_code}) && exists($manualFeeTypes->{$manualFeeTypesSIPMapped->{$prod_code}->[0]}) ) {
-        $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$prod_code}->[0]}->[0];
+        $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$prod_code}->[0]};
         $description = $manualFeeTypesSIPMapped->{$prod_code}->[1];
     }
     elsif ( exists($manualFeeTypes->{$fee_type}) ) {
@@ -92,11 +92,11 @@ sub charge {
     }
     else {
         if ( exists($manualFeeTypesSIPMapped->{$fee_type}) && exists($manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type}->[0]})) {
-            $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type}};
+            $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type}->[0]};
             $description = $manualFeeTypesSIPMapped->{$fee_type}->[1];
         }
         elsif ( exists($manualFeeTypesSIPMapped->{$fee_type.$product_identifier}) && exists($manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type.$product_identifier}->[0]})) {
-            $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type.$product_identifier}};
+            $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type.$product_identifier}->[0]};
             $description = $manualFeeTypesSIPMapped->{$fee_type.$product_identifier}->[1];
         }
         else {
@@ -106,19 +106,19 @@ sub charge {
         }
     }
     
-    if ( !$amount || $amount !~ /[0-9]+(\.[0-9]{1,2})?/ || $amount <  0.0 ) {
-        $amount += 0.0;
-    }
-    else {
+    if ( !$amount || $amount !~ /^[0-9]+(\.[0-9]{1,2})?$/ || $amount < 0.0 ) {
         $self->screen_msg("Fee amount invalid.");
         $self->ok(0);
         $charge_ok = 0;
+    }
+    else {
+        $amount += 0.0;
     }
 
     if ( $charge_ok) {
         C4::Accounts::manualinvoice($borrowernumber, '', $description, $accountType, $amount, $fee_comment);
         # $self->screen_msg("Fee booked to user account.");
-        $self->ok(0);
+        $self->ok(1);
     }
 }
 

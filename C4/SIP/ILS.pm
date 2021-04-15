@@ -18,6 +18,7 @@ use C4::SIP::ILS::Transaction::FeePayment;
 use C4::SIP::ILS::Transaction::Hold;
 use C4::SIP::ILS::Transaction::Renew;
 use C4::SIP::ILS::Transaction::RenewAll;
+use C4::SIP::ILS::Transaction::FeeDebit;
 
 my $debug = 0;
 
@@ -335,11 +336,8 @@ sub fee_debit {
         }
         $trans->setPatronPasswordOk(1);
     }
-    my $ok = 0;
-    
     # $fee_id and $product_identifier and $currency are ignored
-    my $ok = $trans->charge( $patron->{borrowernumber}, $fee_amount, $fee_type, $product_identifier, $fee_id, $prod_code, $fee_comment);
-    $trans->ok($ok);
+    $trans->charge( $patron->{borrowernumber}, $fee_amount, $fee_type, $product_identifier, $fee_id, $prod_code, $fee_comment);
 
     return $trans;
 }
