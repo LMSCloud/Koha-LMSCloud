@@ -1076,6 +1076,11 @@ sub handle_patron_info {
         # Other terminals will ignore unrecognized fields (unrecognized field identifiers)
         $resp .= maybe_add( FID_PATRON_BIRTHDATE, $patron->birthdate );
         $resp .= maybe_add( FID_PATRON_CLASS,     $patron->ptype );
+        
+        # some SIP consumer in NL and DE need the patron class as FU
+        if ( $server->{account}->{send_patron_class_as_FU} ) {
+            $resp .= maybe_add( FID_PATRON_CLASS_ALT, $patron->ptype );
+        }
 
         # Custom protocol extension to report patron internet privileges
         $resp .= maybe_add( FID_INET_PROFILE, $patron->inet_privileges );

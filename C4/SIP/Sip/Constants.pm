@@ -92,6 +92,7 @@ BEGIN {
         FID_HOLD_PATRON_ID
         FID_HOLD_PATRON_NAME
         FID_PRODUCT_CODE     FID_FEE_COMMENT      FID_FEE_ACCOUNT_ID
+        FID_PATRON_CLASS_ALT
         )],
     );
 
@@ -250,6 +251,9 @@ use constant {
     FID_PRODUCT_CODE           => 'ZI',
     FID_FEE_COMMENT            => 'FC',
     FID_FEE_ACCOUNT_ID         => 'ZD',
+    
+    # Extension fpr patron class
+    FID_PATRON_CLASS_ALT       => 'FU',
 };
 
 #
