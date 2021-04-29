@@ -127,7 +127,7 @@ sub printbasketgrouppdf{
     
     my $pdfformat = C4::Context->preference("OrderPdfFormat");
     if ($pdfformat eq 'pdfformat::layout3pages' || $pdfformat eq 'pdfformat::layout2pages' || $pdfformat eq 'pdfformat::layout3pagesfr'
-        || $pdfformat eq 'pdfformat::layout2pagesde'){
+        || $pdfformat eq 'pdfformat::layout2pagesde' || $pdfformat eq 'pdfformat::layout2pagesdinde' ){
 	eval {
 	    use lib '/usr/share/koha/intranet/cgi-bin/acqui';
         eval "require $pdfformat";

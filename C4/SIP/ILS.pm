@@ -18,6 +18,7 @@ use C4::SIP::ILS::Transaction::FeePayment;
 use C4::SIP::ILS::Transaction::Hold;
 use C4::SIP::ILS::Transaction::Renew;
 use C4::SIP::ILS::Transaction::RenewAll;
+use C4::SIP::ILS::Transaction::FeeDebit;
 
 my $debug = 0;
 
@@ -229,6 +230,15 @@ sub checkin {
                 return $circ;
             }
         }
+        if ( $checkinOpts && exists($checkinOpts->{disabled_ccodes_for_checkins}) ) {
+            if ( $checkinOpts->{disabled_ccodes_for_checkins} && defined($item->{'collection_code'}) && exists( $checkinOpts->{disabled_ccodes_for_checkins}->{$item->{'collection_code'}} ) ) {
+                $circ->alert(1);
+                $circ->alert_type(93);
+                $circ->ok( 0 );
+                $circ->screen_msg('SIP checkin forbidden due to item collection code');
+                return $circ;
+            }
+        }
         if ( $checkinOpts && $checkinOpts->{disable_checkins_with_holds} ) {
             my $pending = $item->pending_queue;
             if ( $pending && ref($pending) eq 'ARRAY' && scalar(@$pending) ) {
@@ -299,6 +309,35 @@ sub pay_fee {
     }
     my $ok = $trans->pay( $patron->{borrowernumber}, $fee_amt, $pay_type, $fee_id, $is_writeoff, $disallow_overpayment );
     $trans->ok($ok);
+
+    return $trans;
+}
+
+sub fee_debit {
+    my ($self, $patron_id, $patron_pwd, $fee_amount, $fee_account_id, $fee_type, $product_identifier, $fee_id, $prod_code, $fee_comment, $trans_id, $currency ) = @_;
+
+    my $trans = C4::SIP::ILS::Transaction::FeeDebit->new();
+
+    $trans->transaction_id($trans_id);
+    my $patron;
+    $trans->patron($patron = C4::SIP::ILS::Patron->new($patron_id));
+    if (!$patron) {
+        $trans->screen_msg('Invalid patron barcode.');
+        $trans->ok(0);
+        return $trans;
+    }
+    elsif ( defined($patron_pwd) ) {
+        $trans->setPatronPasswordChecked(1);
+        if ( !$patron->check_password($patron_pwd) ) {
+            $trans->screen_msg("Invalid Patron.");
+            $trans->ok(0);
+            $trans->setPatronPasswordOk(0);
+            return $trans;
+        }
+        $trans->setPatronPasswordOk(1);
+    }
+    # $fee_id and $product_identifier and $currency are ignored
+    $trans->charge( $patron->{borrowernumber}, $fee_amount, $fee_type, $product_identifier, $fee_id, $prod_code, $fee_comment);
 
     return $trans;
 }

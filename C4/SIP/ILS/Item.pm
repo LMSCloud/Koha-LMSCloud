@@ -352,7 +352,14 @@ sub recall_date {
 }
 sub hold_pickup_date {
     my $self = shift;
-    return $self->{hold_pickup_date} || 0;
+
+    foreach my $hold ( @{ $self->{hold_shelf} } ) {
+        if ( $hold->{itemnumber} == $self->{itemnumber}  ) {
+            return $hold->{expirationdate};
+        }
+    }
+
+    return 0;
 }
 
 # This is a partial check of "availability".  It is not supposed to check everything here.

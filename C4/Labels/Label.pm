@@ -208,7 +208,7 @@ sub _get_barcode_data {
             @{ $kohatables->{'branches'} }
         )
     );
-    my ($font,$size,$trim,$maxlength,$nowrap,$maxlines);
+    my ($font,$size,$trim,$maxlength,$nowrap,$maxlines,$minlines);
     if ( $f =~ s/(.*)\{([^\}]*)\}(.*)/$1.$3/e ) {
         my @settings = split(/\s*,\s*/,$2);
         foreach my $setting (@settings) {
@@ -226,6 +226,9 @@ sub _get_barcode_data {
             }
             elsif ( $setting =~ /^\s*maxlines\s*:\s*([0-9]+)\s*/ ) {
                 $maxlines = $1;
+            }
+            elsif ( $setting =~ /^\s*minlines\s*:\s*([0-9]+)\s*/ ) {
+                $minlines = $1;
             }
             elsif ( $setting =~ /^\s*wrap\s*:\s*(no)\s*/ ) {
                 if ( $1 eq 'no' ) {
@@ -281,11 +284,12 @@ sub _get_barcode_data {
             if ( ! $ind ) {
                 @marcfield = $record->field($field);
             } else {
+                $ind =~ s/^\((..)\)$/$1/;
                 my @inds = split(//,$ind);
                 foreach my $mfield($record->field($field)) {
                     next if ( $mfield->is_control_field() );
-                    next if ( ($mfield->indicator(1) eq $inds[0] || ($inds[0] eq '#' && $mfield->indicator(1) eq ' ')) );
-                    next if ( ($mfield->indicator(2) eq $inds[1] || ($inds[1] eq '#' && $mfield->indicator(2) eq ' ')) );
+                    next if ( !($mfield->indicator(1) eq $inds[0] || ($inds[0] eq '#' && $mfield->indicator(1) eq ' ')) );
+                    next if ( !($mfield->indicator(2) eq $inds[1] || ($inds[1] eq '#' && $mfield->indicator(2) eq ' ')) );
                     push @marcfield, $mfield;
                 }
             }
@@ -338,7 +342,7 @@ sub _get_barcode_data {
     if ( $maxlength && $datastring && length($datastring)>$maxlength ) {
         $datastring = substr($datastring,0,$maxlength);
     }
-    return ($datastring,$font,$size,$nowrap,$maxlines);
+    return ($datastring,$font,$size,$nowrap,$maxlines,$minlines);
 }
 
 sub _desc_koha_tables {
@@ -424,6 +428,7 @@ sub new {
         line_height             => $params{'line_height'}, # multiplier of the line height which controls sapcing between lines, the value is multiplied with the font height
         barcode_y_scale         => 0.01,
         barcode_x_scale         => 0.8,
+        print_barcode_text      => 1,
     };
     if ( $params{'format_string'} ) {
         my $format_string = $params{'format_string'};
@@ -431,6 +436,10 @@ sub new {
             $self->{format_string} = $format_string;
             $self->{barcode_x_scale} = $2 + 0.0;
             $self->{barcode_y_scale} = $3 + 0.0;
+        }
+        if ( $format_string =~ s/(.*)\{noBarcodeText\}(.*)/$1.$2/e ) {
+            $self->{print_barcode_text} = 0;
+            $self->{format_string} = $format_string;
         }
     }
     if ($self->{'guidebox'}) {
@@ -504,12 +513,13 @@ sub draw_label_text {
     for my $field (@$label_fields) {
         my $nowrap;
         my $maxlines;
+        my $minlines;
         if ($field->{'code'} eq 'itemtype') {
             $field->{'data'} = C4::Context->preference('item-level_itypes') ? $item->{'itype'} : $item->{'itemtype'};
         }
         else {
             my ($setfont,$setsize);
-            ($field->{'data'},$setfont,$setsize,$nowrap,$maxlines) = _get_barcode_data($field->{'code'},$item,$record);
+            ($field->{'data'},$setfont,$setsize,$nowrap,$maxlines,$minlines) = _get_barcode_data($field->{'code'},$item,$record);
             $font = $setfont if ( $setfont );
             print STDERR "Set font: $setfont" if ( $setfont );
             $size = $setsize if ( $setsize );
@@ -562,13 +572,18 @@ sub draw_label_text {
                 eval{$Text::Wrap::columns = $self->{'text_wrap_cols'};};
                 my @line = split(/\n/ ,wrap('', '', $field_data));
                 # If this is a title field, limit to two lines; all others limit to one... FIXME: this is rather arbitrary
-                my $checkmaxlines = $maxlines || 2;
+                my $checkmaxlines = $maxlines || $minlines || 2;
+                if ( $minlines ) {
+                    while ( scalar(@line) < $minlines ) {
+                        push(@line,' ');
+                    }
+                }
                 if ($field->{'code'} eq 'title' && scalar(@line) >= $checkmaxlines) {
                     while (scalar(@line) > 2) {
                         pop @line;
                     }
                 } else {
-                    $checkmaxlines = $maxlines || 1;
+                    $checkmaxlines = $maxlines || $minlines || 1;
                     while (scalar(@line) > $checkmaxlines) {
                         pop @line;
                     }
@@ -623,6 +638,7 @@ sub barcode {
     my $bar_length = 0;
     my $guard_length = 10;
     my $hide_text = 'yes';
+    $hide_text = '' if ( $self->{'print_barcode_text'} == 0 );
     if ($params{'barcode_type'} =~ m/CODE39/) {
         $bar_length = '17.5';
         $tot_bar_length = ($bar_length * $num_of_bars) + ($guard_length * 2);
