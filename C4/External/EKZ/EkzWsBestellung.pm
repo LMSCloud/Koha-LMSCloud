@@ -196,31 +196,55 @@ sub BestelleBeiEkz {
                     my $marcrecord = C4::Biblio::GetMarcBiblio( { biblionumber => $aqorders_hit->{'biblionumber'}, embed_items => 0 } );
 
                     if ( $marcrecord ) {
+                        my ( @fields, $field );
+
                         # get ekz-Artikelnummer
-                        my $field = $marcrecord->field('035');
-                        if ( $field ) {
-                            my $subfield = $field->subfield('a');    # format: (DE-Rt5)nnn...nnn
-                            if ( $subfield ) {
-                                if ( $subfield =~ /^\(DE\-Rt5\)(.*)/ ) {
-                                    $ekzArtikelNr = $1;
+                        # field 035 is multiple; select entry for DE-Rt5
+                        @fields = $marcrecord->field('035');
+                        foreach $field ( @fields ) {
+                            if ( $field ) {
+                                my $subfield = $field->subfield('a');    # format: (DE-Rt5)nnn...nnn
+                                if ( $subfield ) {
+                                    if ( $subfield =~ /^\s*\(DE\-Rt5\)(.*?)\s*$/ ) {
+                                        $ekzArtikelNr = $1;
+                                        if ( $ekzArtikelNr =~ /^\s*(.*?)\s*$/ ) {
+                                            $ekzArtikelNr = $1;
+                                        }
+                                        last;
+                                    }
                                 }
                             }
                         }
+
                         # get ISBN / EAN
-                        $field = $marcrecord->field('020');
-                        if ( $field ) {
+                        # fields 020 and 024 are multiple; select a syntactically correct ISBN if possible
+                        @fields = $marcrecord->field('020');
+                        my $firstIsbn;
+                        foreach $field ( @fields ) {
                             my $isbn = $field->subfield('a');
-                            eval {
-                                my $val = Business::ISBN->new($isbn);
-                                $isbn = $val->as_isbn13()->as_string([]);
-                            };
-                            $isbnEan = $isbn;
+                            if ( $isbn ) {
+                                eval {
+                                    my $val = Business::ISBN->new($isbn);
+                                    $isbn = $val->as_isbn13()->as_string([]);
+                                };
+                                if ( ! $firstIsbn ) {
+                                    $firstIsbn = $isbn;    # found fall back ISBN
+                                }
+                                if ( $isbn =~ /^\d{13}$/ ) {
+                                    $isbnEan = $isbn;    # found syntactically correct ISBN
+                                    last;
+                                }
+                            }
+                        }
+                        if ( ! $isbnEan ) {
+                            $isbnEan = $firstIsbn;
                         }
                         $field = $marcrecord->field('024');
                         if ( $field && ((! defined($isbnEan)) || $isbnEan eq '') ) {
                             my $ean = $field->subfield('a');
                             $isbnEan = $ean;
                         }
+
                         # get author
                         $field = $marcrecord->field('100');
                         if ( $field ) {
@@ -229,6 +253,7 @@ sub BestelleBeiEkz {
                                 $author = $subfield;
                             }
                         }
+
                         # get titel
                         $field = $marcrecord->field('245');
                         if ( $field ) {
@@ -244,21 +269,56 @@ sub BestelleBeiEkz {
                                 $titel .= $subfield;
                             }
                         }
-                        # get verlag
-                        $field = $marcrecord->field('260');
-                        if ( $field ) {
-                            my $subfield = $field->subfield('b');
-                            if ( $subfield ) {
-                                $verlag = $subfield;
+
+                        # get verlag and erscheinungsjahr
+                        # use field 264 (multiple) if possible, and field 260 as last resort only
+                        # field 264 indicator 1 is to be ignored; priority of indicator 2: publication (1) / distribution (2) / production (0)
+                        @fields = $marcrecord->field('264');
+                        my %fields_by_ind2 = ();
+                        foreach $field ( @fields ) {
+                            my $ind2 = $field->indicator(2);
+                            $fields_by_ind2{$ind2} = $field;
+                        }
+                        foreach my $ind2Sort ( 1,2,0 ) {    # priority: publication (1) / distribution (2) / production (0)
+                            if ( ($field = $fields_by_ind2{$ind2Sort}) ) {
+                                if ( ! $verlag ) {
+                                    my $subfield = $field->subfield('b');
+                                    if ( $subfield ) {
+                                        $verlag = $subfield;
+                                    }
+                                }
+                                if ( ! $erscheinungsJahr ) {
+                                    my $subfield = $field->subfield('c');
+                                    if ( $subfield =~ /^(.)*?(\d\d\d\d)/ ) {
+                                        $erscheinungsJahr = $2;
+                                    }
+                                }
+                                if ( $verlag && $erscheinungsJahr ) {
+                                    last;
+                                }
                             }
                         }
-                        # get erscheinungsJahr
-                        $field = $marcrecord->field('260');
-                        if ( $field ) {
-                            my $subfield = $field->subfield('c');
-                            if ( $subfield ) {
-                                if ( $subfield =~ /^(.)*?(\d\d\d\d)/ ) {
-                                    $erscheinungsJahr = $2;
+                        if ( ! $verlag ) {
+                            # last opportunity to get verlag
+                            # field 260 is multiple, we take the first entry
+                            $field = $marcrecord->field('260');
+                            if ( $field ) {
+                                my $subfield = $field->subfield('b');
+                                if ( $subfield ) {
+                                    $verlag = $subfield;
+                                }
+                            }
+                        }
+                        if ( ! $erscheinungsJahr ) {
+                            # last opportunity to get erscheinungsJahr
+                            # field 260 is multiple, we take the first entry
+                            $field = $marcrecord->field('260');
+                            if ( $field ) {
+                                my $subfield = $field->subfield('c');
+                                if ( $subfield ) {
+                                    if ( $subfield =~ /^(.)*?(\d\d\d\d)/ ) {
+                                        $erscheinungsJahr = $2;
+                                    }
                                 }
                             }
                         }
