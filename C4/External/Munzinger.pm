@@ -109,7 +109,7 @@ sub new {
                               };
     
     my $ua = LWP::UserAgent->new;
-    $ua->timeout(10);
+    $ua->timeout(3);
     $ua->env_proxy;
     
     $self->{'ua'} = $ua;
@@ -471,10 +471,10 @@ sub formatCategoryHit {
         $entry->{title} = $hit->{title} if (defined($hit->{title}));
         if ( defined($hit->{text}) ) {
             my $text = $hit->{text};
-            if ( reftype($text) eq 'HASH' && defined($text->{div}) && defined($text->{div}->{content}) && reftype($text->{div}->{content}) eq 'ARRAY' ) {
+            if ( reftype($text) && reftype($text) eq 'HASH' && defined($text->{div}) && defined($text->{div}->{content}) && reftype($text->{div}->{content}) && reftype($text->{div}->{content}) eq 'ARRAY' ) {
                 $text = $text->{div};
             }
-            if ( reftype($text) eq 'HASH' && defined($text->{content}) && reftype($text->{content}) eq 'ARRAY' && defined($text->{i}) ) {
+            if ( reftype($text) && reftype($text) eq 'HASH' && defined($text->{content}) && reftype($text->{content}) && reftype($text->{content}) eq 'ARRAY' && defined($text->{i}) ) {
                 my $settext = '';
                 my @inserttext = ();
                 if ( reftype($text->{i}) && reftype($text->{i}) eq 'ARRAY' ) {
