@@ -108,7 +108,7 @@ sub new {
     $self->{'scrubber'} = C4::Scrubber->new();
     
     my $ua = LWP::UserAgent->new;
-    $ua->timeout(10);
+    $ua->timeout(3);
     $ua->env_proxy;
     
     $self->{'ua'} = $ua;
