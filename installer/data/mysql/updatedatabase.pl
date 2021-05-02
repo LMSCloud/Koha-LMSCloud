@@ -17302,6 +17302,19 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.022";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('FilmfriendCustomerID','',NULL,'The filmfriend customer (tenant) id provided by filmfriend.','free'),
+            ('FilmfriendCustomerURL','',NULL,'The customer specific filmfriend portal URL.','free'),
+            ('FilmfriendNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer'),
+            ('FilmfriendSearchActive','0',NULL,'Activate/Deactivate the filfriend portal search in OPAC.','YesNo'),
+            ('FilmfriendSearchCollections','Movie|Series|Person',NULL,'The filmfriend collections (movies, series, seasons, collections, persons) that will be searched.','free'),
+    });
+    SetVersion($DBversion);
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

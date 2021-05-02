@@ -91,9 +91,9 @@
                     </p>
                 [% END # / IF searchdesc %]
 
-                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) ) %]
+                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) ) %]
                     <div id="encyclopediaresults">
-                        <div id="encyclopedianumresults"><strong>The encyclopedia search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a id="showCatalogHitList" href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
+                        <div id="encyclopedianumresults"><strong>The search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a id="showCatalogHitList" href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
                         <div id="encyclopediaheader" class="toolbar clearfix">
                             <strong><span class="encyclopediasource"></span></strong>
                         </div>
@@ -102,7 +102,7 @@
                             </tbody>
                         </table>
                     </div>
-                [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive %]
+                [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive or FilmfriendSearchActive %]
                 
                 <div id="userresults">
                     [% IF ( DidYouMean ) %]
@@ -621,6 +621,7 @@
 [% IF ( OverDriveEnabled ) %][% Asset.js("js/overdrive.js") %][% END %]
 [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %][% Asset.js("js/munzinger.js") %][% END %]
 [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %][% Asset.js("js/brockhaus.js") %][% END %]
+[% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %][% Asset.js("js/filmfriend.js") %][% END %]
 [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
 [% IF ( OpacHighlightedWords ) %][% Asset.js("lib/jquery/plugins/jquery.highlight-3.js") %]
 [% END %]
@@ -936,6 +937,9 @@ $(document).ready(function(){
     [% END %]
     [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
         getMunzingerFacet(query_desc);
+    [% END %]
+    [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %]
+        getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"));
     [% END %]
     [% IF ( OverDriveEnabled ) %]
         var $overdrive_results = $( '<div id="overdrive-results">' + _( 'Searching OverDrive...' ) + ' <img class="throbber" src="[% interface %]/lib/jquery/plugins/themes/classic/throbber.gif" /></div>' );

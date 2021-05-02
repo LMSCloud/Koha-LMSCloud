@@ -601,5 +601,37 @@ Enhanced Content:
             - pref: BrockhausNumSearchResults
               class: integer
             - results of the Brockhaus search per page in the OPAC.
-            
+    filmfriend:
+        -
+            - pref: FilmfriendSearchActive
+              choices:
+                  yes: Activate
+                  no: "Don't activate"
+            - filmfriend portal search in OPAC. Activate only if you want to enrich OPAC search results with results of the filmfriend film collections. You need to contract with filmfriend to use this feature.
+        -
+            - In order to use film collection search, configure the filmfriend customer ID (aka tenant ID)
+            - pref: FilmfriendCustomerID
+            - provided by filmfriend. The filmfriend customer ID is used to access the filmfriend search API.
+        -
+            - Name of the filmfriend film collections 
+            - pref: FilmfriendSearchCollections
+            - that will be searched. <br>Each collection will be queried separately in order to retrieve the search results.
+            - "The following collections are available:<br>"
+            - "Movie: films<br>"
+            - "Episode: episodes of series seasons<br>"
+            - "Video: films and episodes of series seasons<br>"
+            - "Season: seasons of series<br>"
+            - "Series: series<br>"
+            - "Person: involved persons such as actors, director, producer and so on<br>"
+            - "Collection: filmfriend collections<br>"
+            - "Multiple collections can be combined split by | (bar). E.g. Movie|Series|Collection. Default: Movie|Series|Person"
+        -
+            - The filmfriend customer portal URL  
+            - pref: FilmfriendCustomerURL
+            - where patrons can access the films.
+        -
+            - Show a maximum of  
+            - pref: FilmfriendNumSearchResults
+              class: integer
+            - results of the filmfriend search per page in the OPAC.
             
