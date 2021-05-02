@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2021-04-06 16:37+0100\n"
+"PO-Revision-Date: 2021-05-02 17:16+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -5754,6 +5754,10 @@ msgstr "ekz Cover"
 msgid "enhanced_content.pref ekz Data Services"
 msgstr "ekz Data Services"
 
+# Enhanced Content > filmfriend
+msgid "enhanced_content.pref filmfriend"
+msgstr "filmfriend Filmportal"
+
 # Enhanced Content > All
 msgid ""
 "enhanced_content.pref## <strong>NOTE:</strong> you can only choose one "
@@ -6211,6 +6215,133 @@ msgid ""
 msgstr ""
 "anderen Auflagen eines Titels in der Dienstoberfläche (wenn durch einen der "
 "unten aufgelisteten Services ermittelt)"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendCustomerID# In order to use film collection "
+"search, configure the filmfriend customer ID (aka tenant ID)"
+msgstr ""
+"Um die filmfriend-Filmportal-Suche zuzulassen, geben Sie die "
+"kundenspezifische ID für die filmfriend-API an"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendCustomerID# provided by filmfriend. The "
+"filmfriend customer ID is used to access the filmfriend search API."
+msgstr ", die von filmfriend zur Verfügung gestellt wird."
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendCustomerURL# The filmfriend customer portal "
+"URL"
+msgstr "URL des kundenspezifischen filmfriend-Filmportals"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendCustomerURL# where patrons can access the "
+"films."
+msgstr ""
+", mit dem Leser auf das filmfriend-Angebot der Bibliothek zugreifen können."
+
+# Enhanced Content > filmfriend
+msgid "enhanced_content.pref#FilmfriendNumSearchResults# Show a maximum of"
+msgstr "Zeige maximal "
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendNumSearchResults# results of the filmfriend "
+"search per page in the OPAC."
+msgstr " Treffer der filmfriend-Filmportal-Suche im OPAC an."
+
+# Enhanced Content > filmfriend
+msgid "enhanced_content.pref#FilmfriendSearchActive# Activate"
+msgstr "Aktiviere"
+
+# Enhanced Content > filmfriend
+msgid "enhanced_content.pref#FilmfriendSearchActive# Don't activate"
+msgstr "Aktiviere nicht"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchActive# filmfriend portal search in "
+"OPAC. Activate only if you want to enrich OPAC search results with results "
+"of the filmfriend film collections. You need to contract with filmfriend to "
+"use this feature."
+msgstr ""
+" die filmfriend-Filmportal-Suche im OPAC. Aktivieren Sie die Suche nur, wenn "
+"Sie die OPAC-Suche mit Trefferlisten der filmfriend-Filmportal-Suche "
+"anreichern möchten. Zur Nutzung der filmfriend-Suche muss der filmfriend-"
+"Dienst lizensiert worden sein."
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# Collection: filmfriend "
+"collections<br>"
+msgstr "Collection: filmfriend-Kollektionen<br>"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# Episode: episodes of "
+"series seasons<br>"
+msgstr "Episode: Serien-Episoden<br>"
+
+# Enhanced Content > filmfriend
+msgid "enhanced_content.pref#FilmfriendSearchCollections# Movie: films<br>"
+msgstr "Movie: Filme<br>"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# Multiple collections can "
+"be combined split by | (bar). E.g. Movie|Series|Collection. Default: Movie|"
+"Series|Person"
+msgstr ""
+"Mehrere Angaben für filmfriend-Bestände könnnen durch | getrennt angegeben. "
+"Z.B. Movie|Series|Collection. Standartwert: Movie|Series|Person"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# Name of the filmfriend "
+"film collections"
+msgstr "Namen der zu durchsuchenden filmfriend-Bestände"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# Person: involved persons "
+"such as actors, director, producer and so on<br>"
+msgstr ""
+"Person: am Werk beteiligte Personen wie Regisseur, Schauspieler, Produzenten "
+"usw.<br>"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# Season: seasons of "
+"series<br>"
+msgstr "Season: Serien-Staffel<br>"
+
+# Enhanced Content > filmfriend
+msgid "enhanced_content.pref#FilmfriendSearchCollections# Series: series<br>"
+msgstr "Series: Serien<br>"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# The following collections "
+"are available:<br>"
+msgstr "Die folgenden Bestände stehen für die Suche zur Verfügung:<br>"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# Video: films and episodes "
+"of series seasons<br>"
+msgstr "Video: Filme und Serien-Episoden gleichzeitig<br>"
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendSearchCollections# that will be searched. "
+"<br>Each collection will be queried separately in order to retrieve the "
+"search results."
+msgstr ""
+", die durchsucht werden sollen.<br>Jeder angegebene Bestand wird einzeln "
+"nach passenden Treffern abgefragt."
 
 # Enhanced Content > Google
 msgid "enhanced_content.pref#GoogleJackets# Add"
