@@ -348,7 +348,8 @@ sub fine_items {
         {
             borrowernumber    => $self->{borrowernumber},
             amountoutstanding => { '>' => '0' },
-        }
+        },
+        { join => { 'itemnumber' => 'biblio' } }
     );
 
     $start = $start ? $start - 1 : 0;
