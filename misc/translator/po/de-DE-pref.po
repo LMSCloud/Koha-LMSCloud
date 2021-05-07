@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2021-05-02 17:16+0100\n"
+"PO-Revision-Date: 2021-05-07 11:01+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -6252,6 +6252,24 @@ msgid ""
 "enhanced_content.pref#FilmfriendNumSearchResults# results of the filmfriend "
 "search per page in the OPAC."
 msgstr " Treffer der filmfriend-Filmportal-Suche im OPAC an."
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendProviderID# (provided by filmfriend) via API "
+"authentication."
+msgstr ""
+"via API-Authentifizierung beim filmfriend angefordert. Die Provider ID wird "
+"durch filmfriend bereitgestellt."
+
+# Enhanced Content > filmfriend
+msgid ""
+"enhanced_content.pref#FilmfriendProviderID# The filmfriend portal supports "
+"single sign-on if a patron is logged in the OPAC. Login tokens will be "
+"requested using the"
+msgstr ""
+"Das filmfriend-Filmportal unterstützt ein Single-Sign-on, mit dem im OPAC "
+"authentifizierte Benutzer auch bei filmfriend angemeldet sind. Die dafür "
+"notwendigen Login-Token werden mit der folgenden Provider ID "
 
 # Enhanced Content > filmfriend
 msgid "enhanced_content.pref#FilmfriendSearchActive# Activate"

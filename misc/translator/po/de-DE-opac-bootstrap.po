@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2021-05-02 16:37+0200\n"
-"PO-Revision-Date: 2021-05-02 16:45+0100\n"
+"POT-Creation-Date: 2021-05-07 10:38+0200\n"
+"PO-Revision-Date: 2021-05-07 10:40+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2132,6 +2132,11 @@ msgstr "%seiner Liste:%s"
 msgid "&laquo; Previous"
 msgstr "&laquo; Zurück"
 
+#. SCRIPT
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
+msgid "&laquo; Read less"
+msgstr "&laquo; Weniger lesen"
+
 #: opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:157
 #: opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:160
 #, c-format
@@ -3350,7 +3355,7 @@ msgid "Add to your cart"
 msgstr "Meinem Korb hinzufügen"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Add to..."
 msgstr "Hinzufügen zu..."
 
@@ -4265,7 +4270,7 @@ msgid "Card number:"
 msgstr "Ausweisnummer:"
 
 #: opac-tmpl/bootstrap/en/includes/masthead.inc:25
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-results-grouped.tt:283
 #, c-format
 msgid "Cart"
@@ -4437,7 +4442,7 @@ msgstr "Löschen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:51
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:90
@@ -5445,12 +5450,12 @@ msgstr ""
 "Bibliothek."
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Error searching OpenLibrary collection"
 msgstr "Fehler bei der Suche im OpenLibrary-Bestand"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Error searching OverDrive collection"
 msgstr "Fehler bei der Suche im OverDrive-Bestand"
 
@@ -5783,7 +5788,7 @@ msgstr "Format:"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:65
 msgid "Found"
 msgstr "Gefunden"
@@ -7417,7 +7422,7 @@ msgid "More informations about pmPayment"
 msgstr "Mehr Informationen zu pmPayment"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "More lists"
 msgstr "Weitere Listen"
 
@@ -7581,7 +7586,7 @@ msgid "Next &gt;&gt;"
 msgstr "Weiter &gt;&gt;"
 
 #: opac-tmpl/bootstrap/en/includes/page-numbers.inc:17
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1087
 #, c-format
 msgid "Next &raquo;"
@@ -8444,7 +8449,7 @@ msgstr "Artikelbestellung erfassen für %s"
 
 #: opac-tmpl/bootstrap/en/includes/opac-detail-sidebar.inc:7
 #: opac-tmpl/bootstrap/en/modules/opac-results.tt:533
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:437
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:440
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
@@ -8805,7 +8810,7 @@ msgstr "Zurück"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Prev &laquo;"
 msgstr "Zurück &raquo;"
 
@@ -8922,7 +8927,7 @@ msgid "Public lists"
 msgstr "Öffentliche Listen"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Public lists:"
 msgstr "Öffentliche Listen:"
 
@@ -9054,7 +9059,7 @@ msgstr "Bewerten"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1372
 msgid "Rating based on reviews of "
 msgstr "Bewertung basiert auf Reviews von "
@@ -9063,6 +9068,12 @@ msgstr "Bewertung basiert auf Reviews von "
 #, c-format
 msgid "Re-type new password:"
 msgstr "Passwort (Wiederholung):"
+
+#. For the first occurrence,
+#. SCRIPT
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
+msgid "Read more &raquo;"
+msgstr "Mehr lesen &raquo;"
 
 #: opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:69
 #, c-format
@@ -9604,7 +9615,7 @@ msgstr "Samstag"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:614
 #: opac-tmpl/bootstrap/en/modules/opac-privacy.tt:92
 #: opac-tmpl/bootstrap/en/modules/opac-addbybiblionumber.tt:53
@@ -9761,13 +9772,13 @@ msgid "SearchCourseReserves "
 msgstr "SearchCourseReserves "
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Searching Open Library..."
 msgstr "Suche in Open Library..."
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:65
 msgid "Searching OverDrive..."
 msgstr "Suche in OverDrive..."
@@ -9851,7 +9862,7 @@ msgstr "Bestimmtes Exemplar auswählen:"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:50
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:89
@@ -9898,7 +9909,7 @@ msgstr "Titel für Suche auswählen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:256
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-basket.tt:38
@@ -11930,7 +11941,7 @@ msgstr "Mit ausgewählten Vorschlägen: "
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-basket.tt:303
 msgid "With selected titles: "
@@ -12309,7 +12320,7 @@ msgstr "Sie müssen angemeldet sein um Listen zu bearbeiten oder anzulegen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "You must be logged in to create or add to lists"
 msgstr "Sie müssen angemeldet sein um Listen zu bearbeiten oder anzulegen"
 
@@ -12581,7 +12592,7 @@ msgid "Your lists"
 msgstr "Ihre Listen"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Your lists:"
 msgstr "Ihre Listen:"
 
@@ -12744,7 +12755,7 @@ msgstr "PLZ:"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-results-grouped.tt:283
 msgid "[ New list ]"
 msgstr "[ Neue Liste ]"
@@ -12845,7 +12856,7 @@ msgstr "von"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:114
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:987
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1372
@@ -13085,12 +13096,12 @@ msgid "ilsdi.pl?service=RenewLoan&amp;patron_id=1&amp;item_id=1 "
 msgstr "ilsdi.pl?service=RenewLoan&amp;patron_id=1&amp;item_id=1 "
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "in OpenLibrary collection"
 msgstr "im OpenLibrary Bestand"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "in OverDrive collection"
 msgstr "im OverDrive-Bestand"
 
@@ -13301,7 +13312,7 @@ msgstr ""
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:629
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "results"
 msgstr "Ergebnisse"
 
