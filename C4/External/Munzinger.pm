@@ -23,6 +23,7 @@ use utf8;
 
 use C4::Context;
 use Koha::Patrons;
+use C4::External::DivibibPatronStatus;
 
 use LWP::UserAgent;
 use XML::Simple;
@@ -201,7 +202,10 @@ sub simpleSearch {
     
     if ( $userid ) {
         my $patron = Koha::Patrons->find({ userid => $userid } );
-        if ( $patron ) {
+        my $patronStatus = C4::External::DivibibPatronStatus->new();
+        my $pStatus = $patronStatus->getPatronStatus( $patron );
+            
+        if ( $pStatus && $pStatus->{status} eq '3' ) {
             $user = $patron->cardnumber;
         }
     }
