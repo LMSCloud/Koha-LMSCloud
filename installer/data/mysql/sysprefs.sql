@@ -230,6 +230,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('FailedLoginAttempts','','','Number of login attempts before lockout the patron account','Integer'),
 ('FeeOnChangePatronCategory','1','','If set, when a patron changes to a category with enrolment fee, a fee is charged','YesNo'),
 ('FilmfriendCustomerID','',NULL,'The filmfriend customer (tenant) id provided by filmfriend.','free'),
+('FilmfriendProviderID','',NULL,'The filmfriend provider ID used for Single Sign-on (authentication via filmfriend API).','free'),
 ('FilmfriendCustomerURL','',NULL,'The customer specific filmfriend portal URL.','free'),
 ('FilmfriendNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer'),
 ('FilmfriendSearchActive','0',NULL,'Activate/Deactivate the filmfriend portal search in OPAC.','YesNo'),

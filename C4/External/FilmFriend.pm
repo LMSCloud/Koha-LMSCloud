@@ -24,6 +24,7 @@ use C4::Context;
 use C4::Languages;
 use C4::Scrubber;
 use Koha::Patrons;
+use C4::External::DivibibPatronStatus;
 
 use LWP::UserAgent;
 use JSON;
@@ -84,8 +85,10 @@ sub new {
     $self->{'traceEnabled'} = 1 if (C4::Context->preference('FilmfriendTraceEnabled'));
 
     $self->{'customerID'}   = C4::Context->preference('FilmfriendCustomerID');
+    $self->{'providerID'}   = C4::Context->preference('FilmfriendProviderID');
     
     $self->{'filmFriendBaseURL'}         = 'https://api.vod.filmwerte.de/api/v1';
+    $self->{'filmFriendAuthURL'}         = 'https://api.vod.filmwerte.de/connect/authorize-external';
     
     
     $self->{'filmFriendTenantGroupIdDE'} = 'fba2f8b5-6a3a-4da3-b555-21613a88d3ef';
@@ -173,6 +176,113 @@ sub new {
     return $self;
 }
 
+=head2 getAuth
+
+Get the authentication token.
+
+=cut
+
+sub getAuth {
+    my $self     = shift;
+    my $user     = shift;
+    my $password = shift;
+    
+    my $auth = undef;
+    
+    if ( $self && $self->{'providerID'} && $self->{'customerID'} ) {
+        
+        my @header = @{$self->{'requestHeader'}};
+        
+        my $url = $self->{'filmFriendAuthURL'};
+        
+        my $params =  {
+                          client_id => "tenant-" . $self->{'customerID'} . "-filmwerte-vod-frontend",
+                          provider  => $self->{'providerID'},
+                          username  => $user,
+                          password  => $password
+                      };
+
+        carp "C4::External::FilmFriend->getAuth() calling with URL $url" if ( $self->{'traceEnabled'} );
+        my $response = $self->{'ua'}->post($url,$params);
+        
+        if ( defined($response) && $response->is_success ) {
+            
+            my $json = JSON->new->utf8->allow_nonref;
+            
+            $auth = $json->decode( $response->content );
+            
+            carp "C4::External::FilmFriend->getAuth() result: " . Dumper($auth) if ( $self->{'FilmfriendTraceEnabled'} );
+            
+            if ( $auth && exists($auth->{access_token}) && exists($auth->{expires_in}) && exists($auth->{token_type}) && exists($auth->{refresh_token}) ) {
+                return $auth;
+            } else {
+                return undef;                
+            }
+        }
+        else {
+            carp "C4::External::FilmFriend->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML if (C4::Context->preference('FilmfriendTraceEnabled'));   
+        }
+    }
+    return $auth;
+}
+
+sub getAuthLink {
+    my $self = shift;
+    my $userid = shift;
+    my $collection = shift;
+    my $objectID   = shift;
+    
+    if ( $userid ) {
+        my $patron = Koha::Patrons->find({ userid => $userid } );
+        if ( $patron ) {
+            my $patronStatus = C4::External::DivibibPatronStatus->new();
+            my $pStatus = $patronStatus->getPatronStatus( $patron );
+            
+            if ( $pStatus && $pStatus->{status} eq '3' ) {
+                my $auth = $self->getAuth($userid,$patron->password);
+                
+                if ( $auth ) {
+                    $self->getLink($collection,$objectID,1,$auth);
+                }
+            }
+        }
+    }
+    
+    return undef;
+}
+
+=head2 getAuth
+
+Get a filmfriend Link depending on the available authentication token.
+
+=cut
+
+sub getLink {
+    my $self       = shift;
+    my $collection = shift;
+    my $objectID   = shift;
+    my $withAuth   = shift;
+    my $auth       = shift;
+    
+    my $url;
+    
+    if ( !$withAuth ) {
+        $url = $self->{'Link'}->{$collection} . uri_escape_utf8($objectID);
+    }
+    elsif ( !$auth ) {
+        $url = '/cgi-bin/koha/opac-filmfriend.pl?collection=' . uri_escape_utf8($collection) . '&objectid=' . uri_escape_utf8($objectID);
+    } 
+    else {
+        $url = $self->{'Link'}->{$collection} . uri_escape_utf8($objectID).
+               '#access_token=' . uri_escape_utf8($auth->{access_token}) . 
+               '&refresh_token=' . uri_escape_utf8($auth->{refresh_token}) . 
+               '&expires_in=' . uri_escape_utf8($auth->{expires_in}) .
+               '&token_type=' . uri_escape_utf8($auth->{token_type});
+    }
+    return $url;
+}
+
+
 =head2 simpleSearch
 
 Execute a simple search and return the result as Hash structure parsed with JSON.
@@ -189,17 +299,26 @@ sub simpleSearch {
     my $maxcount = shift;
     my $offset = shift;
 
+    my $withAuth=0;
+    
     return undef unless ( C4::Context->preference('FilmfriendSearchActive') );
 
     $searchtext = $self->normalizeSearchRequest($searchtext);
     
     return undef if (! $searchtext );
 
-    my $user;
+    my $patronFsk;
     if ( $userid ) {
         my $patron = Koha::Patrons->find({ userid => $userid } );
         if ( $patron ) {
-            $user = $patron->cardnumber;
+            my $patronStatus = C4::External::DivibibPatronStatus->new();
+            my $pStatus = $patronStatus->getPatronStatus( $patron );
+            
+            if ( $pStatus && $pStatus->{status} eq '3' ) {
+                $withAuth = 1;
+                
+                $patronFsk = $pStatus->{fsk};
+            }
         }
     }
     
@@ -271,7 +390,7 @@ sub simpleSearch {
             
             my $json = JSON->new->utf8->allow_nonref;
             
-            my $data = $self->sanitizeResultStructure( $self->scrubData($json->decode( $response->content )), $user, $searchtype, $offset);
+            my $data = $self->sanitizeResultStructure( $self->scrubData($json->decode( $response->content )), $withAuth, $searchtype, $offset, $patronFsk);
             #my $data = $self->scrubData($json->decode( $response->content ));
             $data->{searchType} = $searchtype;
             $data->{search} = $searchtext;
@@ -319,9 +438,10 @@ sub scrubData {
 sub sanitizeResultStructure {
     my $self       = shift;
     my $data       = shift;
-    my $user       = shift;
+    my $withAuth   = shift;
     my $searchtype = shift;
     my $offset     = shift;
+    my $patronFsk  = shift;
     
     my $result = {};
     
@@ -337,6 +457,7 @@ sub sanitizeResultStructure {
         $result->{hitList} = [];
         
         if ( exists($data->{'results'}) && reftype($data->{'results'}) && reftype($data->{'results'}) eq 'ARRAY') {
+            
             foreach my $hit ( @{$data->{'results'}} ) {   
                 my $hitType = $hit->{kind};
                 
@@ -349,9 +470,6 @@ sub sanitizeResultStructure {
                     $hit->{actors}= [];
                     $hit->{regie}= []; 
                     
-                    if ( exists($hit->{id}) && $hit->{id}) {
-                        $hit->{filmfriendLink} = $self->{'Link'}->{$hitType} . $hit->{id};
-                    }
                     if ( exists($hit->{imdbId}) && $hit->{imdbId}) {
                         $hit->{IMDbLinkLink} = $self->{'IMDbLink'} . $hit->{imdbId};
                     }
@@ -360,6 +478,10 @@ sub sanitizeResultStructure {
                     }
                     if ( exists($hit->{tmdbId}) && $hit->{tmdbId}) {
                         $hit->{MovieDatabaseLink} = $self->{'MovieDatabaseLink'} . $hit->{tmdbId};
+                    }
+                    
+                    if ( exists($hit->{motionPictureContentRating}) && $hit->{motionPictureContentRating} =~ /^Fsk([0-9]+)/ ) {
+                        $hit->{fsk} = $1;
                     }
                     
                     if ( $hitType eq 'Season' && exists($hit->{series}) ) {
@@ -410,6 +532,14 @@ sub sanitizeResultStructure {
                         }
                     }
                     
+                    if ( exists($hit->{id}) && $hit->{id}) {
+                        my $useAuth = $withAuth;
+                        if ( $patronFsk && exists($hit->{fsk}) && $patronFsk < $hit->{fsk} ) {
+                            $useAuth = 0;
+                        }
+                        $hit->{filmfriendLink} = $self->getLink($hitType,$hit->{id},$useAuth);
+                    }
+                    
                     $self->setLanguageElement($hit,'Synopsis',$hit,'synopsis');
                     
                     if ( exists($hit->{productionCountries}) && reftype($hit->{productionCountries}) && reftype($hit->{productionCountries}) eq 'ARRAY' ) {
@@ -429,9 +559,6 @@ sub sanitizeResultStructure {
                     }
                     if ( exists($hit->{releaseDate}) && $hit->{releaseDate} =~ /^([0-9]{4})-/ ) {
                         $hit->{releaseYear} = $1;
-                    }
-                    if ( exists($hit->{motionPictureContentRating}) && $hit->{motionPictureContentRating} =~ /^Fsk([0-9]+)/ ) {
-                        $hit->{fsk} = $1;
                     }
                     if ( exists($hit->{artworks}) && reftype($hit->{artworks}) && reftype($hit->{artworks}) eq 'ARRAY' ) {
                         foreach my $artwork(@{$hit->{artworks}}) {
@@ -472,7 +599,7 @@ sub sanitizeResultStructure {
                     if ( exists($hit->{participations}) && reftype($hit->{participations}) && reftype($hit->{participations}) eq 'ARRAY' ) {
                         foreach my $person(@{$hit->{participations}}) {
                             if ( exists($person->{person}->{id}) && $person->{person}->{id}) {
-                                $person->{filmfriendLink}= $self->{'Link'}->{'Person'} . $person->{person}->{id};
+                                $person->{filmfriendLink}= $self->getLink('Person',$person->{person}->{id},$withAuth);
                             }
                             if ( exists($person->{kind}) && $person->{kind} ) {
                                 if ( $person->{kind} eq 'Actor' ) {
@@ -490,7 +617,7 @@ sub sanitizeResultStructure {
                     $hit->{kind} = 'Person';
                     
                     if ( exists($hit->{id}) && $hit->{id}) {
-                        $hit->{filmfriendLink}= $self->{'Link'}->{ $hitType } . $hit->{id};
+                        $hit->{filmfriendLink}= $self->getLink($hitType,$hit->{id},$withAuth);
                     }
                     
                     $self->setLanguageElement($hit,'Biography',$hit,'description');

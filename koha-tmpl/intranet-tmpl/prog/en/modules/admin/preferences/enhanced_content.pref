@@ -613,6 +613,10 @@ Enhanced Content:
             - pref: FilmfriendCustomerID
             - provided by filmfriend. The filmfriend customer ID is used to access the filmfriend search API.
         -
+            - The filmfriend portal supports single sign-on if a patron is logged in the OPAC. Login tokens will be requested using the
+            - pref: FilmfriendProviderID
+            - (provided by filmfriend) via API authentication. 
+        -
             - Name of the filmfriend film collections 
             - pref: FilmfriendSearchCollections
             - that will be searched. <br>Each collection will be queried separately in order to retrieve the search results.

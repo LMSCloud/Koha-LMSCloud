@@ -40,7 +40,19 @@ if ( C4::Context->preference('FilmfriendSearchActive') ) {
     my $maxcount = $query->param('maxcount');
     my $offset = $query->param('offset');
     my $collection = $query->param('collection');
-    my $brockhausService = C4::External::FilmFriend->new();
+    my $objectid = $query->param('objectid');
+    my $filmfriendService = C4::External::FilmFriend->new();
+    
+    if ( $objectid ) {
+        my $url = $filmfriendService->getAuthLink($userid,$collection,$objectid);
+        
+        if ( $url ) {
+            print $query->redirect($url);
+        } else {
+            print $query->redirect("/cgi-bin/koha/errors/404.pl");
+        }
+        exit;
+    }
     
     my $searchWhere = [];
     $searchWhere = [$collection] if ( $collection );
@@ -58,7 +70,7 @@ if ( C4::Context->preference('FilmfriendSearchActive') ) {
     }
     $searchWhere = ["Movie","Series","Person"] if (! scalar(@$searchWhere) );
     
-    $result = $brockhausService->simpleSearch($userid,$search,$searchWhere,$maxcount,$offset);
+    $result = $filmfriendService->simpleSearch($userid,$search,$searchWhere,$maxcount,$offset);
 }
 
 my $json_reply = JSON->new->encode( { result => $result } );

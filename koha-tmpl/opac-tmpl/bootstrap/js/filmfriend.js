@@ -21,13 +21,15 @@ var prevPageTextFilmfriend;
 var nextPageTextFilmfriend;
 var maxHitCountFilmfriend;
 var targetLinkFilmfriend = "_blank";
+var readMoreFilmfriend = "Read more &raquo;";
 
-function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText) {
+function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText,readMore) {
     if (!origResultHeaderFilmfriend) {
         origResultHeaderFilmfriend = $('#numresults').html();
     }
     prevPageTextFilmfriend = prevPageText;
     nextPageTextFilmfriend = nextPageText;
+    readMoreFilmfriend     = readMore;
     maxHitCountFilmfriend  = maxHitCount;
     $.ajax({
     url: "/cgi-bin/koha/opac-filmfriend.pl",
@@ -154,10 +156,12 @@ function showFilmfriendResult(facetID) {
     }
     $('.encyclopediasource').html(filmfriendData.results[facetID].name);
     
-    $('.encyclopediaprovider').html(' <a href="' + filmfriendData.results[facetID].searchAtFilmFriend + '" target="' + targetLinkFilmfriend + '">' + 'filmfriend</a> ' );
+    $('.encyclopediaprovider').html(' <a href="' + filmfriendData.results[facetID].searchAtFilmFriend + '"  target="' + targetLinkFilmfriend + '">' + 'filmfriend</a> ' );
     $('.encyclopediasearchhitcount').html(' ' + filmfriendData.results[facetID].numFound + ' ');
     $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListFilmfriend()");
+    
+    truncate_text("#encyclopediahits");
 }
 function getPagination(facetID, maxHitCount) {
     var paginationText = '';
@@ -235,7 +239,7 @@ function generateFilmfriendEntryPerson(facetID,entryID) {
     
     if ( filmfriendData.results[facetID].hitList[entryID].description ) {
         txtElement = document.createElement("span");
-        txtElement.setAttribute('class','results_summary summary description');
+        txtElement.setAttribute('class','results_summary summary description truncable-txt');
         txtElement.setAttribute('style','font-size: 100%');
         txtElement.innerHTML = filmfriendData.results[facetID].hitList[entryID].description;
         colElement.appendChild(txtElement);
@@ -456,10 +460,11 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
     
     if ( filmfriendData.results[facetID].hitList[entryID].synopsis ) {
         txtElement = document.createElement("span");
-        txtElement.setAttribute('class','results_summary summary');
+        txtElement.setAttribute('class','results_summary summary truncable-txt');
         txtElement.setAttribute('style','font-size: 100%');
-        txtElement.innerHTML = filmfriendData.results[facetID].hitList[entryID].synopsis;
+        txtElement.innerHTML = filmfriendData.results[facetID].hitList[entryID].synopsis.replace(/(?:\r\n|\r|\n)+/g, '<br>') + '<a href="javascript:void(0)" class="truncable-txt-readmore">' + readMoreFilmfriend + '</a>';
         colElement.appendChild(txtElement);
+        
     }
     rowElement.appendChild(colElement);
     return '<tr>' + rowElement.innerHTML + '</tr>';
