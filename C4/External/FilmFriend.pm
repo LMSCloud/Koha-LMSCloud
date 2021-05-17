@@ -242,7 +242,7 @@ sub getAuthLink {
                 my $auth = $self->getAuth($userid,$patron->password);
                 
                 if ( $auth ) {
-                    $self->getLink($collection,$objectID,1,$auth);
+                    return $self->getLink($collection,$objectID,1,$auth);
                 }
             }
         }
