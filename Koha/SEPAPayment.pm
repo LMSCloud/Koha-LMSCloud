@@ -605,7 +605,32 @@ sub checkIban {
         push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
     } else {
         $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} =~ s/[\s,\r,\n]//g;
-        if ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN}) < 22 ) {
+        my $countryCode = '';
+        my $checkSum = '';
+        my $basicBankAccountNumber = '';
+        if ( $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} =~ /^([A-Z]{2}).*$/ ) {
+            $countryCode = $1;
+        }
+        if ( $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} =~ /^..(\d\d).*$/ ) {
+            $checkSum = $1;
+        }
+        if ( $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} =~ /^....(.*)$/ ) {
+            $basicBankAccountNumber = $1;    # remainder: so called 'BBAN'
+        }
+        print STDERR "Koha::SEPAPayment::checkIban() SEPA_IBAN:" . (defined($borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN})?$borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN}:'undef') .
+                                                ": countryCode:" . (defined($countryCode)?$countryCode:'undef') .
+                                                   ": checkSum:" . (defined($checkSum)?$checkSum:'undef') .
+                                                       ": BBAN:" . (defined($basicBankAccountNumber)?$basicBankAccountNumber:'undef') .
+                                                           ":\n" if $self->{verbose} > 1;
+        if ( length($countryCode) != 2 ||
+             length($checkSum) != 2 ||
+             ( $countryCode eq 'DE' && length($basicBankAccountNumber) != 18 ) ||
+             ( $countryCode eq 'AT' && length($basicBankAccountNumber) != 16 ) ||
+             ( $countryCode eq 'BE' && length($basicBankAccountNumber) != 12 ) ||
+             ( $countryCode eq 'LU' && length($basicBankAccountNumber) != 16 ) ||
+             ( $countryCode eq 'FR' && length($basicBankAccountNumber) != 23 ) ||
+             (                         length($basicBankAccountNumber) < 11 )
+           ) {
             print STDERR "Koha::SEPAPayment::checkIban() invalid IBAN:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
             my $errormsg = sprintf('IBAN:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_IBAN});
             push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
