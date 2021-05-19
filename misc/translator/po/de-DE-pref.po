@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 18.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2021-05-07 14:01+0100\n"
+"PO-Revision-Date: 2021-05-19 11:34+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -4247,11 +4247,23 @@ msgstr "Verwende das Stylesheet unter"
 
 # Circulation > Interface
 msgid ""
-"circulation.pref#NoticeCSS# on Notices. (This should be a complete URL, "
-"starting with <code>http://</code>)"
+"circulation.pref#NoticeCSS# on print Notices. (This should be a complete "
+"URL, starting with <code>https://</code>)"
 msgstr ""
-"für die Gestaltung der Benachrichtigungen. (Komplette URL, beginnend mit "
-"<code>http://</code>)"
+"für die Gestaltung der Druckbenachrichtigungen. (Komplette URL, beginnend "
+"mit https://) "
+
+# Circulation > Interface
+msgid "circulation.pref#NoticeCSSEmail# Include the stylesheet at"
+msgstr "Verwende das Stylesheet unter"
+
+# Circulation > Interface
+msgid ""
+"circulation.pref#NoticeCSSEmail# on email Notices. (This should be a "
+"complete URL, starting with <code>https://</code>)"
+msgstr ""
+"für die Gestaltung der Emailbenachrichtigungen. (Komplette URL, beginnend "
+"mit https://) "
 
 # Circulation > Holds Policy
 msgid "circulation.pref#OPACAllowHoldDateInFuture# Allow"
