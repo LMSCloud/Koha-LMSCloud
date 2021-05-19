@@ -119,28 +119,201 @@ sub ccodeBySupplyOption {
 
 ##############################################################################
 #
-# create new biblio record
+# create new biblio record (in case of a volume title: also create the series titles if not existing yet)
 #
 ##############################################################################
-sub addNewRecord {
+sub addNewRecords {
     my $self = shift;
-    my $record = shift;
+    my $titleHits = shift;    # result of title search in one of the sources, e.g. in LMSCloud pool, ekz MedienDaten webservice, z39-50 search
+    my $volumeEkzArtikelNr = shift;    # if set: create series titles additionally to the volume title; return volume title only in any case
+    my $ekzBestellNr = shift;    # component for value in MARC field 035
+    my $ekzWsHideOrderedTitlesInOpac = shift;    # flag for MARC field 942
+    my $createdTitleRecords = shift;    # addNewRecords() registers all added new records in $createdTitleRecords
+    my $titleSelHashkey = shift;    # titleSelHashkey of the primary title
 
-    my $biblionumber;
-    my $biblioitemnumber;
-        
-    if ( $self->{localCatalogSourceDelegateClass} ) {
-        my $localCat = $self->{localCatalogSourceDelegateClass};
-        ($biblionumber,$record) = $localCat->addSingleRecord($record);
-        $biblioitemnumber = $biblionumber;
-    } else {
-        ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($record,'');
-        if ( $biblionumber ) {
-            $record = C4::Biblio::GetMarcBiblio( { biblionumber => $biblionumber } );
+    my $retBiblionumber;
+    my $retBiblioitemnumber;
+    my $retRecord;
+
+    $self->{'logger'}->trace("addNewRecords() START; volumeEkzArtikelNr:" . ($volumeEkzArtikelNr?$volumeEkzArtikelNr:'undef') . ": titleHits:" . Dumper($titleHits) . ":");
+    $self->{'logger'}->trace("addNewRecords() START; titleSelHashkey:" . ($titleSelHashkey?$titleSelHashkey:'undef') . ": createdTitleRecords:" . Dumper($createdTitleRecords) . ":");
+    foreach my $record ( @{$titleHits->{records}} ) {
+        my $selHashkey =  $titleSelHashkey;
+        my $ekzArtikelNr;
+        my $thisIsTheVolumeRecord = 0;
+        my $biblionumber;
+        my $biblioitemnumber;
+        my $insertedRecord;
+
+        if ( $volumeEkzArtikelNr ) {    # maybe series titles exist already
+            # Insert series title data only if it not exists already.
+            # So first search the series title in local DB.
+            # Check that this record is not the volume (if volume title exists, addNewRecords() would not have been called):
+
+            # 1st attempt: look for ekzArtikelNr in field 001
+            my $tmp_cna = defined($record->field("003")) ? $record->field("003")->data() : "undef";
+            $self->{'logger'}->trace("addNewRecords() tmp_cna:$tmp_cna:");
+            if ( $tmp_cna eq "DE-Rt5" ) {
+                $ekzArtikelNr = defined($record->field("001")) ? $record->field("001")->data() : "undef";
+                $self->{'logger'}->trace("addNewRecords() ekzArtikelNr:$ekzArtikelNr:");
+                if ( $volumeEkzArtikelNr eq $ekzArtikelNr ) {
+                    $thisIsTheVolumeRecord = 1;
+                }
+            }
+            if ( ! $thisIsTheVolumeRecord ) {
+                # 2nd attempt: look for ekzArtikelNr in field 035
+                # field 035 is multiple; select entry for DE-Rt5
+                my @fields = $record->field('035');
+                $self->{'logger'}->trace("addNewRecords() fields 035:" . Dumper(\@fields) . ":");
+                foreach my $field ( @fields ) {
+                    if ( $field ) {
+                        my $subfield = $field->subfield('a');    # format: (DE-Rt5)nnn...nnn
+                        if ( $subfield ) {
+                            if ( $subfield =~ /^\s*\(DE\-Rt5\)(.*?)\s*$/ ) {
+                                $ekzArtikelNr = $1;
+                                if ( $ekzArtikelNr =~ /^\s*(.*?)\s*$/ ) {
+                                    $ekzArtikelNr = $1;
+                                }
+                                if ( $volumeEkzArtikelNr eq $ekzArtikelNr ) {
+                                    $thisIsTheVolumeRecord = 1;
+                                    last;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            $self->{'logger'}->trace("addNewRecords() thisIsTheVolumeRecord:$thisIsTheVolumeRecord:");
+
+            if ( ! $thisIsTheVolumeRecord ) {    # the current record is a series title
+                my $reqParamTitelInfo = {};
+                $reqParamTitelInfo->{'ekzArtikelNr'} = $ekzArtikelNr;
+                # get ISBN
+                # field 020 is multiple; select a syntactically correct ISBN if possible
+                my @fields = $record->field('020');
+                $self->{'logger'}->trace("addNewRecords() fields 020:" . Dumper(\@fields) . ":");
+                my $firstIsbn;
+                foreach my $field ( @fields ) {
+                    my $isbn = $field->subfield('a');
+                    if ( $isbn ) {
+                        eval {
+                            my $val = Business::ISBN->new($isbn);
+                            $isbn = $val->as_isbn13()->as_string([]);
+                        };
+                        if ( ! $firstIsbn ) {
+                            $firstIsbn = $isbn;    # found fall back ISBN
+                        }
+                        if ( $isbn =~ /^\d{13}$/ ) {
+                            $reqParamTitelInfo->{'isbn13'} = $isbn;    # found syntactically correct ISBN
+                            last;
+                        }
+                    }
+                }
+                if ( ! $reqParamTitelInfo->{'isbn13'} ) {
+                    $reqParamTitelInfo->{'isbn13'} = $firstIsbn;
+                }
+                # get EAN
+                # field 024 is multiple, we use the first entry
+                my $field = $record->field('024');
+                $self->{'logger'}->trace("addNewRecords() field 024:" . Dumper($field) . ":");
+                if ( $field ) {
+                    $reqParamTitelInfo->{'ean'} = $field->subfield('a');
+                }
+
+                # Search series title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
+                my $seriesTitleHits = { 'count' => 0, 'records' => [] };
+                $selHashkey =
+                    ( $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : '' ) . '.' .
+                    ( $reqParamTitelInfo->{'isbn'} ? $reqParamTitelInfo->{'isbn'} : '' ) . '.' .
+                    ( $reqParamTitelInfo->{'isbn13'} ? $reqParamTitelInfo->{'isbn13'} : '' ) . '.' .
+                    ( $reqParamTitelInfo->{'issn'} ? $reqParamTitelInfo->{'issn'} : '' ) . '.' .
+                    ( $reqParamTitelInfo->{'ismn'} ? $reqParamTitelInfo->{'ismn'} : '' ) . '.' .
+                    ( $reqParamTitelInfo->{'ean'} ? $reqParamTitelInfo->{'ean'} : '' ) . '.';
+                $self->{logger}->debug("addNewRecords() selHashkey:$selHashkey:");
+
+                if ( length($selHashkey) > 6 && defined( $createdTitleRecords->{$selHashkey} ) ) {
+                    $seriesTitleHits = $createdTitleRecords->{$selHashkey}->{titleHits};
+                    my $biblionumber = $createdTitleRecords->{$selHashkey}->{biblionumber};
+                    $self->{'logger'}->info("addNewRecords() for series title got used biblionumber:$biblionumber: from createdTitleRecords->{$selHashkey} and seriesTitleHits->{'count'}:" . $seriesTitleHits->{'count'} . ":");
+                } else {
+                    $seriesTitleHits = $self->readTitleInLocalDB($reqParamTitelInfo, 1);
+                    $self->{'logger'}->info("addNewRecords() for series title readTitleInLocalDB returned seriesTitleHits->{'count'}:" . $seriesTitleHits->{'count'} . ":");
+                }
+                if ( $seriesTitleHits->{'count'} > 0 && defined $seriesTitleHits->{'records'}->[0] ) {    # XXXWH obsolete
+                    next;    # series title found in local DB, no insertion of it required
+                }
+            }
+        }
+
+        # Title data have not been found in local DB, so insert it.
+        $record->insert_fields_ordered(MARC::Field->new('035',' ',' ','a' => "(EKZImport)$ekzBestellNr"));    # system controll number
+        if( $ekzWsHideOrderedTitlesInOpac ) {
+            $record->insert_fields_ordered(MARC::Field->new('942',' ',' ','n' => 1));    # hide this title in opac
+        }
+
+        if ( $self->{localCatalogSourceDelegateClass} ) {
+            my $localCat = $self->{localCatalogSourceDelegateClass};
+            ($biblionumber, $insertedRecord) = $localCat->addSingleRecord($record);
+            $biblioitemnumber = $biblionumber;
+        } else {
+            ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($record,'');
+            if ( $biblionumber ) {
+                $insertedRecord = C4::Biblio::GetMarcBiblio( { biblionumber => $biblionumber } );
+            }
+        }
+        $self->{'logger'}->trace("addNewRecords() new biblionumber:$biblionumber:");
+
+        if ( defined $biblionumber && $biblionumber > 0 && $insertedRecord ) {
+            # If XML elements identifying the same title (e.g. <artikelNummer> or <isbn>) are contained multiple times in the webservice request
+            # (e.g. order of same title for different branches) the first occurence may trigger the creation
+            # of the title record in the local database. But the next occurrences may happen before the title data
+            # are indexed by the Zebra index, so multiple title records for the same title data may be created.
+            # For this reason we store in hash $createdTitleRecords the title records created in order to avoid doubling of title data.
+            # Same holds for a series title whose creation is triggered multiple times
+            # by a sequence of different volume titles of the same series.
+            if ( length($selHashkey) > 6 ) {
+                my @recordsArray;
+                push @recordsArray, $insertedRecord;
+                $createdTitleRecords->{$selHashkey}->{titleHits}->{count} = 1;
+                $createdTitleRecords->{$selHashkey}->{titleHits}->{records} = \@recordsArray;
+                $createdTitleRecords->{$selHashkey}->{biblionumber} = $biblionumber;
+                $self->{'logger'}->debug("addNewRecords() stored createdTitleRecords->{$selHashkey}->{biblionumber}:$biblionumber:");
+                $self->{'logger'}->trace("addNewRecords() stored createdTitleRecords->{$selHashkey}->{biblionumber}:$biblionumber: ->{records}:" . Dumper($createdTitleRecords->{$selHashkey}->{titleHits}->{records}) . ":");
+            }
+        }
+
+        if ( $volumeEkzArtikelNr ) {
+            # The record list has been created via ekz MedienDaten webservice.
+            # Check if this is the volume title or the series title.
+            # Only the MARC record describing the volume title has to be returned.
+            if ( $thisIsTheVolumeRecord ) {
+                # found required return values
+                $retBiblionumber = $biblionumber;
+                $retBiblioitemnumber = $biblioitemnumber;
+                $retRecord = $insertedRecord;
+            }
+        } else {
+            # The record list has been created not via ekz MedienDaten webservice
+            # but via another source (LMSCloud pool, z39-50 target etc.),
+            # so only the first element of the record list is used.
+            $retBiblionumber = $biblionumber;
+            $retBiblioitemnumber = $biblioitemnumber;
+            $retRecord = $insertedRecord;
+            last;
         }
     }
+    if ( $retRecord ) {
+        # Recycling the array referenced by $titleHits->{records},
+        # because the caller will continue to use it with this new content:
+        while ( scalar @{$titleHits->{records}} > 0 ) {
+            pop @{$titleHits->{records}};
+        }
+        $titleHits->{count} = 1;
+        $titleHits->{records}->[0] = $retRecord;
+    }
 
-    return ($biblionumber,$biblioitemnumber,$record);
+    $self->{'logger'}->trace("addNewRecords() returns retBiblionumber:$retBiblionumber: retBiblioitemnumber:$retBiblioitemnumber: retRecord:" . Dumper($retRecord) . ":");
+    return ($retBiblionumber, $retBiblioitemnumber, $retRecord);
 }
 
 

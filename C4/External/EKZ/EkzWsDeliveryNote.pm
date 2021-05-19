@@ -153,6 +153,7 @@ sub genKohaRecords {
     my $acquisitionError = 0;
     my $basketno = -1;
     my $basketgroupid = undef;
+    my $createdTitleRecords = {};
 
     $lieferscheinNummer = $lieferscheinRecord->{'nummer'};
     $lieferscheinNummer =~ s/^\s+|\s+$//g;    # trim spaces
@@ -576,10 +577,27 @@ sub genKohaRecords {
                     $biblionumber = 0;
                     $lsEkzArtikelNr = '';
                     # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
-                    $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
-                    $logger->trace("genKohaRecords() method4: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                    my $titleSelHashkey =
+                        ( $reqParamTitelInfo->{'ekzArtikelNr'} ? $reqParamTitelInfo->{'ekzArtikelNr'} : '' ) . '.' .
+                        ( $reqParamTitelInfo->{'isbn'} ? $reqParamTitelInfo->{'isbn'} : '' ) . '.' .
+                        ( $reqParamTitelInfo->{'isbn13'} ? $reqParamTitelInfo->{'isbn13'} : '' ) . '.' .
+                        ( $reqParamTitelInfo->{'issn'} ? $reqParamTitelInfo->{'issn'} : '' ) . '.' .
+                        ( $reqParamTitelInfo->{'ismn'} ? $reqParamTitelInfo->{'ismn'} : '' ) . '.' .
+                        ( $reqParamTitelInfo->{'ean'} ? $reqParamTitelInfo->{'ean'} : '' ) . '.';
+                    $logger->debug("genKohaRecords() titleSelHashkey:$titleSelHashkey:");
+
+                    if ( length($titleSelHashkey) > 6 && defined( $createdTitleRecords->{$titleSelHashkey} ) ) {
+                        $titleHits = $createdTitleRecords->{$titleSelHashkey}->{titleHits};
+                        $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
+                        $logger->info("genKohaRecords() got used biblionumber:$biblionumber: from createdTitleRecords->{$titleSelHashkey}");
+                    } else {
+                        $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
+                        $logger->trace("genKohaRecords() method4: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+                        }
+                    }
                     if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                        $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
                         my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
                         my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                         if ( $tmp_cna eq "DE-Rt5" ) {
@@ -590,6 +608,7 @@ sub genKohaRecords {
                     }
 
                     my @titleSourceSequence = split('\|',$titleSourceSequence);
+                    my $volumeEkzArtikelNr = undef;
                     foreach my $titleSource (@titleSourceSequence) {
                         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                             last;    # title has been found in lastly tested title source
@@ -601,9 +620,13 @@ sub genKohaRecords {
                             $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo);
                             $logger->trace("genKohaRecords() method4: from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                         } elsif ( $titleSource eq '_EKZWSMD' ) {
-                            # detailed query to the ekz title information web service
+                            # send query to the ekz title information webservice 'MedienDaten'
+                            # (This is the only case where we handle series titles in addition to the volume title.)
                             $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
                             $logger->trace("genKohaRecords() method4: from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                            if ( $titleHits->{'count'} > 1 ) {
+                                $volumeEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
+                            }
                         } elsif ( $titleSource eq '_WS' ) {
                             # use sparse title data from the LieferscheinDetailElement
                             $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);
@@ -617,17 +640,15 @@ sub genKohaRecords {
 
 
                     if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                        if ( $biblionumber == 0 ) {    # title data have been found in one of the sources
+                        if ( $biblionumber == 0 ) {    # title data have been found in one of the sources, but not in local DB
                             # Create a biblio record in Koha and enrich it with values of the hits found in one of the title sources.
-                            # It is sufficient to evaluate the first hit.
-                            $titleHits->{'records'}->[0]->insert_fields_ordered(MARC::Field->new('035',' ',' ','a' => "(EKZImport)$ekzBestellNr"));    # system controll number
-                            if( $ekzWsHideOrderedTitlesInOpac ) {
-                                $titleHits->{'records'}->[0]->insert_fields_ordered(MARC::Field->new('942',' ',' ','n' => 1));           # hide this title in opac
-                            }
                             my $newrec;
-                            ($biblionumber,$biblioitemnumber,$newrec) = $ekzKohaRecord->addNewRecord($titleHits->{'records'}->[0]);
-                            $titleHits->{'records'}->[0] = $newrec if ($newrec);
-                            $logger->trace("genKohaRecords() method4: new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
+                            # addNewRecords() also registers all added new records in $createdTitleRecords
+                            ($biblionumber,$biblioitemnumber,$newrec) = $ekzKohaRecord->addNewRecords($titleHits, $volumeEkzArtikelNr, $ekzBestellNr, $ekzWsHideOrderedTitlesInOpac, $createdTitleRecords, $titleSelHashkey);
+                            $logger->info("genKohaRecords() method4: new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
+                            $logger->debug("genKohaRecords() method4: titleHits:" . Dumper($titleHits) . ":");
+                            $logger->trace("genKohaRecords() method4: titleSelHashkey:" . $titleSelHashkey . ": createdTitleRecords->{titleSelHashkey}->{biblionumber}:" . $createdTitleRecords->{$titleSelHashkey}->{biblionumber} . ": ->{titleHits}:" . Dumper($createdTitleRecords->{$titleSelHashkey}->{titleHits}) . ":");
+
                             if ( defined $biblionumber && $biblionumber > 0 ) {
                                 $biblioInserted = 1;
                                 # positive message for log
@@ -790,13 +811,13 @@ sub genKohaRecords {
                         $orderinfo->{quantity} = $exemplarcount;
                         $orderinfo->{currency} = $priceInfo->{waehrung};    # currency of bookseller's list price
                         # XXXWH currency-Umrechnung fehlt in die eine oder andere Richtung
-                        $orderinfo->{'listprice'} = $priceInfo->{verkaufsPreis};    # input field 'Vendor price' in UI (in foreign currency, not discounted, per item)
+                        $orderinfo->{listprice} = $priceInfo->{verkaufsPreis};    # input field 'Vendor price' in UI (in foreign currency, not discounted, per item)
                         $orderinfo->{unitprice} = 0.0;    #  corresponds to input field 'Actual cost' in UI (discounted) and will be initialized with budgetedcost in the GUI in 'receiving' step
                         $orderinfo->{unitprice_tax_excluded} = 0.0;
                         $orderinfo->{unitprice_tax_included} = 0.0;
                         # quantityreceived is set to 0 by DBS
                         $orderinfo->{order_internalnote} = '';
-                        $orderinfo->{order_vendornote} = sprintf("Verkaufspreis: %.2f %s (Exemplare: %d)\n", $priceInfo->{verkaufsPreis}, $priceInfo->{waehrung}, $priceInfo->{exemplareBestellt});
+                        $orderinfo->{order_vendornote} = sprintf("Bestellung:\nVerkaufspreis: %.2f %s (Exemplare: %d)\n", $priceInfo->{verkaufsPreis}, $priceInfo->{waehrung}, $priceInfo->{exemplareBestellt});
                         if ( $priceInfo->{nachlass} != 0.0 ) {
                             $orderinfo->{order_vendornote} .= sprintf("Nachlass: %.2f %s\n", $priceInfo->{nachlass}, $priceInfo->{waehrung});
                         }
@@ -964,10 +985,9 @@ sub genKohaRecords {
 
             # create @actionresult message for log email, representing 1 title with all its processed items
             my @actionresultTit = ( 'insertRecords', 0, "X", "Y", $emaillog->{'processedTitlesCount'}, $emaillog->{'importedTitlesCount'}, $emaillog->{'foundTitlesCount'}, $emaillog->{'processedItemsCount'}, $emaillog->{'importedItemsCount'}, $emaillog->{'updatedItemsCount'}, $emaillog->{'records'} );
-            $logger->trace("genKohaRecords() actionresultTit:" . @actionresultTit . ":");
-            $logger->trace("genKohaRecords() actionresultTit->[10]->[0]:" . @{$actionresultTit[10]->[0]} . ":");
-            $logger->trace("genKohaRecords() actionresultTit->[10]->[1]:" . @{$actionresultTit[10]->[1]} . ":");
+            $logger->debug("genKohaRecords() actionresultTit:" . Dumper(\@actionresultTit) . ":");
             push @{$emaillog->{'actionresult'}}, \@actionresultTit;
+
         }
 
         # create @logresult message for log email, representing all titles of the current $lieferscheinResult with all their processed items
@@ -1393,7 +1413,7 @@ sub processItemOrder
             
         # close basket
         &C4::Acquisition::CloseBasket($aqbasket_delivery->{basketno});
-            $logger->trace("processItemOrder() after CloseBasket");
+        $logger->trace("processItemOrder() after CloseBasket");
 
         # search/create basket group with name derived from Delivery note and same bookseller and update aqbasket_delivery accordingly
         $params = {
@@ -1423,7 +1443,7 @@ sub processItemOrder
             &C4::Acquisition::ReOpenBasketgroup($basketgroupid);
             $logger->trace("processItemOrder() after ReOpenBasketgroup");
         }
-        $logger->info("processItemOrder() basketgroup with name:L-$lieferscheinNummer: has basketgroupid:$basketgroupid:");
+        $logger->info("processItemOrder() basketgroup with name:$aqbasket_delivery_name: has basketgroupid:$basketgroupid:");
 
         if ( $basketgroupid ) {
             

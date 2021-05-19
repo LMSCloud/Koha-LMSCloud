@@ -733,6 +733,7 @@ sub handleTitelBestellInfo {
         }
 
         my @titleSourceSequence = split('\|',$self->{titleSourceSequence});
+        my $volumeEkzArtikelNr = undef;
         foreach my $titleSource (@titleSourceSequence) {
             $self->{logger}->info("handleTitelBestellInfo() titleSource:$titleSource:");
             if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
@@ -744,9 +745,13 @@ sub handleTitelBestellInfo {
                 $titleHits = $self->{ekzKohaRecordClass}->readTitleInLMSPool($reqParamTitelInfo);
                 $self->{logger}->info("handleTitelBestellInfo() from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
             } elsif ( $titleSource eq '_EKZWSMD' ) {
-                # send query to the ekz title information webservice
+                # send query to the ekz title information webservice 'MedienDaten'
+                # (This is the only case where we handle series titles in addition to the volume title.)
                 $titleHits = $self->{ekzKohaRecordClass}->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
                 $self->{logger}->info("handleTitelBestellInfo() from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                if ( $titleHits->{'count'} > 1 ) {
+                    $volumeEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
+                }
             } elsif ( $titleSource eq '_WS' ) {
                 # use sparse title data from the BestellinfoElement
                 $titleHits = $self->{ekzKohaRecordClass}->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
@@ -760,34 +765,17 @@ sub handleTitelBestellInfo {
 
 
         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-            if ( $biblionumber == 0 ) {    # title data have been found in one of the sources
+            if ( $biblionumber == 0 ) {    # title data have been found in one of the sources, but not in local DB
                 # Create a biblio record in Koha and enrich it with values of the hits found in one of the title sources.
-                # It is sufficient to evaluate the first hit (i.e. $titleHits->{'records'}->[0]).
-
-                $titleHits->{'records'}->[0]->insert_fields_ordered(MARC::Field->new('035',' ',' ','a' => "(EKZImport)$reqEkzBestellNr"));    # system controll number
-                if( $self->{ekzWsHideOrderedTitlesInOpac} ) {
-                    $titleHits->{'records'}->[0]->insert_fields_ordered(MARC::Field->new('942',' ',' ','n' => 1));           # hide this title in opac
-                }
-                
-                # XXXWH The original ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($titleHits->{'records'}->[0],''); now is replaced by
-                # create the new record
                 my $newrec;
-                ($biblionumber,$biblioitemnumber,$newrec) = $self->{ekzKohaRecordClass}->addNewRecord($titleHits->{'records'}->[0]);
-                $titleHits->{'records'}->[0] = $newrec if ($newrec);
-                
+                # addNewRecords() also registers all added new records in $self->{createdTitleRecords}
+                ($biblionumber,$biblioitemnumber,$newrec) = $self->{ekzKohaRecordClass}->addNewRecords($titleHits, $volumeEkzArtikelNr, $reqEkzBestellNr, $self->{ekzWsHideOrderedTitlesInOpac}, $self->{createdTitleRecords}, $titleSelHashkey);
                 $self->{logger}->info("handleTitelBestellInfo() new biblionumber:" . $biblionumber . ": biblioitemnumber:" . $biblioitemnumber . ":");
+                $self->{logger}->debug("handleTitelBestellInfo() titleHits:" . Dumper($titleHits) . ":");
+                $self->{logger}->trace("handleTitelBestellInfo() titleSelHashkey:" . $titleSelHashkey . ": self->{createdTitleRecords}->{titleSelHashkey}->{biblionumber}:" . $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber} . ": ->{titleHits}:" . Dumper($self->{createdTitleRecords}->{$titleSelHashkey}->{titleHits}) . ":");
+
                 if ( defined $biblionumber && $biblionumber > 0 ) {
                     $biblioInserted = 1;
-                    # If XML element <titel> for the same title is contained multiple times in the BestellInfo request 
-                    # (e.g. order of same title for different branches) the first occurence may trigger the creation 
-                    # of the title record in the local database. But the next occurrences may happen before the title data
-                    # are indexed by the Zebra index, so multiple title records for the same title data may be created.
-                    # For this reason we store the title records created in this hash to avoid doubling of title data:
-                    if ( length($titleSelHashkey) > 6 ) {
-                        $self->{createdTitleRecords}->{$titleSelHashkey}->{titleHits} = $titleHits;
-                        $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber} = $biblionumber;
-                        $self->{logger}->debug("handleTitelBestellInfo() stored self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber}:$biblionumber:");
-                    }
                     # positive message for log
                     $self->{emaillog}->{importresult} = 1;
                     $self->{emaillog}->{importedTitlesCount} += 1;

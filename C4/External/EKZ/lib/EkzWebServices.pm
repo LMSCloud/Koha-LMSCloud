@@ -58,18 +58,18 @@ BEGIN {
 }
 
 sub new {
-	my $class = shift;
-	my $self  = bless { @_ }, $class;
+    my $class = shift;
+    my $self  = bless { @_ }, $class;
 
-	$self->{'url'} = EKZWSURL;
-	
+    $self->{'url'} = EKZWSURL;
+
     my $ua = LWP::UserAgent->new;
-	$ua->timeout(60);
-	$ua->env_proxy;
+    $ua->timeout(60);
+    $ua->env_proxy;
     $ua->ssl_opts( "verify_hostname" => 0 );
     push @{ $ua->requests_redirectable }, 'POST';
 
-	$self->{'ua'} = $ua;
+    $self->{'ua'} = $ua;
     $self->{'logger'} = Koha::Logger->get({ interface => 'C4::External::EKZ::lib::EkzWebServices' });
     
     
@@ -119,11 +119,11 @@ sub new {
     # get the systempreferences concerning ekz media services configuration for variing ekzKundenNr
     $self->{'ekzWsConfig'} = C4::External::EKZ::lib::EkzWsConfig->new();
 
-	return $self;
+    return $self;
 }
 
 sub getEkzKundenNr {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;
     my $ret = 'UNDEFINED';
 
@@ -135,7 +135,7 @@ sub getEkzKundenNr {
 }
 
 sub getEkzPasswort {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;
     my $ret = 'UNDEFINED';
 
@@ -147,7 +147,7 @@ sub getEkzPasswort {
 }
 
 sub getEkzLmsNutzer {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;
     my $ret = 'UNDEFINED';
 
@@ -159,7 +159,7 @@ sub getEkzLmsNutzer {
 }
 
 sub getEkzProcessingNoticesEmailAddress {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;
     my $ret = 'UNDEFINED';
 
@@ -171,7 +171,7 @@ sub getEkzProcessingNoticesEmailAddress {
 }
 
 sub getEkzWebServicesDefaultBranch {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;
     my $ret = 'UNDEFINED';
 
@@ -183,7 +183,7 @@ sub getEkzWebServicesDefaultBranch {
 }
 
 sub getEkzAqbooksellersId {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;
     my $ret = 'UNDEFINED';
 
@@ -195,7 +195,7 @@ sub getEkzAqbooksellersId {
 }
 
 sub getEkzCustomerNumbers {
-	my $self = shift;
+    my $self = shift;
     my @ekzWebServicesCustomerNumbers = ();
 
     if ( defined($self->{'ekzWsConfig'}) ) {
@@ -205,22 +205,23 @@ sub getEkzCustomerNumbers {
 }
 
 # read ekz title data in MARC21 XML format using web service MedienDaten, search by ekzArtikelNr
+# In case of a serial the response contains the MARC record of the serial and the MARC record of the volume.
 sub callWsMedienDaten {
-	my $self = shift;
-	my $ekzArtikelNr = shift;
+    my $self = shift;
+    my $ekzArtikelNr = shift;
 
     # <messageId> is definded as xs:int in the wsdl.
     # So we calculate (current seconds * 1000 + milliseconds) modulo 1000000000 to get a quite unique number that fits in a 32-bit integer the ekz seems to use for this purpose.
     my $messageId = substr(substr($self->genTransactionId(''),0,-3),-9) + 0;
-	my $zeitstempel = $self->genZeitstempel();
+    my $zeitstempel = $self->genZeitstempel();
 
-	my $soapResponseBody = '';
+    my $soapResponseBody = '';
     my $result = {  'count' => 0,
                     'records' => []
     };
-	
+
     $self->{'logger'}->debug("callWsMedienDaten() START ekzArtikelNr:" . (defined($ekzArtikelNr) ? $ekzArtikelNr : 'undef') . ":");
-	
+
     my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
 
     #$xmlwriter->xmlDecl("UTF-8");    # seems to be not necessary
@@ -260,17 +261,17 @@ sub callWsMedienDaten {
 
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
-	
-	my $soapResponse = $self->doQuery('"urn:mediendaten"', $soapEnvelope);
+
+    my $soapResponse = $self->doQuery('"urn:mediendaten"', $soapEnvelope);
 
     $self->{'logger'}->trace("callWsMedienDaten() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
     
 
-	if ($soapResponse->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
+    if ($soapResponse->is_success) {
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
 
-	    my $root = $dom->documentElement();
+        my $root = $dom->documentElement();
 
         $self->{'logger'}->trace("callWsMedienDaten() root-element:" . $root . ":");
         $self->{'logger'}->trace("callWsMedienDaten() Dumper(root):" . Dumper($root) . ":");
@@ -279,67 +280,92 @@ sub callWsMedienDaten {
         $self->{'logger'}->trace("callWsMedienDaten() titelnodes:" . $titelnodes . ":");
         $self->{'logger'}->trace("callWsMedienDaten() Dumper(titelnodes):" . Dumper($titelnodes) . ":");
 
-		foreach my $titelnode ( $titelnodes->get_nodelist() ) {
+        foreach my $titelnode ( $titelnodes->get_nodelist() ) {
             $self->{'logger'}->trace("callWsMedienDaten() titelnode->nodeName:" . $titelnode->nodeName . ":");
-			foreach my $child ( $titelnode->childNodes() ) {
+            foreach my $child ( $titelnode->childNodes() ) {
                 $self->{'logger'}->trace("callWsMedienDaten() child->nodeName:" . $child->nodeName . ":");
-                # check if it is the hit with correct ekzArtikelNr
-				if ( $child->nodeName eq 'ekzArtikelNr' ) {
-				    if ( $child->textContent eq $ekzArtikelNr ) {
-	                    my $datenSatzNodes = $titelnode->findnodes('datenSatz');
+                # check if it is the MedienDaten hit with correct ekzArtikelNr
+                if ( $child->nodeName eq 'ekzArtikelNr' ) {
+                    if ( $child->textContent eq $ekzArtikelNr ) {
+                        my $datenSatzNodes = $titelnode->findnodes('datenSatz');
                         $self->{'logger'}->trace("callWsMedienDaten() datenSatzNodes:" . $datenSatzNodes . ":");
                         $self->{'logger'}->trace("callWsMedienDaten() Dumper(datenSatzNodes):" . Dumper($datenSatzNodes) . ":");
 
                         my $datenSatzNode = $datenSatzNodes->[0];
                         if ( defined $datenSatzNode && defined $datenSatzNode->textContent ) {
-                            my $marc21XmlData = decode_base64($datenSatzNode->textContent);
+                            my $marc21XmlData = decode_base64($datenSatzNode->textContent);    # this is the MARC record 'collection'
                             $self->{'logger'}->trace("callWsMedienDaten() marc21XmlData:" . $marc21XmlData . ":");
                             if ( defined($marc21XmlData) && length($marc21XmlData) > 0 ) {
-                                my $marcrecord;
-                                eval {
-                                    $marcrecord =  MARC::Record::new_from_xml( $marc21XmlData, "utf8", 'MARC21' );
-                                };
-                                if ( $@ ) {
-                                    my $mess = "error in MARC::Record::new_from_xml:$@:\nmarc21XmlData:$marc21XmlData";
-                                    $self->{'logger'}->warn("callWsMedienDaten() $mess");
-                                    carp "EkzWebServices::callWsMedienDaten: " . $mess;
-                                }
 
-                                if ( $marcrecord ) {
-                                    push @{$result->{'records'}}, $marcrecord;
-                                    $result->{'count'} += 1;
-                                    $self->{'logger'}->trace("callWsMedienDaten() Dumper(result->{'records'}->[0]):" . Dumper($result->{'records'}->[0]) . ":");
-                                    last;
-                                }
+                                # This MARC record collection may contain more than 1 record, e.g. in case of titles of a serial or continuation.
+                                my $collectionParser = XML::LibXML->new;
+                                my $collectionDom = $collectionParser->parse_string($marc21XmlData);
+
+                                my $collectionRoot = $collectionDom->documentElement();
+                                $self->{'logger'}->trace("callWsMedienDaten() collectionRoot:" . Dumper($collectionRoot) . ":");
+                                my $collectionNsURI = $collectionRoot->namespaceURI();
+                                $collectionRoot->setNamespace($collectionNsURI, 'x');
+                                my $collectionRecords = $collectionRoot->findnodes('x:record');
+                                $self->{'logger'}->trace("callWsMedienDaten() collectionRecords:" . Dumper($collectionRecords) . ":");
+
+                                foreach my $collectionRecordnode ( $collectionRecords->get_nodelist() ) {
+                                    $self->{'logger'}->trace("callWsMedienDaten() collectionRecordnode->nodeName:" . $collectionRecordnode->nodeName . ":");
+                                    foreach my $recordChild ( $collectionRecordnode->childNodes() ) {
+                                        $self->{'logger'}->trace("callWsMedienDaten() recordChild->nodeName:" . $recordChild->nodeName . ":");
+                                    }
+                                    if ( $collectionRecordnode->nodeName eq 'record' ) {
+                                        $self->{'logger'}->trace("callWsMedienDaten() collectionRecordnode:" . Dumper($collectionRecordnode) . ":");
+                                        my $marc21XmlRecord = $collectionRecordnode->toString;
+                                        $self->{'logger'}->debug("callWsMedienDaten() marc21XmlRecord:" . $marc21XmlRecord . ":");
+                                        if ( defined($marc21XmlRecord) && length($marc21XmlRecord) > 0 ) {
+                                            my $marcrecord;
+                                            eval {
+                                                $marcrecord =  MARC::Record::new_from_xml( $marc21XmlRecord, "utf8", 'MARC21' );
+                                            };
+                                            if ( $@ ) {
+                                                my $mess = "error in MARC::Record::new_from_xml:$@:\nmarc21XmlData:$marc21XmlRecord";
+                                                $self->{'logger'}->warn("callWsMedienDaten() $mess");
+                                                carp "EkzWebServices::callWsMedienDaten: " . $mess;
+                                            }
+
+                                            if ( $marcrecord ) {
+                                                push @{$result->{'records'}}, $marcrecord;
+                                                $self->{'logger'}->trace("callWsMedienDaten() Dumper(result->{'records'}->[$result->{'count'}]):" . Dumper($result->{'records'}->[$result->{'count'}]) . ":");
+                                                $result->{'count'} += 1;
+                                            }
+                                        }
+                                    }    # handled one MARC record
+                                }    # handled all MARC records in collection
                             }
-				        }
-				    }
-				}
-			}
-            if ( $result->{'count'} > 0 ) {    # one hit is sufficient
+                        }
+                    }
+                }
+            }
+            # As far as known there are no multiple elements with identical ekzArtikelNr.
+            if ( $result->{'count'} > 0 ) {    #  $result may contain more than 1 record, e.g. in case of titles of a serial or continuation
                 last;
             }
-		}
-	}
-	
-	return $result;
+        }
+    }
+
+    return $result;
 }
 
 # read standing order information using web service StoList
 sub callWsStoList {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;                  # mandatory
-	my $selJahr = shift;                            # mandatory
-	my $selStoId = shift;                           # optional
-	my $selMitTitel = shift;                        # optional
+    my $selJahr = shift;                            # mandatory
+    my $selStoId = shift;                           # optional
+    my $selMitTitel = shift;                        # optional
     my $selMitKostenstellen = shift;                # optional
-	my $selMitEAN = shift;                          # optional
-	my $selStatusUpdate = shift;                    # optional
-	my $selErweitert = shift;                       # optional
+    my $selMitEAN = shift;                          # optional
+    my $selStatusUpdate = shift;                    # optional
+    my $selErweitert = shift;                       # optional
     my $selMitReferenznummer = shift;               # optional
     my $refStoListElement = shift;                  # for storing the StoListElement of the SOAP response body
 
-	my $result = {  'standingOrderCount' => 0,
+    my $result = {  'standingOrderCount' => 0,
                     'standingOrderRecords' => [],
                     'messageID' => ''
     };
@@ -412,12 +438,12 @@ sub callWsStoList {
 
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
-	
-	my $soapResponse = $self->doQuery('"urn:stolist"', $soapEnvelope);
+
+    my $soapResponse = $self->doQuery('"urn:stolist"', $soapEnvelope);
 
     $self->{'logger'}->debug("callWsStoList() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
     $self->{'logger'}->trace("callWsStoList() Dumper(\$refStoListElement):" . Dumper($refStoListElement) . ":");
-    
+
     if ( defined ($$refStoListElement) ) {
         $$refStoListElement = '';
         if ( $soapResponse->content =~ /^.*?<.*?:Body>\n*(.*)<\/.*?:Body>.*?$/s ) {
@@ -426,11 +452,11 @@ sub callWsStoList {
     }
     $self->{'logger'}->trace("callWsStoList() Dumper(\$\$refStoListElement):" . Dumper($$refStoListElement) . ":");
 
-	if ($soapResponse->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
+    if ($soapResponse->is_success) {
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
 
-	    my $root = $dom->documentElement();
+        my $root = $dom->documentElement();
 
         $self->{'logger'}->trace("callWsStoList() root-element:" . $root . ":");
         $self->{'logger'}->trace("callWsStoList() Dumper(root):" . Dumper($root) . ":");
@@ -445,13 +471,13 @@ sub callWsStoList {
         $self->{'logger'}->trace("callWsStoList() stoNodes:" . $stoNodes . ":");
         $self->{'logger'}->trace("callWsStoList() Dumper(stoNodes):" . Dumper($stoNodes) . ":");
 
-		foreach my $stoNode ( $stoNodes->get_nodelist() ) {
+        foreach my $stoNode ( $stoNodes->get_nodelist() ) {
             $self->{'logger'}->trace("callWsStoList() stoNode->nodeName:" . $stoNode->nodeName . ":");
             my $stoRecord = {'titelCount' => 0, 'titelRecords' => []};
-			foreach my $stoChild ( $stoNode->childNodes() ) {    # <stoID> <name> <titel> nodes are of interest here
+            foreach my $stoChild ( $stoNode->childNodes() ) {    # <stoID> <name> <titel> nodes are of interest here
                 $self->{'logger'}->trace("callWsStoList() stoChild->nodeName:" . $stoChild->nodeName . ":");
                 # copy values of hit into stoRecord
-				if ( $stoChild->nodeName eq 'titel' ) {
+                if ( $stoChild->nodeName eq 'titel' ) {
                     my $titelRecord = ();
                     foreach my $titelChild ( $stoChild->childNodes() ) {
                         if ( $titelChild->nodeName eq 'kostenstelle' ) {    # may be sent multiple times
@@ -481,14 +507,14 @@ sub callWsStoList {
                 } else {
                     $stoRecord->{$stoChild->nodeName} = $stoChild->textContent;
                 }
-			}
+            }
             push @{$result->{'standingOrderRecords'}}, $stoRecord;
             $result->{'standingOrderCount'} += 1;
             $self->{'logger'}->trace("callWsStoList() Dumper(result->{'standingOrderRecords'}->[i]):" . Dumper($result->{'standingOrderRecords'}->[$result->{'standingOrderCount'}-1]) . ":");
-		}
-	}
-	
-	return $result;
+        }
+    }
+
+    return $result;
 }
 
 # search serial orders using web service FortsetzungList
@@ -548,7 +574,7 @@ sub callWsFortsetzungList {
 
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
-	
+
     my $soapResponse = $self->doQuery('"urn:fortsetzunglist"', $soapEnvelope);
 
     $self->{'logger'}->debug("callWsFortsetzungList() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
@@ -556,10 +582,10 @@ sub callWsFortsetzungList {
 
     if ($soapResponse->is_success) {
         $self->{'logger'}->debug("callWsFortsetzungList() Dumper(soapResponse->content):" . Dumper($soapResponse->content) . ":");
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
 
-	    my $root = $dom->documentElement();
+        my $root = $dom->documentElement();
 
         $self->{'logger'}->debug("callWsFortsetzungList() root-element:" . $root . ":");
         $self->{'logger'}->debug("callWsFortsetzungList() Dumper(root):" . Dumper($root) . ":");
@@ -614,8 +640,8 @@ sub callWsFortsetzungList {
             $self->{'logger'}->trace("callWsFortsetzungList() Dumper(result->{'fortsetzungStatusRecords'}->{$fortsetzungStatusRecord->{'status'}}):" . Dumper($result->{'fortsetzungStatusRecords'}->{$fortsetzungStatusRecord->{'status'}}) . ":");
        }
     }
-	
-	return $result;
+
+    return $result;
 }
 
 # read all data of one serial order using web service FortsetzungDetail
@@ -702,10 +728,10 @@ sub callWsFortsetzungDetail {
     $self->{'logger'}->trace("callWsFortsetzungDetail() Dumper(\$\$refFortsetzungDetailElement):" . Dumper($$refFortsetzungDetailElement) . ":");
 
     if ($soapResponse->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
 
-	    my $root = $dom->documentElement();
+        my $root = $dom->documentElement();
 
         $self->{'logger'}->trace("callWsFortsetzungDetail() root-element:" . $root . ":");
         $self->{'logger'}->trace("callWsFortsetzungDetail() Dumper(root):" . Dumper($root) . ":");
@@ -767,20 +793,20 @@ sub callWsFortsetzungDetail {
         push @{$result->{'fortsetzungRecords'}}, $fortsetzungRecord;
         $result->{'fortsetzungCount'} += 1;
         $self->{'logger'}->trace("callWsFortsetzungDetail() Dumper(result->{'fortsetzungRecords'}->[i]):" . Dumper($result->{'fortsetzungRecords'}->[$result->{'fortsetzungCount'}-1]) . ":");
-	}
-	
-	return $result;
+    }
+
+    return $result;
 }
 
 # search delivery notes using web service LieferscheinList
 sub callWsLieferscheinList {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;                 # mandatory
-	my $selVon = shift;                            # mandatory
-	my $selBis = shift;                            # optional
-	my $selKundennummerWarenEmpfaenger = shift;    # optional
+    my $selVon = shift;                            # mandatory
+    my $selBis = shift;                            # optional
+    my $selKundennummerWarenEmpfaenger = shift;    # optional
 
-	my $result = {  'lieferscheinCount' => 0,
+    my $result = {  'lieferscheinCount' => 0,
                     'lieferscheinRecords' => []
     };
 
@@ -832,16 +858,16 @@ sub callWsLieferscheinList {
 
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
-	
-	my $soapResponse = $self->doQuery('"urn:lieferscheinlist"', $soapEnvelope);
+
+    my $soapResponse = $self->doQuery('"urn:lieferscheinlist"', $soapEnvelope);
 
     $self->{'logger'}->debug("callWsLieferscheinList() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
 
-	if ($soapResponse->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
+    if ($soapResponse->is_success) {
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
 
-	    my $root = $dom->documentElement();
+        my $root = $dom->documentElement();
 
         $self->{'logger'}->trace("callWsLieferscheinList() root-element:" . $root . ":");
         $self->{'logger'}->trace("callWsLieferscheinList() Dumper(root):" . Dumper($root) . ":");
@@ -850,37 +876,37 @@ sub callWsLieferscheinList {
         $self->{'logger'}->trace("callWsLieferscheinList() lieferscheinNodes:" . $lieferscheinNodes . ":");
         $self->{'logger'}->trace("callWsLieferscheinList() Dumper(lieferscheinNodes):" . Dumper($lieferscheinNodes) . ":");
 
-		foreach my $lieferscheinNode ( $lieferscheinNodes->get_nodelist() ) {
+        foreach my $lieferscheinNode ( $lieferscheinNodes->get_nodelist() ) {
             $self->{'logger'}->trace("callWsLieferscheinList() lieferscheinNode->nodeName:" . $lieferscheinNode->nodeName . ":");
             my $lieferscheinRecord = ();
-			foreach my $lieferscheinChild ( $lieferscheinNode->childNodes() ) {    # <id> <nummer> <datum> sind hier interessant
+            foreach my $lieferscheinChild ( $lieferscheinNode->childNodes() ) {    # <id> <nummer> <datum> sind hier interessant
                 $self->{'logger'}->trace("callWsLieferscheinList() lieferscheinChild->nodeName:" . $lieferscheinChild->nodeName . ":");
                 # copy values of hit into lieferscheinrecord
                 if ( $lieferscheinChild->nodeName !~ /^#/ ) {
-				    $lieferscheinRecord->{$lieferscheinChild->nodeName} = $lieferscheinChild->textContent;
+                    $lieferscheinRecord->{$lieferscheinChild->nodeName} = $lieferscheinChild->textContent;
                 }
-			}
+            }
             push @{$result->{'lieferscheinRecords'}}, $lieferscheinRecord;
             $result->{'lieferscheinCount'} += 1;
             $self->{'logger'}->trace("callWsLieferscheinList() Dumper(result->{'lieferscheinRecords'}->[i]):" . Dumper($result->{'lieferscheinRecords'}->[$result->{'lieferscheinCount'}-1]) . ":");
-		}
-	}
-	
-	return $result;
+        }
+    }
+
+    return $result;
 }
 
 # read all data of one delivery note using web service LieferscheinDetail
 sub callWsLieferscheinDetail {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;                  # mandatory
-	my $selId = shift;                              # alternative for selLieferscheinnummer (it is mandatory to send one of the two)
-	my $selLieferscheinnummer = shift;              # alternative for selId (it is mandatory to send one of the two)
+    my $selId = shift;                              # alternative for selLieferscheinnummer (it is mandatory to send one of the two)
+    my $selLieferscheinnummer = shift;              # alternative for selId (it is mandatory to send one of the two)
     my $refLieferscheinDetailElement = shift;       # for storing the read LieferscheinDetailResponseElement of the SOAP response body in DB table acquisition_import
 
-	my $result = {  'lieferscheinCount' => 0, 
-			        'lieferscheinRecords' => [],
+    my $result = {  'lieferscheinCount' => 0, 
+                    'lieferscheinRecords' => [],
                     'messageID' => ''
-	};
+    };
 
     $self->{'logger'}->info("callWsLieferscheinDetail() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
                                                            ": selId:" . (defined($selId) ? $selId : 'undef') .
@@ -929,7 +955,7 @@ sub callWsLieferscheinDetail {
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
 
-	my $soapResponse = $self->doQuery('"urn:lieferscheindetail"', $soapEnvelope);
+    my $soapResponse = $self->doQuery('"urn:lieferscheindetail"', $soapEnvelope);
 
     $self->{'logger'}->debug("callWsLieferscheinDetail() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
     $self->{'logger'}->trace("callWsLieferscheinDetail() Dumper(\$refLieferscheinDetailElement):" . Dumper($refLieferscheinDetailElement) . ":");
@@ -942,11 +968,11 @@ sub callWsLieferscheinDetail {
     }
     $self->{'logger'}->trace("callWsLieferscheinDetail() Dumper(\$\$refLieferscheinDetailElement):" . Dumper($$refLieferscheinDetailElement) . ":");
 
-	if ($soapResponse->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
+    if ($soapResponse->is_success) {
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
 
-	    my $root = $dom->documentElement();
+        my $root = $dom->documentElement();
 
         $self->{'logger'}->trace("callWsLieferscheinDetail() root-element:" . $root . ":");
         $self->{'logger'}->trace("callWsLieferscheinDetail() Dumper(root):" . Dumper($root) . ":");
@@ -961,10 +987,10 @@ sub callWsLieferscheinDetail {
         $self->{'logger'}->trace("callWsLieferscheinDetail() lieferscheinNodes:" . $lieferscheinNodes . ":");
         $self->{'logger'}->trace("callWsLieferscheinDetail() Dumper(lieferscheinNodes):" . Dumper($lieferscheinNodes) . ":");
 
-		foreach my $lieferscheinNode ( $lieferscheinNodes->get_nodelist() ) {
+        foreach my $lieferscheinNode ( $lieferscheinNodes->get_nodelist() ) {
             $self->{'logger'}->trace("callWsLieferscheinDetail() lieferscheinNode->nodeName:" . $lieferscheinNode->nodeName . ":");
             my $lieferscheinRecord = {'teilLieferungCount' => 0, 'teilLieferungRecords' => []};
-			foreach my $lieferscheinChild ( $lieferscheinNode->childNodes() ) {    # <id> <nummer> <datum> <teilLieferung> are of interest
+            foreach my $lieferscheinChild ( $lieferscheinNode->childNodes() ) {    # <id> <nummer> <datum> <teilLieferung> are of interest
                 $self->{'logger'}->trace("callWsLieferscheinDetail() lieferscheinChild->nodeName:" . $lieferscheinChild->nodeName . ":");
                 # copy values of hit into lieferscheinrecord
                 if ( $lieferscheinChild->nodeName eq 'teilLieferung' ) {
@@ -1000,28 +1026,126 @@ sub callWsLieferscheinDetail {
                         $lieferscheinRecord->{$lieferscheinChild->nodeName} = $lieferscheinChild->textContent;
                     }
                 }
-			}
+            }
             push @{$result->{'lieferscheinRecords'}}, $lieferscheinRecord;
             $result->{'lieferscheinCount'} += 1;
             $self->{'logger'}->trace("callWsLieferscheinDetail() Dumper(result->{'lieferscheinRecords'}->[i]):" . Dumper($result->{'lieferscheinRecords'}->[$result->{'lieferscheinCount'}-1]) . ":");
-		}
-	}
-	
-	return $result;
+        }
+    }
+
+    return $result;
+}
+
+# search invoices using web service RechnungList
+sub callWsRechnungList {
+    my $self = shift;
+    my $ekzCustomerNumber = shift;                 # mandatory
+    my $selVon = shift;                            # mandatory
+    my $selBis = shift;                            # optional
+    my $selKundennummerWarenEmpfaenger = shift;    # optional
+
+    my $result = {  'rechnungCount' => 0,
+                    'rechnungRecords' => []
+    };
+
+    $self->{'logger'}->info("callWsRechnungList() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
+                                                         ": selVon:" . (defined($selVon) ? $selVon : 'undef') .
+                                                         ": selBis:" . (defined($selBis) ? $selBis : 'undef') .
+                                                         ": selKundennummerWarenEmpfaenger:" . (defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : 'undef') .
+                                                         ":");
+
+    my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
+
+    #$xmlwriter->xmlDecl("UTF-8");    # seems to be not necessary
+    $xmlwriter->startTag( 'soap:Envelope',
+                              'soap:encodingStyle' => 'http://schemas.xmlsoap.org/soap/encoding/',
+                              'xmlns:soap' => 'http://schemas.xmlsoap.org/soap/envelope/',
+                              'xmlns:soapenc' => 'http://schemas.xmlsoap.org/soap/encoding/');
+
+    $xmlwriter->startTag(   'soap:Header');
+    $xmlwriter->startTag(     'wsse:Security',
+                                  'xmlns:wsse' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd',
+                                  'xmlns:wsu' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd',
+                                  'soap:mustUnderstand' => '1');
+    $xmlwriter->startTag(       'wsse:UsernameToken',
+                                    'wsu:Id' => 'UsernameToken-3d1e2053-4b6d-41c0-bb25-ba7ab39ce6dc');    # it seems that we can use a constant non varying UUID here
+    $xmlwriter->dataElement(      'wsse:Username' => 'bob');
+    $xmlwriter->dataElement(      'wsse:Password', 'bobPW', 'Type' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText');
+    $xmlwriter->endTag(         'wsse:UsernameToken');
+    $xmlwriter->endTag(       'wsse:Security');
+    $xmlwriter->endTag(     'soap:Header');
+
+    $xmlwriter->startTag(   'soap:Body');
+    $xmlwriter->startTag(     'bes:RechnungListElement',
+                                  'xmlns:bes' => 'http://www.ekz.de/BestellsystemWSDL');
+    $xmlwriter->dataElement(    'kundenNummer' => $self->getEkzKundenNr($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'passwort' => $self->getEkzPasswort($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'lmsNutzer' => $self->getEkzLmsNutzer($ekzCustomerNumber));
+    $xmlwriter->dataElement(    'von' => $selVon);
+
+    if ( defined $selBis && length($selBis) > 0 ) {
+        $xmlwriter->dataElement('bis' => $selBis);    # optional
+    }
+    if ( defined $selKundennummerWarenEmpfaenger && length($selKundennummerWarenEmpfaenger) > 0 ) {
+        $xmlwriter->dataElement('kundennummerWarenEmpfaenger' => $selKundennummerWarenEmpfaenger);    # optional
+    }
+    $xmlwriter->endTag(       'bes:RechnungListElement');
+    $xmlwriter->endTag(     'soap:Body');
+
+    $xmlwriter->endTag(   'soap:Envelope');
+
+    my $soapEnvelope = "\n";
+    $soapEnvelope .= $xmlwriter->end();
+
+    my $soapResponse = $self->doQuery('"urn:rechnunglist"', $soapEnvelope);
+
+    $self->{'logger'}->debug("callWsRechnungList() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
+
+    if ($soapResponse->is_success) {
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
+
+        my $root = $dom->documentElement();
+
+        $self->{'logger'}->trace("callWsRechnungList() root-element:" . $root . ":");
+        $self->{'logger'}->trace("callWsRechnungList() Dumper(root):" . Dumper($root) . ":");
+
+        my $rechnungNodes = $root->findnodes('soap:Body/*/rechnung');
+        $self->{'logger'}->trace("callWsRechnungList() rechnungNodes:" . $rechnungNodes . ":");
+        $self->{'logger'}->trace("callWsRechnungList() Dumper(rechnungNodes):" . Dumper($rechnungNodes) . ":");
+
+        foreach my $rechnungNode ( $rechnungNodes->get_nodelist() ) {
+            $self->{'logger'}->trace("callWsRechnungList() rechnungNode->nodeName:" . $rechnungNode->nodeName . ":");
+            my $rechnungRecord = ();
+            foreach my $rechnungChild ( $rechnungNode->childNodes() ) {    # <id> <nummer> <datum> sind hier interessant
+                $self->{'logger'}->trace("callWsRechnungList() rechnungChild->nodeName:" . $rechnungChild->nodeName . ":");
+                # copy values of hit into rechnungRecord
+                if ( $rechnungChild->nodeName !~ /^#/ ) {
+                    $rechnungRecord->{$rechnungChild->nodeName} = $rechnungChild->textContent;
+                }
+            }
+            push @{$result->{'rechnungRecords'}}, $rechnungRecord;
+            $result->{'rechnungCount'} += 1;
+            #$self->{'logger'}->debug("callWsRechnungList() result->{'rechnungRecords'}->[i]:" . $result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1] . ":");
+            $self->{'logger'}->trace("callWsRechnungList() Dumper(result->{'rechnungRecords'}->[i]):" . Dumper($result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1]) . ":");
+        }
+    }
+
+    return $result;
 }
 
 # read all data of one invoice using web service RechnungDetail
 sub callWsRechnungDetail {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;                  # mandatory
-	my $selId = shift;                              # alternative for selRechnungsnummer (it is mandatory to send one of the two)
-	my $selRechnungsnummer = shift;                 # alternative for selId (it is mandatory to send one of the two)
+    my $selId = shift;                              # alternative for selRechnungsnummer (it is mandatory to send one of the two)
+    my $selRechnungsnummer = shift;                 # alternative for selId (it is mandatory to send one of the two)
     my $refRechnungDetailElement = shift;           # for storing the read RechnungDetailResponseElement of the SOAP response body
 
-	my $result = {  'rechnungCount' => 0, 
-			        'rechnungRecords' => [],
+    my $result = {  'rechnungCount' => 0, 
+                    'rechnungRecords' => [],
                     'messageID' => ''
-	};
+    };
 
     $self->{'logger'}->info("callWsRechnungDetail() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
                                                            ": selId:" . (defined($selId) ? $selId : 'undef') .
@@ -1069,7 +1193,7 @@ sub callWsRechnungDetail {
     my $soapEnvelope = "\n";
     $soapEnvelope .= $xmlwriter->end();
 
-	my $soapResponse = $self->doQuery('"urn:rechnungdetail"', $soapEnvelope);
+    my $soapResponse = $self->doQuery('"urn:rechnungdetail"', $soapEnvelope);
 
     $self->{'logger'}->debug("callWsRechnungDetail() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
     $self->{'logger'}->trace("callWsRechnungDetail() Dumper(\$refRechnungDetailElement):" . Dumper($refRechnungDetailElement) . ":");
@@ -1082,11 +1206,11 @@ sub callWsRechnungDetail {
     }
     $self->{'logger'}->trace("callWsRechnungDetail() Dumper(\$\$refRechnungDetailElement):" . Dumper($$refRechnungDetailElement) . ":");
 
-	if ($soapResponse->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
+    if ($soapResponse->is_success) {
+        my $parser = XML::LibXML->new;
+        my $dom = $parser->parse_string($soapResponse->content);
 
-	    my $root = $dom->documentElement();
+        my $root = $dom->documentElement();
 
         $self->{'logger'}->trace("callWsRechnungDetail() root-element:" . $root . ":");
         $self->{'logger'}->trace("callWsRechnungDetail() Dumper(root):" . Dumper($root) . ":");
@@ -1101,10 +1225,10 @@ sub callWsRechnungDetail {
         $self->{'logger'}->trace("callWsRechnungDetail() rechnungNodes:" . $rechnungNodes . ":");
         $self->{'logger'}->trace("callWsRechnungDetail() Dumper(rechnungNodes):" . Dumper($rechnungNodes) . ":");
 
-		foreach my $rechnungNode ( $rechnungNodes->get_nodelist() ) {    # regularly there is only one rechnung node
+        foreach my $rechnungNode ( $rechnungNodes->get_nodelist() ) {    # regularly there is only one rechnung node
             $self->{'logger'}->trace("callWsRechnungDetail() rechnungNode->nodeName:" . $rechnungNode->nodeName . ":");
             my $rechnungRecord = {'auftragsPositionCount' => 0, 'auftragsPositionRecords' => []};
-			foreach my $rechnungChild ( $rechnungNode->childNodes() ) {    # <id> <nummer> <datum> <auftragsPosition> are of interest
+            foreach my $rechnungChild ( $rechnungNode->childNodes() ) {    # <id> <nummer> <datum> <auftragsPosition> are of interest
                 $self->{'logger'}->trace("callWsRechnungDetail() rechnungChild->nodeName:" . $rechnungChild->nodeName . ":");
                 # copy values of hit into rechnungrecord
                 if ( $rechnungChild->nodeName eq 'auftragsPosition' ) {
@@ -1121,119 +1245,21 @@ sub callWsRechnungDetail {
                         $rechnungRecord->{$rechnungChild->nodeName} = $rechnungChild->textContent;
                     }
                 }
-			}
+            }
             push @{$result->{'rechnungRecords'}}, $rechnungRecord;
             $result->{'rechnungCount'} += 1;
             $self->{'logger'}->trace("callWsRechnungDetail() Dumper(result->{'rechnungRecords'}->[i]):" . Dumper($result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1]) . ":");
-		}
-	}
-	
-	return $result;
-}
-
-# search invoices using web service RechnungList
-sub callWsRechnungList {
-	my $self = shift;
-    my $ekzCustomerNumber = shift;                 # mandatory
-	my $selVon = shift;                            # mandatory
-	my $selBis = shift;                            # optional
-	my $selKundennummerWarenEmpfaenger = shift;    # optional
-
-	my $result = {  'rechnungCount' => 0,
-                    'rechnungRecords' => []
-    };
-
-    $self->{'logger'}->info("callWsRechnungList() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
-                                                         ": selVon:" . (defined($selVon) ? $selVon : 'undef') .
-                                                         ": selBis:" . (defined($selBis) ? $selBis : 'undef') .
-                                                         ": selKundennummerWarenEmpfaenger:" . (defined($selKundennummerWarenEmpfaenger) ? $selKundennummerWarenEmpfaenger : 'undef') .
-                                                         ":");
-
-    my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
-
-    #$xmlwriter->xmlDecl("UTF-8");    # seems to be not necessary
-    $xmlwriter->startTag( 'soap:Envelope',
-                              'soap:encodingStyle' => 'http://schemas.xmlsoap.org/soap/encoding/',
-                              'xmlns:soap' => 'http://schemas.xmlsoap.org/soap/envelope/',
-                              'xmlns:soapenc' => 'http://schemas.xmlsoap.org/soap/encoding/');
-    
-    $xmlwriter->startTag(   'soap:Header');
-    $xmlwriter->startTag(     'wsse:Security',
-                                  'xmlns:wsse' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd',
-                                  'xmlns:wsu' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd',
-                                  'soap:mustUnderstand' => '1');
-    $xmlwriter->startTag(       'wsse:UsernameToken',
-                                    'wsu:Id' => 'UsernameToken-3d1e2053-4b6d-41c0-bb25-ba7ab39ce6dc');    # it seems that we can use a constant non varying UUID here
-    $xmlwriter->dataElement(      'wsse:Username' => 'bob');
-    $xmlwriter->dataElement(      'wsse:Password', 'bobPW', 'Type' => 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText');
-    $xmlwriter->endTag(         'wsse:UsernameToken');
-    $xmlwriter->endTag(       'wsse:Security');
-    $xmlwriter->endTag(     'soap:Header');
-    
-    $xmlwriter->startTag(   'soap:Body');
-    $xmlwriter->startTag(     'bes:RechnungListElement',
-                                  'xmlns:bes' => 'http://www.ekz.de/BestellsystemWSDL');
-    $xmlwriter->dataElement(    'kundenNummer' => $self->getEkzKundenNr($ekzCustomerNumber));
-    $xmlwriter->dataElement(    'passwort' => $self->getEkzPasswort($ekzCustomerNumber));
-    $xmlwriter->dataElement(    'lmsNutzer' => $self->getEkzLmsNutzer($ekzCustomerNumber));
-    $xmlwriter->dataElement(    'von' => $selVon);
-
-    if ( defined $selBis && length($selBis) > 0 ) {
-        $xmlwriter->dataElement('bis' => $selBis);    # optional
+        }
     }
-    if ( defined $selKundennummerWarenEmpfaenger && length($selKundennummerWarenEmpfaenger) > 0 ) {
-        $xmlwriter->dataElement('kundennummerWarenEmpfaenger' => $selKundennummerWarenEmpfaenger);    # optional
-    }
-    $xmlwriter->endTag(       'bes:RechnungListElement');
-    $xmlwriter->endTag(     'soap:Body');
 
-    $xmlwriter->endTag(   'soap:Envelope');
-
-    my $soapEnvelope = "\n";
-    $soapEnvelope .= $xmlwriter->end();
-	
-	my $soapResponse = $self->doQuery('"urn:rechnunglist"', $soapEnvelope);
-
-    $self->{'logger'}->debug("callWsRechnungList() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
-
-	if ($soapResponse->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($soapResponse->content);
-
-	    my $root = $dom->documentElement();
-
-        $self->{'logger'}->trace("callWsRechnungList() root-element:" . $root . ":");
-        $self->{'logger'}->trace("callWsRechnungList() Dumper(root):" . Dumper($root) . ":");
-
-        my $rechnungNodes = $root->findnodes('soap:Body/*/rechnung');
-        $self->{'logger'}->trace("callWsRechnungList() rechnungNodes:" . $rechnungNodes . ":");
-        $self->{'logger'}->trace("callWsRechnungList() Dumper(rechnungNodes):" . Dumper($rechnungNodes) . ":");
-
-		foreach my $rechnungNode ( $rechnungNodes->get_nodelist() ) {
-            $self->{'logger'}->trace("callWsRechnungList() rechnungNode->nodeName:" . $rechnungNode->nodeName . ":");
-            my $rechnungRecord = ();
-			foreach my $rechnungChild ( $rechnungNode->childNodes() ) {    # <id> <nummer> <datum> sind hier interessant
-                $self->{'logger'}->trace("callWsRechnungList() rechnungChild->nodeName:" . $rechnungChild->nodeName . ":");
-                # copy values of hit into rechnungRecord
-                if ( $rechnungChild->nodeName !~ /^#/ ) {
-				    $rechnungRecord->{$rechnungChild->nodeName} = $rechnungChild->textContent;
-                }
-			}
-            push @{$result->{'rechnungRecords'}}, $rechnungRecord;
-            $result->{'rechnungCount'} += 1;
-            #$self->{'logger'}->debug("callWsRechnungList() result->{'rechnungRecords'}->[i]:" . $result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1] . ":");
-            $self->{'logger'}->trace("callWsRechnungList() Dumper(result->{'rechnungRecords'}->[i]):" . Dumper($result->{'rechnungRecords'}->[$result->{'rechnungCount'}-1]) . ":");
-		}
-	}
-	
-	return $result;
+    return $result;
 }
 
 # send a media items order using web service Bestellung
 sub callWsBestellung {
-	my $self = shift;
+    my $self = shift;
     my $ekzCustomerNumber = shift;                  # mandatory
-	my $param = shift;                              # mandatory (containing values required for BestellungElement request)
+    my $param = shift;                              # mandatory (containing values required for BestellungElement request)
     my $splitOperationMode = shift;                 # if 0: build request and call webservice;   if 1: build request if ! preparedRequest , call webservice if preparedRequest
     my $preparedRequest = shift;
     my $soapRequest;
@@ -1242,7 +1268,7 @@ sub callWsBestellung {
                     'statusMessage' => '',
                     'ekzBestellNr' => 0
                  };
-	
+
     $self->{'logger'}->info("callWsBestellung() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
                                                    ": param:" . (defined($param) ? Dumper($param) : 'undef') .
                                                    ": splitOperationMode:" . (defined($splitOperationMode) ? $splitOperationMode : 'undef') .
@@ -1258,7 +1284,7 @@ sub callWsBestellung {
         # <messageId> is definded as xs:int in the wsdl.
         # So we calculate (current seconds * 1000 + milliseconds) modulo 1000000000 to get a quite unique number that fits in a 32-bit integer the ekz seems to use for this purpose.
         my $messageId = substr(substr($self->genTransactionId(''),0,-3),-9) + 0;
-	    my $zeitstempel = $self->genZeitstempel();
+        my $zeitstempel = $self->genZeitstempel();
 
         my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
 
@@ -1433,18 +1459,18 @@ sub callWsBestellung {
         $xmlwriter->endTag(   'soap:Envelope');
 
         $soapRequest = "\n" . $xmlwriter->end();
-	}
+    }
         
     if ( ! $splitOperationMode || $preparedRequest ) {
-	    $soapResponse = $self->doQuery('"urn:bestellung"', $soapRequest);
+        $soapResponse = $self->doQuery('"urn:bestellung"', $soapRequest);
 
         $self->{'logger'}->debug("callWsBestellung() Dumper(soapResponse):" . Dumper($soapResponse) . ":");
 
-	    if ($soapResponse->is_success) {
-		    my $parser = XML::LibXML->new;
-		    my $dom = $parser->parse_string($soapResponse->content);
+        if ($soapResponse->is_success) {
+            my $parser = XML::LibXML->new;
+            my $dom = $parser->parse_string($soapResponse->content);
 
-	        my $root = $dom->documentElement();
+            my $root = $dom->documentElement();
 
             $self->{'logger'}->trace("callWsBestellung() root-element:" . $root . ":");
             $self->{'logger'}->trace("callWsBestellung() Dumper(root):" . Dumper($root) . ":");
@@ -1469,29 +1495,28 @@ sub callWsBestellung {
                 last;
             }
         }
-	}
+    }
 
-	$self->{'logger'}->info("callWsBestellung() result->{statusCode}:" . $result->{'statusCode'} . ": ->{statusMessage}:" . $result->{'statusMessage'} . ": ->{ekzBestellNr}:" . $result->{'ekzBestellNr'} . ":");
+    $self->{'logger'}->info("callWsBestellung() result->{statusCode}:" . $result->{'statusCode'} . ": ->{statusMessage}:" . $result->{'statusMessage'} . ": ->{ekzBestellNr}:" . $result->{'ekzBestellNr'} . ":");
     if ( wantarray() ) {
         return ($result, $soapRequest, $soapResponse);
     }
-	return $result;
+    return $result;
 }
 
 sub doQuery {
-	my $self = shift;
+    my $self = shift;
     my $soapAction = shift;
     my $soapEnvelope = shift;
 
     my $soapEnvelopeAsOctets = Encode::encode('UTF-8', $soapEnvelope, Encode::FB_CROAK);    # 'encode' required for avoiding error: HTTP::Message content must be bytes at /usr/share/perl5/HTTP/Request/Common.pm line 94.
 
-	my $soapResponse = $self->{'ua'}->post($self->{'url'}, 'Content-Type' => 'text/xml; charset="utf-8"', 'SOAPAction' => $soapAction, Content => $soapEnvelopeAsOctets);
+    my $soapResponse = $self->{'ua'}->post($self->{'url'}, 'Content-Type' => 'text/xml; charset="utf-8"', 'SOAPAction' => $soapAction, Content => $soapEnvelopeAsOctets);
 
     $self->{'logger'}->debug("doQuery() soapResponse:" . $soapResponse . ":");
     $self->{'logger'}->trace("doQuery() Dumper(soapResponse):" . Dumper(\$soapResponse) . ":");
-	
-	return $soapResponse;
-	
+
+    return $soapResponse;
 }
 
 sub genZeitstempel {
