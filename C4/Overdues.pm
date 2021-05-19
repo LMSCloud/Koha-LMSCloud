@@ -586,6 +586,11 @@ sub UpdateFine {
             #3341: diff could be positive or negative!
             my $out   = $data->{'amountoutstanding'} + $diff;
 
+            # ... but $out may not be negative with Koha-LMSCloud! (see LCHN-570)
+            if ( $diff < 0.00 && $out < 0.00 ) {
+                return;
+            }
+
             $accountline->set(
                 {
                     date          => dt_from_string(),
