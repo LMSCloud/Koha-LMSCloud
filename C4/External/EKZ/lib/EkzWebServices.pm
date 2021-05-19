@@ -615,7 +615,7 @@ sub callWsFortsetzungList {
                                 $fortsetzungVarianteRecord->{$fortsetzungVarianteChild->nodeName} = $fortsetzungVarianteChild->textContent;
                             } elsif ( $fortsetzungVarianteChild->nodeName eq 'fortsetzungRubrik' ) {
                                 my $fortsetzungRubrikRecord = ();
-                                foreach my $fortsetzungRubrikChild ( $fortsetzungVarianteChild->childNodes() ) {    # <rubrik>, <fortsezungTitel>
+                                foreach my $fortsetzungRubrikChild ( $fortsetzungVarianteChild->childNodes() ) {    # <rubrik>, <fortsetzungTitel>
                                     $self->{'logger'}->trace("callWsFortsetzungList() fortsetzungRubrikChild->nodeName:" . $fortsetzungRubrikChild->nodeName . ":");
                                     if ( $fortsetzungRubrikChild->nodeName eq 'rubrik' ) {
                                         $fortsetzungRubrikRecord->{$fortsetzungRubrikChild->nodeName} = $fortsetzungRubrikChild->textContent;

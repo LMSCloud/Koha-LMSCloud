@@ -73,7 +73,7 @@ if ( $testMode == 1 ) {
                 $logger->info("ekzWsSerialOrder.pl loop fortsetzungVariante artikelArt:$fortsetzungVariante->{artikelArt}:");
                 foreach my $fortsetzungRubrik ( @{$fortsetzungVariante->{fortsetzungRubrik}} ) {
                     $logger->info("ekzWsSerialOrder.pl loop fortsetzungRubrik rubrik:$fortsetzungRubrik->{rubrik}:");
-                    foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsezungTitel'}} ) {
+                    foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsetzungTitel'}} ) {
                         $logger->info("ekzWsSerialOrder.pl loop fortsetzungTitel artikelnum:$fortsetzungTitel->{artikelnum}: artikelname:$fortsetzungTitel->{artikelname}: fortsetzungsAuftragsNummer:$fortsetzungTitel->{fortsetzungsAuftragsNummer}:");
                         
                         $logger->info("ekzWsSerialOrder.pl read serial order via fortsetzungsId:" . $fortsetzungTitel->{artikelnum} . ": by calling readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber," . $fortsetzungTitel->{artikelnum} . ",undef,undef,undef,1,undef)");
@@ -109,35 +109,6 @@ if ( $testMode == 2 ) {
                 foreach my $fortsetzungRubrik ( @{$fortsetzungVariante->{fortsetzungRubrik}} ) {
                     $logger->info("ekzWsSerialOrder.pl loop fortsetzungRubrik rubrik:$fortsetzungRubrik->{rubrik}:");
 
-                    # XXXWH zur Zeit noch für PROD: fortsezungTitel
-                    foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsezungTitel'}} ) {
-                        $logger->info("ekzWsSerialOrder.pl loop fortsetzungTitel artikelnum:$fortsetzungTitel->{artikelnum}: artikelname:$fortsetzungTitel->{artikelname}: fortsetzungsAuftragsNummer:$fortsetzungTitel->{fortsetzungsAuftragsNummer}:");
-                        #if ( $fortsetzungTitel->{artikelnum} ne '0587490' ) {    # 'kompletterWerksName' => 'ENTENHAUSEN-EDTION DONALD' 'herausgeber' => 'EGMONT VERL.GES'
-                        if ( $fortsetzungTitel->{artikelnum} ne '0513230' ) {    # 'kompletterWerksName' => 'BILDERMAUS' 'herausgeber' => 'LOEWE'
-                            next;
-                        }
-
-                        $logger->info("ekzWsSerialOrder.pl read serial order via fortsetzungsId:" . $fortsetzungTitel->{artikelnum} . ": by calling readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber," . $fortsetzungTitel->{artikelnum} . ",undef,undef,undef,1,\\\$fortsetzungDetailElement)");
-                        $result = &readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber,$fortsetzungTitel->{artikelnum},undef,undef,undef,1,\$fortsetzungDetailElement);    # read complete info (i.e. all titles) of the serial order
-                        $logger->debug("ekzWsSerialOrder.pl Dumper(\$result->{'fortsetzungRecords'}->[0]):" . Dumper($result->{'fortsetzungRecords'}->[0]) . ":");
-
-                        if ( $genKohaRecords ) {
-                            if ( $result->{fortsetzungRecords}->[0] &&
-                                 $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords} &&
-                                 $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned} &&
-                                 $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus} ) {
-
-                                # XXXWH ekz ERROR: at the moment there is no statusdatum sent, so we can not compare with $lastRunDate => use undef instead
-                                #if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], $lastRunDate, $todayDate) ) {
-                                if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], undef, $todayDate) ) {
-                                    $res = 1;
-                                }
-                            }
-                        }
-
-                    }
-
-                    # XXXWH zur Zeit nur für INT, zukünftig auch für PROD: fortsetzungTitel
                     foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsetzungTitel'}} ) {
                         $logger->info("ekzWsSerialOrder.pl loop fortsetzungTitel artikelnum:$fortsetzungTitel->{artikelnum}: artikelname:$fortsetzungTitel->{artikelname}: fortsetzungsAuftragsNummer:$fortsetzungTitel->{fortsetzungsAuftragsNummer}:");
                         #if ( $fortsetzungTitel->{artikelnum} ne '0587490' ) {    # 'kompletterWerksName' => 'ENTENHAUSEN-EDTION DONALD' 'herausgeber' => 'EGMONT VERL.GES'
@@ -190,7 +161,7 @@ if ( $testMode == 0 ) {
                 $logger->info("ekzWsSerialOrder.pl loop fortsetzungVariante artikelArt:$fortsetzungVariante->{artikelArt}:");
                 foreach my $fortsetzungRubrik ( @{$fortsetzungVariante->{fortsetzungRubrik}} ) {
                     $logger->info("ekzWsSerialOrder.pl loop fortsetzungRubrik rubrik:$fortsetzungRubrik->{rubrik}:");
-                    foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsezungTitel'}} ) {
+                    foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsetzungTitel'}} ) {
                         $logger->info("ekzWsSerialOrder.pl loop fortsetzungTitel artikelnum:$fortsetzungTitel->{artikelnum}: artikelname:$fortsetzungTitel->{artikelname}: fortsetzungsAuftragsNummer:$fortsetzungTitel->{fortsetzungsAuftragsNummer}:");
 
                         $logger->info("ekzWsSerialOrder.pl read serial order via fortsetzungsId:" . $fortsetzungTitel->{artikelnum} . ": by calling readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber," . $fortsetzungTitel->{artikelnum} . ",undef,undef,undef,1,\\\$fortsetzungDetailElement)");
