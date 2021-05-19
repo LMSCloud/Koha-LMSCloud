@@ -122,7 +122,12 @@ Circulation:
             - Include the stylesheet at
             - pref: NoticeCSS
               class: url
-            - on Notices. (This should be a complete URL, starting with <code>http://</code>)
+            - on print Notices. (This should be a complete URL, starting with <code>https://</code>)
+        -
+            - Include the stylesheet at
+            - pref: NoticeCSSEmail
+              class: url
+            - on email Notices. (This should be a complete URL, starting with <code>https://</code>)
         -
             - pref: UpdateTotalIssuesOnCirc
               choices:

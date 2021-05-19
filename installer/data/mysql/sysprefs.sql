@@ -376,6 +376,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('NotHighlightedWords','and|or|not',NULL,'List of words to NOT highlight when OpacHitHighlight is enabled','free'),
 ('NoticeBcc','','','Email address to bcc outgoing notices sent by email','free'),
 ('NoticeCSS','',NULL,'Notices CSS url.','free'),
+('NoticeCSSEmail','',NULL,'CSS stylesheet URL of Email notififications.','free'),
 ('NotifyBorrowerDeparture','30',NULL,'Define number of days before expiry where circulation is warned about patron account expiry','Integer'),
 ('NovelistSelectEnabled','0',NULL,'Enable Novelist Select content.  Requires Novelist Profile and Password','YesNo'),
 ('NovelistSelectPassword','',NULL,'Novelist select user Password','free'),

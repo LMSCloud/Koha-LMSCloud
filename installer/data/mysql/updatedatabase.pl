@@ -17318,6 +17318,21 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.023";
+if ( CheckVersion($DBversion) ) {
+    my ($noticeCSS) = $dbh->selectrow_array( q|
+        SELECT value FROM systempreferences WHERE variable='NoticeCSS';
+    |);
+    $noticeCSS = '' if (! $noticeCSS);
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type) VALUES
+            ('NoticeCSSEmail',?,NULL,'CSS stylesheet URL of Email notififications.','free')
+    },undef,$noticeCSS);
+    
+    print "Upgrade to $DBversion done (Added systempreference NoticeCSSEmail.)\n";
+    SetVersion($DBversion);
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
