@@ -157,12 +157,12 @@ if ( @bibids > 0 ) {
             $field = $Koharecord->field('020');
             if ( $field ) {
                 my $isbn = $field->subfield('a');
-                $identifier = $isbn;
+                $identifier = $isbn if ( $isbn );
             }
             $field = $Koharecord->field('024');
             if ( $field && $identifier eq '' ) {
                 my $ean = $field->subfield('a');
-                $identifier = $ean;
+                $identifier = $ean if ( $ean );
             }
 		
             my $coverurl = '';

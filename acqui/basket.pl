@@ -175,7 +175,7 @@ if ( $op eq 'delete_confirm' ) {
     exit;
 } elsif ($op eq 'email') {
     my $err = eval {
-        SendAlerts( 'orderacquisition', $query->param('basketno'), 'ACQORDER' );
+        SendAlerts( 'orderacquisition', scalar $query->param('basketno'), 'ACQORDER' );
     };
     if ( $@ ) {
         push @messages, { type => 'error', code => $@ };
@@ -193,7 +193,7 @@ if ( $op eq 'delete_confirm' ) {
         my $booksellerid = $query->param('booksellerid');
         $basketno =~ /^\d+$/ and CloseBasket($basketno);
         # if requested, create basket group, close it and attach the basket
-        if ($query->param('createbasketgroup')) {
+        if (scalar $query->param('createbasketgroup')) {
             my $branchcode;
             if(C4::Context->userenv and C4::Context->userenv->{'branch'}
               and C4::Context->userenv->{'branch'} ne "NO_LIBRARY_SET") {
@@ -530,7 +530,7 @@ sub edi_close_and_order {
         CloseBasket($basketno);
 
         # if requested, create basket group, close it and attach the basket
-        if ( $query->param('createbasketgroup') ) {
+        if ( scalar $query->param('createbasketgroup') ) {
             my $branchcode;
             if (    C4::Context->userenv
                 and C4::Context->userenv->{'branch'}

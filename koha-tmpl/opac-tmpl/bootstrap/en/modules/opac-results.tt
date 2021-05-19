@@ -91,9 +91,9 @@
                     </p>
                 [% END # / IF searchdesc %]
 
-                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) ) %]
+                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) ) %]
                     <div id="encyclopediaresults">
-                        <div id="encyclopedianumresults"><strong>The encyclopedia search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a id="showCatalogHitList" href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
+                        <div id="encyclopedianumresults"><strong>The search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a id="showCatalogHitList" href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
                         <div id="encyclopediaheader" class="toolbar clearfix">
                             <strong><span class="encyclopediasource"></span></strong>
                         </div>
@@ -102,7 +102,7 @@
                             </tbody>
                         </table>
                     </div>
-                [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive %]
+                [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive or FilmfriendSearchActive %]
                 
                 <div id="userresults">
                     [% IF ( DidYouMean ) %]
@@ -619,8 +619,10 @@
 [% END %]
 [% IF ( OpacStarRatings == 'all' || Koha.Preference('Babeltheque') ) %][% Asset.js("lib/jquery/plugins/jquery.rating.js") %][% END %]
 [% IF ( OverDriveEnabled ) %][% Asset.js("js/overdrive.js") %][% END %]
+[% Asset.js("js/jquery.dotdotdot.min.js") %]
 [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %][% Asset.js("js/munzinger.js") %][% END %]
 [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %][% Asset.js("js/brockhaus.js") %][% END %]
+[% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %][% Asset.js("js/filmfriend.js") %][% END %]
 [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
 [% IF ( OpacHighlightedWords ) %][% Asset.js("lib/jquery/plugins/jquery.highlight-3.js") %]
 [% END %]
@@ -937,6 +939,9 @@ $(document).ready(function(){
     [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
         getMunzingerFacet(query_desc);
     [% END %]
+    [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %]
+        getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more &raquo;") );
+    [% END %]
     [% IF ( OverDriveEnabled ) %]
         var $overdrive_results = $( '<div id="overdrive-results">' + _( 'Searching OverDrive...' ) + ' <img class="throbber" src="[% interface %]/lib/jquery/plugins/themes/classic/throbber.gif" /></div>' );
         $( '#numresults' ) .append( ' ' )
@@ -1034,8 +1039,66 @@ $(document).ready(function(){
 $("input.newtag").on('keydown', function(e){
     if (e.keyCode == 13) { e.preventDefault(); }
 });
-
+    
+    truncate_text(".searchresults");
 });
+
+function truncate_text(where) {
+    $(where + " .truncable-txt").dotdotdot({
+        ellipsis    : ' ... ',
+        wrap        : 'word',
+        after       : "a.truncable-txt-readmore",
+        watch       : true,
+        height      : 50,
+        callback : function( isTruncated, orgContent ) {
+            var self = $( this );
+            self.find(".truncable-txt-readmore").click(function(){
+                toggleRead($(this));
+            });
+    
+            //if no more text to show hide read more link
+            if(!isTruncated){                        
+                self.find("a.truncable-txt-readmore").css("display","none");
+            }
+    
+        }
+    });
+}
+
+// Toggle truncation
+function toggleRead(caller) {
+    var callerText = $(caller).text();
+    var parent = $(caller).closest(".truncable-txt");
+    var isTruncated = $(parent).triggerHandler("isTruncated");
+    if (isTruncated) {        
+        // Remove ellipsis
+        $(parent).trigger("destroy.dot");
+        // Update text - have to be clever about it, since destroy overwrites after element text values apparently
+        $(parent).find("a").html( _(" &laquo; Read less") );
+        // Re-add click function since I guess destroy also removes this
+        $(parent).find("a").click(function () {
+            toggleRead(this);
+        });
+    } else {       
+        // Update text
+        $(parent).find("a").html( _("Read more &raquo;") );
+    
+        // Re-add ellipsis
+        $(parent).dotdotdot({
+            ellipsis    : ' ... ',
+            wrap        : 'word',
+            after       : "a.truncable-txt-readmore",
+            watch       : true,
+            height      : 50
+        });
+  
+        // Have to re-add click function again, not totally sure why
+        $(parent).find("a").click(function () {
+            toggleRead(this);
+        });
+    }
+}
+
 //]]>
 </script>
 [% END %]

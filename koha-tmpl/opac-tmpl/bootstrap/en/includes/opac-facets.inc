@@ -1,19 +1,39 @@
 [% USE AuthorisedValues %]
 [% IF ( opacfacets && facets_loop && total ) %]
-    [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
+    [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) ) %]
     <div id="encyclopedia-facets">
-        <h4><a href="#abc" class="menu-collapse-toggle">Encyclopedia search</a></h4>
+        <h4><a href="#abc" class="menu-collapse-toggle">Further offerings</a></h4>
         <ul class="menu-collapse">
-            <li id="munzinger-facet" style="display: none;"><h5 id="facet-munzinger">Munzinger collections (<span id="munzinger-count"></span> hits)</h5>
+            [% IF ( Koha.Preference( 'FilmFriendSearchActive' ) ) %]
+            <li id="filmfriend-facet" style="display: none;"><h5 id="facet-brockhaus">filmfriend film portal (<span id="filmfriend-count"></span>&nbsp;hits)</h5>
                <ul>
                  <li>
                     <span class="facet-label"></span> <span class="facet-count"></li>
                  </li>
                </ul>
             </li>
+           [% END %]
+           [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
+            <li id="munzinger-facet" style="display: none;"><h5 id="facet-munzinger">Munzinger encyclopedia (<span id="munzinger-count"></span>&nbsp;hits)</h5>
+               <ul>
+                 <li>
+                    <span class="facet-label"></span> <span class="facet-count"></li>
+                 </li>
+               </ul>
+            </li>
+            [% END %]
+            [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %]
+            <li id="brockhaus-facet" style="display: none;"><h5 id="facet-brockhaus">Brockhaus encyclopedia (<span id="brockhaus-count"></span>&nbsp;hits)</h5>
+               <ul>
+                 <li>
+                    <span class="facet-label"></span> <span class="facet-count"></li>
+                 </li>
+               </ul>
+            </li>
+            [% END %]
         </ul>
     </div>
-    [% END %] <!-- / #encyclopedia search if MunzingerEncyclopediaSearchEnabled -->
+    [% END %] <!-- / #encyclopedia search if MunzingerEncyclopediaSearchEnabled or BrockhausSearchEnabled or FilmFriendSearchActive -->
     <div id="search-facets">
         <h4><a href="#" class="menu-collapse-toggle">Refine your cataloge search</a></h4>
         <ul class="menu-collapse">

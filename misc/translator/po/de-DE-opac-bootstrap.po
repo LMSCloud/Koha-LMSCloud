@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 18.05\n"
-"POT-Creation-Date: 2021-04-06 15:44+0200\n"
-"PO-Revision-Date: 2020-12-14 15:34+0100\n"
+"POT-Creation-Date: 2021-05-19 11:30+0200\n"
+"PO-Revision-Date: 2021-05-07 10:40+0100\n"
 "Last-Translator: Roger Großmann <roger.grossmann@lmscloud.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2132,6 +2132,11 @@ msgstr "%seiner Liste:%s"
 msgid "&laquo; Previous"
 msgstr "&laquo; Zurück"
 
+#. SCRIPT
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
+msgid "&laquo; Read less"
+msgstr "&laquo; Weniger lesen"
+
 #: opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:157
 #: opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:160
 #, c-format
@@ -2756,6 +2761,13 @@ msgstr "&nbsp;&nbsp;Alle Titel"
 msgid "&nbsp;&nbsp;All titles "
 msgstr "&nbsp;&nbsp;Alle Titel "
 
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:8
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:17
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:26
+#, c-format
+msgid "&nbsp;hits)"
+msgstr "&nbsp;Treffer)"
+
 #. %1$s:  LEVEL_LOO.number 
 #: opac-tmpl/bootstrap/en/modules/opac-browser.tt:51
 #, c-format
@@ -3030,7 +3042,7 @@ msgstr "(veröffentlicht am %s%s von "
 #. %1$s:  FOREACH relate IN related 
 #. %2$s:  relate.related_search 
 #. %3$s:  END 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:30
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:50
 #, c-format
 msgid "(related searches: %s%s%s)"
 msgstr "(ähnliche Suchen: %s%s%s)"
@@ -3343,7 +3355,7 @@ msgid "Add to your cart"
 msgstr "Meinem Korb hinzufügen"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Add to..."
 msgstr "Hinzufügen zu..."
 
@@ -3851,12 +3863,12 @@ msgstr "Normdatentyp: "
 msgid "Authorized headings"
 msgstr "Autorisierte Ansetzungsform"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:36
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:56
 #, c-format
 msgid "Authors"
 msgstr "Verfasser"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:20
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:40
 #, c-format
 msgid "Availability"
 msgstr "Verfügbarkeit"
@@ -4022,6 +4034,11 @@ msgstr "Kurze Historie"
 #: opac-tmpl/bootstrap/en/includes/authorities-search-results.inc:13
 msgid "Broader Term"
 msgstr "Weiterer Term"
+
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:26
+#, c-format
+msgid "Brockhaus encyclopedia ("
+msgstr "Brockhaus Nachschlagewerke"
 
 #: opac-tmpl/bootstrap/en/includes/masthead.inc:284
 #, c-format
@@ -4253,7 +4270,7 @@ msgid "Card number:"
 msgstr "Ausweisnummer:"
 
 #: opac-tmpl/bootstrap/en/includes/masthead.inc:25
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-results-grouped.tt:283
 #, c-format
 msgid "Cart"
@@ -4425,7 +4442,7 @@ msgstr "Löschen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:51
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:90
@@ -4609,7 +4626,7 @@ msgstr "Sammlung: "
 msgid "Collection: %s "
 msgstr "Sammlung: %s "
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:43
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:63
 #, c-format
 msgid "Collections"
 msgstr "Sammlungen"
@@ -5352,11 +5369,6 @@ msgstr "E-Mail:"
 msgid "Empty and close"
 msgstr "Leeren und schließen"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:5
-#, c-format
-msgid "Encyclopedia search"
-msgstr "Lexikonsuche"
-
 #: opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:330
 #, c-format
 msgid "Encyclopedias "
@@ -5438,12 +5450,12 @@ msgstr ""
 "Bibliothek."
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Error searching OpenLibrary collection"
 msgstr "Fehler bei der Suche im OpenLibrary-Bestand"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Error searching OverDrive collection"
 msgstr "Fehler bei der Suche im OverDrive-Bestand"
 
@@ -5776,7 +5788,7 @@ msgstr "Format:"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:65
 msgid "Found"
 msgstr "Gefunden"
@@ -5817,6 +5829,11 @@ msgstr "Vollständige Historie"
 #, c-format
 msgid "Full subscription history for %s"
 msgstr "Vollständige Historie für %s"
+
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:5
+#, c-format
+msgid "Further offerings"
+msgstr "Weitere Angebote"
 
 #. A
 #: opac-tmpl/bootstrap/en/modules/opac-account.tt:231
@@ -6080,7 +6097,7 @@ msgstr "HoldItem"
 msgid "HoldTitle"
 msgstr "HoldTitle"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:46
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:66
 #, c-format
 msgid "Holding libraries"
 msgstr "Aktuelle Bibliotheken"
@@ -6165,7 +6182,7 @@ msgstr "Vormerkungen (%s)"
 msgid "Home"
 msgstr "Start"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:45
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:65
 #, c-format
 msgid "Home libraries"
 msgstr "Heimatbibliothek"
@@ -6636,7 +6653,7 @@ msgstr "Medientyp:"
 msgid "Item type: "
 msgstr "Medientyp: "
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:42
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:62
 #, c-format
 msgid "Item types"
 msgstr "Medientypen"
@@ -6895,7 +6912,7 @@ msgstr "Bibliothek: "
 msgid "Limit to any of the following:"
 msgstr "Auf folgende Kriterien einschränken:"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:26
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:46
 #, c-format
 msgid "Limit to currently available items."
 msgstr "Aktuell verfügbare Exemplare."
@@ -7045,7 +7062,7 @@ msgstr "Standort und Verfügbarkeit: "
 msgid "Location(s) (Status)"
 msgstr "Standort(e) (Status)"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:48
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:68
 #, c-format
 msgid "Locations"
 msgstr "Standorte"
@@ -7405,7 +7422,7 @@ msgid "More informations about pmPayment"
 msgstr "Mehr Informationen zu pmPayment"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "More lists"
 msgstr "Weitere Listen"
 
@@ -7429,10 +7446,10 @@ msgstr "Beliebteste Titel"
 msgid "Most popular titles"
 msgstr "Beliebteste Titel"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:7
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:17
 #, c-format
-msgid "Munzinger collections ("
-msgstr "Lexikonsuche Munzinger ("
+msgid "Munzinger encyclopedia ("
+msgstr "Munzinger Nachschlagewerke"
 
 #: opac-tmpl/bootstrap/en/modules/opac-browser-asb.tt:113
 #, c-format
@@ -7569,7 +7586,7 @@ msgid "Next &gt;&gt;"
 msgstr "Weiter &gt;&gt;"
 
 #: opac-tmpl/bootstrap/en/includes/page-numbers.inc:17
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1087
 #, c-format
 msgid "Next &raquo;"
@@ -8432,7 +8449,7 @@ msgstr "Artikelbestellung erfassen für %s"
 
 #: opac-tmpl/bootstrap/en/includes/opac-detail-sidebar.inc:7
 #: opac-tmpl/bootstrap/en/modules/opac-results.tt:533
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:437
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:440
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
@@ -8455,7 +8472,7 @@ msgstr "Bestellung erfassen"
 msgid "Placed on"
 msgstr "Bestellt am"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:39
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:59
 #, c-format
 msgid "Places"
 msgstr "Orte"
@@ -8791,8 +8808,9 @@ msgstr "Vorschule"
 msgid "Prev"
 msgstr "Zurück"
 
+#. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Prev &laquo;"
 msgstr "Zurück &raquo;"
 
@@ -8909,7 +8927,7 @@ msgid "Public lists"
 msgstr "Öffentliche Listen"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Public lists:"
 msgstr "Öffentliche Listen:"
 
@@ -8928,7 +8946,7 @@ msgstr "Erscheinungsjahr"
 msgid "Publication place:"
 msgstr "Erscheinungsort:"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:41
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:61
 #, c-format
 msgid "Publication years"
 msgstr "Erscheinungsjahre"
@@ -9041,7 +9059,7 @@ msgstr "Bewerten"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1372
 msgid "Rating based on reviews of "
 msgstr "Bewertung basiert auf Reviews von "
@@ -9050,6 +9068,12 @@ msgstr "Bewertung basiert auf Reviews von "
 #, c-format
 msgid "Re-type new password:"
 msgstr "Passwort (Wiederholung):"
+
+#. For the first occurrence,
+#. SCRIPT
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
+msgid "Read more &raquo;"
+msgstr "Mehr lesen &raquo;"
 
 #: opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:69
 #, c-format
@@ -9092,7 +9116,7 @@ msgstr "Datensatz nicht gefunden"
 msgid "Record title"
 msgstr "Titel"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:18
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:38
 #, c-format
 msgid "Refine your cataloge search"
 msgstr "Katalogsuche verfeinern"
@@ -9163,7 +9187,7 @@ msgid "Remove"
 msgstr "Entfernen"
 
 #. A
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:60
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:80
 msgid "Remove facet [% facet.facet_link_value | html %]"
 msgstr "Facette entfernen [% facet.facet_link_value | html %]"
 
@@ -9591,7 +9615,7 @@ msgstr "Samstag"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:614
 #: opac-tmpl/bootstrap/en/modules/opac-privacy.tt:92
 #: opac-tmpl/bootstrap/en/modules/opac-addbybiblionumber.tt:53
@@ -9748,13 +9772,13 @@ msgid "SearchCourseReserves "
 msgstr "SearchCourseReserves "
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Searching Open Library..."
 msgstr "Suche in Open Library..."
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:65
 msgid "Searching OverDrive..."
 msgstr "Suche in OverDrive..."
@@ -9838,7 +9862,7 @@ msgstr "Bestimmtes Exemplar auswählen:"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:50
 #: opac-tmpl/bootstrap/en/modules/opac-search-history.tt:89
@@ -9885,7 +9909,7 @@ msgstr "Titel für Suche auswählen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:256
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-basket.tt:38
@@ -9963,7 +9987,7 @@ msgstr "Zeitschrift: %s "
 
 #: opac-tmpl/bootstrap/en/includes/masthead.inc:187
 #: opac-tmpl/bootstrap/en/includes/masthead.inc:189
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:40
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:60
 #: opac-tmpl/bootstrap/en/modules/opac-results-grouped.tt:82
 #, c-format
 msgid "Series"
@@ -10066,7 +10090,7 @@ msgstr "Zeigen"
 msgid "Show _MENU_ entries"
 msgstr "Zeige _MENU_ Einträge"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:24
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:44
 #: opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:55
 #, c-format
 msgid "Show all items"
@@ -10082,7 +10106,7 @@ msgstr "Zeige letzte 50 Ausleihen"
 msgid "Show lists"
 msgstr "Zeige Listen"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:72
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:92
 #, c-format
 msgid "Show more"
 msgstr "Mehr zeigen"
@@ -10135,7 +10159,7 @@ msgstr "Alle Ausleihen. "
 msgid "Showing last 50 items. "
 msgstr "Letzte 50 Ausleihen. "
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:24
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:44
 #, c-format
 msgid "Showing only available items"
 msgstr "Aktuell verfügbare Exemplare."
@@ -10985,11 +11009,6 @@ msgstr ""
 "Konfiguration dieser Funktion besteht. Bitte informieren Sie einen "
 "Bibliotheksmitarbeiter über das aufgetretene Problem"
 
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:96
-#, c-format
-msgid "The encyclopedia search at "
-msgstr "Die Lexikonsuche bei "
-
 #: opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:92
 #, c-format
 msgid "The entered card number is already in use."
@@ -11105,6 +11124,11 @@ msgstr "Das Passwort wurde zurückgesetzt für den Benutzer \"%s\"."
 #, c-format
 msgid "The password must contain at least %s characters."
 msgstr "Ihr Passwort muss mindestens %s Zeichen lang sein."
+
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:96
+#, c-format
+msgid "The search at "
+msgstr "Die Suche bei "
 
 #: opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:126
 #, c-format
@@ -11440,7 +11464,7 @@ msgstr "Titel:"
 msgid "Title: "
 msgstr "Titel: "
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:37
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:57
 #, c-format
 msgid "Titles"
 msgstr "Titel"
@@ -11486,7 +11510,7 @@ msgstr "Heute"
 msgid "Top level"
 msgstr "Oberste Ebene"
 
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:38
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:58
 #, c-format
 msgid "Topics"
 msgstr "Themen"
@@ -11917,7 +11941,7 @@ msgstr "Mit ausgewählten Vorschlägen: "
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-shelves.tt:754
 #: opac-tmpl/bootstrap/en/modules/opac-basket.tt:303
 msgid "With selected titles: "
@@ -12296,7 +12320,7 @@ msgstr "Sie müssen angemeldet sein um Listen zu bearbeiten oder anzulegen"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "You must be logged in to create or add to lists"
 msgstr "Sie müssen angemeldet sein um Listen zu bearbeiten oder anzulegen"
 
@@ -12568,7 +12592,7 @@ msgid "Your lists"
 msgstr "Ihre Listen"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "Your lists:"
 msgstr "Ihre Listen:"
 
@@ -12731,7 +12755,7 @@ msgstr "PLZ:"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-results-grouped.tt:283
 msgid "[ New list ]"
 msgstr "[ Neue Liste ]"
@@ -12832,7 +12856,7 @@ msgstr "von"
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:114
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:987
 #: opac-tmpl/bootstrap/en/modules/opac-detail.tt:1372
@@ -12938,6 +12962,11 @@ msgstr "E-Mail-Adresse"
 msgid "epay21 – payment in any situation"
 msgstr "epay21 – Zahlen in jeder Lage"
 
+#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:8
+#, c-format
+msgid "filmfriend film portal ("
+msgstr "filmfriend Filmportal"
+
 #: opac-tmpl/bootstrap/en/modules/ilsdi.tt:466
 #, c-format
 msgid "firstname"
@@ -12965,11 +12994,6 @@ msgstr "hier"
 #, c-format
 msgid "hits - "
 msgstr "Treffer - "
-
-#: opac-tmpl/bootstrap/en/includes/opac-facets.inc:7
-#, c-format
-msgid "hits)"
-msgstr "Treffer)"
 
 #: opac-tmpl/bootstrap/en/modules/opac-main.tt:157
 #, c-format
@@ -13072,12 +13096,12 @@ msgid "ilsdi.pl?service=RenewLoan&amp;patron_id=1&amp;item_id=1 "
 msgstr "ilsdi.pl?service=RenewLoan&amp;patron_id=1&amp;item_id=1 "
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "in OpenLibrary collection"
 msgstr "im OpenLibrary Bestand"
 
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "in OverDrive collection"
 msgstr "im OverDrive-Bestand"
 
@@ -13288,7 +13312,7 @@ msgstr ""
 
 #. For the first occurrence,
 #. SCRIPT
-#: opac-tmpl/bootstrap/en/modules/opac-results.tt:628
+#: opac-tmpl/bootstrap/en/modules/opac-results.tt:630
 msgid "results"
 msgstr "Ergebnisse"
 

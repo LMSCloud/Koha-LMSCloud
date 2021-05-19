@@ -17302,6 +17302,37 @@ if ( CheckVersion($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "18.05.05.022";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('FilmfriendCustomerID','',NULL,'The filmfriend customer (tenant) ID provided by filmfriend.','free'),
+            ('FilmfriendProviderID','',NULL,'The filmfriend provider ID used for single sign-on (authentication via filmfriend API).','free'),
+            ('FilmfriendCustomerURL','',NULL,'The customer specific filmfriend portal URL.','free'),
+            ('FilmfriendNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer'),
+            ('FilmfriendSearchActive','0',NULL,'Activate/Deactivate the filmfriend portal search in OPAC.','YesNo'),
+            ('FilmfriendSearchCollections','Movie|Series|Person',NULL,'The filmfriend collections (movies, series, seasons, collections, persons) that will be searched.','free')
+    });
+    
+    print "Upgrade to $DBversion done (Added systempreferences for filmfriend portal search.)\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = "18.05.05.023";
+if ( CheckVersion($DBversion) ) {
+    my ($noticeCSS) = $dbh->selectrow_array( q|
+        SELECT value FROM systempreferences WHERE variable='NoticeCSS';
+    |);
+    $noticeCSS = '' if (! $noticeCSS);
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type) VALUES
+            ('NoticeCSSEmail',?,NULL,'CSS stylesheet URL of Email notififications.','free')
+    },undef,$noticeCSS);
+    
+    print "Upgrade to $DBversion done (Added systempreference NoticeCSSEmail.)\n";
+    SetVersion($DBversion);
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

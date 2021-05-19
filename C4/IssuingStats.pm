@@ -171,7 +171,7 @@ sub GetIssuingStats {
     foreach my $biblionumber(sort { $a <=> $b } keys %$result) {
         foreach my $itemnumber(sort { $a <=> $b } keys %{$result->{$biblionumber}->{items}} ) {
             foreach my $year(@years) {
-                if ( $year >= $result->{$biblionumber}->{items}->{$itemnumber}->{yearAccession} ) {
+                if ( $year && defined($result->{$biblionumber}->{items}->{$itemnumber}->{yearAccession}) && $year >= $result->{$biblionumber}->{items}->{$itemnumber}->{yearAccession} ) {
                     $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues} += 0;
                     $result->{$biblionumber}->{stats}->{$year}->{sumIssues} += 0;
                 }

@@ -22,6 +22,7 @@ use utf8;
 
 use C4::Context;
 use C4::Scrubber;
+use C4::External::DivibibPatronStatus;
 use Koha::Patrons;
 
 use LWP::UserAgent;
@@ -108,7 +109,7 @@ sub new {
     $self->{'scrubber'} = C4::Scrubber->new();
     
     my $ua = LWP::UserAgent->new;
-    $ua->timeout(10);
+    $ua->timeout(3);
     $ua->env_proxy;
     
     $self->{'ua'} = $ua;
@@ -143,7 +144,11 @@ sub simpleSearch {
     if ( $userid ) {
         my $patron = Koha::Patrons->find({ userid => $userid } );
         if ( $patron ) {
-            $user = $patron->cardnumber;
+            my $patronStatus = C4::External::DivibibPatronStatus->new();
+            my $pStatus = $patronStatus->getPatronStatus( $patron );
+            if ( $pStatus && $pStatus->{status} eq '3' ) {
+                $user = $patron->cardnumber;
+            }
         }
     }
     

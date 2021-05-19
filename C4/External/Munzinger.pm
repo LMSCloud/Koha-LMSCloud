@@ -23,6 +23,7 @@ use utf8;
 
 use C4::Context;
 use Koha::Patrons;
+use C4::External::DivibibPatronStatus;
 
 use LWP::UserAgent;
 use XML::Simple;
@@ -109,7 +110,7 @@ sub new {
                               };
     
     my $ua = LWP::UserAgent->new;
-    $ua->timeout(10);
+    $ua->timeout(3);
     $ua->env_proxy;
     
     $self->{'ua'} = $ua;
@@ -201,7 +202,10 @@ sub simpleSearch {
     
     if ( $userid ) {
         my $patron = Koha::Patrons->find({ userid => $userid } );
-        if ( $patron ) {
+        my $patronStatus = C4::External::DivibibPatronStatus->new();
+        my $pStatus = $patronStatus->getPatronStatus( $patron );
+            
+        if ( $pStatus && $pStatus->{status} eq '3' ) {
             $user = $patron->cardnumber;
         }
     }
@@ -471,10 +475,10 @@ sub formatCategoryHit {
         $entry->{title} = $hit->{title} if (defined($hit->{title}));
         if ( defined($hit->{text}) ) {
             my $text = $hit->{text};
-            if ( reftype($text) eq 'HASH' && defined($text->{div}) && defined($text->{div}->{content}) && reftype($text->{div}->{content}) eq 'ARRAY' ) {
+            if ( reftype($text) && reftype($text) eq 'HASH' && defined($text->{div}) && defined($text->{div}->{content}) && reftype($text->{div}->{content}) && reftype($text->{div}->{content}) eq 'ARRAY' ) {
                 $text = $text->{div};
             }
-            if ( reftype($text) eq 'HASH' && defined($text->{content}) && reftype($text->{content}) eq 'ARRAY' && defined($text->{i}) ) {
+            if ( reftype($text) && reftype($text) eq 'HASH' && defined($text->{content}) && reftype($text->{content}) && reftype($text->{content}) eq 'ARRAY' && defined($text->{i}) ) {
                 my $settext = '';
                 my @inserttext = ();
                 if ( reftype($text->{i}) && reftype($text->{i}) eq 'ARRAY' ) {

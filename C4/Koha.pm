@@ -667,7 +667,7 @@ sub GetNormalizedISBN {
         # anything after " | " should be removed, along with the delimiter
         ($isbn) = split(/\|/, $isbn );
         if ( $asIsbn13 ) {
-            _isbn_cleanup13($isbn);
+            return _isbn_cleanup13($isbn);
         }
         else {
             return _isbn_cleanup($isbn);
@@ -682,7 +682,7 @@ sub GetNormalizedISBN {
             my $isbn = $field->subfield('a');
             if ($isbn) {
                 if ( $asIsbn13 ) {
-                    _isbn_cleanup13($isbn);
+                    return _isbn_cleanup13($isbn);
                 }
                 else {
                     return _isbn_cleanup($isbn);
@@ -696,7 +696,7 @@ sub GetNormalizedISBN {
             $isbn = $field->subfield('a');
             if ($isbn) {
                 if ( $asIsbn13 ) {
-                    _isbn_cleanup13($isbn);
+                    return _isbn_cleanup13($isbn);
                 }
                 else {
                     return _isbn_cleanup($isbn);

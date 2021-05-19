@@ -434,7 +434,7 @@ sub SendAlerts {
                     subject => Encode::encode( "UTF-8", "" . $letter->{title} ),
                     message => $letter->{'is_html'}
                                 ? _wrap_html( Encode::encode( "UTF-8", $letter->{'content'} ),
-                                              Encode::encode( "UTF-8", "" . $letter->{'title'} ))
+                                              Encode::encode( "UTF-8", "" . $letter->{'title'}, 1 ))
                                 : Encode::encode( "UTF-8", "" . $letter->{'content'} ),
                     contenttype => $letter->{'is_html'}
                                     ? 'text/html; charset="utf-8"'
@@ -518,6 +518,15 @@ sub SendAlerts {
             $sthorders = $dbh->prepare($strsth);
             $sthorders->execute($externalid);
             $dataorders = $sthorders->fetchall_arrayref( {} );
+            
+            # remove special characters
+            foreach my $orderline ( @$dataorders ) {
+                foreach my $fieldname ( keys %{ $orderline } ) {
+                    if ( $orderline->{$fieldname} ){
+                        $orderline->{$fieldname} =~ s/['\\]//gi ;
+                    }
+                }
+            }
         }
 
         my $sthbookseller =
@@ -576,7 +585,7 @@ sub SendAlerts {
             Subject        => Encode::encode( "UTF-8", "" . $letter->{title} ),
             Message => $letter->{'is_html'}
                             ? _wrap_html( Encode::encode( "UTF-8", $letter->{'content'} ),
-                                          Encode::encode( "UTF-8", "" . $letter->{'title'} ))
+                                          Encode::encode( "UTF-8", "" . $letter->{'title'}, 1 ))
                             : Encode::encode( "UTF-8", "" . $letter->{'content'} ),
             'Content-Type' => $letter->{'is_html'}
                                 ? 'text/html; charset="utf-8"'
@@ -635,7 +644,7 @@ sub SendAlerts {
                 subject => Encode::encode( "UTF-8", "" . $letter->{'title'} ),
                 message => $letter->{'is_html'}
                             ? _wrap_html( Encode::encode( "UTF-8", $letter->{'content'} ),
-                                          Encode::encode( "UTF-8", "" . $letter->{'title'}  ) )
+                                          Encode::encode( "UTF-8", "" . $letter->{'title'}, 1  ) )
                             : Encode::encode( "UTF-8", "" . $letter->{'content'} ),
                 contenttype => $letter->{'is_html'}
                                 ? 'text/html; charset="utf-8"'
@@ -769,7 +778,7 @@ sub GetPreparedLetter {
                 my $c = $line;
                 $c =~ s/<<count>>/$i/go;
                 foreach my $field ( keys %{$_} ) {
-                    $c =~ s/(<<[^\.]+.$field>>)/$_->{$field}/;
+                    $c =~ s/(<<[^\.]+.$field>>)/($field && $_->{$field}) ? $_->{$field} : ''/e;
                 }
                 $i++;
                 $c;
@@ -1307,7 +1316,7 @@ sub _add_attachments {
     $message->attach(
         Type => $letter->{'content-type'} || 'TEXT',
         Data => $letter->{'is_html'}
-            ? _wrap_html($letter->{'content'}, $letter->{'title'})
+            ? _wrap_html($letter->{'content'}, $letter->{'title'}, 1)
             : $letter->{'content'},
     );
 
@@ -1443,7 +1452,7 @@ sub _send_message_by_email {
             replyto => $branch_replyto,
             sender  => $branch_returnpath,
             subject => $subject,
-            message => $is_html ? _wrap_html( $content, $subject ) : $content,
+            message => $is_html ? _wrap_html( $content, $subject, 1 ) : $content,
             contenttype => $content_type
         }
     );
@@ -1468,24 +1477,30 @@ sub _send_message_by_email {
 }
 
 sub _wrap_html {
-    my ($content, $title) = @_;
+    my ($content, $title, $isEmail ) = @_;
 
-    my $css = C4::Context->preference("NoticeCSS") || '';
-    $css = qq{<link rel="stylesheet" type="text/css" href="$css">} if $css;
-    return <<EOS;
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<title>$title</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-$css
-</head>
-<body>
-$content
-</body>
-</html>
-EOS
+    my $css = C4::Context->preference("NoticeCSSEmail");
+    $css = C4::Context->preference("NoticeCSSEmail") if (! $isEmail );
+    
+    $css = qq{<link rel="stylesheet" type="text/css" href="$css">} if ( $css );
+    
+    if ( $content !~  /<\/body>/ && $content !~  /<body/ ) {
+        $content = "<body>\n" . $content ."</body>\n";
+    }
+    if ( $content !~  /<\/head>/ && $content !~  /<head/ ) {
+        my $head = "<head>\n<title>$title</title>\n" . 
+                   '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />' ."\n";
+        $head .= "$css\n" if ( $css );
+        $head .= "</head>\n";
+        $content = $head . $content;
+    }
+    if ( $content !~  /<\/html>/ && $content !~ /<html/ ) {
+        $content = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"' . "\n" .
+                   '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">' . "\n" .
+                   '<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">' . "\n$content\n</html>\n";
+    }
+    
+    return $content;
 }
 
 sub _is_duplicate {
