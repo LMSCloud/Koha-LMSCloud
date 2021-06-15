@@ -380,6 +380,11 @@
                         Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
                     </label>
                 </p>
+                <p style="display:[% IF ( Koha.Preference('NoticeBcc') ) %]unset[% ELSE %]none[% END %]">
+                    <label>
+                        Send copies of the message(s) to the configured email address of the library: <input type="checkbox" id="noBccEmail" name="noBccEmail" value="yes">
+                    </label>
+                </p>
             </div>
             <div class="modal-footer">
                 <input id="send_notice_submit" type="submit" class="submit" value="Create notices">
@@ -500,6 +505,10 @@
                     alert( _("You do not have selected any patrons to send a notice!") );
                     return false;
                 }
+                if ( patronCount > 100 ) {
+                    alert( _("Sending an adhoc notice is limited to a maximum of 100 patrons!") );
+                    return false;
+                }
 
                 $('#selectAdhocNoticeLetterPatronCount').text(patronCount);
                 
@@ -529,6 +538,10 @@
                     alert( _("You have not selected any patrons to send a notice!") );
                     return false;
                 }
+                if ( patronCount > 100 ) {
+                    alert( _("Sending an adhoc notice is limited to a maximum of 100 patrons!") );
+                    return false;
+                }
 
                 var borrowernumbers = [];
                 $("#memberresultst").find("input:checkbox:checked").each(function(){
@@ -539,6 +552,7 @@
                     use_letter: $("#adhocNoticeLetterSelection_letter").val(),
                     use_email: ($('#preferEmail').is(":checked") ? $("#preferEmail").val() : ''),
                     no_notice_fees: ($('#dontCharge').is(":checked") ? $("#dontCharge").val() : ''),
+                    no_email_bcc: ($('#noBccEmail').is(":checked") ? '' : $("#noBccEmail").val() ),
                     borrowernumbers: borrowernumbers
                 };
 

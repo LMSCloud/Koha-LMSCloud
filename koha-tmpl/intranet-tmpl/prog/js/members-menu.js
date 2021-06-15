@@ -102,6 +102,7 @@ $(document).ready(function(){
                     use_letter: $("#adhocNoticeLetterSelection_letter").val(),
                     use_email: ($('#preferEmail').is(":checked") ? $("#preferEmail").val() : ''),
                     no_notice_fees: ($('#dontCharge').is(":checked") ? $("#dontCharge").val() : ''),
+                    no_email_bcc: ($('#noBccEmail').is(":checked") ? '' : $("#noBccEmail").val() ),
                     borrowernumbers: borrowernumbers
                 };
 

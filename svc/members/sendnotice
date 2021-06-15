@@ -54,8 +54,12 @@ my $params = {
         lettercode      => scalar $input->param('use_letter'),
         prefer_email    => scalar $input->param('use_email'),
         no_notice_fees  => scalar $input->param('no_notice_fees'),
+        no_email_bcc    => scalar $input->param('no_email_bcc')
     };
-my $result = SendAdhocNotices($params);
+
+my $result = { letters => 0, letter_created => 0, letter_printed => 0, letter_mailed => 0, printedfile => '' };
+
+$result = SendAdhocNotices($params) if ( scalar(@borrowers) <= 100 || ! $params->{prefer_email} );
 
 $template->param(
     letters        => $result->{letters},
@@ -74,11 +78,13 @@ sub SendAdhocNotices {
     my $lettercode;
     my $prefer_email;
     my $no_notice_fees = '';
+    my $no_email_bcc   = 0;
     
     @borrowernumbers = @{$params->{borrowernumbers}} if ( $params->{borrowernumbers} );
     $lettercode      = $params->{lettercode} if ( $params->{lettercode} );
     $prefer_email    = $params->{prefer_email} if ( $params->{prefer_email} );
     $no_notice_fees  = $params->{no_notice_fees} if ( $params->{no_notice_fees} );
+    $no_email_bcc    = $params->{no_email_bcc} if ( $params->{no_email_bcc} );
 
     my $letters = [];
     my $letter_created = 0;
@@ -320,7 +326,7 @@ sub SendAdhocNotices {
         $printfilename = CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages } );
     }
     if ( $letter_mailed ) {
-        SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
+        SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages, noEmailBcc => $no_email_bcc } );
     }
     
     return  {
@@ -336,13 +342,17 @@ sub SendMailMessages {
     my $params = shift;
     
     my @messageIDs;
+    
+    my $sendNoBcc = undef;
+    $sendNoBcc = 1 if ( exists($params->{noEmailBcc}) && $params->{noEmailBcc} );
+    
     @messageIDs = @{$params->{emailmessages}} if ( $params->{emailmessages} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
 
     my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
     
     foreach my $message ( @messages ) {
-        C4::Letters::_send_message_by_email( $message );
+        C4::Letters::_send_message_by_email( $message, undef, undef, undef, $sendNoBcc );
     }
 }
 

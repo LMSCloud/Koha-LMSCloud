@@ -1403,7 +1403,7 @@ sub _get_unsent_messages {
 
 sub _send_message_by_email {
     my $message = shift or return;
-    my ($username, $password, $method) = @_;
+    my ($username, $password, $method, $sendNoBcc) = @_;
 
     my $patron = Koha::Patrons->find( $message->{borrowernumber} );
     my $to_address = $message->{'to_address'};
@@ -1459,7 +1459,9 @@ sub _send_message_by_email {
 
     $sendmail_params{'Auth'} = {user => $username, pass => $password, method => $method} if $username;
     if ( my $bcc = C4::Context->preference('NoticeBcc') ) {
-       $sendmail_params{ Bcc } = $bcc;
+        if ( !$sendNoBcc ) {
+            $sendmail_params{ Bcc } = $bcc;
+        }
     }
 
     _update_message_to_address($message->{'message_id'},$to_address) unless $message->{to_address}; #if initial message address was empty, coming here means that a to address was found and queue should be updated

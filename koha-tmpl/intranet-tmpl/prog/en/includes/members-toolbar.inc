@@ -143,6 +143,11 @@
                             Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
                         </label>
                     </p>
+                    <p style="display:[% IF ( Koha.Preference('NoticeBcc') ) %]unset[% ELSE %]none[% END %]">
+                        <label>
+                            Send a copy of the message to the configured email address of the library: <input type="checkbox" id="noBccEmail" name="noBccEmail" value="yes">
+                        </label>
+                    </p>
                 </div>
                 <div class="modal-footer">
                     <input id="send_notice_submit" type="submit" class="submit" value="Create notices">
