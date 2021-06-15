@@ -283,6 +283,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
         ) 
     {
         var persons = document.createElement("p");
+	persons.setAttribute('class','persons');
         persons.appendChild(document.createTextNode("von/mit "));
         var x = 0;
         if ( filmfriendData.results[facetID].hitList[entryID].regie ) {
@@ -312,7 +313,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
                     persons.appendChild(sep);
                 }
                 var personNameSpan = document.createElement("span");
-                personNameSpan.setAttribute('class','regie');
+                personNameSpan.setAttribute('class','actor');
                 var personNameLink = document.createElement("a");
                 personNameLink.setAttribute('href',filmfriendData.results[facetID].hitList[entryID].actors[s].filmfriendLink);
                 personNameLink.setAttribute('target',targetLinkFilmfriend);
