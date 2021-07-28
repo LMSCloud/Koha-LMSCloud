@@ -239,7 +239,7 @@ sub getPatronStatus {
         }
     
         # determine the the correct age level
-        if ( $age > 0 && $age < 6 ) {
+        if ( $age >= 0 && $age < 6 ) {
             $response->{'fsk'} = 0;
         }
         elsif ( $age >= 6 && $age < 12 ) {
