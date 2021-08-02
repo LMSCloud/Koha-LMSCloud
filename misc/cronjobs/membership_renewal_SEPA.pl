@@ -102,6 +102,10 @@ Optional parameter to use another lettercode than the standard configured in sys
 
 =head1 CONFIGURATION
 
+When setting system preferences be aware that many (but not all) entries in the payment instruction XML file
+are restricted to the SEPA charakter set, i.e.: a-z A-Z 0-9 ' : ? , . + - ( ) / and blank.
+So try to use other characters only if there are good reasons for it. Probably your XML file then will be rejected by the bank. 
+ 
 Relevant system preferences:
 
 'SepaDirectDebitCreditorBic': BIC of the library's bank account used in XML file containing SEPA direct debits.
@@ -114,9 +118,9 @@ Relevant system preferences:
 
 'SepaDirectDebitInitiatingPartyName': Name of the library used in XML file containing SEPA direct debits for XML-element <GrpHdr><InitgPty><Nm> (usually uppercase).
 
-'SepaDirectDebitMessageIdHeader': Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>.
+'SepaDirectDebitMessageIdHeader': Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>. Max. length: 27 (+8 for the date)
 
-'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>.
+'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>. By many banks only the first 27 characters are used.
 
 'SepaDirectDebitBorrowerNoticeLettercode': Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee or other fines.
 

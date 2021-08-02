@@ -238,6 +238,7 @@ sub updateResultHash {
     my $currentFeeHit = shift;
 
     my $currentHitBorrowernumber = $currentFeeHit->{borrowers}->{borrowernumber};
+    print STDERR "Koha::SEPAPayment::updateResultHash(resultHashName:$resultHashName:) START currentHitBorrowernumber:" . (defined($currentHitBorrowernumber)?$currentHitBorrowernumber:'undef') . ":\n" if $self->{verbose} > 1;
 
     if ( ! defined($self->{$resultHashName}->{$currentHitBorrowernumber}) ) {
         $self->{$resultHashName}->{$currentHitBorrowernumber}->{accountlinesSumAmountoutstanding} = 0.0;
@@ -268,6 +269,7 @@ sub updateResultHash {
         $self->{$resultHashName}->{$currentHitBorrowernumber}->{borrower_attributes}->{$borrowerAttributesKey} = $currentFeeHit->{borrower_attributes}->{$borrowerAttributesKey};
     }
 
+    print STDERR "Koha::SEPAPayment::updateResultHash(resultHashName:$resultHashName:) END self->{$resultHashName}->{$currentHitBorrowernumber}:" . Dumper($self->{$resultHashName}->{$currentHitBorrowernumber}) . ":\n" if $self->{verbose} > 1;
 }
 
 sub renewMembershipForSepaDirectDebitPatrons {
@@ -413,6 +415,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
                 SELECT al2.borrowernumber, sum(al2.amountoutstanding)
                 FROM accountlines al2
                 WHERE al2.borrowernumber = a.borrowernumber
+                  AND al2.accounttype IN ($accountTypesSel)
                   AND al2.amountoutstanding >= 0.01
                 GROUP BY al2.borrowernumber
                 HAVING SUM( al2.amountoutstanding ) >= $minSumAmountoutstanding
@@ -510,7 +513,8 @@ sub paySelectedFeesOfPatron {
     my ($borrowersSelectedFees, $requestedCollectionDate) = @_;
 
     my $kohaPaymentId = 0;
-    print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() accountlines count:" . $borrowersSelectedFees->{accountlinesCount} . ": sumAmountoutstanding:" . $borrowersSelectedFees->{accountlinesSumAmountoutstanding} . ": requestedCollectionDate:" . $requestedCollectionDate . ":\n" if $self->{verbose} > 1;
+    print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() START accountlines count:" . $borrowersSelectedFees->{accountlinesCount} . ": sumAmountoutstanding:" . $borrowersSelectedFees->{accountlinesSumAmountoutstanding} . ": requestedCollectionDate:" . $requestedCollectionDate . ":\n" if $self->{verbose} > 1;
+    print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() borrowersSelectedFees:" . Dumper($borrowersSelectedFees) . ":\n" if $self->{verbose} > 1;
 
     my $selectedAccountlinesIds = '';
     my @selectedAccountlinesIdsArray = ();
@@ -523,11 +527,13 @@ sub paySelectedFeesOfPatron {
     }
 
     # check if required info is set
+    my $mandateIdOk = $self->checkMandateId($borrowersSelectedFees);
     my $ibanOk = $self->checkIban($borrowersSelectedFees);
     my $bicOk = $self->checkBic($borrowersSelectedFees);
     my $signOk = 1;    # $self->checkSign($borrowersSelectedFees);    # wei 10.06.2020: no checks of SEPA signature, please!
 
-    if ( $ibanOk &&
+    if ( $mandateIdOk &&
+         $ibanOk &&
          $bicOk &&
          $signOk &&
          length( $selectedAccountlinesIds ) > 0 &&
@@ -591,6 +597,46 @@ sub paySelectedFeesOfPatron {
     }
     print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() returns kohaPaymentId:" . ($kohaPaymentId?$kohaPaymentId:'undef') . ":\n" if $self->{verbose} > 1;
     return $kohaPaymentId;
+}
+
+sub checkMandateId {
+    my $self = shift;
+    my ($borrowersSelectedFees) = @_;
+    my $ret = 0;
+
+    print STDERR "Koha::SEPAPayment::checkMandateId() START\n" if $self->{verbose} > 1;
+    # borrowers.cardnumber is used as SEPA mandate ID for XML element <MndtId> of payment instruction file; empty entry not allowed
+    if( ! ( defined( $borrowersSelectedFees ) &&
+            defined( $borrowersSelectedFees->{borrowers} ) &&
+            defined( $borrowersSelectedFees->{borrowers}->{cardnumber} ) &&
+            length( $borrowersSelectedFees->{borrowers}->{cardnumber} ) > 0
+          ) ) {
+        print STDERR "Koha::SEPAPayment::checkMandateId() cardnumber not defined (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
+
+        my $errormsg = 'Ausweisnummer (SEPA-Mandatreferenz) ist nicht definiert.';
+        my $firstname = '';
+        my $surname = '';
+        my $borrowernumber = '';
+        if ( defined( $borrowersSelectedFees ) &&
+             defined( $borrowersSelectedFees->{borrowers} ) ) {
+            if ( defined( $borrowersSelectedFees->{borrowers}->{firstname} ) ) {
+                $firstname = $borrowersSelectedFees->{borrowers}->{firstname};
+            }
+            if ( defined( $borrowersSelectedFees->{borrowers}->{surname} ) ) {
+                $surname = $borrowersSelectedFees->{borrowers}->{surname};
+            }
+            if ( defined( $borrowersSelectedFees->{borrowers}->{borrowernumber} ) ) {
+                $borrowernumber = $borrowersSelectedFees->{borrowers}->{borrowernumber};
+            }
+        }
+        $errormsg .= ' Vorname:' . $firstname . ':';
+        $errormsg .= ' Nachname:' . $surname . ':';
+        $errormsg .= ' borrowernumber:' . $borrowernumber . ':';
+        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
+    } else {
+        $ret = 1;
+    }
+    return $ret;
 }
 
 sub checkIban {
