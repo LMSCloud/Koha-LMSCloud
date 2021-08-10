@@ -446,7 +446,11 @@ sub build_patron_status {
             # Patron password is a required field.
             $resp .= add_field( FID_VALID_PATRON_PWD, sipbool($password_rc) );
             $resp .= maybe_add( FID_CURRENCY, $patron->currency );
-            $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount );
+            if ( $server->{account}->{deliver_zero_fees_as_BV0} ) {
+                $resp .= add_field( FID_FEE_AMT,  ($patron->fee_amount || 0) );
+            } else {
+                $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount );
+            }
         }
 
         my $msg = $patron->screen_msg;
@@ -1056,7 +1060,11 @@ sub handle_patron_info {
         }
 
         $resp .= maybe_add( FID_CURRENCY, $patron->currency );
-        $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount );
+        if ( $server->{account}->{deliver_zero_fees_as_BV0} ) {
+            $resp .= add_field( FID_FEE_AMT,  ($patron->fee_amount || 0) );
+        } else {
+            $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount );
+        }
         $resp .= add_field( FID_FEE_LMT, $patron->fee_limit );
 
         # TODO: zero or more item details for 2.0 can go here:
