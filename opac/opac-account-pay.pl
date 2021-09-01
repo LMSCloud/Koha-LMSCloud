@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright ByWater Solutions 2015
-# parts Copyright 2019-2020 (C) LMSCLoud GmbH
+# parts Copyright 2019-2021 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -19,6 +19,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+
 use Modern::Perl;
 use utf8;
 use Data::Dumper;
@@ -27,12 +28,6 @@ use CGI;
 use HTTP::Request::Common;
 use LWP::UserAgent;
 use URI;
-use Digest;
-use Digest::MD5 qw(md5 md5_hex md5_base64);
-use JSON;
-use Encode;
-use CGI::Carp;
-use SOAP::Lite;
 
 use C4::Auth;
 use C4::Output;
@@ -42,6 +37,7 @@ use Koha::Database;
 use Koha::Plugins::Handler;
 use Koha::Patrons;
 use C4::Epayment::GiroSolution;
+use C4::Epayment::Epay21;
 use C4::Epayment::PmPaymentPaypage;
 use C4::Epayment::EPayBLPaypage;
 
@@ -73,16 +69,6 @@ unless ( C4::Context->preference('EnablePayPalOpacPayments') ||
          $use_plugin ) {
     print $cgi->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
-}
-
-my $key = 'dsTFshg5678DGHMO';    # dummy for wrong HMAC digest
-sub genHmacMd5 {
-    my ($key, $str) = @_;
-    my $hmac_md5 = Digest->HMAC_MD5($key);
-    $hmac_md5->add($str);
-    my $hashval = $hmac_md5->hexdigest();
-
-    return $hashval;
 }
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -234,167 +220,31 @@ elsif ( $payment_method eq 'gs_creditcard' && C4::Context->preference('Girosolut
 }
 
 
-elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {    # ePay21 Paypage
-    my $paytype = 17;    # just a dummy; may be interpreted as payment via epay21 paypage
-    my $seconds = time();    # make payment trials for same accountline distinguishable
+elsif ( $payment_method eq 'epay21_paypage' && C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ) {    # epay21 Paypage
 
-    # overwriting SOAP::Transport::HTTP::Client::get_basic_credentials for substituting our customized credentials
-    sub SOAP::Transport::HTTP::Client::get_basic_credentials {
-        # credentials for basic authentication
-        my $basicAuth_User = C4::Context->preference('Epay21BasicAuthUser');    # mandatory
-        my $basicAuth_Pw = C4::Context->preference('Epay21BasicAuthPw');    # mandatory
+    $logger->debug("opac-account-pay.pl/epay21_paypage START creating new C4::Epayment::Epay21 object. cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
 
-        return $basicAuth_User => $basicAuth_Pw;
-    }
+    my $errorTemplate = 'EPAY21_ERROR_PROCESSING';
+    my $epay21RedirectToPaypageUrl = '';
 
-    # Initialisierung einer ePay21 paypage Zahlung
-    my $epay21WebserviceUrl = C4::Context->preference('Epay21PaypageWebservicesURL');    # test env: https://epay-qs.ekom21.de/epay21/service/v11/ePay21Service.asmx   production env: https://epay.ekom21.de/epay21/service/v11/ePay21Service.asmx
-    my $epay21WebserviceUrl_ns = 'http://epay21.ekom21.de/service/v11';
+    # init payment action by sending the required HTML form to the configured endpoint, and then, if succeeded, redirect to the epay21 paypage URL delivered in its response
+    my $epay21Paypage = C4::Epayment::Epay21->new( { patron => $patron, amount_to_pay => $amount_to_pay, accountlinesIds => \@accountlines, paytype => 17, seconds => time() } );
+    ( $error, $errorTemplate, $epay21RedirectToPaypageUrl ) = $epay21Paypage->paymentAction();
 
-    my $opac_base_url = C4::Context->preference('OPACBaseURL');    # the ePay21 software seems to work only with https URL (not with http)
-
-    my $return_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-epay21-return.pl" );    # return_url is used to update accountlines corresponding to the payment
-    $return_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype, timeKoha => $seconds } );    # a la girosolutions
-
-    my $cancel_url = URI->new( $opac_base_url . "/cgi-bin/koha/opac-account-pay-epay21-cancelled.pl" );    # cancel_url is used to send info to epay21 that user has aborted the payment action
-    $cancel_url->query_form( { amountKoha => $amount_to_pay, accountlinesKoha => \@accountlines, borrowernumberKoha => $borrowernumber, paytypeKoha => $paytype, timeKoha => $seconds } );    # a la $return_url
-
-    # creating a Hmac Md5 hashvalue as unique id for CallerPayID
-    my $basicAuth_Pw = C4::Context->preference('Epay21BasicAuthPw');
-    $key = 'yK§' . $basicAuth_Pw . '89%3fhcR';
-    my $now = DateTime->now( time_zone => C4::Context->tz() );
-    my $todayMDY = $now->mdy;
-    my $todayDMY = $now->dmy;
-    my $merchantTxIdKey = $todayMDY . $key . $todayDMY . $key . $borrowernumber . $paytype . '_' . $amount_to_pay . '_' . $paytype . $borrowernumber . $key . $todayDMY . $key . $todayMDY . $seconds;
-    my $merchantTxIdVal = $borrowernumber . '_' . $amount_to_pay;
-    foreach my $accountline (@accountlines) {
-        $merchantTxIdVal .= '_' . $accountline;
-    }
-    $merchantTxIdVal .= '_' . $paytype;
-    $merchantTxIdVal .= '_' . $merchantTxIdVal . '_' . $merchantTxIdVal;
-
-    my $merchantTxId = genHmacMd5($merchantTxIdKey, $merchantTxIdVal);         # unique merchant transaction ID (this MD5 sum is used to check integrity of Koha CGI parameters in opac-account-pay-epay21-return.pl)
-
-    # InitPayment OP parameters
-    my $iniPay_OP_Mandant = C4::Context->preference('Epay21Mandant');    # mandatory
-    my $iniPay_OP_MandantDesc = C4::Context->preference('Epay21MandantDesc');    # will be displayed on paypage
-    my $iniPay_OP_App = C4::Context->preference('Epay21App');    # mandatory
-    my $iniPay_OP_LocaleCode = 'DE_DE';
-    my $iniPay_OP_ClientInfo = C4::Context->preference('Epay21Mandant') . '_' . C4::Context->preference('Epay21App');
-    #my $iniPay_OP_PageURL = '';    # not required
-    #my $iniPay_OP_PageReferrerURL = '';    # not required
-
-    # InitPayment Query parameters
-    my $epay21AccountingSystemInfo = C4::Context->preference('Epay21AccountingSystemInfo');
-    if ( !defined($epay21AccountingSystemInfo) ) {
-        $epay21AccountingSystemInfo = '';
-    }
-    my $iniPay_Query_CallerPayID = $merchantTxId;    # mandatory, unique Identifier des Falles im Fachverfahren
-    my $iniPay_Query_Purpose = substr($patron->cardnumber() . ' ' . $epay21AccountingSystemInfo, 0, 27);   # With multibyte-characters a wrong hashval is calculated. This field accepts only characters conforming to SEPA ( i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /  );
-    my $iniPay_Query_OrderDesc = C4::Context->preference('Epay21OrderDesc');    # will be displayed on paypage
-    #my $iniPay_Query_OrderInfos = 'Auch dieser Text kann auf der PayPage angezeigt werden';    # wei 12.12.19: do not use to avoid confusion
-    my $iniPay_Query_Amount = $amount_to_pay * 100;      # not Euro but Cent are required; 1,23 EUR => 123 Cent
-    my $iniPay_Query_Currency = 'EUR';    # mandatory if Art=online
-    my $iniPay_Query_ReturnURL = $return_url->as_string();    # mandatory
-    my $iniPay_Query_CancelURL = $cancel_url->as_string();    # mandatory
-    my $iniPay_Query_Art = 'online';    # mandatory
-    my $iniPay_Query_GetQrCode = 'false';    # mandatory
-    my $iniPay_Query_PaymentTimeout = 15;    # duration of validity of paypage: 15 minutes
-#    my $iniPay_Query_ReferenceID = 'ReferenceID000002';    # mandatory if Art=invoice, not required if Art=online
-#    my $iniPay_Query_ReferencePIN = 'ReferencePin000002';    # mandatory if Art=invoice, not required if Art=online
-#    my $hashval = md5_hex($iniPay_Query_CallerPayID . $iniPay_Query_ReferenceID . $iniPay_Query_ReferencePIN);
-#    my $iniPay_Query_CallerCode = SOAP::Data->name('CallerCode'  => $hashval);    # mandatory if Art=invoice, not required if Art=online
-
-    my $InitPayment_OP = SOAP::Data->name('OP' => \SOAP::Data->value(
-        SOAP::Data->name('Mandant' => $iniPay_OP_Mandant)->type('string'),
-        SOAP::Data->name('MandantDesc' => $iniPay_OP_MandantDesc)->type('string'),
-        SOAP::Data->name('App' => $iniPay_OP_App)->type('string'),
-        SOAP::Data->name('LocaleCode' => $iniPay_OP_LocaleCode),
-        SOAP::Data->name('ClientInfo' => $iniPay_OP_ClientInfo),
-        #SOAP::Data->name('PageURL' => $iniPay_OP_PageURL,
-        #SOAP::Data->name('PageReferrerURL' => $iniPay_OP_PageReferrerURL
-    ));
-
-    my $InitPayment_Query = SOAP::Data->name('Query' => \SOAP::Data->value(
-        SOAP::Data->name('CallerPayID' => $iniPay_Query_CallerPayID),
-        SOAP::Data->name('Purpose' => $iniPay_Query_Purpose)->type('string'),
-        SOAP::Data->name('OrderDesc' => $iniPay_Query_OrderDesc)->type('string'),
-        #SOAP::Data->name('OrderInfos' => $iniPay_Query_OrderInfos),    # wei 12.12.19: do not use to avoid confusion
-        SOAP::Data->name('Amount' => $iniPay_Query_Amount),
-        SOAP::Data->name('Currency' => $iniPay_Query_Currency),
-        SOAP::Data->name('ReturnURL' => $iniPay_Query_ReturnURL),
-        SOAP::Data->name('CancelURL' => $iniPay_Query_CancelURL),
-        SOAP::Data->name('Art' => $iniPay_Query_Art),
-        SOAP::Data->name('GetQrCode' => $iniPay_Query_GetQrCode),
-        SOAP::Data->name('PaymentTimeout' => $iniPay_Query_PaymentTimeout)
-#        SOAP::Data->name('ReferenceID' => $iniPay_Query_ReferenceID),    # mandatory if Art=invoice, not required if Art=online
-#        SOAP::Data->name('ReferencePIN' => $iniPay_Query_ReferencePIN),    # mandatory if Art=invoice, not required if Art=online
-#        SOAP::Data->name('CallerCode' => $iniPay_Query_CallerCode)    # mandatory if Art=invoice, not required if Art=online
-    ));
-
-    # call the webservice
-    $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
-    use IO::Socket::SSL;
-    #$IO::Socket::SSL::DEBUG = 3;
-
-    my $soap_request = SOAP::Lite->new( proxy => $epay21WebserviceUrl);
-    $soap_request->default_ns($epay21WebserviceUrl_ns);
-    $soap_request->serializer->readable(1);
-
-    # SOAP::Lite generates $epay21WebserviceUrl_ns#InitPayment by default,
-    # but MS .NET requires $epay21WebserviceUrl_ns/InitPayment  - so we have to counteract:
-    $soap_request->on_action( sub { join '/', @_ } );
-
-    my $response = eval {
-        $soap_request->InitPayment( $InitPayment_OP, $InitPayment_Query );
-    };
-    if ( $@ ) {
-        my $mess = "opac-account-pay.pl/epay21_paypage error when calling soap_request->InitPayment:$@:";
-        carp $mess . "\n";
-        $template->param( error => "EPAY21_ERROR_PROCESSING" );
-        $error = 1;
-    }
-
-
-    if ($response ) {
-        my $epay21msg = '';
-        if ( !$response->fault() ) {
-            my $redirectedToPaypage = 0;
-            if (    $response->result()
-                 && $response->result()->{Operation}
-                 && $response->result()->{Operation}->{Result} )
-            {
-                my $resultOperation = $response->result()->{Operation};
-                my $resultOperationResult = $resultOperation->{Result};
-                if ( $resultOperationResult->{'OK'} eq 'true' ) {
-                    if ( $response->result()->{PayPageInfo} ) {
-                        my $payPageUrl = $response->result()->{PayPageInfo}->{PayPageUrl};
-                        print $cgi->redirect( $payPageUrl );
-                        $redirectedToPaypage = 1;
-                    }
-                }
-                if ( $resultOperationResult->{'OK'} ne 'true' ) {
-                    $epay21msg = $resultOperationResult->{'ErrorMessage'} . ' (' . $resultOperationResult->{'ErrorMessageDetail'} . ')';
-                }
-            }
-
-            if ( $redirectedToPaypage == 0 ) {
-                $template->param( error => "EPAY21_ERROR_PROCESSING" );
-                $error = 1;
-            }
-        }    # End of: !$response->fault()
-        else {
-            $epay21msg = $response->fault();
-            $template->param( error => "EPAY21_UNABLE_TO_CONNECT" );
-            $error = 1;
+    if ( $error || $errorTemplate ) {
+        $logger->error("opac-account-pay.pl/epay21_paypage END error:$error: errorTemplate:$errorTemplate:");
+        if ( $errorTemplate ) {
+            $template->param( error => $errorTemplate );
         }
-        if ( $epay21msg ) {
-            my $mess = "opac-account-pay.pl/epay21_paypage epay21msg:" . $epay21msg . ":";
-            carp $mess . "\n";
+    } else {
+        $logger->debug("opac-account-pay.pl/epay21_paypage END error:$error: errorTemplate:$errorTemplate: epay21RedirectToPaypageUrl:$epay21RedirectToPaypageUrl:");
+
+        if ( $epay21RedirectToPaypageUrl ) {
+            print $cgi->redirect( $epay21RedirectToPaypageUrl );
         }
     }
 
-    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 }) if $error;
+    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
 }
 
 
@@ -410,7 +260,7 @@ elsif ( $payment_method eq 'pmpayment_paypage' && C4::Context->preference('PmPay
     ( $error, $errorTemplate, $pmpaymentRedirectToPaypageUrl ) = $pmPaymentPaypage->paymentAction();
 
     if ( $error || $errorTemplate ) {
-        $logger->error("opac-account-pay.pl/epaybl_paypage END error:$error: errorTemplate:$errorTemplate:");
+        $logger->error("opac-account-pay.pl/pmpayment_paypage END error:$error: errorTemplate:$errorTemplate:");
         if ( $errorTemplate ) {
             $template->param( error => $errorTemplate );
         }
